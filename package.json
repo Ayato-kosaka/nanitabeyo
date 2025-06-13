@@ -1,0 +1,29 @@
+{
+	"name": "food-app",
+	"private": true,
+	"version": "1.0.0",
+	"workspaces": [
+		"app-expo",
+		"functions",
+		"e2e"
+	],
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"lint": "turbo run lint",
+		"format": "prettier --write .",
+		"typecheck": "turbo run typecheck",
+		"deploy:functions": "pnpm --workspace functions run deploy",
+		"db:migration": "bash scripts/apply-migration.sh",
+		"db:pull": "bash scripts/db-pull.sh",
+		"db:reset": "bash scripts/reset-schema.sh",
+		"deploy:storage": "pnpm firebase deploy --only storage"
+	},
+	"devDependencies": {
+		"firebase-tools": "^14.1.0",
+		"prettier": "^3.2.5",
+		"turbo": "^2.5.0",
+		"typescript": "^5.4.3"
+	},
+	"packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
+}
