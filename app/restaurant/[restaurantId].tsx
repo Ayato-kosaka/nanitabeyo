@@ -19,8 +19,11 @@ import {
   MessageCircle,
   ExternalLink,
   Phone,
-  Clock
+  Clock,
+  Calendar,
+  Camera
 } from 'lucide-react-native';
+import MapView, { Marker } from 'react-native-maps';
 
 const { width, height } = Dimensions.get('window');
 
@@ -64,63 +67,63 @@ const foodPosts: FoodPost[] = [
   {
     id: '1',
     name: 'Truffle Pasta',
-    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 142,
     comments: 23,
   },
   {
     id: '2',
     name: 'Wagyu Steak',
-    image: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 298,
     comments: 45,
   },
   {
     id: '3',
     name: 'Chocolate Soufflé',
-    image: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 186,
     comments: 31,
   },
   {
     id: '4',
     name: 'Caesar Salad',
-    image: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 89,
     comments: 12,
   },
   {
     id: '5',
     name: 'Lobster Bisque',
-    image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 156,
     comments: 28,
   },
   {
     id: '6',
     name: 'Margherita Pizza',
-    image: 'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 234,
     comments: 39,
   },
   {
     id: '7',
     name: 'Tiramisu',
-    image: 'https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 178,
     comments: 25,
   },
   {
     id: '8',
     name: 'Seafood Risotto',
-    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 203,
     comments: 34,
   },
   {
     id: '9',
     name: 'Grilled Salmon',
-    image: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400',
+    image: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 167,
     comments: 22,
   },
@@ -171,36 +174,36 @@ export default function RestaurantScreen() {
     </TouchableOpacity>
   );
 
-  const handleOpenMaps = () => {
-    const encodedAddress = encodeURIComponent(restaurantInfo.address);
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    Linking.openURL(mapsUrl);
+  const handleMakeReservation = () => {
+    console.log('Make reservation...');
   };
 
   const handlePostReview = () => {
-    console.log('Post review...');
+    console.log('Post review with media...');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Map Placeholder Section */}
+      {/* Map Section */}
       <View style={styles.mapContainer}>
-        <View style={styles.mapPlaceholder}>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800' }} 
-            style={styles.mapBackgroundImage}
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: restaurantInfo.latitude,
+            longitude: restaurantInfo.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+        >
+          <Marker
+            coordinate={{
+              latitude: restaurantInfo.latitude,
+              longitude: restaurantInfo.longitude,
+            }}
+            title={restaurantInfo.name}
+            description={restaurantInfo.address}
           />
-          <View style={styles.mapOverlay}>
-            <View style={styles.mapContent}>
-              <Text style={styles.mapRestaurantName}>{restaurantInfo.name}</Text>
-              <Text style={styles.mapAddress}>{restaurantInfo.address}</Text>
-              <TouchableOpacity style={styles.openMapsButton} onPress={handleOpenMaps}>
-                <MapPin size={16} color="#007AFF" />
-                <Text style={styles.openMapsButtonText}>Google Mapsで開く</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        </MapView>
         
         {/* Back Button */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -229,12 +232,12 @@ export default function RestaurantScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleOpenMaps}>
-            <MapPin size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>地図で見る</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={handleMakeReservation}>
+            <Calendar size={20} color="#007AFF" />
+            <Text style={styles.actionButtonText}>予約する</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={handlePostReview}>
-            <MessageCircle size={20} color="#007AFF" />
+            <Camera size={20} color="#007AFF" />
             <Text style={styles.actionButtonText}>レビュー投稿</Text>
           </TouchableOpacity>
         </View>
@@ -284,10 +287,6 @@ export default function RestaurantScreen() {
                 <Clock size={20} color="#666" />
                 <Text style={styles.infoText}>{restaurantInfo.hours}</Text>
               </View>
-              <TouchableOpacity style={styles.externalLinkButton} onPress={handleOpenMaps}>
-                <ExternalLink size={20} color="#007AFF" />
-                <Text style={styles.externalLinkText}>Google Mapsで開く</Text>
-              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
@@ -305,52 +304,8 @@ const styles = StyleSheet.create({
     height: height * 0.4,
     position: 'relative',
   },
-  mapPlaceholder: {
+  map: {
     flex: 1,
-    position: 'relative',
-  },
-  mapBackgroundImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  mapOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: 16,
-  },
-  mapContent: {
-    alignItems: 'center',
-  },
-  mapRestaurantName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  mapAddress: {
-    fontSize: 14,
-    color: '#FFF',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  openMapsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  openMapsButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginLeft: 8,
-    fontWeight: '500',
   },
   backButton: {
     position: 'absolute',
@@ -475,7 +430,7 @@ const styles = StyleSheet.create({
   },
   foodPost: {
     width: (width - 8) / 3,
-    height: (width - 8) / 3,
+    height: ((width - 8) / 3) * (16 / 9),
     margin: 1,
     position: 'relative',
   },
@@ -518,20 +473,5 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12,
     flex: 1,
-  },
-  externalLinkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F8FF',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  externalLinkText: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginLeft: 8,
-    fontWeight: '500',
   },
 });
