@@ -9,6 +9,7 @@ import {
   Dimensions,
   SafeAreaView,
   FlatList,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { 
@@ -20,7 +21,6 @@ import {
   Phone,
   Clock
 } from 'lucide-react-native';
-import MapView, { Marker } from 'react-native-maps';
 
 const { width, height } = Dimensions.get('window');
 
@@ -172,7 +172,9 @@ export default function RestaurantScreen() {
   );
 
   const handleOpenMaps = () => {
-    console.log('Opening Google Maps...');
+    const encodedAddress = encodeURIComponent(restaurantInfo.address);
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    Linking.openURL(mapsUrl);
   };
 
   const handlePostReview = () => {
@@ -181,26 +183,24 @@ export default function RestaurantScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Map Section */}
+      {/* Map Placeholder Section */}
       <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: restaurantInfo.latitude,
-            longitude: restaurantInfo.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-        >
-          <Marker
-            coordinate={{
-              latitude: restaurantInfo.latitude,
-              longitude: restaurantInfo.longitude,
-            }}
-            title={restaurantInfo.name}
-            description={restaurantInfo.address}
+        <View style={styles.mapPlaceholder}>
+          <Image 
+            source={{ uri: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800' }} 
+            style={styles.mapBackgroundImage}
           />
-        </MapView>
+          <View style={styles.mapOverlay}>
+            <View style={styles.mapContent}>
+              <Text style={styles.mapRestaurantName}>{restaurantInfo.name}</Text>
+              <Text style={styles.mapAddress}>{restaurantInfo.address}</Text>
+              <TouchableOpacity style={styles.openMapsButton} onPress={handleOpenMaps}>
+                <MapPin size={16} color="#007AFF" />
+                <Text style={styles.openMapsButtonText}>Google Mapsで開く</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
         
         {/* Back Button */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -305,8 +305,52 @@ const styles = StyleSheet.create({
     height: height * 0.4,
     position: 'relative',
   },
-  map: {
+  mapPlaceholder: {
     flex: 1,
+    position: 'relative',
+  },
+  mapBackgroundImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  mapOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 16,
+  },
+  mapContent: {
+    alignItems: 'center',
+  },
+  mapRestaurantName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFF',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  mapAddress: {
+    fontSize: 14,
+    color: '#FFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  openMapsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  openMapsButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   backButton: {
     position: 'absolute',
