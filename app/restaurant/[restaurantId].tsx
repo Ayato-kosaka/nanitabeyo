@@ -10,6 +10,8 @@ import {
   SafeAreaView,
   FlatList,
   Platform,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { 
@@ -20,7 +22,10 @@ import {
   Phone,
   Clock,
   Calendar,
-  Camera
+  Camera,
+  Filter,
+  Search,
+  X
 } from 'lucide-react-native';
 import MapViewComponent from '@/components/MapView';
 
@@ -46,6 +51,11 @@ interface FoodPost {
   image: string;
   likes: number;
   comments: number;
+}
+
+interface FilterOptions {
+  priceRange: string;
+  category: string;
 }
 
 const restaurantInfo: RestaurantInfo = {
@@ -131,7 +141,16 @@ const foodPosts: FoodPost[] = [
 export default function RestaurantScreen() {
   const { restaurantId } = useLocalSearchParams();
   const [selectedTab, setSelectedTab] = useState<'posts' | 'info'>('posts');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    priceRange: '',
+    category: '',
+  });
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const priceRanges = ['¥1,000以下', '¥1,000-3,000', '¥3,000-5,000', '¥5,000以上'];
+  const categories = ['和食', 'イタリアン', 'フレンチ', '中華', 'アジア料理', 'その他'];
 
   const formatLikeCount = (count: number): string => {
     if (count >= 1000000) {
@@ -181,6 +200,18 @@ export default function RestaurantScreen() {
     console.log('Post review with media...');
   };
 
+  const handleApplyFilters = () => {
+    console.log('Applying filters:', filters);
+    setShowFilter(false);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      priceRange: '',
+      category: '',
+    });
+  };
+
   const handleOpenMaps = () => {
     if (Platform.OS === 'web') {
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantInfo.address)}`;
@@ -208,6 +239,22 @@ export default function RestaurantScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={20} color="#666" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="地点・地域を検索"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <TouchableOpacity style={styles.filterIconButton} onPress={() => setShowFilter(true)}>
+            <Filter size={20} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Bottom Sheet */}
@@ -237,7 +284,7 @@ export default function RestaurantScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={handlePostReview}>
             <Camera size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>レビュー投稿</Text>
+            <Text style={styles.actionButtonText}>画像・動画投稿</Text>
           </TouchableOpacity>
         </View>
 
@@ -290,6 +337,87 @@ export default function RestaurantScreen() {
           )}
         </ScrollView>
       </View>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilter}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.filterModalContainer}>
+          <View style={styles.filterHeader}>
+            <TouchableOpacity onPress={() => setShowFilter(false)}>
+              <X size={24} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.filterTitle}>フィルター</Text>
+            <TouchableOpacity onPress={handleResetFilters}>
+              <Text style={styles.resetText}>リセット</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.filterContent}>
+            {/* Price Range Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>価格帯</Text>
+              <View style={styles.filterOptions}>
+                {priceRanges.map((range) => (
+                  <TouchableOpacity
+                    key={range}
+                    style={[
+                      styles.filterOption,
+                      filters.priceRange === range && styles.filterOptionSelected
+                    ]}
+                    onPress={() => setFilters(prev => ({ 
+                      ...prev, 
+                      priceRange: prev.priceRange === range ? '' : range 
+                    }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.priceRange === range && styles.filterOptionTextSelected
+                    ]}>
+                      {range}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Category Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>料理カテゴリ</Text>
+              <View style={styles.filterOptions}>
+                {categories.map((category) => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.filterOption,
+                      filters.category === category && styles.filterOptionSelected
+                    ]}
+                    onPress={() => setFilters(prev => ({ 
+                      ...prev, 
+                      category: prev.category === category ? '' : category 
+                    }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.category === category && styles.filterOptionTextSelected
+                    ]}>
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.filterFooter}>
+            <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
+              <Text style={styles.applyButtonText}>適用</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -310,6 +438,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 20,
     padding: 8,
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  filterIconButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 12,
   },
   bottomSheet: {
     flex: 1,
@@ -469,5 +626,82 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12,
     flex: 1,
+  },
+  filterModalContainer: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  resetText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  filterContent: {
+    flex: 1,
+    padding: 16,
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    backgroundColor: '#FFF',
+  },
+  filterOptionSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filterOptionTextSelected: {
+    color: '#FFF',
+    fontWeight: '500',
+  },
+  filterFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  applyButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
   },
 });
