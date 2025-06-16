@@ -9,7 +9,6 @@ import {
   Dimensions,
   SafeAreaView,
   FlatList,
-  Linking,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -18,22 +17,12 @@ import {
   MapPin, 
   Star,
   MessageCircle,
-  ExternalLink,
   Phone,
   Clock,
   Calendar,
   Camera
 } from 'lucide-react-native';
-
-// Only import MapView on native platforms
-let MapView: any = null;
-let Marker: any = null;
-
-if (Platform.OS !== 'web') {
-  const MapViewModule = require('react-native-maps');
-  MapView = MapViewModule.default;
-  Marker = MapViewModule.Marker;
-}
+import MapViewComponent from '@/components/MapView';
 
 const { width, height } = Dimensions.get('window');
 
@@ -194,154 +183,32 @@ export default function RestaurantScreen() {
 
   const handleOpenMaps = () => {
     if (Platform.OS === 'web') {
-      // For web, open Google Maps in a new tab
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantInfo.address)}`;
       if (typeof window !== 'undefined') {
         window.open(mapsUrl, '_blank');
       }
     } else {
-      // For native platforms, use Linking to open maps
-      const mapsUrl = Platform.select({
-        ios: `maps:0,0?q=${encodeURIComponent(restaurantInfo.address)}`,
-        android: `geo:0,0?q=${encodeURIComponent(restaurantInfo.address)}`,
-      });
-      if (mapsUrl) {
-        Linking.openURL(mapsUrl);
-      }
+      // Native platform handling
+      console.log('Opening native maps...');
     }
-  };
-
-  const renderMapSection = () => {
-    if (Platform.OS === 'web') {
-      // Web-compatible map placeholder
-      return (
-        <View style={styles.mapContainer}>
-          <View style={styles.mapPlaceholder}>
-            <MapPin size={48} color="#007AFF" />
-            <Text style={styles.mapPlaceholderText}>{restaurantInfo.name}</Text>
-            <Text style={styles.mapPlaceholderAddress}>{restaurantInfo.address}</Text>
-            <TouchableOpacity style={styles.openMapsButton} onPress={handleOpenMaps}>
-              <ExternalLink size={16} color="#007AFF" />
-              <Text style={styles.openMapsButtonText}>Google Mapsで開く</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Back Button */}
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-      );
-    } else {
-      // Native map with react-native-maps
-      return (
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: restaurantInfo.latitude,
-              longitude: restaurantInfo.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-          >
-            <Marker
-              coordinate={{
-                latitude: restaurantInfo.latitude,
-                longitude: restaurantInfo.longitude,
-              }}
-              title={restaurantInfo.name}
-              description={restaurantInfo.address}
-            />
-          </MapView>
-          
-          {/* Back Button */}
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-      );
-    }
-  };
-
-  const renderActionButtons = () => {
-    if (Platform.OS === 'web') {
-      return (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleOpenMaps}>
-            <MapPin size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>地図で見る</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handlePostReview}>
-            <MessageCircle size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>レビュー投稿</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    } else {
-      return (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleMakeReservation}>
-            <Calendar size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>予約する</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handlePostReview}>
-            <Camera size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>レビュー投稿</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-  };
-
-  const renderInfoContent = () => {
-    const baseContent = (
-      <View style={styles.infoContent}>
-        <View style={styles.infoItem}>
-          <MapPin size={20} color="#666" />
-          <Text style={styles.infoText}>{restaurantInfo.address}</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <Phone size={20} color="#666" />
-          <Text style={styles.infoText}>{restaurantInfo.phone}</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <Clock size={20} color="#666" />
-          <Text style={styles.infoText}>{restaurantInfo.hours}</Text>
-        </View>
-      </View>
-    );
-
-    if (Platform.OS === 'web') {
-      return (
-        <View style={styles.infoContent}>
-          <View style={styles.infoItem}>
-            <MapPin size={20} color="#666" />
-            <Text style={styles.infoText}>{restaurantInfo.address}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Phone size={20} color="#666" />
-            <Text style={styles.infoText}>{restaurantInfo.phone}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Clock size={20} color="#666" />
-            <Text style={styles.infoText}>{restaurantInfo.hours}</Text>
-          </View>
-          <TouchableOpacity style={styles.externalLinkButton} onPress={handleOpenMaps}>
-            <ExternalLink size={20} color="#007AFF" />
-            <Text style={styles.externalLinkText}>Google Mapsで開く</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    return baseContent;
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Map Section */}
-      {renderMapSection()}
+      <View style={styles.mapContainer}>
+        <MapViewComponent
+          latitude={restaurantInfo.latitude}
+          longitude={restaurantInfo.longitude}
+          title={restaurantInfo.name}
+          description={restaurantInfo.address}
+        />
+        
+        {/* Back Button */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#000" />
+        </TouchableOpacity>
+      </View>
 
       {/* Bottom Sheet */}
       <View style={styles.bottomSheet}>
@@ -363,7 +230,16 @@ export default function RestaurantScreen() {
         </View>
 
         {/* Action Buttons */}
-        {renderActionButtons()}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleMakeReservation}>
+            <Calendar size={20} color="#007AFF" />
+            <Text style={styles.actionButtonText}>予約する</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={handlePostReview}>
+            <Camera size={20} color="#007AFF" />
+            <Text style={styles.actionButtonText}>レビュー投稿</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Tab Navigation */}
         <View style={styles.tabContainer}>
@@ -397,7 +273,20 @@ export default function RestaurantScreen() {
               columnWrapperStyle={styles.postsRow}
             />
           ) : (
-            renderInfoContent()
+            <View style={styles.infoContent}>
+              <View style={styles.infoItem}>
+                <MapPin size={20} color="#666" />
+                <Text style={styles.infoText}>{restaurantInfo.address}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Phone size={20} color="#666" />
+                <Text style={styles.infoText}>{restaurantInfo.phone}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Clock size={20} color="#666" />
+                <Text style={styles.infoText}>{restaurantInfo.hours}</Text>
+              </View>
+            </View>
           )}
         </ScrollView>
       </View>
@@ -413,44 +302,6 @@ const styles = StyleSheet.create({
   mapContainer: {
     height: height * 0.4,
     position: 'relative',
-  },
-  map: {
-    flex: 1,
-  },
-  mapPlaceholder: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  mapPlaceholderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  mapPlaceholderAddress: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  openMapsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F8FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 16,
-  },
-  openMapsButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginLeft: 6,
-    fontWeight: '500',
   },
   backButton: {
     position: 'absolute',
@@ -575,7 +426,7 @@ const styles = StyleSheet.create({
   },
   foodPost: {
     width: (width - 8) / 3,
-    height: Platform.OS === 'web' ? (width - 8) / 3 : ((width - 8) / 3) * (16 / 9),
+    height: ((width - 8) / 3) * (16 / 9),
     margin: 1,
     position: 'relative',
   },
@@ -618,20 +469,5 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12,
     flex: 1,
-  },
-  externalLinkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F8FF',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  externalLinkText: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginLeft: 8,
-    fontWeight: '500',
   },
 });
