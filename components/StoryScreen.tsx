@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   Modal,
 } from 'react-native';
-import { Heart, Bookmark, MoreVertical, MapPin, Calendar, Share, Star, User } from 'lucide-react-native';
+import { Heart, Bookmark, MoveVertical as MoreVertical, MapPin, Calendar, Share, Star, User } from 'lucide-react-native';
 import { FoodItem, Comment } from '@/types';
 import { router } from 'expo-router';
 
