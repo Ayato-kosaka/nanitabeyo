@@ -19,7 +19,7 @@ const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ['pla
 export default function MapViewComponent({ latitude, longitude, title, description }: MapViewComponentProps) {
   const { isLoaded } = useJSAPI({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: Env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries,
   });
 
