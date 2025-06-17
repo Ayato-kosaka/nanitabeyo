@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { GoogleMap, useJSAPI, Marker } from '@react-google-maps/api';
+import { Env } from "@/constants/Env";
 
 interface MapViewComponentProps {
   latitude: number;
