@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { GoogleMap, useJSAPI, Marker } from '@react-google-maps/api';
-import { Env } from "@/constants/Env";
+import { GoogleMap, Marker } from '@react-google-maps/api';
 
 interface MapViewComponentProps {
   latitude: number;
@@ -15,15 +14,7 @@ const mapContainerStyle = {
   height: '100%',
 };
 
-const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ['places'];
-
 export default function MapViewComponent({ latitude, longitude, title, description }: MapViewComponentProps) {
-  const { isLoaded } = useJSAPI({
-    id: 'google-map-script',
-    googleMapsApiKey: Env.GOOGLE_MAPS_API_KEY || '',
-    libraries,
-  });
-
   const center = {
     lat: latitude,
     lng: longitude,
@@ -36,14 +27,6 @@ export default function MapViewComponent({ latitude, longitude, title, descripti
   const onUnmount = useCallback((map: google.maps.Map) => {
     // Cleanup if needed
   }, []);
-
-  if (!isLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        {/* Loading placeholder */}
-      </View>
-    );
-  }
 
   return (
     <GoogleMap
