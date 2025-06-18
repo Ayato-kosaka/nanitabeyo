@@ -12,20 +12,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { 
-  ArrowLeft, 
-  MoreHorizontal, 
-  Share, 
-  Edit3,
-  Play,
-  Heart,
-  MessageCircle,
-  Eye,
-  Lock,
-  Grid3X3,
-  Bookmark,
-  X
-} from 'lucide-react-native';
+import { ArrowLeft, MoveHorizontal as MoreHorizontal, Share, CreditCard as Edit3, Play, Heart, MessageCircle, Eye, Lock, Grid3x3 as Grid3X3, Bookmark, X } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { UserProfile, UserPost } from '@/types';
 import { userProfile, otherUserProfile, userPosts, savedPosts, likedPosts } from '@/data/profileData';
