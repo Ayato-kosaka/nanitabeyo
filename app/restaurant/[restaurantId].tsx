@@ -25,7 +25,10 @@ import {
   Camera,
   Filter,
   Search,
-  X
+  X,
+  Chrome as Home,
+  Bell,
+  User
 } from 'lucide-react-native';
 import MapViewComponent from '@/components/MapView';
 
@@ -225,7 +228,7 @@ export default function RestaurantScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Map Section */}
       <View style={styles.mapContainer}>
         <MapViewComponent
@@ -235,25 +238,26 @@ export default function RestaurantScreen() {
           description={restaurantInfo.address}
         />
         
-        {/* Back Button */}
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#000" />
-        </TouchableOpacity>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Search size={20} color="#666" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="地点・地域を検索"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <TouchableOpacity style={styles.filterIconButton} onPress={() => setShowFilter(true)}>
-            <Filter size={20} color="#007AFF" />
+        {/* Header with Back Button, Search, and Filter */}
+        <View style={styles.headerContainer}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft size={24} color="#000" />
           </TouchableOpacity>
+          
+          <View style={styles.searchFilterContainer}>
+            <View style={styles.searchBar}>
+              <Search size={20} color="#666" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="地点・地域を検索"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <TouchableOpacity style={styles.filterIconButton} onPress={() => setShowFilter(true)}>
+              <Filter size={20} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -338,6 +342,26 @@ export default function RestaurantScreen() {
         </ScrollView>
       </View>
 
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/')}>
+          <Home size={24} color="#666" />
+          <Text style={styles.footerTabText}>ホーム</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/map')}>
+          <MapPin size={24} color="#007AFF" />
+          <Text style={[styles.footerTabText, styles.footerTabTextActive]}>マップ</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/notifications')}>
+          <Bell size={24} color="#666" />
+          <Text style={styles.footerTabText}>通知</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/profile')}>
+          <User size={24} color="#666" />
+          <Text style={styles.footerTabText}>プロフィール</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Filter Modal */}
       <Modal
         visible={showFilter}
@@ -418,7 +442,7 @@ export default function RestaurantScreen() {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -431,19 +455,22 @@ const styles = StyleSheet.create({
     height: height * 0.4,
     position: 'relative',
   },
-  backButton: {
+  headerContainer: {
     position: 'absolute',
     top: 50,
     left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 20,
     padding: 8,
   },
-  searchContainer: {
-    position: 'absolute',
-    top: 100,
-    left: 16,
-    right: 16,
+  searchFilterContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -475,6 +502,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     marginTop: -20,
     paddingTop: 8,
+    paddingBottom: 80, // Space for footer
   },
   handle: {
     width: 40,
@@ -626,6 +654,33 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12,
     flex: 1,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+  },
+  footerTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  footerTabText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  footerTabTextActive: {
+    color: '#007AFF',
+    fontWeight: '600',
   },
   filterModalContainer: {
     flex: 1,
