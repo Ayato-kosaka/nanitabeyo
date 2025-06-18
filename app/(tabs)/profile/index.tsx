@@ -81,7 +81,7 @@ export default function ProfileScreen() {
   };
 
   const handlePostPress = (index: number) => {
-    router.push(`/food?startIndex=${index}`);
+    router.push(`/(tabs)/profile/food?startIndex=${index}`);
   };
 
   const renderPost = ({ item, index }: { item: UserPost; index: number }) => (

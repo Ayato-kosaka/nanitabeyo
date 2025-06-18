@@ -184,7 +184,7 @@ export default function RestaurantScreen() {
   };
 
   const handleFoodPostPress = (index: number) => {
-    router.push(`/food?startIndex=${index}`);
+    router.push(`/(tabs)/(home)/food?startIndex=${index}`);
   };
 
   const renderFoodPost = ({ item, index }: { item: FoodPost; index: number }) => (
