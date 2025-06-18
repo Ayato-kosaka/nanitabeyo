@@ -342,26 +342,6 @@ export default function RestaurantScreen() {
         </ScrollView>
       </View>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/')}>
-          <Home size={24} color="#666" />
-          <Text style={styles.footerTabText}>ホーム</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/map')}>
-          <MapPin size={24} color="#007AFF" />
-          <Text style={[styles.footerTabText, styles.footerTabTextActive]}>マップ</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/notifications')}>
-          <Bell size={24} color="#666" />
-          <Text style={styles.footerTabText}>通知</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerTab} onPress={() => router.push('/profile')}>
-          <User size={24} color="#666" />
-          <Text style={styles.footerTabText}>プロフィール</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Filter Modal */}
       <Modal
         visible={showFilter}
@@ -502,7 +482,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     marginTop: -20,
     paddingTop: 8,
-    paddingBottom: 80, // Space for footer
   },
   handle: {
     width: 40,
@@ -654,33 +633,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12,
     flex: 1,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-  },
-  footerTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  footerTabText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  footerTabTextActive: {
-    color: '#007AFF',
-    fontWeight: '600',
   },
   filterModalContainer: {
     flex: 1,
