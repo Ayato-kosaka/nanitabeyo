@@ -30,3 +30,26 @@ export interface NotificationItem {
   postThumbnail?: string;
   isRead: boolean;
 }
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string;
+  bio: string;
+  totalLikes: number;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  isOwnProfile: boolean;
+  isFollowing?: boolean;
+}
+
+export interface UserPost {
+  id: string;
+  image: string;
+  likes: number;
+  comments: number;
+  views: number;
+  duration?: string;
+}
