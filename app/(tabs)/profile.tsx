@@ -80,15 +80,14 @@ export default function ProfileScreen() {
     console.log('Sharing profile:', profile.username);
   };
 
-  const handlePostPress = (post: UserPost) => {
-    // Navigate to post detail or video player
-    console.log('Opening post:', post.id);
+  const handlePostPress = (index: number) => {
+    router.push(`/food?startIndex=${index}`);
   };
 
-  const renderPost = ({ item }: { item: UserPost }) => (
-    <TouchableOpacity 
+  const renderPost = ({ item, index }: { item: UserPost; index: number }) => (
+    <TouchableOpacity
       style={styles.postItem}
-      onPress={() => handlePostPress(item)}
+      onPress={() => handlePostPress(index)}
       activeOpacity={0.9}
     >
       <Image source={{ uri: item.image }} style={styles.postImage} />

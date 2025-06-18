@@ -183,8 +183,12 @@ export default function RestaurantScreen() {
     );
   };
 
+  const handleFoodPostPress = (index: number) => {
+    router.push(`/food?startIndex=${index}`);
+  };
+
   const renderFoodPost = ({ item, index }: { item: FoodPost; index: number }) => (
-    <TouchableOpacity style={styles.foodPost}>
+    <TouchableOpacity style={styles.foodPost} onPress={() => handleFoodPostPress(index)}>
       <Image source={{ uri: item.image }} style={styles.foodPostImage} />
       <View style={styles.foodPostOverlay}>
         <View style={styles.foodPostStats}>
