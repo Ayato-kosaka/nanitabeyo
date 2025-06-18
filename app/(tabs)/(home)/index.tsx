@@ -1,12 +1,7 @@
 import React, { useState, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from 'react-native';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
-import StoryScreen from '@/components/StoryScreen';
+import FoodContentScreen from '@/components/FoodContentScreen';
 import { foodItems } from '@/data/foodData';
 import { FoodItem } from '@/types';
 
@@ -18,13 +13,13 @@ export default function HomeScreen() {
   const translateY = useRef(new Animated.Value(0)).current;
 
   const handleLike = () => {
-    setItems(prevItems => 
-      prevItems.map((item, index) => 
-        index === currentIndex 
-          ? { 
-              ...item, 
+    setItems((prevItems) =>
+      prevItems.map((item, index) =>
+        index === currentIndex
+          ? {
+              ...item,
               isLiked: !item.isLiked,
-              likes: item.isLiked ? item.likes - 1 : item.likes + 1
+              likes: item.isLiked ? item.likes - 1 : item.likes + 1,
             }
           : item
       )
@@ -32,11 +27,9 @@ export default function HomeScreen() {
   };
 
   const handleSave = () => {
-    setItems(prevItems => 
-      prevItems.map((item, index) => 
-        index === currentIndex 
-          ? { ...item, isSaved: !item.isSaved }
-          : item
+    setItems((prevItems) =>
+      prevItems.map((item, index) =>
+        index === currentIndex ? { ...item, isSaved: !item.isSaved } : item
       )
     );
   };
@@ -49,9 +42,9 @@ export default function HomeScreen() {
       timestamp: 'now',
     };
 
-    setItems(prevItems => 
-      prevItems.map((item, index) => 
-        index === currentIndex 
+    setItems((prevItems) =>
+      prevItems.map((item, index) =>
+        index === currentIndex
           ? { ...item, comments: [newComment, ...item.comments] }
           : item
       )
@@ -64,9 +57,10 @@ export default function HomeScreen() {
   );
 
   const onHandlerStateChange = (event: any) => {
-    if (event.nativeEvent.oldState === 4) { // END state
+    if (event.nativeEvent.oldState === 4) {
+      // END state
       const { translationY } = event.nativeEvent;
-      
+
       if (translationY < -height * 0.2 && currentIndex < items.length - 1) {
         // Swipe up - next item
         setCurrentIndex(currentIndex + 1);
@@ -74,7 +68,7 @@ export default function HomeScreen() {
         // Swipe down - previous item
         setCurrentIndex(currentIndex - 1);
       }
-      
+
       // Reset animation
       Animated.spring(translateY, {
         toValue: 0,
@@ -90,15 +84,15 @@ export default function HomeScreen() {
       onGestureEvent={onGestureEvent}
       onHandlerStateChange={onHandlerStateChange}
     >
-      <Animated.View 
+      <Animated.View
         style={[
           styles.container,
           {
-            transform: [{ translateY }]
-          }
+            transform: [{ translateY }],
+          },
         ]}
       >
-        <StoryScreen
+        <FoodContentScreen
           item={currentItem}
           onLike={handleLike}
           onSave={handleSave}

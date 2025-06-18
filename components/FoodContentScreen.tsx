@@ -11,13 +11,24 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { Heart, Bookmark, MoveVertical as MoreVertical, MapPin, Calendar, Share, Star, User, Filter, X } from 'lucide-react-native';
+import {
+  Heart,
+  Bookmark,
+  MoveVertical as MoreVertical,
+  MapPin,
+  Calendar,
+  Share,
+  Star,
+  User,
+  Filter,
+  X,
+} from 'lucide-react-native';
 import { FoodItem, Comment } from '@/types';
 import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
-interface StoryScreenProps {
+interface FoodContentScreenProps {
   item: FoodItem;
   onLike: () => void;
   onSave: () => void;
@@ -40,10 +51,17 @@ const formatLikeCount = (count: number): string => {
   return count.toString();
 };
 
-export default function StoryScreen({ item, onLike, onSave, onAddComment }: StoryScreenProps) {
+export default function FoodContentScreen({
+  item,
+  onLike,
+  onSave,
+  onAddComment,
+}: FoodContentScreenProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const [commentLikes, setCommentLikes] = useState<{[key: string]: { isLiked: boolean, count: number }}>({});
+  const [commentLikes, setCommentLikes] = useState<{
+    [key: string]: { isLiked: boolean; count: number };
+  }>({});
   const [filters, setFilters] = useState<FilterOptions>({
     location: '',
     priceRange: '',
@@ -52,14 +70,14 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
   const scrollViewRef = useRef<ScrollView>(null);
 
   const handleCommentLike = (commentId: string) => {
-    setCommentLikes(prev => ({
+    setCommentLikes((prev) => ({
       ...prev,
       [commentId]: {
         isLiked: !prev[commentId]?.isLiked,
-        count: prev[commentId]?.isLiked 
-          ? (prev[commentId]?.count || 0) - 1 
-          : (prev[commentId]?.count || 0) + 1
-      }
+        count: prev[commentId]?.isLiked
+          ? (prev[commentId]?.count || 0) - 1
+          : (prev[commentId]?.count || 0) + 1,
+      },
     }));
   };
 
@@ -88,11 +106,27 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
   const menuOptions = [
     { icon: User, label: 'View Creator', onPress: handleViewCreator },
     { icon: Share, label: 'Share', onPress: () => console.log('Share') },
-    { icon: Calendar, label: 'Make Reservation', onPress: () => console.log('Reservation') },
+    {
+      icon: Calendar,
+      label: 'Make Reservation',
+      onPress: () => console.log('Reservation'),
+    },
   ];
 
-  const priceRanges = ['¥1,000以下', '¥1,000-3,000', '¥3,000-5,000', '¥5,000以上'];
-  const categories = ['和食', 'イタリアン', 'フレンチ', '中華', 'アジア料理', 'その他'];
+  const priceRanges = [
+    '¥1,000以下',
+    '¥1,000-3,000',
+    '¥3,000-5,000',
+    '¥5,000以上',
+  ];
+  const categories = [
+    '和食',
+    'イタリアン',
+    'フレンチ',
+    '中華',
+    'アジア料理',
+    'その他',
+  ];
 
   const renderStars = (count: number, filled: number) => {
     return (
@@ -102,7 +136,7 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
             key={index}
             size={16}
             color="#FFD700"
-            fill={index < filled ? "#FFD700" : "transparent"}
+            fill={index < filled ? '#FFD700' : 'transparent'}
           />
         ))}
       </View>
@@ -113,10 +147,10 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
     <SafeAreaView style={styles.container}>
       {/* Background Image */}
       <Image source={{ uri: item.image }} style={styles.backgroundImage} />
-      
+
       {/* Gradient Overlay */}
       <View style={styles.gradientOverlay} />
-      
+
       {/* Top Header */}
       <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
@@ -130,23 +164,32 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilter(true)}>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowFilter(true)}
+          >
             <Filter size={20} color="#000" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.viewRestaurantButton} onPress={handleViewRestaurant}>
+          <TouchableOpacity
+            style={styles.viewRestaurantButton}
+            onPress={handleViewRestaurant}
+          >
             <Text style={styles.viewRestaurantButtonText}>店を見る</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Comments Section */}
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={styles.commentsContainer}
         showsVerticalScrollIndicator={false}
       >
         {item.comments.map((comment) => {
-          const commentLikeData = commentLikes[comment.id] || { isLiked: false, count: 0 };
+          const commentLikeData = commentLikes[comment.id] || {
+            isLiked: false,
+            count: 0,
+          };
           return (
             <View key={comment.id} style={styles.commentItem}>
               <View style={styles.commentHeader}>
@@ -156,18 +199,20 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
               <View style={styles.commentContent}>
                 <Text style={styles.commentText}>{comment.text}</Text>
                 <View style={styles.commentActions}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.commentLikeButton}
                     onPress={() => handleCommentLike(comment.id)}
                   >
-                    <Heart 
-                      size={14} 
-                      color={commentLikeData.isLiked ? '#FF3040' : '#CCCCCC'} 
+                    <Heart
+                      size={14}
+                      color={commentLikeData.isLiked ? '#FF3040' : '#CCCCCC'}
                       fill={commentLikeData.isLiked ? '#FF3040' : 'transparent'}
                     />
                   </TouchableOpacity>
                   {commentLikeData.count > 0 && (
-                    <Text style={styles.commentLikeCount}>{commentLikeData.count}</Text>
+                    <Text style={styles.commentLikeCount}>
+                      {commentLikeData.count}
+                    </Text>
                   )}
                 </View>
               </View>
@@ -183,24 +228,29 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
           <View style={styles.rightActions}>
             <View style={styles.heartContainer}>
               <TouchableOpacity style={styles.actionButton} onPress={onLike}>
-                <Heart 
-                  size={28} 
-                  color={item.isLiked ? '#FF3040' : '#FFFFFF'} 
+                <Heart
+                  size={28}
+                  color={item.isLiked ? '#FF3040' : '#FFFFFF'}
                   fill={item.isLiked ? '#FF3040' : 'transparent'}
                 />
               </TouchableOpacity>
-              <Text style={styles.likesCount}>{formatLikeCount(item.likes)}</Text>
+              <Text style={styles.likesCount}>
+                {formatLikeCount(item.likes)}
+              </Text>
             </View>
-            
+
             <TouchableOpacity style={styles.actionButton} onPress={onSave}>
-              <Bookmark 
-                size={28} 
-                color={item.isSaved ? '#FFFFFF' : '#FFFFFF'} 
+              <Bookmark
+                size={28}
+                color={item.isSaved ? '#FFFFFF' : '#FFFFFF'}
                 fill={item.isSaved ? '#FFFFFF' : 'transparent'}
               />
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton} onPress={() => setShowMenu(true)}>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowMenu(true)}
+            >
               <MoreVertical size={28} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -232,7 +282,9 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
                 style={styles.filterInput}
                 placeholder="地域を入力してください"
                 value={filters.location}
-                onChangeText={(text) => setFilters(prev => ({ ...prev, location: text }))}
+                onChangeText={(text) =>
+                  setFilters((prev) => ({ ...prev, location: text }))
+                }
               />
             </View>
 
@@ -245,17 +297,23 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
                     key={range}
                     style={[
                       styles.filterOption,
-                      filters.priceRange === range && styles.filterOptionSelected
+                      filters.priceRange === range &&
+                        styles.filterOptionSelected,
                     ]}
-                    onPress={() => setFilters(prev => ({ 
-                      ...prev, 
-                      priceRange: prev.priceRange === range ? '' : range 
-                    }))}
+                    onPress={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        priceRange: prev.priceRange === range ? '' : range,
+                      }))
+                    }
                   >
-                    <Text style={[
-                      styles.filterOptionText,
-                      filters.priceRange === range && styles.filterOptionTextSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        filters.priceRange === range &&
+                          styles.filterOptionTextSelected,
+                      ]}
+                    >
                       {range}
                     </Text>
                   </TouchableOpacity>
@@ -272,17 +330,23 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
                     key={category}
                     style={[
                       styles.filterOption,
-                      filters.category === category && styles.filterOptionSelected
+                      filters.category === category &&
+                        styles.filterOptionSelected,
                     ]}
-                    onPress={() => setFilters(prev => ({ 
-                      ...prev, 
-                      category: prev.category === category ? '' : category 
-                    }))}
+                    onPress={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        category: prev.category === category ? '' : category,
+                      }))
+                    }
                   >
-                    <Text style={[
-                      styles.filterOptionText,
-                      filters.category === category && styles.filterOptionTextSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        filters.category === category &&
+                          styles.filterOptionTextSelected,
+                      ]}
+                    >
                       {category}
                     </Text>
                   </TouchableOpacity>
@@ -292,7 +356,10 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
           </ScrollView>
 
           <View style={styles.filterFooter}>
-            <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={handleApplyFilters}
+            >
               <Text style={styles.applyButtonText}>適用</Text>
             </TouchableOpacity>
           </View>
@@ -306,7 +373,7 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
         animationType="fade"
         onRequestClose={() => setShowMenu(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowMenu(false)}
