@@ -9,14 +9,7 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
-import { 
-  Heart, 
-  MessageCircle, 
-  UserPlus, 
-  AtSign, 
-  Share,
-  MoreHorizontal
-} from 'lucide-react-native';
+import { Heart, MessageCircle, UserPlus, AtSign, Share, MoveHorizontal as MoreHorizontal } from 'lucide-react-native';
 import { NotificationItem } from '@/types';
 import { notificationsData } from '@/data/notificationsData';
 
