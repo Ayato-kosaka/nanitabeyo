@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   commentsContainer: {
     position: 'absolute',
     top: height * 0.2,
-    bottom: 80,
+    bottom: 0,
     left: 0,
     width: width * 0.7,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
