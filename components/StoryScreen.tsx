@@ -64,7 +64,12 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
   };
 
   const handleViewRestaurant = () => {
-    router.push('/restaurant/1');
+    router.push('/(home)/restaurant/1');
+  };
+
+  const handleViewCreator = () => {
+    // Navigate to creator's profile
+    router.push('/profile?userId=creator_123');
   };
 
   const handleApplyFilters = () => {
@@ -81,7 +86,7 @@ export default function StoryScreen({ item, onLike, onSave, onAddComment }: Stor
   };
 
   const menuOptions = [
-    { icon: User, label: 'View Creator', onPress: () => console.log('View Creator') },
+    { icon: User, label: 'View Creator', onPress: handleViewCreator },
     { icon: Share, label: 'Share', onPress: () => console.log('Share') },
     { icon: Calendar, label: 'Make Reservation', onPress: () => console.log('Reservation') },
   ];
