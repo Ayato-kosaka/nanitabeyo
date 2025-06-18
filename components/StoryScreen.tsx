@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   },
   commentsContainer: {
     position: 'absolute',
-    top: height * 0.2,
+    top: height * 0.4,
     bottom: 0,
     left: 0,
     width: width * 0.7,
