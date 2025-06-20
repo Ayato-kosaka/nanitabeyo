@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { logBackendEvent } from '../log';
+import { logBackendEvent } from '../../lib/log';
 
 @Injectable()
 export class HelloService {
