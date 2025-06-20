@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, MapPin, Bell, User } from 'lucide-react-native';
+import { Chrome as Home, MapPin, Bell, User, Code } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -48,6 +48,15 @@ export default function TabLayout() {
           title: 'プロフィール',
           tabBarIcon: ({ size, color }) => (
             <User size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="debug"
+        options={{
+          title: 'デバッグ',
+          tabBarIcon: ({ size, color }) => (
+            <Code size={size} color={color} />
           ),
         }}
       />
