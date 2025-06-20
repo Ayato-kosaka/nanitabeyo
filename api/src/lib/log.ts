@@ -2,18 +2,18 @@ import { env } from "./env";
 import { randomUUID } from "crypto";
 
 /**
- * \uD83D\uDE80 \u30D0\u30C3\u30AF\u30A8\u30F3\u30C9\u30A4\u30D9\u30F3\u30C8\u3092 `backend_event_logs` \u30C6\u30FC\u30D6\u30EB\u306B\u8A18\u9332\u3059\u308B\u3002
+ * 🚀 バックエンドイベントを `backend_event_logs` テーブルに記録する。
  *
- * \u30A4\u30D9\u30F3\u30C8\u767A\u751F\u6642\u306E\u30C8\u30EC\u30FC\u30B9\u3001\u30C7\u30D0\u30C3\u30B0\u3001\u76E3\u67FB\u306B\u6D3B\u7528\u3055\u308C\u308B\u3002
- * \u958B\u767A\u74B0\u5883\u3067\u306F\u5185\u5BB9\u3092\u30B3\u30F3\u30BD\u30FC\u30EB\u306B\u3082\u51FA\u529B\u3002
+ * イベント発生時のトレース、デバッグ、監査に活用される。
+ * 開発環境では内容をコンソールにも出力。
  *
- * @param event_name - \u767A\u751F\u3057\u305F\u30A4\u30D9\u30F3\u30C8\u540D\uFF08\u4F8B: 'spotCreated'\uFF09
- * @param error_level - \u30A4\u30D9\u30F3\u30C8\u306E\u30EC\u30D9\u30EB
- * @param function_name - \u547C\u3073\u51FA\u3057\u5143\u95A2\u6570\u540D\uFF08\u4F8B: 'generateSpotGuide'\uFF09
- * @param user_id - \u64CD\u4F5C\u3092\u884C\u3063\u305F\u30E6\u30FC\u30B6\u30FC\u306EID\uFF08\u533F\u540D\u53EF\uFF09
- * @param payload - \u30A4\u30D9\u30F3\u30C8\u306B\u4ED8\u968F\u3059\u308B\u30C7\u30FC\u30BF\uFF08JSON\uFF09
- * @param request_id - \u30C8\u30EC\u30FC\u30B9ID\uFF08API\u9593\u30ED\u30B0\u7D46\u4ED8\u3051\u306B\u4F7F\u7528\uFF09
- * @returns {Promise<void>} \u975E\u540C\u671F\u51E6\u7406\uFF08\u5931\u6557\u6642\u306F dev \u74B0\u5883\u3067\u306E\u307F\u51FA\u529B\uFF09
+ * @param event_name - 発生したイベント名（例: 'spotCreated'）
+ * @param error_level - イベントのレベル
+ * @param function_name - 呼び出し元関数名（例: 'generateSpotGuide'）
+ * @param user_id - 操作を行ったユーザーのID（匿名可）
+ * @param payload - イベントに付随するデータ（JSON）
+ * @param request_id - トレースID（API間ログ紐付けに使用）
+ * @returns {Promise<void>} 非同期処理（失敗時は dev 環境でのみ出力）
  */
 export const logBackendEvent = async ({
   event_name,
