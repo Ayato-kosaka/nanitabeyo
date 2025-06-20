@@ -4,8 +4,8 @@ import { version } from "./package.json"
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
-	"name": "food-scroll",
-	"slug": "food-scroll",
+	"name": "dish-scroll",
+	"slug": "dish-scroll",
 	version,
 	"orientation": "portrait",
 	"icon": "./assets/images/icon.png",
