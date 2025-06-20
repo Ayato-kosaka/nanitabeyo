@@ -1,5 +1,4 @@
 import { env } from "./env";
-import { randomUUID } from "crypto";
 
 /**
  * 🚀 バックエンドイベントを `backend_event_logs` テーブルに記録する。
