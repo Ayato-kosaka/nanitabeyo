@@ -36,4 +36,10 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect('Hello from v2');
   });
+
+  it('/v1/dish-media without required params (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/v1/dish-media')
+      .expect(400);
+  });
 });
