@@ -1,4 +1,4 @@
-import { env } from "./env";
+import { env } from "../config/env";
 
 /**
  * 🚀 バックエンドイベントを `backend_event_logs` テーブルに記録する。
