@@ -49,6 +49,7 @@ export class DishMediaService {
 
     const items: DishMediaItem[] = [];
     for (const searchResult of searchJson.results.slice(0, limit)) {
+      if (!searchResult.place_id) continue;
       const detailsData = await this.gp.placeDetails(searchResult.place_id, lang);
       const details = detailsData.result;
 
@@ -57,19 +58,22 @@ export class DishMediaService {
       const reviews = this.extractDishReviews(details.reviews ?? [], dishKeyword);
 
       items.push({
-        dishId: `dm_${details.place_id}_${nanoid(6)}`,
-        dishName: dishKeyword ?? details.name,
+        dishId: `dm_${details.place_id ?? 'unknown'}_${nanoid(6)}`,
+        dishName: dishKeyword ?? details.name ?? 'unknown',
         category: category ?? '',
         photoUrl,
         rating: details.rating ?? 0,
         reviewCount: details.user_ratings_total ?? 0,
-        distanceMeters: searchResult.distance_meters ?? 0,
+        distanceMeters: (searchResult as any).distance_meters ?? 0,
         place: {
-          placeId: details.place_id,
-          name: details.name,
-          vicinity: details.vicinity,
-          location: details.geometry.location,
-          googleMapUrl: details.url,
+          placeId: details.place_id ?? '',
+          name: details.name ?? '',
+          vicinity: details.vicinity ?? '',
+          location: {
+            lat: details.geometry?.location?.lat ?? 0,
+            lng: details.geometry?.location?.lng ?? 0,
+          },
+          googleMapUrl: details.url ?? '',
         },
         reviews,
       });

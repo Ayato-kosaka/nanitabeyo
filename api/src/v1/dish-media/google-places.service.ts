@@ -24,7 +24,7 @@ export class GooglePlacesService {
       params: {
         location: { lat, lng },
         radius,
-        language: lang,
+        language: lang as any,
         keyword,
         pagetoken: pageToken,
         type: 'restaurant',
@@ -40,7 +40,7 @@ export class GooglePlacesService {
     const res = await this.client.placeDetails({
       params: {
         place_id: placeId,
-        language: lang,
+        language: lang as any,
         fields: [
           'place_id',
           'name',
