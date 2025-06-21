@@ -3,7 +3,7 @@ import { DishMediaService } from './dish-media.service';
 import {
   listDishMediaQuerySchema,
   ListDishMediaQuery,
-} from './dto/list-dish-media.dto';
+} from '../../../../shared/api/list-dish-media.dto';
 
 @Controller({ path: 'dish-media', version: '1' })
 export class DishMediaController {

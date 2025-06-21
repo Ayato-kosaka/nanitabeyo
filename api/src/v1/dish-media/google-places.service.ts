@@ -1,19 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { Client, PlacesNearbyResponseData, PlaceDetailsResponseData } from '@googlemaps/google-maps-services-js';
 import { env } from '../../lib';
 
 /**
- * 🌐 Google Places API を叩くユーティリティサービス
+ * 🌐 Google Places API を扱うサービス
+ * - `@googlemaps/google-maps-services-js` ライブラリを利用してAPI呼び出しを行う
  */
 @Injectable()
 export class GooglePlacesService {
-  private readonly NEARBY_SEARCH_URL =
-    'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
-  private readonly PLACE_DETAILS_URL =
-    'https://maps.googleapis.com/maps/api/place/details/json';
+  private client = new Client({});
 
-  /**
-   * 周辺検索APIを呼び出す
-   */
+  /** 周辺検索API */
   async nearbySearch(params: {
     lat: number;
     lng: number;
@@ -21,56 +18,45 @@ export class GooglePlacesService {
     lang: string;
     keyword?: string;
     pageToken?: string;
-  }): Promise<any> {
-    const searchParams = new URLSearchParams({
-      key: env.API_GOOGLE_PLACE_API_KEY,
-      language: params.lang,
+  }): Promise<PlacesNearbyResponseData> {
+    const { lat, lng, radius, lang, keyword, pageToken } = params;
+    const res = await this.client.placesNearby({
+      params: {
+        location: { lat, lng },
+        radius,
+        language: lang,
+        keyword,
+        pagetoken: pageToken,
+        type: 'restaurant',
+        key: env.API_GOOGLE_PLACE_API_KEY,
+      },
+      timeout: 1000,
     });
-
-    if (params.pageToken) {
-      searchParams.set('pagetoken', params.pageToken);
-    } else {
-      searchParams.set('location', `${params.lat},${params.lng}`);
-      searchParams.set('radius', String(params.radius));
-      searchParams.set('type', 'restaurant');
-      if (params.keyword) searchParams.set('keyword', params.keyword);
-    }
-
-    const res = await fetch(
-      `${this.NEARBY_SEARCH_URL}?${searchParams.toString()}`,
-    );
-    if (!res.ok) {
-      throw new Error(`NearbySearch failed: ${res.statusText}`);
-    }
-    return res.json();
+    return res.data;
   }
 
-  /**
-   * 店舗詳細APIを呼び出す
-   */
-  async placeDetails(placeId: string, lang: string): Promise<any> {
-    const detailsParams = new URLSearchParams({
-      key: env.API_GOOGLE_PLACE_API_KEY,
-      place_id: placeId,
-      language: lang,
-      fields: [
-        'place_id',
-        'name',
-        'vicinity',
-        'geometry/location',
-        'url',
-        'rating',
-        'user_ratings_total',
-        'photo',
-        'review',
-      ].join(','),
+  /** 店舗詳細API */
+  async placeDetails(placeId: string, lang: string): Promise<PlaceDetailsResponseData> {
+    const res = await this.client.placeDetails({
+      params: {
+        place_id: placeId,
+        language: lang,
+        fields: [
+          'place_id',
+          'name',
+          'vicinity',
+          'geometry/location',
+          'url',
+          'rating',
+          'user_ratings_total',
+          'photo',
+          'review',
+        ],
+        key: env.API_GOOGLE_PLACE_API_KEY,
+      },
+      timeout: 1000,
     });
-    const res = await fetch(
-      `${this.PLACE_DETAILS_URL}?${detailsParams.toString()}`,
-    );
-    if (!res.ok) {
-      throw new Error(`PlaceDetails failed: ${res.statusText}`);
-    }
-    return res.json();
+    return res.data;
   }
 }
+
