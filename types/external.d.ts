@@ -18,3 +18,9 @@ declare module 'zod' {
   }
   export { z };
 }
+
+declare module 'react';
+declare module 'react-native';
+declare module '@react-google-maps/api';
+declare module 'react-native-maps';
+declare module 'expo-constants';
