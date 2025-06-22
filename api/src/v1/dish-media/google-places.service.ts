@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { Client, PlacesNearbyResponseData, PlaceDetailsResponseData } from '@googlemaps/google-maps-services-js';
+import { PlacesClient } from '@googlemaps/places';
 import { env } from '../../lib';
 
 /**
  * 🌐 Google Places API を扱うサービス
- * - `@googlemaps/google-maps-services-js` ライブラリを利用してAPI呼び出しを行う
+ * - `@googlemaps/places` ライブラリを利用してAPI呼び出しを行う
  */
 @Injectable()
 export class GooglePlacesService {
-  private client = new Client({});
+  private client = new PlacesClient({ apiKey: env.API_GOOGLE_PLACE_API_KEY });
 
   /** 周辺検索API */
   async nearbySearch(params: {
@@ -18,45 +18,35 @@ export class GooglePlacesService {
     lang: string;
     keyword?: string;
     pageToken?: string;
-  }): Promise<PlacesNearbyResponseData> {
+  }): Promise<any> {
     const { lat, lng, radius, lang, keyword, pageToken } = params;
-    const res = await this.client.placesNearby({
-      params: {
-        location: { lat, lng },
-        radius,
-        language: lang as any,
-        keyword,
-        pagetoken: pageToken,
-        type: 'restaurant',
-        key: env.API_GOOGLE_PLACE_API_KEY,
-      },
-      timeout: 1000,
+    return this.client.searchNearby({
+      location: { latitude: lat, longitude: lng },
+      radius,
+      languageCode: lang,
+      keyword,
+      pageToken,
+      type: 'RESTAURANT',
     });
-    return res.data;
   }
 
   /** 店舗詳細API */
-  async placeDetails(placeId: string, lang: string): Promise<PlaceDetailsResponseData> {
-    const res = await this.client.placeDetails({
-      params: {
-        place_id: placeId,
-        language: lang as any,
-        fields: [
-          'place_id',
-          'name',
-          'vicinity',
-          'geometry/location',
-          'url',
-          'rating',
-          'user_ratings_total',
-          'photo',
-          'review',
-        ],
-        key: env.API_GOOGLE_PLACE_API_KEY,
-      },
-      timeout: 1000,
+  async placeDetails(placeId: string, lang: string): Promise<any> {
+    return this.client.getPlace({
+      name: `places/${placeId}`,
+      languageCode: lang,
+      fields: [
+        'id',
+        'displayName',
+        'shortFormattedAddress',
+        'location',
+        'googleMapsUri',
+        'rating',
+        'userRatingCount',
+        'photos',
+        'reviews',
+      ],
     });
-    return res.data;
   }
 }
 

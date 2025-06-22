@@ -27,7 +27,7 @@
     "rxjs": "^7.8.1",
     "zod": "^3.24.2",
     "nanoid": "^4.0.2",
-    "@googlemaps/google-maps-services-js": "^3.4.1",
+    "@googlemaps/places": "^1.0.0",
     "@google-cloud/vision": "^5.2.0"
   },
   "devDependencies": {

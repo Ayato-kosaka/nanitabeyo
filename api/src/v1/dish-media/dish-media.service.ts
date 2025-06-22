@@ -12,7 +12,7 @@ import { ListDishMediaQuery } from '../../../../shared/api/list-dish-media.dto';
 
 /**
  * 🍽️ DishMedia を生成するサービス
- * - Google Places API を利用して料理写真と口コミを取得する
+ * - 新しい Places API を利用して料理写真と口コミを取得する
  */
 @Injectable()
 export class DishMediaService {
@@ -48,32 +48,32 @@ export class DishMediaService {
     });
 
     const items: DishMediaItem[] = [];
-    for (const searchResult of searchJson.results.slice(0, limit)) {
-      if (!searchResult.place_id) continue;
-      const detailsData = await this.gp.placeDetails(searchResult.place_id, lang);
-      const details = detailsData.result;
+    for (const searchResult of (searchJson.places ?? []).slice(0, limit)) {
+      if (!searchResult.id) continue;
+      const detailsData = await this.gp.placeDetails(searchResult.id, lang);
+      const details = detailsData.place;
 
       const dishKeyword = this.selectPopularDish(details.reviews ?? [], category);
       const photoUrl = await this.chooseDishPhoto(details);
       const reviews = this.extractDishReviews(details.reviews ?? [], dishKeyword);
 
       items.push({
-        dishId: `dm_${details.place_id ?? 'unknown'}_${nanoid(6)}`,
-        dishName: dishKeyword ?? details.name ?? 'unknown',
+        dishId: `dm_${details.id ?? 'unknown'}_${nanoid(6)}`,
+        dishName: dishKeyword ?? details.displayName?.text ?? 'unknown',
         category: category ?? '',
         photoUrl,
         rating: details.rating ?? 0,
-        reviewCount: details.user_ratings_total ?? 0,
-        distanceMeters: (searchResult as any).distance_meters ?? 0,
+        reviewCount: details.userRatingCount ?? 0,
+        distanceMeters: (searchResult as any).distanceMeters ?? 0,
         place: {
-          placeId: details.place_id ?? '',
-          name: details.name ?? '',
-          vicinity: details.vicinity ?? '',
+          placeId: details.id ?? '',
+          name: details.displayName?.text ?? '',
+          vicinity: details.shortFormattedAddress ?? '',
           location: {
-            lat: details.geometry?.location?.lat ?? 0,
-            lng: details.geometry?.location?.lng ?? 0,
+            lat: details.location?.latitude ?? 0,
+            lng: details.location?.longitude ?? 0,
           },
-          googleMapUrl: details.url ?? '',
+          googleMapUrl: details.googleMapsUri ?? '',
         },
         reviews,
       });
@@ -81,7 +81,7 @@ export class DishMediaService {
 
     return {
       items,
-      nextPageToken: searchJson.next_page_token,
+      nextPageToken: searchJson.nextPageToken,
     };
   }
 
@@ -112,7 +112,7 @@ export class DishMediaService {
   private async chooseDishPhoto(details: any): Promise<string> {
     const refList = details.photos ?? [];
     for (const p of refList) {
-      const url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=${p.photo_reference}&key=${env.API_GOOGLE_PLACE_API_KEY}`;
+      const url = `https://places.googleapis.com/v1/${p.name}/media?maxHeightPx=600&key=${env.API_GOOGLE_PLACE_API_KEY}`;
       if (await this.vision.isFoodPhoto(url)) {
         return url;
       }
