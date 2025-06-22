@@ -43,6 +43,7 @@ export class DishMediaService {
       lng,
       radius,
       lang,
+      limit,
       keyword: category,
       pageToken,
     });
