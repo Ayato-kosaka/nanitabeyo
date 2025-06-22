@@ -25,7 +25,7 @@ export class GooglePlacesService {
       locationRestriction: {
         circle: {
           center: { latitude: lat, longitude: lng },
-          radiusMeters: radius,
+          radius,
         },
       },
       languageCode: lang,
@@ -41,17 +41,6 @@ export class GooglePlacesService {
     return this.client.getPlace({
       name: `places/${placeId}`,
       languageCode: lang,
-      fields: [
-        'id',
-        'displayName',
-        'shortFormattedAddress',
-        'location',
-        'googleMapsUri',
-        'rating',
-        'userRatingCount',
-        'photos',
-        'reviews',
-      ],
     });
   }
 }
