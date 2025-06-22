@@ -15,7 +15,7 @@ export class CloudVisionService {
     const [result] = await this.client.labelDetection(url);
     const labels = result.labelAnnotations ?? [];
     return labels.some(
-      (l) =>
+      (l: { description?: string | null; score?: number | null }) =>
         (l.description ?? '').toLowerCase() === 'food' && (l.score ?? 0) >= 0.75,
     );
   }

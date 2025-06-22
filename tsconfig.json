@@ -1,16 +1,27 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2023",
     "strict": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "baseUrl": "./",
     "paths": {
       "@/*": ["./*"]
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "api/src/**/*.ts",
+    "shared/**/*.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "api/src/**/*.spec.ts",
+    "api/test/**",
+    "app/**",
+    "components/**",
+    "node_modules"
   ]
 }
