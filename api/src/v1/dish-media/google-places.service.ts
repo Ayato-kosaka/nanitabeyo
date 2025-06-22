@@ -16,17 +16,23 @@ export class GooglePlacesService {
     lng: number;
     radius: number;
     lang: string;
+    limit: number;
     keyword?: string;
     pageToken?: string;
   }): Promise<any> {
-    const { lat, lng, radius, lang, keyword, pageToken } = params;
+    const { lat, lng, radius, lang, limit, keyword, pageToken } = params;
     return this.client.searchNearby({
-      location: { latitude: lat, longitude: lng },
-      radius,
+      locationRestriction: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radiusMeters: radius,
+        },
+      },
       languageCode: lang,
       keyword,
+      includedTypes: ['restaurant'],
+      maxResultCount: Math.min(limit, 20),
       pageToken,
-      type: 'RESTAURANT',
     });
   }
 
