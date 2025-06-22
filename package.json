@@ -7,7 +7,7 @@
     "dev": "EXPO_NO_TELEMETRY=1 expo start",
     "build:web": "expo export --platform web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit -p api/tsconfig.json"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -45,9 +45,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-		"@expo/config": "^10.0.11",
+    "@expo/config": "^10.0.11",
     "@types/react": "~19.0.10",
-		"dotenv": "^16.4.7",
+    "dotenv": "^16.4.7",
     "typescript": "~5.8.3"
   }
 }
