@@ -19,20 +19,18 @@ export class GooglePlacesService {
     limit: number;
     /** CSV 形式のカテゴリ(例: "ramen,sushi") */
     categories?: string;
-    pageToken?: string;
   }): Promise<any> {
-    const { lat, lng, radius, lang, limit, categories, pageToken } = params;
+    const { lat, lng, radius, lang, limit, categories } = params;
     return this.client.searchNearby({
       locationRestriction: {
         circle: {
           center: { latitude: lat, longitude: lng },
-      includedTypes: ['restaurant', ...(categories ? categories.split(',') : [])],
-    } as any);
+          radius
+        },
+      },
       languageCode: lang,
-      keyword,
-      includedTypes: ['restaurant'],
+      includedTypes: ['restaurant', ...(categories ? categories.split(',') : [])],
       maxResultCount: Math.min(limit, 20),
-      pageToken,
     });
   }
 

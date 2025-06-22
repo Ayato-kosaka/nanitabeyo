@@ -19,7 +19,7 @@ export class DishMediaService {
   constructor(
     private readonly gp: GooglePlacesService,
     private readonly vision: CloudVisionService,
-  ) {}
+  ) { }
 
   /**
    * listDishMedia API のメイン処理
@@ -45,7 +45,6 @@ export class DishMediaService {
       lang,
       limit,
       categories: category,
-      pageToken,
     });
 
     const items: DishMediaItem[] = [];
