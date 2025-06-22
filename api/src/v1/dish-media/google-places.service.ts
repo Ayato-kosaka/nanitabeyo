@@ -17,17 +17,17 @@ export class GooglePlacesService {
     radius: number;
     lang: string;
     limit: number;
-    keyword?: string;
+    /** CSV 形式のカテゴリ(例: "ramen,sushi") */
+    categories?: string;
     pageToken?: string;
   }): Promise<any> {
-    const { lat, lng, radius, lang, limit, keyword, pageToken } = params;
+    const { lat, lng, radius, lang, limit, categories, pageToken } = params;
     return this.client.searchNearby({
       locationRestriction: {
         circle: {
           center: { latitude: lat, longitude: lng },
-          radius,
-        },
-      },
+      includedTypes: ['restaurant', ...(categories ? categories.split(',') : [])],
+    } as any);
       languageCode: lang,
       keyword,
       includedTypes: ['restaurant'],
