@@ -21,15 +21,15 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@google-cloud/vision": "^5.2.0",
+    "@googlemaps/places": "^1.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "nanoid": "^3.3.11",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "zod": "^3.24.2",
-    "nanoid": "^4.0.2",
-    "@googlemaps/places": "^1.0.0",
-    "@google-cloud/vision": "^5.2.0"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
