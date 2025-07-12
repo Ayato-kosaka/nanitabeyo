@@ -4,11 +4,11 @@ import { env, logBackendEvent } from '../../lib';
 import { GooglePlacesService } from './google-places.service';
 import { CloudVisionService } from './cloud-vision.service';
 import {
+  ListDishMediaQuery,
   DishMediaItem,
   ListDishMediaResponse,
   Review,
-} from './interfaces/dish-media.types';
-import { ListDishMediaQuery } from '../../../../shared/api/list-dish-media.dto';
+} from '../../../../shared/api/list-dish-media.dto';
 
 /**
  * 🍽️ DishMedia を生成するサービス
@@ -35,7 +35,7 @@ export class DishMediaService {
       request_id: requestId,
     });
 
-    const { lat, lng, radius, limit, lang, category, pageToken } = params;
+    const { lat, lng, radius, limit, lang, category } = params;
 
     // 🌐 まずは周辺店舗を検索
     const searchJson = await this.gp.nearbySearch({
@@ -50,8 +50,7 @@ export class DishMediaService {
     const items: DishMediaItem[] = [];
     for (const searchResult of (searchJson.places ?? []).slice(0, limit)) {
       if (!searchResult.id) continue;
-      const detailsData = await this.gp.placeDetails(searchResult.id, lang);
-      const details = detailsData.place;
+      const details = await this.gp.placeDetails(searchResult.id, lang);
 
       const dishKeyword = this.selectPopularDish(details.reviews ?? [], category);
       const photoUrl = await this.chooseDishPhoto(details);
@@ -79,10 +78,7 @@ export class DishMediaService {
       });
     }
 
-    return {
-      items,
-      nextPageToken: searchJson.nextPageToken,
-    };
+    return items;
   }
 
   /**
@@ -113,9 +109,10 @@ export class DishMediaService {
     const refList = details.photos ?? [];
     for (const p of refList) {
       const url = `https://places.googleapis.com/v1/${p.name}/media?maxHeightPx=600&key=${env.API_GOOGLE_PLACE_API_KEY}`;
-      if (await this.vision.isFoodPhoto(url)) {
-        return url;
-      }
+      // if (await this.vision.isFoodPhoto(url)) {
+      //   return url;
+      // }
+      return url; // TODO: url から api key を除去する必要がある
     }
     return '';
   }
