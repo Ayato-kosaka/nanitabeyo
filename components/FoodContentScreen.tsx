@@ -82,7 +82,7 @@ export default function FoodContentScreen({
   };
 
   const handleViewRestaurant = () => {
-    router.push('/(home)/restaurant/1');
+    router.push('/(tabs)/(home)/restaurant/1');
   };
 
   const handleViewCreator = () => {

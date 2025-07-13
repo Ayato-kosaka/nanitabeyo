@@ -14,11 +14,10 @@ import {
   Modal,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { 
-  ArrowLeft, 
-  MapPin, 
+import {
+  ArrowLeft,
+  MapPin,
   Star,
-  MessageCircle,
   Phone,
   Clock,
   Calendar,
@@ -26,11 +25,8 @@ import {
   Filter,
   Search,
   X,
-  Chrome as Home,
-  Bell,
-  User
 } from 'lucide-react-native';
-import MapViewComponent from '@/components/MapView';
+import MapView, { Marker, Region } from '@/components/MapView';
 
 const { width, height } = Dimensions.get('window');
 
@@ -64,13 +60,15 @@ interface FilterOptions {
 const restaurantInfo: RestaurantInfo = {
   id: '1',
   name: 'Bella Vista Restaurant',
-  description: '本格イタリアンレストラン。新鮮な食材を使用した伝統的な料理をお楽しみください。',
+  description:
+    '本格イタリアンレストラン。新鮮な食材を使用した伝統的な料理をお楽しみください。',
   rating: 4.5,
   reviewCount: 127,
   address: '東京都渋谷区神宮前1-2-3',
   phone: '03-1234-5678',
   hours: '11:00 - 22:00',
-  image: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=800',
+  image:
+    'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=800',
   latitude: 35.6762,
   longitude: 139.6503,
 };
@@ -79,63 +77,72 @@ const foodPosts: FoodPost[] = [
   {
     id: '1',
     name: 'Truffle Pasta',
-    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 142,
     comments: 23,
   },
   {
     id: '2',
     name: 'Wagyu Steak',
-    image: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 298,
     comments: 45,
   },
   {
     id: '3',
     name: 'Chocolate Soufflé',
-    image: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 186,
     comments: 31,
   },
   {
     id: '4',
     name: 'Caesar Salad',
-    image: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 89,
     comments: 12,
   },
   {
     id: '5',
     name: 'Lobster Bisque',
-    image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 156,
     comments: 28,
   },
   {
     id: '6',
     name: 'Margherita Pizza',
-    image: 'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 234,
     comments: 39,
   },
   {
     id: '7',
     name: 'Tiramisu',
-    image: 'https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 178,
     comments: 25,
   },
   {
     id: '8',
     name: 'Seafood Risotto',
-    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 203,
     comments: 34,
   },
   {
     id: '9',
     name: 'Grilled Salmon',
-    image: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    image:
+      'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 167,
     comments: 22,
   },
@@ -152,8 +159,20 @@ export default function RestaurantScreen() {
   });
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const priceRanges = ['¥1,000以下', '¥1,000-3,000', '¥3,000-5,000', '¥5,000以上'];
-  const categories = ['和食', 'イタリアン', 'フレンチ', '中華', 'アジア料理', 'その他'];
+  const priceRanges = [
+    '¥1,000以下',
+    '¥1,000-3,000',
+    '¥3,000-5,000',
+    '¥5,000以上',
+  ];
+  const categories = [
+    '和食',
+    'イタリアン',
+    'フレンチ',
+    '中華',
+    'アジア料理',
+    'その他',
+  ];
 
   const formatLikeCount = (count: number): string => {
     if (count >= 1000000) {
@@ -168,7 +187,7 @@ export default function RestaurantScreen() {
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
-    
+
     return (
       <View style={styles.starsContainer}>
         {[...Array(5)].map((_, index) => (
@@ -176,7 +195,7 @@ export default function RestaurantScreen() {
             key={index}
             size={16}
             color="#FFD700"
-            fill={index < fullStars ? "#FFD700" : "transparent"}
+            fill={index < fullStars ? '#FFD700' : 'transparent'}
           />
         ))}
       </View>
@@ -187,12 +206,23 @@ export default function RestaurantScreen() {
     router.push(`/(tabs)/(home)/food?startIndex=${index}`);
   };
 
-  const renderFoodPost = ({ item, index }: { item: FoodPost; index: number }) => (
-    <TouchableOpacity style={styles.foodPost} onPress={() => handleFoodPostPress(index)}>
+  const renderFoodPost = ({
+    item,
+    index,
+  }: {
+    item: FoodPost;
+    index: number;
+  }) => (
+    <TouchableOpacity
+      style={styles.foodPost}
+      onPress={() => handleFoodPostPress(index)}
+    >
       <Image source={{ uri: item.image }} style={styles.foodPostImage} />
       <View style={styles.foodPostOverlay}>
         <View style={styles.foodPostStats}>
-          <Text style={styles.foodPostLikes}>{formatLikeCount(item.likes)}</Text>
+          <Text style={styles.foodPostLikes}>
+            {formatLikeCount(item.likes)}
+          </Text>
           <Text style={styles.foodPostComments}>{item.comments}</Text>
         </View>
       </View>
@@ -221,7 +251,9 @@ export default function RestaurantScreen() {
 
   const handleOpenMaps = () => {
     if (Platform.OS === 'web') {
-      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantInfo.address)}`;
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        restaurantInfo.address
+      )}`;
       if (typeof window !== 'undefined') {
         window.open(mapsUrl, '_blank');
       }
@@ -235,19 +267,33 @@ export default function RestaurantScreen() {
     <View style={styles.container}>
       {/* Map Section */}
       <View style={styles.mapContainer}>
-        <MapViewComponent
-          latitude={restaurantInfo.latitude}
-          longitude={restaurantInfo.longitude}
-          title={restaurantInfo.name}
-          description={restaurantInfo.address}
-        />
-        
+        <MapView
+          initialRegion={{
+            latitude: restaurantInfo.latitude,
+            longitude: restaurantInfo.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+        >
+          <Marker
+            coordinate={{
+              latitude: restaurantInfo.latitude,
+              longitude: restaurantInfo.longitude,
+            }}
+            title={restaurantInfo.name}
+            description={restaurantInfo.address}
+          />
+        </MapView>
+
         {/* Header with Back Button, Search, and Filter */}
         <View style={styles.headerContainer}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <ArrowLeft size={24} color="#000" />
           </TouchableOpacity>
-          
+
           <View style={styles.searchFilterContainer}>
             <View style={styles.searchBar}>
               <Search size={20} color="#666" />
@@ -258,7 +304,10 @@ export default function RestaurantScreen() {
                 onChangeText={setSearchQuery}
               />
             </View>
-            <TouchableOpacity style={styles.filterIconButton} onPress={() => setShowFilter(true)}>
+            <TouchableOpacity
+              style={styles.filterIconButton}
+              onPress={() => setShowFilter(true)}
+            >
               <Filter size={20} color="#007AFF" />
             </TouchableOpacity>
           </View>
@@ -269,28 +318,41 @@ export default function RestaurantScreen() {
       <View style={styles.bottomSheet}>
         {/* Handle */}
         <View style={styles.handle} />
-        
+
         {/* Restaurant Header */}
         <View style={styles.restaurantHeader}>
-          <Image source={{ uri: restaurantInfo.image }} style={styles.restaurantImage} />
+          <Image
+            source={{ uri: restaurantInfo.image }}
+            style={styles.restaurantImage}
+          />
           <View style={styles.restaurantInfo}>
             <Text style={styles.restaurantName}>{restaurantInfo.name}</Text>
             <View style={styles.ratingContainer}>
               {renderStars(restaurantInfo.rating)}
               <Text style={styles.ratingText}>{restaurantInfo.rating}</Text>
-              <Text style={styles.reviewCount}>({restaurantInfo.reviewCount})</Text>
+              <Text style={styles.reviewCount}>
+                ({restaurantInfo.reviewCount})
+              </Text>
             </View>
-            <Text style={styles.restaurantDescription}>{restaurantInfo.description}</Text>
+            <Text style={styles.restaurantDescription}>
+              {restaurantInfo.description}
+            </Text>
           </View>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleMakeReservation}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleMakeReservation}
+          >
             <Calendar size={20} color="#007AFF" />
             <Text style={styles.actionButtonText}>予約する</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handlePostReview}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handlePostReview}
+          >
             <Camera size={20} color="#007AFF" />
             <Text style={styles.actionButtonText}>画像・動画投稿</Text>
           </TouchableOpacity>
@@ -302,7 +364,12 @@ export default function RestaurantScreen() {
             style={[styles.tab, selectedTab === 'posts' && styles.activeTab]}
             onPress={() => setSelectedTab('posts')}
           >
-            <Text style={[styles.tabText, selectedTab === 'posts' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === 'posts' && styles.activeTabText,
+              ]}
+            >
               投稿 {foodPosts.length}
             </Text>
           </TouchableOpacity>
@@ -310,7 +377,12 @@ export default function RestaurantScreen() {
             style={[styles.tab, selectedTab === 'info' && styles.activeTab]}
             onPress={() => setSelectedTab('info')}
           >
-            <Text style={[styles.tabText, selectedTab === 'info' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === 'info' && styles.activeTabText,
+              ]}
+            >
               店舗情報
             </Text>
           </TouchableOpacity>
@@ -373,17 +445,23 @@ export default function RestaurantScreen() {
                     key={range}
                     style={[
                       styles.filterOption,
-                      filters.priceRange === range && styles.filterOptionSelected
+                      filters.priceRange === range &&
+                        styles.filterOptionSelected,
                     ]}
-                    onPress={() => setFilters(prev => ({ 
-                      ...prev, 
-                      priceRange: prev.priceRange === range ? '' : range 
-                    }))}
+                    onPress={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        priceRange: prev.priceRange === range ? '' : range,
+                      }))
+                    }
                   >
-                    <Text style={[
-                      styles.filterOptionText,
-                      filters.priceRange === range && styles.filterOptionTextSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        filters.priceRange === range &&
+                          styles.filterOptionTextSelected,
+                      ]}
+                    >
                       {range}
                     </Text>
                   </TouchableOpacity>
@@ -400,17 +478,23 @@ export default function RestaurantScreen() {
                     key={category}
                     style={[
                       styles.filterOption,
-                      filters.category === category && styles.filterOptionSelected
+                      filters.category === category &&
+                        styles.filterOptionSelected,
                     ]}
-                    onPress={() => setFilters(prev => ({ 
-                      ...prev, 
-                      category: prev.category === category ? '' : category 
-                    }))}
+                    onPress={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        category: prev.category === category ? '' : category,
+                      }))
+                    }
                   >
-                    <Text style={[
-                      styles.filterOptionText,
-                      filters.category === category && styles.filterOptionTextSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        filters.category === category &&
+                          styles.filterOptionTextSelected,
+                      ]}
+                    >
                       {category}
                     </Text>
                   </TouchableOpacity>
@@ -420,7 +504,10 @@ export default function RestaurantScreen() {
           </ScrollView>
 
           <View style={styles.filterFooter}>
-            <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={handleApplyFilters}
+            >
               <Text style={styles.applyButtonText}>適用</Text>
             </TouchableOpacity>
           </View>
