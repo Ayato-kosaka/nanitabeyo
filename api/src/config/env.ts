@@ -11,6 +11,7 @@ dotenv.config();
 const envSchema = z.object({
   API_COMMIT_ID: z.string(),
   API_NODE_ENV: z.string(),
+  CORS_ORIGIN: z.string(),
   API_GOOGLE_PLACE_API_KEY: z.string(),
 });
 

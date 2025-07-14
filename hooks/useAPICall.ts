@@ -69,7 +69,7 @@ export const useAPICall = () => {
             const response = await fetch(endpoint, {
                 method,
                 headers,
-                body: isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload),
+                body: method === 'POST' ? (isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload)) : undefined,
             });
 
             const requestId = response.headers.get("x-request-id");

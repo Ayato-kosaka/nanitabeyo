@@ -26,8 +26,14 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react-native';
-import { DishMedia, Review, SearchLocation, ApiResponse, GooglePlacesPrediction } from '@/types';
-import { mockDishMediaData } from '@/data/mockDishMediaData';
+import { SearchLocation, ApiResponse, GooglePlacesPrediction } from '@/types';
+import { useAPICall } from '@/hooks/useAPICall';
+import {
+  DishMedia,
+  ListDishMediaQuery,
+  ListDishMediaResponse,
+  Review,
+} from '@/shared/api/list-dish-media.dto';
 
 const { width } = Dimensions.get('window');
 
@@ -40,16 +46,19 @@ export default function DebugScreen() {
     longitude: 139.6503,
     address: '東京都渋谷区神宮前（デフォルト位置）',
   });
-  
+  const { callBackend } = useAPICall();
+
   // Modal states
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [selectedDish, setSelectedDish] = useState<DishMedia | null>(null);
-  
+
   // Location search states
   const [locationQuery, setLocationQuery] = useState('');
-  const [locationSuggestions, setLocationSuggestions] = useState<GooglePlacesPrediction[]>([]);
+  const [locationSuggestions, setLocationSuggestions] = useState<
+    GooglePlacesPrediction[]
+  >([]);
   const [searchingLocation, setSearchingLocation] = useState(false);
 
   useEffect(() => {
@@ -70,28 +79,27 @@ export default function DebugScreen() {
   const loadDishMediaData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would be an actual API call
-      // const response = await fetch('/api/listDishMedia', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     latitude: searchLocation.latitude,
-      //     longitude: searchLocation.longitude,
-      //     radius: 5000,
-      //     limit: 20,
-      //   }),
-      // });
-      // const data: ApiResponse<DishMedia> = await response.json();
-      
-      // Using mock data for demonstration
-      setDishMediaList(mockDishMediaData);
+      const response = await callBackend<
+        ListDishMediaQuery,
+        ListDishMediaResponse
+      >('dish-media', 'v1', {
+        method: 'GET',
+        requestPayload: {
+          lat: searchLocation.latitude,
+          lng: searchLocation.longitude,
+          radius: 5000,
+          limit: 20,
+          lang: 'ja', // TODO - make this dynamic
+        },
+      });
+
+      setDishMediaList(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dish media data');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load dish media data'
+      );
     } finally {
       setLoading(false);
     }
@@ -133,10 +141,12 @@ export default function DebugScreen() {
           },
         },
       ];
-      
-      setLocationSuggestions(mockSuggestions.filter(s => 
-        s.description.toLowerCase().includes(query.toLowerCase())
-      ));
+
+      setLocationSuggestions(
+        mockSuggestions.filter((s) =>
+          s.description.toLowerCase().includes(query.toLowerCase())
+        )
+      );
     } catch (error) {
       console.error('Error searching locations:', error);
     } finally {
@@ -152,12 +162,12 @@ export default function DebugScreen() {
         longitude: 139.6503 + (Math.random() - 0.5) * 0.01,
         address: prediction.description,
       };
-      
+
       setSearchLocation(mockLocation);
       setLocationQuery('');
       setLocationSuggestions([]);
       setShowLocationModal(false);
-      
+
       // Reload data with new location
       loadDishMediaData();
     } catch (error) {
@@ -186,7 +196,7 @@ export default function DebugScreen() {
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
-    
+
     return (
       <View style={styles.starsContainer}>
         {[...Array(5)].map((_, index) => (
@@ -194,7 +204,7 @@ export default function DebugScreen() {
             key={index}
             size={14}
             color="#FFD700"
-            fill={index < fullStars ? "#FFD700" : "transparent"}
+            fill={index < fullStars ? '#FFD700' : 'transparent'}
           />
         ))}
       </View>
@@ -203,28 +213,33 @@ export default function DebugScreen() {
 
   const renderDishMediaCard = ({ item }: { item: DishMedia }) => (
     <View style={styles.dishCard}>
-      <Image source={{ uri: item.image_url }} style={styles.dishImage} />
-      
+      <Image source={{ uri: item.photo_url }} style={styles.dishImage} />
+
       <View style={styles.dishInfo}>
-        <Text style={styles.dishName} numberOfLines={2}>{item.dish_name}</Text>
-        <Text style={styles.restaurantName}>{item.restaurant_name}</Text>
-        
+        <Text style={styles.dishName} numberOfLines={2}>
+          {item.dish_name}
+        </Text>
+        <Text style={styles.restaurantName}>{item.place.name}</Text>
+
         <View style={styles.priceRatingRow}>
           <Text style={styles.price}>{formatPrice(item.price)}</Text>
           <View style={styles.ratingContainer}>
             {renderStars(item.average_rating)}
-            <Text style={styles.ratingText}>{formatRating(item.average_rating)}</Text>
+            <Text style={styles.ratingText}>
+              {formatRating(item.average_rating)}
+            </Text>
             <Text style={styles.reviewCount}>({item.review_count})</Text>
           </View>
         </View>
-        
+
         <View style={styles.locationRow}>
           <MapPin size={12} color="#666" />
           <Text style={styles.locationText} numberOfLines={1}>
-            {item.location.address}
+            {item.place.location.lat.toFixed(6)},{' '}
+            {item.place.location.lng.toFixed(6)}
           </Text>
         </View>
-        
+
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={styles.reviewButton}
@@ -236,7 +251,7 @@ export default function DebugScreen() {
             <MessageCircle size={16} color="#007AFF" />
             <Text style={styles.reviewButtonText}>クチコミを見る</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.jsonButton}
             onPress={() => {
@@ -255,23 +270,31 @@ export default function DebugScreen() {
   const renderReviewItem = ({ item }: { item: Review }) => (
     <View style={styles.reviewItem}>
       <View style={styles.reviewHeader}>
-        <Image 
-          source={{ uri: item.user_avatar || 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100&h=100' }} 
-          style={styles.reviewAvatar} 
+        <Image
+          source={{
+            uri:
+              item.user_avatar ||
+              'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
+          }}
+          style={styles.reviewAvatar}
         />
         <View style={styles.reviewUserInfo}>
-          <Text style={styles.reviewUserName}>{item.user_name}</Text>
+          <Text style={styles.reviewUserName}>{item.author_name}</Text>
           <View style={styles.reviewRatingRow}>
             {renderStars(item.rating)}
-            <Text style={styles.reviewDate}>{formatDate(item.created_at)}</Text>
+            <Text style={styles.reviewDate}>
+              {item.created_at && formatDate(item.created_at)}
+            </Text>
           </View>
         </View>
       </View>
-      
-      <Text style={styles.reviewComment}>{item.comment}</Text>
-      
+
+      <Text style={styles.reviewComment}>{item.text}</Text>
+
       <View style={styles.reviewFooter}>
-        <Text style={styles.helpfulCount}>参考になった: {item.helpful_count}</Text>
+        <Text style={styles.helpfulCount}>
+          参考になった: {item.helpful_count}
+        </Text>
       </View>
     </View>
   );
@@ -280,8 +303,13 @@ export default function DebugScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Developer Debug - listDishMedia API</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={loadDishMediaData}>
+        <Text style={styles.headerTitle}>
+          Developer Debug - listDishMedia API
+        </Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={loadDishMediaData}
+        >
           <RefreshCw size={20} color="#007AFF" />
         </TouchableOpacity>
       </View>
@@ -298,10 +326,11 @@ export default function DebugScreen() {
             <Text style={styles.changeLocationText}>変更</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.locationInfo}>
           <Text style={styles.coordinatesText}>
-            緯度: {searchLocation.latitude.toFixed(6)}, 経度: {searchLocation.longitude.toFixed(6)}
+            緯度: {searchLocation.latitude.toFixed(6)}, 経度:{' '}
+            {searchLocation.longitude.toFixed(6)}
           </Text>
           <Text style={styles.addressText}>{searchLocation.address}</Text>
         </View>
@@ -316,7 +345,10 @@ export default function DebugScreen() {
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>エラー: {error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadDishMediaData}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={loadDishMediaData}
+          >
             <Text style={styles.retryButtonText}>再試行</Text>
           </TouchableOpacity>
         </View>
@@ -356,7 +388,9 @@ export default function DebugScreen() {
                 searchLocationSuggestions(text);
               }}
             />
-            {searchingLocation && <ActivityIndicator size="small" color="#007AFF" />}
+            {searchingLocation && (
+              <ActivityIndicator size="small" color="#007AFF" />
+            )}
           </View>
 
           <FlatList
@@ -369,8 +403,12 @@ export default function DebugScreen() {
               >
                 <MapPin size={16} color="#666" />
                 <View style={styles.suggestionText}>
-                  <Text style={styles.suggestionMain}>{item.structured_formatting.main_text}</Text>
-                  <Text style={styles.suggestionSecondary}>{item.structured_formatting.secondary_text}</Text>
+                  <Text style={styles.suggestionMain}>
+                    {item.structured_formatting.main_text}
+                  </Text>
+                  <Text style={styles.suggestionSecondary}>
+                    {item.structured_formatting.secondary_text}
+                  </Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -396,8 +434,12 @@ export default function DebugScreen() {
           {selectedDish && (
             <>
               <View style={styles.dishSummary}>
-                <Text style={styles.dishSummaryName}>{selectedDish.dish_name}</Text>
-                <Text style={styles.dishSummaryRestaurant}>{selectedDish.restaurant_name}</Text>
+                <Text style={styles.dishSummaryName}>
+                  {selectedDish.dish_name}
+                </Text>
+                <Text style={styles.dishSummaryRestaurant}>
+                  {selectedDish.place.name}
+                </Text>
               </View>
 
               <FlatList
