@@ -5,7 +5,7 @@ import { GooglePlacesService } from './google-places.service';
 import { CloudVisionService } from './cloud-vision.service';
 import {
   ListDishMediaQuery,
-  DishMediaItem,
+  DishMedia,
   ListDishMediaResponse,
   Review,
 } from '../../../../shared/api/list-dish-media.dto';
@@ -47,23 +47,24 @@ export class DishMediaService {
       categories: category,
     });
 
-    const items: DishMediaItem[] = [];
+    const items: DishMedia[] = [];
     for (const searchResult of (searchJson.places ?? []).slice(0, limit)) {
       if (!searchResult.id) continue;
       const details = await this.gp.placeDetails(searchResult.id, lang);
 
       const dishKeyword = this.selectPopularDish(details.reviews ?? [], category);
       const photoUrl = await this.chooseDishPhoto(details);
-      const reviews = this.extractDishReviews(details.reviews ?? [], dishKeyword);
+      const reviews = this.extractDishReviews(details.reviews, dishKeyword);
 
       items.push({
-        dishId: `dm_${details.id ?? 'unknown'}_${nanoid(6)}`,
-        dishName: dishKeyword ?? details.displayName?.text ?? 'unknown',
+        id: `dm_${nanoid(12)}`,
+        dish_name: dishKeyword ?? details.displayName?.text ?? 'unknown',
         category: category ?? '',
-        photoUrl,
-        rating: details.rating ?? 0,
-        reviewCount: details.userRatingCount ?? 0,
+        photo_url: photoUrl,
+        average_rating: details.rating ?? 0,
+        review_count: details.userRatingCount ?? 0,
         distanceMeters: (searchResult as any).distanceMeters ?? 0,
+        price: 0,
         place: {
           placeId: details.id ?? '',
           name: details.displayName?.text ?? '',
@@ -120,7 +121,8 @@ export class DishMediaService {
   /**
    * 料理に言及した高評価レビューのみ抽出
    */
-  private extractDishReviews(reviews: any[], dishKeyword?: string): Review[] {
+  private extractDishReviews(reviews: Awaited<ReturnType<typeof this.gp.placeDetails>>['reviews'], dishKeyword?: string): Review[] {
+    if (!reviews || reviews.length === 0) return [];
     const keywords = ['おいしい', '美味しい', 'delicious', 'tasty'];
     if (dishKeyword) keywords.push(dishKeyword.toLowerCase());
     return reviews
@@ -131,10 +133,14 @@ export class DishMediaService {
       })
       .slice(0, 3)
       .map((r: any) => ({
-        author: r.author_name,
+        id: nanoid(12),
+        author_name: r.author_name,
+        user_avatar: r.authorAttribution?.photoUrl,
         rating: r.rating,
         text: r.text,
         translated: Boolean(r.translated),
+        created_at: r.publishTime,
+        helpful_count: 0
       }));
   }
 }

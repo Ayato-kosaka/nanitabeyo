@@ -23,20 +23,21 @@ export type ListDishMediaQuery = z.infer<typeof listDishMediaQuerySchema>;
  * listDishMedia API のレスポンス型
  * 
  */
-export type ListDishMediaResponse = DishMediaItem[];
+export type ListDishMediaResponse = DishMedia[];
 
 
 /**
  * 🍽️ API レスポンスの 1 アイテム
  */
-export interface DishMediaItem {
-  dishId: string;
-  dishName: string;
+export interface DishMedia {
+  id: string;
+  dish_name: string;
   category: string;
-  photoUrl: string;
-  rating: number;
-  reviewCount: number;
+  photo_url: string;
+  average_rating: number;
+  review_count: number;
   distanceMeters: number;
+  price: number;
   place: PlaceInfo;
   reviews: Review[];
 }
@@ -45,10 +46,14 @@ export interface DishMediaItem {
  * 👤 レビュー情報
  */
 export interface Review {
-  author: string;
+  id: string;
+  author_name: string;
+  user_avatar?: string;
   rating: number;
   text: string;
   translated: boolean;
+  created_at?: string;
+  helpful_count: number;
 }
 
 /**

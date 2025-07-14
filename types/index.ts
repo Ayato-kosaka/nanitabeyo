@@ -54,36 +54,6 @@ export interface UserPost {
   duration?: string;
 }
 
-// Developer Debug Screen Types
-export interface DishMedia {
-  id: string;
-  dish_name: string;
-  image_url: string;
-  price: number;
-  review_count: number;
-  average_rating: number;
-  restaurant_name: string;
-  restaurant_id: string;
-  location: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  };
-  reviews: Review[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Review {
-  id: string;
-  user_name: string;
-  user_avatar?: string;
-  rating: number;
-  comment: string;
-  created_at: string;
-  helpful_count: number;
-}
-
 export interface SearchLocation {
   latitude: number;
   longitude: number;
