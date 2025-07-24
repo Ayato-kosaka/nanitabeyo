@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, MapPin, Bell, User, Code } from 'lucide-react-native';
+import { Chrome as Home, MapPin, Bell, User, Code, Search } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -21,6 +21,15 @@ export default function TabLayout() {
           title: 'ホーム',
           tabBarIcon: ({ size, color }) => (
             <Home size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: '検索',
+          tabBarIcon: ({ size, color }) => (
+            <Search size={size} color={color} />
           ),
         }}
       />

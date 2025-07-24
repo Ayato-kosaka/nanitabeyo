@@ -9,12 +9,18 @@ const { height } = Dimensions.get('window');
 interface FoodContentFeedProps {
   items: FoodItem[];
   initialIndex?: number;
+  onIndexChange?: (index: number) => void;
 }
 
-export default function FoodContentFeed({ items, initialIndex = 0 }: FoodContentFeedProps) {
+export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange }: FoodContentFeedProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [feedItems, setFeedItems] = useState<FoodItem[]>(items);
   const translateY = useRef(new Animated.Value(0)).current;
+
+  const updateIndex = (newIndex: number) => {
+    setCurrentIndex(newIndex);
+    onIndexChange?.(newIndex);
+  };
 
   const handleLike = () => {
     setFeedItems((prevItems) =>
@@ -65,9 +71,9 @@ export default function FoodContentFeed({ items, initialIndex = 0 }: FoodContent
       const { translationY } = event.nativeEvent;
 
       if (translationY < -height * 0.2 && currentIndex < feedItems.length - 1) {
-        setCurrentIndex(currentIndex + 1);
+        updateIndex(currentIndex + 1);
       } else if (translationY > height * 0.2 && currentIndex > 0) {
-        setCurrentIndex(currentIndex - 1);
+        updateIndex(currentIndex - 1);
       }
 
       Animated.spring(translateY, {
@@ -78,6 +84,10 @@ export default function FoodContentFeed({ items, initialIndex = 0 }: FoodContent
   };
 
   const currentItem = feedItems[currentIndex];
+
+  if (!currentItem) {
+    return null;
+  }
 
   return (
     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
