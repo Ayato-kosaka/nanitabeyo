@@ -60,7 +60,7 @@ export default function FeedScreen() {
   };
 
   const handleBack = () => {
-    if (returnTo === 'cards') {
+    if (returnTo === 'recommendations' || returnTo === 'search') {
       router.back();
     } else {
       router.push('/(tabs)/(home)');
@@ -69,7 +69,7 @@ export default function FeedScreen() {
 
   const handleSearchOther = () => {
     setShowCompletionModal(false);
-    router.push('/search');
+    router.push('/(tabs)/search/');
   };
 
   const handleReturnToCards = () => {
