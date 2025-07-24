@@ -22,7 +22,11 @@ import {
   Navigation,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { SearchParams, SearchLocation, GooglePlacesPrediction } from '@/types/search';
+import {
+  SearchParams,
+  SearchLocation,
+  GooglePlacesPrediction,
+} from '@/types/search';
 import { useLocationSearch } from '@/hooks/useLocationSearch';
 import { useSnackbar } from '@/contexts/SnackbarProvider';
 
@@ -65,18 +69,26 @@ export default function SearchScreen() {
   const [locationQuery, setLocationQuery] = useState('');
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [timeSlot, setTimeSlot] = useState<SearchParams['timeSlot']>('lunch');
-  const [scene, setScene] = useState<SearchParams['scene'] | null>(null);
-  const [mood, setMood] = useState<SearchParams['mood'] | null>(null);
+  const [scene, setScene] = useState<SearchParams['scene'] | undefined>(
+    undefined
+  );
+  const [mood, setMood] = useState<SearchParams['mood'] | undefined>(undefined);
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const { suggestions, isSearching: isLocationSearching, searchLocations, getLocationDetails, getCurrentLocation } = useLocationSearch();
+  const {
+    suggestions,
+    isSearching: isLocationSearching,
+    searchLocations,
+    getLocationDetails,
+    getCurrentLocation,
+  } = useLocationSearch();
   const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
     // Auto-detect current location on mount
     getCurrentLocation().then(setLocation).catch(console.error);
-    
+
     // Auto-set time slot based on current time
     const hour = new Date().getHours();
     if (hour < 10) setTimeSlot('morning');
@@ -118,9 +130,9 @@ export default function SearchScreen() {
   };
 
   const toggleRestriction = (restrictionId: string) => {
-    setRestrictions(prev => 
+    setRestrictions((prev) =>
       prev.includes(restrictionId)
-        ? prev.filter(id => id !== restrictionId)
+        ? prev.filter((id) => id !== restrictionId)
         : [...prev, restrictionId]
     );
   };
@@ -156,26 +168,39 @@ export default function SearchScreen() {
     }
   };
 
-  const renderLocationSuggestion = ({ item }: { item: GooglePlacesPrediction }) => (
+  const renderLocationSuggestion = ({
+    item,
+  }: {
+    item: GooglePlacesPrediction;
+  }) => (
     <TouchableOpacity
       style={styles.suggestionItem}
       onPress={() => handleLocationSelect(item)}
     >
       <MapPin size={16} color="#666" />
       <View style={styles.suggestionText}>
-        <Text style={styles.suggestionMain}>{item.structured_formatting.main_text}</Text>
-        <Text style={styles.suggestionSecondary}>{item.structured_formatting.secondary_text}</Text>
+        <Text style={styles.suggestionMain}>
+          {item.structured_formatting.main_text}
+        </Text>
+        <Text style={styles.suggestionSecondary}>
+          {item.structured_formatting.secondary_text}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>料理を探す</Text>
-          <Text style={styles.headerSubtitle}>あなたにぴったりの料理を見つけましょう</Text>
+          <Text style={styles.headerSubtitle}>
+            あなたにぴったりの料理を見つけましょう
+          </Text>
         </View>
 
         {/* Location Input */}
@@ -189,7 +214,9 @@ export default function SearchScreen() {
               placeholder="場所を入力してください"
               value={locationQuery}
               onChangeText={handleLocationSearch}
-              onFocus={() => locationQuery.length >= 2 && setShowLocationSuggestions(true)}
+              onFocus={() =>
+                locationQuery.length >= 2 && setShowLocationSuggestions(true)
+              }
             />
             <TouchableOpacity
               style={styles.currentLocationButton}
@@ -224,7 +251,11 @@ export default function SearchScreen() {
           <Text style={styles.sectionTitle}>
             <Clock size={16} color="#1976D2" /> 時間帯
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipRow}
+          >
             {timeSlots.map((slot) => (
               <TouchableOpacity
                 key={slot.id}
@@ -235,10 +266,12 @@ export default function SearchScreen() {
                 onPress={() => setTimeSlot(slot.id)}
               >
                 <Text style={styles.chipEmoji}>{slot.icon}</Text>
-                <Text style={[
-                  styles.chipText,
-                  timeSlot === slot.id && styles.selectedChipText,
-                ]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    timeSlot === slot.id && styles.selectedChipText,
+                  ]}
+                >
                   {slot.label}
                 </Text>
               </TouchableOpacity>
@@ -251,7 +284,11 @@ export default function SearchScreen() {
           <Text style={styles.sectionTitle}>
             <Users size={16} color="#1976D2" /> シーン
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipRow}
+          >
             {sceneOptions.map((option) => (
               <TouchableOpacity
                 key={option.id}
@@ -259,13 +296,17 @@ export default function SearchScreen() {
                   styles.chip,
                   scene === option.id && styles.selectedChip,
                 ]}
-                onPress={() => setScene(scene === option.id ? null : option.id)}
+                onPress={() =>
+                  setScene(scene === option.id ? undefined : option.id)
+                }
               >
                 <Text style={styles.chipEmoji}>{option.icon}</Text>
-                <Text style={[
-                  styles.chipText,
-                  scene === option.id && styles.selectedChipText,
-                ]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    scene === option.id && styles.selectedChipText,
+                  ]}
+                >
                   {option.label}
                 </Text>
               </TouchableOpacity>
@@ -278,21 +319,26 @@ export default function SearchScreen() {
           <Text style={styles.sectionTitle}>
             <Heart size={16} color="#1976D2" /> 気分
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipRow}
+          >
             {moodOptions.map((option) => (
               <TouchableOpacity
                 key={option.id}
-                style={[
-                  styles.chip,
-                  mood === option.id && styles.selectedChip,
-                ]}
-                onPress={() => setMood(mood === option.id ? null : option.id)}
+                style={[styles.chip, mood === option.id && styles.selectedChip]}
+                onPress={() =>
+                  setMood(mood === option.id ? undefined : option.id)
+                }
               >
                 <Text style={styles.chipEmoji}>{option.icon}</Text>
-                <Text style={[
-                  styles.chipText,
-                  mood === option.id && styles.selectedChipText,
-                ]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    mood === option.id && styles.selectedChipText,
+                  ]}
+                >
                   {option.label}
                 </Text>
               </TouchableOpacity>
@@ -309,15 +355,19 @@ export default function SearchScreen() {
                 key={option.id}
                 style={[
                   styles.restrictionChip,
-                  restrictions.includes(option.id) && styles.selectedRestrictionChip,
+                  restrictions.includes(option.id) &&
+                    styles.selectedRestrictionChip,
                 ]}
                 onPress={() => toggleRestriction(option.id)}
               >
                 <Text style={styles.chipEmoji}>{option.icon}</Text>
-                <Text style={[
-                  styles.restrictionChipText,
-                  restrictions.includes(option.id) && styles.selectedRestrictionChipText,
-                ]}>
+                <Text
+                  style={[
+                    styles.restrictionChipText,
+                    restrictions.includes(option.id) &&
+                      styles.selectedRestrictionChipText,
+                  ]}
+                >
                   {option.label}
                 </Text>
                 {restrictions.includes(option.id) && (
