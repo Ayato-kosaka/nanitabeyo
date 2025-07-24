@@ -18,7 +18,7 @@ export default function FeedScreen() {
     googlePlaceSearchText: string;
     returnTo?: string;
   }>();
-  
+
   const [feedItems, setFeedItems] = useState<FoodItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -31,8 +31,8 @@ export default function FeedScreen() {
   const loadFeedItems = async () => {
     try {
       // Simulate API call with search text
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Mock: shuffle and take 5 items
       const shuffled = [...mockFeedItems]
         .sort(() => Math.random() - 0.5)
@@ -41,7 +41,7 @@ export default function FeedScreen() {
           ...item,
           id: `${item.id}_${Date.now()}_${index}`,
         }));
-      
+
       setFeedItems(shuffled);
     } catch (error) {
       console.error('Failed to load feed items:', error);
@@ -50,7 +50,7 @@ export default function FeedScreen() {
 
   const handleIndexChange = (index: number) => {
     setCurrentIndex(index);
-    
+
     // Show completion modal when reaching the last item
     if (index >= feedItems.length - 1) {
       setTimeout(() => {
@@ -83,26 +83,8 @@ export default function FeedScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ArrowLeft size={24} color="#FFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {googlePlaceSearchText}
-        </Text>
-        <View style={styles.headerRight}>
-          <Text style={styles.progressText}>
-            {currentIndex + 1} / {feedItems.length}
-          </Text>
-        </View>
-      </View>
-
       {/* Feed Content */}
-      <FoodContentFeed
-        items={feedItems}
-        onIndexChange={handleIndexChange}
-      />
+      <FoodContentFeed items={feedItems} onIndexChange={handleIndexChange} />
 
       {/* Completion Modal */}
       <Modal
@@ -114,9 +96,7 @@ export default function FeedScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.completionModal}>
             <Text style={styles.completionTitle}>すべて見終わりました！</Text>
-            <Text style={styles.completionMessage}>
-              別の料理を探しますか？
-            </Text>
+            <Text style={styles.completionMessage}>別の料理を探しますか？</Text>
 
             <View style={styles.completionActions}>
               <TouchableOpacity
@@ -126,7 +106,7 @@ export default function FeedScreen() {
                 <RotateCcw size={20} color="#666" />
                 <Text style={styles.returnButtonText}>戻る</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.searchOtherButton}
                 onPress={handleSearchOther}
@@ -146,38 +126,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFF',
-    textAlign: 'center',
-    marginHorizontal: 16,
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#FFF',
-    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
