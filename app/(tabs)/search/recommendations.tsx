@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import RecommendationsScreen from '../../recommendations';
+import TopicsScreen from '../../topics';
 
-export default function SearchRecommendationsScreen() {
+export default function SearchTopicsScreen() {
   return (
     <View style={styles.container}>
-      <RecommendationsScreen />
+      <TopicsScreen />
     </View>
   );
 }

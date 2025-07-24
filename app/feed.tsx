@@ -60,7 +60,7 @@ export default function FeedScreen() {
   };
 
   const handleBack = () => {
-    if (returnTo === 'recommendations' || returnTo === 'search') {
+    if (returnTo === 'topics' || returnTo === 'search') {
       router.back();
     } else {
       router.push('/(tabs)/(home)');
@@ -69,12 +69,16 @@ export default function FeedScreen() {
 
   const handleSearchOther = () => {
     setShowCompletionModal(false);
-    router.push('/(tabs)/search/');
+    router.push('/(tabs)/search');
   };
 
   const handleReturnToCards = () => {
     setShowCompletionModal(false);
-    router.back();
+    if (returnTo === 'topics') {
+      router.back();
+    } else {
+      router.push('/(tabs)/search/topics');
+    }
   };
 
   return (

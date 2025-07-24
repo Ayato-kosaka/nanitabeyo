@@ -28,7 +28,7 @@ export const useCardSearch = () => {
       setCards(shuffledCards);
       return shuffledCards;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'カード検索に失敗しました';
+      const errorMessage = err instanceof Error ? err.message : 'おすすめ検索に失敗しました';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -50,10 +50,10 @@ export const useCardSearch = () => {
       timestamp: new Date().toISOString(),
     };
     
-    console.log('Card hidden:', hideReason);
+    console.log('Topic hidden:', hideReason);
   }, []);
 
-  const resetCards = useCallback(() => {
+  const resetTopics = useCallback(() => {
     setCards([]);
     setError(null);
   }, []);
@@ -64,6 +64,6 @@ export const useCardSearch = () => {
     error,
     searchCards,
     hideCard,
-    resetCards,
+    resetTopics,
   };
 };

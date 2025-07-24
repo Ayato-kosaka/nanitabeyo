@@ -42,8 +42,8 @@ const sceneOptions = [
   { id: 'solo', label: 'おひとり様', icon: '👤' },
   { id: 'date', label: 'デート', icon: '💕' },
   { id: 'group', label: '複数人と', icon: '👥' },
-  { id: 'large_group', label: '大人数', icon: '👨‍👩‍👧‍👦' },
-  { id: 'tourism', label: '観光', icon: '🗾' },
+  { id: 'large_group', label: '大人数', icon: '👥👥' },
+  { id: 'tourism', label: '観光', icon: '🌍' },
 ] as const;
 
 const moodOptions = [
@@ -156,7 +156,7 @@ export default function SearchScreen() {
 
       // Navigate to cards screen with search parameters
       router.push({
-        pathname: '/(tabs)/search/recommendations',
+        pathname: '/(tabs)/search/topics',
         params: {
           searchParams: JSON.stringify(searchParams),
         },
@@ -401,37 +401,42 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FAFAFA',
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     backgroundColor: '#FFF',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1976D2',
-    marginBottom: 8,
+    color: '#6750A4',
+    marginBottom: 6,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#49454F',
   },
   section: {
     backgroundColor: '#FFF',
-    marginTop: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
+    color: '#1C1B1F',
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -446,12 +451,12 @@ const styles = StyleSheet.create({
   locationInput: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     fontSize: 16,
-    color: '#333',
+    color: '#1C1B1F',
   },
   currentLocationButton: {
-    padding: 14,
+    padding: 12,
     borderLeftWidth: 1,
     borderLeftColor: '#E0E0E0',
   },
@@ -491,39 +496,41 @@ const styles = StyleSheet.create({
   },
   suggestionMain: {
     fontSize: 16,
-    color: '#333',
+    color: '#1C1B1F',
     fontWeight: '500',
   },
   suggestionSecondary: {
     fontSize: 14,
-    color: '#666',
+    color: '#49454F',
     marginTop: 2,
   },
   chipRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 8,
+    backgroundColor: '#F7F2FA',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E7E0EC',
+    marginBottom: 8,
   },
   selectedChip: {
-    backgroundColor: '#1976D2',
-    borderColor: '#1976D2',
+    backgroundColor: '#6750A4',
+    borderColor: '#6750A4',
   },
   chipEmoji: {
-    fontSize: 16,
-    marginRight: 6,
+    fontSize: 14,
+    marginRight: 4,
   },
   chipText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#49454F',
     fontWeight: '500',
   },
   selectedChipText: {
@@ -533,7 +540,7 @@ const styles = StyleSheet.create({
   restrictionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   restrictionChip: {
     flexDirection: 'row',
@@ -541,17 +548,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    marginBottom: 6,
   },
   selectedRestrictionChip: {
     backgroundColor: '#FF5722',
     borderColor: '#FF5722',
   },
   restrictionChipText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: '#49454F',
     fontWeight: '500',
     marginLeft: 4,
     marginRight: 4,
@@ -564,7 +572,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#1976D2',
+    backgroundColor: '#6750A4',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -577,7 +585,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   disabledFab: {
-    backgroundColor: '#BDBDBD',
+    backgroundColor: '#79747E',
   },
   fabText: {
     fontSize: 16,

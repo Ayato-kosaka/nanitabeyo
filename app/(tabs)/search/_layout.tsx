@@ -4,7 +4,7 @@ export default function SearchStackLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="recommendations" />
+      <Stack.Screen name="topics" />
       <Stack.Screen name="feed" />
     </Stack>
   );
