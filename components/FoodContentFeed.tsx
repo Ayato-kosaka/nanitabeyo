@@ -76,10 +76,8 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
         updateIndex(currentIndex - 1);
       }
 
-    if (returnTo === 'topics') {
+      Animated.timing(translateY, {
         toValue: 0,
-    } else if (returnTo === 'search') {
-      router.push('/(tabs)/search');
         useNativeDriver: true,
       }).start();
     }
