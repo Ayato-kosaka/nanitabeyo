@@ -91,23 +91,23 @@ export default function TopicsScreen() {
           onPress={() => handleHideCard(item.id)}
         >
           <ThumbsDown size={18} color="#FFF" />
-          <Text style={styles.hideButtonText}>非表示にする</Text>
+          <Text style={styles.hideButtonText}></Text>
         </TouchableOpacity>
 
         {/* Content */}
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle}>{item.topicTitle}</Text>
           <Text style={styles.cardDescription}>{item.reason}</Text>
-          <Text style={styles.cardSearchText}>
+          {/* <Text style={styles.cardSearchText}>
             📍 {item.googlePlaceSearchText}
-          </Text>
+          </Text> */}
 
           <TouchableOpacity
             style={styles.detailsButton}
             onPress={() => handleViewDetails(item)}
           >
             <Eye size={20} color="#FFF" />
-            <Text style={styles.detailsButtonText}>料理を見る</Text>
+            <Text style={styles.detailsButtonText}>探索する</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -141,12 +141,6 @@ export default function TopicsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ArrowLeft size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>おすすめ料理</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* Progress Indicator */}
-      <View style={styles.progressContainer}>
         <Text style={styles.progressText}>
           {currentIndex + 1} / {visibleCards.length}
         </Text>
@@ -295,16 +289,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
-  progressContainer: {
-    position: 'absolute',
-    top: 80,
-    right: 24,
-    zIndex: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
   progressText: {
     fontSize: 14,
     color: '#FFF',
@@ -343,7 +327,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     padding: 24,
     justifyContent: 'space-between',
   },

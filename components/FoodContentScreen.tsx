@@ -104,9 +104,6 @@ export default function FoodContentScreen({
       {/* Background Image */}
       <Image source={{ uri: item.image }} style={styles.backgroundImage} />
 
-      {/* Gradient Overlay */}
-      <View style={styles.gradientOverlay} />
-
       {/* Top Header */}
       <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
@@ -118,14 +115,17 @@ export default function FoodContentScreen({
               <Text style={styles.reviewCount}>(127)</Text>
             </View>
           </View>
+          <View style={styles.priceRatingContainer}>
+            <Text style={styles.price}>渋谷駅から徒歩13分</Text>
+          </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.viewRestaurantButton}
             onPress={handleViewRestaurant}
           >
             <Text style={styles.viewRestaurantButtonText}>店を見る</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -251,12 +251,6 @@ const styles = StyleSheet.create({
     height: height,
     resizeMode: 'cover',
   },
-  gradientOverlay: {
-    position: 'absolute',
-    width: width,
-    height: height,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
   topHeader: {
     position: 'absolute',
     top: 50,
@@ -314,6 +308,19 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  distance: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   viewRestaurantButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 16,
@@ -327,7 +334,6 @@ const styles = StyleSheet.create({
   },
   commentsContainer: {
     position: 'absolute',
-    top: height * 0.4,
     bottom: 0,
     left: 0,
     width: width * 0.7,

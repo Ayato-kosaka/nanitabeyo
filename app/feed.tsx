@@ -79,12 +79,10 @@ export default function FeedScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Back Button */}
-      <View style={styles.header}>
+      <View style={styles.backButtonContainer}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ArrowLeft size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>料理を見る</Text>
-        <View style={styles.headerSpacer} />
       </View>
 
       {/* Feed Content */}
@@ -131,7 +129,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  header: {
+  backButtonContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -139,24 +137,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 16,
     zIndex: 10,
   },
   backButton: {
     padding: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  headerSpacer: {
-    width: 40,
   },
   modalOverlay: {
     flex: 1,
