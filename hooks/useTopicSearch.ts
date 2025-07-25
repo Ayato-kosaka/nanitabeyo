@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
-import { TopicCard, SearchParams } from '@/types/search';
+import { Topic, SearchParams } from '@/types/search';
 import { mockTopicCards } from '@/data/searchMockData';
 
 export const useTopicSearch = () => {
-  const [topics, setTopics] = useState<TopicCard[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const searchTopics = useCallback(async (params: SearchParams): Promise<TopicCard[]> => {
+  const searchTopics = useCallback(async (params: SearchParams): Promise<Topic[]> => {
     setIsLoading(true);
     setError(null);
 

@@ -1,3 +1,5 @@
+import { FoodItem } from ".";
+
 export interface SearchLocation {
   latitude: number;
   longitude: number;
@@ -15,13 +17,14 @@ export interface SearchParams {
   budgetMax: number | null; // null for no maximum
 }
 
-export interface TopicCard {
+export interface Topic {
   id: string;
   topicTitle: string;
   reason: string;
   googlePlaceSearchText: string;
   mediaUrl: string;
   mediaType: 'image' | 'video';
+  feedItems: FoodItem[];
   isHidden?: boolean;
 }
 

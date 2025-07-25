@@ -10,43 +10,16 @@ import {
 import { ArrowLeft, RotateCcw, Search } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import FoodContentFeed from '@/components/FoodContentFeed';
-import { FoodItem } from '@/types';
-import { mockFeedItems } from '@/data/searchMockData';
+import { useFeedStore } from '@/stores/useFeedStore';
 
 export default function FeedScreen() {
-  const { googlePlaceSearchText, returnTo } = useLocalSearchParams<{
-    googlePlaceSearchText: string;
-    returnTo?: string;
+  const { topicId } = useLocalSearchParams<{
+    topicId: string;
   }>();
 
-  const [feedItems, setFeedItems] = useState<FoodItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-
-  useEffect(() => {
-    // Load feed items based on search text
-    loadFeedItems();
-  }, [googlePlaceSearchText]);
-
-  const loadFeedItems = async () => {
-    try {
-      // Simulate API call with search text
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Mock: shuffle and take 5 items
-      const shuffled = [...mockFeedItems]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 5)
-        .map((item, index) => ({
-          ...item,
-          id: `${item.id}_${Date.now()}_${index}`,
-        }));
-
-      setFeedItems(shuffled);
-    } catch (error) {
-      console.error('Failed to load feed items:', error);
-    }
-  };
+  const feedItems = useFeedStore((state) => state.feedItemsMap[topicId] || []);
 
   const handleIndexChange = (index: number) => {
     setCurrentIndex(index);
@@ -65,11 +38,7 @@ export default function FeedScreen() {
 
   const handleReturnToCards = () => {
     setShowCompletionModal(false);
-    if (returnTo === 'topics') {
-      router.back();
-    } else {
-      router.push('/(tabs)/search/topics');
-    }
+    router.back();
   };
 
   return (

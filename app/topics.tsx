@@ -14,7 +14,7 @@ import {
 import { Eye, ThumbsDown, X } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
-import { TopicCard, SearchParams } from '@/types/search';
+import { Topic, SearchParams } from '@/types/search';
 import { useTopicSearch } from '@/hooks/useTopicSearch';
 import { useSnackbar } from '@/contexts/SnackbarProvider';
 
@@ -22,6 +22,7 @@ const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 const CARD_HEIGHT = height * 0.85;
 import { ArrowLeft } from 'lucide-react-native';
+import { useFeedStore } from '@/stores/useFeedStore';
 
 export default function TopicsScreen() {
   const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
@@ -30,6 +31,7 @@ export default function TopicsScreen() {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [hideReason, setHideReason] = useState('');
   const carouselRef = useRef<any>(null);
+  const setFeedItems = useFeedStore((state) => state.setFeedItems);
 
   const { topics, isLoading, error, searchTopics, hideTopic } =
     useTopicSearch();
@@ -64,12 +66,12 @@ export default function TopicsScreen() {
     }
   };
 
-  const handleViewDetails = (card: TopicCard) => {
+  const handleViewDetails = (topic: Topic) => {
+    setFeedItems(topic.id, topic.feedItems);
     router.push({
       pathname: '/(tabs)/search/feed',
       params: {
-        googlePlaceSearchText: card.googlePlaceSearchText,
-        returnTo: 'topics',
+        topicId: topic.id,
       },
     });
   };
@@ -80,7 +82,7 @@ export default function TopicsScreen() {
 
   const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
-  const renderCard = ({ item }: { item: TopicCard }) => (
+  const renderCard = ({ item }: { item: Topic }) => (
     <View style={styles.card}>
       <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
 
