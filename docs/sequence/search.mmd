@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant User
+    participant UI
+    participant Backend
+    participant Database
+    participant 外部API
+    participant Storage
+
+    %% search/index
+    Note over User,UI: search 初期表示
+    User ->> UI: 位置を入力
+        UI ->> Backend: /locations/suggest
+            Backend ->> 外部API: Google Places API
+                外部API -->> Backend: 候補リスト
+            Backend ->> UI: 候補を返却
+    User ->> UI: 検索条件を設定
+    User ->> UI: 検索ボタン押下
+        UI ->> UI: navigate(topics)
+
+    %% search/topics
+    Note over User,UI: topics 初期表示
+        UI ->> Backend: /search/topics-with-feed
+            Backend ->> 外部API: Claude API (topics生成 10件)
+                外部API -->> Backend: トピック候補
+            loop 各トピック、並列処理
+                Backend ->> 外部API: Google Maps Text Search API
+                    外部API -->> Backend: 該当topicのfeedItems
+            end
+            Backend ->> Backend: feedItemsが5未満のtopicを除外
+            Backend ->> Backend: topic数が6件未満ならClaude API再実行
+            Backend ->> Database: 必要に応じて内部データ（店舗情報など）を補足
+                Database -->> Backend: データ
+            Backend ->> UI: トピック + feedItems を一括返却
+        UI -->> User: カード一覧 + feed情報表示
+
+    User ->> UI: 詳細を見る
+        UI ->> UI: navigate(feed)
+
+    %% search/feed
+    Note over User,UI: feed 初期表示
+        UI -->> User: キャッシュ済み feedItems を即時表示
