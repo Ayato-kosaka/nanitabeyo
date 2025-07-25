@@ -18,6 +18,7 @@ import {
   Share,
   Star,
   User,
+  MapPin,
 } from 'lucide-react-native';
 import { FoodItem, Comment } from '@/types';
 import { router } from 'expo-router';
@@ -75,12 +76,17 @@ export default function FoodContentScreen({
   };
 
   const menuOptions = [
-    { icon: User, label: 'View Creator', onPress: handleViewCreator },
-    { icon: Share, label: 'Share', onPress: () => console.log('Share') },
+    { icon: User, label: '投稿者プロフィールへ', onPress: handleViewCreator },
+    { icon: Share, label: 'シェア', onPress: () => console.log('Share') },
     {
       icon: Calendar,
-      label: 'Make Reservation',
+      label: '予約',
       onPress: () => console.log('Reservation'),
+    },
+    {
+      icon: MapPin,
+      label: 'グーグルマップで開く',
+      onPress: () => console.log('Open Google Maps'),
     },
   ];
 
@@ -110,10 +116,10 @@ export default function FoodContentScreen({
           <Text style={styles.menuName}>{item.name}</Text>
           <View style={styles.priceRatingContainer}>
             <Text style={styles.price}>¥2,800</Text>
-            <View style={styles.ratingContainer}>
+            {/* <View style={styles.ratingContainer}>
               {renderStars(5, 4)}
               <Text style={styles.reviewCount}>(127)</Text>
-            </View>
+            </View> */}
           </View>
           <View style={styles.priceRatingContainer}>
             <Text style={styles.price}>渋谷駅から徒歩13分</Text>
