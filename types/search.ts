@@ -11,6 +11,9 @@ export interface SearchParams {
   scene?: 'solo' | 'date' | 'group' | 'large_group' | 'tourism';
   mood?: 'hearty' | 'light' | 'sweet' | 'spicy' | 'healthy' | 'junk' | 'alcohol';
   restrictions: string[];
+  distance: number; // meters
+  budgetMin: number | null; // null for no minimum
+  budgetMax: number | null; // null for no maximum
 }
 
 export interface TopicCard {
