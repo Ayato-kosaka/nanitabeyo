@@ -67,11 +67,6 @@ export default function FeedScreen() {
     }
   };
 
-  const handleSearchOther = () => {
-    setShowCompletionModal(false);
-    router.push('/(tabs)/search');
-  };
-
   const handleReturnToCards = () => {
     setShowCompletionModal(false);
     if (returnTo === 'topics') {
@@ -105,23 +100,23 @@ export default function FeedScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.completionModal}>
             <Text style={styles.completionTitle}>すべて見終わりました！</Text>
-            <Text style={styles.completionMessage}>別の料理を探しますか？</Text>
+            <Text style={styles.completionMessage}>おすすめに戻りますか？</Text>
 
             <View style={styles.completionActions}>
               <TouchableOpacity
                 style={styles.returnButton}
-                onPress={handleReturnToCards}
+                onPress={() => setShowCompletionModal(false)}
               >
                 <RotateCcw size={20} color="#666" />
-                <Text style={styles.returnButtonText}>おすすめに戻る</Text>
+                <Text style={styles.returnButtonText}>キャンセル</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.searchOtherButton}
-                onPress={handleSearchOther}
+                onPress={handleReturnToCards}
               >
                 <Search size={20} color="#FFF" />
-                <Text style={styles.searchOtherButtonText}>他の料理を探す</Text>
+                <Text style={styles.searchOtherButtonText}>おすすめに戻る</Text>
               </TouchableOpacity>
             </View>
           </View>
