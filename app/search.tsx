@@ -251,11 +251,7 @@ export default function SearchScreen() {
           <Text style={styles.sectionTitle}>
             <Clock size={16} color="#1976D2" /> 時間帯
           </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.chipRow}
-          >
+          <View style={styles.chipGrid}>
             {timeSlots.map((slot) => (
               <TouchableOpacity
                 key={slot.id}
@@ -276,7 +272,7 @@ export default function SearchScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Scene */}
@@ -284,11 +280,7 @@ export default function SearchScreen() {
           <Text style={styles.sectionTitle}>
             <Users size={16} color="#1976D2" /> シーン
           </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.chipRow}
-          >
+          <View style={styles.chipGrid}>
             {sceneOptions.map((option) => (
               <TouchableOpacity
                 key={option.id}
@@ -311,7 +303,7 @@ export default function SearchScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Mood */}
@@ -319,11 +311,7 @@ export default function SearchScreen() {
           <Text style={styles.sectionTitle}>
             <Heart size={16} color="#1976D2" /> 気分
           </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.chipRow}
-          >
+          <View style={styles.chipGrid}>
             {moodOptions.map((option) => (
               <TouchableOpacity
                 key={option.id}
@@ -343,7 +331,7 @@ export default function SearchScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Restrictions */}
@@ -419,7 +407,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#6750A4',
+    color: '#1976D2',
     marginBottom: 6,
   },
   headerSubtitle: {
@@ -428,15 +416,15 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: '#FFF',
-    marginTop: 8,
+    marginTop: 4,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1B1F',
-    marginBottom: 12,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -504,25 +492,27 @@ const styles = StyleSheet.create({
     color: '#49454F',
     marginTop: 2,
   },
-  chipRow: {
+  chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+    marginHorizontal: -3,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F7F2FA',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E7E0EC',
-    marginBottom: 8,
+    marginBottom: 6,
+    marginHorizontal: 3,
   },
   selectedChip: {
-    backgroundColor: '#6750A4',
-    borderColor: '#6750A4',
+    backgroundColor: '#1976D2',
+    borderColor: '#1976D2',
   },
   chipEmoji: {
     fontSize: 14,
@@ -572,7 +562,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#6750A4',
+    backgroundColor: '#1976D2',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -585,7 +575,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   disabledFab: {
-    backgroundColor: '#79747E',
+    backgroundColor: '#9E9E9E',
   },
   fabText: {
     fontSize: 16,

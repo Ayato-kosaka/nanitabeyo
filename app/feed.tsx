@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import FoodContentFeed from '@/components/FoodContentFeed';
 import { FoodItem } from '@/types';
 import { mockFeedItems } from '@/data/searchMockData';
+import { ArrowLeft } from 'lucide-react-native';
 
 export default function FeedScreen() {
   const { googlePlaceSearchText, returnTo } = useLocalSearchParams<{
@@ -83,6 +84,15 @@ export default function FeedScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <ArrowLeft size={24} color="#FFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>料理を見る</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       {/* Feed Content */}
       <FoodContentFeed items={feedItems} onIndexChange={handleIndexChange} />
 
@@ -104,7 +114,7 @@ export default function FeedScreen() {
                 onPress={handleReturnToCards}
               >
                 <RotateCcw size={20} color="#666" />
-                <Text style={styles.returnButtonText}>戻る</Text>
+                <Text style={styles.returnButtonText}>おすすめに戻る</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -126,6 +136,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    zIndex: 10,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  headerSpacer: {
+    width: 40,
   },
   modalOverlay: {
     flex: 1,

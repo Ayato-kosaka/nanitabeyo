@@ -25,6 +25,7 @@ import { useSnackbar } from '@/contexts/SnackbarProvider';
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 const CARD_HEIGHT = height * 0.85;
+import { ArrowLeft } from 'lucide-react-native';
 
 export default function TopicsScreen() {
   const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
@@ -141,6 +142,15 @@ export default function TopicsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <ArrowLeft size={24} color="#FFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>おすすめ料理</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       {/* Progress Indicator */}
       <View style={styles.progressContainer}>
         <Text style={styles.progressText}>
@@ -232,6 +242,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  headerSpacer: {
+    width: 40,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -270,8 +302,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   progressContainer: {
-    position: 'absolute',
-    top: 60,
+    position: 'absolute', 
+    top: 80,
     right: 24,
     zIndex: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
