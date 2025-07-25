@@ -13,13 +13,13 @@ export interface SearchParams {
   restrictions: string[];
 }
 
-export interface FoodCard {
+export interface TopicCard {
   id: string;
-  keyword: string;
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
+  topicTitle: string;
   reason: string;
   googlePlaceSearchText: string;
+  mediaUrl: string;
+  mediaType: 'image' | 'video';
   isHidden?: boolean;
 }
 

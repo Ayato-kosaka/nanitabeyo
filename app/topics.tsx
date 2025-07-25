@@ -11,14 +11,10 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import {
-  Eye,
-  ThumbsDown,
-  X,
-} from 'lucide-react-native';
+import { Eye, ThumbsDown, X } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
-import { FoodCard, SearchParams } from '@/types/search';
+import { TopicCard, SearchParams } from '@/types/search';
 import { useCardSearch } from '@/hooks/useCardSearch';
 import { useSnackbar } from '@/contexts/SnackbarProvider';
 
@@ -67,7 +63,7 @@ export default function TopicsScreen() {
     }
   };
 
-  const handleViewDetails = (card: FoodCard) => {
+  const handleViewDetails = (card: TopicCard) => {
     router.push({
       pathname: '/(tabs)/search/feed',
       params: {
@@ -81,12 +77,12 @@ export default function TopicsScreen() {
     router.back();
   };
 
-  const visibleCards = cards.filter(card => !card.isHidden);
+  const visibleCards = cards.filter((card) => !card.isHidden);
 
-  const renderCard = ({ item }: { item: FoodCard }) => (
+  const renderCard = ({ item }: { item: TopicCard }) => (
     <View style={styles.card}>
       <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
-      
+
       {/* Content Overlay */}
       <View style={styles.cardOverlay}>
         {/* Hide Button */}
@@ -100,14 +96,12 @@ export default function TopicsScreen() {
 
         {/* Content */}
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{item.keyword}</Text>
-          <Text style={styles.cardDescription}>
-            {item.reason}
-          </Text>
+          <Text style={styles.cardTitle}>{item.topicTitle}</Text>
+          <Text style={styles.cardDescription}>{item.reason}</Text>
           <Text style={styles.cardSearchText}>
             📍 {item.googlePlaceSearchText}
           </Text>
-          
+
           <TouchableOpacity
             style={styles.detailsButton}
             onPress={() => handleViewDetails(item)}
@@ -302,7 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   progressContainer: {
-    position: 'absolute', 
+    position: 'absolute',
     top: 80,
     right: 24,
     zIndex: 10,

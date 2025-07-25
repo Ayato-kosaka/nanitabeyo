@@ -1,4 +1,4 @@
-import { FoodCard, GooglePlacesPrediction } from '@/types/search';
+import { TopicCard, GooglePlacesPrediction } from '@/types/search';
 
 export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
   {
@@ -43,147 +43,121 @@ export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
   },
 ];
 
-export const mockFoodCards: FoodCard[] = [
+export const mockTopicCards: TopicCard[] = [
   {
-    id: 'card_1',
-    keyword: 'やっぱり旨い！こってりとんこつ系ラーメン。',
-    mediaUrl: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=800&h=450',
-    mediaType: 'image',
-    reason: '繁華街としても知られ、ラーメン店も多数ある渋谷で、とんこつベースのこってりラーメンがやっぱり旨いです。濃厚なスープと太麺の組み合わせが絶妙で、一度食べたら忘れられない味わいです。',
-    googlePlaceSearchText: '渋谷 こってり豚骨ラーメン',
+    "id": "card_1",
+    "googlePlaceSearchText": "味噌ラーメン",
+    "topicTitle": "濃厚味噌ラーメン",
+    "reason": "コクのある味噌スープと香ばしい炒め野菜が夜の食欲をかき立てる。",
+    "mediaType": "image",
+    "mediaUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no"
   },
   {
-    id: 'card_2',
-    keyword: '贅沢な時間を演出する極上和牛ステーキ',
-    mediaUrl: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=800&h=450',
-    mediaType: 'image',
-    reason: '特別な日にふさわしいA5ランクの和牛を使用した贅沢な一品。口の中でとろける柔らかな食感と深い旨味が楽しめ、記念日やデートにも最適です。',
-    googlePlaceSearchText: '渋谷 A5和牛ステーキ 高級',
+    "id": "card_2",
+    "googlePlaceSearchText": "一人焼肉",
+    "topicTitle": "ソロ焼肉で至福の夜",
+    "reason": "誰にも気兼ねせず、自分のペースで焼き上げる肉は格別のご褒美。",
+    "mediaType": "image",
+    "mediaUrl": "https://lh3.googleusercontent.com/p/AF1QipN7p6dRdFPv6mJZkpvoya8MZlJb23fME9KRF9Fg=w408-h271-k-no"
   },
   {
-    id: 'card_3',
-    keyword: 'ふわふわ食感の絶品チョコレートスフレ',
-    mediaUrl: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=800&h=450',
-    mediaType: 'image',
-    reason: 'ふわふわの食感と濃厚なチョコレートの味わいが絶妙にマッチした、デザート好きにはたまらない逸品。温かいスフレと冷たいアイスクリームのコントラストが最高です。',
-    googlePlaceSearchText: '渋谷 チョコレートスフレ デザート',
+    "id": "card_3",
+    "googlePlaceSearchText": "油そば",
+    "topicTitle": "旨タレ絡む油そば",
+    "reason": "濃いめの特製タレと麺の食感で一口ごとに満足感が増す。",
+    "mediaType": "image",
+    "mediaUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4npr2MUHlL9tLu1_mMfU3vSvsUlffxoYTRZPwMz-OgG6yzByp7Id0OOrEe7aXaw_FCZ8yl8_YxdeYWcK8lLOAVgahObUJBr1wn94TJO958BI2Us4C537404w4kd__KGV2_EMtsUt=w408-h306-k-no"
   },
   {
-    id: 'card_4',
-    keyword: '新鮮野菜たっぷりのヘルシーシーザーサラダ',
-    mediaUrl: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=800&h=450',
-    mediaType: 'image',
-    reason: '新鮮な野菜とクリーミーなドレッシングの絶妙なバランスが楽しめる一品。ヘルシーでありながら満足感もあり、軽めのランチにも最適です。',
-    googlePlaceSearchText: '渋谷 シーザーサラダ ヘルシー',
+    "id": "card_4",
+    "googlePlaceSearchText": "唐揚げ定食",
+    "topicTitle": "ジューシー唐揚げ定食",
+    "reason": "カリッと揚がった唐揚げからあふれる肉汁が食欲を直撃。",
+    "mediaType": "image",
+    "mediaUrl": "https://lh3.googleusercontent.com/p/AF1QipMCK846QdzWMTFmIIib1hCRNvGjsmgQ08tdbjRp=w408-h326-k-no"
   },
   {
-    id: 'card_5',
-    keyword: '濃厚な旨味が凝縮されたロブスタービスク',
-    mediaUrl: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=800&h=450',
-    mediaType: 'image',
-    reason: '濃厚なロブスターの旨味が凝縮された贅沢なスープ。一口飲むだけで海の恵みを感じられ、特別な時間を演出してくれる逸品です。',
-    googlePlaceSearchText: '渋谷 ロブスタービスク フレンチ',
+    "id": "card_5",
+    "googlePlaceSearchText": "ハンバーグ",
+    "topicTitle": "肉汁あふれるハンバーグ",
+    "reason": "ナイフを入れた瞬間に溢れる肉汁と香ばしさで贅沢な満足感を。",
+    "mediaType": "image",
+    "mediaUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4npFJRl34iWIfASQQ-4YKpjHxuLb6ILDUPoEYdtici0y0lvH4WyEO9vZobZvqdtZB5OLp_lpNRVnR_0YCOCIdHfnHaMF2y2Wc0mOTCbwKntJ4v03vQAFsOeFnAMyqu-w65UwBiXP5g=w408-h306-k-no"
   },
   {
-    id: 'card_6',
-    keyword: '本格的なイタリアン',
-    mediaUrl: 'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=800&h=450',
-    mediaType: 'image',
-    reason: 'シンプルながら奥深い味わいのクラシックピザ。新鮮なトマトソースとモッツァレラチーズの濃厚さが魅力で、本格的なイタリアンの味を楽しめます。',
-    googlePlaceSearchText: '渋谷 イタリアン',
-  },
+    "id": "card_6",
+    "googlePlaceSearchText": "韓国料理",
+    "topicTitle": "ピリ辛韓国料理",
+    "reason": "甘辛ダレや香ばしい風味がクセになる。疲れた夜に元気をチャージ。",
+    "mediaType": "image",
+    "mediaUrl": "https://lh3.googleusercontent.com/p/AF1QipPW3SRWwsAxuNRdSd479pA-pNL67QaYY6mxpEAt=w408-h326-k-no"
+  }
 ];
 
 export const mockFeedItems = [
   {
     id: 'feed_1',
-    name: 'トリュフクリームパスタ',
-    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=800&h=1200',
-    description: '黒トリュフとパルミジャーノレッジャーノの贅沢なクリームパスタ。濃厚な香りと深い味わいが楽しめる本格イタリアンの逸品です。',
+    name: '炙り味噌らーめん 麺匠真武咲弥 渋谷店',
+    image: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no',
     likes: 142,
     isLiked: false,
     isSaved: false,
     comments: [
-      {
-        id: '1',
-        username: 'foodie_sarah',
-        text: 'トリュフの香りが素晴らしい！本格的なイタリアンの味わいです 🍝',
-        timestamp: '2h ago',
-      },
-      {
-        id: '2',
-        username: 'chef_mike',
-        text: 'アルデンテの茹で加減が完璧！本場の味を再現していますね',
-        timestamp: '3h ago',
-      },
-    ],
+      { id: 'c1', username: 'ramen_lover', text: '香ばしい味噌の香りが最高！', timestamp: '1h ago' },
+      { id: 'c2', username: 'foodie123', text: 'スープが濃厚で飲み干しちゃった', timestamp: '3h ago' },
+      { id: 'c3', username: 'tokyo_gourmet', text: '炙りの香りがたまらない', timestamp: '5h ago' },
+    ]
   },
   {
     id: 'feed_2',
-    name: 'オーソブッコ',
-    image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=800&h=1200',
-    description: 'ミラノ風仔牛のすね肉煮込み。トマトベースの濃厚なソースで長時間煮込んだ伝統的なイタリア料理です。',
-    likes: 298,
-    isLiked: true,
-    isSaved: true,
+    name: '俺流塩らーめん 渋谷三丁目店',
+    image: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no',
+    likes: 98,
+    isLiked: false,
+    isSaved: false,
     comments: [
-      {
-        id: '3',
-        username: 'italian_lover',
-        text: 'ミラノで食べた本場の味を思い出します！骨髄の旨味が最高 🇮🇹',
-        timestamp: '1h ago',
-      },
-    ],
+      { id: 'c4', username: 'noodle_fan', text: '塩味が上品で飽きない', timestamp: '2h ago' },
+      { id: 'c5', username: 'ramen_king', text: '優しいスープに癒された', timestamp: '4h ago' },
+      { id: 'c6', username: 'sio_master', text: '澄んだスープが美しい', timestamp: '6h ago' },
+    ]
   },
   {
     id: 'feed_3',
-    name: 'ティラミス',
-    image: 'https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=800&h=1200',
-    description: 'マスカルポーネチーズとエスプレッソの絶妙なハーモニー。本場イタリアの伝統的なドルチェです。',
-    likes: 186,
+    name: 'らーめん ぎょうざ 大穀',
+    image: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no',
+    likes: 76,
     isLiked: false,
     isSaved: false,
     comments: [
-      {
-        id: '4',
-        username: 'dessert_queen',
-        text: 'マスカルポーネの濃厚さとコーヒーの苦味が絶妙！本格的な味わいです ☕',
-        timestamp: '30m ago',
-      },
-    ],
+      { id: 'c7', username: 'gyoza_freak', text: '餃子もジューシーで美味しい', timestamp: '30m ago' },
+      { id: 'c8', username: 'ramenholic', text: 'ボリューム満点で満腹', timestamp: '3h ago' },
+      { id: 'c9', username: 'tokyo_ramen', text: '昔ながらの味で安心する', timestamp: '7h ago' },
+    ]
   },
   {
     id: 'feed_4',
-    name: 'カプレーゼサラダ',
-    image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800&h=1200',
-    description: '新鮮なモッツァレラチーズとトマト、バジルのシンプルで美味しいイタリアンサラダ。',
-    likes: 89,
-    isLiked: false,
-    isSaved: true,
-    comments: [
-      {
-        id: '5',
-        username: 'fresh_lover',
-        text: 'トマトとモッツァレラの組み合わせが最高！バジルの香りも素晴らしい 🍅',
-        timestamp: '45m ago',
-      },
-    ],
-  },
-  {
-    id: 'feed_5',
-    name: 'マルゲリータピザ',
-    image: 'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=800&h=1200',
-    description: 'トマトソース、モッツァレラチーズ、バジルのシンプルで王道のナポリピザ。薄い生地が自慢です。',
-    likes: 156,
+    name: '蒙古タンメン中本 渋谷',
+    image: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no',
+    likes: 210,
     isLiked: false,
     isSaved: false,
     comments: [
-      {
-        id: '6',
-        username: 'pizza_master',
-        text: '生地がもちもちで最高！ナポリの本場の味を再現していますね 🍕',
-        timestamp: '1h ago',
-      },
-    ],
+      { id: 'c10', username: 'spicy_addict', text: '辛さと旨味のバランスが神！', timestamp: '1h ago' },
+      { id: 'c11', username: 'ramen_fever', text: '辛いのにスープを飲み干した', timestamp: '4h ago' },
+      { id: 'c12', username: 'hotspice', text: 'クセになる辛さで汗が止まらない', timestamp: '8h ago' },
+    ]
   },
+  {
+    id: 'feed_5',
+    name: 'らーめん金伝丸 渋谷本店',
+    image: 'https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no',
+    likes: 134,
+    isLiked: false,
+    isSaved: false,
+    comments: [
+      { id: 'c13', username: 'tokyo_foodie', text: '深夜のラーメンに最高', timestamp: '2h ago' },
+      { id: 'c14', username: 'ramen_addict', text: '背脂たっぷりでパンチがある', timestamp: '5h ago' },
+      { id: 'c15', username: 'midnight_snacker', text: '深いコクで癖になる味', timestamp: '9h ago' },
+    ]
+  }
 ];

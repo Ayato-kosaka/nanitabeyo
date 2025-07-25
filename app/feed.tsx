@@ -12,7 +12,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import FoodContentFeed from '@/components/FoodContentFeed';
 import { FoodItem } from '@/types';
 import { mockFeedItems } from '@/data/searchMockData';
-import { ArrowLeft } from 'lucide-react-native';
 
 export default function FeedScreen() {
   const { googlePlaceSearchText, returnTo } = useLocalSearchParams<{

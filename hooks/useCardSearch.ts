@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
-import { FoodCard, SearchParams, CardHideReason } from '@/types/search';
-import { mockFoodCards } from '@/data/searchMockData';
+import { TopicCard, SearchParams, CardHideReason } from '@/types/search';
+import { mockTopicCards } from '@/data/searchMockData';
 
 export const useCardSearch = () => {
-  const [cards, setCards] = useState<FoodCard[]>([]);
+  const [cards, setCards] = useState<TopicCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const searchCards = useCallback(async (params: SearchParams): Promise<FoodCard[]> => {
+  const searchCards = useCallback(async (params: SearchParams): Promise<TopicCard[]> => {
     setIsLoading(true);
     setError(null);
 
@@ -16,7 +16,7 @@ export const useCardSearch = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Mock API response based on search parameters
-      const shuffledCards = [...mockFoodCards]
+      const shuffledCards = [...mockTopicCards]
         .sort(() => Math.random() - 0.5)
         .slice(0, 6)
         .map(card => ({
@@ -37,8 +37,8 @@ export const useCardSearch = () => {
   }, []);
 
   const hideCard = useCallback((cardId: string, reason: string) => {
-    setCards(prevCards => 
-      prevCards.map(card => 
+    setCards(prevCards =>
+      prevCards.map(card =>
         card.id === cardId ? { ...card, isHidden: true } : card
       )
     );
@@ -49,7 +49,7 @@ export const useCardSearch = () => {
       reason: reason.replace(/[^\w\s]/gi, '*'), // Simple PII masking
       timestamp: new Date().toISOString(),
     };
-    
+
     console.log('Topic hidden:', hideReason);
   }, []);
 

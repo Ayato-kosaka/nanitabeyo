@@ -11,15 +11,10 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import {
-  ArrowLeft,
-  Eye,
-  ThumbsDown,
-  X,
-} from 'lucide-react-native';
+import { ArrowLeft, Eye, ThumbsDown, X } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
-import { FoodCard, SearchParams } from '@/types/search';
+import { TopicCard, SearchParams } from '@/types/search';
 import { useCardSearch } from '@/hooks/useCardSearch';
 import { useSnackbar } from '@/contexts/SnackbarProvider';
 
@@ -67,7 +62,7 @@ export default function CardsScreen() {
     }
   };
 
-  const handleViewDetails = (card: FoodCard) => {
+  const handleViewDetails = (card: TopicCard) => {
     router.push({
       pathname: '/feed',
       params: {
@@ -81,9 +76,9 @@ export default function CardsScreen() {
     router.back();
   };
 
-  const visibleCards = cards.filter(card => !card.isHidden);
+  const visibleCards = cards.filter((card) => !card.isHidden);
 
-  const renderCard = ({ item }: { item: FoodCard }) => (
+  const renderCard = ({ item }: { item: TopicCard }) => (
     <View style={styles.card}>
       <View style={styles.cardImageContainer}>
         <Image source={{ uri: item.mediaUrl }} style={styles.cardImage} />
@@ -99,11 +94,11 @@ export default function CardsScreen() {
       </View>
 
       <View style={styles.cardContent}>
-        <Text style={styles.cardKeyword}>{item.keyword}</Text>
+        <Text style={styles.cardTitle}>{item.topicTitle}</Text>
         <Text style={styles.cardReason} numberOfLines={2}>
           {item.reason}
         </Text>
-        
+
         <TouchableOpacity
           style={styles.detailsButton}
           onPress={() => handleViewDetails(item)}
@@ -345,7 +340,7 @@ const styles = StyleSheet.create({
   cardContent: {
     padding: 24,
   },
-  cardKeyword: {
+  cardTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
