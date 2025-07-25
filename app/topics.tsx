@@ -15,7 +15,7 @@ import { Eye, ThumbsDown, X } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
 import { TopicCard, SearchParams } from '@/types/search';
-import { useCardSearch } from '@/hooks/useCardSearch';
+import { useTopicSearch } from '@/hooks/useTopicSearch';
 import { useSnackbar } from '@/contexts/SnackbarProvider';
 
 const { width, height } = Dimensions.get('window');
@@ -31,14 +31,15 @@ export default function TopicsScreen() {
   const [hideReason, setHideReason] = useState('');
   const carouselRef = useRef<any>(null);
 
-  const { cards, isLoading, error, searchCards, hideCard } = useCardSearch();
+  const { topics, isLoading, error, searchTopics, hideTopic } =
+    useTopicSearch();
   const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (searchParams) {
       try {
         const params: SearchParams = JSON.parse(searchParams);
-        searchCards(params).catch(() => {
+        searchTopics(params).catch(() => {
           showSnackbar('おすすめの取得に失敗しました');
         });
       } catch (error) {
@@ -46,7 +47,7 @@ export default function TopicsScreen() {
         router.back();
       }
     }
-  }, [searchParams, searchCards, showSnackbar]);
+  }, [searchParams, searchTopics, showSnackbar]);
 
   const handleHideCard = (cardId: string) => {
     setSelectedCardId(cardId);
@@ -55,7 +56,7 @@ export default function TopicsScreen() {
 
   const confirmHideCard = () => {
     if (selectedCardId) {
-      hideCard(selectedCardId, hideReason);
+      hideTopic(selectedCardId, hideReason);
       setShowHideModal(false);
       setHideReason('');
       setSelectedCardId(null);
@@ -77,7 +78,7 @@ export default function TopicsScreen() {
     router.back();
   };
 
-  const visibleCards = cards.filter((card) => !card.isHidden);
+  const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
   const renderCard = ({ item }: { item: TopicCard }) => (
     <View style={styles.card}>
@@ -142,18 +143,18 @@ export default function TopicsScreen() {
           <ArrowLeft size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.progressText}>
-          {currentIndex + 1} / {visibleCards.length}
+          {currentIndex + 1} / {visibleTopics.length}
         </Text>
       </View>
 
       {/* Cards Carousel */}
-      {visibleCards.length > 0 ? (
+      {visibleTopics.length > 0 ? (
         <View style={styles.carouselContainer}>
           <Carousel
             ref={carouselRef}
             width={CARD_WIDTH}
             height={CARD_HEIGHT}
-            data={visibleCards}
+            data={visibleTopics}
             renderItem={renderCard}
             onSnapToItem={setCurrentIndex}
             mode="parallax"
