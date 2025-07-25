@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Animated, Dimensions } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import FoodContentScreen from './FoodContentScreen';
@@ -12,10 +12,18 @@ interface FoodContentFeedProps {
   onIndexChange?: (index: number) => void;
 }
 
-export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange }: FoodContentFeedProps) {
+export default function FoodContentFeed({
+  items,
+  initialIndex = 0,
+  onIndexChange,
+}: FoodContentFeedProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [feedItems, setFeedItems] = useState<FoodItem[]>(items);
+  const [feedItems, setFeedItems] = useState<FoodItem[]>([]);
   const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    setFeedItems(items);
+  }, [items]);
 
   const updateIndex = (newIndex: number) => {
     setCurrentIndex(newIndex);
@@ -31,16 +39,16 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
               isLiked: !item.isLiked,
               likes: item.isLiked ? item.likes - 1 : item.likes + 1,
             }
-          : item,
-      ),
+          : item
+      )
     );
   };
 
   const handleSave = () => {
     setFeedItems((prevItems) =>
       prevItems.map((item, index) =>
-        index === currentIndex ? { ...item, isSaved: !item.isSaved } : item,
-      ),
+        index === currentIndex ? { ...item, isSaved: !item.isSaved } : item
+      )
     );
   };
 
@@ -56,14 +64,14 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
       prevItems.map((item, index) =>
         index === currentIndex
           ? { ...item, comments: [newComment, ...item.comments] }
-          : item,
-      ),
+          : item
+      )
     );
   };
 
   const onGestureEvent = Animated.event(
     [{ nativeEvent: { translationY: translateY } }],
-    { useNativeDriver: true },
+    { useNativeDriver: true }
   );
 
   const onHandlerStateChange = (event: any) => {
@@ -90,7 +98,10 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
   }
 
   return (
-    <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
+    <PanGestureHandler
+      onGestureEvent={onGestureEvent}
+      onHandlerStateChange={onHandlerStateChange}
+    >
       <Animated.View
         style={[
           styles.container,
@@ -99,7 +110,12 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
           },
         ]}
       >
-        <FoodContentScreen item={currentItem} onLike={handleLike} onSave={handleSave} onAddComment={handleAddComment} />
+        <FoodContentScreen
+          item={currentItem}
+          onLike={handleLike}
+          onSave={handleSave}
+          onAddComment={handleAddComment}
+        />
       </Animated.View>
     </PanGestureHandler>
   );
