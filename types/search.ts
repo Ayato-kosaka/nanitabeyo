@@ -2,7 +2,6 @@ export interface SearchLocation {
   latitude: number;
   longitude: number;
   address: string;
-  placeId?: string;
 }
 
 export interface SearchParams {
@@ -26,14 +25,8 @@ export interface TopicCard {
   isHidden?: boolean;
 }
 
-export interface CardHideReason {
-  cardId: string;
-  reason: string;
-  timestamp: string;
-}
-
 export interface GooglePlacesPrediction {
-  place_id: string;
+  placeId: string;
   description: string;
   structured_formatting: {
     main_text: string;

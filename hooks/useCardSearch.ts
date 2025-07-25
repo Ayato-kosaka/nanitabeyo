@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
-import { TopicCard, SearchParams, CardHideReason } from '@/types/search';
+import { TopicCard, SearchParams } from '@/types/search';
 import { mockTopicCards } from '@/data/searchMockData';
 
-export const useCardSearch = () => {
-  const [cards, setCards] = useState<TopicCard[]>([]);
+export const useTopicSearch = () => {
+  const [topics, setTopics] = useState<TopicCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const searchCards = useCallback(async (params: SearchParams): Promise<TopicCard[]> => {
+  const searchTopics = useCallback(async (params: SearchParams): Promise<TopicCard[]> => {
     setIsLoading(true);
     setError(null);
 
@@ -16,17 +16,17 @@ export const useCardSearch = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Mock API response based on search parameters
-      const shuffledCards = [...mockTopicCards]
+      const shuffledTopics = [...mockTopicCards]
         .sort(() => Math.random() - 0.5)
         .slice(0, 6)
-        .map(card => ({
-          ...card,
-          id: `${card.id}_${Date.now()}_${Math.random()}`,
+        .map(topic => ({
+          ...topic,
+          id: `${topic.id}_${Date.now()}_${Math.random()}`,
           isHidden: false,
         }));
 
-      setCards(shuffledCards);
-      return shuffledCards;
+      setTopics(shuffledTopics);
+      return shuffledTopics;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'おすすめ検索に失敗しました';
       setError(errorMessage);
@@ -36,16 +36,16 @@ export const useCardSearch = () => {
     }
   }, []);
 
-  const hideCard = useCallback((cardId: string, reason: string) => {
-    setCards(prevCards =>
-      prevCards.map(card =>
-        card.id === cardId ? { ...card, isHidden: true } : card
+  const hideTopic = useCallback((topicId: string, reason: string) => {
+    setTopics(prevTopics =>
+      prevTopics.map(topic =>
+        topic.id === topicId ? { ...topic, isHidden: true } : topic
       )
     );
 
     // Log hide reason for analytics
-    const hideReason: CardHideReason = {
-      cardId,
+    const hideReason = {
+      topicId,
       reason: reason.replace(/[^\w\s]/gi, '*'), // Simple PII masking
       timestamp: new Date().toISOString(),
     };
@@ -54,16 +54,16 @@ export const useCardSearch = () => {
   }, []);
 
   const resetTopics = useCallback(() => {
-    setCards([]);
+    setTopics([]);
     setError(null);
   }, []);
 
   return {
-    cards,
+    topics,
     isLoading,
     error,
-    searchCards,
-    hideCard,
+    searchTopics,
+    hideTopic,
     resetTopics,
   };
 };

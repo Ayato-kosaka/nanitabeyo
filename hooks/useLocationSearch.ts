@@ -13,17 +13,17 @@ export const useLocationSearch = () => {
     }
 
     setIsSearching(true);
-    
+
     try {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       // Filter mock data based on query
       const filtered = mockGooglePlacesPredictions.filter(prediction =>
         prediction.description.toLowerCase().includes(query.toLowerCase()) ||
         prediction.structured_formatting.main_text.toLowerCase().includes(query.toLowerCase())
       );
-      
+
       setSuggestions(filtered);
     } catch (error) {
       console.error('Location search error:', error);
@@ -40,39 +40,34 @@ export const useLocationSearch = () => {
         latitude: 35.6580,
         longitude: 139.7016,
         address: '東京都渋谷区道玄坂2-1-1',
-        placeId: 'place_1',
       },
       'place_2': {
         latitude: 35.6896,
         longitude: 139.7006,
         address: '東京都新宿区新宿3-38-1',
-        placeId: 'place_2',
       },
       'place_3': {
         latitude: 35.6762,
         longitude: 139.7653,
         address: '東京都中央区銀座4-6-16',
-        placeId: 'place_3',
       },
       'place_4': {
         latitude: 35.6702,
         longitude: 139.7026,
         address: '東京都渋谷区神宮前1-19-11',
-        placeId: 'place_4',
       },
       'place_5': {
         latitude: 35.6627,
         longitude: 139.7314,
         address: '東京都港区六本木6-10-1',
-        placeId: 'place_5',
       },
     };
 
-    return mockLocations[prediction.place_id] || {
+    return mockLocations[prediction.placeId] || {
       latitude: 35.6762,
       longitude: 139.6503,
       address: prediction.description,
-      placeId: prediction.place_id,
+      placeId: prediction.placeId,
     };
   }, []);
 

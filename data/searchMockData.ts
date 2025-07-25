@@ -2,7 +2,7 @@ import { TopicCard, GooglePlacesPrediction } from '@/types/search';
 
 export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
   {
-    place_id: 'place_1',
+    placeId: 'place_1',
     description: '渋谷駅, 東京都渋谷区',
     structured_formatting: {
       main_text: '渋谷駅',
@@ -10,7 +10,7 @@ export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
     },
   },
   {
-    place_id: 'place_2',
+    placeId: 'place_2',
     description: '新宿駅, 東京都新宿区',
     structured_formatting: {
       main_text: '新宿駅',
@@ -18,7 +18,7 @@ export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
     },
   },
   {
-    place_id: 'place_3',
+    placeId: 'place_3',
     description: '銀座, 東京都中央区',
     structured_formatting: {
       main_text: '銀座',
@@ -26,7 +26,7 @@ export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
     },
   },
   {
-    place_id: 'place_4',
+    placeId: 'place_4',
     description: '原宿駅, 東京都渋谷区',
     structured_formatting: {
       main_text: '原宿駅',
@@ -34,7 +34,7 @@ export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
     },
   },
   {
-    place_id: 'place_5',
+    placeId: 'place_5',
     description: '六本木, 東京都港区',
     structured_formatting: {
       main_text: '六本木',

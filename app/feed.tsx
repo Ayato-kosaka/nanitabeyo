@@ -60,11 +60,7 @@ export default function FeedScreen() {
   };
 
   const handleBack = () => {
-    if (returnTo === 'topics' || returnTo === 'search') {
-      router.back();
-    } else {
-      router.push('/(tabs)/(home)');
-    }
+    router.back();
   };
 
   const handleReturnToCards = () => {

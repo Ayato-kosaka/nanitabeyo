@@ -219,19 +219,31 @@ export default function SearchScreen() {
 
   // Distance slider component
   const DistanceSlider = () => {
-    const currentIndex = distanceOptions.findIndex(option => option.value === distance);
+    const currentIndex = distanceOptions.findIndex(
+      (option) => option.value === distance
+    );
     const sliderWidth = 280;
     const thumbWidth = 24;
     const trackWidth = sliderWidth - thumbWidth;
-    const thumbPosition = (currentIndex / (distanceOptions.length - 1)) * trackWidth;
+    const thumbPosition =
+      (currentIndex / (distanceOptions.length - 1)) * trackWidth;
 
     const panResponder = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (evt, gestureState) => {
-        const newPosition = Math.max(0, Math.min(trackWidth, gestureState.moveX - 50));
-        const newIndex = Math.round((newPosition / trackWidth) * (distanceOptions.length - 1));
-        if (newIndex !== currentIndex && newIndex >= 0 && newIndex < distanceOptions.length) {
+        const newPosition = Math.max(
+          0,
+          Math.min(trackWidth, gestureState.moveX - 50)
+        );
+        const newIndex = Math.round(
+          (newPosition / trackWidth) * (distanceOptions.length - 1)
+        );
+        if (
+          newIndex !== currentIndex &&
+          newIndex >= 0 &&
+          newIndex < distanceOptions.length
+        ) {
           setDistance(distanceOptions[newIndex].value);
         }
       },
@@ -241,10 +253,7 @@ export default function SearchScreen() {
       <View style={styles.sliderContainer}>
         <View style={styles.sliderTrack}>
           <View
-            style={[
-              styles.sliderThumb,
-              { left: thumbPosition }
-            ]}
+            style={[styles.sliderThumb, { left: thumbPosition }]}
             {...panResponder.panHandlers}
           />
         </View>
@@ -258,34 +267,48 @@ export default function SearchScreen() {
 
   // Budget range slider component
   const BudgetSlider = () => {
-    const minIndex = budgetMin === null ? 0 : budgetOptions.findIndex(option => option.value === budgetMin);
-    const maxIndex = budgetMax === null ? budgetOptions.length - 1 : budgetOptions.findIndex(option => option.value === budgetMax);
-    
+    const minIndex =
+      budgetMin === null
+        ? 0
+        : budgetOptions.findIndex((option) => option.value === budgetMin);
+    const maxIndex =
+      budgetMax === null
+        ? budgetOptions.length - 1
+        : budgetOptions.findIndex((option) => option.value === budgetMax);
+
     const sliderWidth = 280;
     const thumbWidth = 24;
     const trackWidth = sliderWidth - thumbWidth;
-    
-    const minThumbPosition = (minIndex / (budgetOptions.length - 1)) * trackWidth;
-    const maxThumbPosition = (maxIndex / (budgetOptions.length - 1)) * trackWidth;
 
-    const createPanResponder = (isMin: boolean) => PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, gestureState) => {
-        const newPosition = Math.max(0, Math.min(trackWidth, gestureState.moveX - 50));
-        const newIndex = Math.round((newPosition / trackWidth) * (budgetOptions.length - 1));
-        
-        if (isMin) {
-          if (newIndex <= maxIndex && newIndex >= 0) {
-            setBudgetMin(budgetOptions[newIndex].value);
+    const minThumbPosition =
+      (minIndex / (budgetOptions.length - 1)) * trackWidth;
+    const maxThumbPosition =
+      (maxIndex / (budgetOptions.length - 1)) * trackWidth;
+
+    const createPanResponder = (isMin: boolean) =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderMove: (evt, gestureState) => {
+          const newPosition = Math.max(
+            0,
+            Math.min(trackWidth, gestureState.moveX - 50)
+          );
+          const newIndex = Math.round(
+            (newPosition / trackWidth) * (budgetOptions.length - 1)
+          );
+
+          if (isMin) {
+            if (newIndex <= maxIndex && newIndex >= 0) {
+              setBudgetMin(budgetOptions[newIndex].value);
+            }
+          } else {
+            if (newIndex >= minIndex && newIndex < budgetOptions.length) {
+              setBudgetMax(budgetOptions[newIndex].value);
+            }
           }
-        } else {
-          if (newIndex >= minIndex && newIndex < budgetOptions.length) {
-            setBudgetMax(budgetOptions[newIndex].value);
-          }
-        }
-      },
-    });
+        },
+      });
 
     const minPanResponder = createPanResponder(true);
     const maxPanResponder = createPanResponder(false);
@@ -299,14 +322,14 @@ export default function SearchScreen() {
               {
                 left: minThumbPosition,
                 width: maxThumbPosition - minThumbPosition + thumbWidth,
-              }
+              },
             ]}
           />
           <View
             style={[
               styles.sliderThumb,
               styles.rangeThumbMin,
-              { left: minThumbPosition }
+              { left: minThumbPosition },
             ]}
             {...minPanResponder.panHandlers}
           />
@@ -314,7 +337,7 @@ export default function SearchScreen() {
             style={[
               styles.sliderThumb,
               styles.rangeThumbMax,
-              { left: maxThumbPosition }
+              { left: maxThumbPosition },
             ]}
             {...maxPanResponder.panHandlers}
           />
@@ -328,8 +351,10 @@ export default function SearchScreen() {
   };
 
   const formatBudgetRange = () => {
-    const minLabel = budgetMin === null ? '下限なし' : `${budgetMin.toLocaleString()}円`;
-    const maxLabel = budgetMax === null ? '上限なし' : `${budgetMax.toLocaleString()}円`;
+    const minLabel =
+      budgetMin === null ? '下限なし' : `${budgetMin.toLocaleString()}円`;
+    const maxLabel =
+      budgetMax === null ? '上限なし' : `${budgetMax.toLocaleString()}円`;
     return `${minLabel} 〜 ${maxLabel}`;
   };
 
@@ -402,7 +427,7 @@ export default function SearchScreen() {
                 <FlatList
                   data={suggestions}
                   renderItem={renderLocationSuggestion}
-                  keyExtractor={(item) => item.place_id}
+                  keyExtractor={(item) => item.placeId}
                   style={styles.suggestionsList}
                   scrollEnabled={false}
                 />
@@ -506,7 +531,10 @@ export default function SearchScreen() {
           </Text>
           <View style={styles.sliderSection}>
             <Text style={styles.sliderValue}>
-              {distanceOptions.find(option => option.value === distance)?.label}
+              {
+                distanceOptions.find((option) => option.value === distance)
+                  ?.label
+              }
             </Text>
             <DistanceSlider />
           </View>
@@ -518,9 +546,7 @@ export default function SearchScreen() {
             <DollarSign size={16} color="#1976D2" /> 予算
           </Text>
           <View style={styles.sliderSection}>
-            <Text style={styles.sliderValue}>
-              {formatBudgetRange()}
-            </Text>
+            <Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
             <BudgetSlider />
           </View>
         </View>
