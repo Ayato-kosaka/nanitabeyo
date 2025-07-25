@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import {
   MapPin,
@@ -20,6 +22,8 @@ import {
   Plus,
   X,
   Navigation,
+  MapPin as Distance,
+  DollarSign,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import {
@@ -56,6 +60,45 @@ const moodOptions = [
   { id: 'alcohol', label: 'お酒メイン', icon: '🍺' },
 ] as const;
 
+// Distance options in meters
+const distanceOptions = [
+  { value: 100, label: '100m' },
+  { value: 300, label: '300m' },
+  { value: 500, label: '500m' },
+  { value: 800, label: '800m' },
+  { value: 1000, label: '1km' },
+  { value: 2000, label: '2km' },
+  { value: 3000, label: '3km' },
+  { value: 5000, label: '5km' },
+  { value: 10000, label: '10km' },
+  { value: 15000, label: '15km' },
+  { value: 20000, label: '20km' },
+];
+
+// Budget options in yen
+const budgetOptions = [
+  { value: null, label: '下限なし' },
+  { value: 1000, label: '1,000円' },
+  { value: 2000, label: '2,000円' },
+  { value: 3000, label: '3,000円' },
+  { value: 4000, label: '4,000円' },
+  { value: 5000, label: '5,000円' },
+  { value: 6000, label: '6,000円' },
+  { value: 7000, label: '7,000円' },
+  { value: 8000, label: '8,000円' },
+  { value: 9000, label: '9,000円' },
+  { value: 10000, label: '10,000円' },
+  { value: 15000, label: '15,000円' },
+  { value: 20000, label: '20,000円' },
+  { value: 30000, label: '30,000円' },
+  { value: 40000, label: '40,000円' },
+  { value: 50000, label: '50,000円' },
+  { value: 60000, label: '60,000円' },
+  { value: 80000, label: '80,000円' },
+  { value: 100000, label: '100,000円' },
+  { value: null, label: '上限なし' },
+];
+
 const restrictionOptions = [
   { id: 'vegetarian', label: 'ベジタリアン', icon: '🌱' },
   { id: 'gluten_free', label: 'グルテンフリー', icon: '🌾' },
@@ -75,6 +118,9 @@ export default function SearchScreen() {
   const [mood, setMood] = useState<SearchParams['mood'] | undefined>(undefined);
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [distance, setDistance] = useState<number>(500); // Default 500m
+  const [budgetMin, setBudgetMin] = useState<number | null>(null);
+  const [budgetMax, setBudgetMax] = useState<number | null>(null);
 
   const {
     suggestions,
@@ -152,11 +198,14 @@ export default function SearchScreen() {
         scene,
         mood,
         restrictions,
+        distance,
+        budgetMin,
+        budgetMax,
       };
 
       // Navigate to cards screen with search parameters
       router.push({
-        pathname: '/(tabs)/search/topics',
+        pathname: '/topics',
         params: {
           searchParams: JSON.stringify(searchParams),
         },
@@ -166,6 +215,122 @@ export default function SearchScreen() {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  // Distance slider component
+  const DistanceSlider = () => {
+    const currentIndex = distanceOptions.findIndex(option => option.value === distance);
+    const sliderWidth = 280;
+    const thumbWidth = 24;
+    const trackWidth = sliderWidth - thumbWidth;
+    const thumbPosition = (currentIndex / (distanceOptions.length - 1)) * trackWidth;
+
+    const panResponder = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        const newPosition = Math.max(0, Math.min(trackWidth, gestureState.moveX - 50));
+        const newIndex = Math.round((newPosition / trackWidth) * (distanceOptions.length - 1));
+        if (newIndex !== currentIndex && newIndex >= 0 && newIndex < distanceOptions.length) {
+          setDistance(distanceOptions[newIndex].value);
+        }
+      },
+    });
+
+    return (
+      <View style={styles.sliderContainer}>
+        <View style={styles.sliderTrack}>
+          <View
+            style={[
+              styles.sliderThumb,
+              { left: thumbPosition }
+            ]}
+            {...panResponder.panHandlers}
+          />
+        </View>
+        <View style={styles.sliderLabels}>
+          <Text style={styles.sliderLabelLeft}>近い</Text>
+          <Text style={styles.sliderLabelRight}>遠い</Text>
+        </View>
+      </View>
+    );
+  };
+
+  // Budget range slider component
+  const BudgetSlider = () => {
+    const minIndex = budgetMin === null ? 0 : budgetOptions.findIndex(option => option.value === budgetMin);
+    const maxIndex = budgetMax === null ? budgetOptions.length - 1 : budgetOptions.findIndex(option => option.value === budgetMax);
+    
+    const sliderWidth = 280;
+    const thumbWidth = 24;
+    const trackWidth = sliderWidth - thumbWidth;
+    
+    const minThumbPosition = (minIndex / (budgetOptions.length - 1)) * trackWidth;
+    const maxThumbPosition = (maxIndex / (budgetOptions.length - 1)) * trackWidth;
+
+    const createPanResponder = (isMin: boolean) => PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        const newPosition = Math.max(0, Math.min(trackWidth, gestureState.moveX - 50));
+        const newIndex = Math.round((newPosition / trackWidth) * (budgetOptions.length - 1));
+        
+        if (isMin) {
+          if (newIndex <= maxIndex && newIndex >= 0) {
+            setBudgetMin(budgetOptions[newIndex].value);
+          }
+        } else {
+          if (newIndex >= minIndex && newIndex < budgetOptions.length) {
+            setBudgetMax(budgetOptions[newIndex].value);
+          }
+        }
+      },
+    });
+
+    const minPanResponder = createPanResponder(true);
+    const maxPanResponder = createPanResponder(false);
+
+    return (
+      <View style={styles.sliderContainer}>
+        <View style={styles.sliderTrack}>
+          <View
+            style={[
+              styles.rangeTrack,
+              {
+                left: minThumbPosition,
+                width: maxThumbPosition - minThumbPosition + thumbWidth,
+              }
+            ]}
+          />
+          <View
+            style={[
+              styles.sliderThumb,
+              styles.rangeThumbMin,
+              { left: minThumbPosition }
+            ]}
+            {...minPanResponder.panHandlers}
+          />
+          <View
+            style={[
+              styles.sliderThumb,
+              styles.rangeThumbMax,
+              { left: maxThumbPosition }
+            ]}
+            {...maxPanResponder.panHandlers}
+          />
+        </View>
+        <View style={styles.sliderLabels}>
+          <Text style={styles.sliderLabelLeft}>安い</Text>
+          <Text style={styles.sliderLabelRight}>高い</Text>
+        </View>
+      </View>
+    );
+  };
+
+  const formatBudgetRange = () => {
+    const minLabel = budgetMin === null ? '下限なし' : `${budgetMin.toLocaleString()}円`;
+    const maxLabel = budgetMax === null ? '上限なし' : `${budgetMax.toLocaleString()}円`;
+    return `${minLabel} 〜 ${maxLabel}`;
   };
 
   const renderLocationSuggestion = ({
@@ -331,6 +496,32 @@ export default function SearchScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* Distance */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <Distance size={16} color="#1976D2" /> 距離
+          </Text>
+          <View style={styles.sliderSection}>
+            <Text style={styles.sliderValue}>
+              {distanceOptions.find(option => option.value === distance)?.label}
+            </Text>
+            <DistanceSlider />
+          </View>
+        </View>
+
+        {/* Budget */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <DollarSign size={16} color="#1976D2" /> 予算
+          </Text>
+          <View style={styles.sliderSection}>
+            <Text style={styles.sliderValue}>
+              {formatBudgetRange()}
+            </Text>
+            <BudgetSlider />
           </View>
         </View>
 
@@ -582,5 +773,68 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
     marginLeft: 8,
+  },
+  sliderSection: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  sliderValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1976D2',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  sliderContainer: {
+    width: 280,
+    height: 60,
+    justifyContent: 'center',
+  },
+  sliderTrack: {
+    height: 4,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
+    position: 'relative',
+    marginHorizontal: 12,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    backgroundColor: '#1976D2',
+    borderRadius: 12,
+    top: -10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  rangeTrack: {
+    position: 'absolute',
+    height: 4,
+    backgroundColor: '#1976D2',
+    borderRadius: 2,
+    top: 0,
+  },
+  rangeThumbMin: {
+    backgroundColor: '#1976D2',
+  },
+  rangeThumbMax: {
+    backgroundColor: '#1976D2',
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: 12,
+  },
+  sliderLabelLeft: {
+    fontSize: 12,
+    color: '#666',
+  },
+  sliderLabelRight: {
+    fontSize: 12,
+    color: '#666',
   },
 });
