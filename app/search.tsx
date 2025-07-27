@@ -24,6 +24,8 @@ import {
   Navigation,
   MapPin as Distance,
   DollarSign,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import {
@@ -121,6 +123,7 @@ export default function SearchScreen() {
   const [distance, setDistance] = useState<number>(500); // Default 500m
   const [budgetMin, setBudgetMin] = useState<number | null>(null);
   const [budgetMax, setBudgetMax] = useState<number | null>(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const {
     suggestions,
@@ -432,6 +435,8 @@ export default function SearchScreen() {
             </View>
           )}
         </View>
+          </>
+        )}
 
         {/* Time of Day */}
         <View style={styles.section}>
@@ -521,6 +526,24 @@ export default function SearchScreen() {
           </View>
         </View>
 
+        {/* Advanced Filters Toggle */}
+        <TouchableOpacity
+          style={styles.advancedToggle}
+          onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        >
+          {showAdvancedFilters ? (
+            <ChevronUp size={20} color="#1976D2" />
+          ) : (
+            <ChevronDown size={20} color="#1976D2" />
+          )}
+          <Text style={styles.advancedToggleText}>
+            {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Advanced Filters Section */}
+        {showAdvancedFilters && (
+          <>
         {/* Distance */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
@@ -859,5 +882,24 @@ const styles = StyleSheet.create({
   sliderLabelRight: {
     fontSize: 12,
     color: '#666',
+  },
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E3F2FD',
+    marginHorizontal: 20,
+    marginVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  advancedToggleText: {
+    fontSize: 14,
+    color: '#1976D2',
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
