@@ -38,7 +38,6 @@ import { useSnackbar } from '@/contexts/SnackbarProvider';
 const timeSlots = [
   { id: 'morning', label: '朝食', icon: '🌅' },
   { id: 'lunch', label: 'ランチ', icon: '🌞' },
-  { id: 'afternoon', label: 'カフェ', icon: '☕' },
   { id: 'dinner', label: 'ディナー', icon: '🌙' },
   { id: 'late_night', label: '夜食', icon: '🌃' },
 ] as const;
