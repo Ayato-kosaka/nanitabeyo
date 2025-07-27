@@ -36,7 +36,7 @@ export interface DishMedia {
   photo_url: string;
   average_rating: number;
   review_count: number;
-  distanceMeters: number;
+  // distanceMeters: number;
   price: number;
   place: PlaceInfo;
   reviews: Review[];
