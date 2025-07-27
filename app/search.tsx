@@ -208,7 +208,7 @@ export default function SearchScreen() {
 
       // Navigate to cards screen with search parameters
       router.push({
-        pathname: '/(tabs)/search/topics',
+        pathname: '/topics',
         params: {
           searchParams: JSON.stringify(searchParams),
         },
@@ -435,8 +435,6 @@ export default function SearchScreen() {
             </View>
           )}
         </View>
-          </>
-        )}
 
         {/* Time of Day */}
         <View style={styles.section}>
@@ -531,77 +529,79 @@ export default function SearchScreen() {
           style={styles.advancedToggle}
           onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
         >
+          <Text style={styles.advancedToggleText}>
+            {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
+          </Text>
           {showAdvancedFilters ? (
             <ChevronUp size={20} color="#1976D2" />
           ) : (
             <ChevronDown size={20} color="#1976D2" />
           )}
-          <Text style={styles.advancedToggleText}>
-            {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
-          </Text>
         </TouchableOpacity>
 
         {/* Advanced Filters Section */}
         {showAdvancedFilters && (
           <>
-        {/* Distance */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Distance size={16} color="#1976D2" /> 距離は？
-          </Text>
-          <View style={styles.sliderSection}>
-            <Text style={styles.sliderValue}>
-              {
-                distanceOptions.find((option) => option.value === distance)
-                  ?.label
-              }
-            </Text>
-            <DistanceSlider />
-          </View>
-        </View>
-
-        {/* Budget */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <DollarSign size={16} color="#1976D2" /> 予算は？
-          </Text>
-          <View style={styles.sliderSection}>
-            <Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
-            <BudgetSlider />
-          </View>
-        </View>
-
-        {/* Restrictions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>制約条件</Text>
-          <View style={styles.restrictionsContainer}>
-            {restrictionOptions.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.restrictionChip,
-                  restrictions.includes(option.id) &&
-                    styles.selectedRestrictionChip,
-                ]}
-                onPress={() => toggleRestriction(option.id)}
-              >
-                <Text style={styles.chipEmoji}>{option.icon}</Text>
-                <Text
-                  style={[
-                    styles.restrictionChipText,
-                    restrictions.includes(option.id) &&
-                      styles.selectedRestrictionChipText,
-                  ]}
-                >
-                  {option.label}
+            {/* Distance */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                <Distance size={16} color="#1976D2" /> 距離は？
+              </Text>
+              <View style={styles.sliderSection}>
+                <Text style={styles.sliderValue}>
+                  {
+                    distanceOptions.find((option) => option.value === distance)
+                      ?.label
+                  }
                 </Text>
-                {restrictions.includes(option.id) && (
-                  <X size={14} color="#FFF" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                <DistanceSlider />
+              </View>
+            </View>
+
+            {/* Budget */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                <DollarSign size={16} color="#1976D2" /> 予算は？
+              </Text>
+              <View style={styles.sliderSection}>
+                <Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
+                <BudgetSlider />
+              </View>
+            </View>
+
+            {/* Restrictions */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>制約条件</Text>
+              <View style={styles.restrictionsContainer}>
+                {restrictionOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.restrictionChip,
+                      restrictions.includes(option.id) &&
+                        styles.selectedRestrictionChip,
+                    ]}
+                    onPress={() => toggleRestriction(option.id)}
+                  >
+                    <Text style={styles.chipEmoji}>{option.icon}</Text>
+                    <Text
+                      style={[
+                        styles.restrictionChipText,
+                        restrictions.includes(option.id) &&
+                          styles.selectedRestrictionChipText,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    {restrictions.includes(option.id) && (
+                      <X size={14} color="#FFF" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* Search FAB */}
@@ -887,19 +887,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#F0F8FF',
     marginHorizontal: 20,
     marginVertical: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#BBDEFB',
+    borderColor: '#E3F2FD',
+    gap: 8,
   },
   advancedToggleText: {
     fontSize: 14,
     color: '#1976D2',
     fontWeight: '500',
-    marginLeft: 8,
   },
 });
