@@ -94,7 +94,7 @@ export default function TopicsScreen() {
           onPress={() => handleHideCard(item.id)}
         >
           <Trash size={18} color="#FFF" />
-          <Text style={styles.hideButtonText}></Text>
+          {/* <Text style={styles.hideButtonText}></Text> */}
         </TouchableOpacity>
 
         {/* Content */}
