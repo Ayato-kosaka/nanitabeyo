@@ -10,22 +10,22 @@ import {
 import { X, RotateCcw, Search } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import FoodContentFeed from '@/components/FoodContentFeed';
-import { useFeedStore } from '@/stores/useFeedStore';
+import { useSearchStore } from '@/stores/useSearchStore';
 
-export default function FeedScreen() {
+export default function ResultScreen() {
   const { topicId } = useLocalSearchParams<{
     topicId: string;
   }>();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const feedItems = useFeedStore((state) => state.feedItemsMap[topicId] || []);
+  const dishes = useSearchStore((state) => state.dishesMap[topicId] || []);
 
   const handleIndexChange = (index: number) => {
     setCurrentIndex(index);
 
     // Show completion modal when reaching the last item
-    if (index >= feedItems.length - 1) {
+    if (index >= dishes.length - 1) {
       setTimeout(() => {
         setShowCompletionModal(true);
       }, 1000);
@@ -51,7 +51,7 @@ export default function FeedScreen() {
       </View>
 
       {/* Feed Content */}
-      <FoodContentFeed items={feedItems} onIndexChange={handleIndexChange} />
+      <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} />
 
       {/* Completion Modal */}
       <Modal

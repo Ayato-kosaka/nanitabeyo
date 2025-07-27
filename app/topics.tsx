@@ -22,7 +22,7 @@ const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 const CARD_HEIGHT = height * 0.85;
 import { ArrowLeft } from 'lucide-react-native';
-import { useFeedStore } from '@/stores/useFeedStore';
+import { useSearchStore } from '@/stores/useSearchStore';
 
 export default function TopicsScreen() {
   const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
@@ -31,7 +31,7 @@ export default function TopicsScreen() {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [hideReason, setHideReason] = useState('');
   const carouselRef = useRef<any>(null);
-  const setFeedItems = useFeedStore((state) => state.setFeedItems);
+  const setDishes = useSearchStore((state) => state.setDishes);
 
   const { topics, isLoading, error, searchTopics, hideTopic } =
     useTopicSearch();
@@ -68,9 +68,9 @@ export default function TopicsScreen() {
   };
 
   const handleViewDetails = (topic: Topic) => {
-    setFeedItems(topic.id, topic.feedItems);
+    setDishes(topic.id, topic.feedItems);
     router.push({
-      pathname: '/(tabs)/search/feed',
+      pathname: '/(tabs)/search/result',
       params: {
         topicId: topic.id,
       },
