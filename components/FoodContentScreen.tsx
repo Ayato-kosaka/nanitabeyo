@@ -19,17 +19,17 @@ import {
   Star,
   User,
   MapPin,
+  EllipsisVertical,
+  MapPinned,
 } from 'lucide-react-native';
 import { FoodItem, Comment } from '@/types';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
 interface FoodContentScreenProps {
   item: FoodItem;
-  onLike: () => void;
-  onSave: () => void;
-  onAddComment: (text: string) => void;
 }
 
 const formatLikeCount = (count: number): string => {
@@ -42,12 +42,10 @@ const formatLikeCount = (count: number): string => {
   return count.toString();
 };
 
-export default function FoodContentScreen({
-  item,
-  onLike,
-  onSave,
-  onAddComment,
-}: FoodContentScreenProps) {
+export default function FoodContentScreen({ item }: FoodContentScreenProps) {
+  const [isSaved, setIsSaved] = useState(item.isSaved);
+  const [isLiked, setIsLiked] = useState(item.isLiked);
+  const [likesCount, setLikesCount] = useState(item.likes);
   const [showMenu, setShowMenu] = useState(false);
   const [commentLikes, setCommentLikes] = useState<{
     [key: string]: { isLiked: boolean; count: number };
@@ -66,6 +64,17 @@ export default function FoodContentScreen({
     }));
   };
 
+  const handleLike = () => {
+    const willLike = !isLiked;
+    setIsLiked(willLike);
+    setLikesCount((prev) => (willLike ? prev + 1 : prev - 1));
+  };
+
+  const handleSave = () => {
+    const willSave = !isSaved;
+    setIsSaved(willSave);
+  };
+
   const handleViewRestaurant = () => {
     router.push('/(tabs)/(home)/restaurant/1');
   };
@@ -77,16 +86,10 @@ export default function FoodContentScreen({
 
   const menuOptions = [
     { icon: User, label: '投稿者プロフィールへ', onPress: handleViewCreator },
-    { icon: Share, label: 'シェア', onPress: () => console.log('Share') },
     {
       icon: Calendar,
       label: '予約',
       onPress: () => console.log('Reservation'),
-    },
-    {
-      icon: MapPin,
-      label: 'グーグルマップで開く',
-      onPress: () => console.log('Open Google Maps'),
     },
   ];
 
@@ -136,78 +139,106 @@ export default function FoodContentScreen({
       </View>
 
       {/* Comments Section */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.commentsContainer}
-        showsVerticalScrollIndicator={false}
+      <LinearGradient
+        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']}
+        style={styles.commentsGradient}
       >
-        {item.comments.map((comment) => {
-          const commentLikeData = commentLikes[comment.id] || {
-            isLiked: false,
-            count: 0,
-          };
-          return (
-            <View key={comment.id} style={styles.commentItem}>
-              <View style={styles.commentHeader}>
-                <Text style={styles.commentUsername}>{comment.username}</Text>
-                <Text style={styles.commentTimestamp}>{comment.timestamp}</Text>
-              </View>
-              <View style={styles.commentContent}>
-                <Text style={styles.commentText}>{comment.text}</Text>
-                <View style={styles.commentActions}>
-                  <TouchableOpacity
-                    style={styles.commentLikeButton}
-                    onPress={() => handleCommentLike(comment.id)}
-                  >
-                    <Heart
-                      size={14}
-                      color={commentLikeData.isLiked ? '#FF3040' : '#CCCCCC'}
-                      fill={commentLikeData.isLiked ? '#FF3040' : 'transparent'}
-                    />
-                  </TouchableOpacity>
-                  {commentLikeData.count > 0 && (
-                    <Text style={styles.commentLikeCount}>
-                      {commentLikeData.count}
-                    </Text>
-                  )}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.commentsContainer}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() =>
+            scrollViewRef.current?.scrollToEnd({ animated: false })
+          }
+        >
+          {item.comments.map((comment) => {
+            const commentLikeData = commentLikes[comment.id] || {
+              isLiked: false,
+              count: 0,
+            };
+            return (
+              <View key={comment.id} style={styles.commentItem}>
+                <View style={styles.commentHeader}>
+                  <Text style={styles.commentUsername}>{comment.username}</Text>
+                  <Text style={styles.commentTimestamp}>
+                    {comment.timestamp}
+                  </Text>
+                </View>
+                <View style={styles.commentContent}>
+                  <Text style={styles.commentText}>{comment.text}</Text>
+                  <View style={styles.commentActions}>
+                    <TouchableOpacity
+                      style={styles.commentLikeButton}
+                      onPress={() => handleCommentLike(comment.id)}
+                    >
+                      <Heart
+                        size={14}
+                        color={commentLikeData.isLiked ? '#FF3040' : '#CCCCCC'}
+                        fill={
+                          commentLikeData.isLiked ? '#FF3040' : 'transparent'
+                        }
+                      />
+                    </TouchableOpacity>
+                    {commentLikeData.count > 0 && (
+                      <Text style={styles.commentLikeCount}>
+                        {commentLikeData.count}
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </View>
-            </View>
-          );
-        })}
-      </ScrollView>
+            );
+          })}
+        </ScrollView>
+      </LinearGradient>
 
       {/* Bottom Section */}
-      <View style={styles.bottomSection}>
-        <View style={styles.actionRow}>
+      <View pointerEvents="box-none" style={styles.bottomSection}>
+        <View pointerEvents="box-none" style={styles.actionRow}>
           {/* Action Buttons */}
           <View style={styles.rightActions}>
-            <View style={styles.heartContainer}>
-              <TouchableOpacity style={styles.actionButton} onPress={onLike}>
+            <View style={styles.actionContainer}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleLike}
+              >
                 <Heart
                   size={28}
-                  color={item.isLiked ? '#FF3040' : '#FFFFFF'}
-                  fill={item.isLiked ? '#FF3040' : 'transparent'}
+                  color={isLiked ? '#FF3040' : '#FFFFFF'}
+                  fill={isLiked ? '#FF3040' : 'transparent'}
                 />
               </TouchableOpacity>
-              <Text style={styles.likesCount}>
-                {formatLikeCount(item.likes)}
+              <Text style={styles.actionText}>
+                {formatLikeCount(likesCount)}
               </Text>
             </View>
 
-            <TouchableOpacity style={styles.actionButton} onPress={onSave}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleSave}>
               <Bookmark
                 size={28}
-                color={item.isSaved ? '#FFFFFF' : '#FFFFFF'}
-                fill={item.isSaved ? '#FFFFFF' : 'transparent'}
+                color={isSaved ? '#FFFFFF' : '#FFFFFF'}
+                fill={isSaved ? '#FFFFFF' : 'transparent'}
               />
             </TouchableOpacity>
+
+            <View style={styles.actionContainer}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => {}}>
+                <Share size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.actionText}>Share</Text>
+            </View>
+
+            <View style={styles.actionContainer}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => {}}>
+                <MapPinned size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => setShowMenu(true)}
             >
-              <MoreVertical size={28} color="#FFFFFF" />
+              <EllipsisVertical size={28} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -338,14 +369,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
   },
-  commentsContainer: {
+  commentsGradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    width: width * 0.7,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    right: 0,
+    maxHeight: 180,
+  },
+  commentsContainer: {
     paddingHorizontal: 12,
     paddingVertical: 8,
+    marginRight: 48,
   },
   commentItem: {
     marginBottom: 12,
@@ -406,15 +440,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  heartContainer: {
+  actionContainer: {
     alignItems: 'center',
   },
   actionButton: {
     padding: 4,
   },
-  likesCount: {
+  actionText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '300',
     color: '#FFFFFF',
     marginTop: 2,
   },

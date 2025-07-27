@@ -30,45 +30,6 @@ export default function FoodContentFeed({
     onIndexChange?.(newIndex);
   };
 
-  const handleLike = () => {
-    setFeedItems((prevItems) =>
-      prevItems.map((item, index) =>
-        index === currentIndex
-          ? {
-              ...item,
-              isLiked: !item.isLiked,
-              likes: item.isLiked ? item.likes - 1 : item.likes + 1,
-            }
-          : item
-      )
-    );
-  };
-
-  const handleSave = () => {
-    setFeedItems((prevItems) =>
-      prevItems.map((item, index) =>
-        index === currentIndex ? { ...item, isSaved: !item.isSaved } : item
-      )
-    );
-  };
-
-  const handleAddComment = (text: string) => {
-    const newComment = {
-      id: Date.now().toString(),
-      username: 'you',
-      text,
-      timestamp: 'now',
-    };
-
-    setFeedItems((prevItems) =>
-      prevItems.map((item, index) =>
-        index === currentIndex
-          ? { ...item, comments: [newComment, ...item.comments] }
-          : item
-      )
-    );
-  };
-
   const onGestureEvent = Animated.event(
     [{ nativeEvent: { translationY: translateY } }],
     { useNativeDriver: true }
@@ -110,12 +71,7 @@ export default function FoodContentFeed({
           },
         ]}
       >
-        <FoodContentScreen
-          item={currentItem}
-          onLike={handleLike}
-          onSave={handleSave}
-          onAddComment={handleAddComment}
-        />
+        <FoodContentScreen item={currentItem} />
       </Animated.View>
     </PanGestureHandler>
   );

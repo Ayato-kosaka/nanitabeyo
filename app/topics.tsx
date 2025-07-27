@@ -42,7 +42,7 @@ export default function TopicsScreen() {
       try {
         const params: SearchParams = JSON.parse(searchParams);
         searchTopics(params).catch(() => {
-          showSnackbar('おすすめの取得に失敗しました');
+          showSnackbar('料理の取得に失敗しました');
         });
       } catch (error) {
         showSnackbar('検索パラメータが無効です');
@@ -57,12 +57,13 @@ export default function TopicsScreen() {
   };
 
   const confirmHideCard = () => {
-    if (selectedCardId) {
+    const selectedTopic = topics.find((topic) => topic.id === selectedCardId);
+    if (selectedCardId && selectedTopic) {
       hideTopic(selectedCardId, hideReason);
       setShowHideModal(false);
       setHideReason('');
       setSelectedCardId(null);
-      showSnackbar('おすすめを非表示にしました');
+      showSnackbar(`${selectedTopic?.topicTitle}を非表示にしました`);
     }
   };
 
@@ -122,7 +123,7 @@ export default function TopicsScreen() {
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6750A4" />
         <Text style={styles.loadingText}>
-          おすすめを探しているので、 {'\n'}少々お待ちください...
+          探しているので、少々お待ちください...
         </Text>
       </SafeAreaView>
     );
@@ -171,7 +172,7 @@ export default function TopicsScreen() {
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>表示できるおすすめがありません</Text>
+          <Text style={styles.emptyText}>表示できる料理がありません</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
             <Text style={styles.retryButtonText}>検索に戻る</Text>
           </TouchableOpacity>
@@ -188,14 +189,14 @@ export default function TopicsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>おすすめを非表示にする</Text>
+              <Text style={styles.modalTitle}>非表示にする</Text>
               <TouchableOpacity onPress={() => setShowHideModal(false)}>
                 <X size={24} color="#49454F" />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.modalDescription}>
-              このおすすめを非表示にする理由を教えてください（任意）
+              非表示にする理由を教えてください（任意）
             </Text>
 
             <TextInput
