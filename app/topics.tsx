@@ -121,7 +121,9 @@ export default function TopicsScreen() {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6750A4" />
-        <Text style={styles.loadingText}>おすすめを探しています...</Text>
+        <Text style={styles.loadingText}>
+          おすすめを探しているので、 {'\n'}少々お待ちください...
+        </Text>
       </SafeAreaView>
     );
   }
@@ -171,7 +173,7 @@ export default function TopicsScreen() {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>表示できるおすすめがありません</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-            <Text style={styles.retryButtonText}>検索に戻る</Text>
+            <Text style={styles.retryButtonText}>気になる！</Text>
           </TouchableOpacity>
         </View>
       )}

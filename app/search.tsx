@@ -387,16 +387,13 @@ export default function SearchScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>料理を探す</Text>
-          <Text style={styles.headerSubtitle}>
-            あなたにぴったりの料理を見つけましょう
-          </Text>
+          <Text style={styles.headerTitle}>どんな料理を探しましょう？</Text>
         </View>
 
         {/* Location Input */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <MapPin size={16} color="#1976D2" /> 場所 *
+            <MapPin size={16} color="#1976D2" /> どのあたりで探す？ *
           </Text>
           <View style={styles.locationInputContainer}>
             <TextInput
@@ -439,7 +436,7 @@ export default function SearchScreen() {
         {/* Time of Day */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Clock size={16} color="#1976D2" /> 時間帯
+            <Clock size={16} color="#1976D2" /> 時間帯は？
           </Text>
           <View style={styles.chipGrid}>
             {timeSlots.map((slot) => (
@@ -468,7 +465,7 @@ export default function SearchScreen() {
         {/* Scene */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Users size={16} color="#1976D2" /> シーン
+            <Users size={16} color="#1976D2" /> シーンは？
           </Text>
           <View style={styles.chipGrid}>
             {sceneOptions.map((option) => (
@@ -499,7 +496,7 @@ export default function SearchScreen() {
         {/* Mood */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Heart size={16} color="#1976D2" /> 気分
+            <Heart size={16} color="#1976D2" /> 気分は？
           </Text>
           <View style={styles.chipGrid}>
             {moodOptions.map((option) => (
@@ -527,7 +524,7 @@ export default function SearchScreen() {
         {/* Distance */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Distance size={16} color="#1976D2" /> 距離
+            <Distance size={16} color="#1976D2" /> 距離は？
           </Text>
           <View style={styles.sliderSection}>
             <Text style={styles.sliderValue}>
@@ -543,7 +540,7 @@ export default function SearchScreen() {
         {/* Budget */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <DollarSign size={16} color="#1976D2" /> 予算
+            <DollarSign size={16} color="#1976D2" /> 予算は？
           </Text>
           <View style={styles.sliderSection}>
             <Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
@@ -595,7 +592,7 @@ export default function SearchScreen() {
         ) : (
           <>
             <Search size={24} color="#FFF" />
-            <Text style={styles.fabText}>検索開始</Text>
+            <Text style={styles.fabText}>探して！</Text>
           </>
         )}
       </TouchableOpacity>

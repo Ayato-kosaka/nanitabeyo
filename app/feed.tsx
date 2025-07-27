@@ -62,8 +62,10 @@ export default function FeedScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.completionModal}>
-            <Text style={styles.completionTitle}>すべて見終わりました！</Text>
-            <Text style={styles.completionMessage}>おすすめに戻りますか？</Text>
+            <Text style={styles.completionTitle}>
+              これ以上出すと迷っちゃうし、ここから選ぼう！
+            </Text>
+            {/* <Text style={styles.completionMessage}>おすすめに戻りますか？</Text> */}
 
             <View style={styles.completionActions}>
               <TouchableOpacity
@@ -71,7 +73,7 @@ export default function FeedScreen() {
                 onPress={() => setShowCompletionModal(false)}
               >
                 <RotateCcw size={20} color="#666" />
-                <Text style={styles.returnButtonText}>キャンセル</Text>
+                <Text style={styles.returnButtonText}>ここから選ぶ</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -79,7 +81,7 @@ export default function FeedScreen() {
                 onPress={handleReturnToCards}
               >
                 <Search size={20} color="#FFF" />
-                <Text style={styles.searchOtherButtonText}>おすすめに戻る</Text>
+                <Text style={styles.searchOtherButtonText}>他の料理を見る</Text>
               </TouchableOpacity>
             </View>
           </View>
