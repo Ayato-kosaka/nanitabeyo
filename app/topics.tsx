@@ -11,7 +11,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { Eye, ThumbsDown, X } from 'lucide-react-native';
+import { Eye, Trash, X } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
 import { Topic, SearchParams } from '@/types/search';
@@ -93,7 +93,7 @@ export default function TopicsScreen() {
           style={styles.hideButton}
           onPress={() => handleHideCard(item.id)}
         >
-          <ThumbsDown size={18} color="#FFF" />
+          <Trash size={18} color="#FFF" />
           <Text style={styles.hideButtonText}></Text>
         </TouchableOpacity>
 
@@ -110,7 +110,7 @@ export default function TopicsScreen() {
             onPress={() => handleViewDetails(item)}
           >
             <Eye size={20} color="#FFF" />
-            <Text style={styles.detailsButtonText}>探索する</Text>
+            <Text style={styles.detailsButtonText}>気になる！</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -173,7 +173,7 @@ export default function TopicsScreen() {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>表示できるおすすめがありません</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-            <Text style={styles.retryButtonText}>気になる！</Text>
+            <Text style={styles.retryButtonText}>検索に戻る</Text>
           </TouchableOpacity>
         </View>
       )}
