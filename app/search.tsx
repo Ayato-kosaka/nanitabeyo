@@ -208,7 +208,7 @@ export default function SearchScreen() {
 
       // Navigate to cards screen with search parameters
       router.push({
-        pathname: '/topics',
+        pathname: '/(tabs)/search/topics',
         params: {
           searchParams: JSON.stringify(searchParams),
         },
@@ -529,14 +529,14 @@ export default function SearchScreen() {
           style={styles.advancedToggle}
           onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
         >
-          <Text style={styles.advancedToggleText}>
-            {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
-          </Text>
           {showAdvancedFilters ? (
             <ChevronUp size={20} color="#1976D2" />
           ) : (
             <ChevronDown size={20} color="#1976D2" />
           )}
+          <Text style={styles.advancedToggleText}>
+            {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
+          </Text>
         </TouchableOpacity>
 
         {/* Advanced Filters Section */}
@@ -887,19 +887,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0F8FF',
+    backgroundColor: '#E3F2FD',
     marginHorizontal: 20,
     marginVertical: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
-    gap: 8,
+    borderColor: '#BBDEFB',
   },
   advancedToggleText: {
     fontSize: 14,
     color: '#1976D2',
     fontWeight: '500',
+    marginLeft: 8,
   },
 });
