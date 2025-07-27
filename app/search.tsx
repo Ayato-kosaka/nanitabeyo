@@ -9,10 +9,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   FlatList,
-  Alert,
   PanResponder,
-  Animated,
 } from 'react-native';
+import { Divider } from 'react-native-paper';
 import {
   MapPin,
   Search,
@@ -384,15 +383,14 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={{ ...styles.header, position: 'relative' }}>
+        <Text style={styles.headerTitle}>どんな料理を探しましょう？🍴</Text>
+      </View>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>どんな料理を探しましょう？</Text>
-        </View>
-
         {/* Location Input */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
@@ -626,23 +624,20 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFF',
   },
   scrollView: {
     flex: 1,
+    paddingBottom: 80,
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 24,
     backgroundColor: '#FFF',
     elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1976D2',
     marginBottom: 6,
@@ -652,8 +647,6 @@ const styles = StyleSheet.create({
     color: '#49454F',
   },
   section: {
-    backgroundColor: '#FFF',
-    marginTop: 4,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
@@ -738,10 +731,10 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F2FA',
+    backgroundColor: '#FAFAFA',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 32,
     borderWidth: 1,
     borderColor: '#E7E0EC',
     marginBottom: 6,
@@ -822,18 +815,16 @@ const styles = StyleSheet.create({
   },
   sliderSection: {
     alignItems: 'center',
-    paddingVertical: 8,
   },
   sliderValue: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1976D2',
-    marginBottom: 16,
+    marginBottom: 4,
     textAlign: 'center',
   },
   sliderContainer: {
     width: 280,
-    height: 60,
     justifyContent: 'center',
   },
   sliderTrack: {
