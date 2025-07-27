@@ -205,7 +205,7 @@ export default function SearchScreen() {
 
       // Navigate to cards screen with search parameters
       router.push({
-        pathname: '/topics',
+        pathname: '/(tabs)/search/topics',
         params: {
           searchParams: JSON.stringify(searchParams),
         },

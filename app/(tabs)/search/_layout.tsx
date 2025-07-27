@@ -5,7 +5,10 @@ export default function SearchStackLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="topics" />
-      <Stack.Screen name="feed" />
+      <Stack.Screen
+        name="feed"
+        options={{ presentation: 'transparentModal', headerShown: false }}
+      />
     </Stack>
   );
 }

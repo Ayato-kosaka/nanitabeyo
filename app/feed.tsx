@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { ArrowLeft, RotateCcw, Search } from 'lucide-react-native';
+import { X, RotateCcw, Search } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import FoodContentFeed from '@/components/FoodContentFeed';
 import { useFeedStore } from '@/stores/useFeedStore';
@@ -32,7 +32,7 @@ export default function FeedScreen() {
     }
   };
 
-  const handleBack = () => {
+  const handleClose = () => {
     router.back();
   };
 
@@ -44,9 +44,9 @@ export default function FeedScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Back Button */}
-      <View style={styles.backButtonContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ArrowLeft size={24} color="#FFF" />
+      <View style={styles.closeButtonContainer}>
+        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+          <X size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
 
@@ -96,10 +96,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  backButtonContainer: {
+  closeButtonContainer: {
     position: 'absolute',
     top: 0,
-    left: 0,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
@@ -107,7 +106,7 @@ const styles = StyleSheet.create({
     padding: 16,
     zIndex: 10,
   },
-  backButton: {
+  closeButton: {
     padding: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
