@@ -284,8 +284,8 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     position: 'absolute',
-    width: width,
-    height: height,
+    width: '100%',
+    height: '100%',
     resizeMode: 'cover',
   },
   topHeader: {

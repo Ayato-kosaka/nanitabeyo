@@ -11,7 +11,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { Eye, Trash, X } from 'lucide-react-native';
+import { ThumbsUp, Trash, X } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
 import { Topic, SearchParams } from '@/types/search';
@@ -110,7 +110,7 @@ export default function TopicsScreen() {
             style={styles.detailsButton}
             onPress={() => handleViewDetails(item)}
           >
-            <Eye size={20} color="#FFF" />
+            <ThumbsUp size={20} color="#FFF" />
             <Text style={styles.detailsButtonText}>気になる！</Text>
           </TouchableOpacity>
         </View>
@@ -388,14 +388,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#1976D2',
+    color: '#FFFFFF',
     paddingVertical: 14,
     borderRadius: 24,
     gap: 8,
   },
   detailsButtonText: {
     fontSize: 16,
-    color: '#000',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   emptyContainer: {

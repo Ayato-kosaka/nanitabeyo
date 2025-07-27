@@ -11,6 +11,7 @@ import { X, RotateCcw, Search } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import FoodContentFeed from '@/components/FoodContentFeed';
 import { useSearchStore } from '@/stores/useSearchStore';
+import FoodContentMap from '@/components/FoodContentMap';
 
 export default function ResultScreen() {
   const { topicId } = useLocalSearchParams<{
@@ -25,11 +26,11 @@ export default function ResultScreen() {
     setCurrentIndex(index);
 
     // Show completion modal when reaching the last item
-    if (index >= dishes.length - 1) {
-      setTimeout(() => {
-        setShowCompletionModal(true);
-      }, 1000);
-    }
+    // if (index >= dishes.length - 1) {
+    //   setTimeout(() => {
+    //     setShowCompletionModal(true);
+    //   }, 1000);
+    // }
   };
 
   const handleClose = () => {
@@ -51,7 +52,8 @@ export default function ResultScreen() {
       </View>
 
       {/* Feed Content */}
-      <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} />
+      {/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
+      <FoodContentMap items={dishes} onIndexChange={handleIndexChange} />
 
       {/* Completion Modal */}
       <Modal
@@ -109,7 +111,7 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   modalOverlay: {
     flex: 1,

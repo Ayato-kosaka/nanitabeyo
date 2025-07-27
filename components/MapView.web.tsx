@@ -3,6 +3,7 @@ import React, {
   useRef,
   useCallback,
   useImperativeHandle,
+  useMemo,
 } from 'react';
 import {
   GoogleMap,
@@ -16,7 +17,10 @@ import type {
   PoiClickEvent,
   Region,
 } from 'react-native-maps';
+import { OverlayView } from '@react-google-maps/api';
+import { MapPin } from 'lucide-react-native';
 import { Env } from '@/constants/Env';
+import { TouchableOpacity } from 'react-native';
 
 /** ─────────────────────────────────────────────────────────────
  *  ネイティブと API 互換にするためのハンドル
@@ -32,26 +36,35 @@ export const Marker: React.FC<MarkerProps> = ({
   title,
   onPress,
   testID,
+  pinColor,
 }) => {
-  const handleClick = useCallback(
-    (e: google.maps.MapMouseEvent) => {
-      if (!onPress || !e.latLng) return;
-      const event = {
-        nativeEvent: {
-          id: testID ?? '',
-          action: 'marker-press',
-          coordinate: {
-            latitude: e.latLng.lat(),
-            longitude: e.latLng.lng(),
-          },
+  const handleClick = useCallback(() => {
+    if (!onPress) return;
+    const event = {
+      nativeEvent: {
+        id: testID ?? '',
+        action: 'marker-press',
+        coordinate: {
+          latitude: coordinate.latitude,
+          longitude: coordinate.longitude,
         },
-      } as unknown as MarkerPressEvent;
-      onPress(event);
-    },
-    [onPress, testID]
-  );
+      },
+    } as unknown as MarkerPressEvent;
+    onPress(event);
+  }, [onPress, testID]);
 
-  return (
+  return pinColor ? (
+    <OverlayView
+      position={{ lat: coordinate.latitude, lng: coordinate.longitude }}
+      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+    >
+      <TouchableOpacity onPress={handleClick} testID={testID}>
+        <div style={{ transform: 'translate(-50%, -100%)' }}>
+          <MapPin fill={pinColor} color="white" size={40} />
+        </div>
+      </TouchableOpacity>
+    </OverlayView>
+  ) : (
     <GoogleMarker
       position={{ lat: coordinate.latitude, lng: coordinate.longitude }}
       title={title}
@@ -138,8 +151,15 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
     useImperativeHandle(
       ref,
       (): MapViewHandle => ({
-        animateToRegion: () => {
-          /* Web では無視 (no-op) */
+        animateToRegion: (region: Region, duration?: number) => {
+          if (!innerMapRef.current) return;
+          const { latitude, longitude, latitudeDelta } = region;
+
+          innerMapRef.current.panTo({ lat: latitude, lng: longitude });
+
+          // latitudeDeltaをzoomレベルに変換
+          const zoom = deltaToZoom(latitudeDelta);
+          innerMapRef.current.setZoom(zoom);
         },
       }),
       []
@@ -162,10 +182,14 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
         <GoogleMap
           onLoad={handleLoad}
           center={{ lat: region?.latitude ?? 0, lng: region?.longitude ?? 0 }}
-          zoom={17}
+          zoom={region ? deltaToZoom(region.latitudeDelta) : 17}
           mapContainerStyle={containerStyle}
           onClick={handleClick}
           onIdle={handleIdle}
+          options={{
+            disableDefaultUI: true, // すべてのデフォルトUIを非表示
+            clickableIcons: !!onPoiClick, // POI アイコンをクリック可能にする
+          }}
         >
           {children}
         </GoogleMap>
@@ -175,3 +199,7 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 );
 
 export default MapView;
+
+function deltaToZoom(latitudeDelta: number): number {
+  return Math.log2(360 / latitudeDelta);
+}
