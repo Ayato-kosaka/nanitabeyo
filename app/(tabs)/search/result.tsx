@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: 8,
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
   },
   searchOtherButtonText: {
     fontSize: 14,

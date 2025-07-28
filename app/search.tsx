@@ -393,12 +393,13 @@ export default function SearchScreen() {
         {/* Location Input */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <MapPin size={16} color="#1976D2" /> どのあたりで探す？ *
+            <MapPin size={16} color="rgb(52, 119, 248)" /> どのあたりで探す？ *
           </Text>
           <View style={styles.locationInputContainer}>
             <TextInput
               style={styles.locationInput}
               placeholder="場所を入力してください"
+              placeholderTextColor={'#616262'}
               value={locationQuery}
               onChangeText={handleLocationSearch}
               onFocus={() =>
@@ -409,7 +410,7 @@ export default function SearchScreen() {
               style={styles.currentLocationButton}
               onPress={handleUseCurrentLocation}
             >
-              <Navigation size={20} color="#1976D2" />
+              <Navigation size={20} color="rgb(52, 119, 248)" />
             </TouchableOpacity>
           </View>
 
@@ -417,7 +418,7 @@ export default function SearchScreen() {
             <View style={styles.suggestionsContainer}>
               {isLocationSearching ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#1976D2" />
+                  <ActivityIndicator size="small" color="rgb(52, 119, 248)" />
                   <Text style={styles.loadingText}>検索中...</Text>
                 </View>
               ) : (
@@ -436,7 +437,7 @@ export default function SearchScreen() {
         {/* Time of Day */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Clock size={16} color="#1976D2" /> 時間帯は？
+            <Clock size={16} color="rgb(52, 119, 248)" /> 時間帯は？
           </Text>
           <View style={styles.chipGrid}>
             {timeSlots.map((slot) => (
@@ -465,7 +466,7 @@ export default function SearchScreen() {
         {/* Scene */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Users size={16} color="#1976D2" /> シーンは？
+            <Users size={16} color="rgb(52, 119, 248)" /> シーンは？
           </Text>
           <View style={styles.chipGrid}>
             {sceneOptions.map((option) => (
@@ -496,7 +497,7 @@ export default function SearchScreen() {
         {/* Mood */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Heart size={16} color="#1976D2" /> 気分は？
+            <Heart size={16} color="rgb(52, 119, 248)" /> 気分は？
           </Text>
           <View style={styles.chipGrid}>
             {moodOptions.map((option) => (
@@ -527,9 +528,9 @@ export default function SearchScreen() {
           onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
         >
           {showAdvancedFilters ? (
-            <ChevronUp size={20} color="#1976D2" />
+            <ChevronUp size={20} color="rgb(52, 119, 248)" />
           ) : (
-            <ChevronDown size={20} color="#1976D2" />
+            <ChevronDown size={20} color="rgb(52, 119, 248)" />
           )}
           <Text style={styles.advancedToggleText}>
             {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
@@ -542,7 +543,7 @@ export default function SearchScreen() {
             {/* Distance */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
-                <Distance size={16} color="#1976D2" /> 距離は？
+                <Distance size={16} color="rgb(52, 119, 248)" /> 距離は？
               </Text>
               <View style={styles.sliderSection}>
                 <Text style={styles.sliderValue}>
@@ -558,7 +559,7 @@ export default function SearchScreen() {
             {/* Budget */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
-                <DollarSign size={16} color="#1976D2" /> 予算は？
+                <DollarSign size={16} color="rgb(52, 119, 248)" /> 予算は？
               </Text>
               <View style={styles.sliderSection}>
                 <Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
@@ -625,7 +626,7 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#fff',
   },
   scrollView: {
     flex: 1,
@@ -634,13 +635,13 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: '#FFF',
+    backgroundColor: '#fff',
     elevation: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: 'rgb(52, 119, 248)',
     marginBottom: 6,
   },
   headerSubtitle: {
@@ -662,17 +663,14 @@ const styles = StyleSheet.create({
   locationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderRadius: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#f4f5f6',
   },
   locationInput: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#1C1B1F',
   },
   currentLocationButton: {
     padding: 12,
@@ -732,18 +730,20 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#f4f5f6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 32,
-    borderWidth: 1,
-    borderColor: '#E7E0EC',
     marginBottom: 6,
     marginHorizontal: 3,
   },
   selectedChip: {
-    backgroundColor: '#1976D2',
-    borderColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
+    shadowColor: 'rgba(52, 119, 248, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 32,
+    elevation: 6,
   },
   chipEmoji: {
     fontSize: 14,
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    color: '#49454F',
+    color: '#616262',
     fontWeight: '500',
   },
   selectedChipText: {
@@ -799,16 +799,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchFab: {
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 28,
-    elevation: 8,
-    shadowColor: '#000',
+    shadowColor: 'rgba(52, 119, 248, 0.3)',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 1,
+    elevation: 5,
     shadowRadius: 8,
   },
   disabledFab: {
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
   sliderValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1976D2',
+    color: 'rgb(52, 119, 248)',
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 24,
     height: 24,
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
     borderRadius: 12,
     top: -10,
     elevation: 4,
@@ -857,15 +857,15 @@ const styles = StyleSheet.create({
   rangeTrack: {
     position: 'absolute',
     height: 4,
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
     borderRadius: 2,
     top: 0,
   },
   rangeThumbMin: {
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
   },
   rangeThumbMax: {
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
   },
   sliderLabels: {
     flexDirection: 'row',
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
   },
   advancedToggleText: {
     fontSize: 14,
-    color: '#1976D2',
+    color: 'rgb(52, 119, 248)',
     fontWeight: '500',
     marginLeft: 8,
   },

@@ -120,7 +120,7 @@ export default function TopicsScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6750A4" />
+        <ActivityIndicator size="large" color="rgb(52, 119, 248)" />
         <Text style={styles.loadingText}>
           探しているので、少々お待ちください...
         </Text>
@@ -243,7 +243,7 @@ export default function TopicsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f6fc',
+    backgroundColor: '#fff',
   },
   backButtonContainer: {
     position: 'absolute',
@@ -263,11 +263,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   loadingText: {
     fontSize: 16,
-    color: '#FFF',
+    color: '#000',
     marginTop: 16,
     fontWeight: '400',
   },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   retryButton: {
-    backgroundColor: '#6750A4',
+    backgroundColor: 'rgb(52, 119, 248)',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,
@@ -310,12 +310,13 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     borderRadius: 16,
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#000',
+    borderWidth: 4,
+    borderColor: '#fff',
+    shadowColor: 'rgba(0, 0, 0, 0.3)',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    backgroundColor: '#000',
+    shadowOpacity: 1,
+    shadowRadius: 32,
+    elevation: 5,
     position: 'relative',
   },
   cardImage: {
@@ -355,8 +356,8 @@ const styles = StyleSheet.create({
   pageIndicatorDotActive: {
     width: 14, // アクティブは少し長めに
     borderRadius: 3,
-    backgroundColor: '#1976D2',
-    shadowColor: '#1976D2', // アクティブ時の影
+    backgroundColor: 'rgb(52, 119, 248)',
+    shadowColor: 'rgb(52, 119, 248)', // アクティブ時の影
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgb(52, 119, 248)',
     color: '#FFFFFF',
     paddingVertical: 14,
     borderRadius: 24,

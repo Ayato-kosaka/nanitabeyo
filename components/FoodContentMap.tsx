@@ -117,7 +117,7 @@ export default function FoodContentMap({
               key={`marker-${index}`}
               coordinate={coordinate}
               title={items[index]?.name}
-              pinColor={index === currentIndex ? '#1976D2' : 'gray'}
+              pinColor={index === currentIndex ? 'rgb(52, 119, 248)' : 'gray'}
               onPress={() => handleMarkerPress(index)}
             />
           ))}
@@ -174,7 +174,12 @@ const styles = StyleSheet.create({
   },
   carouselItem: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: 'rgba(0, 0, 0, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 32,
+    elevation: 5,
   },
 });
