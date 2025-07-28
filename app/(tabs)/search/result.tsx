@@ -47,7 +47,7 @@ export default function ResultScreen() {
       {/* Header with Back Button */}
       <View style={styles.closeButtonContainer}>
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-          <X size={24} color="#FFF" />
+          <X size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#fff',
   },
   modalOverlay: {
     flex: 1,

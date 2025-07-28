@@ -384,7 +384,7 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={{ ...styles.header, position: 'relative' }}>
-        <Text style={styles.headerTitle}>どんな料理を探しましょう？🍴</Text>
+        <Text style={styles.headerTitle}>どんな料理を探しましょう？🍽</Text>
       </View>
       <ScrollView
         style={styles.scrollView}
@@ -602,20 +602,22 @@ export default function SearchScreen() {
       </ScrollView>
 
       {/* Search FAB */}
-      <TouchableOpacity
-        style={[styles.searchFab, !location && styles.disabledFab]}
-        onPress={handleSearch}
-        disabled={!location || isSearching}
-      >
-        {isSearching ? (
-          <ActivityIndicator size="small" color="#FFF" />
-        ) : (
-          <>
-            <Search size={24} color="#FFF" />
-            <Text style={styles.fabText}>探して！</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      <View pointerEvents="box-none" style={styles.searchFabContainer}>
+        <TouchableOpacity
+          style={[styles.searchFab, !location && styles.disabledFab]}
+          onPress={handleSearch}
+          disabled={!location || isSearching}
+        >
+          {isSearching ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <>
+              <Search size={24} color="#FFF" />
+              <Text style={styles.fabText}>探して！</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -787,10 +789,16 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '600',
   },
-  searchFab: {
+  searchFabContainer: {
     position: 'absolute',
     bottom: 24,
     right: 24,
+    left: 24,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchFab: {
     backgroundColor: '#1976D2',
     flexDirection: 'row',
     alignItems: 'center',

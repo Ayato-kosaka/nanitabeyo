@@ -21,7 +21,6 @@ import { useSnackbar } from '@/contexts/SnackbarProvider';
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 const CARD_HEIGHT = height * 0.85;
-import { ArrowLeft } from 'lucide-react-native';
 import { useSearchStore } from '@/stores/useSearchStore';
 
 export default function TopicsScreen() {
@@ -143,13 +142,10 @@ export default function TopicsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Back Button */}
-      <View style={styles.header}>
+      <View style={styles.backButtonContainer}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ArrowLeft size={24} color="#FFF" />
+          <X size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.progressText}>
-          {currentIndex + 1} / {visibleTopics.length}
-        </Text>
       </View>
 
       {/* Cards Carousel */}
@@ -165,7 +161,7 @@ export default function TopicsScreen() {
             mode="parallax"
             modeConfig={{
               parallaxScrollingScale: 0.9,
-              parallaxScrollingOffset: 50,
+              parallaxScrollingOffset: 100,
             }}
             style={styles.carousel}
           />
@@ -178,6 +174,19 @@ export default function TopicsScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Page Indicator */}
+      <View style={styles.pageIndicatorContainer}>
+        {visibleTopics.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.pageIndicatorDot,
+              currentIndex === index && styles.pageIndicatorDotActive,
+            ]}
+          />
+        ))}
+      </View>
 
       {/* Hide Card Modal */}
       <Modal
@@ -234,29 +243,21 @@ export default function TopicsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#f3f6fc',
   },
-  header: {
+  backButtonContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 16,
+    zIndex: 10,
   },
   backButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  headerSpacer: {
-    width: 40,
+    backgroundColor: '#fff',
   },
   loadingContainer: {
     flex: 1,
@@ -293,11 +294,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#FFF',
     fontWeight: '500',
   },
   carouselContainer: {
@@ -337,6 +333,36 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'space-between',
   },
+  pageIndicatorContainer: {
+    position: 'absolute',
+    bottom: 24,
+    left: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6, // ドット間の間隔
+  },
+  pageIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#b6bec4',
+    shadowColor: '#000', // 影の色
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1.5,
+    elevation: 2, // Android用
+  },
+  pageIndicatorDotActive: {
+    width: 14, // アクティブは少し長めに
+    borderRadius: 3,
+    backgroundColor: '#1976D2',
+    shadowColor: '#1976D2', // アクティブ時の影
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 3, // Android用
+  },
+
   hideButton: {
     alignSelf: 'flex-end',
     flexDirection: 'row',
