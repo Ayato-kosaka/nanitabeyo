@@ -12,10 +12,31 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { ArrowLeft, MoveHorizontal as MoreHorizontal, Share, CreditCard as Edit3, Play, Heart, MessageCircle, Eye, Lock, Grid3x3 as Grid3X3, Bookmark, X, Wallet, DollarSign } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  MoveHorizontal as MoreHorizontal,
+  Share,
+  CreditCard as Edit3,
+  Play,
+  Heart,
+  MessageCircle,
+  Eye,
+  Lock,
+  Grid3x3 as Grid3X3,
+  Bookmark,
+  X,
+  Wallet,
+  DollarSign,
+} from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { UserProfile, UserPost } from '@/types';
-import { userProfile, otherUserProfile, userPosts, savedPosts, likedPosts } from '@/data/profileData';
+import {
+  userProfile,
+  otherUserProfile,
+  userPosts,
+  savedPosts,
+  likedPosts,
+} from '@/data/profileData';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 
@@ -49,7 +70,8 @@ const mockBids: BidItem[] = [
     bidAmount: 15000,
     remainingDays: 12,
     status: 'active',
-    imageUrl: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
   {
     id: '2',
@@ -57,7 +79,8 @@ const mockBids: BidItem[] = [
     bidAmount: 8000,
     remainingDays: 5,
     status: 'active',
-    imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
 ];
 
@@ -68,28 +91,32 @@ const mockEarnings: EarningItem[] = [
     dishName: 'Truffle Pasta',
     earnings: 2400,
     status: 'paid',
-    imageUrl: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
   {
     id: '2',
     dishName: 'Wagyu Steak',
     earnings: 3200,
     status: 'paid',
-    imageUrl: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
   {
     id: '3',
     dishName: 'Chocolate Soufflé',
     earnings: 1800,
     status: 'pending',
-    imageUrl: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
   {
     id: '4',
     dishName: 'Caesar Salad',
     earnings: 1200,
     status: 'paid',
-    imageUrl: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
 ];
 
@@ -98,31 +125,45 @@ function DepositsScreen() {
     <View style={styles.depositCard}>
       <View style={styles.depositHeader}>
         <Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
-        <View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
+        <View
+          style={[
+            styles.statusChip,
+            { backgroundColor: getStatusColor(item.status) },
+          ]}
+        >
           <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
         </View>
       </View>
-      <Text style={styles.depositAmount}>¥{item.bidAmount.toLocaleString()}</Text>
+      <Text style={styles.depositAmount}>
+        ¥{item.bidAmount.toLocaleString()}
+      </Text>
       <Text style={styles.depositDays}>残り{item.remainingDays}日</Text>
-      </View>
     </View>
   );
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#4CAF50';
-      case 'completed': return '#2196F3';
-      case 'refunded': return '#FF9800';
-      default: return '#666';
+      case 'active':
+        return '#4CAF50';
+      case 'completed':
+        return '#2196F3';
+      case 'refunded':
+        return '#FF9800';
+      default:
+        return '#666';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return 'アクティブ';
-      case 'completed': return '完了';
-      case 'refunded': return '返金済み';
-      default: return status;
+      case 'active':
+        return 'アクティブ';
+      case 'completed':
+        return '完了';
+      case 'refunded':
+        return '返金済み';
+      default:
+        return status;
     }
   };
 
@@ -144,13 +185,22 @@ function EarningsScreen() {
     <TouchableOpacity style={styles.earningCard}>
       <Image source={{ uri: item.imageUrl }} style={styles.earningCardImage} />
       <View style={styles.earningCardOverlay}>
-        <View style={styles.earningCardHeader}>
-          <Text style={styles.earningCardTitle}>{item.dishName}</Text>
-          <View style={[styles.statusChip, { backgroundColor: item.status === 'paid' ? '#4CAF50' : '#FF9800' }]}>
-            <Text style={styles.statusText}>{item.status === 'paid' ? '支払済み' : '保留中'}</Text>
-          </View>
+        <Text style={styles.earningCardTitle}>{item.dishName}</Text>
+        <Text style={styles.earningCardAmount}>
+          ¥{item.earnings.toLocaleString()}
+        </Text>
+        <View
+          style={[
+            styles.statusChip,
+            {
+              backgroundColor: item.status === 'paid' ? '#4CAF50' : '#FF9800',
+            },
+          ]}
+        >
+          <Text style={styles.statusText}>
+            {item.status === 'paid' ? '支払済み' : '保留中'}
+          </Text>
         </View>
-        <Text style={styles.earningCardAmount}>¥{item.earnings.toLocaleString()}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -183,16 +233,16 @@ function WalletTabs() {
         },
       }}
     >
-      <Tab.Screen 
-        name="Deposits" 
+      <Tab.Screen
+        name="Deposits"
         component={DepositsScreen}
         options={{
           tabBarLabel: '入札',
           tabBarIcon: ({ color }) => <Wallet size={20} color={color} />,
         }}
       />
-      <Tab.Screen 
-        name="Earnings" 
+      <Tab.Screen
+        name="Earnings"
         component={EarningsScreen}
         options={{
           tabBarLabel: '収益',
@@ -209,11 +259,11 @@ export default function ProfileScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editedBio, setEditedBio] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
-  
+
   // Determine if this is the current user's profile or another user's
   const isOwnProfile = !userId || userId === userProfile.id;
   const profile = isOwnProfile ? userProfile : otherUserProfile;
-  
+
   React.useEffect(() => {
     if (profile && !isOwnProfile) {
       setIsFollowing(profile.isFollowing || false);
@@ -221,7 +271,7 @@ export default function ProfileScreen() {
   }, [profile, isOwnProfile]);
 
   // Add wallet tab for own profile
-  const availableTabs: TabType[] = isOwnProfile 
+  const availableTabs: TabType[] = isOwnProfile
     ? ['posts', 'saved', 'liked', 'wallet']
     : ['posts'];
 
@@ -280,19 +330,19 @@ export default function ProfileScreen() {
       activeOpacity={0.9}
     >
       <Image source={{ uri: item.image }} style={styles.postImage} />
-      
+
       {/* Video duration overlay */}
       {item.duration && (
         <View style={styles.durationOverlay}>
           <Text style={styles.durationText}>{item.duration}</Text>
         </View>
       )}
-      
+
       {/* Play icon overlay */}
       <View style={styles.playOverlay}>
         <Play size={20} color="#FFFFFF" fill="#FFFFFF" />
       </View>
-      
+
       {/* Stats overlay */}
       <View style={styles.statsOverlay}>
         <View style={styles.statItem}>
@@ -310,16 +360,34 @@ export default function ProfileScreen() {
   const renderTabIcon = (tab: TabType) => {
     const isActive = selectedTab === tab;
     const iconColor = isActive ? '#FFFFFF' : '#666';
-    
+
     switch (tab) {
       case 'posts':
         return <Grid3X3 size={20} color={iconColor} />;
       case 'saved':
-        return <Bookmark size={20} color={iconColor} fill={isActive ? iconColor : 'transparent'} />;
+        return (
+          <Bookmark
+            size={20}
+            color={iconColor}
+            fill={isActive ? iconColor : 'transparent'}
+          />
+        );
       case 'wallet':
-        return <Wallet size={20} color={iconColor} fill={isActive ? iconColor : 'transparent'} />;
+        return (
+          <Wallet
+            size={20}
+            color={iconColor}
+            fill={isActive ? iconColor : 'transparent'}
+          />
+        );
       case 'liked':
-        return <Heart size={20} color={iconColor} fill={isActive ? iconColor : 'transparent'} />;
+        return (
+          <Heart
+            size={20}
+            color={iconColor}
+            fill={isActive ? iconColor : 'transparent'}
+          />
+        );
     }
   };
 
@@ -347,7 +415,10 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         {!isOwnProfile && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={24} color="#FFFFFF" />
           </TouchableOpacity>
         )}
@@ -363,18 +434,24 @@ export default function ProfileScreen() {
           {/* Avatar and Stats */}
           <View style={styles.profileHeader}>
             <Image source={{ uri: profile.avatar }} style={styles.avatar} />
-            
+
             <View style={styles.statsContainer}>
               <View style={styles.statColumn}>
-                <Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
+                <Text style={styles.statNumber}>
+                  {formatNumber(profile.followingCount)}
+                </Text>
                 <Text style={styles.statLabel}>フォロー中</Text>
               </View>
               <View style={styles.statColumn}>
-                <Text style={styles.statNumber}>{formatNumber(profile.followersCount)}</Text>
+                <Text style={styles.statNumber}>
+                  {formatNumber(profile.followersCount)}
+                </Text>
                 <Text style={styles.statLabel}>フォロワー</Text>
               </View>
               <View style={styles.statColumn}>
-                <Text style={styles.statNumber}>{formatNumber(profile.totalLikes)}</Text>
+                <Text style={styles.statNumber}>
+                  {formatNumber(profile.totalLikes)}
+                </Text>
                 <Text style={styles.statLabel}>いいね</Text>
               </View>
             </View>
@@ -390,22 +467,38 @@ export default function ProfileScreen() {
           <View style={styles.actionButtons}>
             {isOwnProfile ? (
               <>
-                <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={handleEditProfile}
+                >
                   <Edit3 size={16} color="#FFFFFF" />
                   <Text style={styles.editButtonText}>プロフィールを編集</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.shareButton} onPress={handleShareProfile}>
+                <TouchableOpacity
+                  style={styles.shareButton}
+                  onPress={handleShareProfile}
+                >
                   <Share size={16} color="#FFFFFF" />
-                  <Text style={styles.shareButtonText}>プロフィールをシェア</Text>
+                  <Text style={styles.shareButtonText}>
+                    プロフィールをシェア
+                  </Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <TouchableOpacity 
-                  style={[styles.followButton, isFollowing && styles.followingButton]} 
+                <TouchableOpacity
+                  style={[
+                    styles.followButton,
+                    isFollowing && styles.followingButton,
+                  ]}
                   onPress={handleFollow}
                 >
-                  <Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
+                  <Text
+                    style={[
+                      styles.followButtonText,
+                      isFollowing && styles.followingButtonText,
+                    ]}
+                  >
                     {isFollowing ? 'フォロー中' : 'フォロー'}
                   </Text>
                 </TouchableOpacity>
@@ -421,25 +514,28 @@ export default function ProfileScreen() {
         {/* Content Tabs */}
         <View style={styles.tabsContainer}>
           {availableTabs.map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tab, selectedTab === tab && styles.activeTab]}
-                onPress={() => setSelectedTab(tab)}
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, selectedTab === tab && styles.activeTab]}
+              onPress={() => setSelectedTab(tab)}
+            >
+              {renderTabIcon(tab)}
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === tab && styles.activeTabText,
+                ]}
               >
-                {renderTabIcon(tab)}
-                <Text style={[styles.tabText, selectedTab === tab && styles.activeTabText]}>
-                  {getTabLabel(tab)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                {getTabLabel(tab)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Posts Grid */}
         <View style={styles.postsContainer}>
           {selectedTab === 'wallet' ? (
-            <NavigationContainer independent={true}>
-              <WalletTabs />
-            </NavigationContainer>
+            <WalletTabs />
           ) : selectedTab === 'saved' && !isOwnProfile ? (
             <View style={styles.privateSection}>
               <Lock size={48} color="#666" />
@@ -827,6 +923,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    alignItems: 'center',
   },
   statusText: {
     fontSize: 12,
@@ -838,7 +935,7 @@ const styles = StyleSheet.create({
   },
   earningCard: {
     flex: 1,
-    aspectRatio: 16/9,
+    aspectRatio: 9 / 16,
     borderRadius: 12,
     margin: 4,
     overflow: 'hidden',
@@ -856,12 +953,6 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     padding: 8,
-  },
-  earningCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
   },
   earningCardTitle: {
     fontSize: 12,

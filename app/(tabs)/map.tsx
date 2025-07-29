@@ -61,7 +61,8 @@ const mockActiveBids: ActiveBid[] = [
     remainingDays: 12,
     latitude: 35.6762,
     longitude: 139.6503,
-    imageUrl: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=400',
+    imageUrl:
+      'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=400',
     rating: 4.5,
     reviewCount: 127,
   },
@@ -70,9 +71,10 @@ const mockActiveBids: ActiveBid[] = [
     placeName: 'Tokyo Ramen House',
     totalAmount: 28000,
     remainingDays: 8,
-    latitude: 35.6580,
+    latitude: 35.658,
     longitude: 139.7016,
-    imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400',
+    imageUrl:
+      'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400',
     rating: 4.2,
     reviewCount: 89,
   },
@@ -83,7 +85,8 @@ const mockActiveBids: ActiveBid[] = [
     remainingDays: 5,
     latitude: 35.6896,
     longitude: 139.7006,
-    imageUrl: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400',
+    imageUrl:
+      'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400',
     rating: 4.8,
     reviewCount: 203,
   },
@@ -94,7 +97,8 @@ const mockReviews: Review[] = [
   {
     id: '1',
     dishName: 'Truffle Pasta',
-    imageUrl: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=300',
     rating: 4.5,
     reviewCount: 23,
     price: 2800,
@@ -102,7 +106,8 @@ const mockReviews: Review[] = [
   {
     id: '2',
     dishName: 'Wagyu Steak',
-    imageUrl: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=300',
+    imageUrl:
+      'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=300',
     rating: 4.8,
     reviewCount: 45,
     price: 5200,
@@ -146,7 +151,7 @@ export default function MapScreen() {
   const [rating, setRating] = useState(5);
   const [price, setPrice] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const mapRef = useRef<any>(null);
   const {
     suggestions,
@@ -184,19 +189,27 @@ export default function MapScreen() {
 
   const getBidStatusColor = (status: string): string => {
     switch (status) {
-      case 'active': return '#4CAF50';
-      case 'completed': return '#2196F3';
-      case 'refunded': return '#FF9800';
-      default: return '#666';
+      case 'active':
+        return '#4CAF50';
+      case 'completed':
+        return '#2196F3';
+      case 'refunded':
+        return '#FF9800';
+      default:
+        return '#666';
     }
   };
 
   const getBidStatusText = (status: string): string => {
     switch (status) {
-      case 'active': return 'アクティブ';
-      case 'completed': return '完了';
-      case 'refunded': return '返金済み';
-      default: return status;
+      case 'active':
+        return 'アクティブ';
+      case 'completed':
+        return '完了';
+      case 'refunded':
+        return '返金済み';
+      default:
+        return status;
     }
   };
 
@@ -240,12 +253,17 @@ export default function MapScreen() {
 
   const handleBid = async () => {
     if (!bidAmount || !selectedPlace) return;
-    
+
     setIsProcessing(true);
     try {
       // Mock Stripe payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      Alert.alert('成功', `${selectedPlace.placeName}に¥${parseInt(bidAmount).toLocaleString()}で入札しました`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      Alert.alert(
+        '成功',
+        `${selectedPlace.placeName}に¥${parseInt(
+          bidAmount
+        ).toLocaleString()}で入札しました`
+      );
       setShowBidModal(false);
       setBidAmount('');
     } catch (error) {
@@ -257,10 +275,10 @@ export default function MapScreen() {
 
   const handleReviewSubmit = async () => {
     if (!reviewText || !price) return;
-    
+
     setIsProcessing(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       Alert.alert('成功', 'レビューを投稿しました');
       setShowReviewModal(false);
       setReviewText('');
@@ -323,7 +341,7 @@ export default function MapScreen() {
             }}
           />
         </View>
-        
+
         {suggestions.length > 0 && (
           <View style={styles.suggestionsContainer}>
             <FlatList
@@ -368,16 +386,24 @@ export default function MapScreen() {
             <ScrollView style={styles.bottomSheetContent}>
               {/* Restaurant Info */}
               <View style={styles.restaurantHeader}>
-                <Text style={styles.restaurantName}>{selectedPlace.placeName}</Text>
+                <Text style={styles.restaurantName}>
+                  {selectedPlace.placeName}
+                </Text>
                 <View style={styles.ratingContainer}>
                   {renderStars(selectedPlace.rating)}
                   <Text style={styles.ratingText}>{selectedPlace.rating}</Text>
-                  <Text style={styles.reviewCount}>({selectedPlace.reviewCount})</Text>
+                  <Text style={styles.reviewCount}>
+                    ({selectedPlace.reviewCount})
+                  </Text>
                 </View>
                 <View style={styles.bidAmountContainer}>
                   <Text style={styles.bidAmountLabel}>現在の入札額</Text>
-                  <Text style={styles.bidAmount}>¥{selectedPlace.totalAmount.toLocaleString()}</Text>
-                  <Text style={styles.remainingDays}>残り{selectedPlace.remainingDays}日</Text>
+                  <Text style={styles.bidAmount}>
+                    ¥{selectedPlace.totalAmount.toLocaleString()}
+                  </Text>
+                  <Text style={styles.remainingDays}>
+                    残り{selectedPlace.remainingDays}日
+                  </Text>
                 </View>
               </View>
 
@@ -388,30 +414,48 @@ export default function MapScreen() {
                   onPress={() => setShowReviewModal(true)}
                 >
                   <Camera size={20} color="#007AFF" />
+                  <Text style={styles.reviewButtonText}>レビュー投稿</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.bidButton}
                   onPress={() => setShowBidModal(true)}
                 >
-                  <DollarSign size={20} color="#FFF" />
+                  <DollarSign size={20} color="#007AFF" />
+                  <Text style={styles.bidButtonText}>入札する</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Tabs */}
               <View style={styles.tabContainer}>
                 <TouchableOpacity
-                  style={[styles.tab, selectedTab === 'reviews' && styles.activeTab]}
+                  style={[
+                    styles.tab,
+                    selectedTab === 'reviews' && styles.activeTab,
+                  ]}
                   onPress={() => setSelectedTab('reviews')}
                 >
-                  <Text style={[styles.tabText, selectedTab === 'reviews' && styles.activeTabText]}>
+                  <Text
+                    style={[
+                      styles.tabText,
+                      selectedTab === 'reviews' && styles.activeTabText,
+                    ]}
+                  >
                     レビュー
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.tab, selectedTab === 'bids' && styles.activeTab]}
+                  style={[
+                    styles.tab,
+                    selectedTab === 'bids' && styles.activeTab,
+                  ]}
                   onPress={() => setSelectedTab('bids')}
                 >
-                  <Text style={[styles.tabText, selectedTab === 'bids' && styles.activeTabText]}>
+                  <Text
+                    style={[
+                      styles.tabText,
+                      selectedTab === 'bids' && styles.activeTabText,
+                    ]}
+                  >
                     入札
                   </Text>
                 </TouchableOpacity>
@@ -422,16 +466,23 @@ export default function MapScreen() {
                 <View style={styles.reviewsContent}>
                   {mockReviews.map((review) => (
                     <TouchableOpacity key={review.id} style={styles.reviewCard}>
-                      <Image source={{ uri: review.imageUrl }} style={styles.reviewCardImage} />
+                      <Image
+                        source={{ uri: review.imageUrl }}
+                        style={styles.reviewCardImage}
+                      />
                       <View style={styles.reviewCardOverlay}>
-                        <Text style={styles.reviewCardTitle}>{review.dishName}</Text>
-                        <View style={styles.reviewCardStats}>
-                          <View style={styles.reviewCardRating}>
-                            {renderStars(review.rating)}
-                            <Text style={styles.reviewCardRatingText}>({review.reviewCount})</Text>
-                          </View>
-                          <Text style={styles.reviewCardPrice}>¥{review.price.toLocaleString()}</Text>
+                        <Text style={styles.reviewCardTitle}>
+                          {review.dishName}
+                        </Text>
+                        <View style={styles.reviewCardRating}>
+                          {renderStars(review.rating)}
+                          <Text style={styles.reviewCardRatingText}>
+                            ({review.reviewCount})
+                          </Text>
                         </View>
+                        <Text style={styles.reviewCardPrice}>
+                          ¥{review.price.toLocaleString()}
+                        </Text>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -441,13 +492,24 @@ export default function MapScreen() {
                   {mockBidHistory.map((bid) => (
                     <View key={bid.id} style={styles.bidHistoryCard}>
                       <View style={styles.bidHistoryHeader}>
-                        <Text style={styles.bidHistoryAmount}>¥{bid.amount.toLocaleString()}</Text>
-                        <View style={[styles.bidStatusChip, { backgroundColor: getBidStatusColor(bid.status) }]}>
-                          <Text style={styles.bidStatusText}>{getBidStatusText(bid.status)}</Text>
+                        <Text style={styles.bidHistoryAmount}>
+                          ¥{bid.amount.toLocaleString()}
+                        </Text>
+                        <View
+                          style={[
+                            styles.bidStatusChip,
+                            { backgroundColor: getBidStatusColor(bid.status) },
+                          ]}
+                        >
+                          <Text style={styles.bidStatusText}>
+                            {getBidStatusText(bid.status)}
+                          </Text>
                         </View>
                       </View>
                       <Text style={styles.bidHistoryDate}>{bid.date}</Text>
-                      <Text style={styles.bidHistoryDays}>残り{bid.remainingDays}日</Text>
+                      <Text style={styles.bidHistoryDays}>
+                        残り{bid.remainingDays}日
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -470,7 +532,10 @@ export default function MapScreen() {
               <X size={24} color="#000" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>レビュー投稿</Text>
-            <TouchableOpacity onPress={handleReviewSubmit} disabled={isProcessing}>
+            <TouchableOpacity
+              onPress={handleReviewSubmit}
+              disabled={isProcessing}
+            >
               <Text style={styles.submitText}>投稿</Text>
             </TouchableOpacity>
           </View>
@@ -530,7 +595,10 @@ export default function MapScreen() {
               <X size={24} color="#000" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>入札</Text>
-            <TouchableOpacity onPress={handleBid} disabled={isProcessing || !bidAmount}>
+            <TouchableOpacity
+              onPress={handleBid}
+              disabled={isProcessing || !bidAmount}
+            >
               <Text style={styles.submitText}>入札</Text>
             </TouchableOpacity>
           </View>
@@ -551,7 +619,10 @@ export default function MapScreen() {
               <View style={styles.bidInfoRow}>
                 <Calendar size={16} color="#666" />
                 <Text style={styles.bidInfoText}>
-                  終了日: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP')}
+                  終了日:{' '}
+                  {new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000
+                  ).toLocaleDateString('ja-JP')}
                 </Text>
               </View>
             </View>
@@ -718,19 +789,33 @@ const styles = StyleSheet.create({
   },
   reviewButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F0F8FF',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  reviewButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   bidButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: '#F0F8FF',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  bidButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -763,7 +848,7 @@ const styles = StyleSheet.create({
   },
   reviewCard: {
     width: '48%',
-    aspectRatio: 16/9,
+    aspectRatio: 9 / 16,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
@@ -786,11 +871,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
     marginBottom: 4,
-  },
-  reviewCardStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
   },
   reviewCardRating: {
     flexDirection: 'row',
