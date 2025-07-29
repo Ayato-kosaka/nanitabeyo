@@ -54,3 +54,74 @@ sequenceDiagram
             UI ->> UI: navigate(search)
         end
         UI ->> User: キャッシュ済み dishMedia を即時表示
+    %% DishMedia いいね
+    User ->> UI: 「Like」ボタン押下
+        alt まだ Like していない
+            UI ->> Backend: POST /dish-likes {dishMediaId, userId}
+                Backend ->> Database: INSERT dish_likes
+                Backend ->> Notifier: push {to:creatorId,title:"いいねされました"}
+                    Notifier -->> Backend: ok
+            Backend ->> UI: {likeCount}
+            UI ->> UI: likeCount++
+        else 既に Like 済み
+            UI ->> Backend: DELETE /dish-likes/{dishMediaId}
+                Backend ->> Database: DELETE FROM dish_likes
+            Backend ->> UI: {likeCount}
+            UI ->> UI: likeCount--
+        end
+%% ───────────────────────── DishMedia「Save」─
+    User ->> UI: 「Save」ボタン押下
+        alt まだ Save していない
+            UI ->> Backend: POST /reactions {dishMediaId, userId, type:'save'}
+                Backend ->> Database: INSERT reactions
+                Backend ->> Notifier: push {to:creatorId,<br>title:"保存されました",<br>body:"{{userName}}さんが投稿を保存しました"}
+                    Notifier -->> Backend: ok
+            UI ->> UI: 保存アイコン = ON
+        else 既に Save 済み
+            UI ->> Backend: DELETE /reactions/{dishMediaId}?type=save
+                Backend ->> Database: DELETE FROM reactions
+            UI ->> UI: 保存アイコン = OFF
+        end
+%% ─────────────────────── Review「Like」─
+    User ->> UI: 「ReviewLike」ボタン押下
+        alt 未 Like
+            UI ->> Backend: POST /review-likes {reviewId, userId}
+                Backend ->> Database: INSERT review_likes
+                Backend ->> Notifier: push {to:reviewAuthorId,<br>title:"レビューが高評価！",<br>body:"{{userName}}さんがあなたのレビューをいいね"}
+                    Notifier -->> Backend: ok
+            UI ->> UI: reviewLike++
+        else 既 Like
+            UI ->> Backend: DELETE /review-likes/{reviewId}
+                Backend ->> Database: DELETE FROM review_likes
+            UI ->> UI: reviewLike--
+        end
+
+%% profile/likes‑saves ─────────────────────────────
+    Note over User,UI: ProfileScreen<br>(Likes / Saves タブ)
+    User ->> UI: ProfileScreen を開く
+        UI ->> UI: デフォルトで「Likes」タブ選択
+
+    %% ── Likes 一覧を取得 ──────────────────────────────
+        UI ->> Backend: GET /v1/dish-media/liked?userId=:me
+            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.place_id,<br>dm.object_path,<br>dl.created_at<br>FROM dish_likes dl<br>JOIN dish_media dm ON dl.dish_media_id = dm.dish_media_id<br>WHERE dl.user_id = :me<br>ORDER BY dl.created_at DESC<br>LIMIT 21
+            Database ->> Backend: likedRows
+            Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[likedRows.object_path], exp=24h)
+                Storage ->> Backend: [{objectPath,getUrl}]
+        Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
+        UI ->> User: Liked DishMedia リスト描画
+        UI ->> UI: onEndReached → fetchNextPage()
+        UI ->> Backend: GET /v1/dish-media/liked?<br>cursor=<nextCursor>
+            Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
+
+    %% ── ユーザーが「Saves」タブをタップ ───────────────
+    User ->> UI: 「Saves」タブ選択
+        UI ->> Backend: GET /v1/dish-media/saved?userId=:me
+            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.place_id,<br>dm.object_path,<br>r.created_at<br>FROM reactions r<br>JOIN dish_media dm ON r.dish_media_id = dm.dish_media_id<br>WHERE r.user_id = :me AND r.reaction_type = 'save'<br>ORDER BY r.created_at DESC<br>LIMIT 21
+            Database ->> Backend: savedRows
+            Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[savedRows.object_path], exp=24h)
+                Storage ->> Backend: [{objectPath,getUrl}]
+            Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
+        UI ->> User: Saved DishMedia リスト描画
+        UI ->> UI: onEndReached → fetchNextPage()
+        UI ->> Backend: GET /v1/dish-media/liked?<br>cursor=<nextCursor>
+            Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}

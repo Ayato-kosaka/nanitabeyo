@@ -7,7 +7,7 @@ sequenceDiagram
     participant 外部API
     participant Storage
 
-    %% review/restaurant‑map ────────────────────────
+%% review/restaurant‑map ────────────────────────
     Note over User,UI: RestaurantMapScreen<br>(地図 + Google オートコンプリート)
     User ->> UI: レストラン名を入力
         UI ->> 外部API: Google Places Autocomplete API
@@ -46,3 +46,18 @@ sequenceDiagram
             Backend ->> Database: INSERT dish_reviews
         Backend ->> UI: success
     UI ->> UI: レビュー数・平均評価を更新
+
+%% profile/reviews‑tab レビュー一覧 ──────────────
+    Note over User,UI: ProfileScreen<br>(レビュータブ)
+    User ->> UI: ProfileScreen を開く
+        UI ->> UI: 「Reviews」タブ選択
+        UI ->> Backend: GET /user-reviews?order=desc
+            Backend ->> Database: SELECT dr.review_id,<br>dr.dish_id, dr.rating, dr.comment,<br>dr.created_at, dm.object_path,<br>(dm.id IS NOT NULL) AS hasMedia<br>FROM dish_reviews dr<br>LEFT JOIN dish_medias dm ON dr.dish_media_id = dm.id<br>WHERE dr.user_id = :userId<br>ORDER BY dr.created_at DESC
+                Database ->> Backend: reviewRows
+            Backend ->> Storage: generateSignedUrl(action=GET, exp=24h)
+                Storage ->> Backend: [{objectPath,getUrl}]
+            Backend ->> UI: {rows, signedUrls, hasMedia<br>, nextCursor=rows.last.created_at}
+    UI ->> UI: レビューリスト描画 (hasMedia で画像/テキスト切替)
+    UI ->> UI: onEndReached → fetchNextPage()
+    UI ->> Backend: GET /v1/user-reviews?<br>cursor=<nextCursor>
+        Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
