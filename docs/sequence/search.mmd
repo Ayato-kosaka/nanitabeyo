@@ -9,7 +9,7 @@ sequenceDiagram
     %% search/index
     Note over User,UI: search 初期表示
     User ->> UI: 位置を入力
-        UI ->> Backend: /locations/suggest
+        UI ->> Backend: GET /locations/suggestions
             Backend ->> 外部API: Google Places API
                 外部API ->> Backend: 候補リスト
             Backend ->> UI: 候補を返却
@@ -19,30 +19,36 @@ sequenceDiagram
 
     %% search/topics
     Note over User,UI: topics 初期表示
-        UI ->> Backend: /search/topics-with-feed
+        UI ->> Backend: GET /dish-categories
             Backend ->> 外部API: Claude API (topics生成 10件)
                 外部API ->> Backend: トピック候補
-            loop 各トピック、並列処理
-                Backend ->> Database: from(places).where(location, raduis)
-                    Database ->> Backend: places
-                Backend ->> Database: from(dish).where(placeId, category)<br>.notIn(from(user_seen_dish).where(user_id))
-                    Database ->> Backend: dishes, dish_medias, dish_reviews
+            Backend ->> UI: cateogry[6]
+        loop 各トピック、並列処理
+            UI ->> Backend: /dishes
+                Backend ->> Database: from(places).where(location, raduis)<br>.join(dish).where(placeId, category)<br>.notIn(from(user_seen_dish).where(user_id))
+                    Database ->> Backend: places, dishes, dish_medias, dish_reviews
                 alt dish_medias < 6
                     Backend ->> 外部API: Google Maps Text Search API
                         外部API ->> Backend: placeDetail[{<br>placeId, revies, photos}]
-                    Backend -->> Database: UPSERT dishes
-                    Backend -->> Database: INSERT dish_medias
-                    Backend -->> Database: INSERT dish_reviews
+                    Note over Backend: async Process('saveDish', placeId, categoryId)
+                        Backend -->> Database: UPSERT dishes
+                        Backend -->> Storage: dish_media
+                        Backend -->> Database: INSERT dish_medias
+                        Backend -->> Database: INSERT dish_reviews
+                    Note over Backend: end
+                    Backend ->> Backend: 閲覧済みの dish を除外
                 end
-            end
-            Backend ->> Backend: feedItemsが5未満のtopicを除外
-            Backend ->> UI: topics: topic[6],<br>feeds: {[topicID]: {place, DishMedia, Review[3]}[5]}
-        UI ->> UI: topic数が6件未満ならClaude API再実行
-        UI ->> User: カード一覧 + feed情報表示
+                Backend ->> UI: {place, DishMedia, Review[3]}[5]
+        end
+        UI ->> UI: Promise<dishMedia> を Global State 保存
+        UI ->> User: カード一覧
 
     User ->> UI: 詳細を見る
-        UI ->> UI: navigate(feed)
+        UI ->> UI: navigate(result)
 
-    %% search/feed
-    Note over User,UI: feed 初期表示
-        UI ->> User: キャッシュ済み feedItems を即時表示
+    %% search/result
+    Note over User,UI: result 初期表示
+        alt キャッシュ切れ
+            UI ->> UI: navigate(search)
+        end
+        UI ->> User: キャッシュ済み dishMedia を即時表示
