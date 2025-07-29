@@ -1,0 +1,48 @@
+sequenceDiagram
+    %% 共通登場人物
+    participant User
+    participant UI
+    participant Backend
+    participant Database
+    participant 外部API
+    participant Storage
+
+    %% review/restaurant‑map ────────────────────────
+    Note over User,UI: RestaurantMapScreen<br>(地図 + Google オートコンプリート)
+    User ->> UI: レストラン名を入力
+        UI ->> 外部API: Google Places Autocomplete API
+            外部API ->> UI: 候補リスト
+    User ->> UI: 候補を選択
+        UI ->> 外部API: Google Places Details API(placeId)
+            外部API ->> UI: placeDetail
+        UI ->> UI: navigate(place, placeId)
+
+    %% review/place‑screen 画像＋レビュー投稿 ───────
+    Note over User,UI: PlaceScreen<br>(画像＋レビュー投稿)
+    User ->> UI: 「画像投稿」ボタン押下
+        UI ->> UI: カメラ/ライブラリ起動
+    User ->> UI: 画像 + レビュー入力
+        UI ->> Backend: POST /dishes/find-or-create {placeId, dishCategory}
+            Backend ->> Database: UPSERT dishes
+            Database ->> Backend: dishId
+        UI ->> Backend: POST /user-uploads/gcs-signed-url { dishId, contentType }
+            Backend ->> Backend: 認可
+            Backend ->> Storage: generateSignedUrl(action=PUT, exp=15m)
+                Storage ->> Backend: { putUrl, objectPath }
+            Backend ->> UI: { putUrl, objectPath }
+        UI ->> Storage: PUT (putUrl) バイナリ
+        UI ->> Backend: POST /dish-medias {dishId, imageUrl, userId}
+            Backend ->> Database: INSERT dish_medias
+        UI ->> Backend: POST /dish-reviews {dishId, rating, comment, userId}
+            Backend ->> Database: INSERT dish_reviews
+        Backend ->> UI: success
+    UI ->> UI: dishMedia 追加表示
+
+    %% review/dish‑media‑screen レビューのみ ───────
+    Note over User,UI: DishMediaScreen<br>(レビューのみ投稿)
+    User ->> UI: 「レビューを書く」押下
+    User ->> UI: レビュー入力
+        UI ->> Backend: POST /dish-reviews {dishId, rating, comment, userId}
+            Backend ->> Database: INSERT dish_reviews
+        Backend ->> UI: success
+    UI ->> UI: レビュー数・平均評価を更新

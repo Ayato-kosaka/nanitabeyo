@@ -38,6 +38,8 @@ sequenceDiagram
                     Note over Backend: end
                     Backend ->> Backend: 閲覧済みの dish を除外
                 end
+                Backend ->> Storage: generateSignedUrl(GET, /dish-media/hoge, 24h)
+                Storage ->> Backend: {getUrl}
                 Backend ->> UI: {place, DishMedia, Review[3]}[5]
         end
         UI ->> UI: Promise<dishMedia> を Global State 保存
