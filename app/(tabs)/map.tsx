@@ -168,6 +168,7 @@ export default function MapScreen() {
     longitudeDelta: 0.01,
   });
 
+  const [selectedBidStatuses, setSelectedBidStatuses] = useState<string[]>(['active', 'completed', 'refunded']);
   useEffect(() => {
     getCurrentLocation().then((location) => {
       const newRegion = {
@@ -290,6 +291,24 @@ export default function MapScreen() {
       setIsProcessing(false);
     }
   };
+
+  const bidStatuses = [
+    { id: 'active', label: 'アクティブ', color: '#4CAF50' },
+    { id: 'completed', label: '完了', color: '#2196F3' },
+    { id: 'refunded', label: '返金済み', color: '#FF9800' },
+  ];
+
+  const toggleBidStatus = (statusId: string) => {
+    setSelectedBidStatuses(prev => 
+      prev.includes(statusId) 
+        ? prev.filter(id => id !== statusId)
+        : [...prev, statusId]
+    );
+  };
+
+  const filteredBidHistory = mockBidHistory.filter(bid => 
+    selectedBidStatuses.includes(bid.status)
+  );
 
   const renderStars = (rating: number) => {
     return (
@@ -489,6 +508,68 @@ export default function MapScreen() {
                 </View>
               ) : (
                 <View style={styles.bidsContent}>
+                  {/* Status Filter Chips */}
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.statusFilterContainer}
+                    contentContainerStyle={styles.statusFilterContent}
+                  >
+                    {bidStatuses.map((status) => (
+                      <TouchableOpacity
+                        key={status.id}
+                        style={[
+                          styles.statusChip,
+                          selectedBidStatuses.includes(status.id) && {
+                            backgroundColor: status.color,
+                          }
+                        ]}
+                        onPress={() => toggleBidStatus(status.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.statusChipText,
+                            selectedBidStatuses.includes(status.id) && styles.statusChipTextActive
+                          ]}
+                        >
+                          {status.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* Filtered Bid History */}
+                  {filteredBidHistory.length > 0 ? (
+                    filteredBidHistory.map((bid) => (
+                      <View key={bid.id} style={styles.bidHistoryCard}>
+                        <View style={styles.bidHistoryHeader}>
+                          <Text style={styles.bidHistoryAmount}>
+                            ¥{bid.amount.toLocaleString()}
+                          </Text>
+                          <View
+                            style={[
+                              styles.bidStatusChip,
+                              { backgroundColor: getBidStatusColor(bid.status) },
+                            ]}
+                          >
+                            <Text style={styles.bidStatusText}>
+                              {getBidStatusText(bid.status)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.bidHistoryDate}>{bid.date}</Text>
+                        <Text style={styles.bidHistoryDays}>
+                          残り{bid.remainingDays}日
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyStateText}>
+                        選択したステータスの入札がありません
+                      </Text>
+                    </View>
+                  )}
                   {mockBidHistory.map((bid) => (
                     <View key={bid.id} style={styles.bidHistoryCard}>
                       <View style={styles.bidHistoryHeader}>
@@ -998,5 +1079,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 16,
+  },
+  statusFilterContainer: {
+    marginBottom: 16,
+  },
+  statusFilterContent: {
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  statusChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginHorizontal: 4,
+  },
+  statusChipText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  statusChipTextActive: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
