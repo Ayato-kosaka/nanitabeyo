@@ -121,7 +121,11 @@ const mockEarnings: EarningItem[] = [
 ];
 
 function DepositsScreen() {
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'completed', 'refunded']);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
+    'active',
+    'completed',
+    'refunded',
+  ]);
 
   const depositStatuses = [
     { id: 'active', label: 'アクティブ', color: '#4CAF50' },
@@ -130,14 +134,14 @@ function DepositsScreen() {
   ];
 
   const toggleStatus = (statusId: string) => {
-    setSelectedStatuses(prev => 
-      prev.includes(statusId) 
-        ? prev.filter(id => id !== statusId)
+    setSelectedStatuses((prev) =>
+      prev.includes(statusId)
+        ? prev.filter((id) => id !== statusId)
         : [...prev, statusId]
     );
   };
 
-  const filteredBids = mockBids.filter(bid => 
+  const filteredBids = mockBids.filter((bid) =>
     selectedStatuses.includes(bid.status)
   );
 
@@ -190,8 +194,8 @@ function DepositsScreen() {
   return (
     <View style={styles.tabContent}>
       {/* Status Filter Chips */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.statusFilterContainer}
         contentContainerStyle={styles.statusFilterContent}
@@ -203,14 +207,15 @@ function DepositsScreen() {
               styles.statusFilterChip,
               selectedStatuses.includes(status.id) && {
                 backgroundColor: status.color,
-              }
+              },
             ]}
             onPress={() => toggleStatus(status.id)}
           >
             <Text
               style={[
                 styles.statusFilterChipText,
-                selectedStatuses.includes(status.id) && styles.statusFilterChipTextActive
+                selectedStatuses.includes(status.id) &&
+                  styles.statusFilterChipTextActive,
               ]}
             >
               {status.label}
@@ -240,7 +245,9 @@ function DepositsScreen() {
 }
 
 function EarningsScreen() {
-  const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(['paid', 'pending']);
+  const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<
+    string[]
+  >(['paid', 'pending']);
 
   const earningStatuses = [
     { id: 'paid', label: '支払済み', color: '#4CAF50' },
@@ -248,14 +255,14 @@ function EarningsScreen() {
   ];
 
   const toggleEarningStatus = (statusId: string) => {
-    setSelectedEarningStatuses(prev => 
-      prev.includes(statusId) 
-        ? prev.filter(id => id !== statusId)
+    setSelectedEarningStatuses((prev) =>
+      prev.includes(statusId)
+        ? prev.filter((id) => id !== statusId)
         : [...prev, statusId]
     );
   };
 
-  const filteredEarnings = mockEarnings.filter(earning => 
+  const filteredEarnings = mockEarnings.filter((earning) =>
     selectedEarningStatuses.includes(earning.status)
   );
 
@@ -286,8 +293,8 @@ function EarningsScreen() {
   return (
     <View style={styles.tabContent}>
       {/* Status Filter Chips */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.statusFilterContainer}
         contentContainerStyle={styles.statusFilterContent}
@@ -299,14 +306,15 @@ function EarningsScreen() {
               styles.statusFilterChip,
               selectedEarningStatuses.includes(status.id) && {
                 backgroundColor: status.color,
-              }
+              },
             ]}
             onPress={() => toggleEarningStatus(status.id)}
           >
             <Text
               style={[
                 styles.statusFilterChipText,
-                selectedEarningStatuses.includes(status.id) && styles.statusFilterChipTextActive
+                selectedEarningStatuses.includes(status.id) &&
+                  styles.statusFilterChipTextActive,
               ]}
             >
               {status.label}
@@ -1002,7 +1010,6 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   tabContent: {
-    flex: 1,
     backgroundColor: '#000',
   },
   depositsList: {

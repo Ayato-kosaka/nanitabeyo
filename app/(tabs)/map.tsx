@@ -168,7 +168,11 @@ export default function MapScreen() {
     longitudeDelta: 0.01,
   });
 
-  const [selectedBidStatuses, setSelectedBidStatuses] = useState<string[]>(['active', 'completed', 'refunded']);
+  const [selectedBidStatuses, setSelectedBidStatuses] = useState<string[]>([
+    'active',
+    'completed',
+    'refunded',
+  ]);
   useEffect(() => {
     getCurrentLocation().then((location) => {
       const newRegion = {
@@ -299,14 +303,14 @@ export default function MapScreen() {
   ];
 
   const toggleBidStatus = (statusId: string) => {
-    setSelectedBidStatuses(prev => 
-      prev.includes(statusId) 
-        ? prev.filter(id => id !== statusId)
+    setSelectedBidStatuses((prev) =>
+      prev.includes(statusId)
+        ? prev.filter((id) => id !== statusId)
         : [...prev, statusId]
     );
   };
 
-  const filteredBidHistory = mockBidHistory.filter(bid => 
+  const filteredBidHistory = mockBidHistory.filter((bid) =>
     selectedBidStatuses.includes(bid.status)
   );
 
@@ -509,8 +513,8 @@ export default function MapScreen() {
               ) : (
                 <View style={styles.bidsContent}>
                   {/* Status Filter Chips */}
-                  <ScrollView 
-                    horizontal 
+                  <ScrollView
+                    horizontal
                     showsHorizontalScrollIndicator={false}
                     style={styles.statusFilterContainer}
                     contentContainerStyle={styles.statusFilterContent}
@@ -522,14 +526,15 @@ export default function MapScreen() {
                           styles.statusChip,
                           selectedBidStatuses.includes(status.id) && {
                             backgroundColor: status.color,
-                          }
+                          },
                         ]}
                         onPress={() => toggleBidStatus(status.id)}
                       >
                         <Text
                           style={[
                             styles.statusChipText,
-                            selectedBidStatuses.includes(status.id) && styles.statusChipTextActive
+                            selectedBidStatuses.includes(status.id) &&
+                              styles.statusChipTextActive,
                           ]}
                         >
                           {status.label}
@@ -549,7 +554,9 @@ export default function MapScreen() {
                           <View
                             style={[
                               styles.bidStatusChip,
-                              { backgroundColor: getBidStatusColor(bid.status) },
+                              {
+                                backgroundColor: getBidStatusColor(bid.status),
+                              },
                             ]}
                           >
                             <Text style={styles.bidStatusText}>
@@ -570,29 +577,6 @@ export default function MapScreen() {
                       </Text>
                     </View>
                   )}
-                  {mockBidHistory.map((bid) => (
-                    <View key={bid.id} style={styles.bidHistoryCard}>
-                      <View style={styles.bidHistoryHeader}>
-                        <Text style={styles.bidHistoryAmount}>
-                          ¥{bid.amount.toLocaleString()}
-                        </Text>
-                        <View
-                          style={[
-                            styles.bidStatusChip,
-                            { backgroundColor: getBidStatusColor(bid.status) },
-                          ]}
-                        >
-                          <Text style={styles.bidStatusText}>
-                            {getBidStatusText(bid.status)}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.bidHistoryDate}>{bid.date}</Text>
-                      <Text style={styles.bidHistoryDays}>
-                        残り{bid.remainingDays}日
-                      </Text>
-                    </View>
-                  ))}
                 </View>
               )}
             </ScrollView>
