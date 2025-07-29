@@ -95,15 +95,15 @@ const mockEarnings: EarningItem[] = [
 
 function DepositsScreen() {
   const renderBidItem = ({ item }: { item: BidItem }) => (
-    <View style={styles.bidCard}>
-      <Image source={{ uri: item.imageUrl }} style={styles.bidImage} />
-      <View style={styles.bidInfo}>
-        <Text style={styles.bidRestaurantName}>{item.restaurantName}</Text>
-        <Text style={styles.bidAmount}>¥{item.bidAmount.toLocaleString()}</Text>
-        <Text style={styles.bidDays}>残り{item.remainingDays}日</Text>
+    <View style={styles.depositCard}>
+      <View style={styles.depositHeader}>
+        <Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
         <View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
           <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
         </View>
+      </View>
+      <Text style={styles.depositAmount}>¥{item.bidAmount.toLocaleString()}</Text>
+      <Text style={styles.depositDays}>残り{item.remainingDays}日</Text>
       </View>
     </View>
   );
@@ -132,7 +132,7 @@ function DepositsScreen() {
         data={mockBids}
         renderItem={renderBidItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.bidsList}
+        contentContainerStyle={styles.depositsList}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -141,16 +141,18 @@ function DepositsScreen() {
 
 function EarningsScreen() {
   const renderEarningItem = ({ item }: { item: EarningItem }) => (
-    <View style={styles.earningCard}>
-      <Image source={{ uri: item.imageUrl }} style={styles.earningImage} />
-      <View style={styles.earningInfo}>
-        <Text style={styles.earningDishName}>{item.dishName}</Text>
-        <Text style={styles.earningAmount}>¥{item.earnings.toLocaleString()}</Text>
-        <View style={[styles.statusChip, { backgroundColor: item.status === 'paid' ? '#4CAF50' : '#FF9800' }]}>
-          <Text style={styles.statusText}>{item.status === 'paid' ? '支払済み' : '保留中'}</Text>
+    <TouchableOpacity style={styles.earningCard}>
+      <Image source={{ uri: item.imageUrl }} style={styles.earningCardImage} />
+      <View style={styles.earningCardOverlay}>
+        <View style={styles.earningCardHeader}>
+          <Text style={styles.earningCardTitle}>{item.dishName}</Text>
+          <View style={[styles.statusChip, { backgroundColor: item.status === 'paid' ? '#4CAF50' : '#FF9800' }]}>
+            <Text style={styles.statusText}>{item.status === 'paid' ? '支払済み' : '保留中'}</Text>
+          </View>
         </View>
+        <Text style={styles.earningCardAmount}>¥{item.earnings.toLocaleString()}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -160,7 +162,7 @@ function EarningsScreen() {
         renderItem={renderEarningItem}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        contentContainerStyle={styles.earningsList}
+        contentContainerStyle={styles.earningsGrid}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -790,44 +792,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  bidsList: {
+  depositsList: {
     padding: 16,
   },
-  bidCard: {
-    flexDirection: 'row',
+  depositCard: {
     backgroundColor: '#111',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
-  bidImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 16,
+  depositHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  bidInfo: {
-    flex: 1,
-  },
-  bidRestaurantName: {
+  depositRestaurantName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 4,
+    flex: 1,
   },
-  bidAmount: {
+  depositAmount: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#4CAF50',
     marginBottom: 4,
   },
-  bidDays: {
+  depositDays: {
     fontSize: 14,
     color: '#CCCCCC',
-    marginBottom: 8,
   },
   statusChip: {
-    alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -837,35 +833,46 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
-  earningsList: {
+  earningsGrid: {
     padding: 16,
   },
   earningCard: {
     flex: 1,
-    backgroundColor: '#111',
+    aspectRatio: 16/9,
     borderRadius: 12,
-    padding: 12,
     margin: 4,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  earningImage: {
+  earningCardImage: {
     width: '100%',
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 8,
+    height: '100%',
+    resizeMode: 'cover',
   },
-  earningInfo: {
-    flex: 1,
+  earningCardOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 8,
   },
-  earningDishName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  earningCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  earningAmount: {
-    fontSize: 16,
+  earningCardTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
+    flex: 1,
+    marginRight: 8,
+  },
+  earningCardAmount: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 8,
+    color: '#FFF',
   },
 });
