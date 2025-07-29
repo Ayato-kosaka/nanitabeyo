@@ -12,14 +12,194 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { ArrowLeft, MoveHorizontal as MoreHorizontal, Share, CreditCard as Edit3, Play, Heart, MessageCircle, Eye, Lock, Grid3x3 as Grid3X3, Bookmark, X } from 'lucide-react-native';
+import { ArrowLeft, MoveHorizontal as MoreHorizontal, Share, CreditCard as Edit3, Play, Heart, MessageCircle, Eye, Lock, Grid3x3 as Grid3X3, Bookmark, X, Wallet, DollarSign } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { UserProfile, UserPost } from '@/types';
 import { userProfile, otherUserProfile, userPosts, savedPosts, likedPosts } from '@/data/profileData';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { NavigationContainer } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
+const Tab = createMaterialTopTabNavigator();
 
-type TabType = 'posts' | 'saved' | 'liked';
+type TabType = 'posts' | 'saved' | 'liked' | 'wallet';
+
+interface BidItem {
+  id: string;
+  restaurantName: string;
+  bidAmount: number;
+  remainingDays: number;
+  status: 'active' | 'completed' | 'refunded';
+  imageUrl: string;
+}
+
+interface EarningItem {
+  id: string;
+  dishName: string;
+  earnings: number;
+  status: 'paid' | 'pending';
+  imageUrl: string;
+}
+
+// Mock data for bids
+const mockBids: BidItem[] = [
+  {
+    id: '1',
+    restaurantName: 'Bella Vista Restaurant',
+    bidAmount: 15000,
+    remainingDays: 12,
+    status: 'active',
+    imageUrl: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=300',
+  },
+  {
+    id: '2',
+    restaurantName: 'Tokyo Ramen House',
+    bidAmount: 8000,
+    remainingDays: 5,
+    status: 'active',
+    imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=300',
+  },
+];
+
+// Mock data for earnings
+const mockEarnings: EarningItem[] = [
+  {
+    id: '1',
+    dishName: 'Truffle Pasta',
+    earnings: 2400,
+    status: 'paid',
+    imageUrl: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=300',
+  },
+  {
+    id: '2',
+    dishName: 'Wagyu Steak',
+    earnings: 3200,
+    status: 'paid',
+    imageUrl: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=300',
+  },
+  {
+    id: '3',
+    dishName: 'Chocolate Soufflé',
+    earnings: 1800,
+    status: 'pending',
+    imageUrl: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=300',
+  },
+  {
+    id: '4',
+    dishName: 'Caesar Salad',
+    earnings: 1200,
+    status: 'paid',
+    imageUrl: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=300',
+  },
+];
+
+function DepositsScreen() {
+  const renderBidItem = ({ item }: { item: BidItem }) => (
+    <View style={styles.bidCard}>
+      <Image source={{ uri: item.imageUrl }} style={styles.bidImage} />
+      <View style={styles.bidInfo}>
+        <Text style={styles.bidRestaurantName}>{item.restaurantName}</Text>
+        <Text style={styles.bidAmount}>¥{item.bidAmount.toLocaleString()}</Text>
+        <Text style={styles.bidDays}>残り{item.remainingDays}日</Text>
+        <View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
+          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return '#4CAF50';
+      case 'completed': return '#2196F3';
+      case 'refunded': return '#FF9800';
+      default: return '#666';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'アクティブ';
+      case 'completed': return '完了';
+      case 'refunded': return '返金済み';
+      default: return status;
+    }
+  };
+
+  return (
+    <View style={styles.tabContent}>
+      <FlatList
+        data={mockBids}
+        renderItem={renderBidItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.bidsList}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  );
+}
+
+function EarningsScreen() {
+  const renderEarningItem = ({ item }: { item: EarningItem }) => (
+    <View style={styles.earningCard}>
+      <Image source={{ uri: item.imageUrl }} style={styles.earningImage} />
+      <View style={styles.earningInfo}>
+        <Text style={styles.earningDishName}>{item.dishName}</Text>
+        <Text style={styles.earningAmount}>¥{item.earnings.toLocaleString()}</Text>
+        <View style={[styles.statusChip, { backgroundColor: item.status === 'paid' ? '#4CAF50' : '#FF9800' }]}>
+          <Text style={styles.statusText}>{item.status === 'paid' ? '支払済み' : '保留中'}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.tabContent}>
+      <FlatList
+        data={mockEarnings}
+        renderItem={renderEarningItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={styles.earningsList}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  );
+}
+
+function WalletTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#CCCCCC',
+        tabBarStyle: {
+          backgroundColor: '#000',
+        },
+        tabBarIndicatorStyle: {
+          backgroundColor: '#FFFFFF',
+        },
+      }}
+    >
+      <Tab.Screen 
+        name="Deposits" 
+        component={DepositsScreen}
+        options={{
+          tabBarLabel: '入札',
+          tabBarIcon: ({ color }) => <Wallet size={20} color={color} />,
+        }}
+      />
+      <Tab.Screen 
+        name="Earnings" 
+        component={EarningsScreen}
+        options={{
+          tabBarLabel: '収益',
+          tabBarIcon: ({ color }) => <DollarSign size={20} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 export default function ProfileScreen() {
   const { userId } = useLocalSearchParams();
@@ -38,6 +218,11 @@ export default function ProfileScreen() {
     }
   }, [profile, isOwnProfile]);
 
+  // Add wallet tab for own profile
+  const availableTabs: TabType[] = isOwnProfile 
+    ? ['posts', 'saved', 'liked', 'wallet']
+    : ['posts'];
+
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -54,6 +239,8 @@ export default function ProfileScreen() {
         return userPosts;
       case 'saved':
         return savedPosts;
+      case 'wallet':
+        return [];
       case 'liked':
         return likedPosts;
       default:
@@ -127,6 +314,8 @@ export default function ProfileScreen() {
         return <Grid3X3 size={20} color={iconColor} />;
       case 'saved':
         return <Bookmark size={20} color={iconColor} fill={isActive ? iconColor : 'transparent'} />;
+      case 'wallet':
+        return <Wallet size={20} color={iconColor} fill={isActive ? iconColor : 'transparent'} />;
       case 'liked':
         return <Heart size={20} color={iconColor} fill={isActive ? iconColor : 'transparent'} />;
     }
@@ -138,6 +327,8 @@ export default function ProfileScreen() {
         return `投稿 ${formatNumber(profile.postsCount)}`;
       case 'saved':
         return '保存済み';
+      case 'wallet':
+        return 'ウォレット';
       case 'liked':
         return 'いいね';
     }
@@ -227,9 +418,7 @@ export default function ProfileScreen() {
 
         {/* Content Tabs */}
         <View style={styles.tabsContainer}>
-          {(['posts', 'saved', 'liked'] as TabType[])
-            .filter(shouldShowTab)
-            .map((tab) => (
+          {availableTabs.map((tab) => (
               <TouchableOpacity
                 key={tab}
                 style={[styles.tab, selectedTab === tab && styles.activeTab]}
@@ -245,7 +434,11 @@ export default function ProfileScreen() {
 
         {/* Posts Grid */}
         <View style={styles.postsContainer}>
-          {selectedTab === 'saved' && !isOwnProfile ? (
+          {selectedTab === 'wallet' ? (
+            <NavigationContainer independent={true}>
+              <WalletTabs />
+            </NavigationContainer>
+          ) : selectedTab === 'saved' && !isOwnProfile ? (
             <View style={styles.privateSection}>
               <Lock size={48} color="#666" />
               <Text style={styles.privateText}>この内容は非公開です</Text>
@@ -592,5 +785,87 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
     textAlignVertical: 'top',
     minHeight: 100,
+  },
+  tabContent: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  bidsList: {
+    padding: 16,
+  },
+  bidCard: {
+    flexDirection: 'row',
+    backgroundColor: '#111',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  bidImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 16,
+  },
+  bidInfo: {
+    flex: 1,
+  },
+  bidRestaurantName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  bidAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  bidDays: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    marginBottom: 8,
+  },
+  statusChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  earningsList: {
+    padding: 16,
+  },
+  earningCard: {
+    flex: 1,
+    backgroundColor: '#111',
+    borderRadius: 12,
+    padding: 12,
+    margin: 4,
+  },
+  earningImage: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  earningInfo: {
+    flex: 1,
+  },
+  earningDishName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  earningAmount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 8,
   },
 });
