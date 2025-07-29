@@ -121,6 +121,26 @@ const mockEarnings: EarningItem[] = [
 ];
 
 function DepositsScreen() {
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'completed', 'refunded']);
+
+  const depositStatuses = [
+    { id: 'active', label: 'アクティブ', color: '#4CAF50' },
+    { id: 'completed', label: '完了', color: '#2196F3' },
+    { id: 'refunded', label: '返金済み', color: '#FF9800' },
+  ];
+
+  const toggleStatus = (statusId: string) => {
+    setSelectedStatuses(prev => 
+      prev.includes(statusId) 
+        ? prev.filter(id => id !== statusId)
+        : [...prev, statusId]
+    );
+  };
+
+  const filteredBids = mockBids.filter(bid => 
+    selectedStatuses.includes(bid.status)
+  );
+
   const renderBidItem = ({ item }: { item: BidItem }) => (
     <View style={styles.depositCard}>
       <View style={styles.depositHeader}>
@@ -169,18 +189,76 @@ function DepositsScreen() {
 
   return (
     <View style={styles.tabContent}>
-      <FlatList
-        data={mockBids}
-        renderItem={renderBidItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.depositsList}
-        showsVerticalScrollIndicator={false}
-      />
+      {/* Status Filter Chips */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.statusFilterContainer}
+        contentContainerStyle={styles.statusFilterContent}
+      >
+        {depositStatuses.map((status) => (
+          <TouchableOpacity
+            key={status.id}
+            style={[
+              styles.statusFilterChip,
+              selectedStatuses.includes(status.id) && {
+                backgroundColor: status.color,
+              }
+            ]}
+            onPress={() => toggleStatus(status.id)}
+          >
+            <Text
+              style={[
+                styles.statusFilterChipText,
+                selectedStatuses.includes(status.id) && styles.statusFilterChipTextActive
+              ]}
+            >
+              {status.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Filtered Results */}
+      {filteredBids.length > 0 ? (
+        <FlatList
+          data={filteredBids}
+          renderItem={renderBidItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.depositsList}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>
+            選択したステータスの入札がありません
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
 function EarningsScreen() {
+  const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(['paid', 'pending']);
+
+  const earningStatuses = [
+    { id: 'paid', label: '支払済み', color: '#4CAF50' },
+    { id: 'pending', label: '保留中', color: '#FF9800' },
+  ];
+
+  const toggleEarningStatus = (statusId: string) => {
+    setSelectedEarningStatuses(prev => 
+      prev.includes(statusId) 
+        ? prev.filter(id => id !== statusId)
+        : [...prev, statusId]
+    );
+  };
+
+  const filteredEarnings = mockEarnings.filter(earning => 
+    selectedEarningStatuses.includes(earning.status)
+  );
+
   const renderEarningItem = ({ item }: { item: EarningItem }) => (
     <TouchableOpacity style={styles.earningCard}>
       <Image source={{ uri: item.imageUrl }} style={styles.earningCardImage} />
@@ -207,14 +285,53 @@ function EarningsScreen() {
 
   return (
     <View style={styles.tabContent}>
-      <FlatList
-        data={mockEarnings}
-        renderItem={renderEarningItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.earningsGrid}
-        showsVerticalScrollIndicator={false}
-      />
+      {/* Status Filter Chips */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.statusFilterContainer}
+        contentContainerStyle={styles.statusFilterContent}
+      >
+        {earningStatuses.map((status) => (
+          <TouchableOpacity
+            key={status.id}
+            style={[
+              styles.statusFilterChip,
+              selectedEarningStatuses.includes(status.id) && {
+                backgroundColor: status.color,
+              }
+            ]}
+            onPress={() => toggleEarningStatus(status.id)}
+          >
+            <Text
+              style={[
+                styles.statusFilterChipText,
+                selectedEarningStatuses.includes(status.id) && styles.statusFilterChipTextActive
+              ]}
+            >
+              {status.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Filtered Results */}
+      {filteredEarnings.length > 0 ? (
+        <FlatList
+          data={filteredEarnings}
+          renderItem={renderEarningItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.earningsGrid}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>
+            選択したステータスの収益がありません
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -965,5 +1082,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  statusFilterContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  statusFilterContent: {
+    gap: 8,
+  },
+  statusFilterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginHorizontal: 4,
+  },
+  statusFilterChipText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  statusFilterChipTextActive: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
