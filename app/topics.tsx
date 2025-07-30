@@ -117,13 +117,15 @@ export default function TopicsScreen() {
             <View style={styles.loadingIconContainer}>
               <Sparkles size={32} color="#5EA2FF" />
             </View>
-            <ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
+            <ActivityIndicator
+              size="large"
+              color="#5EA2FF"
+              style={styles.loadingSpinner}
+            />
             <Text style={styles.loadingTitle}>
               あなたにぴったりの料理を探しています
             </Text>
-            <Text style={styles.loadingSubtitle}>
-              少々お待ちください...
-            </Text>
+            <Text style={styles.loadingSubtitle}>少々お待ちください...</Text>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -149,10 +151,7 @@ export default function TopicsScreen() {
   }
 
   return (
-    <LinearGradient
-      colors={['#FFFFFF', '#F8F9FA']}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.container}>
       {/* Header with Back Button */}
       <View style={styles.backButtonContainer}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -213,7 +212,7 @@ export default function TopicsScreen() {
               colors={['#5EA2FF', '#357AFF']}
               style={styles.bottomActionGradient}
             >
-              <ThumbsUp size={24} color="#FFF" />
+              <ThumbsUp size={20} color="#FFF" />
               <Text style={styles.bottomActionText}>気になる！</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -275,6 +274,7 @@ export default function TopicsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'flex-start',
   },
   backButtonContainer: {
     position: 'absolute',
@@ -385,10 +385,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   carouselContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 16,
   },
   carousel: {
     width: width,
@@ -398,9 +396,11 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     borderRadius: 24,
     overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: '#fff',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
     shadowRadius: 32,
     elevation: 12,
     position: 'relative',
@@ -416,17 +416,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     padding: 24,
     justifyContent: 'space-between',
   },
   pageIndicatorContainer: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: -20,
+    marginLeft: 20,
   },
   pageIndicatorDot: {
     width: 8,
@@ -442,7 +441,7 @@ const styles = StyleSheet.create({
   pageIndicatorDotActive: {
     width: 16,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#5EA2FF',
     shadowColor: '#5EA2FF',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
@@ -454,7 +453,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -505,10 +504,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   bottomActionContainer: {
-    position: 'absolute',
-    bottom: 32,
-    left: 24,
-    right: 24,
+    marginHorizontal: 20,
+    marginVertical: 8,
     zIndex: 10,
   },
   bottomActionButton: {
@@ -524,12 +521,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: 8,
     paddingHorizontal: 32,
     gap: 12,
   },
   bottomActionText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -624,8 +621,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
   },
