@@ -11,12 +11,13 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { ThumbsUp, Trash, X } from 'lucide-react-native';
+import { ThumbsUp, Trash, X, Sparkles } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
 import { Topic, SearchParams } from '@/types/search';
 import { useTopicSearch } from '@/hooks/useTopicSearch';
 import { useSnackbar } from '@/contexts/SnackbarProvider';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -94,24 +95,12 @@ export default function TopicsScreen() {
           onPress={() => handleHideCard(item.id)}
         >
           <Trash size={18} color="#FFF" />
-          {/* <Text style={styles.hideButtonText}></Text> */}
         </TouchableOpacity>
 
         {/* Content */}
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle}>{item.topicTitle}</Text>
           <Text style={styles.cardDescription}>{item.reason}</Text>
-          {/* <Text style={styles.cardSearchText}>
-            📍 {item.googlePlaceSearchText}
-          </Text> */}
-
-          <TouchableOpacity
-            style={styles.detailsButton}
-            onPress={() => handleViewDetails(item)}
-          >
-            <ThumbsUp size={20} color="#FFF" />
-            <Text style={styles.detailsButtonText}>気になる！</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -119,28 +108,51 @@ export default function TopicsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="rgb(52, 119, 248)" />
-        <Text style={styles.loadingText}>
-          探しているので、少々お待ちください...
-        </Text>
-      </SafeAreaView>
+      <LinearGradient
+        colors={['#FFFFFF', '#F8F9FA']}
+        style={styles.loadingContainer}
+      >
+        <SafeAreaView style={styles.loadingContent}>
+          <View style={styles.loadingCard}>
+            <View style={styles.loadingIconContainer}>
+              <Sparkles size={32} color="#5EA2FF" />
+            </View>
+            <ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
+            <Text style={styles.loadingTitle}>
+              あなたにぴったりの料理を探しています
+            </Text>
+            <Text style={styles.loadingSubtitle}>
+              少々お待ちください...
+            </Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-          <Text style={styles.retryButtonText}>戻る</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <LinearGradient
+        colors={['#FFFFFF', '#F8F9FA']}
+        style={styles.errorContainer}
+      >
+        <SafeAreaView style={styles.errorContent}>
+          <View style={styles.errorCard}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
+              <Text style={styles.retryButtonText}>戻る</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient
+      colors={['#FFFFFF', '#F8F9FA']}
+      style={styles.container}
+    >
       {/* Header with Back Button */}
       <View style={styles.backButtonContainer}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -168,10 +180,12 @@ export default function TopicsScreen() {
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>表示できる料理がありません</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-            <Text style={styles.retryButtonText}>検索に戻る</Text>
-          </TouchableOpacity>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>表示できる料理がありません</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
+              <Text style={styles.retryButtonText}>検索に戻る</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -187,6 +201,24 @@ export default function TopicsScreen() {
           />
         ))}
       </View>
+
+      {/* Fixed Bottom Action Button */}
+      {visibleTopics.length > 0 && (
+        <View style={styles.bottomActionContainer}>
+          <TouchableOpacity
+            style={styles.bottomActionButton}
+            onPress={() => handleViewDetails(visibleTopics[currentIndex])}
+          >
+            <LinearGradient
+              colors={['#5EA2FF', '#357AFF']}
+              style={styles.bottomActionGradient}
+            >
+              <ThumbsUp size={24} color="#FFF" />
+              <Text style={styles.bottomActionText}>気になる！</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Hide Card Modal */}
       <Modal
@@ -236,14 +268,13 @@ export default function TopicsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   backButtonContainer: {
     position: 'absolute',
@@ -257,44 +288,101 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   loadingContainer: {
     flex: 1,
+  },
+  loadingContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    paddingHorizontal: 32,
   },
-  loadingText: {
+  loadingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+    width: '100%',
+    maxWidth: 320,
+  },
+  loadingIconContainer: {
+    marginBottom: 16,
+  },
+  loadingSpinner: {
+    marginBottom: 24,
+  },
+  loadingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: -0.3,
+  },
+  loadingSubtitle: {
     fontSize: 16,
-    color: '#000',
-    marginTop: 16,
-    fontWeight: '400',
+    color: '#6B7280',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   errorContainer: {
+    flex: 1,
+  },
+  errorContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    backgroundColor: '#000',
+  },
+  errorCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+    width: '100%',
+    maxWidth: 320,
   },
   errorText: {
     fontSize: 16,
-    color: '#FF6B6B',
+    color: '#EF4444',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
+    fontWeight: '500',
   },
   retryButton: {
-    backgroundColor: 'rgb(52, 119, 248)',
+    backgroundColor: '#5EA2FF',
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   retryButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#FFFFFF',
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   carouselContainer: {
     flex: 1,
@@ -308,15 +396,13 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
-    borderWidth: 4,
-    borderColor: '#fff',
-    shadowColor: 'rgba(0, 0, 0, 0.3)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
     shadowRadius: 32,
-    elevation: 5,
+    elevation: 12,
     position: 'relative',
   },
   cardImage: {
@@ -330,7 +416,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     padding: 24,
     justifyContent: 'space-between',
   },
@@ -340,39 +426,44 @@ const styles = StyleSheet.create({
     left: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6, // ドット間の間隔
+    gap: 8,
   },
   pageIndicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#b6bec4',
-    shadowColor: '#000', // 影の色
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 1.5,
-    elevation: 2, // Android用
+    elevation: 2,
   },
   pageIndicatorDotActive: {
-    width: 14, // アクティブは少し長めに
-    borderRadius: 3,
-    backgroundColor: 'rgb(52, 119, 248)',
-    shadowColor: 'rgb(52, 119, 248)', // アクティブ時の影
+    width: 16,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#5EA2FF',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
-    elevation: 3, // Android用
+    elevation: 3,
   },
 
   hideButton: {
     alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 24,
+    borderRadius: 20,
     gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   hideButtonText: {
     fontSize: 14,
@@ -384,23 +475,25 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   cardTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 12,
+    marginBottom: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
-    lineHeight: 36,
+    lineHeight: 40,
+    letterSpacing: -0.5,
   },
   cardDescription: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#FFFFFF',
-    lineHeight: 24,
-    marginBottom: 12,
+    lineHeight: 28,
+    marginBottom: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+    fontWeight: '500',
   },
   cardSearchText: {
     fontSize: 14,
@@ -411,20 +504,35 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  detailsButton: {
+  bottomActionContainer: {
+    position: 'absolute',
+    bottom: 32,
+    left: 24,
+    right: 24,
+    zIndex: 10,
+  },
+  bottomActionButton: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  bottomActionGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgb(52, 119, 248)',
-    color: '#FFFFFF',
-    paddingVertical: 14,
-    borderRadius: 24,
-    gap: 8,
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    gap: 12,
   },
-  detailsButtonText: {
-    fontSize: 16,
+  bottomActionText: {
+    fontSize: 18,
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     flex: 1,
@@ -432,30 +540,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+    width: '100%',
+    maxWidth: 320,
+  },
   emptyText: {
     fontSize: 18,
-    color: '#FFF',
+    color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 28,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
     width: width - 48,
     maxWidth: 400,
-    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -464,28 +586,35 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '500',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#1C1B1F',
+    letterSpacing: -0.3,
   },
   modalDescription: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#49454F',
     marginBottom: 16,
-    lineHeight: 20,
+    lineHeight: 24,
+    fontWeight: '500',
   },
   reasonInput: {
     borderWidth: 1,
-    borderColor: '#79747E',
-    borderRadius: 8,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     fontSize: 16,
     color: '#1C1B1F',
     backgroundColor: '#FFFFFF',
-    minHeight: 80,
+    minHeight: 100,
     marginBottom: 24,
     textAlignVertical: 'top',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   modalActions: {
     flexDirection: 'row',
@@ -493,27 +622,33 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#79747E',
+    borderColor: '#E5E7EB',
     alignItems: 'center',
+    backgroundColor: '#F8F9FA',
   },
   cancelButtonText: {
-    fontSize: 14,
-    color: '#49454F',
-    fontWeight: '500',
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: '#B3261E',
-    paddingVertical: 12,
-    borderRadius: 20,
+    backgroundColor: '#EF4444',
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   confirmButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#FFFFFF',
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
