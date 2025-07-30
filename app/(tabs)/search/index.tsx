@@ -18,12 +18,10 @@ import {
   Clock,
   Users,
   Heart,
-  Plus,
-  X,
   Navigation,
   MapPin as Distance,
   DollarSign,
-  ChevronDown,
+  Plus,
   ChevronUp,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -540,7 +538,7 @@ export default function SearchScreen() {
             {showAdvancedFilters ? (
               <ChevronUp size={20} color="#5EA2FF" />
             ) : (
-              <ChevronDown size={20} color="#5EA2FF" />
+              <Plus size={20} color="#5EA2FF" />
             )}
             <Text style={styles.advancedToggleText}>
               {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
