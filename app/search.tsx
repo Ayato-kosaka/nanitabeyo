@@ -55,8 +55,8 @@ const moodOptions = [
   { id: 'light', label: '軽めに', icon: '🥗' },
   { id: 'sweet', label: '甘いもの', icon: '🍰' },
   { id: 'spicy', label: '辛いもの', icon: '🌶️' },
-  { id: 'healthy', label: 'ヘルシー志向', icon: '🥬' },
-  { id: 'junk', label: 'ジャンク気分', icon: '🍔' },
+  { id: 'healthy', label: 'ヘルシー', icon: '🥬' },
+  { id: 'junk', label: 'ジャンク', icon: '🍔' },
   { id: 'alcohol', label: 'お酒メイン', icon: '🍺' },
 ] as const;
 
@@ -105,6 +105,7 @@ const restrictionOptions = [
   { id: 'dairy_free', label: '乳製品不使用', icon: '🥛' },
   { id: 'nut_allergy', label: 'ナッツアレルギー', icon: '🥜' },
   { id: 'seafood_allergy', label: '魚介アレルギー', icon: '🐟' },
+  { id: 'halal', label: 'ハラール', icon: '🕌' },
 ];
 
 export default function SearchScreen() {
@@ -384,8 +385,7 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>どんな料理を探しましょう？</Text>
-        <Text style={styles.headerSubtitle}>あなたの好みに合わせて最適なお店を見つけます</Text>
+        <Text style={styles.headerTitle}>どんな料理を探しましょう？🍽</Text>
       </View>
 
       <ScrollView
@@ -532,19 +532,21 @@ export default function SearchScreen() {
         </View>
 
         {/* Advanced Filters Toggle */}
-        <TouchableOpacity
-          style={styles.advancedToggle}
-          onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
-        >
-          {showAdvancedFilters ? (
-            <ChevronUp size={20} color="#5EA2FF" />
-          ) : (
-            <ChevronDown size={20} color="#5EA2FF" />
-          )}
-          <Text style={styles.advancedToggleText}>
-            {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
-          </Text>
-        </TouchableOpacity>
+        {!showAdvancedFilters && (
+          <TouchableOpacity
+            style={styles.advancedToggle}
+            onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
+            {showAdvancedFilters ? (
+              <ChevronUp size={20} color="#5EA2FF" />
+            ) : (
+              <ChevronDown size={20} color="#5EA2FF" />
+            )}
+            <Text style={styles.advancedToggleText}>
+              {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Advanced Filters Section */}
         {showAdvancedFilters && (
@@ -604,9 +606,6 @@ export default function SearchScreen() {
                     >
                       {option.label}
                     </Text>
-                    {restrictions.includes(option.id) && (
-                      <X size={14} color="#FFF" />
-                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -650,8 +649,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 32,
     backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -659,16 +656,11 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1A1A1A',
     marginBottom: 8,
     letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -788,12 +780,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 24,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    marginBottom: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -810,17 +800,17 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   chipEmoji: {
-    fontSize: 16,
-    marginRight: 8,
+    fontSize: 14,
+    marginRight: 4,
   },
   chipText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   selectedChipText: {
     color: '#FFF',
-    fontWeight: '700',
+    fontWeight: '600',
   },
   restrictionsContainer: {
     flexDirection: 'row',
@@ -831,11 +821,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
     marginBottom: 8,
   },
   selectedRestrictionChip: {
@@ -843,9 +831,9 @@ const styles = StyleSheet.create({
     borderColor: '#EF4444',
   },
   restrictionChipText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6B7280',
-    fontWeight: '600',
+    fontWeight: '500',
     marginLeft: 8,
     marginRight: 8,
   },
@@ -863,7 +851,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchFab: {
-    background: 'linear-gradient(135deg, #5EA2FF 0%, #357AFF 100%)',
     backgroundColor: '#5EA2FF',
     flexDirection: 'row',
     alignItems: 'center',
