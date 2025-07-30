@@ -12,6 +12,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
   MoveHorizontal as MoreHorizontal,
@@ -234,10 +235,12 @@ function DepositsScreen() {
           showsVerticalScrollIndicator={false}
         />
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>
-            選択したステータスの入札がありません
-          </Text>
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.emptyStateCard}>
+            <Text style={styles.emptyStateText}>
+              選択したステータスの入札がありません
+            </Text>
+          </View>
         </View>
       )}
     </View>
@@ -334,10 +337,12 @@ function EarningsScreen() {
           showsVerticalScrollIndicator={false}
         />
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>
-            選択したステータスの収益がありません
-          </Text>
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.emptyStateCard}>
+            <Text style={styles.emptyStateText}>
+              選択したステータスの収益がありません
+            </Text>
+          </View>
         </View>
       )}
     </View>
@@ -536,7 +541,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         {!isOwnProfile && (
@@ -662,9 +667,11 @@ export default function ProfileScreen() {
           {selectedTab === 'wallet' ? (
             <WalletTabs />
           ) : selectedTab === 'saved' && !isOwnProfile ? (
-            <View style={styles.privateSection}>
-              <Lock size={48} color="#666" />
-              <Text style={styles.privateText}>この内容は非公開です</Text>
+            <View style={styles.privateContainer}>
+              <View style={styles.privateCard}>
+                <Lock size={48} color="#6B7280" />
+                <Text style={styles.privateText}>この内容は非公開です</Text>
+              </View>
             </View>
           ) : (
             <FlatList
@@ -686,7 +693,7 @@ export default function ProfileScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowEditModal(false)}>
               <X size={24} color="#FFFFFF" />
@@ -711,16 +718,15 @@ export default function ProfileScreen() {
               />
             </View>
           </ScrollView>
-        </SafeAreaView>
+        </LinearGradient>
       </Modal>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     flexDirection: 'row',
@@ -728,26 +734,44 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#333',
+    backgroundColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   backButton: {
     padding: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   moreButton: {
     padding: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   content: {
     flex: 1,
   },
   profileSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -757,8 +781,15 @@ const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 20,
     marginRight: 20,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   statsContainer: {
     flex: 1,
@@ -769,26 +800,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 2,
+    letterSpacing: -0.3,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#CCCCCC',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   displayName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   bio: {
-    fontSize: 14,
-    color: '#CCCCCC',
+    fontSize: 15,
+    color: '#6B7280',
     lineHeight: 20,
     marginBottom: 16,
+    fontWeight: '400',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -799,72 +834,101 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#333',
+    backgroundColor: '#5EA2FF',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     gap: 6,
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   editButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#333',
+    backgroundColor: '#6B7280',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   shareButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   followButton: {
     flex: 1,
-    backgroundColor: '#FF3040',
+    backgroundColor: '#5EA2FF',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   followingButton: {
-    backgroundColor: '#333',
-    borderWidth: 1,
-    borderColor: '#666',
+    backgroundColor: '#6B7280',
   },
   followButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   followingButtonText: {
-    color: '#CCCCCC',
+    color: '#FFFFFF',
   },
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#333',
+    backgroundColor: '#6B7280',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   messageButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   tabsContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#333',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   tab: {
     flex: 1,
@@ -875,12 +939,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#FFFFFF',
+    backgroundColor: '#5EA2FF',
+    borderRadius: 12,
+    margin: 4,
   },
   tabText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
     fontWeight: '500',
   },
   activeTabText: {
@@ -890,20 +955,34 @@ const styles = StyleSheet.create({
   postsContainer: {
     flex: 1,
     minHeight: 400,
-  },
-  privateSection: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  privateText: {
-    fontSize: 16,
-    color: '#666',
     marginTop: 16,
   },
+  privateContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  privateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  privateText: {
+    fontSize: 17,
+    color: '#6B7280',
+    marginTop: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   postsGrid: {
-    paddingTop: 2,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   postsRow: {
     justifyContent: 'flex-start',
@@ -911,9 +990,16 @@ const styles = StyleSheet.create({
   postItem: {
     width: (width - 4) / 3,
     height: ((width - 4) / 3) * (16 / 9),
-    margin: 1,
+    margin: 4,
     position: 'relative',
-    backgroundColor: '#111',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   postImage: {
     width: '100%',
@@ -927,7 +1013,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 8,
   },
   durationText: {
     fontSize: 10,
@@ -940,7 +1026,7 @@ const styles = StyleSheet.create({
     left: '50%',
     transform: [{ translateX: -10 }, { translateY: -10 }],
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 15,
+    borderRadius: 12,
     padding: 5,
   },
   statsOverlay: {
@@ -963,7 +1049,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#000',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -971,17 +1056,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#333',
+    backgroundColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   saveText: {
-    fontSize: 16,
-    color: '#FF3040',
+    fontSize: 17,
+    color: '#5EA2FF',
     fontWeight: '600',
   },
   modalContent: {
@@ -989,37 +1079,54 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   editSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   editLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   editInput: {
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 8,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    fontSize: 16,
-    color: '#FFFFFF',
-    backgroundColor: '#111',
+    fontSize: 15,
+    color: '#1A1A1A',
     textAlignVertical: 'top',
     minHeight: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   tabContent: {
-    backgroundColor: '#000',
+    flex: 1,
   },
   depositsList: {
     padding: 16,
   },
   depositCard: {
-    backgroundColor: '#111',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   depositHeader: {
     flexDirection: 'row',
@@ -1028,31 +1135,39 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   depositRestaurantName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1A1A1A',
     flex: 1,
+    letterSpacing: -0.3,
   },
   depositAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#5EA2FF',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   depositDays: {
-    fontSize: 14,
-    color: '#CCCCCC',
+    fontSize: 15,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   statusChip: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#FFFFFF',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   earningsGrid: {
     padding: 16,
@@ -1060,10 +1175,15 @@ const styles = StyleSheet.create({
   earningCard: {
     flex: 1,
     aspectRatio: 9 / 16,
-    borderRadius: 12,
+    borderRadius: 16,
     margin: 4,
     overflow: 'hidden',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   earningCardImage: {
     width: '100%',
@@ -1075,20 +1195,24 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     padding: 8,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   earningCardTitle: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFF',
     flex: 1,
     marginRight: 8,
+    letterSpacing: -0.2,
   },
   earningCardAmount: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFF',
+    letterSpacing: -0.2,
   },
   statusFilterContainer: {
     paddingVertical: 8,
@@ -1100,30 +1224,44 @@ const styles = StyleSheet.create({
   statusFilterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
     marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statusFilterChipText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
     fontWeight: '500',
   },
   statusFilterChipTextActive: {
     color: '#FFF',
     fontWeight: '600',
   },
-  emptyState: {
+  emptyStateContainer: {
     flex: 1,
+    paddingHorizontal: 16,
+  },
+  emptyStateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   emptyStateText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 17,
+    color: '#6B7280',
     textAlign: 'center',
+    fontWeight: '500',
   },
 });
