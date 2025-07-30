@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Heart, MessageCircle, UserPlus, AtSign, Share, MoveHorizontal as MoreHorizontal } from 'lucide-react-native';
 import { NotificationItem } from '@/types';
 import { notificationsData } from '@/data/notificationsData';
@@ -124,7 +125,7 @@ export default function NotificationsScreen() {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>通知</Text>
@@ -143,14 +144,13 @@ export default function NotificationsScreen() {
       >
         {notifications.map(renderNotificationItem)}
       </ScrollView>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     flexDirection: 'row',
@@ -158,48 +158,70 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    backgroundColor: '#000',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   unreadBadge: {
     position: 'absolute',
     right: 16,
-    backgroundColor: '#FF3040',
-    borderRadius: 12,
+    backgroundColor: '#5EA2FF',
+    borderRadius: 16,
     paddingHorizontal: 8,
     paddingVertical: 4,
     minWidth: 24,
     alignItems: 'center',
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   unreadBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    padding: 16,
+    gap: 12,
   },
   notificationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#000',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#333',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   unreadNotification: {
-    backgroundColor: '#111',
+    borderWidth: 2,
+    borderColor: '#5EA2FF',
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   avatarContainer: {
     position: 'relative',
@@ -208,8 +230,15 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#333',
+    borderRadius: 12,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   actionIcon: {
     position: 'absolute',
@@ -217,31 +246,39 @@ const styles = StyleSheet.create({
     right: -2,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#000',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   messageContainer: {
     flex: 1,
     marginRight: 12,
   },
   messageText: {
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 20,
     marginBottom: 4,
   },
   username: {
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: -0.2,
   },
   message: {
-    color: '#CCCCCC',
+    color: '#6B7280',
+    fontWeight: '400',
   },
   timestamp: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   rightContainer: {
     alignItems: 'center',
@@ -250,23 +287,34 @@ const styles = StyleSheet.create({
   postThumbnail: {
     width: 50,
     height: 50,
-    borderRadius: 8,
-    backgroundColor: '#333',
+    borderRadius: 12,
+    backgroundColor: '#F8F9FA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   moreButton: {
     width: 50,
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: '#F8F9FA',
   },
   unreadDot: {
     position: 'absolute',
-    left: 8,
-    top: '50%',
-    marginTop: -3,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#007AFF',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#5EA2FF',
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
