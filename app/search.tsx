@@ -383,23 +383,29 @@ export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={{ ...styles.header, position: 'relative' }}>
-        <Text style={styles.headerTitle}>どんな料理を探しましょう？🍽</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>どんな料理を探しましょう？</Text>
+        <Text style={styles.headerSubtitle}>あなたの好みに合わせて最適なお店を見つけます</Text>
       </View>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
         {/* Location Input */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <MapPin size={16} color="rgb(52, 119, 248)" /> どのあたりで探す？ *
-          </Text>
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <MapPin size={20} color="#5EA2FF" />
+            <Text style={styles.sectionTitle}>どのあたりで探す？</Text>
+            <View style={styles.requiredBadge}>
+              <Text style={styles.requiredText}>必須</Text>
+            </View>
+          </View>
           <View style={styles.locationInputContainer}>
             <TextInput
               style={styles.locationInput}
               placeholder="場所を入力してください"
-              placeholderTextColor={'#616262'}
+              placeholderTextColor="#A0A0A0"
               value={locationQuery}
               onChangeText={handleLocationSearch}
               onFocus={() =>
@@ -410,7 +416,7 @@ export default function SearchScreen() {
               style={styles.currentLocationButton}
               onPress={handleUseCurrentLocation}
             >
-              <Navigation size={20} color="rgb(52, 119, 248)" />
+              <Navigation size={20} color="#5EA2FF" />
             </TouchableOpacity>
           </View>
 
@@ -418,7 +424,7 @@ export default function SearchScreen() {
             <View style={styles.suggestionsContainer}>
               {isLocationSearching ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="rgb(52, 119, 248)" />
+                  <ActivityIndicator size="small" color="#5EA2FF" />
                   <Text style={styles.loadingText}>検索中...</Text>
                 </View>
               ) : (
@@ -435,10 +441,11 @@ export default function SearchScreen() {
         </View>
 
         {/* Time of Day */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Clock size={16} color="rgb(52, 119, 248)" /> 時間帯は？
-          </Text>
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Clock size={20} color="#5EA2FF" />
+            <Text style={styles.sectionTitle}>時間帯は？</Text>
+          </View>
           <View style={styles.chipGrid}>
             {timeSlots.map((slot) => (
               <TouchableOpacity
@@ -464,10 +471,11 @@ export default function SearchScreen() {
         </View>
 
         {/* Scene */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Users size={16} color="rgb(52, 119, 248)" /> シーンは？
-          </Text>
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Users size={20} color="#5EA2FF" />
+            <Text style={styles.sectionTitle}>シーンは？</Text>
+          </View>
           <View style={styles.chipGrid}>
             {sceneOptions.map((option) => (
               <TouchableOpacity
@@ -495,10 +503,11 @@ export default function SearchScreen() {
         </View>
 
         {/* Mood */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Heart size={16} color="rgb(52, 119, 248)" /> 気分は？
-          </Text>
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Heart size={20} color="#5EA2FF" />
+            <Text style={styles.sectionTitle}>気分は？</Text>
+          </View>
           <View style={styles.chipGrid}>
             {moodOptions.map((option) => (
               <TouchableOpacity
@@ -528,9 +537,9 @@ export default function SearchScreen() {
           onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
         >
           {showAdvancedFilters ? (
-            <ChevronUp size={20} color="rgb(52, 119, 248)" />
+            <ChevronUp size={20} color="#5EA2FF" />
           ) : (
-            <ChevronDown size={20} color="rgb(52, 119, 248)" />
+            <ChevronDown size={20} color="#5EA2FF" />
           )}
           <Text style={styles.advancedToggleText}>
             {showAdvancedFilters ? '詳細検索を閉じる' : '詳細検索'}
@@ -541,10 +550,11 @@ export default function SearchScreen() {
         {showAdvancedFilters && (
           <>
             {/* Distance */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                <Distance size={16} color="rgb(52, 119, 248)" /> 距離は？
-              </Text>
+            <View style={styles.card}>
+              <View style={styles.sectionHeader}>
+                <Distance size={20} color="#5EA2FF" />
+                <Text style={styles.sectionTitle}>距離は？</Text>
+              </View>
               <View style={styles.sliderSection}>
                 <Text style={styles.sliderValue}>
                   {
@@ -557,10 +567,11 @@ export default function SearchScreen() {
             </View>
 
             {/* Budget */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                <DollarSign size={16} color="rgb(52, 119, 248)" /> 予算は？
-              </Text>
+            <View style={styles.card}>
+              <View style={styles.sectionHeader}>
+                <DollarSign size={20} color="#5EA2FF" />
+                <Text style={styles.sectionTitle}>予算は？</Text>
+              </View>
               <View style={styles.sliderSection}>
                 <Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
                 <BudgetSlider />
@@ -568,8 +579,10 @@ export default function SearchScreen() {
             </View>
 
             {/* Restrictions */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>制約条件</Text>
+            <View style={styles.card}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>制約条件</Text>
+              </View>
               <View style={styles.restrictionsContainer}>
                 {restrictionOptions.map((option) => (
                   <TouchableOpacity
@@ -626,75 +639,120 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F9FA',
   },
   scrollView: {
     flex: 1,
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: '#fff',
-    elevation: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 32,
+    backgroundColor: '#FFFFFF',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'rgb(52, 119, 248)',
-    marginBottom: 6,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#49454F',
+    color: '#6B7280',
+    lineHeight: 20,
   },
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  card: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginVertical: 8,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginLeft: 8,
+    flex: 1,
+  },
+  requiredBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  requiredText: {
+    fontSize: 10,
     fontWeight: '600',
-    color: '#1C1B1F',
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: '#DC2626',
   },
   locationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    backgroundColor: '#f4f5f6',
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   locationInput: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     fontSize: 16,
+    color: '#1A1A1A',
   },
   currentLocationButton: {
-    padding: 12,
-    borderLeftWidth: 1,
-    borderLeftColor: '#E0E0E0',
+    padding: 16,
+    borderLeftWidth: 0.5,
+    borderLeftColor: '#E5E7EB',
   },
   suggestionsContainer: {
-    marginTop: 8,
+    marginTop: 12,
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderRadius: 16,
+    borderWidth: 0.5,
+    borderColor: '#E5E7EB',
     maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 20,
   },
   loadingText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
   },
   suggestionsList: {
     maxHeight: 200,
@@ -702,202 +760,220 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F3F4F6',
   },
   suggestionText: {
-    marginLeft: 12,
+    marginLeft: 16,
     flex: 1,
   },
   suggestionMain: {
     fontSize: 16,
-    color: '#1C1B1F',
-    fontWeight: '500',
+    color: '#1A1A1A',
+    fontWeight: '600',
   },
   suggestionSecondary: {
     fontSize: 14,
-    color: '#49454F',
-    marginTop: 2,
+    color: '#6B7280',
+    marginTop: 4,
   },
   chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginHorizontal: -3,
+    gap: 12,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f4f5f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 32,
-    marginBottom: 6,
-    marginHorizontal: 3,
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   selectedChip: {
-    backgroundColor: 'rgb(52, 119, 248)',
-    shadowColor: 'rgba(52, 119, 248, 0.3)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 32,
-    elevation: 6,
+    backgroundColor: '#5EA2FF',
+    borderColor: '#5EA2FF',
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   chipEmoji: {
-    fontSize: 14,
-    marginRight: 4,
+    fontSize: 16,
+    marginRight: 8,
   },
   chipText: {
-    fontSize: 13,
-    color: '#616262',
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   selectedChipText: {
     color: '#FFF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   restrictionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 12,
   },
   restrictionChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginBottom: 6,
+    borderColor: '#E5E7EB',
+    marginBottom: 8,
   },
   selectedRestrictionChip: {
-    backgroundColor: '#FF5722',
-    borderColor: '#FF5722',
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
   },
   restrictionChipText: {
-    fontSize: 11,
-    color: '#49454F',
-    fontWeight: '500',
-    marginLeft: 4,
-    marginRight: 4,
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    marginLeft: 8,
+    marginRight: 8,
   },
   selectedRestrictionChipText: {
     color: '#FFF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   searchFabContainer: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    left: 24,
+    bottom: 32,
+    right: 20,
+    left: 20,
     justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
   },
   searchFab: {
-    backgroundColor: 'rgb(52, 119, 248)',
+    background: 'linear-gradient(135deg, #5EA2FF 0%, #357AFF 100%)',
+    backgroundColor: '#5EA2FF',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 28,
-    shadowColor: 'rgba(52, 119, 248, 0.3)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    elevation: 5,
-    shadowRadius: 8,
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+    borderRadius: 32,
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
   },
   disabledFab: {
-    backgroundColor: '#9E9E9E',
+    backgroundColor: '#D1D5DB',
+    shadowOpacity: 0.1,
   },
   fabText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#FFF',
-    marginLeft: 8,
+    marginLeft: 12,
+    letterSpacing: 0.5,
   },
   sliderSection: {
     alignItems: 'center',
   },
   sliderValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgb(52, 119, 248)',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#5EA2FF',
+    marginBottom: 8,
     textAlign: 'center',
   },
   sliderContainer: {
-    width: 280,
+    width: 300,
     justifyContent: 'center',
   },
   sliderTrack: {
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
     position: 'relative',
-    marginHorizontal: 12,
+    marginHorizontal: 16,
   },
   sliderThumb: {
     position: 'absolute',
-    width: 24,
-    height: 24,
-    backgroundColor: 'rgb(52, 119, 248)',
-    borderRadius: 12,
-    top: -10,
-    elevation: 4,
+    width: 28,
+    height: 28,
+    backgroundColor: '#5EA2FF',
+    borderRadius: 14,
+    top: -11,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   rangeTrack: {
     position: 'absolute',
-    height: 4,
-    backgroundColor: 'rgb(52, 119, 248)',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#5EA2FF',
+    borderRadius: 3,
     top: 0,
   },
   rangeThumbMin: {
-    backgroundColor: 'rgb(52, 119, 248)',
+    backgroundColor: '#5EA2FF',
   },
   rangeThumbMax: {
-    backgroundColor: 'rgb(52, 119, 248)',
+    backgroundColor: '#5EA2FF',
   },
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    paddingHorizontal: 12,
+    marginTop: 12,
+    paddingHorizontal: 16,
   },
   sliderLabelLeft: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   sliderLabelRight: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   advancedToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
-    marginHorizontal: 20,
-    marginVertical: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: '#F0F8FF',
+    marginHorizontal: 24,
+    marginVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#BBDEFB',
+    borderColor: '#DBEAFE',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   advancedToggleText: {
-    fontSize: 14,
-    color: 'rgb(52, 119, 248)',
-    fontWeight: '500',
-    marginLeft: 8,
+    fontSize: 15,
+    color: '#5EA2FF',
+    fontWeight: '600',
+    marginLeft: 12,
   },
 });
