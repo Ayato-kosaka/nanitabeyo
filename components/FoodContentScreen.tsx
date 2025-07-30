@@ -205,7 +205,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
                 <Heart
                   size={28}
                   color={isLiked ? '#FF3040' : '#FFFFFF'}
-                  fill={isLiked ? '#FF3040' : 'transparent'}
+                  fill={isLiked ? '#FF3040' : 'white'}
                 />
               </TouchableOpacity>
               <Text style={styles.actionText}>
@@ -215,9 +215,9 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
             <TouchableOpacity style={styles.actionButton} onPress={handleSave}>
               <Bookmark
-                size={28}
-                color={isSaved ? '#FFFFFF' : '#FFFFFF'}
-                fill={isSaved ? '#FFFFFF' : 'transparent'}
+                size={30}
+                color={'transparent'}
+                fill={isSaved ? 'orange' : 'white'}
               />
             </TouchableOpacity>
 
@@ -393,10 +393,7 @@ const styles = StyleSheet.create({
     marginRight: 48,
   },
   commentItem: {
-    marginBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 12,
-    padding: 12,
+    marginBottom: 12,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -457,20 +454,13 @@ const styles = StyleSheet.create({
   },
   rightActions: {
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
   },
   actionContainer: {
     alignItems: 'center',
   },
   actionButton: {
-    padding: 8,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 4,
   },
   actionText: {
     fontSize: 13,
@@ -491,7 +481,7 @@ const styles = StyleSheet.create({
     padding: 12,
     minWidth: 200,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,

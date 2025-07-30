@@ -55,46 +55,6 @@ export default function ResultScreen() {
       {/* Feed Content */}
       {/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
       <FoodContentMap items={dishes} onIndexChange={handleIndexChange} />
-
-      {/* Completion Modal */}
-      <Modal
-        visible={showCompletionModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowCompletionModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.completionModal}>
-            <Text style={styles.completionTitle}>
-              これ以上出すと迷っちゃうし、ここから選ぼう！
-            </Text>
-            {/* <Text style={styles.completionMessage}>おすすめに戻りますか？</Text> */}
-
-            <View style={styles.completionActions}>
-              <TouchableOpacity
-                style={styles.returnButton}
-                onPress={() => setShowCompletionModal(false)}
-              >
-                <RotateCcw size={20} color="#666" />
-                <Text style={styles.returnButtonText}>ここから選ぶ</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.searchOtherButton}
-                onPress={handleReturnToCards}
-              >
-                <LinearGradient
-                  colors={['#5EA2FF', '#357AFF']}
-                  style={styles.searchOtherGradient}
-                >
-                  <Search size={20} color="#FFF" />
-                  <Text style={styles.searchOtherButtonText}>他の料理を見る</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </LinearGradient>
   );
 }
@@ -118,96 +78,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  completionModal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 32,
-    width: '80%',
-    maxWidth: 320,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  completionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 12,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-    lineHeight: 28,
-  },
-  completionMessage: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 32,
-    textAlign: 'center',
-    lineHeight: 24,
-    fontWeight: '500',
-  },
-  completionActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  returnButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F8F9FA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  returnButtonText: {
-    fontSize: 15,
-    color: '#6B7280',
-    fontWeight: '600',
-    marginLeft: 6,
-    letterSpacing: 0.2,
-  },
-  searchOtherButton: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#5EA2FF',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 8,
-  },
-  searchOtherGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  searchOtherButtonText: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    elevation: 6,
   },
 });
