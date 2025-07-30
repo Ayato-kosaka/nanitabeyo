@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import FoodContentFeed from '@/components/FoodContentFeed';
 import { useSearchStore } from '@/stores/useSearchStore';
 import FoodContentMap from '@/components/FoodContentMap';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ResultScreen() {
   const { topicId } = useLocalSearchParams<{
@@ -43,7 +44,7 @@ export default function ResultScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.container}>
       {/* Header with Back Button */}
       <View style={styles.closeButtonContainer}>
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
@@ -82,21 +83,25 @@ export default function ResultScreen() {
                 style={styles.searchOtherButton}
                 onPress={handleReturnToCards}
               >
-                <Search size={20} color="#FFF" />
-                <Text style={styles.searchOtherButtonText}>他の料理を見る</Text>
+                <LinearGradient
+                  colors={['#5EA2FF', '#357AFF']}
+                  style={styles.searchOtherGradient}
+                >
+                  <Search size={20} color="#FFF" />
+                  <Text style={styles.searchOtherButtonText}>他の料理を見る</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   closeButtonContainer: {
     position: 'absolute',
@@ -110,36 +115,49 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#fff',
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   completionModal: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     padding: 32,
     width: '80%',
     maxWidth: 320,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
   },
   completionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 12,
     textAlign: 'center',
+    letterSpacing: -0.3,
+    lineHeight: 28,
   },
   completionMessage: {
     fontSize: 16,
-    color: '#666',
+    color: '#6B7280',
     marginBottom: 32,
     textAlign: 'center',
     lineHeight: 24,
+    fontWeight: '500',
   },
   completionActions: {
     flexDirection: 'row',
@@ -151,31 +169,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F8F9FA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   returnButtonText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: '#6B7280',
     fontWeight: '600',
     marginLeft: 6,
+    letterSpacing: 0.2,
   },
   searchOtherButton: {
     flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  searchOtherGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: 'rgb(52, 119, 248)',
+    paddingVertical: 16,
+    gap: 8,
   },
   searchOtherButtonText: {
-    fontSize: 14,
-    color: '#FFF',
+    fontSize: 15,
+    color: '#FFFFFF',
     fontWeight: '600',
-    marginLeft: 6,
+    letterSpacing: 0.3,
   },
 });
