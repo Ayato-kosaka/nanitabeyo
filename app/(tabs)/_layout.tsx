@@ -1,26 +1,44 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, MapPin, Bell, User, Code, Search } from 'lucide-react-native';
+import {
+  House as Home,
+  MapPinned,
+  Bell,
+  User,
+  Code,
+  Search,
+} from 'lucide-react-native';
+
+const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#000',
-          borderTopColor: '#333',
-          borderTopWidth: 1,
+        tabBarIconStyle: {
+          display: 'flex',
+          flex: 1,
+          justifyContent: 'center',
         },
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#666',
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 24,
+          elevation: 12,
+        },
+        tabBarActiveTintColor: '#5EA2FF',
+        tabBarInactiveTintColor: '#6B7280',
         tabBarShowLabel: false,
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="(home)"
         options={{
           title: 'ホーム',
           tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
+            <Home size={ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -29,7 +47,7 @@ export default function TabLayout() {
         options={{
           title: '検索',
           tabBarIcon: ({ size, color }) => (
-            <Search size={size} color={color} />
+            <Search size={ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -38,7 +56,7 @@ export default function TabLayout() {
         options={{
           title: 'マップ',
           tabBarIcon: ({ size, color }) => (
-            <MapPin size={size} color={color} />
+            <MapPinned size={ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -47,7 +65,7 @@ export default function TabLayout() {
         options={{
           title: '通知',
           tabBarIcon: ({ size, color }) => (
-            <Bell size={size} color={color} />
+            <Bell size={ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -56,7 +74,7 @@ export default function TabLayout() {
         options={{
           title: 'プロフィール',
           tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} />
+            <User size={ICON_SIZE} color={color} />
           ),
         }}
       />
@@ -65,7 +83,7 @@ export default function TabLayout() {
         options={{
           title: 'デバッグ',
           tabBarIcon: ({ size, color }) => (
-            <Code size={size} color={color} />
+            <Code size={ICON_SIZE} color={color} />
           ),
         }}
       />

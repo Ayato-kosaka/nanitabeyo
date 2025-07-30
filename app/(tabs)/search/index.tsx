@@ -405,7 +405,7 @@ export default function SearchScreen() {
             <TextInput
               style={styles.locationInput}
               placeholder="場所を入力してください"
-              placeholderTextColor="#A0A0A0"
+              placeholderTextColor="#6B7280"
               value={locationQuery}
               onChangeText={handleLocationSearch}
               onFocus={() =>
