@@ -8,21 +8,18 @@ import {
   ScrollView,
   Dimensions,
   SafeAreaView,
-  Modal,
 } from 'react-native';
 import {
   Heart,
   Bookmark,
-  MoveVertical as MoreVertical,
   Calendar,
   Share,
   Star,
   User,
-  MapPin,
   EllipsisVertical,
   MapPinned,
 } from 'lucide-react-native';
-import { FoodItem, Comment } from '@/types';
+import { FoodItem } from '@/types';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useBlurModal } from '@/hooks/useBlurModal';
@@ -252,12 +249,12 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.actionButton}
               onPress={() => openMenuModal()}
             >
               <EllipsisVertical size={28} color="#FFFFFF" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </View>

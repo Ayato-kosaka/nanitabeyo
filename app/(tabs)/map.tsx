@@ -58,7 +58,7 @@ const mockActiveBids: ActiveBid[] = [
   {
     placeId: 'place_1',
     placeName: 'Bella Vista Restaurant',
-    totalAmount: 45000,
+    totalAmount: 15000,
     remainingDays: 12,
     latitude: 35.6762,
     longitude: 139.6503,
