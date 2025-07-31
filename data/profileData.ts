@@ -30,7 +30,7 @@ export const otherUserProfile: UserProfile = {
 export const userPosts: UserPost[] = [
   {
     id: '1',
-    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 15600,
     comments: 234,
     views: 89000,
@@ -38,7 +38,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '2',
-    image: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 23400,
     comments: 456,
     views: 156000,
@@ -46,7 +46,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '3',
-    image: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 18900,
     comments: 312,
     views: 98000,
@@ -54,7 +54,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '4',
-    image: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 12300,
     comments: 189,
     views: 67000,
@@ -62,7 +62,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '5',
-    image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 19800,
     comments: 278,
     views: 112000,
@@ -70,7 +70,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '6',
-    image: 'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 21500,
     comments: 367,
     views: 134000,
@@ -78,7 +78,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '7',
-    image: 'https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 16700,
     comments: 245,
     views: 89000,
@@ -86,7 +86,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '8',
-    image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 14200,
     comments: 198,
     views: 76000,
@@ -94,7 +94,7 @@ export const userPosts: UserPost[] = [
   },
   {
     id: '9',
-    image: 'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 22100,
     comments: 389,
     views: 145000,
@@ -105,7 +105,7 @@ export const userPosts: UserPost[] = [
 export const savedPosts: UserPost[] = [
   {
     id: 's1',
-    image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 45600,
     comments: 789,
     views: 234000,
@@ -113,7 +113,7 @@ export const savedPosts: UserPost[] = [
   },
   {
     id: 's2',
-    image: 'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 38900,
     comments: 567,
     views: 189000,
@@ -121,7 +121,7 @@ export const savedPosts: UserPost[] = [
   },
   {
     id: 's3',
-    image: 'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 52300,
     comments: 892,
     views: 278000,
@@ -129,7 +129,7 @@ export const savedPosts: UserPost[] = [
   },
   {
     id: 's4',
-    image: 'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 41200,
     comments: 634,
     views: 198000,
@@ -137,7 +137,7 @@ export const savedPosts: UserPost[] = [
   },
   {
     id: 's5',
-    image: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 29800,
     comments: 445,
     views: 156000,
@@ -145,7 +145,7 @@ export const savedPosts: UserPost[] = [
   },
   {
     id: 's6',
-    image: 'https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 36700,
     comments: 523,
     views: 167000,
@@ -156,7 +156,7 @@ export const savedPosts: UserPost[] = [
 export const likedPosts: UserPost[] = [
   {
     id: 'l1',
-    image: 'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 67800,
     comments: 1234,
     views: 345000,
@@ -164,7 +164,7 @@ export const likedPosts: UserPost[] = [
   },
   {
     id: 'l2',
-    image: 'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 54300,
     comments: 987,
     views: 267000,
@@ -172,7 +172,7 @@ export const likedPosts: UserPost[] = [
   },
   {
     id: 'l3',
-    image: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 43200,
     comments: 756,
     views: 198000,
@@ -180,7 +180,7 @@ export const likedPosts: UserPost[] = [
   },
   {
     id: 'l4',
-    image: 'https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 38900,
     comments: 612,
     views: 176000,
@@ -188,7 +188,7 @@ export const likedPosts: UserPost[] = [
   },
   {
     id: 'l5',
-    image: 'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 49600,
     comments: 834,
     views: 223000,
@@ -196,7 +196,7 @@ export const likedPosts: UserPost[] = [
   },
   {
     id: 'l6',
-    image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 56700,
     comments: 1089,
     views: 289000,
@@ -204,7 +204,7 @@ export const likedPosts: UserPost[] = [
   },
   {
     id: 'l7',
-    image: 'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 41800,
     comments: 678,
     views: 187000,
@@ -212,7 +212,7 @@ export const likedPosts: UserPost[] = [
   },
   {
     id: 'l8',
-    image: 'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
+    imageUrl: 'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=400&h=711',
     likes: 35400,
     comments: 567,
     views: 156000,

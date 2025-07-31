@@ -32,6 +32,7 @@ import { AvatarBubbleMarker } from '@/components/AvatarBubbleMarker';
 import { useBlurModal } from '@/hooks/useBlurModal';
 import { Card } from '@/components/Card';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { ImageCardGrid } from '@/components/ImageCardGrid';
 
 const { width, height } = Dimensions.get('window');
 
@@ -330,7 +331,7 @@ export default function MapScreen() {
         {[...Array(5)].map((_, index) => (
           <Star
             key={index}
-            size={16}
+            size={12}
             color="#FFD700"
             fill={index < rating ? '#FFD700' : 'transparent'}
           />
@@ -490,30 +491,22 @@ export default function MapScreen() {
 
             {/* Tab Content */}
             {selectedTab === 'reviews' ? (
-              <View style={styles.reviewsContent}>
-                {mockReviews.map((review) => (
-                  <TouchableOpacity key={review.id} style={styles.reviewCard}>
-                    <Image
-                      source={{ uri: review.imageUrl }}
-                      style={styles.reviewCardImage}
-                    />
-                    <View style={styles.reviewCardOverlay}>
-                      <Text style={styles.reviewCardTitle}>
-                        {review.dishName}
-                      </Text>
-                      <View style={styles.reviewCardRating}>
-                        {renderStars(review.rating)}
-                        <Text style={styles.reviewCardRatingText}>
-                          ({review.reviewCount})
-                        </Text>
-                      </View>
-                      <Text style={styles.reviewCardPrice}>
-                        ¥{review.price.toLocaleString()}
+              <ImageCardGrid
+                data={mockReviews}
+                renderOverlay={(review) => (
+                  <View style={styles.reviewCardOverlay}>
+                    <Text style={styles.reviewCardTitle}>
+                      {review.dishName}
+                    </Text>
+                    <View style={styles.reviewCardRating}>
+                      {renderStars(review.rating)}
+                      <Text style={styles.reviewCardRatingText}>
+                        ({review.reviewCount})
                       </Text>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                  </View>
+                )}
+              />
             ) : (
               <View style={styles.bidsContent}>
                 {/* Status Filter Chips */}
@@ -839,31 +832,13 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '600',
   },
-  reviewsContent: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginHorizontal: 16,
-  },
-  reviewCard: {
-    width: '48%',
-    aspectRatio: 9 / 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  reviewCardImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
   reviewCardOverlay: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 8,
+    bottom: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   reviewCardTitle: {
     fontSize: 12,
@@ -880,12 +855,8 @@ const styles = StyleSheet.create({
     color: '#FFF',
     marginLeft: 4,
   },
-  reviewCardPrice: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
   bidsContent: {
+    paddingHorizontal: 16,
     gap: 12,
   },
   bidHistoryCard: {

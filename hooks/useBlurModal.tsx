@@ -173,7 +173,9 @@ export function useBlurModal({
 /*                               スタイル定義                                  */
 /* -------------------------------------------------------------------------- */
 const styles = StyleSheet.create({
-  contentContainer: {},
+  contentContainer: {
+    paddingBottom: 32,
+  },
   closeButton: {
     position: 'absolute',
     backgroundColor: 'transparent',

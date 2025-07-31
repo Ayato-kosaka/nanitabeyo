@@ -38,6 +38,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import { useBlurModal } from '@/hooks/useBlurModal';
 import { Card } from '@/components/Card';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { ImageCardGrid } from '@/components/ImageCardGrid';
 
 const { width } = Dimensions.get('window');
 const Tab = createMaterialTopTabNavigator();
@@ -281,30 +282,6 @@ function EarningsScreen() {
     selectedEarningStatuses.includes(earning.status)
   );
 
-  const renderEarningItem = ({ item }: { item: EarningItem }) => (
-    <TouchableOpacity style={styles.postItem}>
-      <Image source={{ uri: item.imageUrl }} style={styles.earningCardImage} />
-      <View style={styles.earningCardOverlay}>
-        <Text style={styles.earningCardTitle}>{item.dishName}</Text>
-        <Text style={styles.earningCardAmount}>
-          ¥{item.earnings.toLocaleString()}
-        </Text>
-        <View
-          style={[
-            styles.statusChip,
-            {
-              backgroundColor: item.status === 'paid' ? '#4CAF50' : '#FF9800',
-            },
-          ]}
-        >
-          <Text style={styles.statusText}>
-            {item.status === 'paid' ? '支払済み' : '保留中'}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.tabContent}>
       {/* Status Filter Chips */}
@@ -340,15 +317,29 @@ function EarningsScreen() {
 
       {/* Filtered Results */}
       {filteredEarnings.length > 0 ? (
-        <FlatList
+        <ImageCardGrid
           data={filteredEarnings}
-          renderItem={renderEarningItem}
-          keyExtractor={(item) => item.id}
-          numColumns={3}
-          scrollEnabled={false}
-          contentContainerStyle={styles.postsGrid}
-          columnWrapperStyle={styles.postsRow}
-          showsVerticalScrollIndicator={false}
+          containerStyle={{ marginVertical: 16 }}
+          renderOverlay={(item) => (
+            <View style={styles.earningCardOverlay}>
+              <Text style={styles.earningCardAmount}>
+                ¥{item.earnings.toLocaleString()}
+              </Text>
+              <View
+                style={[
+                  styles.statusChip,
+                  {
+                    backgroundColor:
+                      item.status === 'paid' ? '#4CAF50' : '#FF9800',
+                  },
+                ]}
+              >
+                <Text style={styles.statusText}>
+                  {item.status === 'paid' ? '支払済み' : '保留中'}
+                </Text>
+              </View>
+            </View>
+          )}
         />
       ) : (
         <View style={styles.emptyStateContainer}>
@@ -489,28 +480,6 @@ export default function ProfileScreen() {
   const handlePostPress = (index: number) => {
     router.push(`/(tabs)/profile/food?startIndex=${index}`);
   };
-
-  const renderPost = ({ item, index }: { item: UserPost; index: number }) => (
-    <TouchableOpacity
-      style={styles.postItem}
-      onPress={() => handlePostPress(index)}
-      activeOpacity={0.9}
-    >
-      <Image source={{ uri: item.image }} style={styles.postImage} />
-
-      {/* Stats overlay */}
-      <View style={styles.statsOverlay}>
-        <View style={styles.statItem}>
-          <Heart size={14} color="#FFFFFF" fill="#FFFFFF" />
-          <Text style={styles.statText}>{formatNumber(item.likes)}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <MessageCircle size={14} color="#FFFFFF" />
-          <Text style={styles.statText}>{formatNumber(item.comments)}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
 
   const renderTabIcon = (tab: TabType) => {
     const isActive = selectedTab === tab;
@@ -676,14 +645,25 @@ export default function ProfileScreen() {
               </View>
             </View>
           ) : (
-            <FlatList
+            <ImageCardGrid
               data={getCurrentPosts()}
-              renderItem={renderPost}
-              numColumns={3}
-              scrollEnabled={false}
-              contentContainerStyle={styles.postsGrid}
-              columnWrapperStyle={styles.postsRow}
-              showsVerticalScrollIndicator={false}
+              containerStyle={{ marginVertical: 16 }}
+              renderOverlay={(item) => (
+                <View style={styles.statsOverlay}>
+                  <View style={styles.statItem}>
+                    <Heart size={14} color="#FFFFFF" fill="#FFFFFF" />
+                    <Text style={styles.statText}>
+                      {formatNumber(item.likes)}
+                    </Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <MessageCircle size={14} color="#FFFFFF" />
+                    <Text style={styles.statText}>
+                      {formatNumber(item.comments)}
+                    </Text>
+                  </View>
+                </View>
+              )}
             />
           )}
         </View>
@@ -891,30 +871,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  postsGrid: {
-    padding: 16,
-  },
-  postsRow: {
-    justifyContent: 'flex-start',
-  },
-  postItem: {
-    width: (width - 16 * 2 - 1 * 2) / 3,
-    height: ((width - 16 * 2 - 1 * 2) / 3) * (16 / 9),
-    margin: 1,
-    position: 'relative',
-    backgroundColor: '#F8F9FA',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  postImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
   statsOverlay: {
     position: 'absolute',
     bottom: 8,
@@ -1035,26 +991,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  earningCardImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
   earningCardOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     padding: 8,
-  },
-  earningCardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFF',
-    flex: 1,
-    marginRight: 8,
-    letterSpacing: -0.2,
   },
   earningCardAmount: {
     fontSize: 15,

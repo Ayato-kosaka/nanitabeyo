@@ -46,7 +46,7 @@ export interface UserProfile {
 
 export interface UserPost {
   id: string;
-  image: string;
+  imageUrl: string;
   likes: number;
   comments: number;
   views: number;
