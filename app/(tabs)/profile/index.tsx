@@ -6,22 +6,20 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  SafeAreaView,
   Dimensions,
   FlatList,
   Modal,
   TextInput,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
-  MoveHorizontal as MoreHorizontal,
+  Settings,
   Share,
-  CreditCard as Edit3,
-  Play,
+  Pencil as Edit3,
   Heart,
   MessageCircle,
-  Eye,
   Lock,
   Grid3x3 as Grid3X3,
   Bookmark,
@@ -39,7 +37,7 @@ import {
   likedPosts,
 } from '@/data/profileData';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 const Tab = createMaterialTopTabNavigator();
@@ -270,7 +268,7 @@ function EarningsScreen() {
   );
 
   const renderEarningItem = ({ item }: { item: EarningItem }) => (
-    <TouchableOpacity style={styles.earningCard}>
+    <TouchableOpacity style={styles.postItem}>
       <Image source={{ uri: item.imageUrl }} style={styles.earningCardImage} />
       <View style={styles.earningCardOverlay}>
         <Text style={styles.earningCardTitle}>{item.dishName}</Text>
@@ -332,8 +330,10 @@ function EarningsScreen() {
           data={filteredEarnings}
           renderItem={renderEarningItem}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.earningsGrid}
+          numColumns={3}
+          scrollEnabled={false}
+          contentContainerStyle={styles.postsGrid}
+          columnWrapperStyle={styles.postsRow}
           showsVerticalScrollIndicator={false}
         />
       ) : (
@@ -353,14 +353,33 @@ function WalletTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#CCCCCC',
+        tabBarActiveTintColor: '#5EA2FF',
+        tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          backgroundColor: '#000',
+          marginHorizontal: 16,
+          marginTop: 16,
+          backgroundColor: 'transparent',
+          shadowColor: 'transparent',
+          elevation: 0,
         },
         tabBarIndicatorStyle: {
-          backgroundColor: '#FFFFFF',
+          height: '100%',
+          backgroundColor: 'white',
+          borderRadius: 32,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.1,
+          shadowRadius: 16,
+          elevation: 4,
         },
+        tabBarItemStyle: {
+          flexDirection: 'row',
+          paddingHorizontal: 16,
+        },
+        sceneStyle: {
+          backgroundColor: 'transparent',
+        },
+        // tabBarPressColor: 'transparent',
       }}
     >
       <Tab.Screen
@@ -461,18 +480,6 @@ export default function ProfileScreen() {
     >
       <Image source={{ uri: item.image }} style={styles.postImage} />
 
-      {/* Video duration overlay */}
-      {item.duration && (
-        <View style={styles.durationOverlay}>
-          <Text style={styles.durationText}>{item.duration}</Text>
-        </View>
-      )}
-
-      {/* Play icon overlay */}
-      <View style={styles.playOverlay}>
-        <Play size={20} color="#FFFFFF" fill="#FFFFFF" />
-      </View>
-
       {/* Stats overlay */}
       <View style={styles.statsOverlay}>
         <View style={styles.statItem}>
@@ -489,7 +496,7 @@ export default function ProfileScreen() {
 
   const renderTabIcon = (tab: TabType) => {
     const isActive = selectedTab === tab;
-    const iconColor = isActive ? '#FFFFFF' : '#666';
+    const iconColor = isActive ? '#5EA2FF' : '#666';
 
     switch (tab) {
       case 'posts':
@@ -521,19 +528,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const getTabLabel = (tab: TabType): string => {
-    switch (tab) {
-      case 'posts':
-        return `投稿 ${formatNumber(profile.postsCount)}`;
-      case 'saved':
-        return '保存済み';
-      case 'wallet':
-        return 'ウォレット';
-      case 'liked':
-        return 'いいね';
-    }
-  };
-
   const shouldShowTab = (tab: TabType): boolean => {
     if (isOwnProfile) return true;
     // For other users, only show posts tab
@@ -549,13 +543,21 @@ export default function ProfileScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <ArrowLeft size={24} color="#FFFFFF" />
+            <ArrowLeft size={24} color="#1A1A1A" />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>{profile.username}</Text>
-        <TouchableOpacity style={styles.moreButton}>
-          <MoreHorizontal size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={handleShareProfile}
+          >
+            <Share size={24} color="#1A1A1A" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.moreButton}>
+            <Settings size={24} color="#1A1A1A" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -604,15 +606,6 @@ export default function ProfileScreen() {
                   <Edit3 size={16} color="#FFFFFF" />
                   <Text style={styles.editButtonText}>プロフィールを編集</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.shareButton}
-                  onPress={handleShareProfile}
-                >
-                  <Share size={16} color="#FFFFFF" />
-                  <Text style={styles.shareButtonText}>
-                    プロフィールをシェア
-                  </Text>
-                </TouchableOpacity>
               </>
             ) : (
               <>
@@ -650,20 +643,12 @@ export default function ProfileScreen() {
               onPress={() => setSelectedTab(tab)}
             >
               {renderTabIcon(tab)}
-              <Text
-                style={[
-                  styles.tabText,
-                  selectedTab === tab && styles.activeTabText,
-                ]}
-              >
-                {getTabLabel(tab)}
-              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Posts Grid */}
-        <View style={styles.postsContainer}>
+        <View style={[styles.postsContainer, { marginTop: 0 }]}>
           {selectedTab === 'wallet' ? (
             <WalletTabs />
           ) : selectedTab === 'saved' && !isOwnProfile ? (
@@ -692,19 +677,15 @@ export default function ProfileScreen() {
         visible={showEditModal}
         animationType="slide"
         presentationStyle="pageSheet"
+        transparent={true}
+        onRequestClose={() => setShowEditModal(false)}
       >
-        <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowEditModal(false)}>
-              <X size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>プロフィールを編集</Text>
-            <TouchableOpacity onPress={handleSaveProfile}>
-              <Text style={styles.saveText}>保存</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
+        <BlurView intensity={100} style={styles.modalContainer}>
+          <Pressable
+            onPress={() => setShowEditModal(false)}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <ScrollView pointerEvents="box-none" style={styles.modalContent}>
             <View style={styles.editSection}>
               <Text style={styles.editLabel}>自己紹介</Text>
               <TextInput
@@ -717,8 +698,14 @@ export default function ProfileScreen() {
                 placeholderTextColor="#666"
               />
             </View>
+            <TouchableOpacity
+              style={styles.editSaveButton}
+              onPress={handleSaveProfile}
+            >
+              <Text style={styles.saveText}>保存</Text>
+            </TouchableOpacity>
           </ScrollView>
-        </LinearGradient>
+        </BlurView>
       </Modal>
     </LinearGradient>
   );
@@ -734,7 +721,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -749,13 +736,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1A1A1A',
     letterSpacing: -0.5,
   },
   moreButton: {
     padding: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   content: {
     flex: 1,
@@ -840,10 +825,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 6,
     shadowColor: '#5EA2FF',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 16,
+    elevation: 10,
   },
   editButtonText: {
     fontSize: 15,
@@ -852,25 +837,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   shareButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#6B7280',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  shareButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
+    padding: 4,
   },
   followButton: {
     flex: 1,
@@ -920,37 +887,20 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    marginTop: 32,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     gap: 6,
   },
   activeTab: {
-    backgroundColor: '#5EA2FF',
-    borderRadius: 12,
-    margin: 4,
-  },
-  tabText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    borderBottomWidth: 2,
+    borderBottomColor: '#5EA2FF',
   },
   postsContainer: {
     flex: 1,
@@ -981,19 +931,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   postsGrid: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    padding: 16,
   },
   postsRow: {
     justifyContent: 'flex-start',
   },
   postItem: {
-    width: (width - 4) / 3,
-    height: ((width - 4) / 3) * (16 / 9),
-    margin: 4,
+    width: (width - 16 * 2 - 1 * 2) / 3,
+    height: ((width - 16 * 2 - 1 * 2) / 3) * (16 / 9),
+    margin: 1,
     position: 'relative',
     backgroundColor: '#F8F9FA',
-    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1005,29 +953,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-  },
-  durationOverlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  durationText: {
-    fontSize: 10,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  playOverlay: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -10 }, { translateY: -10 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 12,
-    padding: 5,
   },
   statsOverlay: {
     position: 'absolute',
@@ -1050,30 +975,6 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#000',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  saveText: {
-    fontSize: 17,
-    color: '#5EA2FF',
-    fontWeight: '600',
-  },
   modalContent: {
     flex: 1,
     padding: 16,
@@ -1082,12 +983,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginVertical: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 32,
+    elevation: 12,
   },
   editLabel: {
     fontSize: 17,
@@ -1110,6 +1011,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  saveText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  editSaveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#5EA2FF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    gap: 6,
+    shadowColor: '#5EA2FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 32,
+    elevation: 12,
   },
   tabContent: {
     flex: 1,
@@ -1169,9 +1092,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
-  earningsGrid: {
-    padding: 16,
-  },
   earningCard: {
     flex: 1,
     aspectRatio: 9 / 16,
@@ -1197,8 +1117,6 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     padding: 8,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
   },
   earningCardTitle: {
     fontSize: 13,
@@ -1215,7 +1133,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   statusFilterContainer: {
-    paddingVertical: 8,
+    flexGrow: 0,
+    paddingTop: 8,
     paddingHorizontal: 16,
   },
   statusFilterContent: {
@@ -1225,7 +1144,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#EDEFF1',
     marginHorizontal: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1244,7 +1163,7 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     flex: 1,
-    paddingHorizontal: 16,
+    padding: 16,
   },
   emptyStateCard: {
     backgroundColor: '#FFFFFF',
