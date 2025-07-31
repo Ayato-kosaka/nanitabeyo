@@ -28,6 +28,7 @@ import {
 import MapView, { Marker, Region } from '@/components/MapView';
 import { useLocationSearch } from '@/hooks/useLocationSearch';
 import { GooglePlacesPrediction } from '@/types/search';
+import { AvatarBubbleMarker } from '@/components/AvatarBubbleMarker';
 
 const { width, height } = Dimensions.get('window');
 
@@ -186,12 +187,6 @@ export default function MapScreen() {
     });
   }, []);
 
-  const getBidColor = (amount: number): string => {
-    if (amount < 30000) return '#4CAF50'; // Green
-    if (amount < 50000) return '#FF9800'; // Orange
-    return '#F44336'; // Red
-  };
-
   const getBidStatusColor = (status: string): string => {
     switch (status) {
       case 'active':
@@ -339,11 +334,12 @@ export default function MapScreen() {
         onRegionChangeComplete={setCurrentRegion}
       >
         {mockActiveBids.map((bid) => (
-          <Marker
+          <AvatarBubbleMarker
             key={bid.placeId}
             coordinate={{ latitude: bid.latitude, longitude: bid.longitude }}
             onPress={() => handleMarkerPress(bid)}
-            pinColor={getBidColor(bid.totalAmount)}
+            color="#FFF"
+            uri="https://lh3.googleusercontent.com/gps-cs-s/AC9h4np7DkWIEo4c-6z3PcCXqDGQg2FA6tQzjMZcVk3AxlY5WTmL-nitVotmHXsCXQ6EWSMZq-N17c7nTkQ5H0dqp8nLyL0GPh1Hd16F30edR7YKEablN-HZgXVm97EXOsAyuKkKjpWnOA=w520-h350-n-k-no" // 仮
           />
         ))}
       </MapView>

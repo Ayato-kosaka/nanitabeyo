@@ -20,7 +20,7 @@ import type {
 import { OverlayView } from '@react-google-maps/api';
 import { MapPin } from 'lucide-react-native';
 import { Env } from '@/constants/Env';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Image, View } from 'react-native';
 
 /** ─────────────────────────────────────────────────────────────
  *  ネイティブと API 互換にするためのハンドル
@@ -36,7 +36,7 @@ export const Marker: React.FC<MarkerProps> = ({
   title,
   onPress,
   testID,
-  pinColor,
+  children,
 }) => {
   const handleClick = useCallback(() => {
     if (!onPress) return;
@@ -53,15 +53,13 @@ export const Marker: React.FC<MarkerProps> = ({
     onPress(event);
   }, [onPress, testID]);
 
-  return pinColor ? (
+  return children ? (
     <OverlayView
       position={{ lat: coordinate.latitude, lng: coordinate.longitude }}
       mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
     >
       <TouchableOpacity onPress={handleClick} testID={testID}>
-        <div style={{ transform: 'translate(-50%, -100%)' }}>
-          <MapPin fill={pinColor} color="white" size={40} />
-        </div>
+        <div style={{ transform: 'translate(-50%, -100%)' }}>{children}</div>
       </TouchableOpacity>
     </OverlayView>
   ) : (

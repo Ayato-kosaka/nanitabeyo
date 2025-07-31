@@ -4,6 +4,7 @@ import Carousel from 'react-native-reanimated-carousel';
 import MapView, { Marker, Region } from '@/components/MapView';
 import FoodContentScreen from './FoodContentScreen';
 import { FoodItem } from '@/types';
+import { AvatarBubbleMarker } from './AvatarBubbleMarker';
 
 const { width, height } = Dimensions.get('window');
 
@@ -113,12 +114,13 @@ export default function FoodContentMap({
       <View style={styles.mapContainer}>
         <MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
           {coordinates.map((coordinate, index) => (
-            <Marker
+            <AvatarBubbleMarker
               key={`marker-${index}`}
               coordinate={coordinate}
               title={items[index]?.name}
-              pinColor={index === currentIndex ? 'rgb(52, 119, 248)' : 'gray'}
               onPress={() => handleMarkerPress(index)}
+              uri={items[index]?.image}
+              color={index === currentIndex ? 'rgb(52, 119, 248)' : '#FFF'}
             />
           ))}
         </MapView>
