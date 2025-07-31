@@ -38,6 +38,7 @@ import {
 } from '@/data/profileData';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { BlurView } from 'expo-blur';
+import { useBlurModal } from '@/hooks/useBlurModal';
 
 const { width } = Dimensions.get('window');
 const Tab = createMaterialTopTabNavigator();
@@ -70,7 +71,8 @@ const mockBids: BidItem[] = [
     bidAmount: 15000,
     remainingDays: 12,
     status: 'active',
-    restaurantImageUrl: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
+    restaurantImageUrl:
+      'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
     imageUrl:
       'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
@@ -80,7 +82,8 @@ const mockBids: BidItem[] = [
     bidAmount: 8000,
     remainingDays: 5,
     status: 'active',
-    restaurantImageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
+    restaurantImageUrl:
+      'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
     imageUrl:
       'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
@@ -156,7 +159,9 @@ function DepositsScreen() {
           onError={() => console.log('Failed to load restaurant image')}
         />
         <View style={styles.depositInfo}>
-          <Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
+          <Text style={styles.depositRestaurantName}>
+            {item.restaurantName}
+          </Text>
           <Text style={styles.depositAmount}>
             ¥{item.bidAmount.toLocaleString()}
           </Text>
@@ -415,7 +420,11 @@ function WalletTabs() {
 export default function ProfileScreen() {
   const { userId } = useLocalSearchParams();
   const [selectedTab, setSelectedTab] = useState<TabType>('posts');
-  const [showEditModal, setShowEditModal] = useState(false);
+  const {
+    BlurModal,
+    open: openEditModal,
+    close: closeEditModal,
+  } = useBlurModal({ intensity: 100 });
   const [editedBio, setEditedBio] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
 
@@ -465,13 +474,13 @@ export default function ProfileScreen() {
 
   const handleEditProfile = () => {
     setEditedBio(profile.bio);
-    setShowEditModal(true);
+    openEditModal();
   };
 
   const handleSaveProfile = () => {
     // In a real app, this would update the profile via API
     console.log('Saving profile with bio:', editedBio);
-    setShowEditModal(false);
+    closeEditModal();
   };
 
   const handleShareProfile = () => {
@@ -683,40 +692,26 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Edit Profile Modal */}
-      <Modal
-        visible={showEditModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        transparent={true}
-        onRequestClose={() => setShowEditModal(false)}
-      >
-        <BlurView intensity={100} style={styles.modalContainer}>
-          <Pressable
-            onPress={() => setShowEditModal(false)}
-            style={StyleSheet.absoluteFillObject}
+      <BlurModal animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.editSection}>
+          <Text style={styles.editLabel}>自己紹介</Text>
+          <TextInput
+            style={styles.editInput}
+            value={editedBio}
+            onChangeText={setEditedBio}
+            multiline
+            numberOfLines={4}
+            placeholder="自己紹介を入力してください..."
+            placeholderTextColor="#666"
           />
-          <ScrollView pointerEvents="box-none" style={styles.modalContent}>
-            <View style={styles.editSection}>
-              <Text style={styles.editLabel}>自己紹介</Text>
-              <TextInput
-                style={styles.editInput}
-                value={editedBio}
-                onChangeText={setEditedBio}
-                multiline
-                numberOfLines={4}
-                placeholder="自己紹介を入力してください..."
-                placeholderTextColor="#666"
-              />
-            </View>
-            <TouchableOpacity
-              style={styles.editSaveButton}
-              onPress={handleSaveProfile}
-            >
-              <Text style={styles.saveText}>保存</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </BlurView>
-      </Modal>
+        </View>
+        <TouchableOpacity
+          style={styles.editSaveButton}
+          onPress={handleSaveProfile}
+        >
+          <Text style={styles.saveText}>保存</Text>
+        </TouchableOpacity>
+      </BlurModal>
     </LinearGradient>
   );
 }
@@ -975,13 +970,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#FFFFFF',
     fontWeight: '500',
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
   },
   editSection: {
     backgroundColor: '#FFFFFF',

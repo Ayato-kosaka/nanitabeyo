@@ -25,6 +25,7 @@ import {
 import { FoodItem, Comment } from '@/types';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useBlurModal } from '@/hooks/useBlurModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,7 +47,11 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
   const [isSaved, setIsSaved] = useState(item.isSaved);
   const [isLiked, setIsLiked] = useState(item.isLiked);
   const [likesCount, setLikesCount] = useState(item.likes);
-  const [showMenu, setShowMenu] = useState(false);
+  const {
+    BlurModal,
+    open: openMenuModal,
+    close: closeMenuModal,
+  } = useBlurModal({ intensity: 100 });
   const [commentLikes, setCommentLikes] = useState<{
     [key: string]: { isLiked: boolean; count: number };
   }>({});
@@ -249,7 +254,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => setShowMenu(true)}
+              onPress={() => openMenuModal()}
             >
               <EllipsisVertical size={28} color="#FFFFFF" />
             </TouchableOpacity>
@@ -258,34 +263,26 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
       </View>
 
       {/* Menu Modal */}
-      <Modal
-        visible={showMenu}
-        transparent={true}
+      <BlurModal
         animationType="fade"
-        onRequestClose={() => setShowMenu(false)}
+        contentContainerStyle={styles.modalOverlay}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenu(false)}
-        >
-          <View style={styles.menuContainer}>
-            {menuOptions.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.menuItem}
-                onPress={() => {
-                  option.onPress();
-                  setShowMenu(false);
-                }}
-              >
-                <option.icon size={20} color="#FFFFFF" />
-                <Text style={styles.menuItemText}>{option.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        <View style={styles.menuContainer}>
+          {menuOptions.map((option, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.menuItem}
+              onPress={() => {
+                option.onPress();
+                closeMenuModal();
+              }}
+            >
+              <option.icon size={20} color="#FFFFFF" />
+              <Text style={styles.menuItemText}>{option.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </BlurModal>
     </SafeAreaView>
   );
 }
@@ -488,8 +485,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
