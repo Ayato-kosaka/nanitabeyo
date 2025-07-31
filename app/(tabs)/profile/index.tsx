@@ -552,10 +552,10 @@ export default function ProfileScreen() {
             style={styles.shareButton}
             onPress={handleShareProfile}
           >
-            <Share size={24} color="#1A1A1A" />
+            <Share size={24} color="#666" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.moreButton}>
-            <Settings size={24} color="#1A1A1A" />
+          <TouchableOpacity style={styles.settingButton}>
+            <Settings size={24} color="#666" />
           </TouchableOpacity>
         </View>
       </View>
@@ -721,12 +721,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   backButton: {
     padding: 4,
@@ -739,7 +733,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     letterSpacing: -0.5,
   },
-  moreButton: {
+  settingButton: {
+    padding: 4,
+  },
+  shareButton: {
     padding: 4,
   },
   content: {
@@ -835,9 +832,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.2,
-  },
-  shareButton: {
-    padding: 4,
   },
   followButton: {
     flex: 1,

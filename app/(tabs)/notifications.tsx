@@ -140,13 +140,15 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Notifications List */}
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {notifications.map(renderNotificationItem)}
-      </ScrollView>
+      <View style={styles.notificationContainer}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {notifications.map(renderNotificationItem)}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -189,9 +191,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  scrollView: {
+  notificationContainer: {
     flex: 1,
     marginTop: 16,
+    paddingTop: 64,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     shadowColor: '#000',
@@ -200,8 +203,11 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 10,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: 16,
     gap: 12,
   },
   notificationItem: {
