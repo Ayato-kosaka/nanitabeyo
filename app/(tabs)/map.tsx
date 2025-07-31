@@ -29,6 +29,9 @@ import MapView, { Marker, Region } from '@/components/MapView';
 import { useLocationSearch } from '@/hooks/useLocationSearch';
 import { GooglePlacesPrediction } from '@/types/search';
 import { AvatarBubbleMarker } from '@/components/AvatarBubbleMarker';
+import { useBlurModal } from '@/hooks/useBlurModal';
+import { Card } from '@/components/Card';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 const { width, height } = Dimensions.get('window');
 
@@ -142,9 +145,6 @@ const mockBidHistory = [
 
 export default function MapScreen() {
   const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
-  const [showBottomSheet, setShowBottomSheet] = useState(false);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [showBidModal, setShowBidModal] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'reviews' | 'bids'>('reviews');
   const [searchQuery, setSearchQuery] = useState('');
   const [bidAmount, setBidAmount] = useState('');
@@ -152,6 +152,21 @@ export default function MapScreen() {
   const [rating, setRating] = useState(5);
   const [price, setPrice] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const {
+    BlurModal: RestaurantBlurModal,
+    open: openRestaurantModal,
+    close: closeRestaurantModal,
+  } = useBlurModal({ intensity: 100 });
+  const {
+    BlurModal: ReviewBlurModal,
+    open: openReviewModal,
+    close: closeReviewModal,
+  } = useBlurModal({ intensity: 100, zIndex: 1200 });
+  const {
+    BlurModal: BidBlurModal,
+    open: openBidModal,
+    close: closeBidModal,
+  } = useBlurModal({ intensity: 100, zIndex: 1300 });
 
   const mapRef = useRef<any>(null);
   const {
@@ -215,7 +230,7 @@ export default function MapScreen() {
 
   const handleMarkerPress = (bid: ActiveBid) => {
     setSelectedPlace(bid);
-    setShowBottomSheet(true);
+    openRestaurantModal();
   };
 
   const handleSearchSelect = async (prediction: GooglePlacesPrediction) => {
@@ -264,7 +279,7 @@ export default function MapScreen() {
           bidAmount
         ).toLocaleString()}で入札しました`
       );
-      setShowBidModal(false);
+      closeBidModal();
       setBidAmount('');
     } catch (error) {
       Alert.alert('エラー', '入札に失敗しました');
@@ -280,7 +295,7 @@ export default function MapScreen() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       Alert.alert('成功', 'レビューを投稿しました');
-      setShowReviewModal(false);
+      closeReviewModal();
       setReviewText('');
       setPrice('');
       setRating(5);
@@ -386,319 +401,278 @@ export default function MapScreen() {
       </TouchableOpacity>
 
       {/* Bottom Sheet */}
-      <Modal
-        visible={showBottomSheet}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowBottomSheet(false)}
-      >
-        <SafeAreaView style={styles.bottomSheet}>
-          {selectedPlace && (
-            <ScrollView style={styles.bottomSheetContent}>
-              <View style={styles.restaurantHeader}>
-                <View style={styles.restaurantInfo}>
-                  <Image
-                    source={{ uri: selectedPlace.imageUrl }}
-                    style={styles.restaurantAvatar}
-                  />
-                  <View style={styles.restaurantDetails}>
-                    <Text style={styles.restaurantName}>
-                      {selectedPlace.placeName}
+      <RestaurantBlurModal animationType="slide" presentationStyle="pageSheet">
+        {selectedPlace && (
+          <>
+            <Card>
+              <View style={styles.restaurantInfo}>
+                <Image
+                  source={{ uri: selectedPlace.imageUrl }}
+                  style={styles.restaurantAvatar}
+                />
+                <View style={styles.restaurantDetails}>
+                  <Text style={styles.restaurantName}>
+                    {selectedPlace.placeName}
+                  </Text>
+                  <View style={styles.ratingContainer}>
+                    {renderStars(selectedPlace.rating)}
+                    <Text style={styles.ratingText}>
+                      {selectedPlace.rating}
                     </Text>
-                    <View style={styles.ratingContainer}>
-                      {renderStars(selectedPlace.rating)}
-                      <Text style={styles.ratingText}>
-                        {selectedPlace.rating}
-                      </Text>
-                      <Text style={styles.reviewCount}>
-                        ({selectedPlace.reviewCount})
-                      </Text>
-                    </View>
+                    <Text style={styles.reviewCount}>
+                      ({selectedPlace.reviewCount})
+                    </Text>
                   </View>
                 </View>
               </View>
+            </Card>
 
-              <View style={styles.bidAmountContainer}>
-                <Text style={styles.bidAmountLabel}>現在の入札額</Text>
-                <Text style={styles.bidAmount}>
-                  ¥{selectedPlace.totalAmount.toLocaleString()}
-                </Text>
-                <Text style={styles.remainingDays}>
-                  残り{selectedPlace.remainingDays}日
-                </Text>
-              </View>
+            <View style={styles.bidAmountContainer}>
+              <Text style={styles.bidAmountLabel}>現在の入札額</Text>
+              <Text style={styles.bidAmount}>
+                ¥{selectedPlace.totalAmount.toLocaleString()}
+              </Text>
+              <Text style={styles.remainingDays}>
+                残り{selectedPlace.remainingDays}日
+              </Text>
+            </View>
 
-              {/* Action Buttons */}
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.reviewButton}
-                  onPress={() => setShowReviewModal(true)}
-                >
-                  <Camera size={20} color="#007AFF" />
-                  <Text style={styles.reviewButtonText}>レビュー投稿</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.bidButton}
-                  onPress={() => setShowBidModal(true)}
-                >
-                  <DollarSign size={20} color="#007AFF" />
-                  <Text style={styles.bidButtonText}>入札する</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Tabs */}
-              <View style={styles.tabContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    selectedTab === 'reviews' && styles.activeTab,
-                  ]}
-                  onPress={() => setSelectedTab('reviews')}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      selectedTab === 'reviews' && styles.activeTabText,
-                    ]}
-                  >
-                    レビュー
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    selectedTab === 'bids' && styles.activeTab,
-                  ]}
-                  onPress={() => setSelectedTab('bids')}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      selectedTab === 'bids' && styles.activeTabText,
-                    ]}
-                  >
-                    入札
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Tab Content */}
-              {selectedTab === 'reviews' ? (
-                <View style={styles.reviewsContent}>
-                  {mockReviews.map((review) => (
-                    <TouchableOpacity key={review.id} style={styles.reviewCard}>
-                      <Image
-                        source={{ uri: review.imageUrl }}
-                        style={styles.reviewCardImage}
-                      />
-                      <View style={styles.reviewCardOverlay}>
-                        <Text style={styles.reviewCardTitle}>
-                          {review.dishName}
-                        </Text>
-                        <View style={styles.reviewCardRating}>
-                          {renderStars(review.rating)}
-                          <Text style={styles.reviewCardRatingText}>
-                            ({review.reviewCount})
-                          </Text>
-                        </View>
-                        <Text style={styles.reviewCardPrice}>
-                          ¥{review.price.toLocaleString()}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.bidsContent}>
-                  {/* Status Filter Chips */}
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.statusFilterContainer}
-                    contentContainerStyle={styles.statusFilterContent}
-                  >
-                    {bidStatuses.map((status) => (
-                      <TouchableOpacity
-                        key={status.id}
-                        style={[
-                          styles.statusChip,
-                          selectedBidStatuses.includes(status.id) && {
-                            backgroundColor: status.color,
-                          },
-                        ]}
-                        onPress={() => toggleBidStatus(status.id)}
-                      >
-                        <Text
-                          style={[
-                            styles.statusChipText,
-                            selectedBidStatuses.includes(status.id) &&
-                              styles.statusChipTextActive,
-                          ]}
-                        >
-                          {status.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-
-                  {/* Filtered Bid History */}
-                  {filteredBidHistory.length > 0 ? (
-                    filteredBidHistory.map((bid) => (
-                      <View key={bid.id} style={styles.bidHistoryCard}>
-                        <View style={styles.bidHistoryHeader}>
-                          <Text style={styles.bidHistoryAmount}>
-                            ¥{bid.amount.toLocaleString()}
-                          </Text>
-                          <View
-                            style={[
-                              styles.bidStatusChip,
-                              {
-                                backgroundColor: getBidStatusColor(bid.status),
-                              },
-                            ]}
-                          >
-                            <Text style={styles.bidStatusText}>
-                              {getBidStatusText(bid.status)}
-                            </Text>
-                          </View>
-                        </View>
-                        <Text style={styles.bidHistoryDate}>{bid.date}</Text>
-                        <Text style={styles.bidHistoryDays}>
-                          残り{bid.remainingDays}日
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <Text style={styles.emptyStateText}>
-                        選択したステータスの入札がありません
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
-
-      {/* Review Modal */}
-      <Modal
-        visible={showReviewModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowReviewModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowReviewModal(false)}>
-              <X size={24} color="#000" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>レビュー投稿</Text>
-            <TouchableOpacity
-              onPress={handleReviewSubmit}
-              disabled={isProcessing}
-            >
-              <Text style={styles.submitText}>投稿</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>料金</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="料金を入力"
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="numeric"
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <PrimaryButton
+                onPress={() => openReviewModal()}
+                label="レビュー投稿"
+                icon={<Camera size={20} color="#FFF" />}
+                borderRadius={8}
+                style={{ flex: 1 }}
+              />
+              <PrimaryButton
+                onPress={() => openBidModal()}
+                label="入札する"
+                icon={<DollarSign size={20} color="#FFF" />}
+                borderRadius={8}
+                style={{ flex: 1 }}
               />
             </View>
 
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>評価</Text>
-              <View style={styles.ratingInput}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity key={star} onPress={() => setRating(star)}>
-                    <Star
-                      size={32}
-                      color="#FFD700"
-                      fill={star <= rating ? '#FFD700' : 'transparent'}
+            {/* Tabs */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  selectedTab === 'reviews' && styles.activeTab,
+                ]}
+                onPress={() => setSelectedTab('reviews')}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    selectedTab === 'reviews' && styles.activeTabText,
+                  ]}
+                >
+                  レビュー
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, selectedTab === 'bids' && styles.activeTab]}
+                onPress={() => setSelectedTab('bids')}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    selectedTab === 'bids' && styles.activeTabText,
+                  ]}
+                >
+                  入札
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Tab Content */}
+            {selectedTab === 'reviews' ? (
+              <View style={styles.reviewsContent}>
+                {mockReviews.map((review) => (
+                  <TouchableOpacity key={review.id} style={styles.reviewCard}>
+                    <Image
+                      source={{ uri: review.imageUrl }}
+                      style={styles.reviewCardImage}
                     />
+                    <View style={styles.reviewCardOverlay}>
+                      <Text style={styles.reviewCardTitle}>
+                        {review.dishName}
+                      </Text>
+                      <View style={styles.reviewCardRating}>
+                        {renderStars(review.rating)}
+                        <Text style={styles.reviewCardRatingText}>
+                          ({review.reviewCount})
+                        </Text>
+                      </View>
+                      <Text style={styles.reviewCardPrice}>
+                        ¥{review.price.toLocaleString()}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
+            ) : (
+              <View style={styles.bidsContent}>
+                {/* Status Filter Chips */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.statusFilterContainer}
+                  contentContainerStyle={styles.statusFilterContent}
+                >
+                  {bidStatuses.map((status) => (
+                    <TouchableOpacity
+                      key={status.id}
+                      style={[
+                        styles.statusChip,
+                        selectedBidStatuses.includes(status.id) && {
+                          backgroundColor: status.color,
+                        },
+                      ]}
+                      onPress={() => toggleBidStatus(status.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.statusChipText,
+                          selectedBidStatuses.includes(status.id) &&
+                            styles.statusChipTextActive,
+                        ]}
+                      >
+                        {status.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
 
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>コメント</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                placeholder="レビューを入力"
-                value={reviewText}
-                onChangeText={setReviewText}
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Bid Modal */}
-      <Modal
-        visible={showBidModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowBidModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowBidModal(false)}>
-              <X size={24} color="#000" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>入札</Text>
-            <TouchableOpacity
-              onPress={handleBid}
-              disabled={isProcessing || !bidAmount}
-            >
-              <Text style={styles.submitText}>入札</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>入札額</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="入札額を入力"
-                value={bidAmount}
-                onChangeText={setBidAmount}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.bidInfo}>
-              <View style={styles.bidInfoRow}>
-                <Calendar size={16} color="#666" />
-                <Text style={styles.bidInfoText}>
-                  終了日:{' '}
-                  {new Date(
-                    Date.now() + 30 * 24 * 60 * 60 * 1000
-                  ).toLocaleDateString('ja-JP')}
-                </Text>
-              </View>
-            </View>
-
-            {isProcessing && (
-              <View style={styles.processingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={styles.processingText}>決済処理中...</Text>
+                {/* Filtered Bid History */}
+                {filteredBidHistory.length > 0 ? (
+                  filteredBidHistory.map((bid) => (
+                    <View key={bid.id} style={styles.bidHistoryCard}>
+                      <View style={styles.bidHistoryHeader}>
+                        <Text style={styles.bidHistoryAmount}>
+                          ¥{bid.amount.toLocaleString()}
+                        </Text>
+                        <View
+                          style={[
+                            styles.bidStatusChip,
+                            {
+                              backgroundColor: getBidStatusColor(bid.status),
+                            },
+                          ]}
+                        >
+                          <Text style={styles.bidStatusText}>
+                            {getBidStatusText(bid.status)}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.bidHistoryDate}>{bid.date}</Text>
+                      <Text style={styles.bidHistoryDays}>
+                        残り{bid.remainingDays}日
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>
+                      選択したステータスの入札がありません
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+          </>
+        )}
+      </RestaurantBlurModal>
+
+      {/* Review Modal */}
+      <ReviewBlurModal animationType="slide" presentationStyle="pageSheet">
+        <Card>
+          <Text style={styles.inputLabel}>料金</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="料金を入力"
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="numeric"
+          />
+        </Card>
+
+        <Card>
+          <Text style={styles.inputLabel}>評価</Text>
+          <View style={styles.ratingInput}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <TouchableOpacity key={star} onPress={() => setRating(star)}>
+                <Star
+                  size={32}
+                  color="#FFD700"
+                  fill={star <= rating ? '#FFD700' : 'transparent'}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+
+        <Card>
+          <Text style={styles.inputLabel}>コメント</Text>
+          <TextInput
+            style={[styles.textInput, styles.textArea]}
+            placeholder="レビューを入力"
+            value={reviewText}
+            onChangeText={setReviewText}
+            multiline
+            numberOfLines={4}
+          />
+        </Card>
+
+        <PrimaryButton
+          label="投稿"
+          onPress={handleReviewSubmit}
+          disabled={isProcessing}
+          style={{ marginHorizontal: 16 }}
+        />
+      </ReviewBlurModal>
+
+      {/* Bid Modal */}
+      <BidBlurModal animationType="slide" presentationStyle="pageSheet">
+        <Card>
+          <Text style={styles.inputLabel}>入札額</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="入札額を入力"
+            value={bidAmount}
+            onChangeText={setBidAmount}
+            keyboardType="numeric"
+          />
+        </Card>
+
+        <View style={styles.bidInfo}>
+          <View style={styles.bidInfoRow}>
+            <Calendar size={16} color="#666" />
+            <Text style={styles.bidInfoText}>
+              終了日:{' '}
+              {new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+              ).toLocaleDateString('ja-JP')}
+            </Text>
+          </View>
+        </View>
+
+        {isProcessing && (
+          <View style={styles.processingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.processingText}>決済処理中...</Text>
+          </View>
+        )}
+        <PrimaryButton
+          label="入札"
+          onPress={handleBid}
+          disabled={isProcessing || !bidAmount}
+          style={{ marginHorizontal: 16 }}
+        />
+      </BidBlurModal>
     </SafeAreaView>
   );
 }
@@ -773,17 +747,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  bottomSheet: {
-    flex: 1,
-    backgroundColor: '#FFF',
-  },
-  bottomSheetContent: {
-    flex: 1,
-    padding: 16,
-  },
-  restaurantHeader: {
-    marginBottom: 16,
-  },
   restaurantInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -829,6 +792,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginVertical: 12,
+    marginHorizontal: 16,
   },
   bidAmountLabel: {
     fontSize: 12,
@@ -848,42 +812,13 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
-  },
-  reviewButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F8FF',
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  reviewButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  bidButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F8FF',
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  bidButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginLeft: 8,
-    fontWeight: '500',
+    margin: 16,
   },
   tabContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
+    marginHorizontal: 16,
     marginBottom: 16,
   },
   tab: {
@@ -908,6 +843,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    marginHorizontal: 16,
   },
   reviewCard: {
     width: '48%',
@@ -987,36 +923,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '500',
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#FFF',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  submitText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
-  },
-  inputSection: {
-    marginBottom: 24,
-  },
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
@@ -1041,6 +947,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   bidInfo: {
+    marginHorizontal: 16,
     marginBottom: 24,
   },
   bidInfoRow: {

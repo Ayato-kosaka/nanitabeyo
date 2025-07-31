@@ -37,6 +37,7 @@ import {
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { useBlurModal } from '@/hooks/useBlurModal';
 import { Card } from '@/components/Card';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 const { width } = Dimensions.get('window');
 const Tab = createMaterialTopTabNavigator();
@@ -616,13 +617,12 @@ export default function ProfileScreen() {
           <View style={styles.actionButtons}>
             {isOwnProfile ? (
               <>
-                <TouchableOpacity
-                  style={styles.editButton}
+                <PrimaryButton
+                  style={{ flex: 1 }}
                   onPress={handleEditProfile}
-                >
-                  <Edit3 size={16} color="#FFFFFF" />
-                  <Text style={styles.editButtonText}>プロフィールを編集</Text>
-                </TouchableOpacity>
+                  label="プロフィールを編集"
+                  icon={<Edit3 size={16} color="#FFFFFF" />}
+                />
               </>
             ) : (
               <>
@@ -691,7 +691,7 @@ export default function ProfileScreen() {
 
       {/* Edit Profile Modal */}
       <BlurModal animationType="slide" presentationStyle="pageSheet">
-        <Card style={{ marginHorizontal: 0 }}>
+        <Card>
           <Text style={styles.editLabel}>自己紹介</Text>
           <TextInput
             style={styles.editInput}
@@ -703,12 +703,11 @@ export default function ProfileScreen() {
             placeholderTextColor="#666"
           />
         </Card>
-        <TouchableOpacity
-          style={styles.editSaveButton}
+        <PrimaryButton
+          style={{ marginHorizontal: 16 }}
           onPress={handleSaveProfile}
-        >
-          <Text style={styles.saveText}>保存</Text>
-        </TouchableOpacity>
+          label="保存"
+        />
       </BlurModal>
     </LinearGradient>
   );
@@ -800,28 +799,6 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
-  },
-  editButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#5EA2FF',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    gap: 6,
-    shadowColor: '#5EA2FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  editButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
   },
   followButton: {
     flex: 1,
@@ -977,28 +954,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
-  },
-  saveText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  editSaveButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#5EA2FF',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    gap: 6,
-    shadowColor: '#5EA2FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 32,
-    elevation: 12,
   },
   tabContent: {
     flex: 1,

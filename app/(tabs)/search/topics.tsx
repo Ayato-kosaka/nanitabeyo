@@ -23,6 +23,7 @@ const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 const CARD_HEIGHT = height * 0.85;
 import { useSearchStore } from '@/stores/useSearchStore';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 export default function TopicsScreen() {
   const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
@@ -204,18 +205,11 @@ export default function TopicsScreen() {
       {/* Fixed Bottom Action Button */}
       {visibleTopics.length > 0 && (
         <View style={styles.bottomActionContainer}>
-          <TouchableOpacity
-            style={styles.bottomActionButton}
+          <PrimaryButton
+            label="気になる！"
+            icon={<ThumbsUp size={20} color="#FFF" />}
             onPress={() => handleViewDetails(visibleTopics[currentIndex])}
-          >
-            <LinearGradient
-              colors={['#5EA2FF', '#357AFF']}
-              style={styles.bottomActionGradient}
-            >
-              <ThumbsUp size={20} color="#FFF" />
-              <Text style={styles.bottomActionText}>気になる！</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          />
         </View>
       )}
 
@@ -507,29 +501,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginVertical: 8,
     zIndex: 10,
-  },
-  bottomActionButton: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#5EA2FF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  bottomActionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 32,
-    gap: 12,
-  },
-  bottomActionText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   emptyContainer: {
     flex: 1,
