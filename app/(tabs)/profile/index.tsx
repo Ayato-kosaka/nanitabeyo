@@ -50,6 +50,7 @@ interface BidItem {
   bidAmount: number;
   remainingDays: number;
   status: 'active' | 'completed' | 'refunded';
+  restaurantImageUrl: string;
   imageUrl: string;
 }
 
@@ -69,6 +70,7 @@ const mockBids: BidItem[] = [
     bidAmount: 15000,
     remainingDays: 12,
     status: 'active',
+    restaurantImageUrl: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
     imageUrl:
       'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
@@ -78,6 +80,7 @@ const mockBids: BidItem[] = [
     bidAmount: 8000,
     remainingDays: 5,
     status: 'active',
+    restaurantImageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
     imageUrl:
       'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=300',
   },
@@ -147,7 +150,17 @@ function DepositsScreen() {
   const renderBidItem = ({ item }: { item: BidItem }) => (
     <View style={styles.depositCard}>
       <View style={styles.depositHeader}>
-        <Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
+        <Image
+          source={{ uri: item.restaurantImageUrl }}
+          style={styles.depositAvatar}
+          onError={() => console.log('Failed to load restaurant image')}
+        />
+        <View style={styles.depositInfo}>
+          <Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
+          <Text style={styles.depositAmount}>
+            ¥{item.bidAmount.toLocaleString()}
+          </Text>
+        </View>
         <View
           style={[
             styles.statusChip,
@@ -157,9 +170,6 @@ function DepositsScreen() {
           <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
         </View>
       </View>
-      <Text style={styles.depositAmount}>
-        ¥{item.bidAmount.toLocaleString()}
-      </Text>
       <Text style={styles.depositDays}>残り{item.remainingDays}日</Text>
     </View>
   );
@@ -1047,22 +1057,31 @@ const styles = StyleSheet.create({
   },
   depositHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
+  depositAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  depositInfo: {
+    flex: 1,
+  },
   depositRestaurantName: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '700',
     color: '#1A1A1A',
-    flex: 1,
+    marginBottom: 2,
     letterSpacing: -0.3,
   },
   depositAmount: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#5EA2FF',
-    marginBottom: 4,
     letterSpacing: -0.3,
   },
   depositDays: {

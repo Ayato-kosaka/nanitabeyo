@@ -194,6 +194,17 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
       {/* Bottom Section */}
       <View pointerEvents="box-none" style={styles.bottomSection}>
+        {/* Restaurant Avatar */}
+        <View style={styles.restaurantAvatarContainer}>
+          <Image
+            source={{ 
+              uri: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=100&h=100'
+            }}
+            style={styles.restaurantAvatar}
+            onError={() => console.log('Failed to load restaurant avatar')}
+          />
+        </View>
+
         <View pointerEvents="box-none" style={styles.actionRow}>
           {/* Action Buttons */}
           <View style={styles.rightActions}>
@@ -446,6 +457,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 32,
+  },
+  restaurantAvatarContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 16,
+    marginRight: 8,
+  },
+  restaurantAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   actionRow: {
     flexDirection: 'row',
