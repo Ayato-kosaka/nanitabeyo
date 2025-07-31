@@ -3,13 +3,8 @@ import React, {
   useRef,
   useCallback,
   useImperativeHandle,
-  useMemo,
 } from 'react';
-import {
-  GoogleMap,
-  Marker as GoogleMarker,
-  LoadScript,
-} from '@react-google-maps/api';
+import { GoogleMap, Marker as GoogleMarker } from '@react-google-maps/api';
 import type { MapViewProps, MarkerProps } from './MapView';
 import type {
   MapPressEvent,
@@ -18,8 +13,6 @@ import type {
   Region,
 } from 'react-native-maps';
 import { OverlayView } from '@react-google-maps/api';
-import { MapPin } from 'lucide-react-native';
-import { Env } from '@/constants/Env';
 import { TouchableOpacity, Image, View } from 'react-native';
 
 /** ─────────────────────────────────────────────────────────────
@@ -74,15 +67,7 @@ export const Marker: React.FC<MarkerProps> = ({
 /* ─────────────────────────────── MapView ──────────────────────────────── */
 const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
   (
-    {
-      style,
-      region,
-      onRegionChangeComplete,
-      onPress,
-      onPoiClick,
-      language,
-      children,
-    },
+    { style, region, onRegionChangeComplete, onPress, onPoiClick, children },
     ref
   ) => {
     /* Google Maps 本体を保持（外部には晒さない） */
@@ -173,25 +158,20 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
     };
 
     return (
-      <LoadScript
-        googleMapsApiKey={Env.GOOGLE_MAPS_WEB_API_KEY}
-        language={language}
+      <GoogleMap
+        onLoad={handleLoad}
+        center={{ lat: region?.latitude ?? 0, lng: region?.longitude ?? 0 }}
+        zoom={region ? deltaToZoom(region.latitudeDelta) : 17}
+        mapContainerStyle={containerStyle}
+        onClick={handleClick}
+        onIdle={handleIdle}
+        options={{
+          disableDefaultUI: true, // すべてのデフォルトUIを非表示
+          clickableIcons: !!onPoiClick, // POI アイコンをクリック可能にする
+        }}
       >
-        <GoogleMap
-          onLoad={handleLoad}
-          center={{ lat: region?.latitude ?? 0, lng: region?.longitude ?? 0 }}
-          zoom={region ? deltaToZoom(region.latitudeDelta) : 17}
-          mapContainerStyle={containerStyle}
-          onClick={handleClick}
-          onIdle={handleIdle}
-          options={{
-            disableDefaultUI: true, // すべてのデフォルトUIを非表示
-            clickableIcons: !!onPoiClick, // POI アイコンをクリック可能にする
-          }}
-        >
-          {children}
-        </GoogleMap>
-      </LoadScript>
+        {children}
+      </GoogleMap>
     );
   }
 );

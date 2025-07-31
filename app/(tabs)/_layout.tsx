@@ -37,6 +37,7 @@ export default function TabLayout() {
         name="(home)"
         options={{
           title: 'ホーム',
+          href: null,
           tabBarIcon: ({ size, color }) => (
             <Home size={ICON_SIZE} color={color} />
           ),
@@ -82,6 +83,7 @@ export default function TabLayout() {
         name="debug"
         options={{
           title: 'デバッグ',
+          href: null,
           tabBarIcon: ({ size, color }) => (
             <Code size={ICON_SIZE} color={color} />
           ),

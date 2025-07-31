@@ -7,6 +7,7 @@ import { DialogProvider } from '@/contexts/DialogProvider';
 import { AuthProvider } from '@/contexts/AuthProvider';
 import { SnackbarProvider } from '@/contexts/SnackbarProvider';
 import { PaperProvider } from 'react-native-paper';
+import { AppProvider } from '@/components/AppProvider';
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -17,11 +18,16 @@ export default function RootLayout() {
         <DialogProvider>
           <AuthProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="light" />
+              <AppProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="light" />
+              </AppProvider>
             </GestureHandlerRootView>
           </AuthProvider>
         </DialogProvider>
