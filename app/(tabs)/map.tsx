@@ -39,7 +39,6 @@ interface ActiveBid {
   remainingDays: number;
   latitude: number;
   longitude: number;
-  restaurantImageUrl: string;
   imageUrl: string;
   rating: number;
   reviewCount: number;
@@ -63,7 +62,6 @@ const mockActiveBids: ActiveBid[] = [
     remainingDays: 12,
     latitude: 35.6762,
     longitude: 139.6503,
-    restaurantImageUrl: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=200&h=200',
     imageUrl:
       'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=400',
     rating: 4.5,
@@ -76,7 +74,6 @@ const mockActiveBids: ActiveBid[] = [
     remainingDays: 8,
     latitude: 35.658,
     longitude: 139.7016,
-    restaurantImageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=200&h=200',
     imageUrl:
       'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400',
     rating: 4.2,
@@ -89,7 +86,6 @@ const mockActiveBids: ActiveBid[] = [
     remainingDays: 5,
     latitude: 35.6896,
     longitude: 139.7006,
-    restaurantImageUrl: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=200&h=200',
     imageUrl:
       'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400',
     rating: 4.8,
@@ -127,8 +123,6 @@ const mockBidHistory = [
     status: 'active',
     date: '2024-01-15',
     remainingDays: 12,
-    restaurantName: 'Bella Vista Restaurant',
-    restaurantImageUrl: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
   },
   {
     id: '2',
@@ -136,8 +130,6 @@ const mockBidHistory = [
     status: 'completed',
     date: '2024-01-10',
     remainingDays: 0,
-    restaurantName: 'Tokyo Ramen House',
-    restaurantImageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
   },
   {
     id: '3',
@@ -145,8 +137,6 @@ const mockBidHistory = [
     status: 'refunded',
     date: '2024-01-05',
     remainingDays: 0,
-    restaurantName: 'Sushi Zen',
-    restaurantImageUrl: 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=100&h=100',
   },
 ];
 
@@ -349,7 +339,7 @@ export default function MapScreen() {
             coordinate={{ latitude: bid.latitude, longitude: bid.longitude }}
             onPress={() => handleMarkerPress(bid)}
             color="#FFF"
-            uri={bid.restaurantImageUrl}
+            uri={bid.imageUrl}
           />
         ))}
       </MapView>
@@ -403,37 +393,39 @@ export default function MapScreen() {
         onRequestClose={() => setShowBottomSheet(false)}
       >
         <SafeAreaView style={styles.bottomSheet}>
-          <View style={styles.bottomSheetHeader}>
-            <TouchableOpacity onPress={() => setShowBottomSheet(false)}>
-              <X size={24} color="#000" />
-            </TouchableOpacity>
-            <Text style={styles.bottomSheetTitle}>レストラン詳細</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
           {selectedPlace && (
             <ScrollView style={styles.bottomSheetContent}>
-              {/* Restaurant Info */}
               <View style={styles.restaurantHeader}>
-                <Text style={styles.restaurantName}>
-                  {selectedPlace.placeName}
+                <View style={styles.restaurantInfo}>
+                  <Image
+                    source={{ uri: selectedPlace.imageUrl }}
+                    style={styles.restaurantAvatar}
+                  />
+                  <View style={styles.restaurantDetails}>
+                    <Text style={styles.restaurantName}>
+                      {selectedPlace.placeName}
+                    </Text>
+                    <View style={styles.ratingContainer}>
+                      {renderStars(selectedPlace.rating)}
+                      <Text style={styles.ratingText}>
+                        {selectedPlace.rating}
+                      </Text>
+                      <Text style={styles.reviewCount}>
+                        ({selectedPlace.reviewCount})
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.bidAmountContainer}>
+                <Text style={styles.bidAmountLabel}>現在の入札額</Text>
+                <Text style={styles.bidAmount}>
+                  ¥{selectedPlace.totalAmount.toLocaleString()}
                 </Text>
-                <View style={styles.ratingContainer}>
-                  {renderStars(selectedPlace.rating)}
-                  <Text style={styles.ratingText}>{selectedPlace.rating}</Text>
-                  <Text style={styles.reviewCount}>
-                    ({selectedPlace.reviewCount})
-                  </Text>
-                </View>
-                <View style={styles.bidAmountContainer}>
-                  <Text style={styles.bidAmountLabel}>現在の入札額</Text>
-                  <Text style={styles.bidAmount}>
-                    ¥{selectedPlace.totalAmount.toLocaleString()}
-                  </Text>
-                  <Text style={styles.remainingDays}>
-                    残り{selectedPlace.remainingDays}日
-                  </Text>
-                </View>
+                <Text style={styles.remainingDays}>
+                  残り{selectedPlace.remainingDays}日
+                </Text>
               </View>
 
               {/* Action Buttons */}
@@ -554,19 +546,9 @@ export default function MapScreen() {
                     filteredBidHistory.map((bid) => (
                       <View key={bid.id} style={styles.bidHistoryCard}>
                         <View style={styles.bidHistoryHeader}>
-                          <Image
-                            source={{ uri: bid.restaurantImageUrl }}
-                            style={styles.bidHistoryAvatar}
-                            onError={() => console.log('Failed to load restaurant image')}
-                          />
-                          <View style={styles.bidHistoryInfo}>
-                            <Text style={styles.bidHistoryRestaurantName}>
-                              {bid.restaurantName}
-                            </Text>
-                            <Text style={styles.bidHistoryAmount}>
-                              ¥{bid.amount.toLocaleString()}
-                            </Text>
-                          </View>
+                          <Text style={styles.bidHistoryAmount}>
+                            ¥{bid.amount.toLocaleString()}
+                          </Text>
                           <View
                             style={[
                               styles.bidStatusChip,
@@ -795,26 +777,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
   },
-  bottomSheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
   bottomSheetContent: {
     flex: 1,
     padding: 16,
   },
   restaurantHeader: {
     marginBottom: 16,
+  },
+  restaurantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  restaurantAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+  },
+  restaurantDetails: {
+    flex: 1,
+    marginLeft: 12,
   },
   restaurantName: {
     fontSize: 18,
@@ -846,7 +828,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 12,
+    marginVertical: 12,
   },
   bidAmountLabel: {
     fontSize: 12,
@@ -854,9 +836,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   bidAmount: {
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#007AFF',
+    marginBottom: 4,
   },
   remainingDays: {
     fontSize: 14,
@@ -976,25 +959,14 @@ const styles = StyleSheet.create({
   },
   bidHistoryHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
-  bidHistoryAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  bidHistoryInfo: {
-    flex: 1,
-  },
-  bidHistoryRestaurantName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 2,
+  bidHistoryAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007AFF',
   },
   bidHistoryDate: {
     fontSize: 12,
