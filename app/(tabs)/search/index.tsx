@@ -32,6 +32,7 @@ import {
 } from '@/types/search';
 import { useLocationSearch } from '@/hooks/useLocationSearch';
 import { useSnackbar } from '@/contexts/SnackbarProvider';
+import { Card } from '@/components/Card';
 
 const timeSlots = [
   { id: 'morning', label: '朝食', icon: '🌅' },
@@ -391,7 +392,7 @@ export default function SearchScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Location Input */}
-        <View style={styles.card}>
+        <Card>
           <View style={styles.sectionHeader}>
             <MapPin size={20} color="#5EA2FF" />
             <Text style={styles.sectionTitle}>どのあたりで探す？</Text>
@@ -436,10 +437,10 @@ export default function SearchScreen() {
               )}
             </View>
           )}
-        </View>
+        </Card>
 
         {/* Time of Day */}
-        <View style={styles.card}>
+        <Card>
           <View style={styles.sectionHeader}>
             <Clock size={20} color="#5EA2FF" />
             <Text style={styles.sectionTitle}>時間帯は？</Text>
@@ -466,10 +467,10 @@ export default function SearchScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </Card>
 
         {/* Scene */}
-        <View style={styles.card}>
+        <Card>
           <View style={styles.sectionHeader}>
             <Users size={20} color="#5EA2FF" />
             <Text style={styles.sectionTitle}>シーンは？</Text>
@@ -498,10 +499,10 @@ export default function SearchScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </Card>
 
         {/* Mood */}
-        <View style={styles.card}>
+        <Card>
           <View style={styles.sectionHeader}>
             <Heart size={20} color="#5EA2FF" />
             <Text style={styles.sectionTitle}>気分は？</Text>
@@ -527,7 +528,7 @@ export default function SearchScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </Card>
 
         {/* Advanced Filters Toggle */}
         {!showAdvancedFilters && (
@@ -550,7 +551,7 @@ export default function SearchScreen() {
         {showAdvancedFilters && (
           <>
             {/* Distance */}
-            <View style={styles.card}>
+            <Card>
               <View style={styles.sectionHeader}>
                 <Distance size={20} color="#5EA2FF" />
                 <Text style={styles.sectionTitle}>距離は？</Text>
@@ -564,10 +565,10 @@ export default function SearchScreen() {
                 </Text>
                 <DistanceSlider />
               </View>
-            </View>
+            </Card>
 
             {/* Budget */}
-            <View style={styles.card}>
+            <Card>
               <View style={styles.sectionHeader}>
                 <DollarSign size={20} color="#5EA2FF" />
                 <Text style={styles.sectionTitle}>予算は？</Text>
@@ -576,10 +577,10 @@ export default function SearchScreen() {
                 <Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
                 <BudgetSlider />
               </View>
-            </View>
+            </Card>
 
             {/* Restrictions */}
-            <View style={styles.card}>
+            <Card>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>制約条件</Text>
               </View>
@@ -607,7 +608,7 @@ export default function SearchScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
+            </Card>
           </>
         )}
       </ScrollView>
@@ -653,18 +654,6 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 8,
     letterSpacing: -0.5,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginVertical: 8,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
   },
   sectionHeader: {
     flexDirection: 'row',

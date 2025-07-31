@@ -8,9 +8,7 @@ import {
   Image,
   Dimensions,
   FlatList,
-  Modal,
   TextInput,
-  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -37,8 +35,8 @@ import {
   likedPosts,
 } from '@/data/profileData';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { BlurView } from 'expo-blur';
 import { useBlurModal } from '@/hooks/useBlurModal';
+import { Card } from '@/components/Card';
 
 const { width } = Dimensions.get('window');
 const Tab = createMaterialTopTabNavigator();
@@ -581,7 +579,7 @@ export default function ProfileScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Info */}
-        <View style={styles.profileSection}>
+        <Card>
           {/* Avatar and Stats */}
           <View style={styles.profileHeader}>
             <Image source={{ uri: profile.avatar }} style={styles.avatar} />
@@ -651,7 +649,7 @@ export default function ProfileScreen() {
               </>
             )}
           </View>
-        </View>
+        </Card>
 
         {/* Content Tabs */}
         <View style={styles.tabsContainer}>
@@ -693,7 +691,7 @@ export default function ProfileScreen() {
 
       {/* Edit Profile Modal */}
       <BlurModal animationType="slide" presentationStyle="pageSheet">
-        <View style={styles.editSection}>
+        <Card style={{ marginHorizontal: 0 }}>
           <Text style={styles.editLabel}>自己紹介</Text>
           <TextInput
             style={styles.editInput}
@@ -704,7 +702,7 @@ export default function ProfileScreen() {
             placeholder="自己紹介を入力してください..."
             placeholderTextColor="#666"
           />
-        </View>
+        </Card>
         <TouchableOpacity
           style={styles.editSaveButton}
           onPress={handleSaveProfile}
@@ -746,19 +744,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  profileSection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -887,7 +872,7 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    marginTop: 32,
+    marginTop: 16,
   },
   tab: {
     flex: 1,
@@ -970,17 +955,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#FFFFFF',
     fontWeight: '500',
-  },
-  editSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginVertical: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 32,
-    elevation: 12,
   },
   editLabel: {
     fontSize: 17,
