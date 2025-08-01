@@ -19,32 +19,58 @@ sequenceDiagram
 
     %% search/topics
     Note over User,UI: topics 初期表示
-        UI ->> Backend: GET /dish-categories
+        UI ->> Backend: GET /dish-categories?searchParams
             Backend ->> 外部API: Claude API (topics生成 10件)
-                外部API ->> Backend: トピック候補
-            Backend ->> UI: cateogry[6]
-        loop 各トピック（並列）
+                外部API ->> Backend: {category, topicTitle, reason}[10]
+            Backend ->> Database: from(dish_categories)<br>.join(dish_category_variants).on(dish_category_id)<br>.where(surface_form = ANY(category[]::text[]))
+                Database ->> Backend: dish_category
+            Backend ->> UI: {category, topicTitle, reason,<br>category_id, image_url}[10]
+
+        loop while category_id untill response.filter(!!category_id).len >= 6
+            alt category_id is null
+                UI ->> Backend: POST /dish-categories/import { category }
+                    Backend ->> 外部API: wikidata.wbsearchentities?limit=1
+                        外部API ->> Backend: {id, label}
+                    Backend ->> 外部API: query.wikidata.org/sparql<br>ASK {wd:Q1338822 wdt:P31|wdt:P279|wdt:P361 ?intermediate.<br>?intermediate wdt:P31|wdt:P279* wd:Q746549.}
+                        外部API ->> Backend: true/false
+                    alt false
+                        Backend ->> 外部API: GoogleCustomSearchAPI
+                            外部API ->> Backend: {spelling.correctedQuery}
+                        Backend ->> Backend: 再検索
+                    end
+                    alt ヒットあり
+                        Backend ->> Database: INSERT dish_categories_variants
+                        Backend ->> Database: UPSERT dish_categories
+                        Backend ->> UI: 201 Created + {category_id, image_url}
+                    else ヒットなし
+                        Backend ->> UI: 500
+                    end
+            end
+        end
+        UI ->> UI: response 7件以上は削除
+        
+        loop 各 dish_category_id (並列)
             %% ① 既存データだけ取得
-            UI ->> Backend: GET /dishes?location&radius&category
-                Backend ->> Database:Database: from(places).where(location, raduis)<br>.join(dish).where(placeId, category)<br>.join(dish_medias).where(dish_id).orderBy()<br>.notIn(from(user_seen_dish).where(user_id))<br>.join(dish_reviews).where(dish_id)
+            UI ->> Backend: GET /dishes?location&radius&category_id
+                Backend ->> Database: from(places).where(location, raduis)<br>.join(dish).where(placeId, category_id)<br>.join(dish_medias).on(dish_id).notIn(from(user_seen_dish).where(user_id))<br>.orderBy().limit(1)<br>.join(dish_reviews).on(dish_id).orderBy(created_at)
                     Database ->> Backend: places, dishes, dish_medias, dish_reviews
                 Backend ->> Storage: generateSignedUrl(GET, /dish-media/…, 24h)
                     Storage ->> Backend: {signedUrl}
                 Backend ->> UI: 200 OK + dishes[] + signedUrls
 
-            alt dishes.length < 6
+            alt dishes.length < 5
                 %% ② 不足分があれば同期 import
                 UI ->> Backend: POST /dishes/import { location, radius, category }
-                Backend ->> 外部API: Google Maps Text Search API
-                    外部API ->> Backend: placeDetail[{<br>placeId, revies, photos}]
+                    Backend ->> 外部API: Google Maps Text Search API
+                        外部API ->> Backend: placeDetail[{<br>placeId, revies, photos}]
                 
-                %% ③ 取り込み (同期 UPSERT)
-                Backend ->> Database: UPSERT places / dishes / medias / reviews
-                Backend ->> Storage: PUT /dish-media/…
-                    Storage ->> Backend: 201 / OK
+                    %% ③ 取り込み (同期 UPSERT)
+                    Backend ->> Database: UPSERT restaurants / dishes / medias / reviews
+                    Backend ->> Storage: PUT /dish-media/…
+                        Storage ->> Backend: 201 / OK
 
-                %% ④ 取り込み後にそのままデータを返す
-                Backend ->> UI: 201 Created + dishes[]
+                    %% ④ 取り込み後にそのままデータを返す
+                    Backend ->> UI: 201 Created + dishes[]
             end
         end
     UI ->> User: カード一覧

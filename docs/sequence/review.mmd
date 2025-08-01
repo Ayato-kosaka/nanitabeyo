@@ -9,7 +9,7 @@ sequenceDiagram
 
 %% review/restaurant‑map ────────────────────────
     Note over User,UI: RestaurantMapScreen<br>(地図 + Google オートコンプリート)
-    User ->> UI: レストラン名を入力
+    User ->> UI: レストラン名を入力(オートコンプリート)
         UI ->> 外部API: Google Places Autocomplete API
             外部API ->> UI: 候補リスト
     User ->> UI: 候補を選択
@@ -21,10 +21,28 @@ sequenceDiagram
     Note over User,UI: PlaceScreen<br>(画像＋レビュー投稿)
     User ->> UI: 「画像投稿」ボタン押下
         UI ->> UI: カメラ/ライブラリ起動
-    User ->> UI: 画像 + レビュー入力
+    User ->> UI: 料理名を入力(オートコンプリート)
+        UI ->> Backend: GET /dish-category-variants?surface_form,lang
+            Backend ->> Database: from(dish_categories)<br>.join(dish_category_variants).on(dish_category_id)<br>.startsWith(:surface_form)<br>.groupBy(dish_category_id).limit(20)
+                Database ->> Backend: labels[]
+            Backend ->> Backend: Cloudflare / CDN‐Cache Cache-Control: max-age=3600
+            Backend ->> UI: 翻訳された候補リスト
+    User ->> UI: オートコンプリートにない<br>料理名フォーカスアウト
+        UI ->> Backend: POST /dish-categories/import { category }
+        UI ->> UI: 無ければエラー表示
+    User ->> UI: レビュー投稿ボタン押下
+        UI ->> Backend: POST /restaurants/import {placeId}
+            Backend ->> Database: from(restaurants).where(placeId)
+                Database ->> Backend: restaurant
+            alt ヒットなし
+                Backend ->> 外部API: Google Place Detail API
+                    外部API ->> Backend: placeDetail
+                Backend ->> Database: UPSERT restaurants
+            end
+            Backend ->> UI: restaurant
         UI ->> Backend: POST /dishes/find-or-create {placeId, dishCategory}
             Backend ->> Database: UPSERT dishes
-            Database ->> Backend: dishId
+                Database ->> Backend: dishId
         UI ->> Backend: POST /user-uploads/gcs-signed-url { dishId, contentType }
             Backend ->> Backend: 認可
             Backend ->> Storage: generateSignedUrl(action=PUT, exp=15m)
