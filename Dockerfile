@@ -10,7 +10,7 @@ COPY pnpm-lock.yaml ./
 COPY api/package.json ./api/
 
 # 依存を解決（node_modules はルートに置かれる）
-RUN cd api && pnpm fetch --prod
+RUN cd api && pnpm fetch
 
 # ────────────── 2) ビルドレイヤ ──────────────
 FROM node:22-alpine AS builder
