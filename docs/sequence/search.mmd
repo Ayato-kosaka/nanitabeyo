@@ -29,18 +29,22 @@ sequenceDiagram
         loop while category_id untill response.filter(!!category_id).len >= 6
             alt category_id is null
                 UI ->> Backend: POST /dish-categories/import { category }
-                    Backend ->> 外部API: wikidata.wbsearchentities?limit=1
-                        外部API ->> Backend: {id, label}
-                    Backend ->> 外部API: query.wikidata.org/sparql<br>ASK {wd:Q1338822 wdt:P31|wdt:P279|wdt:P361 ?intermediate.<br>?intermediate wdt:P31|wdt:P279* wd:Q746549.}
-                        外部API ->> Backend: true/false
-                    alt false
+                    Backend ->> Database: from(dish_category_variants).where(surface_form=:category) 
+                    Database ->> Backend: dish_category_variants
+                    alt ヒットなし
+                        Backend ->> 外部API: wikidata.wbsearchentities?limit=1
+                            外部API ->> Backend: {id, label}
+                        Backend ->> Database: from(dish_category_variants).where(surface_form=:label) 
+                        Database ->> Backend: dish_category_variants
+                    end
+                    alt ヒットなし
                         Backend ->> 外部API: GoogleCustomSearchAPI
                             外部API ->> Backend: {spelling.correctedQuery}
-                        Backend ->> Backend: 再検索
+                        Backend ->> Database: from(dish_category_variants).where(surface_form=:correctedQuery) 
+                        Database ->> Backend: dish_category_variants
                     end
                     alt ヒットあり
-                        Backend ->> Database: INSERT dish_categories_variants
-                        Backend ->> Database: UPSERT dish_categories
+                        Backend ->> Database: INSERT dish_category_variants
                         Backend ->> UI: 201 Created + {category_id, image_url}
                     else ヒットなし
                         Backend ->> UI: 500
