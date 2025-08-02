@@ -1,6 +1,6 @@
 -- テーブル定義
 CREATE TABLE dish_category_variants (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY,
     dish_category_id TEXT NOT NULL REFERENCES dish_categories(id),
     surface_form TEXT NOT NULL,
     source TEXT,
