@@ -1,4 +1,4 @@
-import * as dotenv from "dotenv";
+import dotenv from "dotenv";
 import { z } from "zod";
 
 // .env ファイルから環境変数を読み込む

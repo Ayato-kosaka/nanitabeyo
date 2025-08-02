@@ -63,7 +63,6 @@ export class DishMediaService {
         photo_url: photoUrl,
         average_rating: details.rating ?? 0,
         review_count: details.userRatingCount ?? 0,
-        distanceMeters: (searchResult as any).distanceMeters ?? 0,
         price: 0,
         place: {
           placeId: details.id ?? '',
