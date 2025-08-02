@@ -7,7 +7,7 @@ on:
         description: "デプロイ先環境"
         required: true
         type: choice
-        options: [dev, prod]
+        options: [development, production]
 
 # 同じ環境への並列デプロイ競合を防ぐ
 concurrency:
@@ -48,9 +48,13 @@ jobs:
       # ---------- アプリ用 .env を動的生成 ----------
       - name: Create .env for api
         run: |
-          echo 'API_NODE_ENV=production'                  >> ./api/.env
-          echo 'DB_SCHEMA=public'                         >> ./api/.env
-          echo "API_COMMIT_ID=${{ github.sha }}"          >> ./api/.env
+          echo "API_COMMIT_ID=${{ github.sha }}"                >> ./api/.env
+          echo 'API_NODE_ENV=${{ github.event.inputs.target }}' >> ./api/.env
+          echo 'CORS_ORIGIN=${{ secrets.API_CORS_ORIGIN }}'            >> ./api/.env
+          echo 'DATABASE_URL=${{ secrets.PRISMA_DATABASE_URL }}'            >> ./api/.env
+          echo 'DB_SCHEMA=${{ vars.API_DB_SCHEMA }}'            >> ./api/.env
+          echo 'API_SUPABASE_JWT_SECRET=${{ secrets.API_SUPABASE_JWT_SECRET }}'            >> ./api/.env
+          echo 'API_GOOGLE_PLACE_API_KEY=${{ secrets.API_GOOGLE_PLACE_API_KEY }}'            >> ./api/.env
 
       - name: Prisma db:pull
         run: pnpm db:pull
