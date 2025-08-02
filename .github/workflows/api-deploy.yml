@@ -77,7 +77,8 @@ jobs:
         run: |
           gcloud builds submit . \
             --tag="${IMAGE}" \
-            --project="${{ secrets.GCP_PROJECT_ID }}"
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --no-stream
       # -------------------------------------------
       # ---------- Cloud Run へデプロイ & トラフィック切替 ----------
       - id: deploy
