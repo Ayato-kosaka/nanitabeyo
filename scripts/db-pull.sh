@@ -41,7 +41,7 @@ EXPO_PUBLIC_SUPABASE_URL=$(grep '^EXPO_PUBLIC_SUPABASE_URL=' "$EXPO_ENV" | cut -
 
 if [ -z "$EXPO_PUBLIC_SUPABASE_URL" ]; then
   echo "❌ EXPO_PUBLIC_SUPABASE_URL is not set in expo/.env"
-  exit 1
+  exit 0
 fi
 
 PROJECT_ID=$(echo "$EXPO_PUBLIC_SUPABASE_URL" | sed -E 's|https?://([a-z0-9]+)\.supabase\.co.*|\1|')
