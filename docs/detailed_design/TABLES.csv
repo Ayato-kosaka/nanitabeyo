@@ -1,0 +1,3 @@
+"","anon（未認証）","authenticated（匿名ログイン含む）"
+"allow_delete","allow_get","allow_get"
+"is_auth_user",false,false
