@@ -1,15 +1,15 @@
 -- テーブル定義
 CREATE TABLE dish_categories (
-    id TEXT PRIMARY KEY,
-    label_en TEXT NOT NULL,
-    labels JSONB NOT NULL,
-    image_url TEXT NOT NULL,
-    origin TEXT[],
-    cuisine TEXT[],
-    tags TEXT[] NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
-    lock_no INTEGER NOT NULL
+    id         TEXT        PRIMARY KEY,
+    label_en   TEXT        NOT NULL,
+    labels     JSONB       NOT NULL,
+    image_url  TEXT        NOT NULL,
+    origin     TEXT[],
+    cuisine    TEXT[],
+    tags       TEXT[]      NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    lock_no    INTEGER     NOT NULL DEFAULT 0
 );
 
 -- インデックス
@@ -31,4 +31,4 @@ COMMENT ON COLUMN dish_categories.updated_at IS '更新日時';
 COMMENT ON COLUMN dish_categories.lock_no IS '楽観ロック用のバージョン番号';
 
 -- RLS 有効化
-ALTER TABLE ext_spots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dish_categories ENABLE ROW LEVEL SECURITY;
