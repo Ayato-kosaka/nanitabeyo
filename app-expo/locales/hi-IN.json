@@ -1,11 +1,11 @@
 {
-  "Common": {
-    "cancel": "रद्द करें",
-    "ok": "ओके",
-    "goStore": "ऐप स्टोर खोलें"
-  },
-  "Error": {
-    "maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
-    "unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"
-  }
+	"Common": {
+		"cancel": "रद्द करें",
+		"ok": "ओके",
+		"goStore": "ऐप स्टोर खोलें"
+	},
+	"Error": {
+		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
+		"unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"
+	}
 }

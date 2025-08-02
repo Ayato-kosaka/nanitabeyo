@@ -16,8 +16,8 @@ export class CloudVisionService {
     const labels = result.labelAnnotations ?? [];
     return labels.some(
       (l: { description?: string | null; score?: number | null }) =>
-        (l.description ?? '').toLowerCase() === 'food' && (l.score ?? 0) >= 0.75,
+        (l.description ?? '').toLowerCase() === 'food' &&
+        (l.score ?? 0) >= 0.75,
     );
   }
 }
-

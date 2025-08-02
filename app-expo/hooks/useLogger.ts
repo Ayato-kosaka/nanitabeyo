@@ -101,7 +101,7 @@ export const useLogger = () => {
 		if (Env.NODE_ENV === "development") {
 			console.log("📄 Frontend Event Log:", d);
 		}
-	}, [])
+	}, []);
 
 	return { logFrontendEvent };
 };

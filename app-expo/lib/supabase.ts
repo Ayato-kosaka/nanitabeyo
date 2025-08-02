@@ -15,18 +15,18 @@ import { Env } from "@/constants/Env";
  */
 // export const supabase = createClient<Database>(Env.SUPABASE_URL, Env.SUPABASE_ANON_KEY, {
 export const supabase = createClient(Env.SUPABASE_URL, Env.SUPABASE_ANON_KEY, {
-    auth:
-        Platform.OS === "web"
-            ? {}
-            : {
-                storage: AsyncStorage,
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: false,
-            },
-    db: {
-        schema: Env.DB_SCHEMA,
-    },
+	auth:
+		Platform.OS === "web"
+			? {}
+			: {
+					storage: AsyncStorage,
+					autoRefreshToken: true,
+					persistSession: true,
+					detectSessionInUrl: false,
+				},
+	db: {
+		schema: Env.DB_SCHEMA,
+	},
 });
 
 /**
@@ -37,18 +37,18 @@ export const supabase = createClient(Env.SUPABASE_URL, Env.SUPABASE_ANON_KEY, {
  * - このリスナーは多重登録を防ぐ必要があるため、登録/解除に注意
  */
 if (Platform.OS !== "web") {
-    let isRegistered = false;
+	let isRegistered = false;
 
-    const handleAppStateChange = (state: AppStateStatus) => {
-        if (state === "active") {
-            supabase.auth.startAutoRefresh();
-        } else {
-            supabase.auth.stopAutoRefresh();
-        }
-    };
+	const handleAppStateChange = (state: AppStateStatus) => {
+		if (state === "active") {
+			supabase.auth.startAutoRefresh();
+		} else {
+			supabase.auth.stopAutoRefresh();
+		}
+	};
 
-    if (!isRegistered) {
-        AppState.addEventListener("change", handleAppStateChange);
-        isRegistered = true;
-    }
+	if (!isRegistered) {
+		AppState.addEventListener("change", handleAppStateChange);
+		isRegistered = true;
+	}
 }

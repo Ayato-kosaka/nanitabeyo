@@ -30,33 +30,39 @@ export class GooglePlacesService {
     categories?: string;
   }) {
     const { lat, lng, radius, lang, limit, categories } = params;
-    const [resp] = await this.client.searchNearby({
-      locationRestriction: {
-        circle: {
-          center: { latitude: lat, longitude: lng },
-          radius
+    const [resp] = await this.client.searchNearby(
+      {
+        locationRestriction: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius,
+          },
         },
+        languageCode: lang,
+        includedTypes: [
+          'restaurant',
+          ...(categories ? categories.split(',') : []),
+        ],
+        maxResultCount: limit,
       },
-      languageCode: lang,
-      includedTypes: ['restaurant', ...(categories ? categories.split(',') : [])],
-      maxResultCount: limit,
-    },
       {
         otherArgs: { headers: { 'X-Goog-FieldMask': NEARBY_MASK } },
-      },);
+      },
+    );
     return resp;
   }
 
   /** 店舗詳細API */
   async placeDetails(placeId: string, lang: string) {
-    const [resp] = await this.client.getPlace({
-      name: `places/${placeId}`,
-      languageCode: lang,
-    },
+    const [resp] = await this.client.getPlace(
+      {
+        name: `places/${placeId}`,
+        languageCode: lang,
+      },
       {
         otherArgs: { headers: { 'X-Goog-FieldMask': DETAILS_MASK } },
-      });
+      },
+    );
     return resp;
   }
 }
-

@@ -1,11 +1,11 @@
 import * as dotenv from "dotenv";
 import { ExpoConfig, ConfigContext } from "@expo/config";
-import { version } from "./package.json"
+import { version } from "./package.json";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
-	"name": "dish-scroll",
-	"slug": "dish-scroll",
+	name: "dish-scroll",
+	slug: "dish-scroll",
 	owner: "dish-scroll",
 	runtimeVersion: version.split(".").slice(0, 2).join("."),
 	version,
@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		output: "static",
 		favicon: "./assets/images/favicon.png",
 	},
-	"plugins": [
+	plugins: [
 		"expo-router",
 		// [
 		// 	"expo-splash-screen",
@@ -142,10 +142,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			},
 		],
 		"expo-font",
-		"expo-web-browser"
+		"expo-web-browser",
 	],
-	"experiments": {
-		"typedRoutes": true
+	experiments: {
+		typedRoutes: true,
 	},
 	extra: {
 		eas: {

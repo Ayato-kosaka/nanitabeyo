@@ -19,12 +19,14 @@ export class DishMediaService {
   constructor(
     private readonly gp: GooglePlacesService,
     private readonly vision: CloudVisionService,
-  ) { }
+  ) {}
 
   /**
    * listDishMedia API のメイン処理
    */
-  async listDishMedia(params: ListDishMediaQuery): Promise<ListDishMediaResponse> {
+  async listDishMedia(
+    params: ListDishMediaQuery,
+  ): Promise<ListDishMediaResponse> {
     const requestId = nanoid(12);
     void logBackendEvent({
       event_name: 'listDishMediaCalled',
@@ -52,7 +54,10 @@ export class DishMediaService {
       if (!searchResult.id) continue;
       const details = await this.gp.placeDetails(searchResult.id, lang);
 
-      const dishKeyword = this.selectPopularDish(details.reviews ?? [], category);
+      const dishKeyword = this.selectPopularDish(
+        details.reviews ?? [],
+        category,
+      );
       const photoUrl = await this.chooseDishPhoto(details);
       const reviews = this.extractDishReviews(details.reviews, dishKeyword);
 
@@ -84,11 +89,29 @@ export class DishMediaService {
   /**
    * レビューから頻出する料理名を抽出する
    */
-  private selectPopularDish(reviews: any[], fallback?: string): string | undefined {
+  private selectPopularDish(
+    reviews: any[],
+    fallback?: string,
+  ): string | undefined {
     const keywords = [
-      'ramen', 'ラーメン', 'sushi', '寿司', 'burger', 'バーガー',
-      'pizza', 'ピザ', 'pasta', 'パスタ', 'curry', 'カレー',
-      'udon', 'うどん', 'soba', 'そば', 'steak', 'ステーキ',
+      'ramen',
+      'ラーメン',
+      'sushi',
+      '寿司',
+      'burger',
+      'バーガー',
+      'pizza',
+      'ピザ',
+      'pasta',
+      'パスタ',
+      'curry',
+      'カレー',
+      'udon',
+      'うどん',
+      'soba',
+      'そば',
+      'steak',
+      'ステーキ',
     ];
     if (fallback) keywords.unshift(fallback.toLowerCase());
     const counts = new Map<string, number>();
@@ -120,7 +143,10 @@ export class DishMediaService {
   /**
    * 料理に言及した高評価レビューのみ抽出
    */
-  private extractDishReviews(reviews: Awaited<ReturnType<typeof this.gp.placeDetails>>['reviews'], dishKeyword?: string): Review[] {
+  private extractDishReviews(
+    reviews: Awaited<ReturnType<typeof this.gp.placeDetails>>['reviews'],
+    dishKeyword?: string,
+  ): Review[] {
     if (!reviews || reviews.length === 0) return [];
     const keywords = ['おいしい', '美味しい', 'delicious', 'tasty'];
     if (dishKeyword) keywords.push(dishKeyword.toLowerCase());
@@ -139,7 +165,7 @@ export class DishMediaService {
         text: r.text,
         translated: Boolean(r.translated),
         created_at: r.publishTime,
-        helpful_count: 0
+        helpful_count: 0,
       }));
   }
 }

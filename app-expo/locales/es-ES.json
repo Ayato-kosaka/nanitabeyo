@@ -1,11 +1,11 @@
 {
-  "Common": {
-    "cancel": "Cancelar",
-    "ok": "Aceptar",
-    "goStore": "Abrir App Store"
-  },
-  "Error": {
-    "maintenanceMessage": "Actualmente estamos en mantenimiento.",
-    "unsupportedVersion": "Esta versión ya no es compatible."
-  }
+	"Common": {
+		"cancel": "Cancelar",
+		"ok": "Aceptar",
+		"goStore": "Abrir App Store"
+	},
+	"Error": {
+		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
+		"unsupportedVersion": "Esta versión ya no es compatible."
+	}
 }

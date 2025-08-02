@@ -1,4 +1,4 @@
-import { env } from "../config/env";
+import { env } from '../config/env';
 
 /**
  * 🚀 バックエンドイベントを `backend_event_logs` テーブルに記録する。
@@ -47,12 +47,15 @@ export const logBackendEvent = async ({
     //   },
     // });
 
-    if (env.API_NODE_ENV === "development") {
-      console.log(`\uD83D\uDCD8 [${error_level}] ${function_name}:${event_name}`, payload);
+    if (env.API_NODE_ENV === 'development') {
+      console.log(
+        `\uD83D\uDCD8 [${error_level}] ${function_name}:${event_name}`,
+        payload,
+      );
     }
   } catch (error: any) {
-    if (env.API_NODE_ENV === "development") {
-      console.error("\u274C Failed to log backend event", {
+    if (env.API_NODE_ENV === 'development') {
+      console.error('\u274C Failed to log backend event', {
         error: error.message,
         function_name,
         event_name,
@@ -61,4 +64,3 @@ export const logBackendEvent = async ({
     }
   }
 };
-

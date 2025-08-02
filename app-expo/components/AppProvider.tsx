@@ -1,5 +1,3 @@
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 
-export const AppProvider = ({ children }: { children: ReactNode }) => (
-  <>{children}</>
-);
+export const AppProvider = ({ children }: { children: ReactNode }) => <>{children}</>;
