@@ -1,6 +1,6 @@
 CREATE TABLE dishes (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    restaurant_id UUID        NOT NULL REFERENCES restaurants(id),
+    restaurant_id UUID        REFERENCES restaurants(id),
     category_id   TEXT        NOT NULL REFERENCES dish_categories(id),
     name          TEXT,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),

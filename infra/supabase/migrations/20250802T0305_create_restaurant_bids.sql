@@ -1,3 +1,5 @@
+CREATE TYPE restaurant_bid_status AS ENUM ('pending', 'paid', 'refunded');
+
 CREATE TABLE restaurant_bids (
     id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     restaurant_id    UUID        NOT NULL REFERENCES restaurants(id),
@@ -7,7 +9,7 @@ CREATE TABLE restaurant_bids (
     currency_code    CHAR(3)     NOT NULL,
     start_date       DATE        NOT NULL,
     end_date         DATE        NOT NULL,
-    status           bid_status  NOT NULL,
+    status           restaurant_bid_status  NOT NULL,
     refund_id        TEXT,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),

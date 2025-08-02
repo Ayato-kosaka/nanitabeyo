@@ -1,4 +1,5 @@
--- 20250802T0306_create_payouts.sql
+CREATE TYPE payout_status AS ENUM ('pending', 'paid', 'refunded');
+
 CREATE TABLE payouts (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     bid_id        UUID        NOT NULL REFERENCES restaurant_bids(id),
@@ -6,7 +7,7 @@ CREATE TABLE payouts (
     dish_media_id UUID        NOT NULL REFERENCES dish_media(id),
     amount_cents  BIGINT      NOT NULL CHECK (amount_cents > 0),
     currency_code CHAR(3),
-    status        bid_status  NOT NULL,
+    status        payout_status  NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     lock_no       INTEGER     NOT NULL DEFAULT 0,
