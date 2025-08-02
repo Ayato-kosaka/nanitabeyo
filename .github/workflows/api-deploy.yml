@@ -1,4 +1,4 @@
-name: Deploy API to Cloud Run
+name: API Deploy to Cloud Run
 
 on:
   workflow_dispatch:
@@ -34,11 +34,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node & pnpm cache
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version: "22"
+          cache: "pnpm"
 
       - run: pnpm install --frozen-lockfile
 
