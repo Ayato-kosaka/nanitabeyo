@@ -1,0 +1,45 @@
+name: EAS Build Preview Prod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-preview-prod:
+    name: EAS Build (Preview Prod)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app-expo
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+        env:
+          EAS_ACCESS_TOKEN: ${{ secrets.EAS_ACCESS_TOKEN }}
+
+      - name: ✨ Update environment variable
+        run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
+
+      - name: 🚀 Build app (production preview)
+        run: pnpx eas-cli build --profile preview --platform all --non-interactive --no-wait --clear-cache

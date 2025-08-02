@@ -1,0 +1,170 @@
+import * as dotenv from "dotenv";
+import { ExpoConfig, ConfigContext } from "@expo/config";
+import { version } from "./package.json"
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+	...config,
+	"name": "dish-scroll",
+	"slug": "dish-scroll",
+	owner: "dish-scroll",
+	runtimeVersion: version.split(".").slice(0, 2).join("."),
+	version,
+	orientation: "portrait",
+	icon: "./assets/images/icon.png",
+	scheme: "myapp",
+	// updates: {
+	// 	url: "https://u.expo.dev/d29cfcb3-535a-4c11-8493-49f7d4c92289",
+	// },
+	userInterfaceStyle: "automatic",
+	newArchEnabled: true,
+	ios: {
+		// bundleIdentifier: "",
+		buildNumber: "1",
+		supportsTablet: false,
+		infoPlist: {
+			ITSAppUsesNonExemptEncryption: false,
+		},
+		config: {
+			googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY,
+		},
+	},
+	android: {
+		// package: "",
+		versionCode: 1,
+		adaptiveIcon: {
+			foregroundImage: "./assets/images/adaptive-icon.png",
+			backgroundColor: "#ffffff",
+		},
+		config: {
+			googleMaps: {
+				apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY,
+			},
+		},
+	},
+	web: {
+		bundler: "metro",
+		output: "static",
+		favicon: "./assets/images/favicon.png",
+	},
+	"plugins": [
+		"expo-router",
+		// [
+		// 	"expo-splash-screen",
+		// 	{
+		// 		image: "./assets/images/splash-icon.png",
+		// 		imageWidth: 200,
+		// 		resizeMode: "contain",
+		// 		backgroundColor: "#fe3764",
+		// 	},
+		// ],
+		[
+			"expo-camera",
+			{
+				cameraPermission: "$(PRODUCT_NAME) uses the camera to identify spots and give audio guides.",
+			},
+		],
+		[
+			"expo-image-picker",
+			{
+				photosPermission: "Used to save captured spot photos to your library.",
+			},
+		],
+		[
+			"expo-location",
+			{
+				locationAlwaysAndWhenInUsePermission:
+					"Allow $(PRODUCT_NAME) to use your location to find nearby places and provide location-based guides.",
+				locationAlwaysPermission:
+					"Allow $(PRODUCT_NAME) to use your location to find nearby places and provide location-based guides.",
+				locationWhenInUsePermission:
+					"Allow $(PRODUCT_NAME) to use your location to find nearby places and provide location-based guides.",
+				isIosBackgroundLocationEnabled: false,
+				isAndroidBackgroundLocationEnabled: false,
+			},
+		],
+		[
+			"react-native-google-mobile-ads",
+			{
+				androidAppId: "ca-app-pub-8992436220024710~4233642482",
+				iosAppId: "ca-app-pub-8992436220024710~2925264393",
+				skAdNetworkItems: [
+					"cstr6suwn9.skadnetwork",
+					"4fzdc2evr5.skadnetwork",
+					"2fnua5tdw4.skadnetwork",
+					"ydx93a7ass.skadnetwork",
+					"p78axxw29g.skadnetwork",
+					"v72qych5uu.skadnetwork",
+					"ludvb6z3bs.skadnetwork",
+					"cp8zw746q7.skadnetwork",
+					"3sh42y64q3.skadnetwork",
+					"c6k4g5qg8m.skadnetwork",
+					"s39g8k73mm.skadnetwork",
+					"3qy4746246.skadnetwork",
+					"hs6bdukanm.skadnetwork",
+					"mlmmfzh3r3.skadnetwork",
+					"v4nxqhlyqp.skadnetwork",
+					"wzmmz9fp6w.skadnetwork",
+					"su67r6k2v3.skadnetwork",
+					"yclnxrl5pm.skadnetwork",
+					"7ug5zh24hu.skadnetwork",
+					"gta9lk7p23.skadnetwork",
+					"vutu7akeur.skadnetwork",
+					"y5ghdn5j9k.skadnetwork",
+					"v9wttpbfk9.skadnetwork",
+					"n38lu8286q.skadnetwork",
+					"47vhws6wlr.skadnetwork",
+					"kbd757ywx3.skadnetwork",
+					"9t245vhmpl.skadnetwork",
+					"a2p9lx4jpn.skadnetwork",
+					"22mmun2rn5.skadnetwork",
+					"4468km3ulz.skadnetwork",
+					"2u9pt9hc89.skadnetwork",
+					"8s468mfl3y.skadnetwork",
+					"ppxm28t8ap.skadnetwork",
+					"uw77j35x4d.skadnetwork",
+					"pwa73g5rt2.skadnetwork",
+					"578prtvx9j.skadnetwork",
+					"4dzt52r2t5.skadnetwork",
+					"tl55sbb4fm.skadnetwork",
+					"e5fvkxwrpn.skadnetwork",
+					"8c4e2ghe7u.skadnetwork",
+					"3rd42ekr43.skadnetwork",
+					"3qcr597p9d.skadnetwork",
+				],
+			},
+		],
+		[
+			"expo-build-properties",
+			{
+				ios: {
+					useFrameworks: "static",
+				},
+			},
+		],
+		"expo-font",
+		"expo-web-browser"
+	],
+	"experiments": {
+		"typedRoutes": true
+	},
+	extra: {
+		eas: {
+			projectId: "d29cfcb3-535a-4c11-8493-49f7d4c92289",
+		},
+		EXPO_PUBLIC_COMMIT_ID: process.env.EXPO_PUBLIC_COMMIT_ID,
+		EXPO_PUBLIC_NODE_ENV: process.env.EXPO_PUBLIC_NODE_ENV,
+		EXPO_PUBLIC_APP_STORE_URL: process.env.EXPO_PUBLIC_APP_STORE_URL,
+		EXPO_PUBLIC_PLAY_STORE_URL: process.env.EXPO_PUBLIC_PLAY_STORE_URL,
+		EXPO_PUBLIC_BACKEND_BASE_URL: process.env.EXPO_PUBLIC_BACKEND_BASE_URL,
+		EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY,
+		EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+		EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+		EXPO_PUBLIC_DB_SCHEMA: process.env.EXPO_PUBLIC_DB_SCHEMA,
+		EXPO_PUBLIC_GCS_BUCKET_NAME: process.env.EXPO_PUBLIC_GCS_BUCKET_NAME,
+		EXPO_PUBLIC_GCS_STATIC_MASTER_DIR_PATH: process.env.EXPO_PUBLIC_GCS_STATIC_MASTER_DIR_PATH,
+		EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL_UNIT_ID,
+		EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_UNIT_ID,
+		EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID,
+		EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID,
+	},
+});

@@ -1,0 +1,11 @@
+{
+  "Common": {
+    "cancel": "Cancel",
+    "ok": "OK",
+    "goStore": "Open App Store"
+  },
+  "Error": {
+    "maintenanceMessage": "We are currently undergoing maintenance.",
+    "unsupportedVersion": "This version is no longer supported."
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "Common": {
+    "cancel": "إلغاء",
+    "ok": "موافق",
+    "goStore": "افتح متجر التطبيقات"
+  },
+  "Error": {
+    "maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
+    "unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."
+  }
+}

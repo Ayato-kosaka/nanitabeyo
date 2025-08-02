@@ -1,0 +1,79 @@
+name: PostgreSQL Export Table(s) to CSV
+
+on:
+  # schedule:
+  #   - cron: '0 3 * * *'  # 毎日3時 JST
+  workflow_dispatch:
+    inputs:
+      schema:
+        description: "Schema to export (e.g., public)"
+        required: true
+        default: "public"
+      table_name:
+        description: "Table name to export. Leave blank to export all tables."
+        required: false
+        default: ""
+
+jobs:
+  export-postgres-tables:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+      GCS_BUCKET: ${{ secrets.GCS_BUCKET_NAME_PROD }}
+      GCP_KEY: ${{ secrets.GCP_SA_KEY }}
+
+    steps:
+      - name: Set up timestamp and metadata
+        id: vars
+        run: |
+          echo "timestamp=$(date +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Authenticate to Google Cloud
+        run: |
+          echo "$GCP_KEY" > /tmp/key.json
+          gcloud auth activate-service-account --key-file=/tmp/key.json
+          gcloud config set project $(jq -r .project_id /tmp/key.json)
+
+      - name: Parse workflow inputs with fallbacks
+        id: parse-inputs
+        run: |
+          SCHEMA="${{ github.event.inputs.schema }}"
+          TABLE_NAME="${{ github.event.inputs.table_name }}"
+
+          SCHEMA=${SCHEMA:-public}
+
+          echo "schema=$SCHEMA" >> $GITHUB_OUTPUT
+          echo "table_name=$TABLE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Export table(s) to CSV
+        run: |
+          mkdir -p export
+          if [ -n "${{ steps.parse-inputs.outputs.table_name }}" ]; then
+            tables="${{ steps.parse-inputs.outputs.table_name }}"
+          else
+            tables=$(psql "$DATABASE_URL" -t -c "SELECT tablename FROM pg_tables WHERE schemaname = '${{ steps.parse-inputs.outputs.schema }}';" | xargs)
+          fi
+
+          for table in $tables; do
+            csv_file="export/${table}.csv"
+            echo "Exporting $table to $csv_file"
+            psql "$DATABASE_URL" -c "\\COPY \"${{ steps.parse-inputs.outputs.schema }}\".\"$table\" TO '$csv_file' WITH CSV HEADER"
+          done
+
+      - name: Upload CSVs to GCS with metadata
+        run: |
+          export_path="gs://${GCS_BUCKET}/system/PostgreSQL/csv_export/${{ steps.vars.outputs.timestamp }}/"
+
+          for file in export/*; do
+            gsutil -h "x-goog-meta-commit-sha:${{ steps.vars.outputs.sha }}" \
+                   -h "x-goog-meta-schema:${{ steps.parse-inputs.outputs.schema }}" \
+                   -h "x-goog-meta-exported-at:${{ steps.vars.outputs.timestamp }}" \
+                   cp "$file" "$export_path"
+          done

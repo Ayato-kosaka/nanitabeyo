@@ -6,7 +6,7 @@ source scripts/.env
 set +a
 
 if [ -z "$DB_SCHEMA" ]; then
-  echo "❌ DB_SCHEMA is not set in functions/.env"
+  echo "❌ DB_SCHEMA is not set in api/.env"
   exit 1
 fi
 
