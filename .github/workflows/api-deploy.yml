@@ -1,0 +1,86 @@
+name: Deploy API to Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "デプロイ先環境"
+        required: true
+        type: choice
+        options: [dev, prod]
+
+# 同じ環境への並列デプロイ競合を防ぐ
+concurrency:
+  group: api-cloudrun-${{ github.event.inputs.target }}
+  cancel-in-progress: true
+
+permissions:       # OIDC 用の最小権限
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy (${{ github.event.inputs.target }})
+    runs-on: ubuntu-latest
+
+    # GitHub Environments dev / prod に登録したシークレット＆変数を自動でバインド
+    environment: ${{ github.event.inputs.target }}
+
+    env:
+      REGION: ${{ vars.CLOUD_RUN_REGION }}          # 例）asia-northeast1
+      SERVICE_NAME: api-${{ github.event.inputs.target }}
+      IMAGE: ${{ vars.ARTIFACT_REPO_URI }}/api:${{ github.sha }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node & pnpm cache
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: pnpm
+
+    - run: pnpm install --frozen-lockfile
+
+    # ---------- アプリ用 .env を動的生成 ----------
+    - name: Create .env for api
+      run: |
+        echo 'API_NODE_ENV=production'                  >> ./api/.env
+        echo 'DB_SCHEMA=public'                         >> ./api/.env
+        echo "API_COMMIT_ID=${{ github.sha }}"          >> ./api/.env
+
+    - name: Prisma db:pull
+      run: pnpm db:pull
+    # -------------------------------------------
+
+    # ---------- Google Cloud へ OIDC でログイン ----------
+    - name: Auth to Google Cloud (WIF)
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+        service_account:           ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+    # -------------------------------------------
+
+    # ---------- コンテナ Build & Push ----------
+    - name: Build & push with Cloud Build
+      run: |
+        gcloud builds submit ./api \
+          --tag="${IMAGE}" \
+          --project="${{ secrets.GCP_PROJECT_ID }}"
+    # -------------------------------------------
+
+    # ---------- Cloud Run へデプロイ & トラフィック切替 ----------
+    - id: deploy
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.SERVICE_NAME }}
+        region:  ${{ env.REGION }}
+        image:   ${{ env.IMAGE }}
+        revision_traffic: 'LATEST=100'   # 成功後ただちに全トラフィック移行 :contentReference[oaicite:0]{index=0}
+
+    - name: Show Service URL
+      run: echo "✅ Deployed: ${{ steps.deploy.outputs.url }}"
