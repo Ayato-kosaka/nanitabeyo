@@ -56,7 +56,7 @@ sequenceDiagram
         loop 各 dish_category_id (並列)
             %% ① 既存データだけ取得
             UI ->> Backend: GET /dishes?location&radius&category_id
-                Backend ->> Database: from(places).where(location, raduis)<br>.join(dish).where(placeId, category_id)<br>.join(dish_medias).on(dish_id).notIn(from(user_seen_dish).where(user_id))<br>.orderBy().limit(1)<br>.join(dish_reviews).on(dish_id).orderBy(created_at)
+                Backend ->> Database: from(places).where(location, raduis)<br>.join(dish).where(placeId, category_id in<br>from(dish_categories).has(tags,category_id))<br>.join(dish_medias).on(dish_id).notIn(from(user_seen_dish).where(user_id))<br>.orderBy().limit(1)<br>.join(dish_reviews).on(dish_id).orderBy(created_at)
                     Database ->> Backend: places, dishes, dish_medias, dish_reviews
                 Backend ->> Storage: generateSignedUrl(GET, /dish-media/…, 24h)
                     Storage ->> Backend: {signedUrl}
