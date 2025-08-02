@@ -22,8 +22,7 @@ export interface Topic {
   topicTitle: string;
   reason: string;
   googlePlaceSearchText: string;
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
+  imageUrl: string;
   feedItems: FoodItem[];
   isHidden?: boolean;
 }
