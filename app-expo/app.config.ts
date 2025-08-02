@@ -12,13 +12,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	orientation: "portrait",
 	icon: "./assets/images/icon.png",
 	scheme: "myapp",
-	// updates: {
-	// 	url: "https://u.expo.dev/d29cfcb3-535a-4c11-8493-49f7d4c92289",
-	// },
+	updates: {
+		url: "https://u.expo.dev/e01a92f1-0341-4eb5-84cc-61b8cef1a8f1",
+	},
 	userInterfaceStyle: "automatic",
 	newArchEnabled: true,
 	ios: {
-		// bundleIdentifier: "",
+		bundleIdentifier: "com.dish.scroll",
 		buildNumber: "1",
 		supportsTablet: false,
 		infoPlist: {
@@ -29,7 +29,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		},
 	},
 	android: {
-		// package: "",
+		package: "com.dish.scroll",
 		versionCode: 1,
 		adaptiveIcon: {
 			foregroundImage: "./assets/images/adaptive-icon.png",
@@ -149,7 +149,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	},
 	extra: {
 		eas: {
-			projectId: "d29cfcb3-535a-4c11-8493-49f7d4c92289",
+			projectId: "e01a92f1-0341-4eb5-84cc-61b8cef1a8f1",
 		},
 		EXPO_PUBLIC_COMMIT_ID: process.env.EXPO_PUBLIC_COMMIT_ID,
 		EXPO_PUBLIC_NODE_ENV: process.env.EXPO_PUBLIC_NODE_ENV,
