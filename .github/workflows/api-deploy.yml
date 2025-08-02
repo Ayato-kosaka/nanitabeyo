@@ -80,7 +80,7 @@ jobs:
         service: ${{ env.SERVICE_NAME }}
         region:  ${{ env.REGION }}
         image:   ${{ env.IMAGE }}
-        revision_traffic: 'LATEST=100'   # 成功後ただちに全トラフィック移行 :contentReference[oaicite:0]{index=0}
+        revision_traffic: 'LATEST=100'   # 成功後ただちに全トラフィック移行
 
     - name: Show Service URL
       run: echo "✅ Deployed: ${{ steps.deploy.outputs.url }}"
