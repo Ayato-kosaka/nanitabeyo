@@ -1,0 +1,47 @@
+name: PostgreSQL Import CSV into Table
+
+on:
+  workflow_dispatch:
+    inputs:
+      schema:
+        description: "Schema to import into (e.g., dev)"
+        required: false
+        default: "dev"
+      timestamp:
+        description: "Timestamp of the CSV export directory (e.g., 20240511-030000)"
+        required: true
+
+jobs:
+  import-csv-to-postgres:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+      GCS_BUCKET: ${{ secrets.GCS_BUCKET_NAME_PROD }}
+      GCP_KEY: ${{ secrets.GCP_SA_KEY }}
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Authenticate to Google Cloud
+        run: |
+          echo "$GCP_KEY" > /tmp/key.json
+          gcloud auth activate-service-account --key-file=/tmp/key.json
+          gcloud config set project $(jq -r .project_id /tmp/key.json)
+
+      - name: Download CSV files from GCS
+        run: |
+          mkdir -p import
+          gsutil -m cp "gs://${GCS_BUCKET}/system/PostgreSQL/csv_export/${{ github.event.inputs.timestamp }}/*.csv" import/
+
+      - name: Import CSV into PostgreSQL
+        run: |
+          for file in import/*.csv; do
+            table=$(basename "$file" .csv)
+            echo "Importing $table from $file"
+            psql "$DATABASE_URL" -c "TRUNCATE TABLE \"${{ github.event.inputs.schema }}\".\"$table\" CASCADE;"
+            psql "$DATABASE_URL" -c "\\COPY \"${{ github.event.inputs.schema }}\".\"$table\" FROM '$file' WITH CSV HEADER"
+          done

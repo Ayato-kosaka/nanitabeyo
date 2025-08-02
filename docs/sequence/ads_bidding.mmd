@@ -1,0 +1,60 @@
+sequenceDiagram
+    participant User
+    participant UI
+    participant Backend
+    participant Database
+    %% (Stripe / Google Places)
+    participant ExternalAPI as 外部API  
+    %% BullMQ / queue
+    participant Worker     
+%% ─────────────────────────────────────────────────────────────────────────
+    Note over User,UI: RestaurantMapScreen<br>(Google Map + 入札ピン)
+    UI ->> Backend: GET /v1/places/active-bids?lat&lng
+        Backend ->> Database: SELECT place_id, SUM(amount_cents) AS total_cents<br>FROM restaurant_bids<br>WHERE start_date <= CURRENT_DATE<br>AND end_date   >  CURRENT_DATE<br>AND status = 'confirmed'<br>GROUP BY place_id;
+        Backend ->> UI: [{placeId,totalCents}]
+    User ->> UI: テキスト検索
+        UI ->> ExternalAPI: Places Autocomplete
+            ExternalAPI ->> UI: 候補
+    User ->> UI: 候補選択
+        UI ->> ExternalAPI: Place Details(place_id)
+            ExternalAPI ->> UI: details
+        UI ->> UI: navigate(PlaceScreen, {placeId})
+
+%% ─────────────────────────────────────────────────────────────
+    Note over User,UI: PlaceScreen<br>(DishMedia + 入札総額表示)
+    UI ->> Backend: GET /v1/bids/summary?placeId={id}
+        Backend ->> Database: SELECT SUM(amount_cents)  AS total_cents,<br>MIN(end_date)      AS next_closure,<br>(MIN(end_date) - CURRENT_DATE) AS remaining_days<br>FROM restaurant_bids<br>WHERE place_id = :id<br>AND start_date <= CURRENT_DATE<br>AND end_date   >  CURRENT_DATE<br>AND status = 'confirmed';
+        Backend ->> UI: {totalCents, remainingDays}
+        UI ->> User: 総額 ¥…, 残り n 日
+    User ->> UI: 「入札する」→ 金額入力
+    User ->> UI: 「支払」押下
+        %% PaymentIntent 発行
+        UI ->> Backend: POST /v1/bids/intents {placeId, amountCents}
+            Backend ->> ExternalAPI: PaymentIntent.create(amountCents)
+                ExternalAPI ->> Backend: {clientSecret, intentId}
+            Backend ->> UI: {clientSecret}
+        %% カード決済
+        UI ->> ExternalAPI: confirmPayment(clientSecret, cardInfo)
+            ExternalAPI -->> UI: result
+    alt result == succeeded
+        %% Stripe Webhook
+        ExternalAPI -->> Backend: payment_intent.succeeded
+            Backend ->> Database: <br>INSERT INTO restaurant_bids<br>(user_id, restaurant_id, payment_intent_id,<br>amount_cents, start_date, end_date, status)<br>VALUES (:user, :place, :pi, :amt,<br>CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days',<br>'confirmed');
+            %% 通知キュー
+            Backend ->> Worker: notifyNewBid(bidId)
+    else result == failed
+        ExternalAPI -->> Backend: payment_intent.payment_failed
+            Backend ->> Database: INSERT INTO restaurant_bids(..., status='failed')
+    end
+    Backend ->> UI: {status}
+
+%% ─────────────────────────────────────────────────────────────
+    Note over User,UI: ProfileScreen<br>(Tabs: Deposits / Earnings)
+    User ->> UI: open
+        UI ->> Backend: GET /v1/bids?userId
+            Backend ->> Database: SELECT ... ORDER BY created_at DESC
+            Backend ->> UI: bids[]
+        UI ->> Backend: GET /v1/earnings?creatorId
+            Backend ->> Database: SELECT ...
+            Backend ->> UI: earnings[]
+        UI ->> User: タブ表示

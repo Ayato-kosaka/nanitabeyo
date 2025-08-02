@@ -1,0 +1,6 @@
+# labels_10lang.rq
+SELECT ?dish ?lang ?val WHERE {
+  ?dish wdt:P31/wdt:P279* wd:Q746549.
+  ?dish rdfs:label ?val.
+  FILTER (LANG(?val) = ?lang)
+}

@@ -37,8 +37,6 @@ describe('AppController (e2e)', () => {
   });
 
   it('/v1/dish-media without required params (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/v1/dish-media')
-      .expect(400);
+    return request(app.getHttpServer()).get('/v1/dish-media').expect(400);
   });
 });

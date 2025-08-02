@@ -1,0 +1,60 @@
+name: E2E Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e-android:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    env:
+      NODE_ENV: test
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      DETOX_LOGLEVEL: trace
+
+    steps:
+      - name: 🧱 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🟢 Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 🧩 Install TurboRepo deps
+        run: npm install -g turbo
+
+      - name: 📦 Install dependencies (Turbo workspaces)
+        run: npm install
+
+      - name: 💾 Turbo Cache Restore
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-turbo-${{ hashFiles('**/package-lock.json') }}
+
+      - name: 🚀 Start dev servers in background
+        run: |
+          nohup npx turbo dev > dev.log 2>&1 &
+          sleep 20
+
+      - name: 🧱 Set up Android SDK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_4
+          emulator-options: -no-window -no-audio -no-boot-anim
+          disable-animations: true
+          script: |
+            cd e2e
+            npm install
+            npx detox build -c android.emu.debug
+            npx detox test -c android.emu.debug

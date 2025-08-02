@@ -1,35 +1,47 @@
-# dependencies
+# --- Node Modules ---
 node_modules/
-
-# expo
+.pnpm/
 .expo/
+.next/
 dist/
-web-build/
-expo-env.d.ts
+build/
 
-# native
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macos
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
+# --- Env Files ---
 .env
+.env.*
+!.env.example
 
-# typescript
-*.tsbuildinfo
+# --- Turbo Cache ---
+.turbo/
+
+# --- Expo ---
+*.log
+.expo-shared/
+
+# --- API ---
+api/lib/
+api/.env
+api/.runtimeconfig.json
+
+# --- E2E / Detox ---
+e2e/artifacts/
+e2e/tmp/
+e2e/.detoxrc.json
+e2e/.env
+
+# --- macOS / OS Junk ---
+.DS_Store
+
+# --- VSCode ---
+.vscode/settings.json
+.vscode/launch.json
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Optional: Supabase CLI metadata ---
+supabase/.temp/
+supabase/.env

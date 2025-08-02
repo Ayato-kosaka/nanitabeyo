@@ -1,0 +1,50 @@
+name: EAS Build Develop
+
+on:
+  workflow_dispatch:
+
+jobs:
+  eas-build:
+    name: Build with EAS CLI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app-expo
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 📥 Cache Turbo
+        uses: actions/cache@v3
+        with:
+          path: |
+            .turbo
+            node_modules/.cache
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🚀 Run EAS build (development profile)
+        run: pnpx eas-cli build --profile development --platform all --non-interactive --no-wait

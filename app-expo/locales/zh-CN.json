@@ -1,0 +1,11 @@
+{
+	"Common": {
+		"cancel": "取消",
+		"ok": "确定",
+		"goStore": "打开应用商店"
+	},
+	"Error": {
+		"maintenanceMessage": "当前正在维护中。",
+		"unsupportedVersion": "此版本已不再受支持."
+	}
+}

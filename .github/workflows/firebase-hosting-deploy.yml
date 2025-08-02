@@ -1,0 +1,66 @@
+name: Firebase Hosting Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        description: Choose your deployment environment.
+        options:
+          - production
+          - preview
+          - development
+        required: true
+
+jobs:
+  firebase-hosting:
+    name: Firebase Hosting Deploy (${{ github.event.inputs.target }})
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app-expo
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: ✨ Update environment variable
+        run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
+
+      - name: 🛠️ Sync environment variables from EAS CLI
+        run: pnpx eas-cli env:pull ${{ github.event.inputs.target }} --non-interactive
+
+      - name: 🏗️ Build Web App
+        run: pnpm --filter app-expo build:web
+
+      - name: 📄 Generate app-ads.txt from secret
+        run: echo "${{ secrets.ADMOB_APP_ADS_TXT }}" > dist/app-ads.txt
+
+      - name: 🚀 Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID_PROD }}
+          channelId: ${{ github.event.inputs.target == 'production' && 'live' || github.event.inputs.target }}

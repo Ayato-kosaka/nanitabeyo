@@ -2,16 +2,16 @@
 
 set -e
 set -a
-source functions/.env
+source api/.env
 set +a
 
 if [ -z "$DB_SCHEMA" ]; then
-  echo "❌ DB_SCHEMA is not set in functions/.env"
+  echo "❌ DB_SCHEMA is not set in api/.env"
   exit 1
 fi
 
-TEMPLATE="functions/prisma/schema.template.prisma"
-TARGET="functions/prisma/schema.prisma"
+TEMPLATE="api/prisma/schema.template.prisma"
+TARGET="api/prisma/schema.prisma"
 
 if [ ! -f "$TEMPLATE" ]; then
   echo "❌ Template not found: $TEMPLATE"

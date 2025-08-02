@@ -1,5 +1,5 @@
-import * as dotenv from "dotenv";
-import { z } from "zod";
+import dotenv from 'dotenv';
+import { z } from 'zod';
 
 // .env ファイルから環境変数を読み込む
 dotenv.config();
@@ -25,9 +25,11 @@ function loadValidatedEnv(): z.infer<typeof envSchema> {
   const parsedEnv = envSchema.safeParse(process.env);
 
   if (!parsedEnv.success) {
-    console.error("❌ Failed to validate environment variables:");
+    console.error('❌ Failed to validate environment variables:');
     console.table(parsedEnv.error.flatten().fieldErrors);
-    throw new Error("Invalid environment variables. Please check your .env file or runtime environment.");
+    throw new Error(
+      'Invalid environment variables. Please check your .env file or runtime environment.',
+    );
   }
 
   return parsedEnv.data;
