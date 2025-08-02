@@ -10,7 +10,7 @@ COPY pnpm-lock.yaml ./
 COPY api/package.json ./api/
 
 # 依存を解決（node_modules はルートに置かれる）
-RUN cd api && pnpm fetch
+RUN cd api && pnpm fetch --prod
 
 # ────────────── 2) ビルドレイヤ ──────────────
 FROM node:22-alpine AS builder
@@ -25,7 +25,7 @@ COPY . .
 
 # ビルド（NestJS build スクリプト想定）
 WORKDIR /app/api
-RUN pnpm install --offline --prod=false \
+RUN pnpm install --frozen-lockfile --prod=false \
   && pnpm run build
 
 # ────────────── 3) 実行レイヤ ──────────────
