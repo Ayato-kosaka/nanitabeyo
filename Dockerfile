@@ -34,7 +34,7 @@ WORKDIR /app
 
 # dist と依存だけコピー
 COPY --from=builder /app/api/dist ./dist
-COPY --from=builder /app/api/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 ENV NODE_ENV=production
 CMD ["dist/api/src/main.js"]
