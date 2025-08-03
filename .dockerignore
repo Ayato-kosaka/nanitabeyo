@@ -1,14 +1,4 @@
-# node / pnpm
-**/node_modules
-**/.pnpm
-.pnpm-store
-# build outputs
-dist
-# VCS / IDE
 .git
-.gitignore
-.idea
-.vscode
-# others
-npm-debug.log
-.DS_Store
+node_modules
+dist
+*.log
