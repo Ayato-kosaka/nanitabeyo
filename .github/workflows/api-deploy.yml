@@ -77,7 +77,8 @@ jobs:
         run: |
           gcloud builds submit . \
             --tag="${IMAGE}" \
-            --project="${{ secrets.GCP_PROJECT_ID }}"
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --default-buckets-behavior=REGIONAL_USER_OWNED_BUCKET
       # -------------------------------------------
       # ---------- Cloud Run へデプロイ & トラフィック切替 ----------
       - id: deploy
