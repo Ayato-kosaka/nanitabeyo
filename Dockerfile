@@ -32,11 +32,12 @@ RUN pnpm run build
 RUN pnpm prune --prod
 
 # ────────────── 3) runtime ──────────────
-FROM gcr.io/distroless/nodejs22-debian12
+FROM gcr.io/distroless/nodejs22-debian12 AS runtime
 WORKDIR /app
 
 COPY --from=builder /app/api/dist          ./dist
 COPY --from=builder /app/api/node_modules/ ./node_modules/
+COPY --from=builder /app/node_modules/       ./node_modules/
 
 ENV NODE_ENV=production
 CMD ["dist/api/src/main.js"]
