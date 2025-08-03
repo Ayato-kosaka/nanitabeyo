@@ -15,10 +15,10 @@ sequenceDiagram
     User ->> UI: 候補を選択
         UI ->> 外部API: Google Places Details API(placeId)
             外部API ->> UI: placeDetail
-        UI ->> UI: navigate(place, placeId)
+        UI ->> UI: navigate(Restaurant, restaurantId)
 
-    %% review/place‑screen 画像＋レビュー投稿 ───────
-    Note over User,UI: PlaceScreen<br>(画像＋レビュー投稿)
+    %% review/restaurant‑screen 画像＋レビュー投稿 ───────
+    Note over User,UI: RestaurantScreen<br>(画像＋レビュー投稿)
     User ->> UI: 「画像投稿」ボタン押下
         UI ->> UI: カメラ/ライブラリ起動
     User ->> UI: 料理名を入力(オートコンプリート)
@@ -31,8 +31,8 @@ sequenceDiagram
         UI ->> Backend: POST /dish-categories/import { category }
         UI ->> UI: 無ければエラー表示
     User ->> UI: レビュー投稿ボタン押下
-        UI ->> Backend: POST /restaurants/import {placeId}
-            Backend ->> Database: from(restaurants).where(placeId)
+        UI ->> Backend: POST /restaurants/import {restaurantId}
+            Backend ->> Database: from(restaurants).where(restaurantId)
                 Database ->> Backend: restaurant
             alt ヒットなし
                 Backend ->> 外部API: Google Place Detail API
@@ -40,7 +40,7 @@ sequenceDiagram
                 Backend ->> Database: UPSERT restaurants
             end
             Backend ->> UI: restaurant
-        UI ->> Backend: POST /dishes/find-or-create {placeId, dishCategory}
+        UI ->> Backend: POST /dishes/find-or-create {restaurantId, dishCategory}
             Backend ->> Database: UPSERT dishes
                 Database ->> Backend: dishId
         UI ->> Backend: POST /user-uploads/gcs-signed-url { dishId, contentType }

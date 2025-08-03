@@ -56,8 +56,8 @@ sequenceDiagram
         loop 各 dish_category_id (並列)
             %% ① 既存データだけ取得
             UI ->> Backend: GET /dishes?location&radius&category_id
-                Backend ->> Database: from(places).where(location, raduis)<br>.join(dish).where(placeId, category_id in<br>from(dish_categories).has(tags,category_id))<br>.join(dish_medias).on(dish_id).notIn(from(user_seen_dish).where(user_id))<br>.orderBy().limit(1)<br>.join(dish_reviews).on(dish_id).orderBy(created_at)
-                    Database ->> Backend: places, dishes, dish_medias, dish_reviews
+                Backend ->> Database: from(restaurants).where(location, raduis)<br>.join(dish).where(restaurantId, category_id in<br>from(dish_categories).has(tags,category_id))<br>.join(dish_medias).on(dish_id).notIn(from(user_seen_dish).where(user_id))<br>.orderBy().limit(1)<br>.join(dish_reviews).on(dish_id).orderBy(created_at)
+                    Database ->> Backend: restaurants, dishes, dish_medias, dish_reviews
                 Backend ->> Storage: generateSignedUrl(GET, /dish-media/…, 24h)
                     Storage ->> Backend: {signedUrl}
                 Backend ->> UI: 200 OK + dishes[] + signedUrls
@@ -137,7 +137,7 @@ sequenceDiagram
 
     %% ── Likes 一覧を取得 ──────────────────────────────
         UI ->> Backend: GET /dish-media/liked?userId=:me
-            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.place_id,<br>dm.object_path,<br>dl.created_at<br>FROM dish_likes dl<br>JOIN dish_media dm ON dl.dish_media_id = dm.dish_media_id<br>WHERE dl.user_id = :me<br>ORDER BY dl.created_at DESC<br>LIMIT 21
+            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.restaurant_id,<br>dm.object_path,<br>dl.created_at<br>FROM dish_likes dl<br>JOIN dish_media dm ON dl.dish_media_id = dm.dish_media_id<br>WHERE dl.user_id = :me<br>ORDER BY dl.created_at DESC<br>LIMIT 21
             Database ->> Backend: likedRows
             Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[likedRows.object_path], exp=24h)
                 Storage ->> Backend: [{objectPath,getUrl}]
@@ -150,7 +150,7 @@ sequenceDiagram
     %% ── ユーザーが「Saves」タブをタップ ───────────────
     User ->> UI: 「Saves」タブ選択
         UI ->> Backend: GET /dish-media/saved?userId=:me
-            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.place_id,<br>dm.object_path,<br>r.created_at<br>FROM reactions r<br>JOIN dish_media dm ON r.dish_media_id = dm.dish_media_id<br>WHERE r.user_id = :me AND r.reaction_type = 'save'<br>ORDER BY r.created_at DESC<br>LIMIT 21
+            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.restaurant_id,<br>dm.object_path,<br>r.created_at<br>FROM reactions r<br>JOIN dish_media dm ON r.dish_media_id = dm.dish_media_id<br>WHERE r.user_id = :me AND r.reaction_type = 'save'<br>ORDER BY r.created_at DESC<br>LIMIT 21
             Database ->> Backend: savedRows
             Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[savedRows.object_path], exp=24h)
                 Storage ->> Backend: [{objectPath,getUrl}]

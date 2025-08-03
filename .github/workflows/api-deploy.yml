@@ -45,6 +45,19 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Set DB_SCHEMA value
+        run: |
+          if [ "${{ github.event.inputs.target }}" = "development" ]; then
+            echo "DB_SCHEMA=dev" >> $GITHUB_ENV
+          elif [ "${{ github.event.inputs.target }}" = "production" ]; then
+            echo "DB_SCHEMA=public" >> $GITHUB_ENV
+          fi
+
+      - name: Create .env for api
+        run: |
+          echo 'DATABASE_URL=${{ secrets.PRISMA_DATABASE_URL }}'            >> ./api/.env
+          echo 'DB_SCHEMA=${{ vars.API_DB_SCHEMA }}'            >> ./api/.env
+
       - name: Prisma db:pull
         run: pnpm db:pull
 
