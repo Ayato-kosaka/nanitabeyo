@@ -22,14 +22,14 @@ COPY --from=deps /app .
 COPY . .
 
 # devDeps を含めてインストール（build に必要）
-RUN pnpm install --filter=./api... --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # ビルド
 WORKDIR /app/api
 RUN pnpm run build
 
 # ランタイムに devDeps は不要なので削る
-RUN pnpm prune --filter=./api... --prod
+RUN pnpm prune --prod
 
 # ────────────── 3) runtime ──────────────
 FROM gcr.io/distroless/nodejs22-debian12
