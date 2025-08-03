@@ -35,11 +35,8 @@ RUN pnpm prune --prod
 FROM gcr.io/distroless/nodejs22-debian12
 WORKDIR /app
 
-COPY --from=builder /app/api/dist          ./dist
-COPY --from=builder /app/api/node_modules ./node_modules           # シンボリックリンク側
-COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm   # 実体ストアはこちら
-# もし他の workspaces の依存リンクがある場合は
-COPY --from=builder /app/node_modules/@*   ./node_modules/@*
+COPY --from=builder /app/api/dist       ./dist
+COPY --from=builder /app/node_modules   ./node_modules           # シンボリックリンク側
 
 ENV NODE_ENV=production
 CMD ["dist/api/src/main.js"]
