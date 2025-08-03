@@ -31,10 +31,6 @@ RUN pnpm run build
 # ランタイムに devDeps は不要なので削る
 RUN pnpm prune --prod
 
-RUN ls /app/api/dist
-RUN ls /app/api/node_modules
-RUN ls /app/node_modules
-
 # ────────────── 3) runtime ──────────────
 FROM gcr.io/distroless/nodejs22-debian12
 WORKDIR /app
