@@ -5,6 +5,7 @@
 	"workspaces": [
 		"app-expo",
 		"api",
+		"shared",
 		"e2e"
 	],
 	"scripts": {
