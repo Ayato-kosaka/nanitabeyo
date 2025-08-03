@@ -1,40 +1,42 @@
-# ────────────── 1) 依存解決レイヤ ──────────────
+# ────────────── 1) deps ──────────────
 FROM node:22-alpine AS deps
 WORKDIR /app
-
 # pnpm を有効化
 RUN corepack enable
 
-# package.json は api 用、pnpm-lock.yaml はルートから
+# lockfile と api/package.json だけ先にコピーしてキャッシュ
 COPY pnpm-lock.yaml ./
 COPY api/package.json ./api/
 
-# 依存を解決（node_modules はルートに置かれる）
+# production 用の依存だけ取得（store は /root/.pnpm-store）
 RUN cd api && pnpm fetch --prod
 
-# ────────────── 2) ビルドレイヤ ──────────────
+# ────────────── 2) builder ──────────────
 FROM node:22-alpine AS builder
 WORKDIR /app
 RUN corepack enable
 
-# 依存キャッシュをコピー
 COPY --from=deps /app .
 
-# ソースコードを全てコピー（monorepo 全体）
+# monorepo 全体のコード
 COPY . .
 
-# ビルド（NestJS build スクリプト想定）
-WORKDIR /app/api
-RUN pnpm install --frozen-lockfile --prod=false \
-  && pnpm run build
+# ★ point ★
+# API パッケージだけ production 依存をインストール
+RUN pnpm install --filter=./api... --prod --frozen-lockfile
 
-# ────────────── 3) 実行レイヤ ──────────────
+# ビルド
+WORKDIR /app/api
+RUN pnpm run build --filter=./api
+
+# ────────────── 3) runtime ──────────────
 FROM gcr.io/distroless/nodejs22-debian12
 WORKDIR /app
 
-# dist と依存だけコピー
+# 実行バイナリと依存をコピー
 COPY --from=builder /app/api/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/api/node_modules ./node_modules
+COPY --from=builder /app/api/node_modules/.pnpm ./node_modules/.pnpm  # ← symlink 先を補完
 
 ENV NODE_ENV=production
 CMD ["dist/api/src/main.js"]
