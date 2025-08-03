@@ -27,7 +27,7 @@ RUN pnpm install --filter=./api... --prod --frozen-lockfile
 
 # ビルド
 WORKDIR /app/api
-RUN pnpm run build --filter=api
+RUN pnpm run build
 
 # ────────────── 3) runtime ──────────────
 FROM gcr.io/distroless/nodejs22-debian12
