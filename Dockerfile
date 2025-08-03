@@ -37,4 +37,4 @@ COPY --from=builder /app/api/dist ./dist
 COPY --from=builder /app/api/node_modules ./node_modules
 
 ENV NODE_ENV=production
-CMD ["dist/main.js"]
+CMD ["dist/api/src/main.js"]
