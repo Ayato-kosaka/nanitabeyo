@@ -45,20 +45,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # ---------- アプリ用 .env を動的生成 ----------
-      - name: Create .env for api
-        run: |
-          echo "API_COMMIT_ID=${{ github.sha }}"                >> ./api/.env
-          echo 'API_NODE_ENV=${{ github.event.inputs.target }}' >> ./api/.env
-          echo 'CORS_ORIGIN=${{ secrets.API_CORS_ORIGIN }}'            >> ./api/.env
-          echo 'DATABASE_URL=${{ secrets.PRISMA_DATABASE_URL }}'            >> ./api/.env
-          echo 'DB_SCHEMA=${{ vars.API_DB_SCHEMA }}'            >> ./api/.env
-          echo 'API_SUPABASE_JWT_SECRET=${{ secrets.API_SUPABASE_JWT_SECRET }}'            >> ./api/.env
-          echo 'API_GOOGLE_PLACE_API_KEY=${{ secrets.API_GOOGLE_PLACE_API_KEY }}'            >> ./api/.env
-
       - name: Prisma db:pull
         run: pnpm db:pull
-      # -------------------------------------------
 
       # ---------- Google Cloud へ OIDC でログイン ----------
       - name: Auth to Google Cloud (WIF)
@@ -88,6 +76,9 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.IMAGE }}
           revision_traffic: "LATEST=100" # 成功後ただちに全トラフィック移行
+        env_vars: |
+          API_COMMIT_ID=${{ github.sha }}
+          API_NODE_ENV=${{ github.event.inputs.target }}
 
       - name: Show Service URL
         run: |
