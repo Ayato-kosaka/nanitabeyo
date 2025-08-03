@@ -76,9 +76,9 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.IMAGE }}
           revision_traffic: "LATEST=100" # 成功後ただちに全トラフィック移行
-        env_vars: |
-          API_COMMIT_ID=${{ github.sha }}
-          API_NODE_ENV=${{ github.event.inputs.target }}
+          env_vars: |
+            API_COMMIT_ID=${{ github.sha }}
+            API_NODE_ENV=${{ github.event.inputs.target }}
 
       - name: Show Service URL
         run: |
