@@ -39,7 +39,6 @@ COPY --from=builder /app/api/dist          ./dist
 COPY --from=builder /app/api/node_modules/ ./api/node_modules/
 COPY --from=builder /app/node_modules/       ./node_modules/
 COPY --from=builder /app/node_modules/.pnpm    ./node_modules/.pnpm 
-COPY --from=builder /app/node_modules/@*       ./node_modules/
 
 ENV NODE_ENV=production \
     NODE_PATH=/app/api/node_modules
