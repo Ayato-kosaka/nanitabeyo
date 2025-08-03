@@ -36,8 +36,11 @@ FROM gcr.io/distroless/nodejs22-debian12 AS runtime
 WORKDIR /app
 
 COPY --from=builder /app/api/dist          ./dist
-COPY --from=builder /app/api/node_modules/ ./node_modules/
+COPY --from=builder /app/api/node_modules/ ./api/node_modules/
 COPY --from=builder /app/node_modules/       ./node_modules/
+COPY --from=builder /app/node_modules/.pnpm    ./node_modules/.pnpm 
+COPY --from=builder /app/node_modules/@*       ./node_modules/
 
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    NODE_PATH=/app/api/node_modules
 CMD ["dist/api/src/main.js"]

@@ -2,3 +2,7 @@
 node_modules
 dist
 *.log
+app-expo/
+.expo/
+infra/
+e2e/
