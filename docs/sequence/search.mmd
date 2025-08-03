@@ -136,7 +136,7 @@ sequenceDiagram
         UI ->> UI: デフォルトで「Likes」タブ選択
 
     %% ── Likes 一覧を取得 ──────────────────────────────
-        UI ->> Backend: GET /v1/dish-media/liked?userId=:me
+        UI ->> Backend: GET /dish-media/liked?userId=:me
             Backend ->> Database: SELECT dm.dish_media_id,<br>dm.place_id,<br>dm.object_path,<br>dl.created_at<br>FROM dish_likes dl<br>JOIN dish_media dm ON dl.dish_media_id = dm.dish_media_id<br>WHERE dl.user_id = :me<br>ORDER BY dl.created_at DESC<br>LIMIT 21
             Database ->> Backend: likedRows
             Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[likedRows.object_path], exp=24h)
@@ -144,12 +144,12 @@ sequenceDiagram
         Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
         UI ->> User: Liked DishMedia リスト描画
         UI ->> UI: onEndReached → fetchNextPage()
-        UI ->> Backend: GET /v1/dish-media/liked?<br>cursor=<nextCursor>
+        UI ->> Backend: GET /dish-media/liked?<br>cursor=<nextCursor>
             Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
 
     %% ── ユーザーが「Saves」タブをタップ ───────────────
     User ->> UI: 「Saves」タブ選択
-        UI ->> Backend: GET /v1/dish-media/saved?userId=:me
+        UI ->> Backend: GET /dish-media/saved?userId=:me
             Backend ->> Database: SELECT dm.dish_media_id,<br>dm.place_id,<br>dm.object_path,<br>r.created_at<br>FROM reactions r<br>JOIN dish_media dm ON r.dish_media_id = dm.dish_media_id<br>WHERE r.user_id = :me AND r.reaction_type = 'save'<br>ORDER BY r.created_at DESC<br>LIMIT 21
             Database ->> Backend: savedRows
             Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[savedRows.object_path], exp=24h)
@@ -157,5 +157,5 @@ sequenceDiagram
             Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
         UI ->> User: Saved DishMedia リスト描画
         UI ->> UI: onEndReached → fetchNextPage()
-        UI ->> Backend: GET /v1/dish-media/liked?<br>cursor=<nextCursor>
+        UI ->> Backend: GET /dish-media/saved?<br>cursor=<nextCursor>
             Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
