@@ -73,16 +73,11 @@ jobs:
       # -------------------------------------------
 
       # ---------- コンテナ Build & Push ----------
-      - name: Build with Cloud Build (async + wait)
-        id: cloud-build
+      - name: Build & push with Cloud Build
         run: |
-          BUILD_ID=$(gcloud builds submit . \
+          gcloud builds submit . \
             --tag="${IMAGE}" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --async --format="value(metadata.build.id)")
-          echo "Build ID: $BUILD_ID"
-          # 権限不要でビルド完了を待つ
-          gcloud builds wait "$BUILD_ID" --project="${{ secrets.GCP_PROJECT_ID }}"
+            --project="${{ secrets.GCP_PROJECT_ID }}"
       # -------------------------------------------
       # ---------- Cloud Run へデプロイ & トラフィック切替 ----------
       - id: deploy
