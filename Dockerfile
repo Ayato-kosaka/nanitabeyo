@@ -21,13 +21,15 @@ COPY --from=deps /app .
 # monorepo 全体のコード
 COPY . .
 
-# ★ point ★
-# API パッケージだけ production 依存をインストール
-RUN pnpm install --filter=./api... --prod --frozen-lockfile
+# devDeps を含めてインストール（build に必要）
+RUN pnpm install --filter=./api... --frozen-lockfile
 
 # ビルド
 WORKDIR /app/api
 RUN pnpm run build
+
+# ランタイムに devDeps は不要なので削る
+RUN pnpm prune --filter=./api... --prod
 
 # ────────────── 3) runtime ──────────────
 FROM gcr.io/distroless/nodejs22-debian12
