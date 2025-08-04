@@ -9,27 +9,27 @@ sequenceDiagram
     %% search/index
     Note over User,UI: search 初期表示
     User ->> UI: 位置を入力
-        UI ->> Backend: GET /locations/suggestions
+        UI ->> Backend: GET /v1/locations/autocomplete?q
             Backend ->> 外部API: Google Places API
-                外部API ->> Backend: 候補リスト
+                外部API ->> Backend: 候補リスト（地名のみ）
             Backend ->> UI: 候補を返却
     User ->> UI: 検索条件を設定
     User ->> UI: 検索ボタン押下
-        UI ->> UI: navigate(topics)
+        UI ->> UI: navigate(searchParams)
 
     %% search/topics
     Note over User,UI: topics 初期表示
-        UI ->> Backend: GET /dish-categories?searchParams
+        UI ->> Backend: GET /v1/dish-categories/recommendations<br>?location, timeSlot, scene, mood, restrictions, distance, budgetMin, budgetMax
             Backend ->> 外部API: Claude API (topics生成 10件)
                 外部API ->> Backend: {category, topicTitle, reason}[10]
             Backend ->> Database: from(dish_categories)<br>.join(dish_category_variants).on(dish_category_id)<br>.where(surface_form = ANY(category[]::text[]))
                 Database ->> Backend: dish_category
-            Backend ->> UI: {category, topicTitle, reason,<br>category_id, image_url}[10]
+            Backend ->> UI: {category, topicTitle, reason, categoryId, imageUrl}[10]
 
         loop while category_id untill response.filter(!!category_id).len >= 6
             alt category_id is null
-                UI ->> Backend: POST /dish-categories/import { category }
-                    Backend ->> Database: from(dish_category_variants).where(surface_form=:category) 
+                UI ->> Backend: POST /v1/dish-category-variants<br>{name}
+                    Backend ->> Database: from(dish_category_variants).where(surface_form=:categoryName) 
                     Database ->> Backend: dish_category_variants
                     alt ヒットなし
                         Backend ->> 外部API: wikidata.wbsearchentities?limit=1
@@ -45,7 +45,8 @@ sequenceDiagram
                     end
                     alt ヒットあり
                         Backend ->> Database: INSERT dish_category_variants
-                        Backend ->> UI: 201 Created + {category_id, image_url}
+                        Backend ->> Database: SELECT dish_categories
+                        Backend ->> UI: 201 Created + dishCategories
                     else ヒットなし
                         Backend ->> UI: 500
                     end
@@ -55,16 +56,16 @@ sequenceDiagram
         
         loop 各 dish_category_id (並列)
             %% ① 既存データだけ取得
-            UI ->> Backend: GET /dishes?location&radius&category_id
-                Backend ->> Database: from(restaurants).where(location, raduis)<br>.join(dish).where(restaurantId, category_id in<br>from(dish_categories).has(tags,category_id))<br>.join(dish_medias).on(dish_id).notIn(from(user_seen_dish).where(user_id))<br>.orderBy().limit(1)<br>.join(dish_reviews).on(dish_id).orderBy(created_at)
-                    Database ->> Backend: restaurants, dishes, dish_medias, dish_reviews
+            UI ->> Backend: GET /v1/dish-media<br>?location, radius, categoryId
+                Backend ->> Database: from(restaurants).where(location, raduis)<br>.join(dish).where(restaurantId, category_id in<br>from(dish_categories).has(tags,category_id))<br>.join(dish_media).on(dish_id).notIn(from(user_seen_dish).where(user_id))<br>.orderBy().limit(1)<br>.join(dish_reviews).on(dish_id).orderBy(created_at)
+                    Database ->> Backend: {Restaurants, Dishes, DishMedia, DishReviews[]}[]
                 Backend ->> Storage: generateSignedUrl(GET, /dish-media/…, 24h)
                     Storage ->> Backend: {signedUrl}
-                Backend ->> UI: 200 OK + dishes[] + signedUrls
+                Backend ->> UI: {Restaurants, Dishes, DishMedia, DishReviews[]}[]
 
             alt dishes.length < 5
                 %% ② 不足分があれば同期 import
-                UI ->> Backend: POST /dishes/import { location, radius, category }
+                UI ->> Backend: POST /v1/dishes/bulk-import<br>location, radius, category
                     Backend ->> 外部API: Google Maps Text Search API
                         外部API ->> Backend: placeDetail[{<br>placeId, revies, photos}]
                 
@@ -74,59 +75,70 @@ sequenceDiagram
                         Storage ->> Backend: 201 / OK
 
                     %% ④ 取り込み後にそのままデータを返す
-                    Backend ->> UI: 201 Created + dishes[]
+                    Backend ->> UI: 201 Created + <br>{Restaurants, Dishes, DishMedia, DishReviews[]}[]
             end
         end
     UI ->> User: カード一覧
+
+    User ->> UI: TopicSave
+        alt まだ Save していない
+            UI ->> Database: Database: INSERT reactions SET user_id, target_type, target_id, action_type
+            UI ->> UI: 保存アイコン = ON
+        else 既に Save 済み
+            UI ->> Database: DELETE FROM reactions WHERE user_id, target_type, target_id, action_type
+            UI ->> UI: 保存アイコン = OFF
+        end
 
     User ->> UI: 詳細を見る
         UI ->> UI: navigate(result, Promise<DishResponse>)
 
     %% search/result
     Note over User,UI: result 初期表示
-        alt キャッシュ切れ
-            UI ->> UI: navigate(search)
-        end
-        UI ->> User: キャッシュ済み dishMedia を即時表示
     %% DishMedia いいね
     User ->> UI: 「Like」ボタン押下
-        alt まだ Like していない
-            UI ->> Backend: POST /dish-likes {dishMediaId, userId}
-                Backend ->> Database: INSERT dish_likes
-                Backend ->> Notifier: push {to:creatorId,title:"いいねされました"}
-                    Notifier -->> Backend: ok
-            Backend ->> UI: {likeCount}
-            UI ->> UI: likeCount++
-        else 既に Like 済み
-            UI ->> Backend: DELETE /dish-likes/{dishMediaId}
-                Backend ->> Database: DELETE FROM dish_likes
-            Backend ->> UI: {likeCount}
-            UI ->> UI: likeCount--
+        alt ログイン済み
+            alt まだ Like していない
+                UI ->> Backend: POST /v1/dish-media/{id}/likes/{userId}
+                    Backend ->> Database: INSERT dish_likes
+                    Backend ->> Notifier: push {to:creatorId,title:"いいねされました"}
+                        Notifier -->> Backend: ok
+                UI ->> UI: likeCount++
+            else 既に Like 済み
+                UI ->> Backend: DELETE /v1/dish-media/{id}/likes/{userId}
+                    Backend ->> Database: DELETE FROM dish_likes
+                UI ->> UI: likeCount--
+            end
+        else 匿名ログイン
+            alt まだ Like していない
+                UI ->> Database: INSERT reactions SET user_id, target_type, target_id, action_type
+                UI ->> UI: likeCount++
+            else 既に Like 済み
+                UI ->> Database: DELETE FROM reactions WHERE user_id, target_type, target_id, action_type
+                UI ->> UI: likeCount--
+            end
         end
 %% ───────────────────────── DishMedia「Save」─
     User ->> UI: 「Save」ボタン押下
         alt まだ Save していない
-            UI ->> Backend: POST /reactions {dishMediaId, userId, type:'save'}
+            UI ->> Backend: POST /v1/dish-media/{id}/save/{userId}
                 Backend ->> Database: INSERT reactions
                 Backend ->> Notifier: push {to:creatorId,<br>title:"保存されました",<br>body:"{{userName}}さんが投稿を保存しました"}
                     Notifier -->> Backend: ok
             UI ->> UI: 保存アイコン = ON
         else 既に Save 済み
-            UI ->> Backend: DELETE /reactions/{dishMediaId}?type=save
-                Backend ->> Database: DELETE FROM reactions
+            UI ->> Database: DELETE FROM reactions WHERE user_id, target_type, target_id, action_type
             UI ->> UI: 保存アイコン = OFF
         end
 %% ─────────────────────── Review「Like」─
     User ->> UI: 「ReviewLike」ボタン押下
         alt 未 Like
-            UI ->> Backend: POST /review-likes {reviewId, userId}
-                Backend ->> Database: INSERT review_likes
+            UI ->> Backend: POST /v1/dish-reviews/{id}/likes/{userId}
+                Backend ->> Database: INSERT reactions
                 Backend ->> Notifier: push {to:reviewAuthorId,<br>title:"レビューが高評価！",<br>body:"{{userName}}さんがあなたのレビューをいいね"}
                     Notifier -->> Backend: ok
             UI ->> UI: reviewLike++
         else 既 Like
-            UI ->> Backend: DELETE /review-likes/{reviewId}
-                Backend ->> Database: DELETE FROM review_likes
+            UI ->> Database: DELETE FROM reactions WHERE user_id, target_type, target_id, action_type
             UI ->> UI: reviewLike--
         end
 
@@ -136,26 +148,39 @@ sequenceDiagram
         UI ->> UI: デフォルトで「Likes」タブ選択
 
     %% ── Likes 一覧を取得 ──────────────────────────────
-        UI ->> Backend: GET /dish-media/liked?userId=:me
-            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.restaurant_id,<br>dm.object_path,<br>dl.created_at<br>FROM dish_likes dl<br>JOIN dish_media dm ON dl.dish_media_id = dm.dish_media_id<br>WHERE dl.user_id = :me<br>ORDER BY dl.created_at DESC<br>LIMIT 21
-            Database ->> Backend: likedRows
+        UI ->> Backend: GET /v1/users/me/liked-dish-media?cursor
+            Backend ->> Database: from(dish_likes).where(user_id)<br>.orderBy(created_at).limit(42)
+                Database ->> Backend: dish_media_id[]
+            Backend ->> Database: from(dish_media)<br>.join(restaurants).on(restaurant_id)<br>.join(dishes).on(dish_id)<br>.join(dish_reviews).on(dish_id)<br>.in(dish_media_id).orderBy(dish_media_id)
+                Database ->> Backend: {Restaurants, Dishes, DishMedia, DishReviews[]}[]
             Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[likedRows.object_path], exp=24h)
                 Storage ->> Backend: [{objectPath,getUrl}]
         Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
         UI ->> User: Liked DishMedia リスト描画
         UI ->> UI: onEndReached → fetchNextPage()
-        UI ->> Backend: GET /dish-media/liked?<br>cursor=<nextCursor>
-            Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
 
     %% ── ユーザーが「Saves」タブをタップ ───────────────
-    User ->> UI: 「Saves」タブ選択
-        UI ->> Backend: GET /dish-media/saved?userId=:me
-            Backend ->> Database: SELECT dm.dish_media_id,<br>dm.restaurant_id,<br>dm.object_path,<br>r.created_at<br>FROM reactions r<br>JOIN dish_media dm ON r.dish_media_id = dm.dish_media_id<br>WHERE r.user_id = :me AND r.reaction_type = 'save'<br>ORDER BY r.created_at DESC<br>LIMIT 21
-            Database ->> Backend: savedRows
+    User ->> UI: 「Saves」タブ「dish」選択
+        UI ->> Backend: GET /v1/users/me/saved-dish-media?cursor
+            Backend ->> Database: from(reactions).where(user_id, target_type, action_type)<br>.orderBy(created_at).limit(42)
+                Database ->> Backend: dish_media_id[]
+            Backend ->> Database: from(dish_media)<br>.join(restaurants).on(restaurant_id)<br>.join(dishes).on(dish_id)<br>.join(dish_reviews).on(dish_id)<br>.in(dish_media_id).orderBy(dish_media_id)
+                Database ->> Backend: {Restaurants, Dishes, DishMedia, DishReviews[]}[]
             Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[savedRows.object_path], exp=24h)
                 Storage ->> Backend: [{objectPath,getUrl}]
             Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
         UI ->> User: Saved DishMedia リスト描画
         UI ->> UI: onEndReached → fetchNextPage()
-        UI ->> Backend: GET /dish-media/saved?<br>cursor=<nextCursor>
-            Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
+
+    User ->> UI: 「Saves」タブ「topic」選択
+        UI ->> Backend: GET /v1/users/me/saved-dish-categories?cursor
+            Backend ->> Database: from(dish_categories)<br>.join(reactions).on(dish_category_id)<br>.where(user_id)<br>.orderBy(reactions.created_at).limit(42)
+            Database ->> Backend: DishCategories
+            Backend ->> Storage: generateSignedUrl(action=GET,<br>objects=[savedRows.object_path], exp=24h)
+                Storage ->> Backend: [{objectPath,getUrl}]
+            Backend ->> UI: {DishCategories, signedUrls<br>, nextCursor=rows.last.created_at}
+        UI ->> User: Saved Topic リスト描画
+        UI ->> UI: onEndReached → fetchNextPage()
+    User ->> UI: Saved Topic 押下
+        UI ->> UI: location 選択
+        UI ->> Backend: GET /v1/dish-media?location, radius, categoryId

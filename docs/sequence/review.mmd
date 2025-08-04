@@ -10,48 +10,52 @@ sequenceDiagram
 %% review/restaurant‑map ────────────────────────
     Note over User,UI: RestaurantMapScreen<br>(地図 + Google オートコンプリート)
     User ->> UI: レストラン名を入力(オートコンプリート)
-        UI ->> 外部API: Google Places Autocomplete API
-            外部API ->> UI: 候補リスト
-    User ->> UI: 候補を選択
-        UI ->> 外部API: Google Places Details API(placeId)
-            外部API ->> UI: placeDetail
+        UI ->> Backend: GET /v1/locations/autocomplete?q
+            Backend ->> UI: 候補リスト（地名のみ）
+    User ->> UI: Poiを選択<br>(restaurants or Google PLaces Restaurant)
         UI ->> UI: navigate(Restaurant, restaurantId)
 
     %% review/restaurant‑screen 画像＋レビュー投稿 ───────
     Note over User,UI: RestaurantScreen<br>(画像＋レビュー投稿)
+        UI ->> Backend: GET /v1/restaurants/{id}
+            Backend ->> Database: from(restaurants).where(restaurantId)
+                Database ->> Backend: Restaurants
+        UI ->> Backend: GET /v1/restaurants/{id}/dish-media?cursor
+            Backend ->> Database: from(dishes).where(restaurant_id)<br>.join(from(dish_media).join(dish_media_id)<br>.orderBy(dishLikesCount).limit(1))<br>.on(dish_id)<br>.join(dish_reviews).on(dish_id)<br>.groupBy(dish_category_id).limit(41)
+                Database ->> Backend: {Restaurants, Dishes, DishMedia, DishReviews[]}[], nextCursor
     User ->> UI: 「画像投稿」ボタン押下
         UI ->> UI: カメラ/ライブラリ起動
     User ->> UI: 料理名を入力(オートコンプリート)
-        UI ->> Backend: GET /dish-category-variants?surface_form,lang
+        UI ->> Backend: GET /v1/dish-category-variants?q, lang
             Backend ->> Database: from(dish_categories)<br>.join(dish_category_variants).on(dish_category_id)<br>.startsWith(:surface_form)<br>.groupBy(dish_category_id).limit(20)
-                Database ->> Backend: labels[]
+                Database ->> Backend: {DishCategories}[]
             Backend ->> Backend: Cloudflare / CDN‐Cache Cache-Control: max-age=3600
-            Backend ->> UI: 翻訳された候補リスト
+            Backend ->> UI: {dishCategoryId, label}[]
     User ->> UI: オートコンプリートにない<br>料理名フォーカスアウト
-        UI ->> Backend: POST /dish-categories/import { category }
+        UI ->> Backend: POST /v1/dish-category-variants<br>{name}
         UI ->> UI: 無ければエラー表示
     User ->> UI: レビュー投稿ボタン押下
-        UI ->> Backend: POST /restaurants/import {restaurantId}
-            Backend ->> Database: from(restaurants).where(restaurantId)
-                Database ->> Backend: restaurant
+        UI ->> Backend: POST /v1/restaurants {googlePlaceId}
+            Backend ->> Database: from(restaurants).where(googlePlaceId)
+                Database ->> Backend: Restaurants
             alt ヒットなし
                 Backend ->> 外部API: Google Place Detail API
                     外部API ->> Backend: placeDetail
-                Backend ->> Database: UPSERT restaurants
+                Backend ->> Database: UPSERT Restaurants
             end
-            Backend ->> UI: restaurant
-        UI ->> Backend: POST /dishes/find-or-create {restaurantId, dishCategory}
+            Backend ->> UI: Restaurants
+        UI ->> Backend: POST /v1/dishes {restaurantId, dishCategory}
             Backend ->> Database: UPSERT dishes
-                Database ->> Backend: dishId
-        UI ->> Backend: POST /user-uploads/gcs-signed-url { dishId, contentType }
+                Database ->> Backend: Dish
+        UI ->> Backend: POST /v1/user-uploads/signed-url { contentType, identifier }
             Backend ->> Backend: 認可
             Backend ->> Storage: generateSignedUrl(action=PUT, exp=15m)
-                Storage ->> Backend: { putUrl, objectPath }
+                Storage ->> Backend: putUrl, objectPath, expiresAt
             Backend ->> UI: { putUrl, objectPath }
         UI ->> Storage: PUT (putUrl) バイナリ
-        UI ->> Backend: POST /dish-medias {dishId, imageUrl, userId}
-            Backend ->> Database: INSERT dish_medias
-        UI ->> Backend: POST /dish-reviews {dishId, rating, comment, userId}
+        UI ->> Backend: POST /v1/dish-media {dishId, mediaPath, mediaType}
+            Backend ->> Database: INSERT dish_media
+        UI ->> Backend: POST /v1/dish-reviews<br>{dishId, comment, priceCents, currencyCode, rating, createdDishMediaId}
             Backend ->> Database: INSERT dish_reviews
         Backend ->> UI: success
     UI ->> UI: dishMedia 追加表示
@@ -60,7 +64,7 @@ sequenceDiagram
     Note over User,UI: DishMediaScreen<br>(レビューのみ投稿)
     User ->> UI: 「レビューを書く」押下
     User ->> UI: レビュー入力
-        UI ->> Backend: POST /dish-reviews {dishId, rating, comment, userId}
+        UI ->> Backend: POST /v1/dish-reviews<br>{dishId, comment, priceCents, currencyCode, rating, createdDishMediaId}
             Backend ->> Database: INSERT dish_reviews
         Backend ->> UI: success
     UI ->> UI: レビュー数・平均評価を更新
@@ -69,13 +73,11 @@ sequenceDiagram
     Note over User,UI: ProfileScreen<br>(レビュータブ)
     User ->> UI: ProfileScreen を開く
         UI ->> UI: 「Reviews」タブ選択
-        UI ->> Backend: GET /dish-reviews?userId
-            Backend ->> Database: SELECT dr.review_id,<br>dr.dish_id, dr.rating, dr.comment,<br>dr.created_at, dm.object_path,<br>(dm.id IS NOT NULL) AS hasMedia<br>FROM dish_reviews dr<br>LEFT JOIN dish_medias dm ON dr.dish_media_id = dm.id<br>WHERE dr.user_id = :userId<br>ORDER BY dr.created_at DESC
-                Database ->> Backend: reviewRows
+        UI ->> Backend: GET /v1/users/{id}/dish-reviews?cursor
+            Backend ->> Database: SELECT dr.review_id,<br>dr.dish_id, dr.rating, dr.comment,<br>dr.created_at, dm.object_path,<br>(dm.user_id = :userId) AS hasMedia<br>FROM dish_reviews dr<br>LEFT JOIN dish_media dm ON dr.dish_media_id = dm.id<br>WHERE dr.user_id = :userId<br>ORDER BY dr.created_at DESC
+                Database ->> Backend: {DishMedia, DishReviews, hasMedia}[]
             Backend ->> Storage: generateSignedUrl(action=GET, exp=24h)
                 Storage ->> Backend: [{objectPath,getUrl}]
-            Backend ->> UI: {rows, signedUrls, hasMedia<br>, nextCursor=rows.last.created_at}
+            Backend ->> UI: {DishMedia, DishReviews, signedUrls, hasMedia}[]<br>, nextCursor=rows.last.created_at
     UI ->> UI: レビューリスト描画 (hasMedia で画像/テキスト切替)
     UI ->> UI: onEndReached → fetchNextPage()
-    UI ->> Backend: GET /dish-reviews?<br>cursor=<nextCursor>
-        Backend ->> UI: {rows, signedUrls<br>, nextCursor=rows.last.created_at}
