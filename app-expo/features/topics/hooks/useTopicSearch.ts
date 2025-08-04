@@ -1,3 +1,4 @@
+// useTopicSearch - mock hook for searching and hiding topics
 import { useState, useCallback } from "react";
 import { Topic, SearchParams } from "@/types/search";
 import { mockTopicCards } from "@/data/searchMockData";
