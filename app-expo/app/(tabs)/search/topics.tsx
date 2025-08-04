@@ -15,15 +15,15 @@ import { ThumbsUp, Trash, X, Sparkles } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Topic, SearchParams } from "@/types/search";
-import { useTopicSearch } from "@/hooks/useTopicSearch";
+import { useTopicSearch } from "@/features/topics/hoks/useTopicSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSearchStore } from "@/stores/useSearchStore";
+import { PrimaryButton } from "@/components/PrimaryButton";
 
 const { width, height } = Dimensions.get("window");
 const CARD_WIDTH = width - 32;
 const CARD_HEIGHT = height * 0.85;
-import { useSearchStore } from "@/stores/useSearchStore";
-import { PrimaryButton } from "@/components/PrimaryButton";
 
 export default function TopicsScreen() {
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
