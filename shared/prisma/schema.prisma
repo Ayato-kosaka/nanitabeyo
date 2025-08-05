@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  output          = "../../shared/dist/prisma"
+  output          = "../../shared/prisma"
   previewFeatures = ["multiSchema"]
 }
 
