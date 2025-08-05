@@ -10,8 +10,8 @@ if [ -z "$DB_SCHEMA" ]; then
   exit 1
 fi
 
-TEMPLATE="api/prisma/schema.template.prisma"
-TARGET="api/prisma/schema.prisma"
+TEMPLATE="shared/prisma/schema.template.prisma"
+TARGET="shared/prisma/schema.prisma"
 
 if [ ! -f "$TEMPLATE" ]; then
   echo "❌ Template not found: $TEMPLATE"
@@ -26,6 +26,10 @@ pnpx prisma db pull --schema "$TARGET"
 
 echo "🧬 Running prisma generate"
 pnpx prisma generate --schema "$TARGET"
+
+echo "📦 Copying dist/prisma to ./prisma"
+cp -r shared/dist/prisma/index.js shared/prisma/index.js
+cp -r shared/dist/prisma/index.d.ts shared/prisma/index.d.ts
 
 # もしスキーマが "public" の場合はここで終了
 if [ "$DB_SCHEMA" = "public" ]; then

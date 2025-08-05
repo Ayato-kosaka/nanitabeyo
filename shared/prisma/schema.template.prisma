@@ -3,7 +3,7 @@
 /// @see https://www.prisma.io/docs/orm/prisma-schema/data-model/multi-schema
 generator client {
   provider        = "prisma-client-js"
-  output          = "../../shared/prisma"
+  output          = "../../shared/dist/prisma"
   previewFeatures = ["multiSchema"]
 }
 
