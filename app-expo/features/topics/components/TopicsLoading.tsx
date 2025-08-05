@@ -13,11 +13,11 @@ export const TopicsLoading = () => (
 					<Sparkles size={32} color="#5EA2FF" />
 				</View>
 				<ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
-                                <Text style={styles.loadingTitle}>{i18n.t("Topics.Loading.title")}</Text>
-                                <Text style={styles.loadingSubtitle}>{i18n.t("Topics.Loading.subtitle")}</Text>
-                        </View>
-                </SafeAreaView>
-        </LinearGradient>
+				<Text style={styles.loadingTitle}>{i18n.t("Topics.Loading.title")}</Text>
+				<Text style={styles.loadingSubtitle}>{i18n.t("Topics.Loading.subtitle")}</Text>
+			</View>
+		</SafeAreaView>
+	</LinearGradient>
 );
 
 const styles = StyleSheet.create({

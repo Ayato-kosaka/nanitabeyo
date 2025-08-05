@@ -5,18 +5,18 @@ import Expo from 'expo-server-sdk';
 
 @Global()
 @Module({
-    providers: [
-        {
-            provide: NOTIFIER_EXPO_CLIENT,
-            useFactory: () => {
-                return new Expo(
-                    {}
-                    // TODO: 必要な場合は追加する。env.EXPO_ACCESS_TOKEN ? { accessToken: env.EXPO_ACCESS_TOKEN } : {},
-                );
-            },
-        },
-        NotifierService,
-    ],
-    exports: [NotifierService],
+  providers: [
+    {
+      provide: NOTIFIER_EXPO_CLIENT,
+      useFactory: () => {
+        return new Expo(
+          {},
+          // TODO: 必要な場合は追加する。env.EXPO_ACCESS_TOKEN ? { accessToken: env.EXPO_ACCESS_TOKEN } : {},
+        );
+      },
+    },
+    NotifierService,
+  ],
+  exports: [NotifierService],
 })
-export class NotifierModule { }
+export class NotifierModule {}

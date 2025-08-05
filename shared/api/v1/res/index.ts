@@ -1,2 +1,2 @@
-export * from './base-response';
-export * from './dish-media.response';
+export * from "./base-response";
+export * from "./dish-media.response";

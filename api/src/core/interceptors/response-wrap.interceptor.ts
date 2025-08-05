@@ -11,11 +11,11 @@
 //
 
 import {
-    CallHandler,
-    ExecutionContext,
-    Injectable,
-    NestInterceptor,
-    SetMetadata,
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+  SetMetadata,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -23,9 +23,7 @@ import { ClsService } from 'nestjs-cls';
 import { Reflector } from '@nestjs/core';
 
 import { BaseResponse } from '@shared/v1/res';
-import {
-    CLS_KEY_REQUEST_ID,
-} from '../cls/cls.constants';
+import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
 import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
 
 /* -------------------------------------------------------------------------- */
@@ -39,44 +37,44 @@ export const SkipResponseWrap = () => SetMetadata(SKIP_WRAP_META_KEY, true);
 /* -------------------------------------------------------------------------- */
 @Injectable()
 export class ResponseWrapInterceptor implements NestInterceptor {
-    constructor(
-        private readonly cls: ClsService,
-        private readonly reflector: Reflector,
-    ) { }
+  constructor(
+    private readonly cls: ClsService,
+    private readonly reflector: Reflector,
+  ) {}
 
-    intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
-        /* ――― 除外判定 ――― */
-        const shouldSkip = this.reflector.getAllAndOverride<boolean>(
-            SKIP_WRAP_META_KEY,
-            [ctx.getHandler(), ctx.getClass()],
-        );
-        if (shouldSkip) return next.handle();
+  intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
+    /* ――― 除外判定 ――― */
+    const shouldSkip = this.reflector.getAllAndOverride<boolean>(
+      SKIP_WRAP_META_KEY,
+      [ctx.getHandler(), ctx.getClass()],
+    );
+    if (shouldSkip) return next.handle();
 
-        const res = ctx.switchToHttp().getResponse();
+    const res = ctx.switchToHttp().getResponse();
 
-        return next.handle().pipe(
-            map((payload) => {
-                /* ---------- Request-ID をヘッダへ ---------- */
-                const reqId = this.cls.get<string>(CLS_KEY_REQUEST_ID) ?? '';
-                if (reqId) res.setHeader(REQUEST_ID_HEADER, reqId);
+    return next.handle().pipe(
+      map((payload) => {
+        /* ---------- Request-ID をヘッダへ ---------- */
+        const reqId = this.cls.get<string>(CLS_KEY_REQUEST_ID) ?? '';
+        if (reqId) res.setHeader(REQUEST_ID_HEADER, reqId);
 
-                /* ---------- 多重ラップチェック ---------- */
-                const alreadyWrapped =
-                    payload &&
-                    typeof payload === 'object' &&
-                    'success' in payload &&
-                    'errorCode' in payload;
+        /* ---------- 多重ラップチェック ---------- */
+        const alreadyWrapped =
+          payload &&
+          typeof payload === 'object' &&
+          'success' in payload &&
+          'errorCode' in payload;
 
-                if (alreadyWrapped) return payload;
+        if (alreadyWrapped) return payload;
 
-                /* ---------- 正常レスポンス用ラッパ ---------- */
-                const body: BaseResponse<unknown> = {
-                    data: payload,
-                    success: true,
-                    errorCode: null,
-                };
-                return body;
-            }),
-        );
-    }
+        /* ---------- 正常レスポンス用ラッパ ---------- */
+        const body: BaseResponse<unknown> = {
+          data: payload,
+          success: true,
+          errorCode: null,
+        };
+        return body;
+      }),
+    );
+  }
 }

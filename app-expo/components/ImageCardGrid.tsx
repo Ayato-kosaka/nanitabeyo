@@ -1,9 +1,9 @@
 import React, { memo, ReactNode, useCallback, useMemo } from "react";
 import {
-        FlatList,
-        Image,
-        ListRenderItemInfo,
-        Pressable,
+	FlatList,
+	Image,
+	ListRenderItemInfo,
+	Pressable,
 	StyleProp,
 	StyleSheet,
 	useWindowDimensions,
@@ -79,11 +79,11 @@ function ImageCard<T extends ImageCardItem>({
 		<Pressable
 			style={[styles.card, { width: size, height, marginBottom: gap }, cardStyle]}
 			onPress={handlePress}
-                        disabled={!onPress}
-                        android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                        accessibilityRole="button"
-                        accessibilityLabel={i18n.t("ImageCardGrid.openItemDetails")}>
-                        <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={StyleSheet.absoluteFillObject} />
+			disabled={!onPress}
+			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+			accessibilityRole="button"
+			accessibilityLabel={i18n.t("ImageCardGrid.openItemDetails")}>
+			<Image source={{ uri: item.imageUrl }} resizeMode="cover" style={StyleSheet.absoluteFillObject} />
 			<LinearGradient
 				colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.1)"]}
 				style={StyleSheet.absoluteFill}

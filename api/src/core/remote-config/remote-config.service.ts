@@ -4,8 +4,8 @@ import { env } from '../config/env';
 
 @Injectable()
 export class RemoteConfigService {
-    async fetchFeatureFlags() {
-        // const { data } = await axios.get(env.REMOTE_CONFIG_URL);
-        // return data;
-    }
+  async fetchFeatureFlags() {
+    // const { data } = await axios.get(env.REMOTE_CONFIG_URL);
+    // return data;
+  }
 }

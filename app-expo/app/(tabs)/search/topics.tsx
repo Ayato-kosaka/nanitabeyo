@@ -22,16 +22,16 @@ export default function TopicsScreen() {
 	const carouselRef = useRef<any>(null);
 	const setDishes = useSearchStore((state) => state.setDishes);
 
-        const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
-        const { showSnackbar } = useSnackbar();
-        const {
-                BlurModal: HideTopicBlurModal,
-                close: closeHideModal,
-                hideReason,
-                setHideReason,
-                handleHideCard,
-                confirmHideCard,
-        } = useHideTopic(topics, hideTopic, showSnackbar);
+	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
+	const { showSnackbar } = useSnackbar();
+	const {
+		BlurModal: HideTopicBlurModal,
+		close: closeHideModal,
+		hideReason,
+		setHideReason,
+		handleHideCard,
+		confirmHideCard,
+	} = useHideTopic(topics, hideTopic, showSnackbar);
 
 	useEffect(() => {
 		if (searchParams) {
@@ -132,17 +132,17 @@ export default function TopicsScreen() {
 				</View>
 			)}
 
-                        {/* Hide Card Modal */}
-                        <HideTopicBlurModal animationType="fade" contentContainerStyle={styles.modalOverlay}>
-                                <HideTopicModal
-                                        onClose={closeHideModal}
-                                        hideReason={hideReason}
-                                        setHideReason={setHideReason}
-                                        confirmHideCard={confirmHideCard}
-                                />
-                        </HideTopicBlurModal>
-                </LinearGradient>
-        );
+			{/* Hide Card Modal */}
+			<HideTopicBlurModal animationType="fade" contentContainerStyle={styles.modalOverlay}>
+				<HideTopicModal
+					onClose={closeHideModal}
+					hideReason={hideReason}
+					setHideReason={setHideReason}
+					confirmHideCard={confirmHideCard}
+				/>
+			</HideTopicBlurModal>
+		</LinearGradient>
+	);
 }
 
 const styles = StyleSheet.create({
@@ -245,17 +245,17 @@ const styles = StyleSheet.create({
 		width: "100%",
 		maxWidth: 320,
 	},
-        emptyText: {
-                fontSize: 18,
-                color: "#6B7280",
-                textAlign: "center",
-                marginBottom: 24,
-                lineHeight: 28,
-                fontWeight: "500",
-        },
-        modalOverlay: {
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-        },
+	emptyText: {
+		fontSize: 18,
+		color: "#6B7280",
+		textAlign: "center",
+		marginBottom: 24,
+		lineHeight: 28,
+		fontWeight: "500",
+	},
+	modalOverlay: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
 });

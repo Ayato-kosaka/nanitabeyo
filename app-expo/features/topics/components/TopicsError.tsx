@@ -9,12 +9,12 @@ export const TopicsError = ({ error, onBack }: { error: string; onBack: () => vo
 		<SafeAreaView style={styles.errorContent}>
 			<View style={styles.errorCard}>
 				<Text style={styles.errorText}>{error}</Text>
-                                <TouchableOpacity style={styles.retryButton} onPress={onBack}>
-                                        <Text style={styles.retryButtonText}>{i18n.t("Common.back")}</Text>
-                                </TouchableOpacity>
-                        </View>
-                </SafeAreaView>
-        </LinearGradient>
+				<TouchableOpacity style={styles.retryButton} onPress={onBack}>
+					<Text style={styles.retryButtonText}>{i18n.t("Common.back")}</Text>
+				</TouchableOpacity>
+			</View>
+		</SafeAreaView>
+	</LinearGradient>
 );
 
 const styles = StyleSheet.create({

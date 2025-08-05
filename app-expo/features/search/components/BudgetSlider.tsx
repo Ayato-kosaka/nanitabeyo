@@ -70,12 +70,12 @@ export function BudgetSlider({
 					{...maxPanResponder.panHandlers}
 				/>
 			</View>
-                        <View style={styles.sliderLabels}>
-                                <Text style={styles.sliderLabelLeft}>{i18n.t("Search.BudgetSlider.cheap")}</Text>
-                                <Text style={styles.sliderLabelRight}>{i18n.t("Search.BudgetSlider.expensive")}</Text>
-                        </View>
-                </View>
-        );
+			<View style={styles.sliderLabels}>
+				<Text style={styles.sliderLabelLeft}>{i18n.t("Search.BudgetSlider.cheap")}</Text>
+				<Text style={styles.sliderLabelRight}>{i18n.t("Search.BudgetSlider.expensive")}</Text>
+			</View>
+		</View>
+	);
 }
 
 // Styles mirror the ones in the original screen

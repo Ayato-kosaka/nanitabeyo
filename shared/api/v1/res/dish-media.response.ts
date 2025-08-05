@@ -1,14 +1,14 @@
-import { PrismaRestaurants } from '../../../converters/convert_restaurants';
-import { PrismaDishes } from '../../../converters/convert_dishes';
-import { PrismaDishMedia } from '../../../converters/convert_dish_media';
-import { PrismaDishReviews } from '../../../converters/convert_dish_reviews';
+import { PrismaRestaurants } from "../../../converters/convert_restaurants";
+import { PrismaDishes } from "../../../converters/convert_dishes";
+import { PrismaDishMedia } from "../../../converters/convert_dish_media";
+import { PrismaDishReviews } from "../../../converters/convert_dish_reviews";
 
 /** GET /v1/dish-media のレスポンス型 */
 export type QueryDishMediaResponse = {
-    restaurant: PrismaRestaurants;
-    dish: PrismaDishes;
-    dish_media: PrismaDishMedia;
-    dish_reviews: PrismaDishReviews[];
+	restaurant: PrismaRestaurants;
+	dish: PrismaDishes;
+	dish_media: PrismaDishMedia;
+	dish_reviews: PrismaDishReviews[];
 }[];
 
 /** POST /v1/dish-media のレスポンス型 */

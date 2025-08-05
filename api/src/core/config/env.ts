@@ -1,5 +1,5 @@
-import * as dotenv from "dotenv";
-import { z } from "zod";
+import * as dotenv from 'dotenv';
+import { z } from 'zod';
 
 // .env ファイルから環境変数を読み込む
 dotenv.config();
@@ -21,8 +21,6 @@ const envSchema = z.object({
   GCS_DEV_SERVICE_ACCOUNT_BASE64: z.string().optional(),
 });
 
-
-
 /**
  * 環境変数を検証し、型付きで取得する関数。
  * 必須変数が不足・誤設定されている場合はエラーを投げてアプリ起動を中断する。
@@ -33,9 +31,11 @@ function loadValidatedEnv(): z.infer<typeof envSchema> {
   const parsedEnv = envSchema.safeParse(process.env);
 
   if (!parsedEnv.success) {
-    console.error("❌ Failed to validate environment variables:");
+    console.error('❌ Failed to validate environment variables:');
     console.table(parsedEnv.error.flatten().fieldErrors);
-    throw new Error("Invalid environment variables. Please check your .env file or runtime environment.");
+    throw new Error(
+      'Invalid environment variables. Please check your .env file or runtime environment.',
+    );
   }
 
   return parsedEnv.data;

@@ -6,4 +6,4 @@ import { NotifierModule } from 'src/core/notifier/notifier.module';
 @Module({
   imports: [HelloModule, DishMediaModule, NotifierModule],
 })
-export class V1Module { }
+export class V1Module {}

@@ -4,8 +4,8 @@ import { LoggerModule } from '../logger/logger.module';
 
 @Global()
 @Module({
-    imports: [LoggerModule],
-    providers: [HttpService],
-    exports: [HttpService],
+  imports: [LoggerModule],
+  providers: [HttpService],
+  exports: [HttpService],
 })
-export class HttpModule { }
+export class HttpModule {}

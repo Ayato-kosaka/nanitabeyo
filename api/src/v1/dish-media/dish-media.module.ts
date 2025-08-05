@@ -19,19 +19,19 @@ import { StorageModule } from '../../core/storage/storage.module'; // 署名 URL
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
 
 @Module({
-    imports: [
-        PrismaModule,          // DB アクセス（@Global でも明示的 import が可読性↑）
-        LoggerModule,          // アプリ共通 Logger
-        StorageModule,         // 画像用 GCS / S3 署名 URL ユーティリティ
-        forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
-    ],
-    controllers: [DishMediaController],
-    providers: [
-        DishMediaService,
-        DishMediaRepository,   // ← ここで DI できるので Service から注入可能
-    ],
-    exports: [
-        DishMediaService,      // 他ドメインが “いいね数集計” 等で再利用できる
-    ],
+  imports: [
+    PrismaModule, // DB アクセス（@Global でも明示的 import が可読性↑）
+    LoggerModule, // アプリ共通 Logger
+    StorageModule, // 画像用 GCS / S3 署名 URL ユーティリティ
+    forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
+  ],
+  controllers: [DishMediaController],
+  providers: [
+    DishMediaService,
+    DishMediaRepository, // ← ここで DI できるので Service から注入可能
+  ],
+  exports: [
+    DishMediaService, // 他ドメインが “いいね数集計” 等で再利用できる
+  ],
 })
-export class DishMediaModule { }
+export class DishMediaModule {}

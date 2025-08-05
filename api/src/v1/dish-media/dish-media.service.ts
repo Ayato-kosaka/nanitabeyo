@@ -9,10 +9,10 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 
 import {
-    CreateDishMediaDto,
-    LikeDishMediaParamsDto,
-    SaveDishMediaParamsDto,
-    QueryDishMediaDto,
+  CreateDishMediaDto,
+  LikeDishMediaParamsDto,
+  SaveDishMediaParamsDto,
+  QueryDishMediaDto,
 } from '@shared/v1/dto';
 
 import { DishMediaRepository } from './dish-media.repository';
@@ -22,110 +22,106 @@ import { NotifierService } from '../../core/notifier/notifier.service';
 
 @Injectable()
 export class DishMediaService {
-    private readonly logger = new Logger(DishMediaService.name);
+  private readonly logger = new Logger(DishMediaService.name);
 
-    constructor(
-        private readonly repo: DishMediaRepository,
-        private readonly storage: StorageService,
-        private readonly prisma: PrismaService,
-        private readonly notifier: NotifierService,
-    ) { }
+  constructor(
+    private readonly repo: DishMediaRepository,
+    private readonly storage: StorageService,
+    private readonly prisma: PrismaService,
+    private readonly notifier: NotifierService,
+  ) {}
 
-    /* ------------------------------------------------------------------ */
-    /*                         GET /v1/dish-media                         */
-    /* ------------------------------------------------------------------ */
-    async findByCriteria(dto: QueryDishMediaDto, viewerId?: string) {
-        this.logger.debug(
-            `findByCriteria: location=${dto.location}, radius=${dto.radius}, categoryId=${dto.categoryId}, viewer=${viewerId ?? 'anon'}`,
+  /* ------------------------------------------------------------------ */
+  /*                         GET /v1/dish-media                         */
+  /* ------------------------------------------------------------------ */
+  async findByCriteria(dto: QueryDishMediaDto, viewerId?: string) {
+    this.logger.debug(
+      `findByCriteria: location=${dto.location}, radius=${dto.radius}, categoryId=${dto.categoryId}, viewer=${viewerId ?? 'anon'}`,
+    );
+
+    const records = await this.repo.findDishMedias(dto, viewerId);
+
+    // 署名 URL を付与
+    const withSignedUrl = await Promise.all(
+      records.map(async (rec) => {
+        const signedUrl = await this.storage.generateSignedUrl(
+          rec.dish_media.media_path,
         );
+        return {
+          ...rec,
+          dish_media: {
+            ...rec.dish_media,
+            media_url: signedUrl,
+          },
+        };
+      }),
+    );
 
-        const records = await this.repo.findDishMedias(dto, viewerId);
+    this.logger.debug(`findByCriteria: returned ${withSignedUrl.length} items`);
+    return withSignedUrl;
+  }
 
-        // 署名 URL を付与
-        const withSignedUrl = await Promise.all(
-            records.map(async (rec) => {
-                const signedUrl = await this.storage.generateSignedUrl(
-                    rec.dish_media.media_path,
-                );
-                return {
-                    ...rec,
-                    dish_media: {
-                        ...rec.dish_media,
-                        media_url: signedUrl,
-                    },
-                };
-            }),
-        );
+  /* ------------------------------------------------------------------ */
+  /*            POST /v1/dish-media/:id/likes/:userId (いいね)           */
+  /* ------------------------------------------------------------------ */
+  async likeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
+    this.logger.verbose(`likeDishMedia: media=${id}, user=${userId}`);
+    await this.repo.likeDishMedia(id, userId);
 
-        this.logger.debug(
-            `findByCriteria: returned ${withSignedUrl.length} items`,
-        );
-        return withSignedUrl;
+    // 非同期通知（失敗してもレスポンスに影響させない）
+    // TODO: 通知系見直し
+    // this.notifier
+    //     .sendPush(id, userId)
+    //     .catch((err) =>
+    //         this.logger.warn(`Push like notification failed: ${err.message}`),
+    // );
+  }
+
+  /* --------------------- DELETE /v1/dish-media/:id/likes/:userId ------------------ */
+  async unlikeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
+    this.logger.verbose(`unlikeDishMedia: media=${id}, user=${userId}`);
+    await this.repo.unlikeDishMedia(id, userId);
+  }
+
+  /* --------------------- POST /v1/dish-media/:id/save/:userId --------------------- */
+  async saveDishMedia({ id, userId }: SaveDishMediaParamsDto) {
+    this.logger.verbose(`saveDishMedia: media=${id}, user=${userId}`);
+    await this.repo.saveDishMedia(id, userId);
+
+    // TODO: 通知系見直し
+    // this.notifier
+    //     .pushSaveNotification(id, userId)
+    //     .catch((err) =>
+    //         this.logger.warn(`Push save notification failed: ${err.message}`),
+    //     );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                     POST /v1/dish-media (投稿)                     */
+  /* ------------------------------------------------------------------ */
+  async createDishMedia(dto: CreateDishMediaDto, creatorId: string) {
+    this.logger.debug(`createDishMedia: dish=${dto.dishId}, user=${creatorId}`);
+
+    // dishId が存在するか簡易バリデーション
+    const dishExists = await this.repo.dishExists(dto.dishId);
+    if (!dishExists) {
+      this.logger.warn(`createDishMedia: dish not found -> ${dto.dishId}`);
+      throw new NotFoundException('Dish not found');
     }
 
-    /* ------------------------------------------------------------------ */
-    /*            POST /v1/dish-media/:id/likes/:userId (いいね)           */
-    /* ------------------------------------------------------------------ */
-    async likeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
-        this.logger.verbose(`likeDishMedia: media=${id}, user=${userId}`);
-        await this.repo.likeDishMedia(id, userId);
+    // トランザクションで dish_media + 付随レコード作成
+    const result = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.createDishMedia(
+          tx,
+          dto,
+          creatorId,
+          dto.mediaPath, // TODO: video の場合は差胸を作る
+        ),
+    );
 
-        // 非同期通知（失敗してもレスポンスに影響させない）
-        // TODO: 通知系見直し
-        // this.notifier
-        //     .sendPush(id, userId)
-        //     .catch((err) =>
-        //         this.logger.warn(`Push like notification failed: ${err.message}`),
-        // );
-    }
-
-    /* --------------------- DELETE /v1/dish-media/:id/likes/:userId ------------------ */
-    async unlikeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
-        this.logger.verbose(`unlikeDishMedia: media=${id}, user=${userId}`);
-        await this.repo.unlikeDishMedia(id, userId);
-    }
-
-    /* --------------------- POST /v1/dish-media/:id/save/:userId --------------------- */
-    async saveDishMedia({ id, userId }: SaveDishMediaParamsDto) {
-        this.logger.verbose(`saveDishMedia: media=${id}, user=${userId}`);
-        await this.repo.saveDishMedia(id, userId);
-
-        // TODO: 通知系見直し
-        // this.notifier
-        //     .pushSaveNotification(id, userId)
-        //     .catch((err) =>
-        //         this.logger.warn(`Push save notification failed: ${err.message}`),
-        //     );
-    }
-
-    /* ------------------------------------------------------------------ */
-    /*                     POST /v1/dish-media (投稿)                     */
-    /* ------------------------------------------------------------------ */
-    async createDishMedia(dto: CreateDishMediaDto, creatorId: string) {
-        this.logger.debug(
-            `createDishMedia: dish=${dto.dishId}, user=${creatorId}`,
-        );
-
-        // dishId が存在するか簡易バリデーション
-        const dishExists = await this.repo.dishExists(dto.dishId);
-        if (!dishExists) {
-            this.logger.warn(`createDishMedia: dish not found -> ${dto.dishId}`);
-            throw new NotFoundException('Dish not found');
-        }
-
-        // トランザクションで dish_media + 付随レコード作成
-        const result = await this.prisma.withTransaction(
-            (tx: Prisma.TransactionClient) =>
-                this.repo.createDishMedia(
-                    tx,
-                    dto,
-                    creatorId,
-                    dto.mediaPath, // TODO: video の場合は差胸を作る
-                ),
-        );
-
-        this.logger.log(
-            `createDishMedia: created media=${result.id} (dish=${dto.dishId})`,
-        );
-    }
+    this.logger.log(
+      `createDishMedia: created media=${result.id} (dish=${dto.dishId})`,
+    );
+  }
 }

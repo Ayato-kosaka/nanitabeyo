@@ -6,9 +6,7 @@ import { ClsModule } from 'nestjs-cls';
 
 @Global()
 @Module({
-  imports: [
-    ClsModule.forRoot({ global: true })
-  ],
+  imports: [ClsModule.forRoot({ global: true })],
   providers: [
     /* Nest のデフォルト Logger を AppLoggerService で置き換え */
     {
@@ -19,4 +17,4 @@ import { ClsModule } from 'nestjs-cls';
   ],
   exports: [AppLoggerService],
 })
-export class LoggerModule { }
+export class LoggerModule {}

@@ -1,4 +1,4 @@
-import { backend_event_logs_error_level } from "../../../../shared/prisma";
+import { backend_event_logs_error_level } from '../../../../shared/prisma';
 
 /**
  * 共通で使う LogLevel。Nest のデフォルトと揃えておく

@@ -20,15 +20,15 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      transform: true,                        // plain→class 変換を有効に
-      transformOptions: {                     // ★ ここがポイント
-        enableImplicitConversion: true,       // "50" → 50
+      transform: true, // plain→class 変換を有効に
+      transformOptions: {
+        // ★ ここがポイント
+        enableImplicitConversion: true, // "50" → 50
       },
       whitelist: true,
       forbidUnknownValues: false,
     }),
   );
-
 
   app.useGlobalInterceptors(
     new ResponseWrapInterceptor(app.get(ClsService), app.get(Reflector)),

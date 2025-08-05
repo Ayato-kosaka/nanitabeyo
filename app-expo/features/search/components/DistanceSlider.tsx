@@ -28,12 +28,12 @@ export function DistanceSlider({ distance, setDistance }: { distance: number; se
 			<View style={styles.sliderTrack}>
 				<View style={[styles.sliderThumb, { left: thumbPosition }]} {...panResponder.panHandlers} />
 			</View>
-                        <View style={styles.sliderLabels}>
-                                <Text style={styles.sliderLabelLeft}>{i18n.t("Search.DistanceSlider.near")}</Text>
-                                <Text style={styles.sliderLabelRight}>{i18n.t("Search.DistanceSlider.far")}</Text>
-                        </View>
-                </View>
-        );
+			<View style={styles.sliderLabels}>
+				<Text style={styles.sliderLabelLeft}>{i18n.t("Search.DistanceSlider.near")}</Text>
+				<Text style={styles.sliderLabelRight}>{i18n.t("Search.DistanceSlider.far")}</Text>
+			</View>
+		</View>
+	);
 }
 
 // Styles mirror the ones in the original screen

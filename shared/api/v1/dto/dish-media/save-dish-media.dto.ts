@@ -1,4 +1,4 @@
-import { IsUUID } from '@nestjs/class-validator';
+import { IsUUID } from "@nestjs/class-validator";
 
 /**
  * 「保存」エンドポイントのパスパラメータ。
@@ -6,11 +6,11 @@ import { IsUUID } from '@nestjs/class-validator';
  * 拡張しやすい。
  */
 export class SaveDishMediaParamsDto {
-    /** dish_media.id */
-    @IsUUID()
-    id!: string;
+	/** dish_media.id */
+	@IsUUID()
+	id!: string;
 
-    /** users.id */
-    @IsUUID()
-    userId!: string;
+	/** users.id */
+	@IsUUID()
+	userId!: string;
 }
