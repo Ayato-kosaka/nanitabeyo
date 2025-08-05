@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, PanResponder } from "react-native";
 import { budgetOptions } from "@/features/search/constants";
+import i18n from "@/lib/i18n";
 
 // Slider component to choose budget range
 export function BudgetSlider({
@@ -69,12 +70,12 @@ export function BudgetSlider({
 					{...maxPanResponder.panHandlers}
 				/>
 			</View>
-			<View style={styles.sliderLabels}>
-				<Text style={styles.sliderLabelLeft}>安い</Text>
-				<Text style={styles.sliderLabelRight}>高い</Text>
-			</View>
-		</View>
-	);
+                        <View style={styles.sliderLabels}>
+                                <Text style={styles.sliderLabelLeft}>{i18n.t("Search.BudgetSlider.cheap")}</Text>
+                                <Text style={styles.sliderLabelRight}>{i18n.t("Search.BudgetSlider.expensive")}</Text>
+                        </View>
+                </View>
+        );
 }
 
 // Styles mirror the ones in the original screen

@@ -165,6 +165,7 @@ model external_api_logs {
   function_name     String?
   api_name          String?
   endpoint          String?
+  method            String?
   request_payload   Json?    @db.Json
   response_payload  Json?    @db.Json
   status_code       Int?     @db.SmallInt
@@ -367,9 +368,9 @@ model users {
 }
 
 enum backend_event_logs_error_level {
-  trace
+  verbose
   debug
-  info
+  log
   warn
   error
 
@@ -377,9 +378,9 @@ enum backend_event_logs_error_level {
 }
 
 enum frontend_event_logs_error_level {
-  trace
+  verbose
   debug
-  info
+  log
   warn
   error
 
