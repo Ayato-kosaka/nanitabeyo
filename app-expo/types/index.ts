@@ -48,9 +48,9 @@ export interface UserPost {
 	id: string;
 	imageUrl: string;
 	likes: number;
-	comments: number;
+	reviewCount: number;
 	views: number;
-	duration?: string;
+	dishName?: string;
 }
 
 export interface SearchLocation {

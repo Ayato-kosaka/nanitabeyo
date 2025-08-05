@@ -31,8 +31,6 @@ const styles = StyleSheet.create({
 		height: CARD_HEIGHT,
 		borderRadius: 24,
 		overflow: "hidden",
-		borderWidth: 4,
-		borderColor: "#fff",
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,

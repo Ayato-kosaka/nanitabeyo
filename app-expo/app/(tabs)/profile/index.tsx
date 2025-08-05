@@ -34,6 +34,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
 import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
+import Stars from "@/components/Stars";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -476,14 +477,11 @@ export default function ProfileScreen() {
 							data={getCurrentPosts()}
 							containerStyle={{ marginVertical: 16 }}
 							renderOverlay={(item) => (
-								<View style={styles.statsOverlay}>
-									<View style={styles.statItem}>
-										<Heart size={14} color="#FFFFFF" fill="#FFFFFF" />
-										<Text style={styles.statText}>{formatNumber(item.likes)}</Text>
-									</View>
-									<View style={styles.statItem}>
-										<MessageCircle size={14} color="#FFFFFF" />
-										<Text style={styles.statText}>{formatNumber(item.comments)}</Text>
+								<View style={styles.reviewCardOverlay}>
+									<Text style={styles.reviewCardTitle}>{item.dishName}</Text>
+									<View style={styles.reviewCardRating}>
+										<Stars rating={item.likes / 10000} />
+										<Text style={styles.reviewCardRatingText}>({item.reviewCount})</Text>
 									</View>
 								</View>
 							)}
@@ -690,23 +688,28 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 		textAlign: "center",
 	},
-	statsOverlay: {
+	reviewCardOverlay: {
 		position: "absolute",
 		bottom: 8,
 		left: 8,
 		right: 8,
-		flexDirection: "row",
+		flexDirection: "column",
 		justifyContent: "space-between",
 	},
-	statItem: {
+	reviewCardTitle: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#FFF",
+		marginBottom: 4,
+	},
+	reviewCardRating: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 4,
 	},
-	statText: {
+	reviewCardRatingText: {
 		fontSize: 10,
-		color: "#FFFFFF",
-		fontWeight: "500",
+		color: "#FFF",
+		marginLeft: 4,
 	},
 	editLabel: {
 		fontSize: 17,

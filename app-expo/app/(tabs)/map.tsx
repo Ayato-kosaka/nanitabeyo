@@ -25,6 +25,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
 import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
+import Stars from "@/components/Stars";
 
 const { width, height } = Dimensions.get("window");
 
@@ -164,16 +165,6 @@ export default function MapScreen() {
 
 	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
 
-	const renderStars = (rating: number) => {
-		return (
-			<View style={styles.starsContainer}>
-				{[...Array(5)].map((_, index) => (
-					<Star key={index} size={12} color="#FFD700" fill={index < rating ? "#FFD700" : "transparent"} />
-				))}
-			</View>
-		);
-	};
-
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Map */}
@@ -237,7 +228,7 @@ export default function MapScreen() {
 								<View style={styles.restaurantDetails}>
 									<Text style={styles.restaurantName}>{selectedPlace.placeName}</Text>
 									<View style={styles.ratingContainer}>
-										{renderStars(selectedPlace.rating)}
+										<Stars rating={selectedPlace.rating} />
 										<Text style={styles.ratingText}>{selectedPlace.rating}</Text>
 										<Text style={styles.reviewCount}>({selectedPlace.reviewCount})</Text>
 									</View>
@@ -291,7 +282,7 @@ export default function MapScreen() {
 									<View style={styles.reviewCardOverlay}>
 										<Text style={styles.reviewCardTitle}>{review.dishName}</Text>
 										<View style={styles.reviewCardRating}>
-											{renderStars(review.rating)}
+											<Stars rating={review.rating} />
 											<Text style={styles.reviewCardRatingText}>({review.reviewCount})</Text>
 										</View>
 									</View>
@@ -534,10 +525,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		marginBottom: 4,
-	},
-	starsContainer: {
-		flexDirection: "row",
-		marginRight: 8,
 	},
 	ratingText: {
 		fontSize: 14,

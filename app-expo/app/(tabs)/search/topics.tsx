@@ -122,7 +122,7 @@ export default function TopicsScreen() {
 			{visibleTopics.length > 0 && (
 				<View style={styles.bottomActionContainer}>
 					<PrimaryButton
-						label="気になる！"
+						label="これにする！"
 						icon={<ThumbsUp size={20} color="#FFF" />}
 						onPress={() => handleViewDetails(visibleTopics[currentIndex])}
 					/>
