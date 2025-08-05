@@ -1,68 +1,57 @@
 import React from "react";
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { X } from "lucide-react-native";
 import { width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
 
 interface Props {
-	visible: boolean;
-	onRequestClose: () => void;
-	hideReason: string;
-	setHideReason: (text: string) => void;
-	confirmHideCard: () => void;
+        onClose: () => void;
+        hideReason: string;
+        setHideReason: (text: string) => void;
+        confirmHideCard: () => void;
 }
 
-// Modal displayed when a user chooses to hide a topic card
-export const HideTopicModal = ({ visible, onRequestClose, hideReason, setHideReason, confirmHideCard }: Props) => (
-	<Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onRequestClose}>
-		<View style={styles.modalOverlay}>
-			<View style={styles.modalContainer}>
-				<View style={styles.modalHeader}>
-                                        <Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
-					<TouchableOpacity onPress={onRequestClose}>
-						<X size={24} color="#49454F" />
-					</TouchableOpacity>
-				</View>
-
-                                <Text style={styles.modalDescription}>{i18n.t("Topics.HideTopicModal.description")}</Text>
-
-				<TextInput
-					style={styles.reasonInput}
-                                        placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
-					value={hideReason}
-					onChangeText={setHideReason}
-					multiline
-					numberOfLines={3}
-					textAlignVertical="top"
-					placeholderTextColor="#79747E"
-				/>
-
-				<View style={styles.modalActions}>
-                                        <TouchableOpacity style={styles.cancelButton} onPress={onRequestClose}>
-                                                <Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={styles.confirmButton} onPress={confirmHideCard}>
-                                                <Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
-                                        </TouchableOpacity>
-                                </View>
-                        </View>
+// Content for the hide topic modal
+export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHideCard }: Props) => (
+        <View style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
+                        <TouchableOpacity onPress={onClose}>
+                                <X size={24} color="#49454F" />
+                        </TouchableOpacity>
                 </View>
-        </Modal>
+
+                <Text style={styles.modalDescription}>{i18n.t("Topics.HideTopicModal.description")}</Text>
+
+                <TextInput
+                        style={styles.reasonInput}
+                        placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
+                        value={hideReason}
+                        onChangeText={setHideReason}
+                        multiline
+                        numberOfLines={3}
+                        textAlignVertical="top"
+                        placeholderTextColor="#79747E"
+                />
+
+                <View style={styles.modalActions}>
+                        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+                                <Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.confirmButton} onPress={confirmHideCard}>
+                                <Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
+                        </TouchableOpacity>
+                </View>
+        </View>
 );
 
 const styles = StyleSheet.create({
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0, 0, 0, 0.6)",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	modalContainer: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 24,
-		padding: 24,
-		width: width - 48,
-		maxWidth: 400,
+        modalContainer: {
+                backgroundColor: "#FFFFFF",
+                borderRadius: 24,
+                padding: 24,
+                width: width - 48,
+                maxWidth: 400,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
