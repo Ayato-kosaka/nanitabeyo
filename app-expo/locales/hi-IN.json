@@ -31,7 +31,26 @@
 			"subtitle": "कृपया प्रतीक्षा करें..."
 		}
 	},
-	"Notifications": {
-		"title": "सूचनाएँ"
-	}
+        "Notifications": {
+                "title": "सूचनाएँ"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "निर्माता की प्रोफ़ाइल पर जाएँ",
+                        "reservation": "आरक्षण"
+                },
+                "actions": {
+                        "share": "साझा करें"
+                },
+                "info": {
+                        "walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "आइटम विवरण खोलें"
+        }
 }

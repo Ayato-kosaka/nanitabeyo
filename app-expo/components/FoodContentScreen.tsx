@@ -5,6 +5,7 @@ import { FoodItem } from "@/types";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useBlurModal } from "@/hooks/useBlurModal";
+import i18n from "@/lib/i18n";
 
 const { width, height } = Dimensions.get("window");
 
@@ -13,13 +14,21 @@ interface FoodContentScreenProps {
 }
 
 const formatLikeCount = (count: number): string => {
-	if (count >= 1000000) {
-		return (count / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-	}
-	if (count >= 1000) {
-		return (count / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-	}
-	return count.toString();
+        if (count >= 1000000) {
+                return (
+                        count / 1000000
+                )
+                        .toFixed(1)
+                        .replace(/\.0$/, "") + i18n.t("FoodContentScreen.numberSuffix.million");
+        }
+        if (count >= 1000) {
+                return (
+                        count / 1000
+                )
+                        .toFixed(1)
+                        .replace(/\.0$/, "") + i18n.t("FoodContentScreen.numberSuffix.thousand");
+        }
+        return count.toString();
 };
 
 export default function FoodContentScreen({ item }: FoodContentScreenProps) {
@@ -62,14 +71,18 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		router.push("/profile?userId=creator_123");
 	};
 
-	const menuOptions = [
-		{ icon: User, label: "投稿者プロフィールへ", onPress: handleViewCreator },
-		{
-			icon: Calendar,
-			label: "予約",
-			onPress: () => console.log("Reservation"),
-		},
-	];
+        const menuOptions = [
+                {
+                        icon: User,
+                        label: i18n.t("FoodContentScreen.menuOptions.viewCreatorProfile"),
+                        onPress: handleViewCreator,
+                },
+                {
+                        icon: Calendar,
+                        label: i18n.t("FoodContentScreen.menuOptions.reservation"),
+                        onPress: () => console.log("Reservation"),
+                },
+        ];
 
 	const renderStars = (count: number, filled: number) => {
 		return (
@@ -97,9 +110,9 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
               <Text style={styles.reviewCount}>(127)</Text>
             </View> */}
 					</View>
-					<View style={styles.priceRatingContainer}>
-						<Text style={styles.price}>渋谷駅から徒歩13分</Text>
-					</View>
+                                        <View style={styles.priceRatingContainer}>
+                                                <Text style={styles.price}>{i18n.t("FoodContentScreen.info.walkFromShibuya")}</Text>
+                                        </View>
 				</View>
 				<View style={styles.headerRight}>
 					{/* <TouchableOpacity
@@ -174,12 +187,12 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 							<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 						</TouchableOpacity>
 
-						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={() => {}}>
-								<Share size={28} color="#FFFFFF" />
-							</TouchableOpacity>
-							<Text style={styles.actionText}>Share</Text>
-						</View>
+                                                <View style={styles.actionContainer}>
+                                                        <TouchableOpacity style={styles.actionButton} onPress={() => {}}>
+                                                                <Share size={28} color="#FFFFFF" />
+                                                        </TouchableOpacity>
+                                                        <Text style={styles.actionText}>{i18n.t("FoodContentScreen.actions.share")}</Text>
+                                                </View>
 
 						<View style={styles.actionContainer}>
 							<TouchableOpacity style={styles.actionButton} onPress={() => {}}>

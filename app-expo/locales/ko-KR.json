@@ -31,7 +31,26 @@
 			"subtitle": "잠시만 기다려 주세요..."
 		}
 	},
-	"Notifications": {
-		"title": "알림"
-	}
+        "Notifications": {
+                "title": "알림"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "작성자 프로필로 이동",
+                        "reservation": "예약"
+                },
+                "actions": {
+                        "share": "공유하기"
+                },
+                "info": {
+                        "walkFromShibuya": "시부야역에서 도보 13분"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "항목 세부정보 열기"
+        }
 }

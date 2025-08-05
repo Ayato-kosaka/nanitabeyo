@@ -31,7 +31,26 @@
 			"subtitle": "Veuillez patienter..."
 		}
 	},
-	"Notifications": {
-		"title": "Notifications"
-	}
+        "Notifications": {
+                "title": "Notifications"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "Voir le profil du créateur",
+                        "reservation": "Réservation"
+                },
+                "actions": {
+                        "share": "Partager"
+                },
+                "info": {
+                        "walkFromShibuya": "À 13 min à pied de la gare de Shibuya"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "Ouvrir les détails de l'article"
+        }
 }
