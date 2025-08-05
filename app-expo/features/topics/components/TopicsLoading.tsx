@@ -1,0 +1,65 @@
+import React from "react";
+import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Sparkles } from "lucide-react-native";
+
+// Loading indicator while topics are being fetched
+export const TopicsLoading = () => (
+        <LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.loadingContainer}>
+                <SafeAreaView style={styles.loadingContent}>
+                        <View style={styles.loadingCard}>
+                                <View style={styles.loadingIconContainer}>
+                                        <Sparkles size={32} color="#5EA2FF" />
+                                </View>
+                                <ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
+                                <Text style={styles.loadingTitle}>あなたにぴったりの料理を探しています</Text>
+                                <Text style={styles.loadingSubtitle}>少々お待ちください...</Text>
+                        </View>
+                </SafeAreaView>
+        </LinearGradient>
+);
+
+const styles = StyleSheet.create({
+        loadingContainer: {
+                flex: 1,
+        },
+        loadingContent: {
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingHorizontal: 32,
+        },
+        loadingCard: {
+                backgroundColor: "#FFFFFF",
+                borderRadius: 24,
+                padding: 32,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.15,
+                shadowRadius: 16,
+                elevation: 12,
+                width: "100%",
+                maxWidth: 320,
+        },
+        loadingIconContainer: {
+                marginBottom: 16,
+        },
+        loadingSpinner: {
+                marginBottom: 24,
+        },
+        loadingTitle: {
+                fontSize: 18,
+                fontWeight: "700",
+                color: "#1A1A1A",
+                textAlign: "center",
+                marginBottom: 8,
+                letterSpacing: -0.3,
+        },
+        loadingSubtitle: {
+                fontSize: 16,
+                color: "#6B7280",
+                textAlign: "center",
+                fontWeight: "500",
+        },
+});
