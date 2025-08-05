@@ -120,6 +120,24 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.Backend_event_logsScalarFieldEnum = {
+  id: 'id',
+  event_name: 'event_name',
+  error_level: 'error_level',
+  function_name: 'function_name',
+  user_id: 'user_id',
+  payload: 'payload',
+  request_id: 'request_id',
+  created_at: 'created_at',
+  created_commit_id: 'created_commit_id'
+};
+
+exports.Prisma.ConfigScalarFieldEnum = {
+  key: 'key',
+  value: 'value',
+  description: 'description'
+};
+
 exports.Prisma.Dish_categoriesScalarFieldEnum = {
   id: 'id',
   label_en: 'label_en',
@@ -184,6 +202,34 @@ exports.Prisma.DishesScalarFieldEnum = {
   lock_no: 'lock_no'
 };
 
+exports.Prisma.External_api_logsScalarFieldEnum = {
+  id: 'id',
+  request_id: 'request_id',
+  function_name: 'function_name',
+  api_name: 'api_name',
+  endpoint: 'endpoint',
+  request_payload: 'request_payload',
+  response_payload: 'response_payload',
+  status_code: 'status_code',
+  error_message: 'error_message',
+  response_time_ms: 'response_time_ms',
+  user_id: 'user_id',
+  created_at: 'created_at',
+  created_commit_id: 'created_commit_id'
+};
+
+exports.Prisma.Frontend_event_logsScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  event_name: 'event_name',
+  error_level: 'error_level',
+  path_name: 'path_name',
+  payload: 'payload',
+  created_at: 'created_at',
+  created_app_version: 'created_app_version',
+  created_commit_id: 'created_commit_id'
+};
+
 exports.Prisma.PayoutsScalarFieldEnum = {
   id: 'id',
   bid_id: 'bid_id',
@@ -194,6 +240,52 @@ exports.Prisma.PayoutsScalarFieldEnum = {
   status: 'status',
   created_at: 'created_at',
   updated_at: 'updated_at',
+  lock_no: 'lock_no'
+};
+
+exports.Prisma.Prompt_familiesScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  purpose: 'purpose',
+  weight: 'weight'
+};
+
+exports.Prisma.Prompt_usagesScalarFieldEnum = {
+  id: 'id',
+  family_id: 'family_id',
+  variant_id: 'variant_id',
+  target_type: 'target_type',
+  target_id: 'target_id',
+  generated_text: 'generated_text',
+  used_prompt_text: 'used_prompt_text',
+  input_data: 'input_data',
+  llm_model: 'llm_model',
+  temperature: 'temperature',
+  generated_user: 'generated_user',
+  created_at: 'created_at',
+  created_request_id: 'created_request_id',
+  metadata: 'metadata'
+};
+
+exports.Prisma.Prompt_variantsScalarFieldEnum = {
+  id: 'id',
+  family_id: 'family_id',
+  variant_number: 'variant_number',
+  prompt_text: 'prompt_text',
+  improvement_note: 'improvement_note',
+  created_by: 'created_by',
+  metadata: 'metadata'
+};
+
+exports.Prisma.ReactionsScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  target_type: 'target_type',
+  target_id: 'target_id',
+  action_type: 'action_type',
+  created_at: 'created_at',
+  created_version: 'created_version',
   lock_no: 'lock_no'
 };
 
@@ -246,6 +338,11 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
@@ -265,10 +362,30 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.backend_event_logs_error_level = exports.$Enums.backend_event_logs_error_level = {
+  trace: 'trace',
+  debug: 'debug',
+  info: 'info',
+  warn: 'warn',
+  error: 'error'
+};
+
+exports.frontend_event_logs_error_level = exports.$Enums.frontend_event_logs_error_level = {
+  trace: 'trace',
+  debug: 'debug',
+  info: 'info',
+  warn: 'warn',
+  error: 'error'
+};
+
 exports.payout_status = exports.$Enums.payout_status = {
   pending: 'pending',
   paid: 'paid',
   refunded: 'refunded'
+};
+
+exports.prompt_families_purpose = exports.$Enums.prompt_families_purpose = {
+  spot_guide_manuscript: 'spot_guide_manuscript'
 };
 
 exports.restaurant_bid_status = exports.$Enums.restaurant_bid_status = {
@@ -278,13 +395,21 @@ exports.restaurant_bid_status = exports.$Enums.restaurant_bid_status = {
 };
 
 exports.Prisma.ModelName = {
+  backend_event_logs: 'backend_event_logs',
+  config: 'config',
   dish_categories: 'dish_categories',
   dish_category_variants: 'dish_category_variants',
   dish_likes: 'dish_likes',
   dish_media: 'dish_media',
   dish_reviews: 'dish_reviews',
   dishes: 'dishes',
+  external_api_logs: 'external_api_logs',
+  frontend_event_logs: 'frontend_event_logs',
   payouts: 'payouts',
+  prompt_families: 'prompt_families',
+  prompt_usages: 'prompt_usages',
+  prompt_variants: 'prompt_variants',
+  reactions: 'reactions',
   restaurant_bids: 'restaurant_bids',
   restaurants: 'restaurants',
   spatial_ref_sys: 'spatial_ref_sys',
