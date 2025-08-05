@@ -1,40 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity, SafeAreaView } from "react-native";
 import { X, RotateCcw, Search } from "lucide-react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import FoodContentFeed from "@/components/FoodContentFeed";
-import { useSearchStore } from "@/stores/useSearchStore";
 import FoodContentMap from "@/components/FoodContentMap";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 
 export default function ResultScreen() {
-	const { topicId } = useLocalSearchParams<{
-		topicId: string;
-	}>();
+	const { topicId } = useLocalSearchParams<{ topicId: string }>();
 
-	const [currentIndex, setCurrentIndex] = useState(0);
-	const [showCompletionModal, setShowCompletionModal] = useState(false);
-	const dishes = useSearchStore((state) => state.dishesMap[topicId] || []);
-
-	const handleIndexChange = (index: number) => {
-		setCurrentIndex(index);
-
-		// Show completion modal when reaching the last item
-		// if (index >= dishes.length - 1) {
-		//   setTimeout(() => {
-		//     setShowCompletionModal(true);
-		//   }, 1000);
-		// }
-	};
-
-	const handleClose = () => {
-		router.back();
-	};
-
-	const handleReturnToCards = () => {
-		setShowCompletionModal(false);
-		router.back();
-	};
+	const { currentIndex, showCompletionModal, dishes, handleIndexChange, handleClose, handleReturnToCards } =
+		useSearchResult(topicId as string);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>

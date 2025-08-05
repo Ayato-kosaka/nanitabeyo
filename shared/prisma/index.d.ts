@@ -14,6 +14,18 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 
 
 /**
+ * Model backend_event_logs
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type backend_event_logs = $Result.DefaultSelection<Prisma.$backend_event_logsPayload>
+/**
+ * Model config
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type config = $Result.DefaultSelection<Prisma.$configPayload>
+/**
  * Model dish_categories
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -52,12 +64,48 @@ export type dish_reviews = $Result.DefaultSelection<Prisma.$dish_reviewsPayload>
  */
 export type dishes = $Result.DefaultSelection<Prisma.$dishesPayload>
 /**
+ * Model external_api_logs
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type external_api_logs = $Result.DefaultSelection<Prisma.$external_api_logsPayload>
+/**
+ * Model frontend_event_logs
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type frontend_event_logs = $Result.DefaultSelection<Prisma.$frontend_event_logsPayload>
+/**
  * Model payouts
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
 export type payouts = $Result.DefaultSelection<Prisma.$payoutsPayload>
+/**
+ * Model prompt_families
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type prompt_families = $Result.DefaultSelection<Prisma.$prompt_familiesPayload>
+/**
+ * Model prompt_usages
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type prompt_usages = $Result.DefaultSelection<Prisma.$prompt_usagesPayload>
+/**
+ * Model prompt_variants
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type prompt_variants = $Result.DefaultSelection<Prisma.$prompt_variantsPayload>
+/**
+ * Model reactions
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type reactions = $Result.DefaultSelection<Prisma.$reactionsPayload>
 /**
  * Model restaurant_bids
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -87,13 +135,42 @@ export type users = $Result.DefaultSelection<Prisma.$usersPayload>
  * Enums
  */
 export namespace $Enums {
-  export const payout_status: {
+  export const backend_event_logs_error_level: {
+  trace: 'trace',
+  debug: 'debug',
+  info: 'info',
+  warn: 'warn',
+  error: 'error'
+};
+
+export type backend_event_logs_error_level = (typeof backend_event_logs_error_level)[keyof typeof backend_event_logs_error_level]
+
+
+export const frontend_event_logs_error_level: {
+  trace: 'trace',
+  debug: 'debug',
+  info: 'info',
+  warn: 'warn',
+  error: 'error'
+};
+
+export type frontend_event_logs_error_level = (typeof frontend_event_logs_error_level)[keyof typeof frontend_event_logs_error_level]
+
+
+export const payout_status: {
   pending: 'pending',
   paid: 'paid',
   refunded: 'refunded'
 };
 
 export type payout_status = (typeof payout_status)[keyof typeof payout_status]
+
+
+export const prompt_families_purpose: {
+  spot_guide_manuscript: 'spot_guide_manuscript'
+};
+
+export type prompt_families_purpose = (typeof prompt_families_purpose)[keyof typeof prompt_families_purpose]
 
 
 export const restaurant_bid_status: {
@@ -106,9 +183,21 @@ export type restaurant_bid_status = (typeof restaurant_bid_status)[keyof typeof 
 
 }
 
+export type backend_event_logs_error_level = $Enums.backend_event_logs_error_level
+
+export const backend_event_logs_error_level: typeof $Enums.backend_event_logs_error_level
+
+export type frontend_event_logs_error_level = $Enums.frontend_event_logs_error_level
+
+export const frontend_event_logs_error_level: typeof $Enums.frontend_event_logs_error_level
+
 export type payout_status = $Enums.payout_status
 
 export const payout_status: typeof $Enums.payout_status
+
+export type prompt_families_purpose = $Enums.prompt_families_purpose
+
+export const prompt_families_purpose: typeof $Enums.prompt_families_purpose
 
 export type restaurant_bid_status = $Enums.restaurant_bid_status
 
@@ -121,8 +210,8 @@ export const restaurant_bid_status: typeof $Enums.restaurant_bid_status
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more Dish_categories
- * const dish_categories = await prisma.dish_categories.findMany()
+ * // Fetch zero or more Backend_event_logs
+ * const backend_event_logs = await prisma.backend_event_logs.findMany()
  * ```
  *
  *
@@ -142,8 +231,8 @@ export class PrismaClient<
    * @example
    * ```
    * const prisma = new PrismaClient()
-   * // Fetch zero or more Dish_categories
-   * const dish_categories = await prisma.dish_categories.findMany()
+   * // Fetch zero or more Backend_event_logs
+   * const backend_event_logs = await prisma.backend_event_logs.findMany()
    * ```
    *
    *
@@ -240,6 +329,26 @@ export class PrismaClient<
   }>>
 
       /**
+   * `prisma.backend_event_logs`: Exposes CRUD operations for the **backend_event_logs** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Backend_event_logs
+    * const backend_event_logs = await prisma.backend_event_logs.findMany()
+    * ```
+    */
+  get backend_event_logs(): Prisma.backend_event_logsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.config`: Exposes CRUD operations for the **config** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Configs
+    * const configs = await prisma.config.findMany()
+    * ```
+    */
+  get config(): Prisma.configDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.dish_categories`: Exposes CRUD operations for the **dish_categories** model.
     * Example usage:
     * ```ts
@@ -300,6 +409,26 @@ export class PrismaClient<
   get dishes(): Prisma.dishesDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.external_api_logs`: Exposes CRUD operations for the **external_api_logs** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more External_api_logs
+    * const external_api_logs = await prisma.external_api_logs.findMany()
+    * ```
+    */
+  get external_api_logs(): Prisma.external_api_logsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.frontend_event_logs`: Exposes CRUD operations for the **frontend_event_logs** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Frontend_event_logs
+    * const frontend_event_logs = await prisma.frontend_event_logs.findMany()
+    * ```
+    */
+  get frontend_event_logs(): Prisma.frontend_event_logsDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.payouts`: Exposes CRUD operations for the **payouts** model.
     * Example usage:
     * ```ts
@@ -308,6 +437,46 @@ export class PrismaClient<
     * ```
     */
   get payouts(): Prisma.payoutsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.prompt_families`: Exposes CRUD operations for the **prompt_families** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Prompt_families
+    * const prompt_families = await prisma.prompt_families.findMany()
+    * ```
+    */
+  get prompt_families(): Prisma.prompt_familiesDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.prompt_usages`: Exposes CRUD operations for the **prompt_usages** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Prompt_usages
+    * const prompt_usages = await prisma.prompt_usages.findMany()
+    * ```
+    */
+  get prompt_usages(): Prisma.prompt_usagesDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.prompt_variants`: Exposes CRUD operations for the **prompt_variants** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Prompt_variants
+    * const prompt_variants = await prisma.prompt_variants.findMany()
+    * ```
+    */
+  get prompt_variants(): Prisma.prompt_variantsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.reactions`: Exposes CRUD operations for the **reactions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Reactions
+    * const reactions = await prisma.reactions.findMany()
+    * ```
+    */
+  get reactions(): Prisma.reactionsDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.restaurant_bids`: Exposes CRUD operations for the **restaurant_bids** model.
@@ -788,13 +957,21 @@ export namespace Prisma {
 
 
   export const ModelName: {
+    backend_event_logs: 'backend_event_logs',
+    config: 'config',
     dish_categories: 'dish_categories',
     dish_category_variants: 'dish_category_variants',
     dish_likes: 'dish_likes',
     dish_media: 'dish_media',
     dish_reviews: 'dish_reviews',
     dishes: 'dishes',
+    external_api_logs: 'external_api_logs',
+    frontend_event_logs: 'frontend_event_logs',
     payouts: 'payouts',
+    prompt_families: 'prompt_families',
+    prompt_usages: 'prompt_usages',
+    prompt_variants: 'prompt_variants',
+    reactions: 'reactions',
     restaurant_bids: 'restaurant_bids',
     restaurants: 'restaurants',
     spatial_ref_sys: 'spatial_ref_sys',
@@ -817,10 +994,158 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "dish_categories" | "dish_category_variants" | "dish_likes" | "dish_media" | "dish_reviews" | "dishes" | "payouts" | "restaurant_bids" | "restaurants" | "spatial_ref_sys" | "users"
+      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_likes" | "dish_media" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "spatial_ref_sys" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
+      backend_event_logs: {
+        payload: Prisma.$backend_event_logsPayload<ExtArgs>
+        fields: Prisma.backend_event_logsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.backend_event_logsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.backend_event_logsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>
+          }
+          findFirst: {
+            args: Prisma.backend_event_logsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.backend_event_logsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>
+          }
+          findMany: {
+            args: Prisma.backend_event_logsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>[]
+          }
+          create: {
+            args: Prisma.backend_event_logsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>
+          }
+          createMany: {
+            args: Prisma.backend_event_logsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.backend_event_logsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>[]
+          }
+          delete: {
+            args: Prisma.backend_event_logsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>
+          }
+          update: {
+            args: Prisma.backend_event_logsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>
+          }
+          deleteMany: {
+            args: Prisma.backend_event_logsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.backend_event_logsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.backend_event_logsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>[]
+          }
+          upsert: {
+            args: Prisma.backend_event_logsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$backend_event_logsPayload>
+          }
+          aggregate: {
+            args: Prisma.Backend_event_logsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateBackend_event_logs>
+          }
+          groupBy: {
+            args: Prisma.backend_event_logsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Backend_event_logsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.backend_event_logsCountArgs<ExtArgs>
+            result: $Utils.Optional<Backend_event_logsCountAggregateOutputType> | number
+          }
+        }
+      }
+      config: {
+        payload: Prisma.$configPayload<ExtArgs>
+        fields: Prisma.configFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.configFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.configFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>
+          }
+          findFirst: {
+            args: Prisma.configFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.configFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>
+          }
+          findMany: {
+            args: Prisma.configFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>[]
+          }
+          create: {
+            args: Prisma.configCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>
+          }
+          createMany: {
+            args: Prisma.configCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.configCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>[]
+          }
+          delete: {
+            args: Prisma.configDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>
+          }
+          update: {
+            args: Prisma.configUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>
+          }
+          deleteMany: {
+            args: Prisma.configDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.configUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.configUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>[]
+          }
+          upsert: {
+            args: Prisma.configUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$configPayload>
+          }
+          aggregate: {
+            args: Prisma.ConfigAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateConfig>
+          }
+          groupBy: {
+            args: Prisma.configGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ConfigGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.configCountArgs<ExtArgs>
+            result: $Utils.Optional<ConfigCountAggregateOutputType> | number
+          }
+        }
+      }
       dish_categories: {
         payload: Prisma.$dish_categoriesPayload<ExtArgs>
         fields: Prisma.dish_categoriesFieldRefs
@@ -1265,6 +1590,154 @@ export namespace Prisma {
           }
         }
       }
+      external_api_logs: {
+        payload: Prisma.$external_api_logsPayload<ExtArgs>
+        fields: Prisma.external_api_logsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.external_api_logsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.external_api_logsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>
+          }
+          findFirst: {
+            args: Prisma.external_api_logsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.external_api_logsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>
+          }
+          findMany: {
+            args: Prisma.external_api_logsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>[]
+          }
+          create: {
+            args: Prisma.external_api_logsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>
+          }
+          createMany: {
+            args: Prisma.external_api_logsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.external_api_logsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>[]
+          }
+          delete: {
+            args: Prisma.external_api_logsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>
+          }
+          update: {
+            args: Prisma.external_api_logsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>
+          }
+          deleteMany: {
+            args: Prisma.external_api_logsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.external_api_logsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.external_api_logsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>[]
+          }
+          upsert: {
+            args: Prisma.external_api_logsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$external_api_logsPayload>
+          }
+          aggregate: {
+            args: Prisma.External_api_logsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateExternal_api_logs>
+          }
+          groupBy: {
+            args: Prisma.external_api_logsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<External_api_logsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.external_api_logsCountArgs<ExtArgs>
+            result: $Utils.Optional<External_api_logsCountAggregateOutputType> | number
+          }
+        }
+      }
+      frontend_event_logs: {
+        payload: Prisma.$frontend_event_logsPayload<ExtArgs>
+        fields: Prisma.frontend_event_logsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.frontend_event_logsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.frontend_event_logsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>
+          }
+          findFirst: {
+            args: Prisma.frontend_event_logsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.frontend_event_logsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>
+          }
+          findMany: {
+            args: Prisma.frontend_event_logsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>[]
+          }
+          create: {
+            args: Prisma.frontend_event_logsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>
+          }
+          createMany: {
+            args: Prisma.frontend_event_logsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.frontend_event_logsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>[]
+          }
+          delete: {
+            args: Prisma.frontend_event_logsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>
+          }
+          update: {
+            args: Prisma.frontend_event_logsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>
+          }
+          deleteMany: {
+            args: Prisma.frontend_event_logsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.frontend_event_logsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.frontend_event_logsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>[]
+          }
+          upsert: {
+            args: Prisma.frontend_event_logsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$frontend_event_logsPayload>
+          }
+          aggregate: {
+            args: Prisma.Frontend_event_logsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFrontend_event_logs>
+          }
+          groupBy: {
+            args: Prisma.frontend_event_logsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Frontend_event_logsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.frontend_event_logsCountArgs<ExtArgs>
+            result: $Utils.Optional<Frontend_event_logsCountAggregateOutputType> | number
+          }
+        }
+      }
       payouts: {
         payload: Prisma.$payoutsPayload<ExtArgs>
         fields: Prisma.payoutsFieldRefs
@@ -1336,6 +1809,302 @@ export namespace Prisma {
           count: {
             args: Prisma.payoutsCountArgs<ExtArgs>
             result: $Utils.Optional<PayoutsCountAggregateOutputType> | number
+          }
+        }
+      }
+      prompt_families: {
+        payload: Prisma.$prompt_familiesPayload<ExtArgs>
+        fields: Prisma.prompt_familiesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.prompt_familiesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.prompt_familiesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>
+          }
+          findFirst: {
+            args: Prisma.prompt_familiesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.prompt_familiesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>
+          }
+          findMany: {
+            args: Prisma.prompt_familiesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>[]
+          }
+          create: {
+            args: Prisma.prompt_familiesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>
+          }
+          createMany: {
+            args: Prisma.prompt_familiesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.prompt_familiesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>[]
+          }
+          delete: {
+            args: Prisma.prompt_familiesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>
+          }
+          update: {
+            args: Prisma.prompt_familiesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>
+          }
+          deleteMany: {
+            args: Prisma.prompt_familiesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.prompt_familiesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.prompt_familiesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>[]
+          }
+          upsert: {
+            args: Prisma.prompt_familiesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_familiesPayload>
+          }
+          aggregate: {
+            args: Prisma.Prompt_familiesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePrompt_families>
+          }
+          groupBy: {
+            args: Prisma.prompt_familiesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Prompt_familiesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.prompt_familiesCountArgs<ExtArgs>
+            result: $Utils.Optional<Prompt_familiesCountAggregateOutputType> | number
+          }
+        }
+      }
+      prompt_usages: {
+        payload: Prisma.$prompt_usagesPayload<ExtArgs>
+        fields: Prisma.prompt_usagesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.prompt_usagesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.prompt_usagesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>
+          }
+          findFirst: {
+            args: Prisma.prompt_usagesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.prompt_usagesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>
+          }
+          findMany: {
+            args: Prisma.prompt_usagesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>[]
+          }
+          create: {
+            args: Prisma.prompt_usagesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>
+          }
+          createMany: {
+            args: Prisma.prompt_usagesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.prompt_usagesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>[]
+          }
+          delete: {
+            args: Prisma.prompt_usagesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>
+          }
+          update: {
+            args: Prisma.prompt_usagesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>
+          }
+          deleteMany: {
+            args: Prisma.prompt_usagesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.prompt_usagesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.prompt_usagesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>[]
+          }
+          upsert: {
+            args: Prisma.prompt_usagesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_usagesPayload>
+          }
+          aggregate: {
+            args: Prisma.Prompt_usagesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePrompt_usages>
+          }
+          groupBy: {
+            args: Prisma.prompt_usagesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Prompt_usagesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.prompt_usagesCountArgs<ExtArgs>
+            result: $Utils.Optional<Prompt_usagesCountAggregateOutputType> | number
+          }
+        }
+      }
+      prompt_variants: {
+        payload: Prisma.$prompt_variantsPayload<ExtArgs>
+        fields: Prisma.prompt_variantsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.prompt_variantsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.prompt_variantsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>
+          }
+          findFirst: {
+            args: Prisma.prompt_variantsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.prompt_variantsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>
+          }
+          findMany: {
+            args: Prisma.prompt_variantsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>[]
+          }
+          create: {
+            args: Prisma.prompt_variantsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>
+          }
+          createMany: {
+            args: Prisma.prompt_variantsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.prompt_variantsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>[]
+          }
+          delete: {
+            args: Prisma.prompt_variantsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>
+          }
+          update: {
+            args: Prisma.prompt_variantsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>
+          }
+          deleteMany: {
+            args: Prisma.prompt_variantsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.prompt_variantsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.prompt_variantsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>[]
+          }
+          upsert: {
+            args: Prisma.prompt_variantsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$prompt_variantsPayload>
+          }
+          aggregate: {
+            args: Prisma.Prompt_variantsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePrompt_variants>
+          }
+          groupBy: {
+            args: Prisma.prompt_variantsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Prompt_variantsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.prompt_variantsCountArgs<ExtArgs>
+            result: $Utils.Optional<Prompt_variantsCountAggregateOutputType> | number
+          }
+        }
+      }
+      reactions: {
+        payload: Prisma.$reactionsPayload<ExtArgs>
+        fields: Prisma.reactionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.reactionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.reactionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>
+          }
+          findFirst: {
+            args: Prisma.reactionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.reactionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>
+          }
+          findMany: {
+            args: Prisma.reactionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>[]
+          }
+          create: {
+            args: Prisma.reactionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>
+          }
+          createMany: {
+            args: Prisma.reactionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.reactionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>[]
+          }
+          delete: {
+            args: Prisma.reactionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>
+          }
+          update: {
+            args: Prisma.reactionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.reactionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.reactionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.reactionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.reactionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$reactionsPayload>
+          }
+          aggregate: {
+            args: Prisma.ReactionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateReactions>
+          }
+          groupBy: {
+            args: Prisma.reactionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ReactionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.reactionsCountArgs<ExtArgs>
+            result: $Utils.Optional<ReactionsCountAggregateOutputType> | number
           }
         }
       }
@@ -1711,13 +2480,21 @@ export namespace Prisma {
     omit?: Prisma.GlobalOmitConfig
   }
   export type GlobalOmitConfig = {
+    backend_event_logs?: backend_event_logsOmit
+    config?: configOmit
     dish_categories?: dish_categoriesOmit
     dish_category_variants?: dish_category_variantsOmit
     dish_likes?: dish_likesOmit
     dish_media?: dish_mediaOmit
     dish_reviews?: dish_reviewsOmit
     dishes?: dishesOmit
+    external_api_logs?: external_api_logsOmit
+    frontend_event_logs?: frontend_event_logsOmit
     payouts?: payoutsOmit
+    prompt_families?: prompt_familiesOmit
+    prompt_usages?: prompt_usagesOmit
+    prompt_variants?: prompt_variantsOmit
+    reactions?: reactionsOmit
     restaurant_bids?: restaurant_bidsOmit
     restaurants?: restaurantsOmit
     spatial_ref_sys?: spatial_ref_sysOmit
@@ -1937,6 +2714,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type Prompt_familiesCountOutputType
+   */
+
+  export type Prompt_familiesCountOutputType = {
+    prompt_variants: number
+  }
+
+  export type Prompt_familiesCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    prompt_variants?: boolean | Prompt_familiesCountOutputTypeCountPrompt_variantsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * Prompt_familiesCountOutputType without action
+   */
+  export type Prompt_familiesCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Prompt_familiesCountOutputType
+     */
+    select?: Prompt_familiesCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * Prompt_familiesCountOutputType without action
+   */
+  export type Prompt_familiesCountOutputTypeCountPrompt_variantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: prompt_variantsWhereInput
+  }
+
+
+  /**
    * Count Type Restaurant_bidsCountOutputType
    */
 
@@ -2068,6 +2876,2018 @@ export namespace Prisma {
   /**
    * Models
    */
+
+  /**
+   * Model backend_event_logs
+   */
+
+  export type AggregateBackend_event_logs = {
+    _count: Backend_event_logsCountAggregateOutputType | null
+    _min: Backend_event_logsMinAggregateOutputType | null
+    _max: Backend_event_logsMaxAggregateOutputType | null
+  }
+
+  export type Backend_event_logsMinAggregateOutputType = {
+    id: string | null
+    event_name: string | null
+    error_level: $Enums.backend_event_logs_error_level | null
+    function_name: string | null
+    user_id: string | null
+    request_id: string | null
+    created_at: Date | null
+    created_commit_id: string | null
+  }
+
+  export type Backend_event_logsMaxAggregateOutputType = {
+    id: string | null
+    event_name: string | null
+    error_level: $Enums.backend_event_logs_error_level | null
+    function_name: string | null
+    user_id: string | null
+    request_id: string | null
+    created_at: Date | null
+    created_commit_id: string | null
+  }
+
+  export type Backend_event_logsCountAggregateOutputType = {
+    id: number
+    event_name: number
+    error_level: number
+    function_name: number
+    user_id: number
+    payload: number
+    request_id: number
+    created_at: number
+    created_commit_id: number
+    _all: number
+  }
+
+
+  export type Backend_event_logsMinAggregateInputType = {
+    id?: true
+    event_name?: true
+    error_level?: true
+    function_name?: true
+    user_id?: true
+    request_id?: true
+    created_at?: true
+    created_commit_id?: true
+  }
+
+  export type Backend_event_logsMaxAggregateInputType = {
+    id?: true
+    event_name?: true
+    error_level?: true
+    function_name?: true
+    user_id?: true
+    request_id?: true
+    created_at?: true
+    created_commit_id?: true
+  }
+
+  export type Backend_event_logsCountAggregateInputType = {
+    id?: true
+    event_name?: true
+    error_level?: true
+    function_name?: true
+    user_id?: true
+    payload?: true
+    request_id?: true
+    created_at?: true
+    created_commit_id?: true
+    _all?: true
+  }
+
+  export type Backend_event_logsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which backend_event_logs to aggregate.
+     */
+    where?: backend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of backend_event_logs to fetch.
+     */
+    orderBy?: backend_event_logsOrderByWithRelationInput | backend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: backend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` backend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` backend_event_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned backend_event_logs
+    **/
+    _count?: true | Backend_event_logsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Backend_event_logsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Backend_event_logsMaxAggregateInputType
+  }
+
+  export type GetBackend_event_logsAggregateType<T extends Backend_event_logsAggregateArgs> = {
+        [P in keyof T & keyof AggregateBackend_event_logs]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateBackend_event_logs[P]>
+      : GetScalarType<T[P], AggregateBackend_event_logs[P]>
+  }
+
+
+
+
+  export type backend_event_logsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: backend_event_logsWhereInput
+    orderBy?: backend_event_logsOrderByWithAggregationInput | backend_event_logsOrderByWithAggregationInput[]
+    by: Backend_event_logsScalarFieldEnum[] | Backend_event_logsScalarFieldEnum
+    having?: backend_event_logsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Backend_event_logsCountAggregateInputType | true
+    _min?: Backend_event_logsMinAggregateInputType
+    _max?: Backend_event_logsMaxAggregateInputType
+  }
+
+  export type Backend_event_logsGroupByOutputType = {
+    id: string
+    event_name: string | null
+    error_level: $Enums.backend_event_logs_error_level | null
+    function_name: string | null
+    user_id: string | null
+    payload: JsonValue | null
+    request_id: string | null
+    created_at: Date
+    created_commit_id: string
+    _count: Backend_event_logsCountAggregateOutputType | null
+    _min: Backend_event_logsMinAggregateOutputType | null
+    _max: Backend_event_logsMaxAggregateOutputType | null
+  }
+
+  type GetBackend_event_logsGroupByPayload<T extends backend_event_logsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Backend_event_logsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Backend_event_logsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Backend_event_logsGroupByOutputType[P]>
+            : GetScalarType<T[P], Backend_event_logsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type backend_event_logsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    function_name?: boolean
+    user_id?: boolean
+    payload?: boolean
+    request_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["backend_event_logs"]>
+
+  export type backend_event_logsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    function_name?: boolean
+    user_id?: boolean
+    payload?: boolean
+    request_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["backend_event_logs"]>
+
+  export type backend_event_logsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    function_name?: boolean
+    user_id?: boolean
+    payload?: boolean
+    request_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["backend_event_logs"]>
+
+  export type backend_event_logsSelectScalar = {
+    id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    function_name?: boolean
+    user_id?: boolean
+    payload?: boolean
+    request_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }
+
+  export type backend_event_logsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "event_name" | "error_level" | "function_name" | "user_id" | "payload" | "request_id" | "created_at" | "created_commit_id", ExtArgs["result"]["backend_event_logs"]>
+
+  export type $backend_event_logsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "backend_event_logs"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      event_name: string | null
+      error_level: $Enums.backend_event_logs_error_level | null
+      function_name: string | null
+      user_id: string | null
+      payload: Prisma.JsonValue | null
+      request_id: string | null
+      created_at: Date
+      created_commit_id: string
+    }, ExtArgs["result"]["backend_event_logs"]>
+    composites: {}
+  }
+
+  type backend_event_logsGetPayload<S extends boolean | null | undefined | backend_event_logsDefaultArgs> = $Result.GetResult<Prisma.$backend_event_logsPayload, S>
+
+  type backend_event_logsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<backend_event_logsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Backend_event_logsCountAggregateInputType | true
+    }
+
+  export interface backend_event_logsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['backend_event_logs'], meta: { name: 'backend_event_logs' } }
+    /**
+     * Find zero or one Backend_event_logs that matches the filter.
+     * @param {backend_event_logsFindUniqueArgs} args - Arguments to find a Backend_event_logs
+     * @example
+     * // Get one Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends backend_event_logsFindUniqueArgs>(args: SelectSubset<T, backend_event_logsFindUniqueArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Backend_event_logs that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {backend_event_logsFindUniqueOrThrowArgs} args - Arguments to find a Backend_event_logs
+     * @example
+     * // Get one Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends backend_event_logsFindUniqueOrThrowArgs>(args: SelectSubset<T, backend_event_logsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Backend_event_logs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {backend_event_logsFindFirstArgs} args - Arguments to find a Backend_event_logs
+     * @example
+     * // Get one Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends backend_event_logsFindFirstArgs>(args?: SelectSubset<T, backend_event_logsFindFirstArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Backend_event_logs that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {backend_event_logsFindFirstOrThrowArgs} args - Arguments to find a Backend_event_logs
+     * @example
+     * // Get one Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends backend_event_logsFindFirstOrThrowArgs>(args?: SelectSubset<T, backend_event_logsFindFirstOrThrowArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Backend_event_logs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {backend_event_logsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.findMany()
+     * 
+     * // Get first 10 Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const backend_event_logsWithIdOnly = await prisma.backend_event_logs.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends backend_event_logsFindManyArgs>(args?: SelectSubset<T, backend_event_logsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Backend_event_logs.
+     * @param {backend_event_logsCreateArgs} args - Arguments to create a Backend_event_logs.
+     * @example
+     * // Create one Backend_event_logs
+     * const Backend_event_logs = await prisma.backend_event_logs.create({
+     *   data: {
+     *     // ... data to create a Backend_event_logs
+     *   }
+     * })
+     * 
+     */
+    create<T extends backend_event_logsCreateArgs>(args: SelectSubset<T, backend_event_logsCreateArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Backend_event_logs.
+     * @param {backend_event_logsCreateManyArgs} args - Arguments to create many Backend_event_logs.
+     * @example
+     * // Create many Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends backend_event_logsCreateManyArgs>(args?: SelectSubset<T, backend_event_logsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Backend_event_logs and returns the data saved in the database.
+     * @param {backend_event_logsCreateManyAndReturnArgs} args - Arguments to create many Backend_event_logs.
+     * @example
+     * // Create many Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Backend_event_logs and only return the `id`
+     * const backend_event_logsWithIdOnly = await prisma.backend_event_logs.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends backend_event_logsCreateManyAndReturnArgs>(args?: SelectSubset<T, backend_event_logsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Backend_event_logs.
+     * @param {backend_event_logsDeleteArgs} args - Arguments to delete one Backend_event_logs.
+     * @example
+     * // Delete one Backend_event_logs
+     * const Backend_event_logs = await prisma.backend_event_logs.delete({
+     *   where: {
+     *     // ... filter to delete one Backend_event_logs
+     *   }
+     * })
+     * 
+     */
+    delete<T extends backend_event_logsDeleteArgs>(args: SelectSubset<T, backend_event_logsDeleteArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Backend_event_logs.
+     * @param {backend_event_logsUpdateArgs} args - Arguments to update one Backend_event_logs.
+     * @example
+     * // Update one Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends backend_event_logsUpdateArgs>(args: SelectSubset<T, backend_event_logsUpdateArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Backend_event_logs.
+     * @param {backend_event_logsDeleteManyArgs} args - Arguments to filter Backend_event_logs to delete.
+     * @example
+     * // Delete a few Backend_event_logs
+     * const { count } = await prisma.backend_event_logs.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends backend_event_logsDeleteManyArgs>(args?: SelectSubset<T, backend_event_logsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Backend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {backend_event_logsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends backend_event_logsUpdateManyArgs>(args: SelectSubset<T, backend_event_logsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Backend_event_logs and returns the data updated in the database.
+     * @param {backend_event_logsUpdateManyAndReturnArgs} args - Arguments to update many Backend_event_logs.
+     * @example
+     * // Update many Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Backend_event_logs and only return the `id`
+     * const backend_event_logsWithIdOnly = await prisma.backend_event_logs.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends backend_event_logsUpdateManyAndReturnArgs>(args: SelectSubset<T, backend_event_logsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Backend_event_logs.
+     * @param {backend_event_logsUpsertArgs} args - Arguments to update or create a Backend_event_logs.
+     * @example
+     * // Update or create a Backend_event_logs
+     * const backend_event_logs = await prisma.backend_event_logs.upsert({
+     *   create: {
+     *     // ... data to create a Backend_event_logs
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Backend_event_logs we want to update
+     *   }
+     * })
+     */
+    upsert<T extends backend_event_logsUpsertArgs>(args: SelectSubset<T, backend_event_logsUpsertArgs<ExtArgs>>): Prisma__backend_event_logsClient<$Result.GetResult<Prisma.$backend_event_logsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Backend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {backend_event_logsCountArgs} args - Arguments to filter Backend_event_logs to count.
+     * @example
+     * // Count the number of Backend_event_logs
+     * const count = await prisma.backend_event_logs.count({
+     *   where: {
+     *     // ... the filter for the Backend_event_logs we want to count
+     *   }
+     * })
+    **/
+    count<T extends backend_event_logsCountArgs>(
+      args?: Subset<T, backend_event_logsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Backend_event_logsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Backend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Backend_event_logsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Backend_event_logsAggregateArgs>(args: Subset<T, Backend_event_logsAggregateArgs>): Prisma.PrismaPromise<GetBackend_event_logsAggregateType<T>>
+
+    /**
+     * Group by Backend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {backend_event_logsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends backend_event_logsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: backend_event_logsGroupByArgs['orderBy'] }
+        : { orderBy?: backend_event_logsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, backend_event_logsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetBackend_event_logsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the backend_event_logs model
+   */
+  readonly fields: backend_event_logsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for backend_event_logs.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__backend_event_logsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the backend_event_logs model
+   */
+  interface backend_event_logsFieldRefs {
+    readonly id: FieldRef<"backend_event_logs", 'String'>
+    readonly event_name: FieldRef<"backend_event_logs", 'String'>
+    readonly error_level: FieldRef<"backend_event_logs", 'backend_event_logs_error_level'>
+    readonly function_name: FieldRef<"backend_event_logs", 'String'>
+    readonly user_id: FieldRef<"backend_event_logs", 'String'>
+    readonly payload: FieldRef<"backend_event_logs", 'Json'>
+    readonly request_id: FieldRef<"backend_event_logs", 'String'>
+    readonly created_at: FieldRef<"backend_event_logs", 'DateTime'>
+    readonly created_commit_id: FieldRef<"backend_event_logs", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * backend_event_logs findUnique
+   */
+  export type backend_event_logsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which backend_event_logs to fetch.
+     */
+    where: backend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * backend_event_logs findUniqueOrThrow
+   */
+  export type backend_event_logsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which backend_event_logs to fetch.
+     */
+    where: backend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * backend_event_logs findFirst
+   */
+  export type backend_event_logsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which backend_event_logs to fetch.
+     */
+    where?: backend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of backend_event_logs to fetch.
+     */
+    orderBy?: backend_event_logsOrderByWithRelationInput | backend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for backend_event_logs.
+     */
+    cursor?: backend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` backend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` backend_event_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of backend_event_logs.
+     */
+    distinct?: Backend_event_logsScalarFieldEnum | Backend_event_logsScalarFieldEnum[]
+  }
+
+  /**
+   * backend_event_logs findFirstOrThrow
+   */
+  export type backend_event_logsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which backend_event_logs to fetch.
+     */
+    where?: backend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of backend_event_logs to fetch.
+     */
+    orderBy?: backend_event_logsOrderByWithRelationInput | backend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for backend_event_logs.
+     */
+    cursor?: backend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` backend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` backend_event_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of backend_event_logs.
+     */
+    distinct?: Backend_event_logsScalarFieldEnum | Backend_event_logsScalarFieldEnum[]
+  }
+
+  /**
+   * backend_event_logs findMany
+   */
+  export type backend_event_logsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which backend_event_logs to fetch.
+     */
+    where?: backend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of backend_event_logs to fetch.
+     */
+    orderBy?: backend_event_logsOrderByWithRelationInput | backend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing backend_event_logs.
+     */
+    cursor?: backend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` backend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` backend_event_logs.
+     */
+    skip?: number
+    distinct?: Backend_event_logsScalarFieldEnum | Backend_event_logsScalarFieldEnum[]
+  }
+
+  /**
+   * backend_event_logs create
+   */
+  export type backend_event_logsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a backend_event_logs.
+     */
+    data: XOR<backend_event_logsCreateInput, backend_event_logsUncheckedCreateInput>
+  }
+
+  /**
+   * backend_event_logs createMany
+   */
+  export type backend_event_logsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many backend_event_logs.
+     */
+    data: backend_event_logsCreateManyInput | backend_event_logsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * backend_event_logs createManyAndReturn
+   */
+  export type backend_event_logsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data used to create many backend_event_logs.
+     */
+    data: backend_event_logsCreateManyInput | backend_event_logsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * backend_event_logs update
+   */
+  export type backend_event_logsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a backend_event_logs.
+     */
+    data: XOR<backend_event_logsUpdateInput, backend_event_logsUncheckedUpdateInput>
+    /**
+     * Choose, which backend_event_logs to update.
+     */
+    where: backend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * backend_event_logs updateMany
+   */
+  export type backend_event_logsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update backend_event_logs.
+     */
+    data: XOR<backend_event_logsUpdateManyMutationInput, backend_event_logsUncheckedUpdateManyInput>
+    /**
+     * Filter which backend_event_logs to update
+     */
+    where?: backend_event_logsWhereInput
+    /**
+     * Limit how many backend_event_logs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * backend_event_logs updateManyAndReturn
+   */
+  export type backend_event_logsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data used to update backend_event_logs.
+     */
+    data: XOR<backend_event_logsUpdateManyMutationInput, backend_event_logsUncheckedUpdateManyInput>
+    /**
+     * Filter which backend_event_logs to update
+     */
+    where?: backend_event_logsWhereInput
+    /**
+     * Limit how many backend_event_logs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * backend_event_logs upsert
+   */
+  export type backend_event_logsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the backend_event_logs to update in case it exists.
+     */
+    where: backend_event_logsWhereUniqueInput
+    /**
+     * In case the backend_event_logs found by the `where` argument doesn't exist, create a new backend_event_logs with this data.
+     */
+    create: XOR<backend_event_logsCreateInput, backend_event_logsUncheckedCreateInput>
+    /**
+     * In case the backend_event_logs was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<backend_event_logsUpdateInput, backend_event_logsUncheckedUpdateInput>
+  }
+
+  /**
+   * backend_event_logs delete
+   */
+  export type backend_event_logsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter which backend_event_logs to delete.
+     */
+    where: backend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * backend_event_logs deleteMany
+   */
+  export type backend_event_logsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which backend_event_logs to delete
+     */
+    where?: backend_event_logsWhereInput
+    /**
+     * Limit how many backend_event_logs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * backend_event_logs without action
+   */
+  export type backend_event_logsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the backend_event_logs
+     */
+    select?: backend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the backend_event_logs
+     */
+    omit?: backend_event_logsOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model config
+   */
+
+  export type AggregateConfig = {
+    _count: ConfigCountAggregateOutputType | null
+    _min: ConfigMinAggregateOutputType | null
+    _max: ConfigMaxAggregateOutputType | null
+  }
+
+  export type ConfigMinAggregateOutputType = {
+    key: string | null
+    value: string | null
+    description: string | null
+  }
+
+  export type ConfigMaxAggregateOutputType = {
+    key: string | null
+    value: string | null
+    description: string | null
+  }
+
+  export type ConfigCountAggregateOutputType = {
+    key: number
+    value: number
+    description: number
+    _all: number
+  }
+
+
+  export type ConfigMinAggregateInputType = {
+    key?: true
+    value?: true
+    description?: true
+  }
+
+  export type ConfigMaxAggregateInputType = {
+    key?: true
+    value?: true
+    description?: true
+  }
+
+  export type ConfigCountAggregateInputType = {
+    key?: true
+    value?: true
+    description?: true
+    _all?: true
+  }
+
+  export type ConfigAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which config to aggregate.
+     */
+    where?: configWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of configs to fetch.
+     */
+    orderBy?: configOrderByWithRelationInput | configOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: configWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` configs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` configs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned configs
+    **/
+    _count?: true | ConfigCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ConfigMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ConfigMaxAggregateInputType
+  }
+
+  export type GetConfigAggregateType<T extends ConfigAggregateArgs> = {
+        [P in keyof T & keyof AggregateConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateConfig[P]>
+      : GetScalarType<T[P], AggregateConfig[P]>
+  }
+
+
+
+
+  export type configGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: configWhereInput
+    orderBy?: configOrderByWithAggregationInput | configOrderByWithAggregationInput[]
+    by: ConfigScalarFieldEnum[] | ConfigScalarFieldEnum
+    having?: configScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ConfigCountAggregateInputType | true
+    _min?: ConfigMinAggregateInputType
+    _max?: ConfigMaxAggregateInputType
+  }
+
+  export type ConfigGroupByOutputType = {
+    key: string
+    value: string
+    description: string | null
+    _count: ConfigCountAggregateOutputType | null
+    _min: ConfigMinAggregateOutputType | null
+    _max: ConfigMaxAggregateOutputType | null
+  }
+
+  type GetConfigGroupByPayload<T extends configGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ConfigGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], ConfigGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type configSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    key?: boolean
+    value?: boolean
+    description?: boolean
+  }, ExtArgs["result"]["config"]>
+
+  export type configSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    key?: boolean
+    value?: boolean
+    description?: boolean
+  }, ExtArgs["result"]["config"]>
+
+  export type configSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    key?: boolean
+    value?: boolean
+    description?: boolean
+  }, ExtArgs["result"]["config"]>
+
+  export type configSelectScalar = {
+    key?: boolean
+    value?: boolean
+    description?: boolean
+  }
+
+  export type configOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"key" | "value" | "description", ExtArgs["result"]["config"]>
+
+  export type $configPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "config"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      key: string
+      value: string
+      description: string | null
+    }, ExtArgs["result"]["config"]>
+    composites: {}
+  }
+
+  type configGetPayload<S extends boolean | null | undefined | configDefaultArgs> = $Result.GetResult<Prisma.$configPayload, S>
+
+  type configCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<configFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ConfigCountAggregateInputType | true
+    }
+
+  export interface configDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['config'], meta: { name: 'config' } }
+    /**
+     * Find zero or one Config that matches the filter.
+     * @param {configFindUniqueArgs} args - Arguments to find a Config
+     * @example
+     * // Get one Config
+     * const config = await prisma.config.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends configFindUniqueArgs>(args: SelectSubset<T, configFindUniqueArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Config that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {configFindUniqueOrThrowArgs} args - Arguments to find a Config
+     * @example
+     * // Get one Config
+     * const config = await prisma.config.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends configFindUniqueOrThrowArgs>(args: SelectSubset<T, configFindUniqueOrThrowArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Config that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {configFindFirstArgs} args - Arguments to find a Config
+     * @example
+     * // Get one Config
+     * const config = await prisma.config.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends configFindFirstArgs>(args?: SelectSubset<T, configFindFirstArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Config that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {configFindFirstOrThrowArgs} args - Arguments to find a Config
+     * @example
+     * // Get one Config
+     * const config = await prisma.config.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends configFindFirstOrThrowArgs>(args?: SelectSubset<T, configFindFirstOrThrowArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Configs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {configFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Configs
+     * const configs = await prisma.config.findMany()
+     * 
+     * // Get first 10 Configs
+     * const configs = await prisma.config.findMany({ take: 10 })
+     * 
+     * // Only select the `key`
+     * const configWithKeyOnly = await prisma.config.findMany({ select: { key: true } })
+     * 
+     */
+    findMany<T extends configFindManyArgs>(args?: SelectSubset<T, configFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Config.
+     * @param {configCreateArgs} args - Arguments to create a Config.
+     * @example
+     * // Create one Config
+     * const Config = await prisma.config.create({
+     *   data: {
+     *     // ... data to create a Config
+     *   }
+     * })
+     * 
+     */
+    create<T extends configCreateArgs>(args: SelectSubset<T, configCreateArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Configs.
+     * @param {configCreateManyArgs} args - Arguments to create many Configs.
+     * @example
+     * // Create many Configs
+     * const config = await prisma.config.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends configCreateManyArgs>(args?: SelectSubset<T, configCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Configs and returns the data saved in the database.
+     * @param {configCreateManyAndReturnArgs} args - Arguments to create many Configs.
+     * @example
+     * // Create many Configs
+     * const config = await prisma.config.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Configs and only return the `key`
+     * const configWithKeyOnly = await prisma.config.createManyAndReturn({
+     *   select: { key: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends configCreateManyAndReturnArgs>(args?: SelectSubset<T, configCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Config.
+     * @param {configDeleteArgs} args - Arguments to delete one Config.
+     * @example
+     * // Delete one Config
+     * const Config = await prisma.config.delete({
+     *   where: {
+     *     // ... filter to delete one Config
+     *   }
+     * })
+     * 
+     */
+    delete<T extends configDeleteArgs>(args: SelectSubset<T, configDeleteArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Config.
+     * @param {configUpdateArgs} args - Arguments to update one Config.
+     * @example
+     * // Update one Config
+     * const config = await prisma.config.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends configUpdateArgs>(args: SelectSubset<T, configUpdateArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Configs.
+     * @param {configDeleteManyArgs} args - Arguments to filter Configs to delete.
+     * @example
+     * // Delete a few Configs
+     * const { count } = await prisma.config.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends configDeleteManyArgs>(args?: SelectSubset<T, configDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Configs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {configUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Configs
+     * const config = await prisma.config.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends configUpdateManyArgs>(args: SelectSubset<T, configUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Configs and returns the data updated in the database.
+     * @param {configUpdateManyAndReturnArgs} args - Arguments to update many Configs.
+     * @example
+     * // Update many Configs
+     * const config = await prisma.config.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Configs and only return the `key`
+     * const configWithKeyOnly = await prisma.config.updateManyAndReturn({
+     *   select: { key: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends configUpdateManyAndReturnArgs>(args: SelectSubset<T, configUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Config.
+     * @param {configUpsertArgs} args - Arguments to update or create a Config.
+     * @example
+     * // Update or create a Config
+     * const config = await prisma.config.upsert({
+     *   create: {
+     *     // ... data to create a Config
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Config we want to update
+     *   }
+     * })
+     */
+    upsert<T extends configUpsertArgs>(args: SelectSubset<T, configUpsertArgs<ExtArgs>>): Prisma__configClient<$Result.GetResult<Prisma.$configPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Configs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {configCountArgs} args - Arguments to filter Configs to count.
+     * @example
+     * // Count the number of Configs
+     * const count = await prisma.config.count({
+     *   where: {
+     *     // ... the filter for the Configs we want to count
+     *   }
+     * })
+    **/
+    count<T extends configCountArgs>(
+      args?: Subset<T, configCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ConfigCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Config.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfigAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ConfigAggregateArgs>(args: Subset<T, ConfigAggregateArgs>): Prisma.PrismaPromise<GetConfigAggregateType<T>>
+
+    /**
+     * Group by Config.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {configGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends configGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: configGroupByArgs['orderBy'] }
+        : { orderBy?: configGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, configGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the config model
+   */
+  readonly fields: configFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for config.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__configClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the config model
+   */
+  interface configFieldRefs {
+    readonly key: FieldRef<"config", 'String'>
+    readonly value: FieldRef<"config", 'String'>
+    readonly description: FieldRef<"config", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * config findUnique
+   */
+  export type configFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * Filter, which config to fetch.
+     */
+    where: configWhereUniqueInput
+  }
+
+  /**
+   * config findUniqueOrThrow
+   */
+  export type configFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * Filter, which config to fetch.
+     */
+    where: configWhereUniqueInput
+  }
+
+  /**
+   * config findFirst
+   */
+  export type configFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * Filter, which config to fetch.
+     */
+    where?: configWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of configs to fetch.
+     */
+    orderBy?: configOrderByWithRelationInput | configOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for configs.
+     */
+    cursor?: configWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` configs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` configs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of configs.
+     */
+    distinct?: ConfigScalarFieldEnum | ConfigScalarFieldEnum[]
+  }
+
+  /**
+   * config findFirstOrThrow
+   */
+  export type configFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * Filter, which config to fetch.
+     */
+    where?: configWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of configs to fetch.
+     */
+    orderBy?: configOrderByWithRelationInput | configOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for configs.
+     */
+    cursor?: configWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` configs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` configs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of configs.
+     */
+    distinct?: ConfigScalarFieldEnum | ConfigScalarFieldEnum[]
+  }
+
+  /**
+   * config findMany
+   */
+  export type configFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * Filter, which configs to fetch.
+     */
+    where?: configWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of configs to fetch.
+     */
+    orderBy?: configOrderByWithRelationInput | configOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing configs.
+     */
+    cursor?: configWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` configs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` configs.
+     */
+    skip?: number
+    distinct?: ConfigScalarFieldEnum | ConfigScalarFieldEnum[]
+  }
+
+  /**
+   * config create
+   */
+  export type configCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * The data needed to create a config.
+     */
+    data: XOR<configCreateInput, configUncheckedCreateInput>
+  }
+
+  /**
+   * config createMany
+   */
+  export type configCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many configs.
+     */
+    data: configCreateManyInput | configCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * config createManyAndReturn
+   */
+  export type configCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * The data used to create many configs.
+     */
+    data: configCreateManyInput | configCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * config update
+   */
+  export type configUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * The data needed to update a config.
+     */
+    data: XOR<configUpdateInput, configUncheckedUpdateInput>
+    /**
+     * Choose, which config to update.
+     */
+    where: configWhereUniqueInput
+  }
+
+  /**
+   * config updateMany
+   */
+  export type configUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update configs.
+     */
+    data: XOR<configUpdateManyMutationInput, configUncheckedUpdateManyInput>
+    /**
+     * Filter which configs to update
+     */
+    where?: configWhereInput
+    /**
+     * Limit how many configs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * config updateManyAndReturn
+   */
+  export type configUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * The data used to update configs.
+     */
+    data: XOR<configUpdateManyMutationInput, configUncheckedUpdateManyInput>
+    /**
+     * Filter which configs to update
+     */
+    where?: configWhereInput
+    /**
+     * Limit how many configs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * config upsert
+   */
+  export type configUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * The filter to search for the config to update in case it exists.
+     */
+    where: configWhereUniqueInput
+    /**
+     * In case the config found by the `where` argument doesn't exist, create a new config with this data.
+     */
+    create: XOR<configCreateInput, configUncheckedCreateInput>
+    /**
+     * In case the config was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<configUpdateInput, configUncheckedUpdateInput>
+  }
+
+  /**
+   * config delete
+   */
+  export type configDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+    /**
+     * Filter which config to delete.
+     */
+    where: configWhereUniqueInput
+  }
+
+  /**
+   * config deleteMany
+   */
+  export type configDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which configs to delete
+     */
+    where?: configWhereInput
+    /**
+     * Limit how many configs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * config without action
+   */
+  export type configDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the config
+     */
+    select?: configSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the config
+     */
+    omit?: configOmit<ExtArgs> | null
+  }
+
 
   /**
    * Model dish_categories
@@ -8995,6 +11815,2182 @@ export namespace Prisma {
 
 
   /**
+   * Model external_api_logs
+   */
+
+  export type AggregateExternal_api_logs = {
+    _count: External_api_logsCountAggregateOutputType | null
+    _avg: External_api_logsAvgAggregateOutputType | null
+    _sum: External_api_logsSumAggregateOutputType | null
+    _min: External_api_logsMinAggregateOutputType | null
+    _max: External_api_logsMaxAggregateOutputType | null
+  }
+
+  export type External_api_logsAvgAggregateOutputType = {
+    status_code: number | null
+    response_time_ms: number | null
+  }
+
+  export type External_api_logsSumAggregateOutputType = {
+    status_code: number | null
+    response_time_ms: number | null
+  }
+
+  export type External_api_logsMinAggregateOutputType = {
+    id: string | null
+    request_id: string | null
+    function_name: string | null
+    api_name: string | null
+    endpoint: string | null
+    status_code: number | null
+    error_message: string | null
+    response_time_ms: number | null
+    user_id: string | null
+    created_at: Date | null
+    created_commit_id: string | null
+  }
+
+  export type External_api_logsMaxAggregateOutputType = {
+    id: string | null
+    request_id: string | null
+    function_name: string | null
+    api_name: string | null
+    endpoint: string | null
+    status_code: number | null
+    error_message: string | null
+    response_time_ms: number | null
+    user_id: string | null
+    created_at: Date | null
+    created_commit_id: string | null
+  }
+
+  export type External_api_logsCountAggregateOutputType = {
+    id: number
+    request_id: number
+    function_name: number
+    api_name: number
+    endpoint: number
+    request_payload: number
+    response_payload: number
+    status_code: number
+    error_message: number
+    response_time_ms: number
+    user_id: number
+    created_at: number
+    created_commit_id: number
+    _all: number
+  }
+
+
+  export type External_api_logsAvgAggregateInputType = {
+    status_code?: true
+    response_time_ms?: true
+  }
+
+  export type External_api_logsSumAggregateInputType = {
+    status_code?: true
+    response_time_ms?: true
+  }
+
+  export type External_api_logsMinAggregateInputType = {
+    id?: true
+    request_id?: true
+    function_name?: true
+    api_name?: true
+    endpoint?: true
+    status_code?: true
+    error_message?: true
+    response_time_ms?: true
+    user_id?: true
+    created_at?: true
+    created_commit_id?: true
+  }
+
+  export type External_api_logsMaxAggregateInputType = {
+    id?: true
+    request_id?: true
+    function_name?: true
+    api_name?: true
+    endpoint?: true
+    status_code?: true
+    error_message?: true
+    response_time_ms?: true
+    user_id?: true
+    created_at?: true
+    created_commit_id?: true
+  }
+
+  export type External_api_logsCountAggregateInputType = {
+    id?: true
+    request_id?: true
+    function_name?: true
+    api_name?: true
+    endpoint?: true
+    request_payload?: true
+    response_payload?: true
+    status_code?: true
+    error_message?: true
+    response_time_ms?: true
+    user_id?: true
+    created_at?: true
+    created_commit_id?: true
+    _all?: true
+  }
+
+  export type External_api_logsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which external_api_logs to aggregate.
+     */
+    where?: external_api_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of external_api_logs to fetch.
+     */
+    orderBy?: external_api_logsOrderByWithRelationInput | external_api_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: external_api_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` external_api_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` external_api_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned external_api_logs
+    **/
+    _count?: true | External_api_logsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: External_api_logsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: External_api_logsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: External_api_logsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: External_api_logsMaxAggregateInputType
+  }
+
+  export type GetExternal_api_logsAggregateType<T extends External_api_logsAggregateArgs> = {
+        [P in keyof T & keyof AggregateExternal_api_logs]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateExternal_api_logs[P]>
+      : GetScalarType<T[P], AggregateExternal_api_logs[P]>
+  }
+
+
+
+
+  export type external_api_logsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: external_api_logsWhereInput
+    orderBy?: external_api_logsOrderByWithAggregationInput | external_api_logsOrderByWithAggregationInput[]
+    by: External_api_logsScalarFieldEnum[] | External_api_logsScalarFieldEnum
+    having?: external_api_logsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: External_api_logsCountAggregateInputType | true
+    _avg?: External_api_logsAvgAggregateInputType
+    _sum?: External_api_logsSumAggregateInputType
+    _min?: External_api_logsMinAggregateInputType
+    _max?: External_api_logsMaxAggregateInputType
+  }
+
+  export type External_api_logsGroupByOutputType = {
+    id: string
+    request_id: string | null
+    function_name: string | null
+    api_name: string | null
+    endpoint: string | null
+    request_payload: JsonValue | null
+    response_payload: JsonValue | null
+    status_code: number | null
+    error_message: string | null
+    response_time_ms: number | null
+    user_id: string | null
+    created_at: Date
+    created_commit_id: string
+    _count: External_api_logsCountAggregateOutputType | null
+    _avg: External_api_logsAvgAggregateOutputType | null
+    _sum: External_api_logsSumAggregateOutputType | null
+    _min: External_api_logsMinAggregateOutputType | null
+    _max: External_api_logsMaxAggregateOutputType | null
+  }
+
+  type GetExternal_api_logsGroupByPayload<T extends external_api_logsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<External_api_logsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof External_api_logsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], External_api_logsGroupByOutputType[P]>
+            : GetScalarType<T[P], External_api_logsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type external_api_logsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    request_id?: boolean
+    function_name?: boolean
+    api_name?: boolean
+    endpoint?: boolean
+    request_payload?: boolean
+    response_payload?: boolean
+    status_code?: boolean
+    error_message?: boolean
+    response_time_ms?: boolean
+    user_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["external_api_logs"]>
+
+  export type external_api_logsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    request_id?: boolean
+    function_name?: boolean
+    api_name?: boolean
+    endpoint?: boolean
+    request_payload?: boolean
+    response_payload?: boolean
+    status_code?: boolean
+    error_message?: boolean
+    response_time_ms?: boolean
+    user_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["external_api_logs"]>
+
+  export type external_api_logsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    request_id?: boolean
+    function_name?: boolean
+    api_name?: boolean
+    endpoint?: boolean
+    request_payload?: boolean
+    response_payload?: boolean
+    status_code?: boolean
+    error_message?: boolean
+    response_time_ms?: boolean
+    user_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["external_api_logs"]>
+
+  export type external_api_logsSelectScalar = {
+    id?: boolean
+    request_id?: boolean
+    function_name?: boolean
+    api_name?: boolean
+    endpoint?: boolean
+    request_payload?: boolean
+    response_payload?: boolean
+    status_code?: boolean
+    error_message?: boolean
+    response_time_ms?: boolean
+    user_id?: boolean
+    created_at?: boolean
+    created_commit_id?: boolean
+  }
+
+  export type external_api_logsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "request_id" | "function_name" | "api_name" | "endpoint" | "request_payload" | "response_payload" | "status_code" | "error_message" | "response_time_ms" | "user_id" | "created_at" | "created_commit_id", ExtArgs["result"]["external_api_logs"]>
+
+  export type $external_api_logsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "external_api_logs"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      request_id: string | null
+      function_name: string | null
+      api_name: string | null
+      endpoint: string | null
+      request_payload: Prisma.JsonValue | null
+      response_payload: Prisma.JsonValue | null
+      status_code: number | null
+      error_message: string | null
+      response_time_ms: number | null
+      user_id: string | null
+      created_at: Date
+      created_commit_id: string
+    }, ExtArgs["result"]["external_api_logs"]>
+    composites: {}
+  }
+
+  type external_api_logsGetPayload<S extends boolean | null | undefined | external_api_logsDefaultArgs> = $Result.GetResult<Prisma.$external_api_logsPayload, S>
+
+  type external_api_logsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<external_api_logsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: External_api_logsCountAggregateInputType | true
+    }
+
+  export interface external_api_logsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['external_api_logs'], meta: { name: 'external_api_logs' } }
+    /**
+     * Find zero or one External_api_logs that matches the filter.
+     * @param {external_api_logsFindUniqueArgs} args - Arguments to find a External_api_logs
+     * @example
+     * // Get one External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends external_api_logsFindUniqueArgs>(args: SelectSubset<T, external_api_logsFindUniqueArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one External_api_logs that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {external_api_logsFindUniqueOrThrowArgs} args - Arguments to find a External_api_logs
+     * @example
+     * // Get one External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends external_api_logsFindUniqueOrThrowArgs>(args: SelectSubset<T, external_api_logsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first External_api_logs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {external_api_logsFindFirstArgs} args - Arguments to find a External_api_logs
+     * @example
+     * // Get one External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends external_api_logsFindFirstArgs>(args?: SelectSubset<T, external_api_logsFindFirstArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first External_api_logs that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {external_api_logsFindFirstOrThrowArgs} args - Arguments to find a External_api_logs
+     * @example
+     * // Get one External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends external_api_logsFindFirstOrThrowArgs>(args?: SelectSubset<T, external_api_logsFindFirstOrThrowArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more External_api_logs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {external_api_logsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.findMany()
+     * 
+     * // Get first 10 External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const external_api_logsWithIdOnly = await prisma.external_api_logs.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends external_api_logsFindManyArgs>(args?: SelectSubset<T, external_api_logsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a External_api_logs.
+     * @param {external_api_logsCreateArgs} args - Arguments to create a External_api_logs.
+     * @example
+     * // Create one External_api_logs
+     * const External_api_logs = await prisma.external_api_logs.create({
+     *   data: {
+     *     // ... data to create a External_api_logs
+     *   }
+     * })
+     * 
+     */
+    create<T extends external_api_logsCreateArgs>(args: SelectSubset<T, external_api_logsCreateArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many External_api_logs.
+     * @param {external_api_logsCreateManyArgs} args - Arguments to create many External_api_logs.
+     * @example
+     * // Create many External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends external_api_logsCreateManyArgs>(args?: SelectSubset<T, external_api_logsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many External_api_logs and returns the data saved in the database.
+     * @param {external_api_logsCreateManyAndReturnArgs} args - Arguments to create many External_api_logs.
+     * @example
+     * // Create many External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many External_api_logs and only return the `id`
+     * const external_api_logsWithIdOnly = await prisma.external_api_logs.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends external_api_logsCreateManyAndReturnArgs>(args?: SelectSubset<T, external_api_logsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a External_api_logs.
+     * @param {external_api_logsDeleteArgs} args - Arguments to delete one External_api_logs.
+     * @example
+     * // Delete one External_api_logs
+     * const External_api_logs = await prisma.external_api_logs.delete({
+     *   where: {
+     *     // ... filter to delete one External_api_logs
+     *   }
+     * })
+     * 
+     */
+    delete<T extends external_api_logsDeleteArgs>(args: SelectSubset<T, external_api_logsDeleteArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one External_api_logs.
+     * @param {external_api_logsUpdateArgs} args - Arguments to update one External_api_logs.
+     * @example
+     * // Update one External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends external_api_logsUpdateArgs>(args: SelectSubset<T, external_api_logsUpdateArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more External_api_logs.
+     * @param {external_api_logsDeleteManyArgs} args - Arguments to filter External_api_logs to delete.
+     * @example
+     * // Delete a few External_api_logs
+     * const { count } = await prisma.external_api_logs.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends external_api_logsDeleteManyArgs>(args?: SelectSubset<T, external_api_logsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more External_api_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {external_api_logsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends external_api_logsUpdateManyArgs>(args: SelectSubset<T, external_api_logsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more External_api_logs and returns the data updated in the database.
+     * @param {external_api_logsUpdateManyAndReturnArgs} args - Arguments to update many External_api_logs.
+     * @example
+     * // Update many External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more External_api_logs and only return the `id`
+     * const external_api_logsWithIdOnly = await prisma.external_api_logs.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends external_api_logsUpdateManyAndReturnArgs>(args: SelectSubset<T, external_api_logsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one External_api_logs.
+     * @param {external_api_logsUpsertArgs} args - Arguments to update or create a External_api_logs.
+     * @example
+     * // Update or create a External_api_logs
+     * const external_api_logs = await prisma.external_api_logs.upsert({
+     *   create: {
+     *     // ... data to create a External_api_logs
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the External_api_logs we want to update
+     *   }
+     * })
+     */
+    upsert<T extends external_api_logsUpsertArgs>(args: SelectSubset<T, external_api_logsUpsertArgs<ExtArgs>>): Prisma__external_api_logsClient<$Result.GetResult<Prisma.$external_api_logsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of External_api_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {external_api_logsCountArgs} args - Arguments to filter External_api_logs to count.
+     * @example
+     * // Count the number of External_api_logs
+     * const count = await prisma.external_api_logs.count({
+     *   where: {
+     *     // ... the filter for the External_api_logs we want to count
+     *   }
+     * })
+    **/
+    count<T extends external_api_logsCountArgs>(
+      args?: Subset<T, external_api_logsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], External_api_logsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a External_api_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {External_api_logsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends External_api_logsAggregateArgs>(args: Subset<T, External_api_logsAggregateArgs>): Prisma.PrismaPromise<GetExternal_api_logsAggregateType<T>>
+
+    /**
+     * Group by External_api_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {external_api_logsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends external_api_logsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: external_api_logsGroupByArgs['orderBy'] }
+        : { orderBy?: external_api_logsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, external_api_logsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetExternal_api_logsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the external_api_logs model
+   */
+  readonly fields: external_api_logsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for external_api_logs.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__external_api_logsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the external_api_logs model
+   */
+  interface external_api_logsFieldRefs {
+    readonly id: FieldRef<"external_api_logs", 'String'>
+    readonly request_id: FieldRef<"external_api_logs", 'String'>
+    readonly function_name: FieldRef<"external_api_logs", 'String'>
+    readonly api_name: FieldRef<"external_api_logs", 'String'>
+    readonly endpoint: FieldRef<"external_api_logs", 'String'>
+    readonly request_payload: FieldRef<"external_api_logs", 'Json'>
+    readonly response_payload: FieldRef<"external_api_logs", 'Json'>
+    readonly status_code: FieldRef<"external_api_logs", 'Int'>
+    readonly error_message: FieldRef<"external_api_logs", 'String'>
+    readonly response_time_ms: FieldRef<"external_api_logs", 'Int'>
+    readonly user_id: FieldRef<"external_api_logs", 'String'>
+    readonly created_at: FieldRef<"external_api_logs", 'DateTime'>
+    readonly created_commit_id: FieldRef<"external_api_logs", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * external_api_logs findUnique
+   */
+  export type external_api_logsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which external_api_logs to fetch.
+     */
+    where: external_api_logsWhereUniqueInput
+  }
+
+  /**
+   * external_api_logs findUniqueOrThrow
+   */
+  export type external_api_logsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which external_api_logs to fetch.
+     */
+    where: external_api_logsWhereUniqueInput
+  }
+
+  /**
+   * external_api_logs findFirst
+   */
+  export type external_api_logsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which external_api_logs to fetch.
+     */
+    where?: external_api_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of external_api_logs to fetch.
+     */
+    orderBy?: external_api_logsOrderByWithRelationInput | external_api_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for external_api_logs.
+     */
+    cursor?: external_api_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` external_api_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` external_api_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of external_api_logs.
+     */
+    distinct?: External_api_logsScalarFieldEnum | External_api_logsScalarFieldEnum[]
+  }
+
+  /**
+   * external_api_logs findFirstOrThrow
+   */
+  export type external_api_logsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which external_api_logs to fetch.
+     */
+    where?: external_api_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of external_api_logs to fetch.
+     */
+    orderBy?: external_api_logsOrderByWithRelationInput | external_api_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for external_api_logs.
+     */
+    cursor?: external_api_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` external_api_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` external_api_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of external_api_logs.
+     */
+    distinct?: External_api_logsScalarFieldEnum | External_api_logsScalarFieldEnum[]
+  }
+
+  /**
+   * external_api_logs findMany
+   */
+  export type external_api_logsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which external_api_logs to fetch.
+     */
+    where?: external_api_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of external_api_logs to fetch.
+     */
+    orderBy?: external_api_logsOrderByWithRelationInput | external_api_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing external_api_logs.
+     */
+    cursor?: external_api_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` external_api_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` external_api_logs.
+     */
+    skip?: number
+    distinct?: External_api_logsScalarFieldEnum | External_api_logsScalarFieldEnum[]
+  }
+
+  /**
+   * external_api_logs create
+   */
+  export type external_api_logsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a external_api_logs.
+     */
+    data: XOR<external_api_logsCreateInput, external_api_logsUncheckedCreateInput>
+  }
+
+  /**
+   * external_api_logs createMany
+   */
+  export type external_api_logsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many external_api_logs.
+     */
+    data: external_api_logsCreateManyInput | external_api_logsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * external_api_logs createManyAndReturn
+   */
+  export type external_api_logsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * The data used to create many external_api_logs.
+     */
+    data: external_api_logsCreateManyInput | external_api_logsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * external_api_logs update
+   */
+  export type external_api_logsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a external_api_logs.
+     */
+    data: XOR<external_api_logsUpdateInput, external_api_logsUncheckedUpdateInput>
+    /**
+     * Choose, which external_api_logs to update.
+     */
+    where: external_api_logsWhereUniqueInput
+  }
+
+  /**
+   * external_api_logs updateMany
+   */
+  export type external_api_logsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update external_api_logs.
+     */
+    data: XOR<external_api_logsUpdateManyMutationInput, external_api_logsUncheckedUpdateManyInput>
+    /**
+     * Filter which external_api_logs to update
+     */
+    where?: external_api_logsWhereInput
+    /**
+     * Limit how many external_api_logs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * external_api_logs updateManyAndReturn
+   */
+  export type external_api_logsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * The data used to update external_api_logs.
+     */
+    data: XOR<external_api_logsUpdateManyMutationInput, external_api_logsUncheckedUpdateManyInput>
+    /**
+     * Filter which external_api_logs to update
+     */
+    where?: external_api_logsWhereInput
+    /**
+     * Limit how many external_api_logs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * external_api_logs upsert
+   */
+  export type external_api_logsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the external_api_logs to update in case it exists.
+     */
+    where: external_api_logsWhereUniqueInput
+    /**
+     * In case the external_api_logs found by the `where` argument doesn't exist, create a new external_api_logs with this data.
+     */
+    create: XOR<external_api_logsCreateInput, external_api_logsUncheckedCreateInput>
+    /**
+     * In case the external_api_logs was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<external_api_logsUpdateInput, external_api_logsUncheckedUpdateInput>
+  }
+
+  /**
+   * external_api_logs delete
+   */
+  export type external_api_logsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+    /**
+     * Filter which external_api_logs to delete.
+     */
+    where: external_api_logsWhereUniqueInput
+  }
+
+  /**
+   * external_api_logs deleteMany
+   */
+  export type external_api_logsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which external_api_logs to delete
+     */
+    where?: external_api_logsWhereInput
+    /**
+     * Limit how many external_api_logs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * external_api_logs without action
+   */
+  export type external_api_logsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the external_api_logs
+     */
+    select?: external_api_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the external_api_logs
+     */
+    omit?: external_api_logsOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model frontend_event_logs
+   */
+
+  export type AggregateFrontend_event_logs = {
+    _count: Frontend_event_logsCountAggregateOutputType | null
+    _min: Frontend_event_logsMinAggregateOutputType | null
+    _max: Frontend_event_logsMaxAggregateOutputType | null
+  }
+
+  export type Frontend_event_logsMinAggregateOutputType = {
+    id: string | null
+    user_id: string | null
+    event_name: string | null
+    error_level: $Enums.frontend_event_logs_error_level | null
+    path_name: string | null
+    payload: string | null
+    created_at: Date | null
+    created_app_version: string | null
+    created_commit_id: string | null
+  }
+
+  export type Frontend_event_logsMaxAggregateOutputType = {
+    id: string | null
+    user_id: string | null
+    event_name: string | null
+    error_level: $Enums.frontend_event_logs_error_level | null
+    path_name: string | null
+    payload: string | null
+    created_at: Date | null
+    created_app_version: string | null
+    created_commit_id: string | null
+  }
+
+  export type Frontend_event_logsCountAggregateOutputType = {
+    id: number
+    user_id: number
+    event_name: number
+    error_level: number
+    path_name: number
+    payload: number
+    created_at: number
+    created_app_version: number
+    created_commit_id: number
+    _all: number
+  }
+
+
+  export type Frontend_event_logsMinAggregateInputType = {
+    id?: true
+    user_id?: true
+    event_name?: true
+    error_level?: true
+    path_name?: true
+    payload?: true
+    created_at?: true
+    created_app_version?: true
+    created_commit_id?: true
+  }
+
+  export type Frontend_event_logsMaxAggregateInputType = {
+    id?: true
+    user_id?: true
+    event_name?: true
+    error_level?: true
+    path_name?: true
+    payload?: true
+    created_at?: true
+    created_app_version?: true
+    created_commit_id?: true
+  }
+
+  export type Frontend_event_logsCountAggregateInputType = {
+    id?: true
+    user_id?: true
+    event_name?: true
+    error_level?: true
+    path_name?: true
+    payload?: true
+    created_at?: true
+    created_app_version?: true
+    created_commit_id?: true
+    _all?: true
+  }
+
+  export type Frontend_event_logsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which frontend_event_logs to aggregate.
+     */
+    where?: frontend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of frontend_event_logs to fetch.
+     */
+    orderBy?: frontend_event_logsOrderByWithRelationInput | frontend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: frontend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` frontend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` frontend_event_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned frontend_event_logs
+    **/
+    _count?: true | Frontend_event_logsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Frontend_event_logsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Frontend_event_logsMaxAggregateInputType
+  }
+
+  export type GetFrontend_event_logsAggregateType<T extends Frontend_event_logsAggregateArgs> = {
+        [P in keyof T & keyof AggregateFrontend_event_logs]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFrontend_event_logs[P]>
+      : GetScalarType<T[P], AggregateFrontend_event_logs[P]>
+  }
+
+
+
+
+  export type frontend_event_logsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: frontend_event_logsWhereInput
+    orderBy?: frontend_event_logsOrderByWithAggregationInput | frontend_event_logsOrderByWithAggregationInput[]
+    by: Frontend_event_logsScalarFieldEnum[] | Frontend_event_logsScalarFieldEnum
+    having?: frontend_event_logsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Frontend_event_logsCountAggregateInputType | true
+    _min?: Frontend_event_logsMinAggregateInputType
+    _max?: Frontend_event_logsMaxAggregateInputType
+  }
+
+  export type Frontend_event_logsGroupByOutputType = {
+    id: string
+    user_id: string | null
+    event_name: string | null
+    error_level: $Enums.frontend_event_logs_error_level | null
+    path_name: string | null
+    payload: string | null
+    created_at: Date
+    created_app_version: string
+    created_commit_id: string
+    _count: Frontend_event_logsCountAggregateOutputType | null
+    _min: Frontend_event_logsMinAggregateOutputType | null
+    _max: Frontend_event_logsMaxAggregateOutputType | null
+  }
+
+  type GetFrontend_event_logsGroupByPayload<T extends frontend_event_logsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Frontend_event_logsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Frontend_event_logsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Frontend_event_logsGroupByOutputType[P]>
+            : GetScalarType<T[P], Frontend_event_logsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type frontend_event_logsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    path_name?: boolean
+    payload?: boolean
+    created_at?: boolean
+    created_app_version?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["frontend_event_logs"]>
+
+  export type frontend_event_logsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    path_name?: boolean
+    payload?: boolean
+    created_at?: boolean
+    created_app_version?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["frontend_event_logs"]>
+
+  export type frontend_event_logsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    path_name?: boolean
+    payload?: boolean
+    created_at?: boolean
+    created_app_version?: boolean
+    created_commit_id?: boolean
+  }, ExtArgs["result"]["frontend_event_logs"]>
+
+  export type frontend_event_logsSelectScalar = {
+    id?: boolean
+    user_id?: boolean
+    event_name?: boolean
+    error_level?: boolean
+    path_name?: boolean
+    payload?: boolean
+    created_at?: boolean
+    created_app_version?: boolean
+    created_commit_id?: boolean
+  }
+
+  export type frontend_event_logsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "event_name" | "error_level" | "path_name" | "payload" | "created_at" | "created_app_version" | "created_commit_id", ExtArgs["result"]["frontend_event_logs"]>
+
+  export type $frontend_event_logsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "frontend_event_logs"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      user_id: string | null
+      event_name: string | null
+      error_level: $Enums.frontend_event_logs_error_level | null
+      path_name: string | null
+      payload: string | null
+      created_at: Date
+      created_app_version: string
+      created_commit_id: string
+    }, ExtArgs["result"]["frontend_event_logs"]>
+    composites: {}
+  }
+
+  type frontend_event_logsGetPayload<S extends boolean | null | undefined | frontend_event_logsDefaultArgs> = $Result.GetResult<Prisma.$frontend_event_logsPayload, S>
+
+  type frontend_event_logsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<frontend_event_logsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Frontend_event_logsCountAggregateInputType | true
+    }
+
+  export interface frontend_event_logsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['frontend_event_logs'], meta: { name: 'frontend_event_logs' } }
+    /**
+     * Find zero or one Frontend_event_logs that matches the filter.
+     * @param {frontend_event_logsFindUniqueArgs} args - Arguments to find a Frontend_event_logs
+     * @example
+     * // Get one Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends frontend_event_logsFindUniqueArgs>(args: SelectSubset<T, frontend_event_logsFindUniqueArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Frontend_event_logs that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {frontend_event_logsFindUniqueOrThrowArgs} args - Arguments to find a Frontend_event_logs
+     * @example
+     * // Get one Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends frontend_event_logsFindUniqueOrThrowArgs>(args: SelectSubset<T, frontend_event_logsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Frontend_event_logs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {frontend_event_logsFindFirstArgs} args - Arguments to find a Frontend_event_logs
+     * @example
+     * // Get one Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends frontend_event_logsFindFirstArgs>(args?: SelectSubset<T, frontend_event_logsFindFirstArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Frontend_event_logs that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {frontend_event_logsFindFirstOrThrowArgs} args - Arguments to find a Frontend_event_logs
+     * @example
+     * // Get one Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends frontend_event_logsFindFirstOrThrowArgs>(args?: SelectSubset<T, frontend_event_logsFindFirstOrThrowArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Frontend_event_logs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {frontend_event_logsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.findMany()
+     * 
+     * // Get first 10 Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const frontend_event_logsWithIdOnly = await prisma.frontend_event_logs.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends frontend_event_logsFindManyArgs>(args?: SelectSubset<T, frontend_event_logsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Frontend_event_logs.
+     * @param {frontend_event_logsCreateArgs} args - Arguments to create a Frontend_event_logs.
+     * @example
+     * // Create one Frontend_event_logs
+     * const Frontend_event_logs = await prisma.frontend_event_logs.create({
+     *   data: {
+     *     // ... data to create a Frontend_event_logs
+     *   }
+     * })
+     * 
+     */
+    create<T extends frontend_event_logsCreateArgs>(args: SelectSubset<T, frontend_event_logsCreateArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Frontend_event_logs.
+     * @param {frontend_event_logsCreateManyArgs} args - Arguments to create many Frontend_event_logs.
+     * @example
+     * // Create many Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends frontend_event_logsCreateManyArgs>(args?: SelectSubset<T, frontend_event_logsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Frontend_event_logs and returns the data saved in the database.
+     * @param {frontend_event_logsCreateManyAndReturnArgs} args - Arguments to create many Frontend_event_logs.
+     * @example
+     * // Create many Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Frontend_event_logs and only return the `id`
+     * const frontend_event_logsWithIdOnly = await prisma.frontend_event_logs.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends frontend_event_logsCreateManyAndReturnArgs>(args?: SelectSubset<T, frontend_event_logsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Frontend_event_logs.
+     * @param {frontend_event_logsDeleteArgs} args - Arguments to delete one Frontend_event_logs.
+     * @example
+     * // Delete one Frontend_event_logs
+     * const Frontend_event_logs = await prisma.frontend_event_logs.delete({
+     *   where: {
+     *     // ... filter to delete one Frontend_event_logs
+     *   }
+     * })
+     * 
+     */
+    delete<T extends frontend_event_logsDeleteArgs>(args: SelectSubset<T, frontend_event_logsDeleteArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Frontend_event_logs.
+     * @param {frontend_event_logsUpdateArgs} args - Arguments to update one Frontend_event_logs.
+     * @example
+     * // Update one Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends frontend_event_logsUpdateArgs>(args: SelectSubset<T, frontend_event_logsUpdateArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Frontend_event_logs.
+     * @param {frontend_event_logsDeleteManyArgs} args - Arguments to filter Frontend_event_logs to delete.
+     * @example
+     * // Delete a few Frontend_event_logs
+     * const { count } = await prisma.frontend_event_logs.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends frontend_event_logsDeleteManyArgs>(args?: SelectSubset<T, frontend_event_logsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Frontend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {frontend_event_logsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends frontend_event_logsUpdateManyArgs>(args: SelectSubset<T, frontend_event_logsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Frontend_event_logs and returns the data updated in the database.
+     * @param {frontend_event_logsUpdateManyAndReturnArgs} args - Arguments to update many Frontend_event_logs.
+     * @example
+     * // Update many Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Frontend_event_logs and only return the `id`
+     * const frontend_event_logsWithIdOnly = await prisma.frontend_event_logs.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends frontend_event_logsUpdateManyAndReturnArgs>(args: SelectSubset<T, frontend_event_logsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Frontend_event_logs.
+     * @param {frontend_event_logsUpsertArgs} args - Arguments to update or create a Frontend_event_logs.
+     * @example
+     * // Update or create a Frontend_event_logs
+     * const frontend_event_logs = await prisma.frontend_event_logs.upsert({
+     *   create: {
+     *     // ... data to create a Frontend_event_logs
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Frontend_event_logs we want to update
+     *   }
+     * })
+     */
+    upsert<T extends frontend_event_logsUpsertArgs>(args: SelectSubset<T, frontend_event_logsUpsertArgs<ExtArgs>>): Prisma__frontend_event_logsClient<$Result.GetResult<Prisma.$frontend_event_logsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Frontend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {frontend_event_logsCountArgs} args - Arguments to filter Frontend_event_logs to count.
+     * @example
+     * // Count the number of Frontend_event_logs
+     * const count = await prisma.frontend_event_logs.count({
+     *   where: {
+     *     // ... the filter for the Frontend_event_logs we want to count
+     *   }
+     * })
+    **/
+    count<T extends frontend_event_logsCountArgs>(
+      args?: Subset<T, frontend_event_logsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Frontend_event_logsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Frontend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Frontend_event_logsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Frontend_event_logsAggregateArgs>(args: Subset<T, Frontend_event_logsAggregateArgs>): Prisma.PrismaPromise<GetFrontend_event_logsAggregateType<T>>
+
+    /**
+     * Group by Frontend_event_logs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {frontend_event_logsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends frontend_event_logsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: frontend_event_logsGroupByArgs['orderBy'] }
+        : { orderBy?: frontend_event_logsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, frontend_event_logsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFrontend_event_logsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the frontend_event_logs model
+   */
+  readonly fields: frontend_event_logsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for frontend_event_logs.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__frontend_event_logsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the frontend_event_logs model
+   */
+  interface frontend_event_logsFieldRefs {
+    readonly id: FieldRef<"frontend_event_logs", 'String'>
+    readonly user_id: FieldRef<"frontend_event_logs", 'String'>
+    readonly event_name: FieldRef<"frontend_event_logs", 'String'>
+    readonly error_level: FieldRef<"frontend_event_logs", 'frontend_event_logs_error_level'>
+    readonly path_name: FieldRef<"frontend_event_logs", 'String'>
+    readonly payload: FieldRef<"frontend_event_logs", 'String'>
+    readonly created_at: FieldRef<"frontend_event_logs", 'DateTime'>
+    readonly created_app_version: FieldRef<"frontend_event_logs", 'String'>
+    readonly created_commit_id: FieldRef<"frontend_event_logs", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * frontend_event_logs findUnique
+   */
+  export type frontend_event_logsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which frontend_event_logs to fetch.
+     */
+    where: frontend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * frontend_event_logs findUniqueOrThrow
+   */
+  export type frontend_event_logsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which frontend_event_logs to fetch.
+     */
+    where: frontend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * frontend_event_logs findFirst
+   */
+  export type frontend_event_logsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which frontend_event_logs to fetch.
+     */
+    where?: frontend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of frontend_event_logs to fetch.
+     */
+    orderBy?: frontend_event_logsOrderByWithRelationInput | frontend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for frontend_event_logs.
+     */
+    cursor?: frontend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` frontend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` frontend_event_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of frontend_event_logs.
+     */
+    distinct?: Frontend_event_logsScalarFieldEnum | Frontend_event_logsScalarFieldEnum[]
+  }
+
+  /**
+   * frontend_event_logs findFirstOrThrow
+   */
+  export type frontend_event_logsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which frontend_event_logs to fetch.
+     */
+    where?: frontend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of frontend_event_logs to fetch.
+     */
+    orderBy?: frontend_event_logsOrderByWithRelationInput | frontend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for frontend_event_logs.
+     */
+    cursor?: frontend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` frontend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` frontend_event_logs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of frontend_event_logs.
+     */
+    distinct?: Frontend_event_logsScalarFieldEnum | Frontend_event_logsScalarFieldEnum[]
+  }
+
+  /**
+   * frontend_event_logs findMany
+   */
+  export type frontend_event_logsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter, which frontend_event_logs to fetch.
+     */
+    where?: frontend_event_logsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of frontend_event_logs to fetch.
+     */
+    orderBy?: frontend_event_logsOrderByWithRelationInput | frontend_event_logsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing frontend_event_logs.
+     */
+    cursor?: frontend_event_logsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` frontend_event_logs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` frontend_event_logs.
+     */
+    skip?: number
+    distinct?: Frontend_event_logsScalarFieldEnum | Frontend_event_logsScalarFieldEnum[]
+  }
+
+  /**
+   * frontend_event_logs create
+   */
+  export type frontend_event_logsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a frontend_event_logs.
+     */
+    data: XOR<frontend_event_logsCreateInput, frontend_event_logsUncheckedCreateInput>
+  }
+
+  /**
+   * frontend_event_logs createMany
+   */
+  export type frontend_event_logsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many frontend_event_logs.
+     */
+    data: frontend_event_logsCreateManyInput | frontend_event_logsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * frontend_event_logs createManyAndReturn
+   */
+  export type frontend_event_logsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data used to create many frontend_event_logs.
+     */
+    data: frontend_event_logsCreateManyInput | frontend_event_logsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * frontend_event_logs update
+   */
+  export type frontend_event_logsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a frontend_event_logs.
+     */
+    data: XOR<frontend_event_logsUpdateInput, frontend_event_logsUncheckedUpdateInput>
+    /**
+     * Choose, which frontend_event_logs to update.
+     */
+    where: frontend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * frontend_event_logs updateMany
+   */
+  export type frontend_event_logsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update frontend_event_logs.
+     */
+    data: XOR<frontend_event_logsUpdateManyMutationInput, frontend_event_logsUncheckedUpdateManyInput>
+    /**
+     * Filter which frontend_event_logs to update
+     */
+    where?: frontend_event_logsWhereInput
+    /**
+     * Limit how many frontend_event_logs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * frontend_event_logs updateManyAndReturn
+   */
+  export type frontend_event_logsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * The data used to update frontend_event_logs.
+     */
+    data: XOR<frontend_event_logsUpdateManyMutationInput, frontend_event_logsUncheckedUpdateManyInput>
+    /**
+     * Filter which frontend_event_logs to update
+     */
+    where?: frontend_event_logsWhereInput
+    /**
+     * Limit how many frontend_event_logs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * frontend_event_logs upsert
+   */
+  export type frontend_event_logsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the frontend_event_logs to update in case it exists.
+     */
+    where: frontend_event_logsWhereUniqueInput
+    /**
+     * In case the frontend_event_logs found by the `where` argument doesn't exist, create a new frontend_event_logs with this data.
+     */
+    create: XOR<frontend_event_logsCreateInput, frontend_event_logsUncheckedCreateInput>
+    /**
+     * In case the frontend_event_logs was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<frontend_event_logsUpdateInput, frontend_event_logsUncheckedUpdateInput>
+  }
+
+  /**
+   * frontend_event_logs delete
+   */
+  export type frontend_event_logsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+    /**
+     * Filter which frontend_event_logs to delete.
+     */
+    where: frontend_event_logsWhereUniqueInput
+  }
+
+  /**
+   * frontend_event_logs deleteMany
+   */
+  export type frontend_event_logsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which frontend_event_logs to delete
+     */
+    where?: frontend_event_logsWhereInput
+    /**
+     * Limit how many frontend_event_logs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * frontend_event_logs without action
+   */
+  export type frontend_event_logsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the frontend_event_logs
+     */
+    select?: frontend_event_logsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the frontend_event_logs
+     */
+    omit?: frontend_event_logsOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model payouts
    */
 
@@ -10160,6 +15156,4430 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: payoutsInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model prompt_families
+   */
+
+  export type AggregatePrompt_families = {
+    _count: Prompt_familiesCountAggregateOutputType | null
+    _avg: Prompt_familiesAvgAggregateOutputType | null
+    _sum: Prompt_familiesSumAggregateOutputType | null
+    _min: Prompt_familiesMinAggregateOutputType | null
+    _max: Prompt_familiesMaxAggregateOutputType | null
+  }
+
+  export type Prompt_familiesAvgAggregateOutputType = {
+    weight: number | null
+  }
+
+  export type Prompt_familiesSumAggregateOutputType = {
+    weight: number | null
+  }
+
+  export type Prompt_familiesMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    purpose: $Enums.prompt_families_purpose | null
+    weight: number | null
+  }
+
+  export type Prompt_familiesMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    purpose: $Enums.prompt_families_purpose | null
+    weight: number | null
+  }
+
+  export type Prompt_familiesCountAggregateOutputType = {
+    id: number
+    name: number
+    description: number
+    purpose: number
+    weight: number
+    _all: number
+  }
+
+
+  export type Prompt_familiesAvgAggregateInputType = {
+    weight?: true
+  }
+
+  export type Prompt_familiesSumAggregateInputType = {
+    weight?: true
+  }
+
+  export type Prompt_familiesMinAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    purpose?: true
+    weight?: true
+  }
+
+  export type Prompt_familiesMaxAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    purpose?: true
+    weight?: true
+  }
+
+  export type Prompt_familiesCountAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    purpose?: true
+    weight?: true
+    _all?: true
+  }
+
+  export type Prompt_familiesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which prompt_families to aggregate.
+     */
+    where?: prompt_familiesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_families to fetch.
+     */
+    orderBy?: prompt_familiesOrderByWithRelationInput | prompt_familiesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: prompt_familiesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_families from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_families.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned prompt_families
+    **/
+    _count?: true | Prompt_familiesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Prompt_familiesAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Prompt_familiesSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Prompt_familiesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Prompt_familiesMaxAggregateInputType
+  }
+
+  export type GetPrompt_familiesAggregateType<T extends Prompt_familiesAggregateArgs> = {
+        [P in keyof T & keyof AggregatePrompt_families]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePrompt_families[P]>
+      : GetScalarType<T[P], AggregatePrompt_families[P]>
+  }
+
+
+
+
+  export type prompt_familiesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: prompt_familiesWhereInput
+    orderBy?: prompt_familiesOrderByWithAggregationInput | prompt_familiesOrderByWithAggregationInput[]
+    by: Prompt_familiesScalarFieldEnum[] | Prompt_familiesScalarFieldEnum
+    having?: prompt_familiesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Prompt_familiesCountAggregateInputType | true
+    _avg?: Prompt_familiesAvgAggregateInputType
+    _sum?: Prompt_familiesSumAggregateInputType
+    _min?: Prompt_familiesMinAggregateInputType
+    _max?: Prompt_familiesMaxAggregateInputType
+  }
+
+  export type Prompt_familiesGroupByOutputType = {
+    id: string
+    name: string
+    description: string
+    purpose: $Enums.prompt_families_purpose
+    weight: number
+    _count: Prompt_familiesCountAggregateOutputType | null
+    _avg: Prompt_familiesAvgAggregateOutputType | null
+    _sum: Prompt_familiesSumAggregateOutputType | null
+    _min: Prompt_familiesMinAggregateOutputType | null
+    _max: Prompt_familiesMaxAggregateOutputType | null
+  }
+
+  type GetPrompt_familiesGroupByPayload<T extends prompt_familiesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Prompt_familiesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Prompt_familiesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Prompt_familiesGroupByOutputType[P]>
+            : GetScalarType<T[P], Prompt_familiesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type prompt_familiesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    purpose?: boolean
+    weight?: boolean
+    prompt_variants?: boolean | prompt_families$prompt_variantsArgs<ExtArgs>
+    _count?: boolean | Prompt_familiesCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["prompt_families"]>
+
+  export type prompt_familiesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    purpose?: boolean
+    weight?: boolean
+  }, ExtArgs["result"]["prompt_families"]>
+
+  export type prompt_familiesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    purpose?: boolean
+    weight?: boolean
+  }, ExtArgs["result"]["prompt_families"]>
+
+  export type prompt_familiesSelectScalar = {
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    purpose?: boolean
+    weight?: boolean
+  }
+
+  export type prompt_familiesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "purpose" | "weight", ExtArgs["result"]["prompt_families"]>
+  export type prompt_familiesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    prompt_variants?: boolean | prompt_families$prompt_variantsArgs<ExtArgs>
+    _count?: boolean | Prompt_familiesCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type prompt_familiesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type prompt_familiesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $prompt_familiesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "prompt_families"
+    objects: {
+      prompt_variants: Prisma.$prompt_variantsPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      description: string
+      purpose: $Enums.prompt_families_purpose
+      weight: number
+    }, ExtArgs["result"]["prompt_families"]>
+    composites: {}
+  }
+
+  type prompt_familiesGetPayload<S extends boolean | null | undefined | prompt_familiesDefaultArgs> = $Result.GetResult<Prisma.$prompt_familiesPayload, S>
+
+  type prompt_familiesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<prompt_familiesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Prompt_familiesCountAggregateInputType | true
+    }
+
+  export interface prompt_familiesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['prompt_families'], meta: { name: 'prompt_families' } }
+    /**
+     * Find zero or one Prompt_families that matches the filter.
+     * @param {prompt_familiesFindUniqueArgs} args - Arguments to find a Prompt_families
+     * @example
+     * // Get one Prompt_families
+     * const prompt_families = await prisma.prompt_families.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends prompt_familiesFindUniqueArgs>(args: SelectSubset<T, prompt_familiesFindUniqueArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Prompt_families that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {prompt_familiesFindUniqueOrThrowArgs} args - Arguments to find a Prompt_families
+     * @example
+     * // Get one Prompt_families
+     * const prompt_families = await prisma.prompt_families.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends prompt_familiesFindUniqueOrThrowArgs>(args: SelectSubset<T, prompt_familiesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Prompt_families that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_familiesFindFirstArgs} args - Arguments to find a Prompt_families
+     * @example
+     * // Get one Prompt_families
+     * const prompt_families = await prisma.prompt_families.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends prompt_familiesFindFirstArgs>(args?: SelectSubset<T, prompt_familiesFindFirstArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Prompt_families that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_familiesFindFirstOrThrowArgs} args - Arguments to find a Prompt_families
+     * @example
+     * // Get one Prompt_families
+     * const prompt_families = await prisma.prompt_families.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends prompt_familiesFindFirstOrThrowArgs>(args?: SelectSubset<T, prompt_familiesFindFirstOrThrowArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Prompt_families that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_familiesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Prompt_families
+     * const prompt_families = await prisma.prompt_families.findMany()
+     * 
+     * // Get first 10 Prompt_families
+     * const prompt_families = await prisma.prompt_families.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const prompt_familiesWithIdOnly = await prisma.prompt_families.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends prompt_familiesFindManyArgs>(args?: SelectSubset<T, prompt_familiesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Prompt_families.
+     * @param {prompt_familiesCreateArgs} args - Arguments to create a Prompt_families.
+     * @example
+     * // Create one Prompt_families
+     * const Prompt_families = await prisma.prompt_families.create({
+     *   data: {
+     *     // ... data to create a Prompt_families
+     *   }
+     * })
+     * 
+     */
+    create<T extends prompt_familiesCreateArgs>(args: SelectSubset<T, prompt_familiesCreateArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Prompt_families.
+     * @param {prompt_familiesCreateManyArgs} args - Arguments to create many Prompt_families.
+     * @example
+     * // Create many Prompt_families
+     * const prompt_families = await prisma.prompt_families.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends prompt_familiesCreateManyArgs>(args?: SelectSubset<T, prompt_familiesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Prompt_families and returns the data saved in the database.
+     * @param {prompt_familiesCreateManyAndReturnArgs} args - Arguments to create many Prompt_families.
+     * @example
+     * // Create many Prompt_families
+     * const prompt_families = await prisma.prompt_families.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Prompt_families and only return the `id`
+     * const prompt_familiesWithIdOnly = await prisma.prompt_families.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends prompt_familiesCreateManyAndReturnArgs>(args?: SelectSubset<T, prompt_familiesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Prompt_families.
+     * @param {prompt_familiesDeleteArgs} args - Arguments to delete one Prompt_families.
+     * @example
+     * // Delete one Prompt_families
+     * const Prompt_families = await prisma.prompt_families.delete({
+     *   where: {
+     *     // ... filter to delete one Prompt_families
+     *   }
+     * })
+     * 
+     */
+    delete<T extends prompt_familiesDeleteArgs>(args: SelectSubset<T, prompt_familiesDeleteArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Prompt_families.
+     * @param {prompt_familiesUpdateArgs} args - Arguments to update one Prompt_families.
+     * @example
+     * // Update one Prompt_families
+     * const prompt_families = await prisma.prompt_families.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends prompt_familiesUpdateArgs>(args: SelectSubset<T, prompt_familiesUpdateArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Prompt_families.
+     * @param {prompt_familiesDeleteManyArgs} args - Arguments to filter Prompt_families to delete.
+     * @example
+     * // Delete a few Prompt_families
+     * const { count } = await prisma.prompt_families.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends prompt_familiesDeleteManyArgs>(args?: SelectSubset<T, prompt_familiesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Prompt_families.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_familiesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Prompt_families
+     * const prompt_families = await prisma.prompt_families.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends prompt_familiesUpdateManyArgs>(args: SelectSubset<T, prompt_familiesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Prompt_families and returns the data updated in the database.
+     * @param {prompt_familiesUpdateManyAndReturnArgs} args - Arguments to update many Prompt_families.
+     * @example
+     * // Update many Prompt_families
+     * const prompt_families = await prisma.prompt_families.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Prompt_families and only return the `id`
+     * const prompt_familiesWithIdOnly = await prisma.prompt_families.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends prompt_familiesUpdateManyAndReturnArgs>(args: SelectSubset<T, prompt_familiesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Prompt_families.
+     * @param {prompt_familiesUpsertArgs} args - Arguments to update or create a Prompt_families.
+     * @example
+     * // Update or create a Prompt_families
+     * const prompt_families = await prisma.prompt_families.upsert({
+     *   create: {
+     *     // ... data to create a Prompt_families
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Prompt_families we want to update
+     *   }
+     * })
+     */
+    upsert<T extends prompt_familiesUpsertArgs>(args: SelectSubset<T, prompt_familiesUpsertArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Prompt_families.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_familiesCountArgs} args - Arguments to filter Prompt_families to count.
+     * @example
+     * // Count the number of Prompt_families
+     * const count = await prisma.prompt_families.count({
+     *   where: {
+     *     // ... the filter for the Prompt_families we want to count
+     *   }
+     * })
+    **/
+    count<T extends prompt_familiesCountArgs>(
+      args?: Subset<T, prompt_familiesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Prompt_familiesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Prompt_families.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Prompt_familiesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Prompt_familiesAggregateArgs>(args: Subset<T, Prompt_familiesAggregateArgs>): Prisma.PrismaPromise<GetPrompt_familiesAggregateType<T>>
+
+    /**
+     * Group by Prompt_families.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_familiesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends prompt_familiesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: prompt_familiesGroupByArgs['orderBy'] }
+        : { orderBy?: prompt_familiesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, prompt_familiesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPrompt_familiesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the prompt_families model
+   */
+  readonly fields: prompt_familiesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for prompt_families.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__prompt_familiesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    prompt_variants<T extends prompt_families$prompt_variantsArgs<ExtArgs> = {}>(args?: Subset<T, prompt_families$prompt_variantsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the prompt_families model
+   */
+  interface prompt_familiesFieldRefs {
+    readonly id: FieldRef<"prompt_families", 'String'>
+    readonly name: FieldRef<"prompt_families", 'String'>
+    readonly description: FieldRef<"prompt_families", 'String'>
+    readonly purpose: FieldRef<"prompt_families", 'prompt_families_purpose'>
+    readonly weight: FieldRef<"prompt_families", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * prompt_families findUnique
+   */
+  export type prompt_familiesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_families to fetch.
+     */
+    where: prompt_familiesWhereUniqueInput
+  }
+
+  /**
+   * prompt_families findUniqueOrThrow
+   */
+  export type prompt_familiesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_families to fetch.
+     */
+    where: prompt_familiesWhereUniqueInput
+  }
+
+  /**
+   * prompt_families findFirst
+   */
+  export type prompt_familiesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_families to fetch.
+     */
+    where?: prompt_familiesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_families to fetch.
+     */
+    orderBy?: prompt_familiesOrderByWithRelationInput | prompt_familiesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for prompt_families.
+     */
+    cursor?: prompt_familiesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_families from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_families.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of prompt_families.
+     */
+    distinct?: Prompt_familiesScalarFieldEnum | Prompt_familiesScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_families findFirstOrThrow
+   */
+  export type prompt_familiesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_families to fetch.
+     */
+    where?: prompt_familiesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_families to fetch.
+     */
+    orderBy?: prompt_familiesOrderByWithRelationInput | prompt_familiesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for prompt_families.
+     */
+    cursor?: prompt_familiesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_families from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_families.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of prompt_families.
+     */
+    distinct?: Prompt_familiesScalarFieldEnum | Prompt_familiesScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_families findMany
+   */
+  export type prompt_familiesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_families to fetch.
+     */
+    where?: prompt_familiesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_families to fetch.
+     */
+    orderBy?: prompt_familiesOrderByWithRelationInput | prompt_familiesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing prompt_families.
+     */
+    cursor?: prompt_familiesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_families from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_families.
+     */
+    skip?: number
+    distinct?: Prompt_familiesScalarFieldEnum | Prompt_familiesScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_families create
+   */
+  export type prompt_familiesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * The data needed to create a prompt_families.
+     */
+    data: XOR<prompt_familiesCreateInput, prompt_familiesUncheckedCreateInput>
+  }
+
+  /**
+   * prompt_families createMany
+   */
+  export type prompt_familiesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many prompt_families.
+     */
+    data: prompt_familiesCreateManyInput | prompt_familiesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * prompt_families createManyAndReturn
+   */
+  export type prompt_familiesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * The data used to create many prompt_families.
+     */
+    data: prompt_familiesCreateManyInput | prompt_familiesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * prompt_families update
+   */
+  export type prompt_familiesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * The data needed to update a prompt_families.
+     */
+    data: XOR<prompt_familiesUpdateInput, prompt_familiesUncheckedUpdateInput>
+    /**
+     * Choose, which prompt_families to update.
+     */
+    where: prompt_familiesWhereUniqueInput
+  }
+
+  /**
+   * prompt_families updateMany
+   */
+  export type prompt_familiesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update prompt_families.
+     */
+    data: XOR<prompt_familiesUpdateManyMutationInput, prompt_familiesUncheckedUpdateManyInput>
+    /**
+     * Filter which prompt_families to update
+     */
+    where?: prompt_familiesWhereInput
+    /**
+     * Limit how many prompt_families to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_families updateManyAndReturn
+   */
+  export type prompt_familiesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * The data used to update prompt_families.
+     */
+    data: XOR<prompt_familiesUpdateManyMutationInput, prompt_familiesUncheckedUpdateManyInput>
+    /**
+     * Filter which prompt_families to update
+     */
+    where?: prompt_familiesWhereInput
+    /**
+     * Limit how many prompt_families to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_families upsert
+   */
+  export type prompt_familiesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * The filter to search for the prompt_families to update in case it exists.
+     */
+    where: prompt_familiesWhereUniqueInput
+    /**
+     * In case the prompt_families found by the `where` argument doesn't exist, create a new prompt_families with this data.
+     */
+    create: XOR<prompt_familiesCreateInput, prompt_familiesUncheckedCreateInput>
+    /**
+     * In case the prompt_families was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<prompt_familiesUpdateInput, prompt_familiesUncheckedUpdateInput>
+  }
+
+  /**
+   * prompt_families delete
+   */
+  export type prompt_familiesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+    /**
+     * Filter which prompt_families to delete.
+     */
+    where: prompt_familiesWhereUniqueInput
+  }
+
+  /**
+   * prompt_families deleteMany
+   */
+  export type prompt_familiesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which prompt_families to delete
+     */
+    where?: prompt_familiesWhereInput
+    /**
+     * Limit how many prompt_families to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_families.prompt_variants
+   */
+  export type prompt_families$prompt_variantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    where?: prompt_variantsWhereInput
+    orderBy?: prompt_variantsOrderByWithRelationInput | prompt_variantsOrderByWithRelationInput[]
+    cursor?: prompt_variantsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Prompt_variantsScalarFieldEnum | Prompt_variantsScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_families without action
+   */
+  export type prompt_familiesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_families
+     */
+    select?: prompt_familiesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_families
+     */
+    omit?: prompt_familiesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_familiesInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model prompt_usages
+   */
+
+  export type AggregatePrompt_usages = {
+    _count: Prompt_usagesCountAggregateOutputType | null
+    _avg: Prompt_usagesAvgAggregateOutputType | null
+    _sum: Prompt_usagesSumAggregateOutputType | null
+    _min: Prompt_usagesMinAggregateOutputType | null
+    _max: Prompt_usagesMaxAggregateOutputType | null
+  }
+
+  export type Prompt_usagesAvgAggregateOutputType = {
+    temperature: Decimal | null
+  }
+
+  export type Prompt_usagesSumAggregateOutputType = {
+    temperature: Decimal | null
+  }
+
+  export type Prompt_usagesMinAggregateOutputType = {
+    id: string | null
+    family_id: string | null
+    variant_id: string | null
+    target_type: string | null
+    target_id: string | null
+    generated_text: string | null
+    used_prompt_text: string | null
+    llm_model: string | null
+    temperature: Decimal | null
+    generated_user: string | null
+    created_at: Date | null
+    created_request_id: string | null
+  }
+
+  export type Prompt_usagesMaxAggregateOutputType = {
+    id: string | null
+    family_id: string | null
+    variant_id: string | null
+    target_type: string | null
+    target_id: string | null
+    generated_text: string | null
+    used_prompt_text: string | null
+    llm_model: string | null
+    temperature: Decimal | null
+    generated_user: string | null
+    created_at: Date | null
+    created_request_id: string | null
+  }
+
+  export type Prompt_usagesCountAggregateOutputType = {
+    id: number
+    family_id: number
+    variant_id: number
+    target_type: number
+    target_id: number
+    generated_text: number
+    used_prompt_text: number
+    input_data: number
+    llm_model: number
+    temperature: number
+    generated_user: number
+    created_at: number
+    created_request_id: number
+    metadata: number
+    _all: number
+  }
+
+
+  export type Prompt_usagesAvgAggregateInputType = {
+    temperature?: true
+  }
+
+  export type Prompt_usagesSumAggregateInputType = {
+    temperature?: true
+  }
+
+  export type Prompt_usagesMinAggregateInputType = {
+    id?: true
+    family_id?: true
+    variant_id?: true
+    target_type?: true
+    target_id?: true
+    generated_text?: true
+    used_prompt_text?: true
+    llm_model?: true
+    temperature?: true
+    generated_user?: true
+    created_at?: true
+    created_request_id?: true
+  }
+
+  export type Prompt_usagesMaxAggregateInputType = {
+    id?: true
+    family_id?: true
+    variant_id?: true
+    target_type?: true
+    target_id?: true
+    generated_text?: true
+    used_prompt_text?: true
+    llm_model?: true
+    temperature?: true
+    generated_user?: true
+    created_at?: true
+    created_request_id?: true
+  }
+
+  export type Prompt_usagesCountAggregateInputType = {
+    id?: true
+    family_id?: true
+    variant_id?: true
+    target_type?: true
+    target_id?: true
+    generated_text?: true
+    used_prompt_text?: true
+    input_data?: true
+    llm_model?: true
+    temperature?: true
+    generated_user?: true
+    created_at?: true
+    created_request_id?: true
+    metadata?: true
+    _all?: true
+  }
+
+  export type Prompt_usagesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which prompt_usages to aggregate.
+     */
+    where?: prompt_usagesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_usages to fetch.
+     */
+    orderBy?: prompt_usagesOrderByWithRelationInput | prompt_usagesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: prompt_usagesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_usages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_usages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned prompt_usages
+    **/
+    _count?: true | Prompt_usagesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Prompt_usagesAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Prompt_usagesSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Prompt_usagesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Prompt_usagesMaxAggregateInputType
+  }
+
+  export type GetPrompt_usagesAggregateType<T extends Prompt_usagesAggregateArgs> = {
+        [P in keyof T & keyof AggregatePrompt_usages]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePrompt_usages[P]>
+      : GetScalarType<T[P], AggregatePrompt_usages[P]>
+  }
+
+
+
+
+  export type prompt_usagesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: prompt_usagesWhereInput
+    orderBy?: prompt_usagesOrderByWithAggregationInput | prompt_usagesOrderByWithAggregationInput[]
+    by: Prompt_usagesScalarFieldEnum[] | Prompt_usagesScalarFieldEnum
+    having?: prompt_usagesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Prompt_usagesCountAggregateInputType | true
+    _avg?: Prompt_usagesAvgAggregateInputType
+    _sum?: Prompt_usagesSumAggregateInputType
+    _min?: Prompt_usagesMinAggregateInputType
+    _max?: Prompt_usagesMaxAggregateInputType
+  }
+
+  export type Prompt_usagesGroupByOutputType = {
+    id: string
+    family_id: string
+    variant_id: string
+    target_type: string
+    target_id: string
+    generated_text: string
+    used_prompt_text: string
+    input_data: JsonValue | null
+    llm_model: string
+    temperature: Decimal | null
+    generated_user: string
+    created_at: Date
+    created_request_id: string
+    metadata: JsonValue | null
+    _count: Prompt_usagesCountAggregateOutputType | null
+    _avg: Prompt_usagesAvgAggregateOutputType | null
+    _sum: Prompt_usagesSumAggregateOutputType | null
+    _min: Prompt_usagesMinAggregateOutputType | null
+    _max: Prompt_usagesMaxAggregateOutputType | null
+  }
+
+  type GetPrompt_usagesGroupByPayload<T extends prompt_usagesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Prompt_usagesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Prompt_usagesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Prompt_usagesGroupByOutputType[P]>
+            : GetScalarType<T[P], Prompt_usagesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type prompt_usagesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    family_id?: boolean
+    variant_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    generated_text?: boolean
+    used_prompt_text?: boolean
+    input_data?: boolean
+    llm_model?: boolean
+    temperature?: boolean
+    generated_user?: boolean
+    created_at?: boolean
+    created_request_id?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["prompt_usages"]>
+
+  export type prompt_usagesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    family_id?: boolean
+    variant_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    generated_text?: boolean
+    used_prompt_text?: boolean
+    input_data?: boolean
+    llm_model?: boolean
+    temperature?: boolean
+    generated_user?: boolean
+    created_at?: boolean
+    created_request_id?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["prompt_usages"]>
+
+  export type prompt_usagesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    family_id?: boolean
+    variant_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    generated_text?: boolean
+    used_prompt_text?: boolean
+    input_data?: boolean
+    llm_model?: boolean
+    temperature?: boolean
+    generated_user?: boolean
+    created_at?: boolean
+    created_request_id?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["prompt_usages"]>
+
+  export type prompt_usagesSelectScalar = {
+    id?: boolean
+    family_id?: boolean
+    variant_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    generated_text?: boolean
+    used_prompt_text?: boolean
+    input_data?: boolean
+    llm_model?: boolean
+    temperature?: boolean
+    generated_user?: boolean
+    created_at?: boolean
+    created_request_id?: boolean
+    metadata?: boolean
+  }
+
+  export type prompt_usagesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "family_id" | "variant_id" | "target_type" | "target_id" | "generated_text" | "used_prompt_text" | "input_data" | "llm_model" | "temperature" | "generated_user" | "created_at" | "created_request_id" | "metadata", ExtArgs["result"]["prompt_usages"]>
+
+  export type $prompt_usagesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "prompt_usages"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      family_id: string
+      variant_id: string
+      target_type: string
+      target_id: string
+      generated_text: string
+      used_prompt_text: string
+      input_data: Prisma.JsonValue | null
+      llm_model: string
+      temperature: Prisma.Decimal | null
+      generated_user: string
+      created_at: Date
+      created_request_id: string
+      metadata: Prisma.JsonValue | null
+    }, ExtArgs["result"]["prompt_usages"]>
+    composites: {}
+  }
+
+  type prompt_usagesGetPayload<S extends boolean | null | undefined | prompt_usagesDefaultArgs> = $Result.GetResult<Prisma.$prompt_usagesPayload, S>
+
+  type prompt_usagesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<prompt_usagesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Prompt_usagesCountAggregateInputType | true
+    }
+
+  export interface prompt_usagesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['prompt_usages'], meta: { name: 'prompt_usages' } }
+    /**
+     * Find zero or one Prompt_usages that matches the filter.
+     * @param {prompt_usagesFindUniqueArgs} args - Arguments to find a Prompt_usages
+     * @example
+     * // Get one Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends prompt_usagesFindUniqueArgs>(args: SelectSubset<T, prompt_usagesFindUniqueArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Prompt_usages that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {prompt_usagesFindUniqueOrThrowArgs} args - Arguments to find a Prompt_usages
+     * @example
+     * // Get one Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends prompt_usagesFindUniqueOrThrowArgs>(args: SelectSubset<T, prompt_usagesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Prompt_usages that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_usagesFindFirstArgs} args - Arguments to find a Prompt_usages
+     * @example
+     * // Get one Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends prompt_usagesFindFirstArgs>(args?: SelectSubset<T, prompt_usagesFindFirstArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Prompt_usages that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_usagesFindFirstOrThrowArgs} args - Arguments to find a Prompt_usages
+     * @example
+     * // Get one Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends prompt_usagesFindFirstOrThrowArgs>(args?: SelectSubset<T, prompt_usagesFindFirstOrThrowArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Prompt_usages that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_usagesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.findMany()
+     * 
+     * // Get first 10 Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const prompt_usagesWithIdOnly = await prisma.prompt_usages.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends prompt_usagesFindManyArgs>(args?: SelectSubset<T, prompt_usagesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Prompt_usages.
+     * @param {prompt_usagesCreateArgs} args - Arguments to create a Prompt_usages.
+     * @example
+     * // Create one Prompt_usages
+     * const Prompt_usages = await prisma.prompt_usages.create({
+     *   data: {
+     *     // ... data to create a Prompt_usages
+     *   }
+     * })
+     * 
+     */
+    create<T extends prompt_usagesCreateArgs>(args: SelectSubset<T, prompt_usagesCreateArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Prompt_usages.
+     * @param {prompt_usagesCreateManyArgs} args - Arguments to create many Prompt_usages.
+     * @example
+     * // Create many Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends prompt_usagesCreateManyArgs>(args?: SelectSubset<T, prompt_usagesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Prompt_usages and returns the data saved in the database.
+     * @param {prompt_usagesCreateManyAndReturnArgs} args - Arguments to create many Prompt_usages.
+     * @example
+     * // Create many Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Prompt_usages and only return the `id`
+     * const prompt_usagesWithIdOnly = await prisma.prompt_usages.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends prompt_usagesCreateManyAndReturnArgs>(args?: SelectSubset<T, prompt_usagesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Prompt_usages.
+     * @param {prompt_usagesDeleteArgs} args - Arguments to delete one Prompt_usages.
+     * @example
+     * // Delete one Prompt_usages
+     * const Prompt_usages = await prisma.prompt_usages.delete({
+     *   where: {
+     *     // ... filter to delete one Prompt_usages
+     *   }
+     * })
+     * 
+     */
+    delete<T extends prompt_usagesDeleteArgs>(args: SelectSubset<T, prompt_usagesDeleteArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Prompt_usages.
+     * @param {prompt_usagesUpdateArgs} args - Arguments to update one Prompt_usages.
+     * @example
+     * // Update one Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends prompt_usagesUpdateArgs>(args: SelectSubset<T, prompt_usagesUpdateArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Prompt_usages.
+     * @param {prompt_usagesDeleteManyArgs} args - Arguments to filter Prompt_usages to delete.
+     * @example
+     * // Delete a few Prompt_usages
+     * const { count } = await prisma.prompt_usages.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends prompt_usagesDeleteManyArgs>(args?: SelectSubset<T, prompt_usagesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Prompt_usages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_usagesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends prompt_usagesUpdateManyArgs>(args: SelectSubset<T, prompt_usagesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Prompt_usages and returns the data updated in the database.
+     * @param {prompt_usagesUpdateManyAndReturnArgs} args - Arguments to update many Prompt_usages.
+     * @example
+     * // Update many Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Prompt_usages and only return the `id`
+     * const prompt_usagesWithIdOnly = await prisma.prompt_usages.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends prompt_usagesUpdateManyAndReturnArgs>(args: SelectSubset<T, prompt_usagesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Prompt_usages.
+     * @param {prompt_usagesUpsertArgs} args - Arguments to update or create a Prompt_usages.
+     * @example
+     * // Update or create a Prompt_usages
+     * const prompt_usages = await prisma.prompt_usages.upsert({
+     *   create: {
+     *     // ... data to create a Prompt_usages
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Prompt_usages we want to update
+     *   }
+     * })
+     */
+    upsert<T extends prompt_usagesUpsertArgs>(args: SelectSubset<T, prompt_usagesUpsertArgs<ExtArgs>>): Prisma__prompt_usagesClient<$Result.GetResult<Prisma.$prompt_usagesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Prompt_usages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_usagesCountArgs} args - Arguments to filter Prompt_usages to count.
+     * @example
+     * // Count the number of Prompt_usages
+     * const count = await prisma.prompt_usages.count({
+     *   where: {
+     *     // ... the filter for the Prompt_usages we want to count
+     *   }
+     * })
+    **/
+    count<T extends prompt_usagesCountArgs>(
+      args?: Subset<T, prompt_usagesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Prompt_usagesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Prompt_usages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Prompt_usagesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Prompt_usagesAggregateArgs>(args: Subset<T, Prompt_usagesAggregateArgs>): Prisma.PrismaPromise<GetPrompt_usagesAggregateType<T>>
+
+    /**
+     * Group by Prompt_usages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_usagesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends prompt_usagesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: prompt_usagesGroupByArgs['orderBy'] }
+        : { orderBy?: prompt_usagesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, prompt_usagesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPrompt_usagesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the prompt_usages model
+   */
+  readonly fields: prompt_usagesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for prompt_usages.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__prompt_usagesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the prompt_usages model
+   */
+  interface prompt_usagesFieldRefs {
+    readonly id: FieldRef<"prompt_usages", 'String'>
+    readonly family_id: FieldRef<"prompt_usages", 'String'>
+    readonly variant_id: FieldRef<"prompt_usages", 'String'>
+    readonly target_type: FieldRef<"prompt_usages", 'String'>
+    readonly target_id: FieldRef<"prompt_usages", 'String'>
+    readonly generated_text: FieldRef<"prompt_usages", 'String'>
+    readonly used_prompt_text: FieldRef<"prompt_usages", 'String'>
+    readonly input_data: FieldRef<"prompt_usages", 'Json'>
+    readonly llm_model: FieldRef<"prompt_usages", 'String'>
+    readonly temperature: FieldRef<"prompt_usages", 'Decimal'>
+    readonly generated_user: FieldRef<"prompt_usages", 'String'>
+    readonly created_at: FieldRef<"prompt_usages", 'DateTime'>
+    readonly created_request_id: FieldRef<"prompt_usages", 'String'>
+    readonly metadata: FieldRef<"prompt_usages", 'Json'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * prompt_usages findUnique
+   */
+  export type prompt_usagesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * Filter, which prompt_usages to fetch.
+     */
+    where: prompt_usagesWhereUniqueInput
+  }
+
+  /**
+   * prompt_usages findUniqueOrThrow
+   */
+  export type prompt_usagesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * Filter, which prompt_usages to fetch.
+     */
+    where: prompt_usagesWhereUniqueInput
+  }
+
+  /**
+   * prompt_usages findFirst
+   */
+  export type prompt_usagesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * Filter, which prompt_usages to fetch.
+     */
+    where?: prompt_usagesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_usages to fetch.
+     */
+    orderBy?: prompt_usagesOrderByWithRelationInput | prompt_usagesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for prompt_usages.
+     */
+    cursor?: prompt_usagesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_usages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_usages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of prompt_usages.
+     */
+    distinct?: Prompt_usagesScalarFieldEnum | Prompt_usagesScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_usages findFirstOrThrow
+   */
+  export type prompt_usagesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * Filter, which prompt_usages to fetch.
+     */
+    where?: prompt_usagesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_usages to fetch.
+     */
+    orderBy?: prompt_usagesOrderByWithRelationInput | prompt_usagesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for prompt_usages.
+     */
+    cursor?: prompt_usagesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_usages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_usages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of prompt_usages.
+     */
+    distinct?: Prompt_usagesScalarFieldEnum | Prompt_usagesScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_usages findMany
+   */
+  export type prompt_usagesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * Filter, which prompt_usages to fetch.
+     */
+    where?: prompt_usagesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_usages to fetch.
+     */
+    orderBy?: prompt_usagesOrderByWithRelationInput | prompt_usagesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing prompt_usages.
+     */
+    cursor?: prompt_usagesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_usages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_usages.
+     */
+    skip?: number
+    distinct?: Prompt_usagesScalarFieldEnum | Prompt_usagesScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_usages create
+   */
+  export type prompt_usagesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * The data needed to create a prompt_usages.
+     */
+    data: XOR<prompt_usagesCreateInput, prompt_usagesUncheckedCreateInput>
+  }
+
+  /**
+   * prompt_usages createMany
+   */
+  export type prompt_usagesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many prompt_usages.
+     */
+    data: prompt_usagesCreateManyInput | prompt_usagesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * prompt_usages createManyAndReturn
+   */
+  export type prompt_usagesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * The data used to create many prompt_usages.
+     */
+    data: prompt_usagesCreateManyInput | prompt_usagesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * prompt_usages update
+   */
+  export type prompt_usagesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * The data needed to update a prompt_usages.
+     */
+    data: XOR<prompt_usagesUpdateInput, prompt_usagesUncheckedUpdateInput>
+    /**
+     * Choose, which prompt_usages to update.
+     */
+    where: prompt_usagesWhereUniqueInput
+  }
+
+  /**
+   * prompt_usages updateMany
+   */
+  export type prompt_usagesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update prompt_usages.
+     */
+    data: XOR<prompt_usagesUpdateManyMutationInput, prompt_usagesUncheckedUpdateManyInput>
+    /**
+     * Filter which prompt_usages to update
+     */
+    where?: prompt_usagesWhereInput
+    /**
+     * Limit how many prompt_usages to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_usages updateManyAndReturn
+   */
+  export type prompt_usagesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * The data used to update prompt_usages.
+     */
+    data: XOR<prompt_usagesUpdateManyMutationInput, prompt_usagesUncheckedUpdateManyInput>
+    /**
+     * Filter which prompt_usages to update
+     */
+    where?: prompt_usagesWhereInput
+    /**
+     * Limit how many prompt_usages to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_usages upsert
+   */
+  export type prompt_usagesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * The filter to search for the prompt_usages to update in case it exists.
+     */
+    where: prompt_usagesWhereUniqueInput
+    /**
+     * In case the prompt_usages found by the `where` argument doesn't exist, create a new prompt_usages with this data.
+     */
+    create: XOR<prompt_usagesCreateInput, prompt_usagesUncheckedCreateInput>
+    /**
+     * In case the prompt_usages was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<prompt_usagesUpdateInput, prompt_usagesUncheckedUpdateInput>
+  }
+
+  /**
+   * prompt_usages delete
+   */
+  export type prompt_usagesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+    /**
+     * Filter which prompt_usages to delete.
+     */
+    where: prompt_usagesWhereUniqueInput
+  }
+
+  /**
+   * prompt_usages deleteMany
+   */
+  export type prompt_usagesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which prompt_usages to delete
+     */
+    where?: prompt_usagesWhereInput
+    /**
+     * Limit how many prompt_usages to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_usages without action
+   */
+  export type prompt_usagesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_usages
+     */
+    select?: prompt_usagesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_usages
+     */
+    omit?: prompt_usagesOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model prompt_variants
+   */
+
+  export type AggregatePrompt_variants = {
+    _count: Prompt_variantsCountAggregateOutputType | null
+    _avg: Prompt_variantsAvgAggregateOutputType | null
+    _sum: Prompt_variantsSumAggregateOutputType | null
+    _min: Prompt_variantsMinAggregateOutputType | null
+    _max: Prompt_variantsMaxAggregateOutputType | null
+  }
+
+  export type Prompt_variantsAvgAggregateOutputType = {
+    variant_number: number | null
+  }
+
+  export type Prompt_variantsSumAggregateOutputType = {
+    variant_number: number | null
+  }
+
+  export type Prompt_variantsMinAggregateOutputType = {
+    id: string | null
+    family_id: string | null
+    variant_number: number | null
+    prompt_text: string | null
+    improvement_note: string | null
+    created_by: string | null
+  }
+
+  export type Prompt_variantsMaxAggregateOutputType = {
+    id: string | null
+    family_id: string | null
+    variant_number: number | null
+    prompt_text: string | null
+    improvement_note: string | null
+    created_by: string | null
+  }
+
+  export type Prompt_variantsCountAggregateOutputType = {
+    id: number
+    family_id: number
+    variant_number: number
+    prompt_text: number
+    improvement_note: number
+    created_by: number
+    metadata: number
+    _all: number
+  }
+
+
+  export type Prompt_variantsAvgAggregateInputType = {
+    variant_number?: true
+  }
+
+  export type Prompt_variantsSumAggregateInputType = {
+    variant_number?: true
+  }
+
+  export type Prompt_variantsMinAggregateInputType = {
+    id?: true
+    family_id?: true
+    variant_number?: true
+    prompt_text?: true
+    improvement_note?: true
+    created_by?: true
+  }
+
+  export type Prompt_variantsMaxAggregateInputType = {
+    id?: true
+    family_id?: true
+    variant_number?: true
+    prompt_text?: true
+    improvement_note?: true
+    created_by?: true
+  }
+
+  export type Prompt_variantsCountAggregateInputType = {
+    id?: true
+    family_id?: true
+    variant_number?: true
+    prompt_text?: true
+    improvement_note?: true
+    created_by?: true
+    metadata?: true
+    _all?: true
+  }
+
+  export type Prompt_variantsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which prompt_variants to aggregate.
+     */
+    where?: prompt_variantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_variants to fetch.
+     */
+    orderBy?: prompt_variantsOrderByWithRelationInput | prompt_variantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: prompt_variantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_variants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_variants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned prompt_variants
+    **/
+    _count?: true | Prompt_variantsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Prompt_variantsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Prompt_variantsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Prompt_variantsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Prompt_variantsMaxAggregateInputType
+  }
+
+  export type GetPrompt_variantsAggregateType<T extends Prompt_variantsAggregateArgs> = {
+        [P in keyof T & keyof AggregatePrompt_variants]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePrompt_variants[P]>
+      : GetScalarType<T[P], AggregatePrompt_variants[P]>
+  }
+
+
+
+
+  export type prompt_variantsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: prompt_variantsWhereInput
+    orderBy?: prompt_variantsOrderByWithAggregationInput | prompt_variantsOrderByWithAggregationInput[]
+    by: Prompt_variantsScalarFieldEnum[] | Prompt_variantsScalarFieldEnum
+    having?: prompt_variantsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Prompt_variantsCountAggregateInputType | true
+    _avg?: Prompt_variantsAvgAggregateInputType
+    _sum?: Prompt_variantsSumAggregateInputType
+    _min?: Prompt_variantsMinAggregateInputType
+    _max?: Prompt_variantsMaxAggregateInputType
+  }
+
+  export type Prompt_variantsGroupByOutputType = {
+    id: string
+    family_id: string
+    variant_number: number
+    prompt_text: string
+    improvement_note: string | null
+    created_by: string
+    metadata: JsonValue | null
+    _count: Prompt_variantsCountAggregateOutputType | null
+    _avg: Prompt_variantsAvgAggregateOutputType | null
+    _sum: Prompt_variantsSumAggregateOutputType | null
+    _min: Prompt_variantsMinAggregateOutputType | null
+    _max: Prompt_variantsMaxAggregateOutputType | null
+  }
+
+  type GetPrompt_variantsGroupByPayload<T extends prompt_variantsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Prompt_variantsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Prompt_variantsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Prompt_variantsGroupByOutputType[P]>
+            : GetScalarType<T[P], Prompt_variantsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type prompt_variantsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    family_id?: boolean
+    variant_number?: boolean
+    prompt_text?: boolean
+    improvement_note?: boolean
+    created_by?: boolean
+    metadata?: boolean
+    prompt_families?: boolean | prompt_familiesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["prompt_variants"]>
+
+  export type prompt_variantsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    family_id?: boolean
+    variant_number?: boolean
+    prompt_text?: boolean
+    improvement_note?: boolean
+    created_by?: boolean
+    metadata?: boolean
+    prompt_families?: boolean | prompt_familiesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["prompt_variants"]>
+
+  export type prompt_variantsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    family_id?: boolean
+    variant_number?: boolean
+    prompt_text?: boolean
+    improvement_note?: boolean
+    created_by?: boolean
+    metadata?: boolean
+    prompt_families?: boolean | prompt_familiesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["prompt_variants"]>
+
+  export type prompt_variantsSelectScalar = {
+    id?: boolean
+    family_id?: boolean
+    variant_number?: boolean
+    prompt_text?: boolean
+    improvement_note?: boolean
+    created_by?: boolean
+    metadata?: boolean
+  }
+
+  export type prompt_variantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "family_id" | "variant_number" | "prompt_text" | "improvement_note" | "created_by" | "metadata", ExtArgs["result"]["prompt_variants"]>
+  export type prompt_variantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    prompt_families?: boolean | prompt_familiesDefaultArgs<ExtArgs>
+  }
+  export type prompt_variantsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    prompt_families?: boolean | prompt_familiesDefaultArgs<ExtArgs>
+  }
+  export type prompt_variantsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    prompt_families?: boolean | prompt_familiesDefaultArgs<ExtArgs>
+  }
+
+  export type $prompt_variantsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "prompt_variants"
+    objects: {
+      prompt_families: Prisma.$prompt_familiesPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      family_id: string
+      variant_number: number
+      prompt_text: string
+      improvement_note: string | null
+      created_by: string
+      metadata: Prisma.JsonValue | null
+    }, ExtArgs["result"]["prompt_variants"]>
+    composites: {}
+  }
+
+  type prompt_variantsGetPayload<S extends boolean | null | undefined | prompt_variantsDefaultArgs> = $Result.GetResult<Prisma.$prompt_variantsPayload, S>
+
+  type prompt_variantsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<prompt_variantsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Prompt_variantsCountAggregateInputType | true
+    }
+
+  export interface prompt_variantsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['prompt_variants'], meta: { name: 'prompt_variants' } }
+    /**
+     * Find zero or one Prompt_variants that matches the filter.
+     * @param {prompt_variantsFindUniqueArgs} args - Arguments to find a Prompt_variants
+     * @example
+     * // Get one Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends prompt_variantsFindUniqueArgs>(args: SelectSubset<T, prompt_variantsFindUniqueArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Prompt_variants that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {prompt_variantsFindUniqueOrThrowArgs} args - Arguments to find a Prompt_variants
+     * @example
+     * // Get one Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends prompt_variantsFindUniqueOrThrowArgs>(args: SelectSubset<T, prompt_variantsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Prompt_variants that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_variantsFindFirstArgs} args - Arguments to find a Prompt_variants
+     * @example
+     * // Get one Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends prompt_variantsFindFirstArgs>(args?: SelectSubset<T, prompt_variantsFindFirstArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Prompt_variants that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_variantsFindFirstOrThrowArgs} args - Arguments to find a Prompt_variants
+     * @example
+     * // Get one Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends prompt_variantsFindFirstOrThrowArgs>(args?: SelectSubset<T, prompt_variantsFindFirstOrThrowArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Prompt_variants that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_variantsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.findMany()
+     * 
+     * // Get first 10 Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const prompt_variantsWithIdOnly = await prisma.prompt_variants.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends prompt_variantsFindManyArgs>(args?: SelectSubset<T, prompt_variantsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Prompt_variants.
+     * @param {prompt_variantsCreateArgs} args - Arguments to create a Prompt_variants.
+     * @example
+     * // Create one Prompt_variants
+     * const Prompt_variants = await prisma.prompt_variants.create({
+     *   data: {
+     *     // ... data to create a Prompt_variants
+     *   }
+     * })
+     * 
+     */
+    create<T extends prompt_variantsCreateArgs>(args: SelectSubset<T, prompt_variantsCreateArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Prompt_variants.
+     * @param {prompt_variantsCreateManyArgs} args - Arguments to create many Prompt_variants.
+     * @example
+     * // Create many Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends prompt_variantsCreateManyArgs>(args?: SelectSubset<T, prompt_variantsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Prompt_variants and returns the data saved in the database.
+     * @param {prompt_variantsCreateManyAndReturnArgs} args - Arguments to create many Prompt_variants.
+     * @example
+     * // Create many Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Prompt_variants and only return the `id`
+     * const prompt_variantsWithIdOnly = await prisma.prompt_variants.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends prompt_variantsCreateManyAndReturnArgs>(args?: SelectSubset<T, prompt_variantsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Prompt_variants.
+     * @param {prompt_variantsDeleteArgs} args - Arguments to delete one Prompt_variants.
+     * @example
+     * // Delete one Prompt_variants
+     * const Prompt_variants = await prisma.prompt_variants.delete({
+     *   where: {
+     *     // ... filter to delete one Prompt_variants
+     *   }
+     * })
+     * 
+     */
+    delete<T extends prompt_variantsDeleteArgs>(args: SelectSubset<T, prompt_variantsDeleteArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Prompt_variants.
+     * @param {prompt_variantsUpdateArgs} args - Arguments to update one Prompt_variants.
+     * @example
+     * // Update one Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends prompt_variantsUpdateArgs>(args: SelectSubset<T, prompt_variantsUpdateArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Prompt_variants.
+     * @param {prompt_variantsDeleteManyArgs} args - Arguments to filter Prompt_variants to delete.
+     * @example
+     * // Delete a few Prompt_variants
+     * const { count } = await prisma.prompt_variants.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends prompt_variantsDeleteManyArgs>(args?: SelectSubset<T, prompt_variantsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Prompt_variants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_variantsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends prompt_variantsUpdateManyArgs>(args: SelectSubset<T, prompt_variantsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Prompt_variants and returns the data updated in the database.
+     * @param {prompt_variantsUpdateManyAndReturnArgs} args - Arguments to update many Prompt_variants.
+     * @example
+     * // Update many Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Prompt_variants and only return the `id`
+     * const prompt_variantsWithIdOnly = await prisma.prompt_variants.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends prompt_variantsUpdateManyAndReturnArgs>(args: SelectSubset<T, prompt_variantsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Prompt_variants.
+     * @param {prompt_variantsUpsertArgs} args - Arguments to update or create a Prompt_variants.
+     * @example
+     * // Update or create a Prompt_variants
+     * const prompt_variants = await prisma.prompt_variants.upsert({
+     *   create: {
+     *     // ... data to create a Prompt_variants
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Prompt_variants we want to update
+     *   }
+     * })
+     */
+    upsert<T extends prompt_variantsUpsertArgs>(args: SelectSubset<T, prompt_variantsUpsertArgs<ExtArgs>>): Prisma__prompt_variantsClient<$Result.GetResult<Prisma.$prompt_variantsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Prompt_variants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_variantsCountArgs} args - Arguments to filter Prompt_variants to count.
+     * @example
+     * // Count the number of Prompt_variants
+     * const count = await prisma.prompt_variants.count({
+     *   where: {
+     *     // ... the filter for the Prompt_variants we want to count
+     *   }
+     * })
+    **/
+    count<T extends prompt_variantsCountArgs>(
+      args?: Subset<T, prompt_variantsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Prompt_variantsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Prompt_variants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Prompt_variantsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Prompt_variantsAggregateArgs>(args: Subset<T, Prompt_variantsAggregateArgs>): Prisma.PrismaPromise<GetPrompt_variantsAggregateType<T>>
+
+    /**
+     * Group by Prompt_variants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {prompt_variantsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends prompt_variantsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: prompt_variantsGroupByArgs['orderBy'] }
+        : { orderBy?: prompt_variantsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, prompt_variantsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPrompt_variantsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the prompt_variants model
+   */
+  readonly fields: prompt_variantsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for prompt_variants.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__prompt_variantsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    prompt_families<T extends prompt_familiesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, prompt_familiesDefaultArgs<ExtArgs>>): Prisma__prompt_familiesClient<$Result.GetResult<Prisma.$prompt_familiesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the prompt_variants model
+   */
+  interface prompt_variantsFieldRefs {
+    readonly id: FieldRef<"prompt_variants", 'String'>
+    readonly family_id: FieldRef<"prompt_variants", 'String'>
+    readonly variant_number: FieldRef<"prompt_variants", 'Int'>
+    readonly prompt_text: FieldRef<"prompt_variants", 'String'>
+    readonly improvement_note: FieldRef<"prompt_variants", 'String'>
+    readonly created_by: FieldRef<"prompt_variants", 'String'>
+    readonly metadata: FieldRef<"prompt_variants", 'Json'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * prompt_variants findUnique
+   */
+  export type prompt_variantsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_variants to fetch.
+     */
+    where: prompt_variantsWhereUniqueInput
+  }
+
+  /**
+   * prompt_variants findUniqueOrThrow
+   */
+  export type prompt_variantsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_variants to fetch.
+     */
+    where: prompt_variantsWhereUniqueInput
+  }
+
+  /**
+   * prompt_variants findFirst
+   */
+  export type prompt_variantsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_variants to fetch.
+     */
+    where?: prompt_variantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_variants to fetch.
+     */
+    orderBy?: prompt_variantsOrderByWithRelationInput | prompt_variantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for prompt_variants.
+     */
+    cursor?: prompt_variantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_variants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_variants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of prompt_variants.
+     */
+    distinct?: Prompt_variantsScalarFieldEnum | Prompt_variantsScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_variants findFirstOrThrow
+   */
+  export type prompt_variantsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_variants to fetch.
+     */
+    where?: prompt_variantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_variants to fetch.
+     */
+    orderBy?: prompt_variantsOrderByWithRelationInput | prompt_variantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for prompt_variants.
+     */
+    cursor?: prompt_variantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_variants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_variants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of prompt_variants.
+     */
+    distinct?: Prompt_variantsScalarFieldEnum | Prompt_variantsScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_variants findMany
+   */
+  export type prompt_variantsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * Filter, which prompt_variants to fetch.
+     */
+    where?: prompt_variantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of prompt_variants to fetch.
+     */
+    orderBy?: prompt_variantsOrderByWithRelationInput | prompt_variantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing prompt_variants.
+     */
+    cursor?: prompt_variantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` prompt_variants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` prompt_variants.
+     */
+    skip?: number
+    distinct?: Prompt_variantsScalarFieldEnum | Prompt_variantsScalarFieldEnum[]
+  }
+
+  /**
+   * prompt_variants create
+   */
+  export type prompt_variantsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a prompt_variants.
+     */
+    data: XOR<prompt_variantsCreateInput, prompt_variantsUncheckedCreateInput>
+  }
+
+  /**
+   * prompt_variants createMany
+   */
+  export type prompt_variantsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many prompt_variants.
+     */
+    data: prompt_variantsCreateManyInput | prompt_variantsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * prompt_variants createManyAndReturn
+   */
+  export type prompt_variantsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * The data used to create many prompt_variants.
+     */
+    data: prompt_variantsCreateManyInput | prompt_variantsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * prompt_variants update
+   */
+  export type prompt_variantsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a prompt_variants.
+     */
+    data: XOR<prompt_variantsUpdateInput, prompt_variantsUncheckedUpdateInput>
+    /**
+     * Choose, which prompt_variants to update.
+     */
+    where: prompt_variantsWhereUniqueInput
+  }
+
+  /**
+   * prompt_variants updateMany
+   */
+  export type prompt_variantsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update prompt_variants.
+     */
+    data: XOR<prompt_variantsUpdateManyMutationInput, prompt_variantsUncheckedUpdateManyInput>
+    /**
+     * Filter which prompt_variants to update
+     */
+    where?: prompt_variantsWhereInput
+    /**
+     * Limit how many prompt_variants to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_variants updateManyAndReturn
+   */
+  export type prompt_variantsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * The data used to update prompt_variants.
+     */
+    data: XOR<prompt_variantsUpdateManyMutationInput, prompt_variantsUncheckedUpdateManyInput>
+    /**
+     * Filter which prompt_variants to update
+     */
+    where?: prompt_variantsWhereInput
+    /**
+     * Limit how many prompt_variants to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * prompt_variants upsert
+   */
+  export type prompt_variantsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the prompt_variants to update in case it exists.
+     */
+    where: prompt_variantsWhereUniqueInput
+    /**
+     * In case the prompt_variants found by the `where` argument doesn't exist, create a new prompt_variants with this data.
+     */
+    create: XOR<prompt_variantsCreateInput, prompt_variantsUncheckedCreateInput>
+    /**
+     * In case the prompt_variants was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<prompt_variantsUpdateInput, prompt_variantsUncheckedUpdateInput>
+  }
+
+  /**
+   * prompt_variants delete
+   */
+  export type prompt_variantsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+    /**
+     * Filter which prompt_variants to delete.
+     */
+    where: prompt_variantsWhereUniqueInput
+  }
+
+  /**
+   * prompt_variants deleteMany
+   */
+  export type prompt_variantsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which prompt_variants to delete
+     */
+    where?: prompt_variantsWhereInput
+    /**
+     * Limit how many prompt_variants to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * prompt_variants without action
+   */
+  export type prompt_variantsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the prompt_variants
+     */
+    select?: prompt_variantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the prompt_variants
+     */
+    omit?: prompt_variantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: prompt_variantsInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model reactions
+   */
+
+  export type AggregateReactions = {
+    _count: ReactionsCountAggregateOutputType | null
+    _avg: ReactionsAvgAggregateOutputType | null
+    _sum: ReactionsSumAggregateOutputType | null
+    _min: ReactionsMinAggregateOutputType | null
+    _max: ReactionsMaxAggregateOutputType | null
+  }
+
+  export type ReactionsAvgAggregateOutputType = {
+    lock_no: number | null
+  }
+
+  export type ReactionsSumAggregateOutputType = {
+    lock_no: number | null
+  }
+
+  export type ReactionsMinAggregateOutputType = {
+    id: string | null
+    user_id: string | null
+    target_type: string | null
+    target_id: string | null
+    action_type: string | null
+    created_at: Date | null
+    created_version: string | null
+    lock_no: number | null
+  }
+
+  export type ReactionsMaxAggregateOutputType = {
+    id: string | null
+    user_id: string | null
+    target_type: string | null
+    target_id: string | null
+    action_type: string | null
+    created_at: Date | null
+    created_version: string | null
+    lock_no: number | null
+  }
+
+  export type ReactionsCountAggregateOutputType = {
+    id: number
+    user_id: number
+    target_type: number
+    target_id: number
+    action_type: number
+    created_at: number
+    created_version: number
+    lock_no: number
+    _all: number
+  }
+
+
+  export type ReactionsAvgAggregateInputType = {
+    lock_no?: true
+  }
+
+  export type ReactionsSumAggregateInputType = {
+    lock_no?: true
+  }
+
+  export type ReactionsMinAggregateInputType = {
+    id?: true
+    user_id?: true
+    target_type?: true
+    target_id?: true
+    action_type?: true
+    created_at?: true
+    created_version?: true
+    lock_no?: true
+  }
+
+  export type ReactionsMaxAggregateInputType = {
+    id?: true
+    user_id?: true
+    target_type?: true
+    target_id?: true
+    action_type?: true
+    created_at?: true
+    created_version?: true
+    lock_no?: true
+  }
+
+  export type ReactionsCountAggregateInputType = {
+    id?: true
+    user_id?: true
+    target_type?: true
+    target_id?: true
+    action_type?: true
+    created_at?: true
+    created_version?: true
+    lock_no?: true
+    _all?: true
+  }
+
+  export type ReactionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which reactions to aggregate.
+     */
+    where?: reactionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of reactions to fetch.
+     */
+    orderBy?: reactionsOrderByWithRelationInput | reactionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: reactionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` reactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` reactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned reactions
+    **/
+    _count?: true | ReactionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ReactionsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ReactionsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ReactionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ReactionsMaxAggregateInputType
+  }
+
+  export type GetReactionsAggregateType<T extends ReactionsAggregateArgs> = {
+        [P in keyof T & keyof AggregateReactions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReactions[P]>
+      : GetScalarType<T[P], AggregateReactions[P]>
+  }
+
+
+
+
+  export type reactionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: reactionsWhereInput
+    orderBy?: reactionsOrderByWithAggregationInput | reactionsOrderByWithAggregationInput[]
+    by: ReactionsScalarFieldEnum[] | ReactionsScalarFieldEnum
+    having?: reactionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ReactionsCountAggregateInputType | true
+    _avg?: ReactionsAvgAggregateInputType
+    _sum?: ReactionsSumAggregateInputType
+    _min?: ReactionsMinAggregateInputType
+    _max?: ReactionsMaxAggregateInputType
+  }
+
+  export type ReactionsGroupByOutputType = {
+    id: string
+    user_id: string
+    target_type: string
+    target_id: string
+    action_type: string
+    created_at: Date
+    created_version: string
+    lock_no: number
+    _count: ReactionsCountAggregateOutputType | null
+    _avg: ReactionsAvgAggregateOutputType | null
+    _sum: ReactionsSumAggregateOutputType | null
+    _min: ReactionsMinAggregateOutputType | null
+    _max: ReactionsMaxAggregateOutputType | null
+  }
+
+  type GetReactionsGroupByPayload<T extends reactionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ReactionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ReactionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReactionsGroupByOutputType[P]>
+            : GetScalarType<T[P], ReactionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type reactionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    action_type?: boolean
+    created_at?: boolean
+    created_version?: boolean
+    lock_no?: boolean
+  }, ExtArgs["result"]["reactions"]>
+
+  export type reactionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    action_type?: boolean
+    created_at?: boolean
+    created_version?: boolean
+    lock_no?: boolean
+  }, ExtArgs["result"]["reactions"]>
+
+  export type reactionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    action_type?: boolean
+    created_at?: boolean
+    created_version?: boolean
+    lock_no?: boolean
+  }, ExtArgs["result"]["reactions"]>
+
+  export type reactionsSelectScalar = {
+    id?: boolean
+    user_id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    action_type?: boolean
+    created_at?: boolean
+    created_version?: boolean
+    lock_no?: boolean
+  }
+
+  export type reactionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "target_type" | "target_id" | "action_type" | "created_at" | "created_version" | "lock_no", ExtArgs["result"]["reactions"]>
+
+  export type $reactionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "reactions"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      user_id: string
+      target_type: string
+      target_id: string
+      action_type: string
+      created_at: Date
+      created_version: string
+      lock_no: number
+    }, ExtArgs["result"]["reactions"]>
+    composites: {}
+  }
+
+  type reactionsGetPayload<S extends boolean | null | undefined | reactionsDefaultArgs> = $Result.GetResult<Prisma.$reactionsPayload, S>
+
+  type reactionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<reactionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ReactionsCountAggregateInputType | true
+    }
+
+  export interface reactionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['reactions'], meta: { name: 'reactions' } }
+    /**
+     * Find zero or one Reactions that matches the filter.
+     * @param {reactionsFindUniqueArgs} args - Arguments to find a Reactions
+     * @example
+     * // Get one Reactions
+     * const reactions = await prisma.reactions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends reactionsFindUniqueArgs>(args: SelectSubset<T, reactionsFindUniqueArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Reactions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {reactionsFindUniqueOrThrowArgs} args - Arguments to find a Reactions
+     * @example
+     * // Get one Reactions
+     * const reactions = await prisma.reactions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends reactionsFindUniqueOrThrowArgs>(args: SelectSubset<T, reactionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Reactions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {reactionsFindFirstArgs} args - Arguments to find a Reactions
+     * @example
+     * // Get one Reactions
+     * const reactions = await prisma.reactions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends reactionsFindFirstArgs>(args?: SelectSubset<T, reactionsFindFirstArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Reactions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {reactionsFindFirstOrThrowArgs} args - Arguments to find a Reactions
+     * @example
+     * // Get one Reactions
+     * const reactions = await prisma.reactions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends reactionsFindFirstOrThrowArgs>(args?: SelectSubset<T, reactionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Reactions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {reactionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Reactions
+     * const reactions = await prisma.reactions.findMany()
+     * 
+     * // Get first 10 Reactions
+     * const reactions = await prisma.reactions.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const reactionsWithIdOnly = await prisma.reactions.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends reactionsFindManyArgs>(args?: SelectSubset<T, reactionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Reactions.
+     * @param {reactionsCreateArgs} args - Arguments to create a Reactions.
+     * @example
+     * // Create one Reactions
+     * const Reactions = await prisma.reactions.create({
+     *   data: {
+     *     // ... data to create a Reactions
+     *   }
+     * })
+     * 
+     */
+    create<T extends reactionsCreateArgs>(args: SelectSubset<T, reactionsCreateArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Reactions.
+     * @param {reactionsCreateManyArgs} args - Arguments to create many Reactions.
+     * @example
+     * // Create many Reactions
+     * const reactions = await prisma.reactions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends reactionsCreateManyArgs>(args?: SelectSubset<T, reactionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Reactions and returns the data saved in the database.
+     * @param {reactionsCreateManyAndReturnArgs} args - Arguments to create many Reactions.
+     * @example
+     * // Create many Reactions
+     * const reactions = await prisma.reactions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Reactions and only return the `id`
+     * const reactionsWithIdOnly = await prisma.reactions.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends reactionsCreateManyAndReturnArgs>(args?: SelectSubset<T, reactionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Reactions.
+     * @param {reactionsDeleteArgs} args - Arguments to delete one Reactions.
+     * @example
+     * // Delete one Reactions
+     * const Reactions = await prisma.reactions.delete({
+     *   where: {
+     *     // ... filter to delete one Reactions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends reactionsDeleteArgs>(args: SelectSubset<T, reactionsDeleteArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Reactions.
+     * @param {reactionsUpdateArgs} args - Arguments to update one Reactions.
+     * @example
+     * // Update one Reactions
+     * const reactions = await prisma.reactions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends reactionsUpdateArgs>(args: SelectSubset<T, reactionsUpdateArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Reactions.
+     * @param {reactionsDeleteManyArgs} args - Arguments to filter Reactions to delete.
+     * @example
+     * // Delete a few Reactions
+     * const { count } = await prisma.reactions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends reactionsDeleteManyArgs>(args?: SelectSubset<T, reactionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Reactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {reactionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Reactions
+     * const reactions = await prisma.reactions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends reactionsUpdateManyArgs>(args: SelectSubset<T, reactionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Reactions and returns the data updated in the database.
+     * @param {reactionsUpdateManyAndReturnArgs} args - Arguments to update many Reactions.
+     * @example
+     * // Update many Reactions
+     * const reactions = await prisma.reactions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Reactions and only return the `id`
+     * const reactionsWithIdOnly = await prisma.reactions.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends reactionsUpdateManyAndReturnArgs>(args: SelectSubset<T, reactionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Reactions.
+     * @param {reactionsUpsertArgs} args - Arguments to update or create a Reactions.
+     * @example
+     * // Update or create a Reactions
+     * const reactions = await prisma.reactions.upsert({
+     *   create: {
+     *     // ... data to create a Reactions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Reactions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends reactionsUpsertArgs>(args: SelectSubset<T, reactionsUpsertArgs<ExtArgs>>): Prisma__reactionsClient<$Result.GetResult<Prisma.$reactionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Reactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {reactionsCountArgs} args - Arguments to filter Reactions to count.
+     * @example
+     * // Count the number of Reactions
+     * const count = await prisma.reactions.count({
+     *   where: {
+     *     // ... the filter for the Reactions we want to count
+     *   }
+     * })
+    **/
+    count<T extends reactionsCountArgs>(
+      args?: Subset<T, reactionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReactionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Reactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReactionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ReactionsAggregateArgs>(args: Subset<T, ReactionsAggregateArgs>): Prisma.PrismaPromise<GetReactionsAggregateType<T>>
+
+    /**
+     * Group by Reactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {reactionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends reactionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: reactionsGroupByArgs['orderBy'] }
+        : { orderBy?: reactionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, reactionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReactionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the reactions model
+   */
+  readonly fields: reactionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for reactions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__reactionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the reactions model
+   */
+  interface reactionsFieldRefs {
+    readonly id: FieldRef<"reactions", 'String'>
+    readonly user_id: FieldRef<"reactions", 'String'>
+    readonly target_type: FieldRef<"reactions", 'String'>
+    readonly target_id: FieldRef<"reactions", 'String'>
+    readonly action_type: FieldRef<"reactions", 'String'>
+    readonly created_at: FieldRef<"reactions", 'DateTime'>
+    readonly created_version: FieldRef<"reactions", 'String'>
+    readonly lock_no: FieldRef<"reactions", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * reactions findUnique
+   */
+  export type reactionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * Filter, which reactions to fetch.
+     */
+    where: reactionsWhereUniqueInput
+  }
+
+  /**
+   * reactions findUniqueOrThrow
+   */
+  export type reactionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * Filter, which reactions to fetch.
+     */
+    where: reactionsWhereUniqueInput
+  }
+
+  /**
+   * reactions findFirst
+   */
+  export type reactionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * Filter, which reactions to fetch.
+     */
+    where?: reactionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of reactions to fetch.
+     */
+    orderBy?: reactionsOrderByWithRelationInput | reactionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for reactions.
+     */
+    cursor?: reactionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` reactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` reactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of reactions.
+     */
+    distinct?: ReactionsScalarFieldEnum | ReactionsScalarFieldEnum[]
+  }
+
+  /**
+   * reactions findFirstOrThrow
+   */
+  export type reactionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * Filter, which reactions to fetch.
+     */
+    where?: reactionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of reactions to fetch.
+     */
+    orderBy?: reactionsOrderByWithRelationInput | reactionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for reactions.
+     */
+    cursor?: reactionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` reactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` reactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of reactions.
+     */
+    distinct?: ReactionsScalarFieldEnum | ReactionsScalarFieldEnum[]
+  }
+
+  /**
+   * reactions findMany
+   */
+  export type reactionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * Filter, which reactions to fetch.
+     */
+    where?: reactionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of reactions to fetch.
+     */
+    orderBy?: reactionsOrderByWithRelationInput | reactionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing reactions.
+     */
+    cursor?: reactionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` reactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` reactions.
+     */
+    skip?: number
+    distinct?: ReactionsScalarFieldEnum | ReactionsScalarFieldEnum[]
+  }
+
+  /**
+   * reactions create
+   */
+  export type reactionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a reactions.
+     */
+    data: XOR<reactionsCreateInput, reactionsUncheckedCreateInput>
+  }
+
+  /**
+   * reactions createMany
+   */
+  export type reactionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many reactions.
+     */
+    data: reactionsCreateManyInput | reactionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * reactions createManyAndReturn
+   */
+  export type reactionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many reactions.
+     */
+    data: reactionsCreateManyInput | reactionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * reactions update
+   */
+  export type reactionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a reactions.
+     */
+    data: XOR<reactionsUpdateInput, reactionsUncheckedUpdateInput>
+    /**
+     * Choose, which reactions to update.
+     */
+    where: reactionsWhereUniqueInput
+  }
+
+  /**
+   * reactions updateMany
+   */
+  export type reactionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update reactions.
+     */
+    data: XOR<reactionsUpdateManyMutationInput, reactionsUncheckedUpdateManyInput>
+    /**
+     * Filter which reactions to update
+     */
+    where?: reactionsWhereInput
+    /**
+     * Limit how many reactions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * reactions updateManyAndReturn
+   */
+  export type reactionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * The data used to update reactions.
+     */
+    data: XOR<reactionsUpdateManyMutationInput, reactionsUncheckedUpdateManyInput>
+    /**
+     * Filter which reactions to update
+     */
+    where?: reactionsWhereInput
+    /**
+     * Limit how many reactions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * reactions upsert
+   */
+  export type reactionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the reactions to update in case it exists.
+     */
+    where: reactionsWhereUniqueInput
+    /**
+     * In case the reactions found by the `where` argument doesn't exist, create a new reactions with this data.
+     */
+    create: XOR<reactionsCreateInput, reactionsUncheckedCreateInput>
+    /**
+     * In case the reactions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<reactionsUpdateInput, reactionsUncheckedUpdateInput>
+  }
+
+  /**
+   * reactions delete
+   */
+  export type reactionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
+    /**
+     * Filter which reactions to delete.
+     */
+    where: reactionsWhereUniqueInput
+  }
+
+  /**
+   * reactions deleteMany
+   */
+  export type reactionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which reactions to delete
+     */
+    where?: reactionsWhereInput
+    /**
+     * Limit how many reactions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * reactions without action
+   */
+  export type reactionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the reactions
+     */
+    select?: reactionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the reactions
+     */
+    omit?: reactionsOmit<ExtArgs> | null
   }
 
 
@@ -14625,6 +24045,30 @@ export namespace Prisma {
   export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+  export const Backend_event_logsScalarFieldEnum: {
+    id: 'id',
+    event_name: 'event_name',
+    error_level: 'error_level',
+    function_name: 'function_name',
+    user_id: 'user_id',
+    payload: 'payload',
+    request_id: 'request_id',
+    created_at: 'created_at',
+    created_commit_id: 'created_commit_id'
+  };
+
+  export type Backend_event_logsScalarFieldEnum = (typeof Backend_event_logsScalarFieldEnum)[keyof typeof Backend_event_logsScalarFieldEnum]
+
+
+  export const ConfigScalarFieldEnum: {
+    key: 'key',
+    value: 'value',
+    description: 'description'
+  };
+
+  export type ConfigScalarFieldEnum = (typeof ConfigScalarFieldEnum)[keyof typeof ConfigScalarFieldEnum]
+
+
   export const Dish_categoriesScalarFieldEnum: {
     id: 'id',
     label_en: 'label_en',
@@ -14707,6 +24151,40 @@ export namespace Prisma {
   export type DishesScalarFieldEnum = (typeof DishesScalarFieldEnum)[keyof typeof DishesScalarFieldEnum]
 
 
+  export const External_api_logsScalarFieldEnum: {
+    id: 'id',
+    request_id: 'request_id',
+    function_name: 'function_name',
+    api_name: 'api_name',
+    endpoint: 'endpoint',
+    request_payload: 'request_payload',
+    response_payload: 'response_payload',
+    status_code: 'status_code',
+    error_message: 'error_message',
+    response_time_ms: 'response_time_ms',
+    user_id: 'user_id',
+    created_at: 'created_at',
+    created_commit_id: 'created_commit_id'
+  };
+
+  export type External_api_logsScalarFieldEnum = (typeof External_api_logsScalarFieldEnum)[keyof typeof External_api_logsScalarFieldEnum]
+
+
+  export const Frontend_event_logsScalarFieldEnum: {
+    id: 'id',
+    user_id: 'user_id',
+    event_name: 'event_name',
+    error_level: 'error_level',
+    path_name: 'path_name',
+    payload: 'payload',
+    created_at: 'created_at',
+    created_app_version: 'created_app_version',
+    created_commit_id: 'created_commit_id'
+  };
+
+  export type Frontend_event_logsScalarFieldEnum = (typeof Frontend_event_logsScalarFieldEnum)[keyof typeof Frontend_event_logsScalarFieldEnum]
+
+
   export const PayoutsScalarFieldEnum: {
     id: 'id',
     bid_id: 'bid_id',
@@ -14721,6 +24199,64 @@ export namespace Prisma {
   };
 
   export type PayoutsScalarFieldEnum = (typeof PayoutsScalarFieldEnum)[keyof typeof PayoutsScalarFieldEnum]
+
+
+  export const Prompt_familiesScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    description: 'description',
+    purpose: 'purpose',
+    weight: 'weight'
+  };
+
+  export type Prompt_familiesScalarFieldEnum = (typeof Prompt_familiesScalarFieldEnum)[keyof typeof Prompt_familiesScalarFieldEnum]
+
+
+  export const Prompt_usagesScalarFieldEnum: {
+    id: 'id',
+    family_id: 'family_id',
+    variant_id: 'variant_id',
+    target_type: 'target_type',
+    target_id: 'target_id',
+    generated_text: 'generated_text',
+    used_prompt_text: 'used_prompt_text',
+    input_data: 'input_data',
+    llm_model: 'llm_model',
+    temperature: 'temperature',
+    generated_user: 'generated_user',
+    created_at: 'created_at',
+    created_request_id: 'created_request_id',
+    metadata: 'metadata'
+  };
+
+  export type Prompt_usagesScalarFieldEnum = (typeof Prompt_usagesScalarFieldEnum)[keyof typeof Prompt_usagesScalarFieldEnum]
+
+
+  export const Prompt_variantsScalarFieldEnum: {
+    id: 'id',
+    family_id: 'family_id',
+    variant_number: 'variant_number',
+    prompt_text: 'prompt_text',
+    improvement_note: 'improvement_note',
+    created_by: 'created_by',
+    metadata: 'metadata'
+  };
+
+  export type Prompt_variantsScalarFieldEnum = (typeof Prompt_variantsScalarFieldEnum)[keyof typeof Prompt_variantsScalarFieldEnum]
+
+
+  export const ReactionsScalarFieldEnum: {
+    id: 'id',
+    user_id: 'user_id',
+    target_type: 'target_type',
+    target_id: 'target_id',
+    action_type: 'action_type',
+    created_at: 'created_at',
+    created_version: 'created_version',
+    lock_no: 'lock_no'
+  };
+
+  export type ReactionsScalarFieldEnum = (typeof ReactionsScalarFieldEnum)[keyof typeof ReactionsScalarFieldEnum]
 
 
   export const Restaurant_bidsScalarFieldEnum: {
@@ -14787,6 +24323,14 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
   export const JsonNullValueInput: {
     JsonNull: typeof JsonNull
   };
@@ -14839,6 +24383,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'backend_event_logs_error_level'
+   */
+  export type Enumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'backend_event_logs_error_level'>
+    
+
+
+  /**
+   * Reference to a field of type 'backend_event_logs_error_level[]'
+   */
+  export type ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'backend_event_logs_error_level[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -14881,6 +24439,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'frontend_event_logs_error_level'
+   */
+  export type Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level'>
+    
+
+
+  /**
+   * Reference to a field of type 'frontend_event_logs_error_level[]'
+   */
+  export type ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level[]'>
+    
+
+
+  /**
    * Reference to a field of type 'BigInt'
    */
   export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
@@ -14905,6 +24477,34 @@ export namespace Prisma {
    * Reference to a field of type 'payout_status[]'
    */
   export type ListEnumpayout_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'payout_status[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'prompt_families_purpose'
+   */
+  export type Enumprompt_families_purposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'prompt_families_purpose'>
+    
+
+
+  /**
+   * Reference to a field of type 'prompt_families_purpose[]'
+   */
+  export type ListEnumprompt_families_purposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'prompt_families_purpose[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Decimal'
+   */
+  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+  /**
+   * Reference to a field of type 'Decimal[]'
+   */
+  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
     
 
 
@@ -14938,6 +24538,120 @@ export namespace Prisma {
    * Deep Input Types
    */
 
+
+  export type backend_event_logsWhereInput = {
+    AND?: backend_event_logsWhereInput | backend_event_logsWhereInput[]
+    OR?: backend_event_logsWhereInput[]
+    NOT?: backend_event_logsWhereInput | backend_event_logsWhereInput[]
+    id?: StringFilter<"backend_event_logs"> | string
+    event_name?: StringNullableFilter<"backend_event_logs"> | string | null
+    error_level?: Enumbackend_event_logs_error_levelNullableFilter<"backend_event_logs"> | $Enums.backend_event_logs_error_level | null
+    function_name?: StringNullableFilter<"backend_event_logs"> | string | null
+    user_id?: UuidNullableFilter<"backend_event_logs"> | string | null
+    payload?: JsonNullableFilter<"backend_event_logs">
+    request_id?: StringNullableFilter<"backend_event_logs"> | string | null
+    created_at?: DateTimeFilter<"backend_event_logs"> | Date | string
+    created_commit_id?: StringFilter<"backend_event_logs"> | string
+  }
+
+  export type backend_event_logsOrderByWithRelationInput = {
+    id?: SortOrder
+    event_name?: SortOrderInput | SortOrder
+    error_level?: SortOrderInput | SortOrder
+    function_name?: SortOrderInput | SortOrder
+    user_id?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    request_id?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type backend_event_logsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: backend_event_logsWhereInput | backend_event_logsWhereInput[]
+    OR?: backend_event_logsWhereInput[]
+    NOT?: backend_event_logsWhereInput | backend_event_logsWhereInput[]
+    event_name?: StringNullableFilter<"backend_event_logs"> | string | null
+    error_level?: Enumbackend_event_logs_error_levelNullableFilter<"backend_event_logs"> | $Enums.backend_event_logs_error_level | null
+    function_name?: StringNullableFilter<"backend_event_logs"> | string | null
+    user_id?: UuidNullableFilter<"backend_event_logs"> | string | null
+    payload?: JsonNullableFilter<"backend_event_logs">
+    request_id?: StringNullableFilter<"backend_event_logs"> | string | null
+    created_at?: DateTimeFilter<"backend_event_logs"> | Date | string
+    created_commit_id?: StringFilter<"backend_event_logs"> | string
+  }, "id">
+
+  export type backend_event_logsOrderByWithAggregationInput = {
+    id?: SortOrder
+    event_name?: SortOrderInput | SortOrder
+    error_level?: SortOrderInput | SortOrder
+    function_name?: SortOrderInput | SortOrder
+    user_id?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    request_id?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+    _count?: backend_event_logsCountOrderByAggregateInput
+    _max?: backend_event_logsMaxOrderByAggregateInput
+    _min?: backend_event_logsMinOrderByAggregateInput
+  }
+
+  export type backend_event_logsScalarWhereWithAggregatesInput = {
+    AND?: backend_event_logsScalarWhereWithAggregatesInput | backend_event_logsScalarWhereWithAggregatesInput[]
+    OR?: backend_event_logsScalarWhereWithAggregatesInput[]
+    NOT?: backend_event_logsScalarWhereWithAggregatesInput | backend_event_logsScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"backend_event_logs"> | string
+    event_name?: StringNullableWithAggregatesFilter<"backend_event_logs"> | string | null
+    error_level?: Enumbackend_event_logs_error_levelNullableWithAggregatesFilter<"backend_event_logs"> | $Enums.backend_event_logs_error_level | null
+    function_name?: StringNullableWithAggregatesFilter<"backend_event_logs"> | string | null
+    user_id?: UuidNullableWithAggregatesFilter<"backend_event_logs"> | string | null
+    payload?: JsonNullableWithAggregatesFilter<"backend_event_logs">
+    request_id?: StringNullableWithAggregatesFilter<"backend_event_logs"> | string | null
+    created_at?: DateTimeWithAggregatesFilter<"backend_event_logs"> | Date | string
+    created_commit_id?: StringWithAggregatesFilter<"backend_event_logs"> | string
+  }
+
+  export type configWhereInput = {
+    AND?: configWhereInput | configWhereInput[]
+    OR?: configWhereInput[]
+    NOT?: configWhereInput | configWhereInput[]
+    key?: StringFilter<"config"> | string
+    value?: StringFilter<"config"> | string
+    description?: StringNullableFilter<"config"> | string | null
+  }
+
+  export type configOrderByWithRelationInput = {
+    key?: SortOrder
+    value?: SortOrder
+    description?: SortOrderInput | SortOrder
+  }
+
+  export type configWhereUniqueInput = Prisma.AtLeast<{
+    key?: string
+    AND?: configWhereInput | configWhereInput[]
+    OR?: configWhereInput[]
+    NOT?: configWhereInput | configWhereInput[]
+    value?: StringFilter<"config"> | string
+    description?: StringNullableFilter<"config"> | string | null
+  }, "key">
+
+  export type configOrderByWithAggregationInput = {
+    key?: SortOrder
+    value?: SortOrder
+    description?: SortOrderInput | SortOrder
+    _count?: configCountOrderByAggregateInput
+    _max?: configMaxOrderByAggregateInput
+    _min?: configMinOrderByAggregateInput
+  }
+
+  export type configScalarWhereWithAggregatesInput = {
+    AND?: configScalarWhereWithAggregatesInput | configScalarWhereWithAggregatesInput[]
+    OR?: configScalarWhereWithAggregatesInput[]
+    NOT?: configScalarWhereWithAggregatesInput | configScalarWhereWithAggregatesInput[]
+    key?: StringWithAggregatesFilter<"config"> | string
+    value?: StringWithAggregatesFilter<"config"> | string
+    description?: StringNullableWithAggregatesFilter<"config"> | string | null
+  }
 
   export type dish_categoriesWhereInput = {
     AND?: dish_categoriesWhereInput | dish_categoriesWhereInput[]
@@ -15385,6 +25099,172 @@ export namespace Prisma {
     lock_no?: IntWithAggregatesFilter<"dishes"> | number
   }
 
+  export type external_api_logsWhereInput = {
+    AND?: external_api_logsWhereInput | external_api_logsWhereInput[]
+    OR?: external_api_logsWhereInput[]
+    NOT?: external_api_logsWhereInput | external_api_logsWhereInput[]
+    id?: StringFilter<"external_api_logs"> | string
+    request_id?: StringNullableFilter<"external_api_logs"> | string | null
+    function_name?: StringNullableFilter<"external_api_logs"> | string | null
+    api_name?: StringNullableFilter<"external_api_logs"> | string | null
+    endpoint?: StringNullableFilter<"external_api_logs"> | string | null
+    request_payload?: JsonNullableFilter<"external_api_logs">
+    response_payload?: JsonNullableFilter<"external_api_logs">
+    status_code?: IntNullableFilter<"external_api_logs"> | number | null
+    error_message?: StringNullableFilter<"external_api_logs"> | string | null
+    response_time_ms?: IntNullableFilter<"external_api_logs"> | number | null
+    user_id?: UuidNullableFilter<"external_api_logs"> | string | null
+    created_at?: DateTimeFilter<"external_api_logs"> | Date | string
+    created_commit_id?: StringFilter<"external_api_logs"> | string
+  }
+
+  export type external_api_logsOrderByWithRelationInput = {
+    id?: SortOrder
+    request_id?: SortOrderInput | SortOrder
+    function_name?: SortOrderInput | SortOrder
+    api_name?: SortOrderInput | SortOrder
+    endpoint?: SortOrderInput | SortOrder
+    request_payload?: SortOrderInput | SortOrder
+    response_payload?: SortOrderInput | SortOrder
+    status_code?: SortOrderInput | SortOrder
+    error_message?: SortOrderInput | SortOrder
+    response_time_ms?: SortOrderInput | SortOrder
+    user_id?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type external_api_logsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: external_api_logsWhereInput | external_api_logsWhereInput[]
+    OR?: external_api_logsWhereInput[]
+    NOT?: external_api_logsWhereInput | external_api_logsWhereInput[]
+    request_id?: StringNullableFilter<"external_api_logs"> | string | null
+    function_name?: StringNullableFilter<"external_api_logs"> | string | null
+    api_name?: StringNullableFilter<"external_api_logs"> | string | null
+    endpoint?: StringNullableFilter<"external_api_logs"> | string | null
+    request_payload?: JsonNullableFilter<"external_api_logs">
+    response_payload?: JsonNullableFilter<"external_api_logs">
+    status_code?: IntNullableFilter<"external_api_logs"> | number | null
+    error_message?: StringNullableFilter<"external_api_logs"> | string | null
+    response_time_ms?: IntNullableFilter<"external_api_logs"> | number | null
+    user_id?: UuidNullableFilter<"external_api_logs"> | string | null
+    created_at?: DateTimeFilter<"external_api_logs"> | Date | string
+    created_commit_id?: StringFilter<"external_api_logs"> | string
+  }, "id">
+
+  export type external_api_logsOrderByWithAggregationInput = {
+    id?: SortOrder
+    request_id?: SortOrderInput | SortOrder
+    function_name?: SortOrderInput | SortOrder
+    api_name?: SortOrderInput | SortOrder
+    endpoint?: SortOrderInput | SortOrder
+    request_payload?: SortOrderInput | SortOrder
+    response_payload?: SortOrderInput | SortOrder
+    status_code?: SortOrderInput | SortOrder
+    error_message?: SortOrderInput | SortOrder
+    response_time_ms?: SortOrderInput | SortOrder
+    user_id?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+    _count?: external_api_logsCountOrderByAggregateInput
+    _avg?: external_api_logsAvgOrderByAggregateInput
+    _max?: external_api_logsMaxOrderByAggregateInput
+    _min?: external_api_logsMinOrderByAggregateInput
+    _sum?: external_api_logsSumOrderByAggregateInput
+  }
+
+  export type external_api_logsScalarWhereWithAggregatesInput = {
+    AND?: external_api_logsScalarWhereWithAggregatesInput | external_api_logsScalarWhereWithAggregatesInput[]
+    OR?: external_api_logsScalarWhereWithAggregatesInput[]
+    NOT?: external_api_logsScalarWhereWithAggregatesInput | external_api_logsScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"external_api_logs"> | string
+    request_id?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
+    function_name?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
+    api_name?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
+    endpoint?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
+    request_payload?: JsonNullableWithAggregatesFilter<"external_api_logs">
+    response_payload?: JsonNullableWithAggregatesFilter<"external_api_logs">
+    status_code?: IntNullableWithAggregatesFilter<"external_api_logs"> | number | null
+    error_message?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
+    response_time_ms?: IntNullableWithAggregatesFilter<"external_api_logs"> | number | null
+    user_id?: UuidNullableWithAggregatesFilter<"external_api_logs"> | string | null
+    created_at?: DateTimeWithAggregatesFilter<"external_api_logs"> | Date | string
+    created_commit_id?: StringWithAggregatesFilter<"external_api_logs"> | string
+  }
+
+  export type frontend_event_logsWhereInput = {
+    AND?: frontend_event_logsWhereInput | frontend_event_logsWhereInput[]
+    OR?: frontend_event_logsWhereInput[]
+    NOT?: frontend_event_logsWhereInput | frontend_event_logsWhereInput[]
+    id?: StringFilter<"frontend_event_logs"> | string
+    user_id?: UuidNullableFilter<"frontend_event_logs"> | string | null
+    event_name?: StringNullableFilter<"frontend_event_logs"> | string | null
+    error_level?: Enumfrontend_event_logs_error_levelNullableFilter<"frontend_event_logs"> | $Enums.frontend_event_logs_error_level | null
+    path_name?: StringNullableFilter<"frontend_event_logs"> | string | null
+    payload?: StringNullableFilter<"frontend_event_logs"> | string | null
+    created_at?: DateTimeFilter<"frontend_event_logs"> | Date | string
+    created_app_version?: StringFilter<"frontend_event_logs"> | string
+    created_commit_id?: StringFilter<"frontend_event_logs"> | string
+  }
+
+  export type frontend_event_logsOrderByWithRelationInput = {
+    id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    event_name?: SortOrderInput | SortOrder
+    error_level?: SortOrderInput | SortOrder
+    path_name?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    created_app_version?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type frontend_event_logsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: frontend_event_logsWhereInput | frontend_event_logsWhereInput[]
+    OR?: frontend_event_logsWhereInput[]
+    NOT?: frontend_event_logsWhereInput | frontend_event_logsWhereInput[]
+    user_id?: UuidNullableFilter<"frontend_event_logs"> | string | null
+    event_name?: StringNullableFilter<"frontend_event_logs"> | string | null
+    error_level?: Enumfrontend_event_logs_error_levelNullableFilter<"frontend_event_logs"> | $Enums.frontend_event_logs_error_level | null
+    path_name?: StringNullableFilter<"frontend_event_logs"> | string | null
+    payload?: StringNullableFilter<"frontend_event_logs"> | string | null
+    created_at?: DateTimeFilter<"frontend_event_logs"> | Date | string
+    created_app_version?: StringFilter<"frontend_event_logs"> | string
+    created_commit_id?: StringFilter<"frontend_event_logs"> | string
+  }, "id">
+
+  export type frontend_event_logsOrderByWithAggregationInput = {
+    id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    event_name?: SortOrderInput | SortOrder
+    error_level?: SortOrderInput | SortOrder
+    path_name?: SortOrderInput | SortOrder
+    payload?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    created_app_version?: SortOrder
+    created_commit_id?: SortOrder
+    _count?: frontend_event_logsCountOrderByAggregateInput
+    _max?: frontend_event_logsMaxOrderByAggregateInput
+    _min?: frontend_event_logsMinOrderByAggregateInput
+  }
+
+  export type frontend_event_logsScalarWhereWithAggregatesInput = {
+    AND?: frontend_event_logsScalarWhereWithAggregatesInput | frontend_event_logsScalarWhereWithAggregatesInput[]
+    OR?: frontend_event_logsScalarWhereWithAggregatesInput[]
+    NOT?: frontend_event_logsScalarWhereWithAggregatesInput | frontend_event_logsScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"frontend_event_logs"> | string
+    user_id?: UuidNullableWithAggregatesFilter<"frontend_event_logs"> | string | null
+    event_name?: StringNullableWithAggregatesFilter<"frontend_event_logs"> | string | null
+    error_level?: Enumfrontend_event_logs_error_levelNullableWithAggregatesFilter<"frontend_event_logs"> | $Enums.frontend_event_logs_error_level | null
+    path_name?: StringNullableWithAggregatesFilter<"frontend_event_logs"> | string | null
+    payload?: StringNullableWithAggregatesFilter<"frontend_event_logs"> | string | null
+    created_at?: DateTimeWithAggregatesFilter<"frontend_event_logs"> | Date | string
+    created_app_version?: StringWithAggregatesFilter<"frontend_event_logs"> | string
+    created_commit_id?: StringWithAggregatesFilter<"frontend_event_logs"> | string
+  }
+
   export type payoutsWhereInput = {
     AND?: payoutsWhereInput | payoutsWhereInput[]
     OR?: payoutsWhereInput[]
@@ -15469,6 +25349,299 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"payouts"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"payouts"> | Date | string
     lock_no?: IntWithAggregatesFilter<"payouts"> | number
+  }
+
+  export type prompt_familiesWhereInput = {
+    AND?: prompt_familiesWhereInput | prompt_familiesWhereInput[]
+    OR?: prompt_familiesWhereInput[]
+    NOT?: prompt_familiesWhereInput | prompt_familiesWhereInput[]
+    id?: StringFilter<"prompt_families"> | string
+    name?: StringFilter<"prompt_families"> | string
+    description?: StringFilter<"prompt_families"> | string
+    purpose?: Enumprompt_families_purposeFilter<"prompt_families"> | $Enums.prompt_families_purpose
+    weight?: IntFilter<"prompt_families"> | number
+    prompt_variants?: Prompt_variantsListRelationFilter
+  }
+
+  export type prompt_familiesOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    purpose?: SortOrder
+    weight?: SortOrder
+    prompt_variants?: prompt_variantsOrderByRelationAggregateInput
+  }
+
+  export type prompt_familiesWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: prompt_familiesWhereInput | prompt_familiesWhereInput[]
+    OR?: prompt_familiesWhereInput[]
+    NOT?: prompt_familiesWhereInput | prompt_familiesWhereInput[]
+    name?: StringFilter<"prompt_families"> | string
+    description?: StringFilter<"prompt_families"> | string
+    purpose?: Enumprompt_families_purposeFilter<"prompt_families"> | $Enums.prompt_families_purpose
+    weight?: IntFilter<"prompt_families"> | number
+    prompt_variants?: Prompt_variantsListRelationFilter
+  }, "id">
+
+  export type prompt_familiesOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    purpose?: SortOrder
+    weight?: SortOrder
+    _count?: prompt_familiesCountOrderByAggregateInput
+    _avg?: prompt_familiesAvgOrderByAggregateInput
+    _max?: prompt_familiesMaxOrderByAggregateInput
+    _min?: prompt_familiesMinOrderByAggregateInput
+    _sum?: prompt_familiesSumOrderByAggregateInput
+  }
+
+  export type prompt_familiesScalarWhereWithAggregatesInput = {
+    AND?: prompt_familiesScalarWhereWithAggregatesInput | prompt_familiesScalarWhereWithAggregatesInput[]
+    OR?: prompt_familiesScalarWhereWithAggregatesInput[]
+    NOT?: prompt_familiesScalarWhereWithAggregatesInput | prompt_familiesScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"prompt_families"> | string
+    name?: StringWithAggregatesFilter<"prompt_families"> | string
+    description?: StringWithAggregatesFilter<"prompt_families"> | string
+    purpose?: Enumprompt_families_purposeWithAggregatesFilter<"prompt_families"> | $Enums.prompt_families_purpose
+    weight?: IntWithAggregatesFilter<"prompt_families"> | number
+  }
+
+  export type prompt_usagesWhereInput = {
+    AND?: prompt_usagesWhereInput | prompt_usagesWhereInput[]
+    OR?: prompt_usagesWhereInput[]
+    NOT?: prompt_usagesWhereInput | prompt_usagesWhereInput[]
+    id?: StringFilter<"prompt_usages"> | string
+    family_id?: StringFilter<"prompt_usages"> | string
+    variant_id?: StringFilter<"prompt_usages"> | string
+    target_type?: StringFilter<"prompt_usages"> | string
+    target_id?: StringFilter<"prompt_usages"> | string
+    generated_text?: StringFilter<"prompt_usages"> | string
+    used_prompt_text?: StringFilter<"prompt_usages"> | string
+    input_data?: JsonNullableFilter<"prompt_usages">
+    llm_model?: StringFilter<"prompt_usages"> | string
+    temperature?: DecimalNullableFilter<"prompt_usages"> | Decimal | DecimalJsLike | number | string | null
+    generated_user?: UuidFilter<"prompt_usages"> | string
+    created_at?: DateTimeFilter<"prompt_usages"> | Date | string
+    created_request_id?: StringFilter<"prompt_usages"> | string
+    metadata?: JsonNullableFilter<"prompt_usages">
+  }
+
+  export type prompt_usagesOrderByWithRelationInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    generated_text?: SortOrder
+    used_prompt_text?: SortOrder
+    input_data?: SortOrderInput | SortOrder
+    llm_model?: SortOrder
+    temperature?: SortOrderInput | SortOrder
+    generated_user?: SortOrder
+    created_at?: SortOrder
+    created_request_id?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+  }
+
+  export type prompt_usagesWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: prompt_usagesWhereInput | prompt_usagesWhereInput[]
+    OR?: prompt_usagesWhereInput[]
+    NOT?: prompt_usagesWhereInput | prompt_usagesWhereInput[]
+    family_id?: StringFilter<"prompt_usages"> | string
+    variant_id?: StringFilter<"prompt_usages"> | string
+    target_type?: StringFilter<"prompt_usages"> | string
+    target_id?: StringFilter<"prompt_usages"> | string
+    generated_text?: StringFilter<"prompt_usages"> | string
+    used_prompt_text?: StringFilter<"prompt_usages"> | string
+    input_data?: JsonNullableFilter<"prompt_usages">
+    llm_model?: StringFilter<"prompt_usages"> | string
+    temperature?: DecimalNullableFilter<"prompt_usages"> | Decimal | DecimalJsLike | number | string | null
+    generated_user?: UuidFilter<"prompt_usages"> | string
+    created_at?: DateTimeFilter<"prompt_usages"> | Date | string
+    created_request_id?: StringFilter<"prompt_usages"> | string
+    metadata?: JsonNullableFilter<"prompt_usages">
+  }, "id">
+
+  export type prompt_usagesOrderByWithAggregationInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    generated_text?: SortOrder
+    used_prompt_text?: SortOrder
+    input_data?: SortOrderInput | SortOrder
+    llm_model?: SortOrder
+    temperature?: SortOrderInput | SortOrder
+    generated_user?: SortOrder
+    created_at?: SortOrder
+    created_request_id?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    _count?: prompt_usagesCountOrderByAggregateInput
+    _avg?: prompt_usagesAvgOrderByAggregateInput
+    _max?: prompt_usagesMaxOrderByAggregateInput
+    _min?: prompt_usagesMinOrderByAggregateInput
+    _sum?: prompt_usagesSumOrderByAggregateInput
+  }
+
+  export type prompt_usagesScalarWhereWithAggregatesInput = {
+    AND?: prompt_usagesScalarWhereWithAggregatesInput | prompt_usagesScalarWhereWithAggregatesInput[]
+    OR?: prompt_usagesScalarWhereWithAggregatesInput[]
+    NOT?: prompt_usagesScalarWhereWithAggregatesInput | prompt_usagesScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"prompt_usages"> | string
+    family_id?: StringWithAggregatesFilter<"prompt_usages"> | string
+    variant_id?: StringWithAggregatesFilter<"prompt_usages"> | string
+    target_type?: StringWithAggregatesFilter<"prompt_usages"> | string
+    target_id?: StringWithAggregatesFilter<"prompt_usages"> | string
+    generated_text?: StringWithAggregatesFilter<"prompt_usages"> | string
+    used_prompt_text?: StringWithAggregatesFilter<"prompt_usages"> | string
+    input_data?: JsonNullableWithAggregatesFilter<"prompt_usages">
+    llm_model?: StringWithAggregatesFilter<"prompt_usages"> | string
+    temperature?: DecimalNullableWithAggregatesFilter<"prompt_usages"> | Decimal | DecimalJsLike | number | string | null
+    generated_user?: UuidWithAggregatesFilter<"prompt_usages"> | string
+    created_at?: DateTimeWithAggregatesFilter<"prompt_usages"> | Date | string
+    created_request_id?: StringWithAggregatesFilter<"prompt_usages"> | string
+    metadata?: JsonNullableWithAggregatesFilter<"prompt_usages">
+  }
+
+  export type prompt_variantsWhereInput = {
+    AND?: prompt_variantsWhereInput | prompt_variantsWhereInput[]
+    OR?: prompt_variantsWhereInput[]
+    NOT?: prompt_variantsWhereInput | prompt_variantsWhereInput[]
+    id?: StringFilter<"prompt_variants"> | string
+    family_id?: StringFilter<"prompt_variants"> | string
+    variant_number?: IntFilter<"prompt_variants"> | number
+    prompt_text?: StringFilter<"prompt_variants"> | string
+    improvement_note?: StringNullableFilter<"prompt_variants"> | string | null
+    created_by?: StringFilter<"prompt_variants"> | string
+    metadata?: JsonNullableFilter<"prompt_variants">
+    prompt_families?: XOR<Prompt_familiesScalarRelationFilter, prompt_familiesWhereInput>
+  }
+
+  export type prompt_variantsOrderByWithRelationInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_number?: SortOrder
+    prompt_text?: SortOrder
+    improvement_note?: SortOrderInput | SortOrder
+    created_by?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    prompt_families?: prompt_familiesOrderByWithRelationInput
+  }
+
+  export type prompt_variantsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    family_id_variant_number?: prompt_variantsFamily_idVariant_numberCompoundUniqueInput
+    AND?: prompt_variantsWhereInput | prompt_variantsWhereInput[]
+    OR?: prompt_variantsWhereInput[]
+    NOT?: prompt_variantsWhereInput | prompt_variantsWhereInput[]
+    family_id?: StringFilter<"prompt_variants"> | string
+    variant_number?: IntFilter<"prompt_variants"> | number
+    prompt_text?: StringFilter<"prompt_variants"> | string
+    improvement_note?: StringNullableFilter<"prompt_variants"> | string | null
+    created_by?: StringFilter<"prompt_variants"> | string
+    metadata?: JsonNullableFilter<"prompt_variants">
+    prompt_families?: XOR<Prompt_familiesScalarRelationFilter, prompt_familiesWhereInput>
+  }, "id" | "family_id_variant_number">
+
+  export type prompt_variantsOrderByWithAggregationInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_number?: SortOrder
+    prompt_text?: SortOrder
+    improvement_note?: SortOrderInput | SortOrder
+    created_by?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    _count?: prompt_variantsCountOrderByAggregateInput
+    _avg?: prompt_variantsAvgOrderByAggregateInput
+    _max?: prompt_variantsMaxOrderByAggregateInput
+    _min?: prompt_variantsMinOrderByAggregateInput
+    _sum?: prompt_variantsSumOrderByAggregateInput
+  }
+
+  export type prompt_variantsScalarWhereWithAggregatesInput = {
+    AND?: prompt_variantsScalarWhereWithAggregatesInput | prompt_variantsScalarWhereWithAggregatesInput[]
+    OR?: prompt_variantsScalarWhereWithAggregatesInput[]
+    NOT?: prompt_variantsScalarWhereWithAggregatesInput | prompt_variantsScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"prompt_variants"> | string
+    family_id?: StringWithAggregatesFilter<"prompt_variants"> | string
+    variant_number?: IntWithAggregatesFilter<"prompt_variants"> | number
+    prompt_text?: StringWithAggregatesFilter<"prompt_variants"> | string
+    improvement_note?: StringNullableWithAggregatesFilter<"prompt_variants"> | string | null
+    created_by?: StringWithAggregatesFilter<"prompt_variants"> | string
+    metadata?: JsonNullableWithAggregatesFilter<"prompt_variants">
+  }
+
+  export type reactionsWhereInput = {
+    AND?: reactionsWhereInput | reactionsWhereInput[]
+    OR?: reactionsWhereInput[]
+    NOT?: reactionsWhereInput | reactionsWhereInput[]
+    id?: StringFilter<"reactions"> | string
+    user_id?: UuidFilter<"reactions"> | string
+    target_type?: StringFilter<"reactions"> | string
+    target_id?: StringFilter<"reactions"> | string
+    action_type?: StringFilter<"reactions"> | string
+    created_at?: DateTimeFilter<"reactions"> | Date | string
+    created_version?: StringFilter<"reactions"> | string
+    lock_no?: IntFilter<"reactions"> | number
+  }
+
+  export type reactionsOrderByWithRelationInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    action_type?: SortOrder
+    created_at?: SortOrder
+    created_version?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type reactionsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: reactionsWhereInput | reactionsWhereInput[]
+    OR?: reactionsWhereInput[]
+    NOT?: reactionsWhereInput | reactionsWhereInput[]
+    user_id?: UuidFilter<"reactions"> | string
+    target_type?: StringFilter<"reactions"> | string
+    target_id?: StringFilter<"reactions"> | string
+    action_type?: StringFilter<"reactions"> | string
+    created_at?: DateTimeFilter<"reactions"> | Date | string
+    created_version?: StringFilter<"reactions"> | string
+    lock_no?: IntFilter<"reactions"> | number
+  }, "id">
+
+  export type reactionsOrderByWithAggregationInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    action_type?: SortOrder
+    created_at?: SortOrder
+    created_version?: SortOrder
+    lock_no?: SortOrder
+    _count?: reactionsCountOrderByAggregateInput
+    _avg?: reactionsAvgOrderByAggregateInput
+    _max?: reactionsMaxOrderByAggregateInput
+    _min?: reactionsMinOrderByAggregateInput
+    _sum?: reactionsSumOrderByAggregateInput
+  }
+
+  export type reactionsScalarWhereWithAggregatesInput = {
+    AND?: reactionsScalarWhereWithAggregatesInput | reactionsScalarWhereWithAggregatesInput[]
+    OR?: reactionsScalarWhereWithAggregatesInput[]
+    NOT?: reactionsScalarWhereWithAggregatesInput | reactionsScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"reactions"> | string
+    user_id?: UuidWithAggregatesFilter<"reactions"> | string
+    target_type?: StringWithAggregatesFilter<"reactions"> | string
+    target_id?: StringWithAggregatesFilter<"reactions"> | string
+    action_type?: StringWithAggregatesFilter<"reactions"> | string
+    created_at?: DateTimeWithAggregatesFilter<"reactions"> | Date | string
+    created_version?: StringWithAggregatesFilter<"reactions"> | string
+    lock_no?: IntWithAggregatesFilter<"reactions"> | number
   }
 
   export type restaurant_bidsWhereInput = {
@@ -15770,6 +25943,132 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"users"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"users"> | Date | string
     lock_no?: IntWithAggregatesFilter<"users"> | number
+  }
+
+  export type backend_event_logsCreateInput = {
+    id: string
+    event_name?: string | null
+    error_level?: $Enums.backend_event_logs_error_level | null
+    function_name?: string | null
+    user_id?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    request_id?: string | null
+    created_at: Date | string
+    created_commit_id: string
+  }
+
+  export type backend_event_logsUncheckedCreateInput = {
+    id: string
+    event_name?: string | null
+    error_level?: $Enums.backend_event_logs_error_level | null
+    function_name?: string | null
+    user_id?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    request_id?: string | null
+    created_at: Date | string
+    created_commit_id: string
+  }
+
+  export type backend_event_logsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumbackend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.backend_event_logs_error_level | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type backend_event_logsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumbackend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.backend_event_logs_error_level | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type backend_event_logsCreateManyInput = {
+    id: string
+    event_name?: string | null
+    error_level?: $Enums.backend_event_logs_error_level | null
+    function_name?: string | null
+    user_id?: string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    request_id?: string | null
+    created_at: Date | string
+    created_commit_id: string
+  }
+
+  export type backend_event_logsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumbackend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.backend_event_logs_error_level | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type backend_event_logsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumbackend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.backend_event_logs_error_level | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type configCreateInput = {
+    key: string
+    value: string
+    description?: string | null
+  }
+
+  export type configUncheckedCreateInput = {
+    key: string
+    value: string
+    description?: string | null
+  }
+
+  export type configUpdateInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    value?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type configUncheckedUpdateInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    value?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type configCreateManyInput = {
+    key: string
+    value: string
+    description?: string | null
+  }
+
+  export type configUpdateManyMutationInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    value?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type configUncheckedUpdateManyInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    value?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type dish_categoriesCreateInput = {
@@ -16235,6 +26534,202 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
+  export type external_api_logsCreateInput = {
+    id: string
+    request_id?: string | null
+    function_name?: string | null
+    api_name?: string | null
+    endpoint?: string | null
+    request_payload?: NullableJsonNullValueInput | InputJsonValue
+    response_payload?: NullableJsonNullValueInput | InputJsonValue
+    status_code?: number | null
+    error_message?: string | null
+    response_time_ms?: number | null
+    user_id?: string | null
+    created_at: Date | string
+    created_commit_id: string
+  }
+
+  export type external_api_logsUncheckedCreateInput = {
+    id: string
+    request_id?: string | null
+    function_name?: string | null
+    api_name?: string | null
+    endpoint?: string | null
+    request_payload?: NullableJsonNullValueInput | InputJsonValue
+    response_payload?: NullableJsonNullValueInput | InputJsonValue
+    status_code?: number | null
+    error_message?: string | null
+    response_time_ms?: number | null
+    user_id?: string | null
+    created_at: Date | string
+    created_commit_id: string
+  }
+
+  export type external_api_logsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    api_name?: NullableStringFieldUpdateOperationsInput | string | null
+    endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    request_payload?: NullableJsonNullValueInput | InputJsonValue
+    response_payload?: NullableJsonNullValueInput | InputJsonValue
+    status_code?: NullableIntFieldUpdateOperationsInput | number | null
+    error_message?: NullableStringFieldUpdateOperationsInput | string | null
+    response_time_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type external_api_logsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    api_name?: NullableStringFieldUpdateOperationsInput | string | null
+    endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    request_payload?: NullableJsonNullValueInput | InputJsonValue
+    response_payload?: NullableJsonNullValueInput | InputJsonValue
+    status_code?: NullableIntFieldUpdateOperationsInput | number | null
+    error_message?: NullableStringFieldUpdateOperationsInput | string | null
+    response_time_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type external_api_logsCreateManyInput = {
+    id: string
+    request_id?: string | null
+    function_name?: string | null
+    api_name?: string | null
+    endpoint?: string | null
+    request_payload?: NullableJsonNullValueInput | InputJsonValue
+    response_payload?: NullableJsonNullValueInput | InputJsonValue
+    status_code?: number | null
+    error_message?: string | null
+    response_time_ms?: number | null
+    user_id?: string | null
+    created_at: Date | string
+    created_commit_id: string
+  }
+
+  export type external_api_logsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    api_name?: NullableStringFieldUpdateOperationsInput | string | null
+    endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    request_payload?: NullableJsonNullValueInput | InputJsonValue
+    response_payload?: NullableJsonNullValueInput | InputJsonValue
+    status_code?: NullableIntFieldUpdateOperationsInput | number | null
+    error_message?: NullableStringFieldUpdateOperationsInput | string | null
+    response_time_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type external_api_logsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    request_id?: NullableStringFieldUpdateOperationsInput | string | null
+    function_name?: NullableStringFieldUpdateOperationsInput | string | null
+    api_name?: NullableStringFieldUpdateOperationsInput | string | null
+    endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    request_payload?: NullableJsonNullValueInput | InputJsonValue
+    response_payload?: NullableJsonNullValueInput | InputJsonValue
+    status_code?: NullableIntFieldUpdateOperationsInput | number | null
+    error_message?: NullableStringFieldUpdateOperationsInput | string | null
+    response_time_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type frontend_event_logsCreateInput = {
+    id: string
+    user_id?: string | null
+    event_name?: string | null
+    error_level?: $Enums.frontend_event_logs_error_level | null
+    path_name?: string | null
+    payload?: string | null
+    created_at: Date | string
+    created_app_version: string
+    created_commit_id: string
+  }
+
+  export type frontend_event_logsUncheckedCreateInput = {
+    id: string
+    user_id?: string | null
+    event_name?: string | null
+    error_level?: $Enums.frontend_event_logs_error_level | null
+    path_name?: string | null
+    payload?: string | null
+    created_at: Date | string
+    created_app_version: string
+    created_commit_id: string
+  }
+
+  export type frontend_event_logsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumfrontend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.frontend_event_logs_error_level | null
+    path_name?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_app_version?: StringFieldUpdateOperationsInput | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type frontend_event_logsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumfrontend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.frontend_event_logs_error_level | null
+    path_name?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_app_version?: StringFieldUpdateOperationsInput | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type frontend_event_logsCreateManyInput = {
+    id: string
+    user_id?: string | null
+    event_name?: string | null
+    error_level?: $Enums.frontend_event_logs_error_level | null
+    path_name?: string | null
+    payload?: string | null
+    created_at: Date | string
+    created_app_version: string
+    created_commit_id: string
+  }
+
+  export type frontend_event_logsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumfrontend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.frontend_event_logs_error_level | null
+    path_name?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_app_version?: StringFieldUpdateOperationsInput | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type frontend_event_logsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    event_name?: NullableStringFieldUpdateOperationsInput | string | null
+    error_level?: NullableEnumfrontend_event_logs_error_levelFieldUpdateOperationsInput | $Enums.frontend_event_logs_error_level | null
+    path_name?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_app_version?: StringFieldUpdateOperationsInput | string
+    created_commit_id?: StringFieldUpdateOperationsInput | string
+  }
+
   export type payoutsCreateInput = {
     id?: string
     transfer_id: string
@@ -16321,6 +26816,331 @@ export namespace Prisma {
     status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type prompt_familiesCreateInput = {
+    id: string
+    name: string
+    description: string
+    purpose: $Enums.prompt_families_purpose
+    weight: number
+    prompt_variants?: prompt_variantsCreateNestedManyWithoutPrompt_familiesInput
+  }
+
+  export type prompt_familiesUncheckedCreateInput = {
+    id: string
+    name: string
+    description: string
+    purpose: $Enums.prompt_families_purpose
+    weight: number
+    prompt_variants?: prompt_variantsUncheckedCreateNestedManyWithoutPrompt_familiesInput
+  }
+
+  export type prompt_familiesUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    purpose?: Enumprompt_families_purposeFieldUpdateOperationsInput | $Enums.prompt_families_purpose
+    weight?: IntFieldUpdateOperationsInput | number
+    prompt_variants?: prompt_variantsUpdateManyWithoutPrompt_familiesNestedInput
+  }
+
+  export type prompt_familiesUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    purpose?: Enumprompt_families_purposeFieldUpdateOperationsInput | $Enums.prompt_families_purpose
+    weight?: IntFieldUpdateOperationsInput | number
+    prompt_variants?: prompt_variantsUncheckedUpdateManyWithoutPrompt_familiesNestedInput
+  }
+
+  export type prompt_familiesCreateManyInput = {
+    id: string
+    name: string
+    description: string
+    purpose: $Enums.prompt_families_purpose
+    weight: number
+  }
+
+  export type prompt_familiesUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    purpose?: Enumprompt_families_purposeFieldUpdateOperationsInput | $Enums.prompt_families_purpose
+    weight?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type prompt_familiesUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    purpose?: Enumprompt_families_purposeFieldUpdateOperationsInput | $Enums.prompt_families_purpose
+    weight?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type prompt_usagesCreateInput = {
+    id: string
+    family_id: string
+    variant_id: string
+    target_type: string
+    target_id: string
+    generated_text: string
+    used_prompt_text: string
+    input_data?: NullableJsonNullValueInput | InputJsonValue
+    llm_model: string
+    temperature?: Decimal | DecimalJsLike | number | string | null
+    generated_user: string
+    created_at: Date | string
+    created_request_id: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_usagesUncheckedCreateInput = {
+    id: string
+    family_id: string
+    variant_id: string
+    target_type: string
+    target_id: string
+    generated_text: string
+    used_prompt_text: string
+    input_data?: NullableJsonNullValueInput | InputJsonValue
+    llm_model: string
+    temperature?: Decimal | DecimalJsLike | number | string | null
+    generated_user: string
+    created_at: Date | string
+    created_request_id: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_usagesUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    family_id?: StringFieldUpdateOperationsInput | string
+    variant_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    generated_text?: StringFieldUpdateOperationsInput | string
+    used_prompt_text?: StringFieldUpdateOperationsInput | string
+    input_data?: NullableJsonNullValueInput | InputJsonValue
+    llm_model?: StringFieldUpdateOperationsInput | string
+    temperature?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    generated_user?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_request_id?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_usagesUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    family_id?: StringFieldUpdateOperationsInput | string
+    variant_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    generated_text?: StringFieldUpdateOperationsInput | string
+    used_prompt_text?: StringFieldUpdateOperationsInput | string
+    input_data?: NullableJsonNullValueInput | InputJsonValue
+    llm_model?: StringFieldUpdateOperationsInput | string
+    temperature?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    generated_user?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_request_id?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_usagesCreateManyInput = {
+    id: string
+    family_id: string
+    variant_id: string
+    target_type: string
+    target_id: string
+    generated_text: string
+    used_prompt_text: string
+    input_data?: NullableJsonNullValueInput | InputJsonValue
+    llm_model: string
+    temperature?: Decimal | DecimalJsLike | number | string | null
+    generated_user: string
+    created_at: Date | string
+    created_request_id: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_usagesUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    family_id?: StringFieldUpdateOperationsInput | string
+    variant_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    generated_text?: StringFieldUpdateOperationsInput | string
+    used_prompt_text?: StringFieldUpdateOperationsInput | string
+    input_data?: NullableJsonNullValueInput | InputJsonValue
+    llm_model?: StringFieldUpdateOperationsInput | string
+    temperature?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    generated_user?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_request_id?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_usagesUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    family_id?: StringFieldUpdateOperationsInput | string
+    variant_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    generated_text?: StringFieldUpdateOperationsInput | string
+    used_prompt_text?: StringFieldUpdateOperationsInput | string
+    input_data?: NullableJsonNullValueInput | InputJsonValue
+    llm_model?: StringFieldUpdateOperationsInput | string
+    temperature?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    generated_user?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_request_id?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsCreateInput = {
+    id: string
+    variant_number: number
+    prompt_text: string
+    improvement_note?: string | null
+    created_by: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    prompt_families: prompt_familiesCreateNestedOneWithoutPrompt_variantsInput
+  }
+
+  export type prompt_variantsUncheckedCreateInput = {
+    id: string
+    family_id: string
+    variant_number: number
+    prompt_text: string
+    improvement_note?: string | null
+    created_by: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    variant_number?: IntFieldUpdateOperationsInput | number
+    prompt_text?: StringFieldUpdateOperationsInput | string
+    improvement_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_by?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    prompt_families?: prompt_familiesUpdateOneRequiredWithoutPrompt_variantsNestedInput
+  }
+
+  export type prompt_variantsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    family_id?: StringFieldUpdateOperationsInput | string
+    variant_number?: IntFieldUpdateOperationsInput | number
+    prompt_text?: StringFieldUpdateOperationsInput | string
+    improvement_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_by?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsCreateManyInput = {
+    id: string
+    family_id: string
+    variant_number: number
+    prompt_text: string
+    improvement_note?: string | null
+    created_by: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    variant_number?: IntFieldUpdateOperationsInput | number
+    prompt_text?: StringFieldUpdateOperationsInput | string
+    improvement_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_by?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    family_id?: StringFieldUpdateOperationsInput | string
+    variant_number?: IntFieldUpdateOperationsInput | number
+    prompt_text?: StringFieldUpdateOperationsInput | string
+    improvement_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_by?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type reactionsCreateInput = {
+    id: string
+    user_id: string
+    target_type: string
+    target_id: string
+    action_type: string
+    created_at: Date | string
+    created_version: string
+    lock_no: number
+  }
+
+  export type reactionsUncheckedCreateInput = {
+    id: string
+    user_id: string
+    target_type: string
+    target_id: string
+    action_type: string
+    created_at: Date | string
+    created_version: string
+    lock_no: number
+  }
+
+  export type reactionsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    action_type?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_version?: StringFieldUpdateOperationsInput | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type reactionsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    action_type?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_version?: StringFieldUpdateOperationsInput | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type reactionsCreateManyInput = {
+    id: string
+    user_id: string
+    target_type: string
+    target_id: string
+    action_type: string
+    created_at: Date | string
+    created_version: string
+    lock_no: number
+  }
+
+  export type reactionsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    action_type?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_version?: StringFieldUpdateOperationsInput | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type reactionsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    action_type?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    created_version?: StringFieldUpdateOperationsInput | string
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
@@ -16644,6 +27464,232 @@ export namespace Prisma {
     mode?: QueryMode
     not?: NestedStringFilter<$PrismaModel> | string
   }
+
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type Enumbackend_event_logs_error_levelNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.backend_event_logs_error_level | Enumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumbackend_event_logs_error_levelNullableFilter<$PrismaModel> | $Enums.backend_event_logs_error_level | null
+  }
+
+  export type UuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type DateTimeFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
+  export type backend_event_logsCountOrderByAggregateInput = {
+    id?: SortOrder
+    event_name?: SortOrder
+    error_level?: SortOrder
+    function_name?: SortOrder
+    user_id?: SortOrder
+    payload?: SortOrder
+    request_id?: SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type backend_event_logsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    event_name?: SortOrder
+    error_level?: SortOrder
+    function_name?: SortOrder
+    user_id?: SortOrder
+    request_id?: SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type backend_event_logsMinOrderByAggregateInput = {
+    id?: SortOrder
+    event_name?: SortOrder
+    error_level?: SortOrder
+    function_name?: SortOrder
+    user_id?: SortOrder
+    request_id?: SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type StringWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type Enumbackend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.backend_event_logs_error_level | Enumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumbackend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel> | $Enums.backend_event_logs_error_level | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumbackend_event_logs_error_levelNullableFilter<$PrismaModel>
+    _max?: NestedEnumbackend_event_logs_error_levelNullableFilter<$PrismaModel>
+  }
+
+  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type configCountOrderByAggregateInput = {
+    key?: SortOrder
+    value?: SortOrder
+    description?: SortOrder
+  }
+
+  export type configMaxOrderByAggregateInput = {
+    key?: SortOrder
+    value?: SortOrder
+    description?: SortOrder
+  }
+
+  export type configMinOrderByAggregateInput = {
+    key?: SortOrder
+    value?: SortOrder
+    description?: SortOrder
+  }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -16674,17 +27720,6 @@ export namespace Prisma {
     hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
     hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
     isEmpty?: boolean
-  }
-
-  export type DateTimeFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -16756,24 +27791,6 @@ export namespace Prisma {
   export type dish_categoriesSumOrderByAggregateInput = {
     lock_no?: SortOrder
   }
-
-  export type StringWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedStringFilter<$PrismaModel>
-    _max?: NestedStringFilter<$PrismaModel>
-  }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
@@ -16799,20 +27816,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedJsonFilter<$PrismaModel>
     _max?: NestedJsonFilter<$PrismaModel>
-  }
-
-  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
@@ -16843,29 +27846,9 @@ export namespace Prisma {
     not?: NestedUuidFilter<$PrismaModel> | string
   }
 
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type Dish_categoriesScalarRelationFilter = {
     is?: dish_categoriesWhereInput
     isNot?: dish_categoriesWhereInput
-  }
-
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
   }
 
   export type dish_category_variantsCountOrderByAggregateInput = {
@@ -16907,24 +27890,6 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
   export type Dish_mediaScalarRelationFilter = {
     is?: dish_mediaWhereInput
     isNot?: dish_mediaWhereInput
@@ -16959,18 +27924,6 @@ export namespace Prisma {
     dish_media_id?: SortOrder
     user_id?: SortOrder
     created_at?: SortOrder
-  }
-
-  export type UuidNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
   }
 
   export type Dish_likesListRelationFilter = {
@@ -17045,21 +27998,6 @@ export namespace Prisma {
 
   export type dish_mediaSumOrderByAggregateInput = {
     lock_no?: SortOrder
-  }
-
-  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -17204,6 +28142,113 @@ export namespace Prisma {
     lock_no?: SortOrder
   }
 
+  export type external_api_logsCountOrderByAggregateInput = {
+    id?: SortOrder
+    request_id?: SortOrder
+    function_name?: SortOrder
+    api_name?: SortOrder
+    endpoint?: SortOrder
+    request_payload?: SortOrder
+    response_payload?: SortOrder
+    status_code?: SortOrder
+    error_message?: SortOrder
+    response_time_ms?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type external_api_logsAvgOrderByAggregateInput = {
+    status_code?: SortOrder
+    response_time_ms?: SortOrder
+  }
+
+  export type external_api_logsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    request_id?: SortOrder
+    function_name?: SortOrder
+    api_name?: SortOrder
+    endpoint?: SortOrder
+    status_code?: SortOrder
+    error_message?: SortOrder
+    response_time_ms?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type external_api_logsMinOrderByAggregateInput = {
+    id?: SortOrder
+    request_id?: SortOrder
+    function_name?: SortOrder
+    api_name?: SortOrder
+    endpoint?: SortOrder
+    status_code?: SortOrder
+    error_message?: SortOrder
+    response_time_ms?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type external_api_logsSumOrderByAggregateInput = {
+    status_code?: SortOrder
+    response_time_ms?: SortOrder
+  }
+
+  export type Enumfrontend_event_logs_error_levelNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.frontend_event_logs_error_level | Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel> | $Enums.frontend_event_logs_error_level | null
+  }
+
+  export type frontend_event_logsCountOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    event_name?: SortOrder
+    error_level?: SortOrder
+    path_name?: SortOrder
+    payload?: SortOrder
+    created_at?: SortOrder
+    created_app_version?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type frontend_event_logsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    event_name?: SortOrder
+    error_level?: SortOrder
+    path_name?: SortOrder
+    payload?: SortOrder
+    created_at?: SortOrder
+    created_app_version?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type frontend_event_logsMinOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    event_name?: SortOrder
+    error_level?: SortOrder
+    path_name?: SortOrder
+    payload?: SortOrder
+    created_at?: SortOrder
+    created_app_version?: SortOrder
+    created_commit_id?: SortOrder
+  }
+
+  export type Enumfrontend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.frontend_event_logs_error_level | Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumfrontend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel> | $Enums.frontend_event_logs_error_level | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
+    _max?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
+  }
+
   export type BigIntFilter<$PrismaModel = never> = {
     equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
     in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
@@ -17305,6 +28350,234 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumpayout_statusFilter<$PrismaModel>
     _max?: NestedEnumpayout_statusFilter<$PrismaModel>
+  }
+
+  export type Enumprompt_families_purposeFilter<$PrismaModel = never> = {
+    equals?: $Enums.prompt_families_purpose | Enumprompt_families_purposeFieldRefInput<$PrismaModel>
+    in?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    not?: NestedEnumprompt_families_purposeFilter<$PrismaModel> | $Enums.prompt_families_purpose
+  }
+
+  export type Prompt_variantsListRelationFilter = {
+    every?: prompt_variantsWhereInput
+    some?: prompt_variantsWhereInput
+    none?: prompt_variantsWhereInput
+  }
+
+  export type prompt_variantsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type prompt_familiesCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    purpose?: SortOrder
+    weight?: SortOrder
+  }
+
+  export type prompt_familiesAvgOrderByAggregateInput = {
+    weight?: SortOrder
+  }
+
+  export type prompt_familiesMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    purpose?: SortOrder
+    weight?: SortOrder
+  }
+
+  export type prompt_familiesMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    purpose?: SortOrder
+    weight?: SortOrder
+  }
+
+  export type prompt_familiesSumOrderByAggregateInput = {
+    weight?: SortOrder
+  }
+
+  export type Enumprompt_families_purposeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.prompt_families_purpose | Enumprompt_families_purposeFieldRefInput<$PrismaModel>
+    in?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    not?: NestedEnumprompt_families_purposeWithAggregatesFilter<$PrismaModel> | $Enums.prompt_families_purpose
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumprompt_families_purposeFilter<$PrismaModel>
+    _max?: NestedEnumprompt_families_purposeFilter<$PrismaModel>
+  }
+
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type prompt_usagesCountOrderByAggregateInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    generated_text?: SortOrder
+    used_prompt_text?: SortOrder
+    input_data?: SortOrder
+    llm_model?: SortOrder
+    temperature?: SortOrder
+    generated_user?: SortOrder
+    created_at?: SortOrder
+    created_request_id?: SortOrder
+    metadata?: SortOrder
+  }
+
+  export type prompt_usagesAvgOrderByAggregateInput = {
+    temperature?: SortOrder
+  }
+
+  export type prompt_usagesMaxOrderByAggregateInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    generated_text?: SortOrder
+    used_prompt_text?: SortOrder
+    llm_model?: SortOrder
+    temperature?: SortOrder
+    generated_user?: SortOrder
+    created_at?: SortOrder
+    created_request_id?: SortOrder
+  }
+
+  export type prompt_usagesMinOrderByAggregateInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    generated_text?: SortOrder
+    used_prompt_text?: SortOrder
+    llm_model?: SortOrder
+    temperature?: SortOrder
+    generated_user?: SortOrder
+    created_at?: SortOrder
+    created_request_id?: SortOrder
+  }
+
+  export type prompt_usagesSumOrderByAggregateInput = {
+    temperature?: SortOrder
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type Prompt_familiesScalarRelationFilter = {
+    is?: prompt_familiesWhereInput
+    isNot?: prompt_familiesWhereInput
+  }
+
+  export type prompt_variantsFamily_idVariant_numberCompoundUniqueInput = {
+    family_id: string
+    variant_number: number
+  }
+
+  export type prompt_variantsCountOrderByAggregateInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_number?: SortOrder
+    prompt_text?: SortOrder
+    improvement_note?: SortOrder
+    created_by?: SortOrder
+    metadata?: SortOrder
+  }
+
+  export type prompt_variantsAvgOrderByAggregateInput = {
+    variant_number?: SortOrder
+  }
+
+  export type prompt_variantsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_number?: SortOrder
+    prompt_text?: SortOrder
+    improvement_note?: SortOrder
+    created_by?: SortOrder
+  }
+
+  export type prompt_variantsMinOrderByAggregateInput = {
+    id?: SortOrder
+    family_id?: SortOrder
+    variant_number?: SortOrder
+    prompt_text?: SortOrder
+    improvement_note?: SortOrder
+    created_by?: SortOrder
+  }
+
+  export type prompt_variantsSumOrderByAggregateInput = {
+    variant_number?: SortOrder
+  }
+
+  export type reactionsCountOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    action_type?: SortOrder
+    created_at?: SortOrder
+    created_version?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type reactionsAvgOrderByAggregateInput = {
+    lock_no?: SortOrder
+  }
+
+  export type reactionsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    action_type?: SortOrder
+    created_at?: SortOrder
+    created_version?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type reactionsMinOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    action_type?: SortOrder
+    created_at?: SortOrder
+    created_version?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type reactionsSumOrderByAggregateInput = {
+    lock_no?: SortOrder
   }
 
   export type Enumrestaurant_bid_statusFilter<$PrismaModel = never> = {
@@ -17524,6 +28797,22 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type StringFieldUpdateOperationsInput = {
+    set?: string
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
+  export type NullableEnumbackend_event_logs_error_levelFieldUpdateOperationsInput = {
+    set?: $Enums.backend_event_logs_error_level | null
+  }
+
+  export type DateTimeFieldUpdateOperationsInput = {
+    set?: Date | string
+  }
+
   export type dish_categoriesCreateoriginInput = {
     set: string[]
   }
@@ -17564,10 +28853,6 @@ export namespace Prisma {
     connect?: dishesWhereUniqueInput | dishesWhereUniqueInput[]
   }
 
-  export type StringFieldUpdateOperationsInput = {
-    set?: string
-  }
-
   export type dish_categoriesUpdateoriginInput = {
     set?: string[]
     push?: string | string[]
@@ -17581,10 +28866,6 @@ export namespace Prisma {
   export type dish_categoriesUpdatetagsInput = {
     set?: string[]
     push?: string | string[]
-  }
-
-  export type DateTimeFieldUpdateOperationsInput = {
-    set?: Date | string
   }
 
   export type IntFieldUpdateOperationsInput = {
@@ -17655,10 +28936,6 @@ export namespace Prisma {
     create?: XOR<dish_categoriesCreateWithoutDish_category_variantsInput, dish_categoriesUncheckedCreateWithoutDish_category_variantsInput>
     connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_variantsInput
     connect?: dish_categoriesWhereUniqueInput
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
   }
 
   export type dish_categoriesUpdateOneRequiredWithoutDish_category_variantsNestedInput = {
@@ -17958,6 +29235,10 @@ export namespace Prisma {
     deleteMany?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
   }
 
+  export type NullableEnumfrontend_event_logs_error_levelFieldUpdateOperationsInput = {
+    set?: $Enums.frontend_event_logs_error_level | null
+  }
+
   export type restaurant_bidsCreateNestedOneWithoutPayoutsInput = {
     create?: XOR<restaurant_bidsCreateWithoutPayoutsInput, restaurant_bidsUncheckedCreateWithoutPayoutsInput>
     connectOrCreate?: restaurant_bidsCreateOrConnectWithoutPayoutsInput
@@ -17996,6 +29277,74 @@ export namespace Prisma {
     upsert?: dish_mediaUpsertWithoutPayoutsInput
     connect?: dish_mediaWhereUniqueInput
     update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutPayoutsInput, dish_mediaUpdateWithoutPayoutsInput>, dish_mediaUncheckedUpdateWithoutPayoutsInput>
+  }
+
+  export type prompt_variantsCreateNestedManyWithoutPrompt_familiesInput = {
+    create?: XOR<prompt_variantsCreateWithoutPrompt_familiesInput, prompt_variantsUncheckedCreateWithoutPrompt_familiesInput> | prompt_variantsCreateWithoutPrompt_familiesInput[] | prompt_variantsUncheckedCreateWithoutPrompt_familiesInput[]
+    connectOrCreate?: prompt_variantsCreateOrConnectWithoutPrompt_familiesInput | prompt_variantsCreateOrConnectWithoutPrompt_familiesInput[]
+    createMany?: prompt_variantsCreateManyPrompt_familiesInputEnvelope
+    connect?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+  }
+
+  export type prompt_variantsUncheckedCreateNestedManyWithoutPrompt_familiesInput = {
+    create?: XOR<prompt_variantsCreateWithoutPrompt_familiesInput, prompt_variantsUncheckedCreateWithoutPrompt_familiesInput> | prompt_variantsCreateWithoutPrompt_familiesInput[] | prompt_variantsUncheckedCreateWithoutPrompt_familiesInput[]
+    connectOrCreate?: prompt_variantsCreateOrConnectWithoutPrompt_familiesInput | prompt_variantsCreateOrConnectWithoutPrompt_familiesInput[]
+    createMany?: prompt_variantsCreateManyPrompt_familiesInputEnvelope
+    connect?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+  }
+
+  export type Enumprompt_families_purposeFieldUpdateOperationsInput = {
+    set?: $Enums.prompt_families_purpose
+  }
+
+  export type prompt_variantsUpdateManyWithoutPrompt_familiesNestedInput = {
+    create?: XOR<prompt_variantsCreateWithoutPrompt_familiesInput, prompt_variantsUncheckedCreateWithoutPrompt_familiesInput> | prompt_variantsCreateWithoutPrompt_familiesInput[] | prompt_variantsUncheckedCreateWithoutPrompt_familiesInput[]
+    connectOrCreate?: prompt_variantsCreateOrConnectWithoutPrompt_familiesInput | prompt_variantsCreateOrConnectWithoutPrompt_familiesInput[]
+    upsert?: prompt_variantsUpsertWithWhereUniqueWithoutPrompt_familiesInput | prompt_variantsUpsertWithWhereUniqueWithoutPrompt_familiesInput[]
+    createMany?: prompt_variantsCreateManyPrompt_familiesInputEnvelope
+    set?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    disconnect?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    delete?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    connect?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    update?: prompt_variantsUpdateWithWhereUniqueWithoutPrompt_familiesInput | prompt_variantsUpdateWithWhereUniqueWithoutPrompt_familiesInput[]
+    updateMany?: prompt_variantsUpdateManyWithWhereWithoutPrompt_familiesInput | prompt_variantsUpdateManyWithWhereWithoutPrompt_familiesInput[]
+    deleteMany?: prompt_variantsScalarWhereInput | prompt_variantsScalarWhereInput[]
+  }
+
+  export type prompt_variantsUncheckedUpdateManyWithoutPrompt_familiesNestedInput = {
+    create?: XOR<prompt_variantsCreateWithoutPrompt_familiesInput, prompt_variantsUncheckedCreateWithoutPrompt_familiesInput> | prompt_variantsCreateWithoutPrompt_familiesInput[] | prompt_variantsUncheckedCreateWithoutPrompt_familiesInput[]
+    connectOrCreate?: prompt_variantsCreateOrConnectWithoutPrompt_familiesInput | prompt_variantsCreateOrConnectWithoutPrompt_familiesInput[]
+    upsert?: prompt_variantsUpsertWithWhereUniqueWithoutPrompt_familiesInput | prompt_variantsUpsertWithWhereUniqueWithoutPrompt_familiesInput[]
+    createMany?: prompt_variantsCreateManyPrompt_familiesInputEnvelope
+    set?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    disconnect?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    delete?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    connect?: prompt_variantsWhereUniqueInput | prompt_variantsWhereUniqueInput[]
+    update?: prompt_variantsUpdateWithWhereUniqueWithoutPrompt_familiesInput | prompt_variantsUpdateWithWhereUniqueWithoutPrompt_familiesInput[]
+    updateMany?: prompt_variantsUpdateManyWithWhereWithoutPrompt_familiesInput | prompt_variantsUpdateManyWithWhereWithoutPrompt_familiesInput[]
+    deleteMany?: prompt_variantsScalarWhereInput | prompt_variantsScalarWhereInput[]
+  }
+
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type prompt_familiesCreateNestedOneWithoutPrompt_variantsInput = {
+    create?: XOR<prompt_familiesCreateWithoutPrompt_variantsInput, prompt_familiesUncheckedCreateWithoutPrompt_variantsInput>
+    connectOrCreate?: prompt_familiesCreateOrConnectWithoutPrompt_variantsInput
+    connect?: prompt_familiesWhereUniqueInput
+  }
+
+  export type prompt_familiesUpdateOneRequiredWithoutPrompt_variantsNestedInput = {
+    create?: XOR<prompt_familiesCreateWithoutPrompt_variantsInput, prompt_familiesUncheckedCreateWithoutPrompt_variantsInput>
+    connectOrCreate?: prompt_familiesCreateOrConnectWithoutPrompt_variantsInput
+    upsert?: prompt_familiesUpsertWithoutPrompt_variantsInput
+    connect?: prompt_familiesWhereUniqueInput
+    update?: XOR<XOR<prompt_familiesUpdateToOneWithWhereWithoutPrompt_variantsInput, prompt_familiesUpdateWithoutPrompt_variantsInput>, prompt_familiesUncheckedUpdateWithoutPrompt_variantsInput>
   }
 
   export type payoutsCreateNestedManyWithoutRestaurant_bidsInput = {
@@ -18309,6 +29658,38 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedEnumbackend_event_logs_error_levelNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.backend_event_logs_error_level | Enumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumbackend_event_logs_error_levelNullableFilter<$PrismaModel> | $Enums.backend_event_logs_error_level | null
+  }
+
+  export type NestedUuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -18318,17 +29699,6 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
-  }
-
-  export type NestedIntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
@@ -18347,14 +29717,77 @@ export namespace Prisma {
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
   }
-  export type NestedJsonFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
 
-  export type NestedJsonFilterBase<$PrismaModel = never> = {
+  export type NestedIntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedEnumbackend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.backend_event_logs_error_level | Enumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.backend_event_logs_error_level[] | ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumbackend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel> | $Enums.backend_event_logs_error_level | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumbackend_event_logs_error_levelNullableFilter<$PrismaModel>
+    _max?: NestedEnumbackend_event_logs_error_levelNullableFilter<$PrismaModel>
+  }
+
+  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
@@ -18383,6 +29816,29 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+  export type NestedJsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -18423,20 +29879,6 @@ export namespace Prisma {
     not?: NestedUuidFilter<$PrismaModel> | string
   }
 
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type NestedUuidWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -18449,59 +29891,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
-  }
-
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type NestedUuidNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
-  }
-
-  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -18529,6 +29918,23 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.frontend_event_logs_error_level | Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel> | $Enums.frontend_event_logs_error_level | null
+  }
+
+  export type NestedEnumfrontend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.frontend_event_logs_error_level | Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    in?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.frontend_event_logs_error_level[] | ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumfrontend_event_logs_error_levelNullableWithAggregatesFilter<$PrismaModel> | $Enums.frontend_event_logs_error_level | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
+    _max?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
   }
 
   export type NestedBigIntFilter<$PrismaModel = never> = {
@@ -18573,6 +29979,50 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumpayout_statusFilter<$PrismaModel>
     _max?: NestedEnumpayout_statusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumprompt_families_purposeFilter<$PrismaModel = never> = {
+    equals?: $Enums.prompt_families_purpose | Enumprompt_families_purposeFieldRefInput<$PrismaModel>
+    in?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    not?: NestedEnumprompt_families_purposeFilter<$PrismaModel> | $Enums.prompt_families_purpose
+  }
+
+  export type NestedEnumprompt_families_purposeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.prompt_families_purpose | Enumprompt_families_purposeFieldRefInput<$PrismaModel>
+    in?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
+    not?: NestedEnumprompt_families_purposeWithAggregatesFilter<$PrismaModel> | $Enums.prompt_families_purpose
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumprompt_families_purposeFilter<$PrismaModel>
+    _max?: NestedEnumprompt_families_purposeFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumrestaurant_bid_statusFilter<$PrismaModel = never> = {
@@ -19710,6 +31160,111 @@ export namespace Prisma {
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
+  export type prompt_variantsCreateWithoutPrompt_familiesInput = {
+    id: string
+    variant_number: number
+    prompt_text: string
+    improvement_note?: string | null
+    created_by: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsUncheckedCreateWithoutPrompt_familiesInput = {
+    id: string
+    variant_number: number
+    prompt_text: string
+    improvement_note?: string | null
+    created_by: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsCreateOrConnectWithoutPrompt_familiesInput = {
+    where: prompt_variantsWhereUniqueInput
+    create: XOR<prompt_variantsCreateWithoutPrompt_familiesInput, prompt_variantsUncheckedCreateWithoutPrompt_familiesInput>
+  }
+
+  export type prompt_variantsCreateManyPrompt_familiesInputEnvelope = {
+    data: prompt_variantsCreateManyPrompt_familiesInput | prompt_variantsCreateManyPrompt_familiesInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type prompt_variantsUpsertWithWhereUniqueWithoutPrompt_familiesInput = {
+    where: prompt_variantsWhereUniqueInput
+    update: XOR<prompt_variantsUpdateWithoutPrompt_familiesInput, prompt_variantsUncheckedUpdateWithoutPrompt_familiesInput>
+    create: XOR<prompt_variantsCreateWithoutPrompt_familiesInput, prompt_variantsUncheckedCreateWithoutPrompt_familiesInput>
+  }
+
+  export type prompt_variantsUpdateWithWhereUniqueWithoutPrompt_familiesInput = {
+    where: prompt_variantsWhereUniqueInput
+    data: XOR<prompt_variantsUpdateWithoutPrompt_familiesInput, prompt_variantsUncheckedUpdateWithoutPrompt_familiesInput>
+  }
+
+  export type prompt_variantsUpdateManyWithWhereWithoutPrompt_familiesInput = {
+    where: prompt_variantsScalarWhereInput
+    data: XOR<prompt_variantsUpdateManyMutationInput, prompt_variantsUncheckedUpdateManyWithoutPrompt_familiesInput>
+  }
+
+  export type prompt_variantsScalarWhereInput = {
+    AND?: prompt_variantsScalarWhereInput | prompt_variantsScalarWhereInput[]
+    OR?: prompt_variantsScalarWhereInput[]
+    NOT?: prompt_variantsScalarWhereInput | prompt_variantsScalarWhereInput[]
+    id?: StringFilter<"prompt_variants"> | string
+    family_id?: StringFilter<"prompt_variants"> | string
+    variant_number?: IntFilter<"prompt_variants"> | number
+    prompt_text?: StringFilter<"prompt_variants"> | string
+    improvement_note?: StringNullableFilter<"prompt_variants"> | string | null
+    created_by?: StringFilter<"prompt_variants"> | string
+    metadata?: JsonNullableFilter<"prompt_variants">
+  }
+
+  export type prompt_familiesCreateWithoutPrompt_variantsInput = {
+    id: string
+    name: string
+    description: string
+    purpose: $Enums.prompt_families_purpose
+    weight: number
+  }
+
+  export type prompt_familiesUncheckedCreateWithoutPrompt_variantsInput = {
+    id: string
+    name: string
+    description: string
+    purpose: $Enums.prompt_families_purpose
+    weight: number
+  }
+
+  export type prompt_familiesCreateOrConnectWithoutPrompt_variantsInput = {
+    where: prompt_familiesWhereUniqueInput
+    create: XOR<prompt_familiesCreateWithoutPrompt_variantsInput, prompt_familiesUncheckedCreateWithoutPrompt_variantsInput>
+  }
+
+  export type prompt_familiesUpsertWithoutPrompt_variantsInput = {
+    update: XOR<prompt_familiesUpdateWithoutPrompt_variantsInput, prompt_familiesUncheckedUpdateWithoutPrompt_variantsInput>
+    create: XOR<prompt_familiesCreateWithoutPrompt_variantsInput, prompt_familiesUncheckedCreateWithoutPrompt_variantsInput>
+    where?: prompt_familiesWhereInput
+  }
+
+  export type prompt_familiesUpdateToOneWithWhereWithoutPrompt_variantsInput = {
+    where?: prompt_familiesWhereInput
+    data: XOR<prompt_familiesUpdateWithoutPrompt_variantsInput, prompt_familiesUncheckedUpdateWithoutPrompt_variantsInput>
+  }
+
+  export type prompt_familiesUpdateWithoutPrompt_variantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    purpose?: Enumprompt_families_purposeFieldUpdateOperationsInput | $Enums.prompt_families_purpose
+    weight?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type prompt_familiesUncheckedUpdateWithoutPrompt_variantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    purpose?: Enumprompt_families_purposeFieldUpdateOperationsInput | $Enums.prompt_families_purpose
+    weight?: IntFieldUpdateOperationsInput | number
+  }
+
   export type payoutsCreateWithoutRestaurant_bidsInput = {
     id?: string
     transfer_id: string
@@ -20422,6 +31977,42 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type prompt_variantsCreateManyPrompt_familiesInput = {
+    id: string
+    variant_number: number
+    prompt_text: string
+    improvement_note?: string | null
+    created_by: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsUpdateWithoutPrompt_familiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    variant_number?: IntFieldUpdateOperationsInput | number
+    prompt_text?: StringFieldUpdateOperationsInput | string
+    improvement_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_by?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsUncheckedUpdateWithoutPrompt_familiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    variant_number?: IntFieldUpdateOperationsInput | number
+    prompt_text?: StringFieldUpdateOperationsInput | string
+    improvement_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_by?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type prompt_variantsUncheckedUpdateManyWithoutPrompt_familiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    variant_number?: IntFieldUpdateOperationsInput | number
+    prompt_text?: StringFieldUpdateOperationsInput | string
+    improvement_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_by?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type payoutsCreateManyRestaurant_bidsInput = {

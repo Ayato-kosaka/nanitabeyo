@@ -23,111 +23,11 @@ import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
+import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
+import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
+import Stars from "@/components/Stars";
 
 const { width, height } = Dimensions.get("window");
-
-interface ActiveBid {
-	placeId: string;
-	placeName: string;
-	totalAmount: number;
-	remainingDays: number;
-	latitude: number;
-	longitude: number;
-	imageUrl: string;
-	rating: number;
-	reviewCount: number;
-}
-
-interface Review {
-	id: string;
-	dishName: string;
-	imageUrl: string;
-	rating: number;
-	reviewCount: number;
-	price: number;
-}
-
-// Mock data for active bids
-const mockActiveBids: ActiveBid[] = [
-	{
-		placeId: "place_1",
-		placeName: "Bella Vista Restaurant",
-		totalAmount: 15000,
-		remainingDays: 12,
-		latitude: 35.6762,
-		longitude: 139.6503,
-		imageUrl: "https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=400",
-		rating: 4.5,
-		reviewCount: 127,
-	},
-	{
-		placeId: "place_2",
-		placeName: "Tokyo Ramen House",
-		totalAmount: 28000,
-		remainingDays: 8,
-		latitude: 35.658,
-		longitude: 139.7016,
-		imageUrl: "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400",
-		rating: 4.2,
-		reviewCount: 89,
-	},
-	{
-		placeId: "place_3",
-		placeName: "Sushi Zen",
-		totalAmount: 67000,
-		remainingDays: 5,
-		latitude: 35.6896,
-		longitude: 139.7006,
-		imageUrl: "https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&cs=tinysrgb&w=400",
-		rating: 4.8,
-		reviewCount: 203,
-	},
-];
-
-// Mock reviews data
-const mockReviews: Review[] = [
-	{
-		id: "1",
-		dishName: "Truffle Pasta",
-		imageUrl: "https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=300",
-		rating: 4.5,
-		reviewCount: 23,
-		price: 2800,
-	},
-	{
-		id: "2",
-		dishName: "Wagyu Steak",
-		imageUrl: "https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=300",
-		rating: 4.8,
-		reviewCount: 45,
-		price: 5200,
-	},
-];
-
-// Mock data for bid history
-const mockBidHistory = [
-	{
-		id: "1",
-		amount: 15000,
-		status: "active",
-		date: "2024-01-15",
-		remainingDays: 12,
-	},
-	{
-		id: "2",
-		amount: 8000,
-		status: "completed",
-		date: "2024-01-10",
-		remainingDays: 0,
-	},
-	{
-		id: "3",
-		amount: 12000,
-		status: "refunded",
-		date: "2024-01-05",
-		remainingDays: 0,
-	},
-];
 
 export default function MapScreen() {
 	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
@@ -177,32 +77,6 @@ export default function MapScreen() {
 			mapRef.current?.animateToRegion(newRegion, 1000);
 		});
 	}, []);
-
-	const getBidStatusColor = (status: string): string => {
-		switch (status) {
-			case "active":
-				return "#4CAF50";
-			case "completed":
-				return "#2196F3";
-			case "refunded":
-				return "#FF9800";
-			default:
-				return "#666";
-		}
-	};
-
-	const getBidStatusText = (status: string): string => {
-		switch (status) {
-			case "active":
-				return "アクティブ";
-			case "completed":
-				return "完了";
-			case "refunded":
-				return "返金済み";
-			default:
-				return status;
-		}
-	};
 
 	const handleMarkerPress = (bid: ActiveBid) => {
 		setSelectedPlace(bid);
@@ -291,16 +165,6 @@ export default function MapScreen() {
 
 	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
 
-	const renderStars = (rating: number) => {
-		return (
-			<View style={styles.starsContainer}>
-				{[...Array(5)].map((_, index) => (
-					<Star key={index} size={12} color="#FFD700" fill={index < rating ? "#FFD700" : "transparent"} />
-				))}
-			</View>
-		);
-	};
-
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Map */}
@@ -364,7 +228,7 @@ export default function MapScreen() {
 								<View style={styles.restaurantDetails}>
 									<Text style={styles.restaurantName}>{selectedPlace.placeName}</Text>
 									<View style={styles.ratingContainer}>
-										{renderStars(selectedPlace.rating)}
+										<Stars rating={selectedPlace.rating} />
 										<Text style={styles.ratingText}>{selectedPlace.rating}</Text>
 										<Text style={styles.reviewCount}>({selectedPlace.reviewCount})</Text>
 									</View>
@@ -418,7 +282,7 @@ export default function MapScreen() {
 									<View style={styles.reviewCardOverlay}>
 										<Text style={styles.reviewCardTitle}>{review.dishName}</Text>
 										<View style={styles.reviewCardRating}>
-											{renderStars(review.rating)}
+											<Stars rating={review.rating} />
 											<Text style={styles.reviewCardRatingText}>({review.reviewCount})</Text>
 										</View>
 									</View>
@@ -661,10 +525,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		marginBottom: 4,
-	},
-	starsContainer: {
-		flexDirection: "row",
-		marginRight: 8,
 	},
 	ratingText: {
 		fontSize: 14,

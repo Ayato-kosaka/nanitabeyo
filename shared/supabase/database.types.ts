@@ -8,6 +8,60 @@ export type Database = {
 	};
 	dev: {
 		Tables: {
+			backend_event_logs: {
+				Row: {
+					created_at: string;
+					created_commit_id: string;
+					error_level: Database["dev"]["Enums"]["backend_event_logs_error_level"] | null;
+					event_name: string | null;
+					function_name: string | null;
+					id: string;
+					payload: Json | null;
+					request_id: string | null;
+					user_id: string | null;
+				};
+				Insert: {
+					created_at: string;
+					created_commit_id: string;
+					error_level?: Database["dev"]["Enums"]["backend_event_logs_error_level"] | null;
+					event_name?: string | null;
+					function_name?: string | null;
+					id: string;
+					payload?: Json | null;
+					request_id?: string | null;
+					user_id?: string | null;
+				};
+				Update: {
+					created_at?: string;
+					created_commit_id?: string;
+					error_level?: Database["dev"]["Enums"]["backend_event_logs_error_level"] | null;
+					event_name?: string | null;
+					function_name?: string | null;
+					id?: string;
+					payload?: Json | null;
+					request_id?: string | null;
+					user_id?: string | null;
+				};
+				Relationships: [];
+			};
+			config: {
+				Row: {
+					description: string | null;
+					key: string;
+					value: string;
+				};
+				Insert: {
+					description?: string | null;
+					key: string;
+					value: string;
+				};
+				Update: {
+					description?: string | null;
+					key?: string;
+					value?: string;
+				};
+				Relationships: [];
+			};
 			dish_categories: {
 				Row: {
 					created_at: string;
@@ -271,6 +325,90 @@ export type Database = {
 					},
 				];
 			};
+			external_api_logs: {
+				Row: {
+					api_name: string | null;
+					created_at: string;
+					created_commit_id: string;
+					endpoint: string | null;
+					error_message: string | null;
+					function_name: string | null;
+					id: string;
+					request_id: string | null;
+					request_payload: Json | null;
+					response_payload: Json | null;
+					response_time_ms: number | null;
+					status_code: number | null;
+					user_id: string | null;
+				};
+				Insert: {
+					api_name?: string | null;
+					created_at: string;
+					created_commit_id: string;
+					endpoint?: string | null;
+					error_message?: string | null;
+					function_name?: string | null;
+					id: string;
+					request_id?: string | null;
+					request_payload?: Json | null;
+					response_payload?: Json | null;
+					response_time_ms?: number | null;
+					status_code?: number | null;
+					user_id?: string | null;
+				};
+				Update: {
+					api_name?: string | null;
+					created_at?: string;
+					created_commit_id?: string;
+					endpoint?: string | null;
+					error_message?: string | null;
+					function_name?: string | null;
+					id?: string;
+					request_id?: string | null;
+					request_payload?: Json | null;
+					response_payload?: Json | null;
+					response_time_ms?: number | null;
+					status_code?: number | null;
+					user_id?: string | null;
+				};
+				Relationships: [];
+			};
+			frontend_event_logs: {
+				Row: {
+					created_app_version: string;
+					created_at: string;
+					created_commit_id: string;
+					error_level: Database["dev"]["Enums"]["frontend_event_logs_error_level"] | null;
+					event_name: string | null;
+					id: string;
+					path_name: string | null;
+					payload: string | null;
+					user_id: string | null;
+				};
+				Insert: {
+					created_app_version: string;
+					created_at: string;
+					created_commit_id: string;
+					error_level?: Database["dev"]["Enums"]["frontend_event_logs_error_level"] | null;
+					event_name?: string | null;
+					id: string;
+					path_name?: string | null;
+					payload?: string | null;
+					user_id?: string | null;
+				};
+				Update: {
+					created_app_version?: string;
+					created_at?: string;
+					created_commit_id?: string;
+					error_level?: Database["dev"]["Enums"]["frontend_event_logs_error_level"] | null;
+					event_name?: string | null;
+					id?: string;
+					path_name?: string | null;
+					payload?: string | null;
+					user_id?: string | null;
+				};
+				Relationships: [];
+			};
 			payouts: {
 				Row: {
 					amount_cents: number;
@@ -324,6 +462,152 @@ export type Database = {
 						referencedColumns: ["id"];
 					},
 				];
+			};
+			prompt_families: {
+				Row: {
+					description: string;
+					id: string;
+					name: string;
+					purpose: Database["dev"]["Enums"]["prompt_families_purpose"];
+					weight: number;
+				};
+				Insert: {
+					description: string;
+					id: string;
+					name: string;
+					purpose: Database["dev"]["Enums"]["prompt_families_purpose"];
+					weight: number;
+				};
+				Update: {
+					description?: string;
+					id?: string;
+					name?: string;
+					purpose?: Database["dev"]["Enums"]["prompt_families_purpose"];
+					weight?: number;
+				};
+				Relationships: [];
+			};
+			prompt_usages: {
+				Row: {
+					created_at: string;
+					created_request_id: string;
+					family_id: string;
+					generated_text: string;
+					generated_user: string;
+					id: string;
+					input_data: Json | null;
+					llm_model: string;
+					metadata: Json | null;
+					target_id: string;
+					target_type: string;
+					temperature: number | null;
+					used_prompt_text: string;
+					variant_id: string;
+				};
+				Insert: {
+					created_at: string;
+					created_request_id: string;
+					family_id: string;
+					generated_text: string;
+					generated_user: string;
+					id: string;
+					input_data?: Json | null;
+					llm_model: string;
+					metadata?: Json | null;
+					target_id: string;
+					target_type: string;
+					temperature?: number | null;
+					used_prompt_text: string;
+					variant_id: string;
+				};
+				Update: {
+					created_at?: string;
+					created_request_id?: string;
+					family_id?: string;
+					generated_text?: string;
+					generated_user?: string;
+					id?: string;
+					input_data?: Json | null;
+					llm_model?: string;
+					metadata?: Json | null;
+					target_id?: string;
+					target_type?: string;
+					temperature?: number | null;
+					used_prompt_text?: string;
+					variant_id?: string;
+				};
+				Relationships: [];
+			};
+			prompt_variants: {
+				Row: {
+					created_by: string;
+					family_id: string;
+					id: string;
+					improvement_note: string | null;
+					metadata: Json | null;
+					prompt_text: string;
+					variant_number: number;
+				};
+				Insert: {
+					created_by: string;
+					family_id: string;
+					id: string;
+					improvement_note?: string | null;
+					metadata?: Json | null;
+					prompt_text: string;
+					variant_number: number;
+				};
+				Update: {
+					created_by?: string;
+					family_id?: string;
+					id?: string;
+					improvement_note?: string | null;
+					metadata?: Json | null;
+					prompt_text?: string;
+					variant_number?: number;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "prompt_variants_family_id_fkey";
+						columns: ["family_id"];
+						isOneToOne: false;
+						referencedRelation: "prompt_families";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			reactions: {
+				Row: {
+					action_type: string;
+					created_at: string;
+					created_version: string;
+					id: string;
+					lock_no: number;
+					target_id: string;
+					target_type: string;
+					user_id: string;
+				};
+				Insert: {
+					action_type: string;
+					created_at: string;
+					created_version: string;
+					id: string;
+					lock_no: number;
+					target_id: string;
+					target_type: string;
+					user_id: string;
+				};
+				Update: {
+					action_type?: string;
+					created_at?: string;
+					created_version?: string;
+					id?: string;
+					lock_no?: number;
+					target_id?: string;
+					target_type?: string;
+					user_id?: string;
+				};
+				Relationships: [];
 			};
 			restaurant_bids: {
 				Row: {
@@ -1095,7 +1379,7 @@ export type Database = {
 			};
 			populate_geometry_columns: {
 				Args: { tbl_oid: unknown; use_typmod?: boolean } | { use_typmod?: boolean };
-				Returns: number;
+				Returns: string;
 			};
 			postgis_addbbox: {
 				Args: { "": unknown };
@@ -2300,7 +2584,10 @@ export type Database = {
 			};
 		};
 		Enums: {
+			backend_event_logs_error_level: "trace" | "debug" | "info" | "warn" | "error";
+			frontend_event_logs_error_level: "trace" | "debug" | "info" | "warn" | "error";
 			payout_status: "pending" | "paid" | "refunded";
+			prompt_families_purpose: "spot_guide_manuscript";
 			restaurant_bid_status: "pending" | "paid" | "refunded";
 		};
 		CompositeTypes: {
@@ -2429,7 +2716,10 @@ export type CompositeTypes<
 export const Constants = {
 	dev: {
 		Enums: {
+			backend_event_logs_error_level: ["trace", "debug", "info", "warn", "error"],
+			frontend_event_logs_error_level: ["trace", "debug", "info", "warn", "error"],
 			payout_status: ["pending", "paid", "refunded"],
+			prompt_families_purpose: ["spot_guide_manuscript"],
 			restaurant_bid_status: ["pending", "paid", "refunded"],
 		},
 	},
