@@ -31,26 +31,39 @@
 			"subtitle": "يرجى الانتظار..."
 		}
 	},
-        "Notifications": {
-                "title": "الإشعارات"
-        },
-        "FoodContentScreen": {
-                "numberSuffix": {
-                        "million": "M",
-                        "thousand": "K"
-                },
-                "menuOptions": {
-                        "viewCreatorProfile": "انتقل إلى ملف المُنشئ",
-                        "reservation": "حجز"
-                },
-                "actions": {
-                        "share": "مشاركة"
-                },
-                "info": {
-                        "walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
-                }
-        },
-        "ImageCardGrid": {
-                "openItemDetails": "فتح تفاصيل العنصر"
-        }
+	"Notifications": {
+		"title": "الإشعارات",
+		"timeAgo": "قبل {{time}}"
+	},
+	"FoodContentScreen": {
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"menuOptions": {
+			"viewCreatorProfile": "انتقل إلى ملف المُنشئ",
+			"reservation": "حجز"
+		},
+		"actions": {
+			"share": "مشاركة"
+		},
+		"info": {
+			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
+		}
+	},
+	"ImageCardGrid": {
+		"openItemDetails": "فتح تفاصيل العنصر"
+	},
+	"Tabs": {
+		"home": "الصفحة الرئيسية",
+		"search": "البحث",
+		"map": "الخريطة",
+		"notifications": "الإشعارات",
+		"profile": "الملف الشخصي"
+	},
+	"NotFound": {
+		"title": "عذرًا!",
+		"message": "هذه الشاشة غير موجودة.",
+		"goHome": "العودة إلى الشاشة الرئيسية!"
+	}
 }

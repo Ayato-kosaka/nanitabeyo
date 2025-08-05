@@ -31,26 +31,39 @@
 			"subtitle": "Por favor, espera..."
 		}
 	},
-        "Notifications": {
-                "title": "Notificaciones"
-        },
-        "FoodContentScreen": {
-                "numberSuffix": {
-                        "million": "M",
-                        "thousand": "K"
-                },
-                "menuOptions": {
-                        "viewCreatorProfile": "Ver perfil del creador",
-                        "reservation": "Reserva"
-                },
-                "actions": {
-                        "share": "Compartir"
-                },
-                "info": {
-                        "walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
-                }
-        },
-        "ImageCardGrid": {
-                "openItemDetails": "Abrir detalles del elemento"
-        }
+	"Notifications": {
+		"title": "Notificaciones",
+		"timeAgo": "hace {{time}}"
+	},
+	"FoodContentScreen": {
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"menuOptions": {
+			"viewCreatorProfile": "Ver perfil del creador",
+			"reservation": "Reserva"
+		},
+		"actions": {
+			"share": "Compartir"
+		},
+		"info": {
+			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
+		}
+	},
+	"ImageCardGrid": {
+		"openItemDetails": "Abrir detalles del elemento"
+	},
+	"Tabs": {
+		"home": "Inicio",
+		"search": "Buscar",
+		"map": "Mapa",
+		"notifications": "Notificaciones",
+		"profile": "Perfil"
+	},
+	"NotFound": {
+		"title": "¡Vaya!",
+		"message": "Esta pantalla no existe.",
+		"goHome": "¡Ir a la pantalla de inicio!"
+	}
 }

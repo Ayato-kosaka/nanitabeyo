@@ -31,26 +31,39 @@
 			"subtitle": "请稍候..."
 		}
 	},
-        "Notifications": {
-                "title": "通知"
-        },
-        "FoodContentScreen": {
-                "numberSuffix": {
-                        "million": "M",
-                        "thousand": "K"
-                },
-                "menuOptions": {
-                        "viewCreatorProfile": "查看创作者资料",
-                        "reservation": "预订"
-                },
-                "actions": {
-                        "share": "分享"
-                },
-                "info": {
-                        "walkFromShibuya": "距离涩谷站步行13分钟"
-                }
-        },
-        "ImageCardGrid": {
-                "openItemDetails": "打开项目详情"
-        }
+	"Notifications": {
+		"title": "通知",
+		"timeAgo": "{{time}}前"
+	},
+	"FoodContentScreen": {
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"menuOptions": {
+			"viewCreatorProfile": "查看创作者资料",
+			"reservation": "预订"
+		},
+		"actions": {
+			"share": "分享"
+		},
+		"info": {
+			"walkFromShibuya": "距离涩谷站步行13分钟"
+		}
+	},
+	"ImageCardGrid": {
+		"openItemDetails": "打开项目详情"
+	},
+	"Tabs": {
+		"home": "首页",
+		"search": "搜索",
+		"map": "地图",
+		"notifications": "通知",
+		"profile": "个人资料"
+	},
+	"NotFound": {
+		"title": "哎呀！",
+		"message": "此屏幕不存在。",
+		"goHome": "返回首页！"
+	}
 }

@@ -31,26 +31,39 @@
 			"subtitle": "少々お待ちください..."
 		}
 	},
-        "Notifications": {
-                "title": "通知"
-        },
-        "FoodContentScreen": {
-                "numberSuffix": {
-                        "million": "M",
-                        "thousand": "K"
-                },
-                "menuOptions": {
-                        "viewCreatorProfile": "投稿者プロフィールへ",
-                        "reservation": "予約"
-                },
-                "actions": {
-                        "share": "シェア"
-                },
-                "info": {
-                        "walkFromShibuya": "渋谷駅から徒歩13分"
-                }
-        },
-        "ImageCardGrid": {
-                "openItemDetails": "詳細を表示"
-        }
+	"Notifications": {
+		"title": "通知",
+		"timeAgo": "{{time}}前"
+	},
+	"FoodContentScreen": {
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"menuOptions": {
+			"viewCreatorProfile": "投稿者プロフィールへ",
+			"reservation": "予約"
+		},
+		"actions": {
+			"share": "シェア"
+		},
+		"info": {
+			"walkFromShibuya": "渋谷駅から徒歩13分"
+		}
+	},
+	"ImageCardGrid": {
+		"openItemDetails": "詳細を表示"
+	},
+	"Tabs": {
+		"home": "ホーム",
+		"search": "検索",
+		"map": "マップ",
+		"notifications": "通知",
+		"profile": "プロフィール"
+	},
+	"NotFound": {
+		"title": "おっと！",
+		"message": "この画面は存在しません。",
+		"goHome": "ホーム画面へ戻る"
+	}
 }
