@@ -566,8 +566,6 @@ const styles = StyleSheet.create({
 	},
 	tabContainer: {
 		flexDirection: "row",
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E5E5",
 		marginHorizontal: 16,
 		marginBottom: 16,
 	},
@@ -708,8 +706,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingVertical: 8,
 		borderRadius: 20,
-		backgroundColor: "#F5F5F5",
-		borderWidth: 1,
 		borderColor: "#E0E0E0",
 		marginHorizontal: 4,
 	},

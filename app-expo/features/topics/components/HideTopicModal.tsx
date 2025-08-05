@@ -5,53 +5,50 @@ import { width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
 
 interface Props {
-        onClose: () => void;
-        hideReason: string;
-        setHideReason: (text: string) => void;
-        confirmHideCard: () => void;
+	onClose: () => void;
+	hideReason: string;
+	setHideReason: (text: string) => void;
+	confirmHideCard: () => void;
 }
 
 // Content for the hide topic modal
 export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHideCard }: Props) => (
-        <View style={styles.modalContainer}>
-                <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
-                        <TouchableOpacity onPress={onClose}>
-                                <X size={24} color="#49454F" />
-                        </TouchableOpacity>
-                </View>
+	<View style={styles.modalContainer}>
+		<View style={styles.modalHeader}>
+			<Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
+		</View>
 
-                <Text style={styles.modalDescription}>{i18n.t("Topics.HideTopicModal.description")}</Text>
+		<Text style={styles.modalDescription}>{i18n.t("Topics.HideTopicModal.description")}</Text>
 
-                <TextInput
-                        style={styles.reasonInput}
-                        placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
-                        value={hideReason}
-                        onChangeText={setHideReason}
-                        multiline
-                        numberOfLines={3}
-                        textAlignVertical="top"
-                        placeholderTextColor="#79747E"
-                />
+		<TextInput
+			style={styles.reasonInput}
+			placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
+			value={hideReason}
+			onChangeText={setHideReason}
+			multiline
+			numberOfLines={3}
+			textAlignVertical="top"
+			placeholderTextColor="#79747E"
+		/>
 
-                <View style={styles.modalActions}>
-                        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                                <Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.confirmButton} onPress={confirmHideCard}>
-                                <Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
-                        </TouchableOpacity>
-                </View>
-        </View>
+		<View style={styles.modalActions}>
+			<TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+				<Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
+			</TouchableOpacity>
+			<TouchableOpacity style={styles.confirmButton} onPress={confirmHideCard}>
+				<Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
+			</TouchableOpacity>
+		</View>
+	</View>
 );
 
 const styles = StyleSheet.create({
-        modalContainer: {
-                backgroundColor: "#FFFFFF",
-                borderRadius: 24,
-                padding: 24,
-                width: width - 48,
-                maxWidth: 400,
+	modalContainer: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 24,
+		padding: 24,
+		width: width - 48,
+		maxWidth: 400,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,

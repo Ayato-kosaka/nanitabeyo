@@ -22,7 +22,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 				{/* Top Buttons */}
 				<View style={styles.topButtons}>
 					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
-						<Bookmark size={18} color={"transparent"} fill={isSaved ? "orange" : "white"} />
+						<Bookmark size={20} color={isSaved ? "transparent" : "white"} fill={isSaved ? "orange" : "transparent"} />
 					</TouchableOpacity>
 					<TouchableOpacity style={styles.topButton} onPress={() => onHide(item.id)}>
 						<Trash size={18} color="#FFF" />
