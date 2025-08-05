@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { LoggerModule } from './lib/logger/logger.module';
+import { LoggerModule } from './core/logger/logger.module';
 import { V1Module } from './v1/v1.module';
 import { V2Module } from './v2/v2.module';
 
@@ -10,4 +10,4 @@ import { V2Module } from './v2/v2.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

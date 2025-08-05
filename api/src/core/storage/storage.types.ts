@@ -1,0 +1,28 @@
+export interface UploadFileParams {
+    /** File buffer  */
+    buffer: Buffer;
+    mimeType: string;
+
+    /** e.g. 'user-uploads', 'system-generated' */
+    resourceType: string;
+    /** e.g. 'photos', 'audio-guides' */
+    usageType: string;
+    /** e.g. userId, spotId */
+    identifier: string;
+
+    /** 任意。拡張子抜きで渡す */
+    fileName?: string;
+
+    /** メタデータ (request_id など) */
+    metadata?: Record<string, string>;
+
+    /** 署名 URL 有効期限 (秒) */
+    expiresInSeconds?: number;
+}
+
+export interface UploadResult {
+    /** GCS 内フルパス  */
+    path: string;
+    /** 読み取り用署名 URL  */
+    signedUrl: string;
+}
