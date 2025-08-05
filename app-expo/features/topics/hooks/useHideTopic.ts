@@ -1,40 +1,45 @@
 import { useState } from "react";
 import { Topic } from "@/types/search";
+import { useBlurModal } from "@/hooks/useBlurModal";
 
 // Manage hide topic modal state and actions
 export const useHideTopic = (
-	topics: Topic[],
-	hideTopic: (id: string, reason: string) => void,
-	showSnackbar: (message: string) => void,
+        topics: Topic[],
+        hideTopic: (id: string, reason: string) => void,
+        showSnackbar: (message: string) => void,
 ) => {
-	const [showHideModal, setShowHideModal] = useState(false);
-	const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-	const [hideReason, setHideReason] = useState("");
+        const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+        const [hideReason, setHideReason] = useState("");
+        const { BlurModal, open, close } = useBlurModal({
+                intensity: 100,
+                onClose: () => {
+                        setHideReason("");
+                        setSelectedCardId(null);
+                },
+        });
 
-	// Open modal for a specific card
-	const handleHideCard = (cardId: string) => {
-		setSelectedCardId(cardId);
-		setShowHideModal(true);
-	};
+        // Open modal for a specific card
+        const handleHideCard = (cardId: string) => {
+                setSelectedCardId(cardId);
+                open();
+        };
 
-	// Confirm hiding the selected card
-	const confirmHideCard = () => {
-		const selectedTopic = topics.find((topic) => topic.id === selectedCardId);
-		if (selectedCardId && selectedTopic) {
-			hideTopic(selectedCardId, hideReason);
-			setShowHideModal(false);
-			setHideReason("");
-			setSelectedCardId(null);
-			showSnackbar(`${selectedTopic?.topicTitle}を非表示にしました`);
-		}
-	};
+        // Confirm hiding the selected card
+        const confirmHideCard = () => {
+                const selectedTopic = topics.find((topic) => topic.id === selectedCardId);
+                if (selectedCardId && selectedTopic) {
+                        hideTopic(selectedCardId, hideReason);
+                        showSnackbar(`${selectedTopic?.topicTitle}を非表示にしました`);
+                        close();
+                }
+        };
 
-	return {
-		showHideModal,
-		setShowHideModal,
-		hideReason,
-		setHideReason,
-		handleHideCard,
-		confirmHideCard,
-	};
+        return {
+                BlurModal,
+                close,
+                hideReason,
+                setHideReason,
+                handleHideCard,
+                confirmHideCard,
+        };
 };
