@@ -1,29 +1,43 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-import { Trash } from "lucide-react-native";
+import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
 
 // Display a single topic card inside the carousel
-export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => (
-	<View style={styles.card}>
-		<Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
+	const [isSaved, setIsSaved] = useState(false);
 
-		{/* Content Overlay */}
-		<View style={styles.cardOverlay}>
-			{/* Hide Button */}
-			<TouchableOpacity style={styles.hideButton} onPress={() => onHide(item.id)}>
-				<Trash size={18} color="#FFF" />
-			</TouchableOpacity>
+	const handleSave = () => {
+		const willSave = !isSaved;
+		setIsSaved(willSave);
+	};
 
-			{/* Content */}
-			<View style={styles.cardContent}>
-				<Text style={styles.cardTitle}>{item.topicTitle}</Text>
-				<Text style={styles.cardDescription}>{item.reason}</Text>
+	return (
+		<View style={styles.card}>
+			<Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+
+			{/* Content Overlay */}
+			<View style={styles.cardOverlay}>
+				{/* Top Buttons */}
+				<View style={styles.topButtons}>
+					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
+						<Bookmark size={18} color={"transparent"} fill={isSaved ? "orange" : "white"} />
+					</TouchableOpacity>
+					<TouchableOpacity style={styles.topButton} onPress={() => onHide(item.id)}>
+						<Trash size={18} color="#FFF" />
+					</TouchableOpacity>
+				</View>
+
+				{/* Content */}
+				<View style={styles.cardContent}>
+					<Text style={styles.cardTitle}>{item.topicTitle}</Text>
+					<Text style={styles.cardDescription}>{item.reason}</Text>
+				</View>
 			</View>
 		</View>
-	</View>
-);
+	);
+};
 
 const styles = StyleSheet.create({
 	card: {
@@ -53,8 +67,11 @@ const styles = StyleSheet.create({
 		padding: 24,
 		justifyContent: "space-between",
 	},
-	hideButton: {
+	topButtons: {
 		alignSelf: "flex-end",
+		gap: 12,
+	},
+	topButton: {
 		flexDirection: "row",
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
