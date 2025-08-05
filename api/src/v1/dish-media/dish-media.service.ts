@@ -77,15 +77,12 @@ export class DishMediaService {
         //     .catch((err) =>
         //         this.logger.warn(`Push like notification failed: ${err.message}`),
         // );
-
-        return { result: 'liked' };
     }
 
     /* --------------------- DELETE /v1/dish-media/:id/likes/:userId ------------------ */
     async unlikeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
         this.logger.verbose(`unlikeDishMedia: media=${id}, user=${userId}`);
         await this.repo.unlikeDishMedia(id, userId);
-        return { result: 'unliked' };
     }
 
     /* --------------------- POST /v1/dish-media/:id/save/:userId --------------------- */
@@ -99,8 +96,6 @@ export class DishMediaService {
         //     .catch((err) =>
         //         this.logger.warn(`Push save notification failed: ${err.message}`),
         //     );
-
-        return { result: 'saved' };
     }
 
     /* ------------------------------------------------------------------ */
@@ -132,6 +127,5 @@ export class DishMediaService {
         this.logger.log(
             `createDishMedia: created media=${result.id} (dish=${dto.dishId})`,
         );
-        return result;
     }
 }

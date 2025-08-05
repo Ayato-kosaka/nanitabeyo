@@ -34,6 +34,13 @@ import {
     SaveDishMediaParamsDto,
     QueryDishMediaDto,
 } from '@shared/v1/dto';
+import {
+    QueryDishMediaResponse,
+    CreateDishMediaResponse,
+    LikeDishMediaResponse,
+    UnlikeDishMediaResponse,
+    SaveDishMediaResponse,
+} from '@shared/v1/res';
 
 // 横串 (Auth)
 import {
@@ -65,7 +72,7 @@ export class DishMediaController {
     async findByQuery(
         @Query() query: QueryDishMediaDto,
         @CurrentUser() user?: RequestUser,
-    ) {
+    ): Promise<QueryDishMediaResponse> {
         return this.dishMediaService.findByCriteria(query, user?.userId);
     }
 
@@ -80,7 +87,7 @@ export class DishMediaController {
     async likeDishMedia(
         @Param('id', ParseUUIDPipe) id: string,
         @Param('userId', ParseUUIDPipe) userId: string,
-    ) {
+    ): Promise<LikeDishMediaResponse> {
         const params: LikeDishMediaParamsDto = { id, userId };
         return this.dishMediaService.likeDishMedia(params);
     }
@@ -94,7 +101,7 @@ export class DishMediaController {
     async unlikeDishMedia(
         @Param('id', ParseUUIDPipe) id: string,
         @Param('userId', ParseUUIDPipe) userId: string,
-    ) {
+    ): Promise<UnlikeDishMediaResponse> {
         const params: LikeDishMediaParamsDto = { id, userId };
         return this.dishMediaService.unlikeDishMedia(params);
     }
@@ -108,7 +115,7 @@ export class DishMediaController {
     async saveDishMedia(
         @Param('id', ParseUUIDPipe) id: string,
         @Param('userId', ParseUUIDPipe) userId: string,
-    ) {
+    ): Promise<SaveDishMediaResponse> {
         const params: SaveDishMediaParamsDto = { id, userId };
         return this.dishMediaService.saveDishMedia(params);
     }
@@ -124,7 +131,7 @@ export class DishMediaController {
     async createDishMedia(
         @Body() dto: CreateDishMediaDto,
         @CurrentUser() user: RequestUser,
-    ) {
+    ): Promise<CreateDishMediaResponse> {
         return this.dishMediaService.createDishMedia(dto, user.userId);
     }
 }
