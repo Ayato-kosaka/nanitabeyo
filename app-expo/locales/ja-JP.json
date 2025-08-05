@@ -2,10 +2,55 @@
 	"Common": {
 		"cancel": "キャンセル",
 		"ok": "OK",
-		"goStore": "アプリストアを開く"
+		"goStore": "アプリストアを開く",
+		"back": "戻る"
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
 		"unsupportedVersion": "古いバージョンのため利用できません。"
-	}
+	},
+	"Search": {
+		"DistanceSlider": {
+			"near": "近い",
+			"far": "遠い"
+		},
+		"BudgetSlider": {
+			"cheap": "安い",
+			"expensive": "高い"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "非表示にする",
+			"description": "非表示にする理由を教えてください（任意）",
+			"placeholder": "理由を入力してください...",
+			"confirm": "非表示にする"
+		},
+		"Loading": {
+			"title": "あなたにぴったりの料理を探しています",
+			"subtitle": "少々お待ちください..."
+		}
+	},
+        "Notifications": {
+                "title": "通知"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "投稿者プロフィールへ",
+                        "reservation": "予約"
+                },
+                "actions": {
+                        "share": "シェア"
+                },
+                "info": {
+                        "walkFromShibuya": "渋谷駅から徒歩13分"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "詳細を表示"
+        }
 }

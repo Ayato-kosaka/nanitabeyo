@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions } from "react-native";
+import i18n from "@/lib/i18n";
 import { LinearGradient } from "expo-linear-gradient";
 import { Heart, MessageCircle, UserPlus, AtSign, Share, MoveHorizontal as MoreHorizontal } from "lucide-react-native";
 import { NotificationItem } from "@/types";
@@ -103,7 +104,7 @@ export default function NotificationsScreen() {
 		<SafeAreaView style={styles.container}>
 			{/* Header */}
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>通知</Text>
+                                <Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
 				{unreadCount > 0 && (
 					<View style={styles.unreadBadge}>
 						<Text style={styles.unreadBadgeText}>{unreadCount}</Text>

@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { X } from "lucide-react-native";
 import { width } from "@/features/topics/constants";
+import i18n from "@/lib/i18n";
 
 interface Props {
         onClose: () => void;
@@ -14,17 +15,17 @@ interface Props {
 export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHideCard }: Props) => (
         <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>非表示にする</Text>
+                        <Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
                         <TouchableOpacity onPress={onClose}>
                                 <X size={24} color="#49454F" />
                         </TouchableOpacity>
                 </View>
 
-                <Text style={styles.modalDescription}>非表示にする理由を教えてください（任意）</Text>
+                <Text style={styles.modalDescription}>{i18n.t("Topics.HideTopicModal.description")}</Text>
 
                 <TextInput
                         style={styles.reasonInput}
-                        placeholder="理由を入力してください..."
+                        placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
                         value={hideReason}
                         onChangeText={setHideReason}
                         multiline
@@ -35,10 +36,10 @@ export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHide
 
                 <View style={styles.modalActions}>
                         <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                                <Text style={styles.cancelButtonText}>キャンセル</Text>
+                                <Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.confirmButton} onPress={confirmHideCard}>
-                                <Text style={styles.confirmButtonText}>非表示にする</Text>
+                                <Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
                         </TouchableOpacity>
                 </View>
         </View>
