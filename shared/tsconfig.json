@@ -4,7 +4,9 @@
 		"types": ["node"],
 		"outDir": "./dist",
 		"rootDir": "./",
-		"composite": true // TurboRepoでbuild対象にしたい場合に有効
+		"composite": true, // TurboRepoでbuild対象にしたい場合に有効
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
 	},
-	"include": ["scripts/**/*", "types/**/*", "zodSchemas/**/*"]
+	"include": ["scripts/**/*", "types/**/*", "api/**/*", "converters/**/*"]
 }
