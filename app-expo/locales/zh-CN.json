@@ -31,7 +31,26 @@
 			"subtitle": "请稍候..."
 		}
 	},
-	"Notifications": {
-		"title": "通知"
-	}
+        "Notifications": {
+                "title": "通知"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "查看创作者资料",
+                        "reservation": "预订"
+                },
+                "actions": {
+                        "share": "分享"
+                },
+                "info": {
+                        "walkFromShibuya": "距离涩谷站步行13分钟"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "打开项目详情"
+        }
 }

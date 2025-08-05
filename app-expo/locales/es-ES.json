@@ -31,7 +31,26 @@
 			"subtitle": "Por favor, espera..."
 		}
 	},
-	"Notifications": {
-		"title": "Notificaciones"
-	}
+        "Notifications": {
+                "title": "Notificaciones"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "Ver perfil del creador",
+                        "reservation": "Reserva"
+                },
+                "actions": {
+                        "share": "Compartir"
+                },
+                "info": {
+                        "walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "Abrir detalles del elemento"
+        }
 }

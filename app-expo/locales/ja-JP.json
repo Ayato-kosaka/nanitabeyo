@@ -31,7 +31,26 @@
 			"subtitle": "少々お待ちください..."
 		}
 	},
-	"Notifications": {
-		"title": "通知"
-	}
+        "Notifications": {
+                "title": "通知"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "投稿者プロフィールへ",
+                        "reservation": "予約"
+                },
+                "actions": {
+                        "share": "シェア"
+                },
+                "info": {
+                        "walkFromShibuya": "渋谷駅から徒歩13分"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "詳細を表示"
+        }
 }

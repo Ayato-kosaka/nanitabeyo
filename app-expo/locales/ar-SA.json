@@ -31,7 +31,26 @@
 			"subtitle": "يرجى الانتظار..."
 		}
 	},
-	"Notifications": {
-		"title": "الإشعارات"
-	}
+        "Notifications": {
+                "title": "الإشعارات"
+        },
+        "FoodContentScreen": {
+                "numberSuffix": {
+                        "million": "M",
+                        "thousand": "K"
+                },
+                "menuOptions": {
+                        "viewCreatorProfile": "انتقل إلى ملف المُنشئ",
+                        "reservation": "حجز"
+                },
+                "actions": {
+                        "share": "مشاركة"
+                },
+                "info": {
+                        "walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
+                }
+        },
+        "ImageCardGrid": {
+                "openItemDetails": "فتح تفاصيل العنصر"
+        }
 }
