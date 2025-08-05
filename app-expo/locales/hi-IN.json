@@ -31,26 +31,39 @@
 			"subtitle": "कृपया प्रतीक्षा करें..."
 		}
 	},
-        "Notifications": {
-                "title": "सूचनाएँ"
-        },
-        "FoodContentScreen": {
-                "numberSuffix": {
-                        "million": "M",
-                        "thousand": "K"
-                },
-                "menuOptions": {
-                        "viewCreatorProfile": "निर्माता की प्रोफ़ाइल पर जाएँ",
-                        "reservation": "आरक्षण"
-                },
-                "actions": {
-                        "share": "साझा करें"
-                },
-                "info": {
-                        "walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
-                }
-        },
-        "ImageCardGrid": {
-                "openItemDetails": "आइटम विवरण खोलें"
-        }
+	"Notifications": {
+		"title": "सूचनाएँ",
+		"timeAgo": "{{time}} पहले"
+	},
+	"FoodContentScreen": {
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"menuOptions": {
+			"viewCreatorProfile": "निर्माता की प्रोफ़ाइल पर जाएँ",
+			"reservation": "आरक्षण"
+		},
+		"actions": {
+			"share": "साझा करें"
+		},
+		"info": {
+			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
+		}
+	},
+	"ImageCardGrid": {
+		"openItemDetails": "आइटम विवरण खोलें"
+	},
+	"Tabs": {
+		"home": "होम",
+		"search": "खोज",
+		"map": "मानचित्र",
+		"notifications": "सूचनाएँ",
+		"profile": "प्रोफ़ाइल"
+	},
+	"NotFound": {
+		"title": "ओह!",
+		"message": "यह स्क्रीन मौजूद नहीं है।",
+		"goHome": "मुख्य स्क्रीन पर जाएँ!"
+	}
 }

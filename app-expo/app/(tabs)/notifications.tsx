@@ -78,7 +78,7 @@ export default function NotificationsScreen() {
 						<Text style={styles.username}>{notification.user.username}</Text>
 						<Text style={styles.message}> {notification.message}</Text>
 					</Text>
-					<Text style={styles.timestamp}>{notification.timestamp} ago</Text>
+					<Text style={styles.timestamp}>{i18n.t("Notifications.timeAgo", { time: notification.timestamp })}</Text>
 				</View>
 
 				{/* Right: Post Thumbnail or More Options */}
@@ -104,7 +104,7 @@ export default function NotificationsScreen() {
 		<SafeAreaView style={styles.container}>
 			{/* Header */}
 			<View style={styles.header}>
-                                <Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
+				<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
 				{unreadCount > 0 && (
 					<View style={styles.unreadBadge}>
 						<Text style={styles.unreadBadgeText}>{unreadCount}</Text>
