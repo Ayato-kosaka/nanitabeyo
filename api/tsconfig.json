@@ -18,7 +18,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@shared/v1/dto": ["../shared/api/v1/dto/index.ts"]
+      "@shared/v1/dto": ["../shared/api/v1/dto"]
     }
   }
 }

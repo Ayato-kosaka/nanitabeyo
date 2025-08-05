@@ -2,9 +2,13 @@
 // ------------------------------------
 import { Module, Global, Logger } from '@nestjs/common';
 import { AppLoggerService } from './logger.service';
+import { ClsModule } from 'nestjs-cls';
 
 @Global()
 @Module({
+  imports: [
+    ClsModule.forRoot({ global: true })
+  ],
   providers: [
     /* Nest のデフォルト Logger を AppLoggerService で置き換え */
     {
