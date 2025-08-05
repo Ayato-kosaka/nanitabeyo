@@ -136,9 +136,9 @@ export type users = $Result.DefaultSelection<Prisma.$usersPayload>
  */
 export namespace $Enums {
   export const backend_event_logs_error_level: {
-  trace: 'trace',
+  verbose: 'verbose',
   debug: 'debug',
-  info: 'info',
+  log: 'log',
   warn: 'warn',
   error: 'error'
 };
@@ -147,9 +147,9 @@ export type backend_event_logs_error_level = (typeof backend_event_logs_error_le
 
 
 export const frontend_event_logs_error_level: {
-  trace: 'trace',
+  verbose: 'verbose',
   debug: 'debug',
-  info: 'info',
+  log: 'log',
   warn: 'warn',
   error: 'error'
 };
@@ -11842,6 +11842,7 @@ export namespace Prisma {
     function_name: string | null
     api_name: string | null
     endpoint: string | null
+    method: string | null
     status_code: number | null
     error_message: string | null
     response_time_ms: number | null
@@ -11856,6 +11857,7 @@ export namespace Prisma {
     function_name: string | null
     api_name: string | null
     endpoint: string | null
+    method: string | null
     status_code: number | null
     error_message: string | null
     response_time_ms: number | null
@@ -11870,6 +11872,7 @@ export namespace Prisma {
     function_name: number
     api_name: number
     endpoint: number
+    method: number
     request_payload: number
     response_payload: number
     status_code: number
@@ -11898,6 +11901,7 @@ export namespace Prisma {
     function_name?: true
     api_name?: true
     endpoint?: true
+    method?: true
     status_code?: true
     error_message?: true
     response_time_ms?: true
@@ -11912,6 +11916,7 @@ export namespace Prisma {
     function_name?: true
     api_name?: true
     endpoint?: true
+    method?: true
     status_code?: true
     error_message?: true
     response_time_ms?: true
@@ -11926,6 +11931,7 @@ export namespace Prisma {
     function_name?: true
     api_name?: true
     endpoint?: true
+    method?: true
     request_payload?: true
     response_payload?: true
     status_code?: true
@@ -12029,6 +12035,7 @@ export namespace Prisma {
     function_name: string | null
     api_name: string | null
     endpoint: string | null
+    method: string | null
     request_payload: JsonValue | null
     response_payload: JsonValue | null
     status_code: number | null
@@ -12064,6 +12071,7 @@ export namespace Prisma {
     function_name?: boolean
     api_name?: boolean
     endpoint?: boolean
+    method?: boolean
     request_payload?: boolean
     response_payload?: boolean
     status_code?: boolean
@@ -12080,6 +12088,7 @@ export namespace Prisma {
     function_name?: boolean
     api_name?: boolean
     endpoint?: boolean
+    method?: boolean
     request_payload?: boolean
     response_payload?: boolean
     status_code?: boolean
@@ -12096,6 +12105,7 @@ export namespace Prisma {
     function_name?: boolean
     api_name?: boolean
     endpoint?: boolean
+    method?: boolean
     request_payload?: boolean
     response_payload?: boolean
     status_code?: boolean
@@ -12112,6 +12122,7 @@ export namespace Prisma {
     function_name?: boolean
     api_name?: boolean
     endpoint?: boolean
+    method?: boolean
     request_payload?: boolean
     response_payload?: boolean
     status_code?: boolean
@@ -12122,7 +12133,7 @@ export namespace Prisma {
     created_commit_id?: boolean
   }
 
-  export type external_api_logsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "request_id" | "function_name" | "api_name" | "endpoint" | "request_payload" | "response_payload" | "status_code" | "error_message" | "response_time_ms" | "user_id" | "created_at" | "created_commit_id", ExtArgs["result"]["external_api_logs"]>
+  export type external_api_logsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "request_id" | "function_name" | "api_name" | "endpoint" | "method" | "request_payload" | "response_payload" | "status_code" | "error_message" | "response_time_ms" | "user_id" | "created_at" | "created_commit_id", ExtArgs["result"]["external_api_logs"]>
 
   export type $external_api_logsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "external_api_logs"
@@ -12133,6 +12144,7 @@ export namespace Prisma {
       function_name: string | null
       api_name: string | null
       endpoint: string | null
+      method: string | null
       request_payload: Prisma.JsonValue | null
       response_payload: Prisma.JsonValue | null
       status_code: number | null
@@ -12569,6 +12581,7 @@ export namespace Prisma {
     readonly function_name: FieldRef<"external_api_logs", 'String'>
     readonly api_name: FieldRef<"external_api_logs", 'String'>
     readonly endpoint: FieldRef<"external_api_logs", 'String'>
+    readonly method: FieldRef<"external_api_logs", 'String'>
     readonly request_payload: FieldRef<"external_api_logs", 'Json'>
     readonly response_payload: FieldRef<"external_api_logs", 'Json'>
     readonly status_code: FieldRef<"external_api_logs", 'Int'>
@@ -24157,6 +24170,7 @@ export namespace Prisma {
     function_name: 'function_name',
     api_name: 'api_name',
     endpoint: 'endpoint',
+    method: 'method',
     request_payload: 'request_payload',
     response_payload: 'response_payload',
     status_code: 'status_code',
@@ -25108,6 +25122,7 @@ export namespace Prisma {
     function_name?: StringNullableFilter<"external_api_logs"> | string | null
     api_name?: StringNullableFilter<"external_api_logs"> | string | null
     endpoint?: StringNullableFilter<"external_api_logs"> | string | null
+    method?: StringNullableFilter<"external_api_logs"> | string | null
     request_payload?: JsonNullableFilter<"external_api_logs">
     response_payload?: JsonNullableFilter<"external_api_logs">
     status_code?: IntNullableFilter<"external_api_logs"> | number | null
@@ -25124,6 +25139,7 @@ export namespace Prisma {
     function_name?: SortOrderInput | SortOrder
     api_name?: SortOrderInput | SortOrder
     endpoint?: SortOrderInput | SortOrder
+    method?: SortOrderInput | SortOrder
     request_payload?: SortOrderInput | SortOrder
     response_payload?: SortOrderInput | SortOrder
     status_code?: SortOrderInput | SortOrder
@@ -25143,6 +25159,7 @@ export namespace Prisma {
     function_name?: StringNullableFilter<"external_api_logs"> | string | null
     api_name?: StringNullableFilter<"external_api_logs"> | string | null
     endpoint?: StringNullableFilter<"external_api_logs"> | string | null
+    method?: StringNullableFilter<"external_api_logs"> | string | null
     request_payload?: JsonNullableFilter<"external_api_logs">
     response_payload?: JsonNullableFilter<"external_api_logs">
     status_code?: IntNullableFilter<"external_api_logs"> | number | null
@@ -25159,6 +25176,7 @@ export namespace Prisma {
     function_name?: SortOrderInput | SortOrder
     api_name?: SortOrderInput | SortOrder
     endpoint?: SortOrderInput | SortOrder
+    method?: SortOrderInput | SortOrder
     request_payload?: SortOrderInput | SortOrder
     response_payload?: SortOrderInput | SortOrder
     status_code?: SortOrderInput | SortOrder
@@ -25183,6 +25201,7 @@ export namespace Prisma {
     function_name?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
     api_name?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
     endpoint?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
+    method?: StringNullableWithAggregatesFilter<"external_api_logs"> | string | null
     request_payload?: JsonNullableWithAggregatesFilter<"external_api_logs">
     response_payload?: JsonNullableWithAggregatesFilter<"external_api_logs">
     status_code?: IntNullableWithAggregatesFilter<"external_api_logs"> | number | null
@@ -26540,6 +26559,7 @@ export namespace Prisma {
     function_name?: string | null
     api_name?: string | null
     endpoint?: string | null
+    method?: string | null
     request_payload?: NullableJsonNullValueInput | InputJsonValue
     response_payload?: NullableJsonNullValueInput | InputJsonValue
     status_code?: number | null
@@ -26556,6 +26576,7 @@ export namespace Prisma {
     function_name?: string | null
     api_name?: string | null
     endpoint?: string | null
+    method?: string | null
     request_payload?: NullableJsonNullValueInput | InputJsonValue
     response_payload?: NullableJsonNullValueInput | InputJsonValue
     status_code?: number | null
@@ -26572,6 +26593,7 @@ export namespace Prisma {
     function_name?: NullableStringFieldUpdateOperationsInput | string | null
     api_name?: NullableStringFieldUpdateOperationsInput | string | null
     endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
     request_payload?: NullableJsonNullValueInput | InputJsonValue
     response_payload?: NullableJsonNullValueInput | InputJsonValue
     status_code?: NullableIntFieldUpdateOperationsInput | number | null
@@ -26588,6 +26610,7 @@ export namespace Prisma {
     function_name?: NullableStringFieldUpdateOperationsInput | string | null
     api_name?: NullableStringFieldUpdateOperationsInput | string | null
     endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
     request_payload?: NullableJsonNullValueInput | InputJsonValue
     response_payload?: NullableJsonNullValueInput | InputJsonValue
     status_code?: NullableIntFieldUpdateOperationsInput | number | null
@@ -26604,6 +26627,7 @@ export namespace Prisma {
     function_name?: string | null
     api_name?: string | null
     endpoint?: string | null
+    method?: string | null
     request_payload?: NullableJsonNullValueInput | InputJsonValue
     response_payload?: NullableJsonNullValueInput | InputJsonValue
     status_code?: number | null
@@ -26620,6 +26644,7 @@ export namespace Prisma {
     function_name?: NullableStringFieldUpdateOperationsInput | string | null
     api_name?: NullableStringFieldUpdateOperationsInput | string | null
     endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
     request_payload?: NullableJsonNullValueInput | InputJsonValue
     response_payload?: NullableJsonNullValueInput | InputJsonValue
     status_code?: NullableIntFieldUpdateOperationsInput | number | null
@@ -26636,6 +26661,7 @@ export namespace Prisma {
     function_name?: NullableStringFieldUpdateOperationsInput | string | null
     api_name?: NullableStringFieldUpdateOperationsInput | string | null
     endpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
     request_payload?: NullableJsonNullValueInput | InputJsonValue
     response_payload?: NullableJsonNullValueInput | InputJsonValue
     status_code?: NullableIntFieldUpdateOperationsInput | number | null
@@ -28148,6 +28174,7 @@ export namespace Prisma {
     function_name?: SortOrder
     api_name?: SortOrder
     endpoint?: SortOrder
+    method?: SortOrder
     request_payload?: SortOrder
     response_payload?: SortOrder
     status_code?: SortOrder
@@ -28169,6 +28196,7 @@ export namespace Prisma {
     function_name?: SortOrder
     api_name?: SortOrder
     endpoint?: SortOrder
+    method?: SortOrder
     status_code?: SortOrder
     error_message?: SortOrder
     response_time_ms?: SortOrder
@@ -28183,6 +28211,7 @@ export namespace Prisma {
     function_name?: SortOrder
     api_name?: SortOrder
     endpoint?: SortOrder
+    method?: SortOrder
     status_code?: SortOrder
     error_message?: SortOrder
     response_time_ms?: SortOrder

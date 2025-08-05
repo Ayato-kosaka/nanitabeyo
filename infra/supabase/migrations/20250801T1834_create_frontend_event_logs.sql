@@ -1,5 +1,5 @@
 -- ENUM型の定義（テーブルに合わせて一意な名前）
-CREATE TYPE frontend_event_logs_error_level AS ENUM ('trace', 'debug', 'info', 'warn', 'error');
+CREATE TYPE frontend_event_logs_error_level AS ENUM ('verbose', 'debug', 'log', 'warn', 'error');
 
 -- テーブル定義
 CREATE TABLE frontend_event_logs (

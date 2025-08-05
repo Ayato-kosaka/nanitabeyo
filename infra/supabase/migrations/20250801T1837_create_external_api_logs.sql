@@ -5,6 +5,7 @@ CREATE TABLE external_api_logs (
     function_name TEXT,
     api_name TEXT,
     endpoint TEXT,
+    method TEXT,
     request_payload JSON,
     response_payload JSON,
     status_code SMALLINT,
@@ -29,6 +30,7 @@ COMMENT ON COLUMN external_api_logs.request_id IS '呼び出し単位のトレ�
 COMMENT ON COLUMN external_api_logs.function_name IS '呼び出し元の関数名（例：recognizeSpot）';
 COMMENT ON COLUMN external_api_logs.api_name IS '使用した外部APIの名前（例：GoogleVision）';
 COMMENT ON COLUMN external_api_logs.endpoint IS 'APIエンドポイント（例：/v1/images:annotate）';
+COMMENT ON COLUMN external_api_logs.method IS 'HTTPメソッド（例：GET, POST, PUT, DELETE）';
 COMMENT ON COLUMN external_api_logs.request_payload IS 'APIリクエストの内容';
 COMMENT ON COLUMN external_api_logs.response_payload IS 'APIレスポンスの内容';
 COMMENT ON COLUMN external_api_logs.status_code IS 'HTTPステータスコード（例：200, 500）';

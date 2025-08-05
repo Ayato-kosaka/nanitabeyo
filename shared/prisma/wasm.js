@@ -208,6 +208,7 @@ exports.Prisma.External_api_logsScalarFieldEnum = {
   function_name: 'function_name',
   api_name: 'api_name',
   endpoint: 'endpoint',
+  method: 'method',
   request_payload: 'request_payload',
   response_payload: 'response_payload',
   status_code: 'status_code',
@@ -363,17 +364,17 @@ exports.Prisma.NullsOrder = {
   last: 'last'
 };
 exports.backend_event_logs_error_level = exports.$Enums.backend_event_logs_error_level = {
-  trace: 'trace',
+  verbose: 'verbose',
   debug: 'debug',
-  info: 'info',
+  log: 'log',
   warn: 'warn',
   error: 'error'
 };
 
 exports.frontend_event_logs_error_level = exports.$Enums.frontend_event_logs_error_level = {
-  trace: 'trace',
+  verbose: 'verbose',
   debug: 'debug',
-  info: 'info',
+  log: 'log',
   warn: 'warn',
   error: 'error'
 };

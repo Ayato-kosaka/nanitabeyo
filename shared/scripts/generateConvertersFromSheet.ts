@@ -42,6 +42,15 @@ function toPascalCase(str: string): string {
 }
 
 /**
+ * 指定の型が除外対象であるかを判定
+ * @param columnType カラムのデータ型文字列
+ * @returns 除外対象であれば true
+ */
+function isExccludedType(columnType: string): boolean {
+	return ["tsvector", "geography(point,4326)"].includes(columnType.toLowerCase());
+}
+
+/**
  * 指定の型が日付型であるかを判定
  * @param columnType カラムのデータ型文字列
  * @returns 日付型であれば true
@@ -93,6 +102,7 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 	// Supabase → Prisma 変換本体
 	const toPrismaBody = columns
 		.map(({ c_name, c_datatype, c_not_null }) => {
+			if (isExccludedType(c_datatype)) return;
 			const isArray = isArrayColumn(c_datatype);
 			const baseType = getBaseType(c_datatype);
 
@@ -123,6 +133,7 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 	// Prisma → Supabase 変換本体
 	const toSupabaseBody = columns
 		.map(({ c_name, c_datatype }) => {
+			if (isExccludedType(c_datatype)) return `    ${c_name}: null,`;
 			const isArray = isArrayColumn(c_datatype);
 			const baseType = getBaseType(c_datatype);
 

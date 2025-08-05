@@ -16,7 +16,7 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     id: supabase.id,
     google_place_id: supabase.google_place_id,
     name: supabase.name,
-    location: supabase.location,
+
     image_url: supabase.image_url,
     created_at: new Date(supabase.created_at),
   };
@@ -32,7 +32,7 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     id: prisma.id,
     google_place_id: prisma.google_place_id,
     name: prisma.name,
-    location: prisma.location,
+    location: null,
     image_url: prisma.image_url,
     created_at: prisma.created_at?.toISOString() ?? null,
   };
