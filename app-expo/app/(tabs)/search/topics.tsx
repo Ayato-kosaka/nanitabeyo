@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { ThumbsUp, X } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
@@ -9,7 +9,7 @@ import { useHideTopic } from "@/features/topics/hooks/useHideTopic";
 import { TopicCard } from "@/features/topics/components/TopicCard";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { HideTopicModal } from "@/features/topics/components/HideTopicModal";
+import { useBlurModal } from "@/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSearchStore } from "@/stores/useSearchStore";
@@ -22,13 +22,27 @@ export default function TopicsScreen() {
 	const carouselRef = useRef<any>(null);
 	const setDishes = useSearchStore((state) => state.setDishes);
 
-	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
-	const { showSnackbar } = useSnackbar();
-	const { showHideModal, setShowHideModal, hideReason, setHideReason, handleHideCard, confirmHideCard } = useHideTopic(
-		topics,
-		hideTopic,
-		showSnackbar,
-	);
+        const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
+        const { showSnackbar } = useSnackbar();
+        const { showHideModal, setShowHideModal, hideReason, setHideReason, handleHideCard, confirmHideCard } = useHideTopic(
+                topics,
+                hideTopic,
+                showSnackbar,
+        );
+
+        const {
+                BlurModal: HideBlurModal,
+                open: openHideModal,
+                close: closeHideModal,
+        } = useBlurModal({ intensity: 100, onClose: () => setShowHideModal(false) });
+
+        useEffect(() => {
+                if (showHideModal) {
+                        openHideModal();
+                } else {
+                        closeHideModal();
+                }
+        }, [showHideModal, openHideModal, closeHideModal]);
 
 	useEffect(() => {
 		if (searchParams) {
@@ -129,16 +143,41 @@ export default function TopicsScreen() {
 				</View>
 			)}
 
-			{/* Hide Card Modal */}
-			<HideTopicModal
-				visible={showHideModal}
-				onRequestClose={() => setShowHideModal(false)}
-				hideReason={hideReason}
-				setHideReason={setHideReason}
-				confirmHideCard={confirmHideCard}
-			/>
-		</LinearGradient>
-	);
+                        {/* Hide Card Modal */}
+                        <HideBlurModal showCloseButton={false} contentContainerStyle={styles.modalOverlay}>
+                                <View style={styles.modalContainer}>
+                                        <View style={styles.modalHeader}>
+                                                <Text style={styles.modalTitle}>非表示にする</Text>
+                                                <TouchableOpacity onPress={() => setShowHideModal(false)}>
+                                                        <X size={24} color="#49454F" />
+                                                </TouchableOpacity>
+                                        </View>
+
+                                        <Text style={styles.modalDescription}>非表示にする理由を教えてください（任意）</Text>
+
+                                        <TextInput
+                                                style={styles.reasonInput}
+                                                placeholder="理由を入力してください..."
+                                                value={hideReason}
+                                                onChangeText={setHideReason}
+                                                multiline
+                                                numberOfLines={3}
+                                                textAlignVertical="top"
+                                                placeholderTextColor="#79747E"
+                                        />
+
+                                        <View style={styles.modalActions}>
+                                                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowHideModal(false)}>
+                                                        <Text style={styles.cancelButtonText}>キャンセル</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.confirmButton} onPress={confirmHideCard}>
+                                                        <Text style={styles.confirmButtonText}>非表示にする</Text>
+                                                </TouchableOpacity>
+                                        </View>
+                                </View>
+                        </HideBlurModal>
+                </LinearGradient>
+        );
 }
 
 const styles = StyleSheet.create({
@@ -241,12 +280,103 @@ const styles = StyleSheet.create({
 		width: "100%",
 		maxWidth: 320,
 	},
-	emptyText: {
-		fontSize: 18,
-		color: "#6B7280",
-		textAlign: "center",
-		marginBottom: 24,
-		lineHeight: 28,
-		fontWeight: "500",
-	},
+        emptyText: {
+                fontSize: 18,
+                color: "#6B7280",
+                textAlign: "center",
+                marginBottom: 24,
+                lineHeight: 28,
+                fontWeight: "500",
+        },
+        modalOverlay: {
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+        },
+        modalContainer: {
+                backgroundColor: "#FFFFFF",
+                borderRadius: 24,
+                padding: 24,
+                width: width - 48,
+                maxWidth: 400,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.3,
+                shadowRadius: 24,
+                elevation: 12,
+        },
+        modalHeader: {
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+        },
+        modalTitle: {
+                fontSize: 22,
+                fontWeight: "700",
+                color: "#1C1B1F",
+                letterSpacing: -0.3,
+        },
+        modalDescription: {
+                fontSize: 16,
+                color: "#49454F",
+                marginBottom: 16,
+                lineHeight: 24,
+                fontWeight: "500",
+        },
+        reasonInput: {
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+                fontSize: 16,
+                color: "#1C1B1F",
+                backgroundColor: "#FFFFFF",
+                minHeight: 100,
+                marginBottom: 24,
+                textAlignVertical: "top",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+        },
+        modalActions: {
+                flexDirection: "row",
+                gap: 12,
+        },
+        cancelButton: {
+                flex: 1,
+                paddingVertical: 16,
+                borderRadius: 16,
+                alignItems: "center",
+                backgroundColor: "#F8F9FA",
+                shadowColor: "#F8F9FA",
+                shadowOffset: { width: 0, height: 0 },
+                shadowRadius: 10,
+                elevation: 6,
+        },
+        cancelButtonText: {
+                fontSize: 16,
+                color: "#6B7280",
+                fontWeight: "600",
+        },
+        confirmButton: {
+                flex: 1,
+                backgroundColor: "#EF4444",
+                paddingVertical: 16,
+                borderRadius: 16,
+                alignItems: "center",
+                shadowColor: "#EF4444",
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.4,
+                shadowRadius: 10,
+                elevation: 6,
+        },
+        confirmButtonText: {
+                fontSize: 16,
+                color: "#FFFFFF",
+                fontWeight: "600",
+        },
 });
