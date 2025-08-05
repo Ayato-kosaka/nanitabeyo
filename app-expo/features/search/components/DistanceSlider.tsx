@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, PanResponder } from "react-native";
 import { distanceOptions } from "@/features/search/constants";
+import i18n from "@/lib/i18n";
 
 // Slider component to choose search distance
 export function DistanceSlider({ distance, setDistance }: { distance: number; setDistance: (value: number) => void }) {
@@ -27,12 +28,12 @@ export function DistanceSlider({ distance, setDistance }: { distance: number; se
 			<View style={styles.sliderTrack}>
 				<View style={[styles.sliderThumb, { left: thumbPosition }]} {...panResponder.panHandlers} />
 			</View>
-			<View style={styles.sliderLabels}>
-				<Text style={styles.sliderLabelLeft}>近い</Text>
-				<Text style={styles.sliderLabelRight}>遠い</Text>
-			</View>
-		</View>
-	);
+                        <View style={styles.sliderLabels}>
+                                <Text style={styles.sliderLabelLeft}>{i18n.t("Search.DistanceSlider.near")}</Text>
+                                <Text style={styles.sliderLabelRight}>{i18n.t("Search.DistanceSlider.far")}</Text>
+                        </View>
+                </View>
+        );
 }
 
 // Styles mirror the ones in the original screen

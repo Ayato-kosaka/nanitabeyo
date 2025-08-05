@@ -2,10 +2,36 @@
 	"Common": {
 		"cancel": "إلغاء",
 		"ok": "موافق",
-		"goStore": "افتح متجر التطبيقات"
+		"goStore": "افتح متجر التطبيقات",
+		"back": "رجوع"
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
 		"unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."
+	},
+	"Search": {
+		"DistanceSlider": {
+			"near": "قريب",
+			"far": "بعيد"
+		},
+		"BudgetSlider": {
+			"cheap": "رخيص",
+			"expensive": "غالي"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "إخفاء",
+			"description": "أخبرنا سبب الإخفاء (اختياري)",
+			"placeholder": "أدخل السبب...",
+			"confirm": "إخفاء"
+		},
+		"Loading": {
+			"title": "نبحث عن الطبق المناسب لك",
+			"subtitle": "يرجى الانتظار..."
+		}
+	},
+	"Notifications": {
+		"title": "الإشعارات"
 	}
 }

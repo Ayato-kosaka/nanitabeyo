@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import i18n from "@/lib/i18n";
 
 // Error view shown when fetching topics fails
 export const TopicsError = ({ error, onBack }: { error: string; onBack: () => void }) => (
@@ -8,12 +9,12 @@ export const TopicsError = ({ error, onBack }: { error: string; onBack: () => vo
 		<SafeAreaView style={styles.errorContent}>
 			<View style={styles.errorCard}>
 				<Text style={styles.errorText}>{error}</Text>
-				<TouchableOpacity style={styles.retryButton} onPress={onBack}>
-					<Text style={styles.retryButtonText}>戻る</Text>
-				</TouchableOpacity>
-			</View>
-		</SafeAreaView>
-	</LinearGradient>
+                                <TouchableOpacity style={styles.retryButton} onPress={onBack}>
+                                        <Text style={styles.retryButtonText}>{i18n.t("Common.back")}</Text>
+                                </TouchableOpacity>
+                        </View>
+                </SafeAreaView>
+        </LinearGradient>
 );
 
 const styles = StyleSheet.create({

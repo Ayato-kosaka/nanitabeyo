@@ -2,10 +2,36 @@
 	"Common": {
 		"cancel": "취소",
 		"ok": "확인",
-		"goStore": "앱 스토어 열기"
+		"goStore": "앱 스토어 열기",
+		"back": "뒤로"
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
 		"unsupportedVersion": "이 버전은 더 이상 지원되지 않습니다."
+	},
+	"Search": {
+		"DistanceSlider": {
+			"near": "가까움",
+			"far": "멀리"
+		},
+		"BudgetSlider": {
+			"cheap": "저렴함",
+			"expensive": "비쌈"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "숨기기",
+			"description": "숨기는 이유를 알려주세요 (선택사항)",
+			"placeholder": "이유를 입력하세요...",
+			"confirm": "숨기기"
+		},
+		"Loading": {
+			"title": "당신에게 딱 맞는 요리를 찾고 있어요",
+			"subtitle": "잠시만 기다려 주세요..."
+		}
+	},
+	"Notifications": {
+		"title": "알림"
 	}
 }
