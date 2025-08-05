@@ -8,16 +8,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 
 export default function ResultScreen() {
-        const { topicId } = useLocalSearchParams<{ topicId: string }>();
+	const { topicId } = useLocalSearchParams<{ topicId: string }>();
 
-        const {
-                currentIndex,
-                showCompletionModal,
-                dishes,
-                handleIndexChange,
-                handleClose,
-                handleReturnToCards,
-        } = useSearchResult(topicId as string);
+	const { currentIndex, showCompletionModal, dishes, handleIndexChange, handleClose, handleReturnToCards } =
+		useSearchResult(topicId as string);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>

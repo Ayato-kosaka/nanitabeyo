@@ -17,21 +17,18 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
 
 export default function TopicsScreen() {
-        const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
-        const [currentIndex, setCurrentIndex] = useState(0);
-        const carouselRef = useRef<any>(null);
-        const setDishes = useSearchStore((state) => state.setDishes);
+	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
+	const [currentIndex, setCurrentIndex] = useState(0);
+	const carouselRef = useRef<any>(null);
+	const setDishes = useSearchStore((state) => state.setDishes);
 
-        const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
-        const { showSnackbar } = useSnackbar();
-        const {
-                showHideModal,
-                setShowHideModal,
-                hideReason,
-                setHideReason,
-                handleHideCard,
-                confirmHideCard,
-        } = useHideTopic(topics, hideTopic, showSnackbar);
+	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
+	const { showSnackbar } = useSnackbar();
+	const { showHideModal, setShowHideModal, hideReason, setHideReason, handleHideCard, confirmHideCard } = useHideTopic(
+		topics,
+		hideTopic,
+		showSnackbar,
+	);
 
 	useEffect(() => {
 		if (searchParams) {
@@ -47,11 +44,11 @@ export default function TopicsScreen() {
 		}
 	}, [searchParams, searchTopics, showSnackbar]);
 
-        const handleViewDetails = (topic: Topic) => {
-                setDishes(topic.id, topic.feedItems);
-                router.push({
-                        pathname: "/(tabs)/search/result",
-                        params: {
+	const handleViewDetails = (topic: Topic) => {
+		setDishes(topic.id, topic.feedItems);
+		router.push({
+			pathname: "/(tabs)/search/result",
+			params: {
 				topicId: topic.id,
 			},
 		});
@@ -63,17 +60,15 @@ export default function TopicsScreen() {
 
 	const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
-        const renderCard = ({ item }: { item: Topic }) => (
-                <TopicCard item={item} onHide={handleHideCard} />
-        );
+	const renderCard = ({ item }: { item: Topic }) => <TopicCard item={item} onHide={handleHideCard} />;
 
-        if (isLoading) {
-                return <TopicsLoading />;
-        }
+	if (isLoading) {
+		return <TopicsLoading />;
+	}
 
-        if (error) {
-                return <TopicsError error={error} onBack={handleBack} />;
-        }
+	if (error) {
+		return <TopicsError error={error} onBack={handleBack} />;
+	}
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
@@ -134,124 +129,124 @@ export default function TopicsScreen() {
 				</View>
 			)}
 
-                        {/* Hide Card Modal */}
-                        <HideTopicModal
-                                visible={showHideModal}
-                                onRequestClose={() => setShowHideModal(false)}
-                                hideReason={hideReason}
-                                setHideReason={setHideReason}
-                                confirmHideCard={confirmHideCard}
-                        />
-                </LinearGradient>
-        );
+			{/* Hide Card Modal */}
+			<HideTopicModal
+				visible={showHideModal}
+				onRequestClose={() => setShowHideModal(false)}
+				hideReason={hideReason}
+				setHideReason={setHideReason}
+				confirmHideCard={confirmHideCard}
+			/>
+		</LinearGradient>
+	);
 }
 
 const styles = StyleSheet.create({
-        container: {
-                flex: 1,
-                justifyContent: "flex-start",
-        },
-        backButtonContainer: {
-                position: "absolute",
-                top: 0,
-                right: 0,
-                flexDirection: "row",
-                alignItems: "center",
-                padding: 16,
-                zIndex: 10,
-        },
-        backButton: {
-                padding: 8,
-                borderRadius: 20,
-                backgroundColor: "#FFFFFF",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                elevation: 4,
-        },
-        retryButton: {
-                backgroundColor: "#5EA2FF",
-                paddingHorizontal: 24,
-                paddingVertical: 16,
-                borderRadius: 16,
-                shadowColor: "#5EA2FF",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 12,
-                elevation: 6,
-        },
-        retryButtonText: {
-                fontSize: 16,
-                color: "#FFFFFF",
-                fontWeight: "600",
-                letterSpacing: 0.3,
-        },
-        carouselContainer: {
-                justifyContent: "center",
-                alignItems: "center",
-        },
-        carousel: {
-                width: width,
-        },
-        pageIndicatorContainer: {
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                marginTop: -20,
-                marginLeft: 20,
-        },
-        pageIndicatorDot: {
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: "rgba(255, 255, 255, 0.4)",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.3,
-                shadowRadius: 1.5,
-                elevation: 2,
-        },
-        pageIndicatorDotActive: {
-                width: 16,
-                borderRadius: 4,
-                backgroundColor: "#5EA2FF",
-                shadowColor: "#5EA2FF",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.5,
-                shadowRadius: 3,
-                elevation: 3,
-        },
-        bottomActionContainer: {
-                marginHorizontal: 20,
-                marginVertical: 8,
-                zIndex: 10,
-        },
-        emptyContainer: {
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-                paddingHorizontal: 24,
-        },
-        emptyCard: {
-                backgroundColor: "#FFFFFF",
-                borderRadius: 24,
-                padding: 32,
-                alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.12,
-                shadowRadius: 24,
-                elevation: 8,
-                width: "100%",
-                maxWidth: 320,
-        },
-        emptyText: {
-                fontSize: 18,
-                color: "#6B7280",
-                textAlign: "center",
-                marginBottom: 24,
-                lineHeight: 28,
-                fontWeight: "500",
-        },
+	container: {
+		flex: 1,
+		justifyContent: "flex-start",
+	},
+	backButtonContainer: {
+		position: "absolute",
+		top: 0,
+		right: 0,
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 16,
+		zIndex: 10,
+	},
+	backButton: {
+		padding: 8,
+		borderRadius: 20,
+		backgroundColor: "#FFFFFF",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.2,
+		shadowRadius: 8,
+		elevation: 4,
+	},
+	retryButton: {
+		backgroundColor: "#5EA2FF",
+		paddingHorizontal: 24,
+		paddingVertical: 16,
+		borderRadius: 16,
+		shadowColor: "#5EA2FF",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.3,
+		shadowRadius: 12,
+		elevation: 6,
+	},
+	retryButtonText: {
+		fontSize: 16,
+		color: "#FFFFFF",
+		fontWeight: "600",
+		letterSpacing: 0.3,
+	},
+	carouselContainer: {
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	carousel: {
+		width: width,
+	},
+	pageIndicatorContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		marginTop: -20,
+		marginLeft: 20,
+	},
+	pageIndicatorDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: "rgba(255, 255, 255, 0.4)",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.3,
+		shadowRadius: 1.5,
+		elevation: 2,
+	},
+	pageIndicatorDotActive: {
+		width: 16,
+		borderRadius: 4,
+		backgroundColor: "#5EA2FF",
+		shadowColor: "#5EA2FF",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.5,
+		shadowRadius: 3,
+		elevation: 3,
+	},
+	bottomActionContainer: {
+		marginHorizontal: 20,
+		marginVertical: 8,
+		zIndex: 10,
+	},
+	emptyContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 24,
+	},
+	emptyCard: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 24,
+		padding: 32,
+		alignItems: "center",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 8 },
+		shadowOpacity: 0.12,
+		shadowRadius: 24,
+		elevation: 8,
+		width: "100%",
+		maxWidth: 320,
+	},
+	emptyText: {
+		fontSize: 18,
+		color: "#6B7280",
+		textAlign: "center",
+		marginBottom: 24,
+		lineHeight: 28,
+		fontWeight: "500",
+	},
 });

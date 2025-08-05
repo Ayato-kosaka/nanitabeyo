@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
-        View,
-        Text,
-        StyleSheet,
-        ScrollView,
-        TouchableOpacity,
-        TextInput,
-        SafeAreaView,
-        ActivityIndicator,
-        FlatList,
+	View,
+	Text,
+	StyleSheet,
+	ScrollView,
+	TouchableOpacity,
+	TextInput,
+	SafeAreaView,
+	ActivityIndicator,
+	FlatList,
 } from "react-native";
 import { Divider } from "react-native-paper";
 import {
@@ -29,12 +29,12 @@ import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
 import {
-        timeSlots,
-        sceneOptions,
-        moodOptions,
-        distanceOptions,
-        budgetOptions,
-        restrictionOptions,
+	timeSlots,
+	sceneOptions,
+	moodOptions,
+	distanceOptions,
+	budgetOptions,
+	restrictionOptions,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { BudgetSlider } from "@/features/search/components/BudgetSlider";
@@ -291,7 +291,7 @@ export default function SearchScreen() {
 								<Text style={styles.sliderValue}>
 									{distanceOptions.find((option) => option.value === distance)?.label}
 								</Text>
-                                                                <DistanceSlider distance={distance} setDistance={setDistance} />
+								<DistanceSlider distance={distance} setDistance={setDistance} />
 							</View>
 						</Card>
 
@@ -303,12 +303,12 @@ export default function SearchScreen() {
 							</View>
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
-                                                                <BudgetSlider
-                                                                        budgetMin={budgetMin}
-                                                                        budgetMax={budgetMax}
-                                                                        setBudgetMin={setBudgetMin}
-                                                                        setBudgetMax={setBudgetMax}
-                                                                />
+								<BudgetSlider
+									budgetMin={budgetMin}
+									budgetMax={budgetMax}
+									setBudgetMin={setBudgetMin}
+									setBudgetMax={setBudgetMax}
+								/>
 							</View>
 						</Card>
 

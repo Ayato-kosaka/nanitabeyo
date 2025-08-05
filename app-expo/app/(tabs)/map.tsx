@@ -23,17 +23,10 @@ import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
-import {
-        ActiveBid,
-        Review,
-        mockActiveBids,
-        mockReviews,
-        mockBidHistory,
-} from "@/features/map/constants";
+import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 
 const { width, height } = Dimensions.get("window");
-
 
 export default function MapScreen() {
 	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
@@ -84,7 +77,6 @@ export default function MapScreen() {
 		});
 	}, []);
 
-	
 	const handleMarkerPress = (bid: ActiveBid) => {
 		setSelectedPlace(bid);
 		openRestaurantModal();
