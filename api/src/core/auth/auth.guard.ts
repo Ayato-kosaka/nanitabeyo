@@ -40,7 +40,8 @@ export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
         _ctx: ExecutionContext,
         _status?: any,
     ): TUser {
-        this.cls.set(CLS_KEY_USER_ID, user?.id);
+        // TODO: user を取得できるようにする。
+        // this.cls.set(CLS_KEY_USER_ID, user?.id);
         // user が falsy ならそのまま undefined を返却
         // ただし型は TUser (any) にキャストして整合を取る
         return user as TUser;
