@@ -2,10 +2,36 @@
 	"Common": {
 		"cancel": "Cancel",
 		"ok": "OK",
-		"goStore": "Open App Store"
+		"goStore": "Open App Store",
+		"back": "Back"
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
 		"unsupportedVersion": "This version is no longer supported."
+	},
+	"Search": {
+		"DistanceSlider": {
+			"near": "Near",
+			"far": "Far"
+		},
+		"BudgetSlider": {
+			"cheap": "Cheap",
+			"expensive": "Expensive"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "Hide",
+			"description": "Please tell us the reason for hiding (optional)",
+			"placeholder": "Enter a reason...",
+			"confirm": "Hide"
+		},
+		"Loading": {
+			"title": "Searching for dishes perfect for you",
+			"subtitle": "Please wait a moment..."
+		}
+	},
+	"Notifications": {
+		"title": "Notifications"
 	}
 }

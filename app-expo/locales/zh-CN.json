@@ -2,10 +2,36 @@
 	"Common": {
 		"cancel": "取消",
 		"ok": "确定",
-		"goStore": "打开应用商店"
+		"goStore": "打开应用商店",
+		"back": "返回"
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
 		"unsupportedVersion": "此版本已不再受支持."
+	},
+	"Search": {
+		"DistanceSlider": {
+			"near": "近",
+			"far": "远"
+		},
+		"BudgetSlider": {
+			"cheap": "便宜",
+			"expensive": "昂贵"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "隐藏",
+			"description": "请告诉我们隐藏的理由（可选）",
+			"placeholder": "请输入理由...",
+			"confirm": "隐藏"
+		},
+		"Loading": {
+			"title": "正在为你寻找合适的菜品",
+			"subtitle": "请稍候..."
+		}
+	},
+	"Notifications": {
+		"title": "通知"
 	}
 }

@@ -2,10 +2,36 @@
 	"Common": {
 		"cancel": "रद्द करें",
 		"ok": "ओके",
-		"goStore": "ऐप स्टोर खोलें"
+		"goStore": "ऐप स्टोर खोलें",
+		"back": "वापस"
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
 		"unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"
+	},
+	"Search": {
+		"DistanceSlider": {
+			"near": "पास",
+			"far": "दूर"
+		},
+		"BudgetSlider": {
+			"cheap": "सस्ता",
+			"expensive": "महंगा"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "छिपाएँ",
+			"description": "कृपया छिपाने का कारण बताएं (वैकल्पिक)",
+			"placeholder": "कारण दर्ज करें...",
+			"confirm": "छिपाएँ"
+		},
+		"Loading": {
+			"title": "आपके लिए उपयुक्त व्यंजन खोज रहे हैं",
+			"subtitle": "कृपया प्रतीक्षा करें..."
+		}
+	},
+	"Notifications": {
+		"title": "सूचनाएँ"
 	}
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Sparkles } from "lucide-react-native";
+import i18n from "@/lib/i18n";
 
 // Loading indicator while topics are being fetched
 export const TopicsLoading = () => (
@@ -12,11 +13,11 @@ export const TopicsLoading = () => (
 					<Sparkles size={32} color="#5EA2FF" />
 				</View>
 				<ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
-				<Text style={styles.loadingTitle}>あなたにぴったりの料理を探しています</Text>
-				<Text style={styles.loadingSubtitle}>少々お待ちください...</Text>
-			</View>
-		</SafeAreaView>
-	</LinearGradient>
+                                <Text style={styles.loadingTitle}>{i18n.t("Topics.Loading.title")}</Text>
+                                <Text style={styles.loadingSubtitle}>{i18n.t("Topics.Loading.subtitle")}</Text>
+                        </View>
+                </SafeAreaView>
+        </LinearGradient>
 );
 
 const styles = StyleSheet.create({

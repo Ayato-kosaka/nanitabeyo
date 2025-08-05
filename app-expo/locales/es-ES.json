@@ -2,10 +2,36 @@
 	"Common": {
 		"cancel": "Cancelar",
 		"ok": "Aceptar",
-		"goStore": "Abrir App Store"
+		"goStore": "Abrir App Store",
+		"back": "Atrás"
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
 		"unsupportedVersion": "Esta versión ya no es compatible."
+	},
+	"Search": {
+		"DistanceSlider": {
+			"near": "Cerca",
+			"far": "Lejos"
+		},
+		"BudgetSlider": {
+			"cheap": "Barato",
+			"expensive": "Caro"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "Ocultar",
+			"description": "Dinos la razón para ocultarlo (opcional)",
+			"placeholder": "Introduce una razón...",
+			"confirm": "Ocultar"
+		},
+		"Loading": {
+			"title": "Buscando el plato perfecto para ti",
+			"subtitle": "Por favor, espera..."
+		}
+	},
+	"Notifications": {
+		"title": "Notificaciones"
 	}
 }
