@@ -3,14 +3,22 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
+import { useHaptics } from "@/hooks/useHaptics";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
 	const [isSaved, setIsSaved] = useState(false);
+	const { lightImpact, errorNotification } = useHaptics();
 
 	const handleSave = () => {
 		const willSave = !isSaved;
+		lightImpact();
 		setIsSaved(willSave);
+	};
+
+	const handleHide = () => {
+		errorNotification();
+		onHide(item.id);
 	};
 
 	return (
@@ -24,7 +32,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
 						<Bookmark size={20} color={isSaved ? "transparent" : "white"} fill={isSaved ? "orange" : "transparent"} />
 					</TouchableOpacity>
-					<TouchableOpacity style={styles.topButton} onPress={() => onHide(item.id)}>
+					<TouchableOpacity style={styles.topButton} onPress={handleHide}>
 						<Trash size={18} color="#FFF" />
 					</TouchableOpacity>
 				</View>

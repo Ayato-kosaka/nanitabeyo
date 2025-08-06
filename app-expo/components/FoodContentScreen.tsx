@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -32,8 +33,10 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		[key: string]: { isLiked: boolean; count: number };
 	}>({});
 	const scrollViewRef = useRef<ScrollView>(null);
+	const { lightImpact, mediumImpact } = useHaptics();
 
 	const handleCommentLike = (commentId: string) => {
+		lightImpact();
 		setCommentLikes((prev) => ({
 			...prev,
 			[commentId]: {
@@ -44,23 +47,38 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	};
 
 	const handleLike = () => {
+		lightImpact();
 		const willLike = !isLiked;
 		setIsLiked(willLike);
 		setLikesCount((prev) => (willLike ? prev + 1 : prev - 1));
 	};
 
 	const handleSave = () => {
+		lightImpact();
 		const willSave = !isSaved;
 		setIsSaved(willSave);
 	};
 
 	const handleViewRestaurant = () => {
+		lightImpact();
 		router.push("/(tabs)/(home)/restaurant/1");
 	};
 
 	const handleViewCreator = () => {
+		lightImpact();
 		// Navigate to creator's profile
 		router.push("/profile?userId=creator_123");
+	};
+
+	const handleMenuOpen = () => {
+		lightImpact();
+		openMenuModal();
+	};
+
+	const handleMenuOptionPress = (onPress: () => void) => {
+		lightImpact();
+		closeMenuModal();
+		onPress();
 	};
 
 	const menuOptions = [
@@ -194,7 +212,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 						{/* <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => openMenuModal()}
+              onPress={handleMenuOpen}
             >
               <EllipsisVertical size={28} color="#FFFFFF" />
             </TouchableOpacity> */}

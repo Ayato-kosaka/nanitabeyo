@@ -5,11 +5,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Heart, MessageCircle, UserPlus, AtSign, Share, MoveHorizontal as MoreHorizontal } from "lucide-react-native";
 import { NotificationItem } from "@/types";
 import { notificationsData } from "@/data/notificationsData";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const { width } = Dimensions.get("window");
 
 export default function NotificationsScreen() {
 	const [notifications, setNotifications] = useState<NotificationItem[]>(notificationsData);
+	const { lightImpact } = useHaptics();
 
 	const getNotificationIcon = (type: NotificationItem["type"]) => {
 		const iconProps = { size: 13, color: "#FFFFFF" };
@@ -48,6 +50,7 @@ export default function NotificationsScreen() {
 	};
 
 	const handleNotificationPress = (notification: NotificationItem) => {
+		lightImpact();
 		// Mark as read
 		setNotifications((prev) => prev.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item)));
 

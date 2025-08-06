@@ -27,10 +27,12 @@ import { i18n } from "@/lib/i18n";
 import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import Stars from "@/components/Stars";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const { width, height } = Dimensions.get("window");
 
 export default function MapScreen() {
+	const { lightImpact, mediumImpact } = useHaptics();
 	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
 	const [selectedTab, setSelectedTab] = useState<"reviews" | "bids">("reviews");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -80,11 +82,13 @@ export default function MapScreen() {
 	}, []);
 
 	const handleMarkerPress = (bid: ActiveBid) => {
+		lightImpact();
 		setSelectedPlace(bid);
 		openRestaurantModal();
 	};
 
 	const handleSearchSelect = async (prediction: GooglePlacesPrediction) => {
+		lightImpact();
 		try {
 			const location = await getLocationDetails(prediction);
 			const newRegion = {
@@ -102,6 +106,7 @@ export default function MapScreen() {
 	};
 
 	const handleCurrentLocation = async () => {
+		lightImpact();
 		try {
 			const location = await getCurrentLocation();
 			const newRegion = {
@@ -120,6 +125,7 @@ export default function MapScreen() {
 	const handleBid = async () => {
 		if (!bidAmount || !selectedPlace) return;
 
+		mediumImpact();
 		setIsProcessing(true);
 		try {
 			// Mock Stripe payment processing
@@ -137,6 +143,7 @@ export default function MapScreen() {
 	const handleReviewSubmit = async () => {
 		if (!reviewText || !price) return;
 
+		mediumImpact();
 		setIsProcessing(true);
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -159,9 +166,15 @@ export default function MapScreen() {
 	];
 
 	const toggleBidStatus = (statusId: string) => {
+		lightImpact();
 		setSelectedBidStatuses((prev) =>
 			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
 		);
+	};
+
+	const handleTabSelect = (tab: "reviews" | "bids") => {
+		lightImpact();
+		setSelectedTab(tab);
 	};
 
 	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
@@ -265,12 +278,12 @@ export default function MapScreen() {
 						<View style={styles.tabContainer}>
 							<TouchableOpacity
 								style={[styles.tab, selectedTab === "reviews" && styles.activeTab]}
-								onPress={() => setSelectedTab("reviews")}>
+								onPress={() => handleTabSelect("reviews")}>
 								<Text style={[styles.tabText, selectedTab === "reviews" && styles.activeTabText]}>レビュー</Text>
 							</TouchableOpacity>
 							<TouchableOpacity
 								style={[styles.tab, selectedTab === "bids" && styles.activeTab]}
-								onPress={() => setSelectedTab("bids")}>
+								onPress={() => handleTabSelect("bids")}>
 								<Text style={[styles.tabText, selectedTab === "bids" && styles.activeTabText]}>入札</Text>
 							</TouchableOpacity>
 						</View>

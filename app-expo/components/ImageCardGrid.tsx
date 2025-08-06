@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 /* -------------------------------------------------------------------------- */
 /*                                  型定義                                    */
@@ -72,8 +73,14 @@ function ImageCard<T extends ImageCardItem>({
 	cardStyle?: StyleProp<ViewStyle>;
 }) {
 	const height = size / aspectRatio;
+	const { lightImpact } = useHaptics();
 
-	const handlePress = useCallback(() => onPress?.(item), [item, onPress]);
+	const handlePress = useCallback(() => {
+		if (onPress) {
+			lightImpact();
+			onPress(item);
+		}
+	}, [item, onPress, lightImpact]);
 
 	return (
 		<Pressable
