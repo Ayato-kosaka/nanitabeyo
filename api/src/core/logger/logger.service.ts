@@ -7,10 +7,9 @@ import { LogLevel, DEFAULT_LOG_LEVEL } from './logger.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
-import { Prisma } from '../../../../shared/prisma';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
-import { NonNullableFields, NullableField } from '../utils/type-utils';
+import { CreateBackendEventInput, CreateExternalApiInput } from './logger.types';
 
 
 /**
