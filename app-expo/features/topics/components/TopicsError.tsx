@@ -2,20 +2,30 @@ import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 // Error view shown when fetching topics fails
-export const TopicsError = ({ error, onBack }: { error: string; onBack: () => void }) => (
-	<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.errorContainer}>
-		<SafeAreaView style={styles.errorContent}>
-			<View style={styles.errorCard}>
-				<Text style={styles.errorText}>{error}</Text>
-				<TouchableOpacity style={styles.retryButton} onPress={onBack}>
-					<Text style={styles.retryButtonText}>{i18n.t("Common.back")}</Text>
-				</TouchableOpacity>
-			</View>
-		</SafeAreaView>
-	</LinearGradient>
-);
+export const TopicsError = ({ error, onBack }: { error: string; onBack: () => void }) => {
+	const { lightImpact } = useHaptics();
+	
+	const handleBack = () => {
+		lightImpact();
+		onBack();
+	};
+
+	return (
+		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.errorContainer}>
+			<SafeAreaView style={styles.errorContent}>
+				<View style={styles.errorCard}>
+					<Text style={styles.errorText}>{error}</Text>
+					<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
+						<Text style={styles.retryButtonText}>{i18n.t("Common.back")}</Text>
+					</TouchableOpacity>
+				</View>
+			</SafeAreaView>
+		</LinearGradient>
+	);
+};
 
 const styles = StyleSheet.create({
 	errorContainer: {
