@@ -7,40 +7,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { StaticMasterService } from '../utils/static-master.service';
 import { pickByWeight } from '../utils/weight.utils';
 import { PrismaService } from '../../prisma/prisma.service';
-import { env } from '../config/env';
-
-export interface PromptFamily {
-  id: string;
-  name: string;
-  purpose: string;
-  description?: string;
-  weight: number;
-}
-
-export interface PromptVariant {
-  id: string;
-  family_id: string;
-  variant_number: number;
-  prompt_text: string;
-  improvement_note?: string;
-  created_by: string;
-  metadata?: any;
-}
-
-export interface CreatePromptUsageParams {
-  family_id: string;
-  variant_id: string;
-  target_type: string;
-  target_id: string;
-  generated_text: string;
-  used_prompt_text: string;
-  input_data?: any;
-  llm_model: string;
-  temperature?: number;
-  generated_user: string;
-  created_request_id: string;
-  metadata?: any;
-}
+import { Prisma } from '../../../../shared/prisma';
+import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
+import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class PromptService {
@@ -49,15 +18,13 @@ export class PromptService {
   constructor(
     private readonly staticMasterService: StaticMasterService,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly cls: ClsService,
+  ) { }
 
   /**
    * プロンプトファミリーとバリアントを取得し、重み付け選択を行う
    */
-  async getPromptForPurpose(purpose: string): Promise<{
-    family: PromptFamily;
-    variant: PromptVariant;
-  } | null> {
+  async getPromptForPurpose(purpose: string) {
     this.logger.debug(`Getting prompt for purpose: ${purpose}`);
 
     try {
@@ -105,9 +72,9 @@ export class PromptService {
   /**
    * プロンプト使用履歴を記録
    */
-  async createPromptUsage(params: CreatePromptUsageParams): Promise<void> {
-    this.logger.debug('Creating prompt usage record', { 
-      family_id: params.family_id, 
+  async createPromptUsage(params: Omit<Prisma.prompt_usagesCreateInput, 'id' | 'created_at' | 'created_request_id'>): Promise<void> {
+    this.logger.debug('Creating prompt usage record', {
+      family_id: params.family_id,
       variant_id: params.variant_id,
       target_type: params.target_type,
     });
@@ -127,7 +94,7 @@ export class PromptService {
           temperature: params.temperature,
           generated_user: params.generated_user,
           created_at: new Date(),
-          created_request_id: params.created_request_id,
+          created_request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
           metadata: params.metadata,
         },
       });

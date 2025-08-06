@@ -38,7 +38,7 @@ export class DishCategoriesController {
   constructor(
     private readonly dishCategoriesService: DishCategoriesService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-categories/recommendations         */
@@ -62,11 +62,7 @@ export class DishCategoriesController {
   @ApiResponse({ status: 200, description: '取得成功' })
   async getRecommendations(
     @Query() query: QueryDishCategoryRecommendationsDto,
-    @CurrentUser() user?: RequestUser,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
-    const requestId = this.cls.get<string>(CLS_KEY_REQUEST_ID) ?? 'unknown';
-    const userId = user?.userId ?? 'anonymous';
-    
-    return this.dishCategoriesService.getRecommendations(query, requestId, userId);
+    return this.dishCategoriesService.getRecommendations(query);
   }
 }

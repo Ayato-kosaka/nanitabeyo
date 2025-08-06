@@ -3,9 +3,10 @@
 // External API service for Wikidata, Google Custom Search, and Claude API
 //
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { env } from '../config/env';
-import { PrismaService } from '../../prisma/prisma.service';
+import { AppLoggerService } from '../logger/logger.service';
+import { CreateExternalApiInput } from '../logger/logger.types';
 
 // Wikidata API のレスポンス型
 interface WikidataSearchResponse {
@@ -41,44 +42,29 @@ interface ClaudeMessageResponse {
   };
 }
 
-interface ExternalApiCallParams {
-  apiName: string;
-  endpoint: string;
-  method: string;
-  requestPayload?: any;
-  requestId?: string;
-  userId?: string;
-  functionName?: string;
-}
-
 @Injectable()
 export class ExternalApiService {
-  private readonly logger = new Logger(ExternalApiService.name);
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
    */
-  async callClaudeAPI(payload: any, requestId?: string, userId?: string): Promise<ClaudeMessageResponse> {
+  async callClaudeAPI(payload: any): Promise<ClaudeMessageResponse> {
     const claudeApiKey = env.CLAUDE_API_KEY;
-    
+
     if (!claudeApiKey) {
       throw new Error('CLAUDE_API_KEY is not configured');
     }
 
     const endpoint = 'https://api.anthropic.com/v1/messages';
-    const startTime = Date.now();
 
     try {
       const response = await this.makeExternalApiCall({
-        apiName: 'Claude API',
+        api_name: 'Claude API',
         endpoint,
         method: 'POST',
-        requestPayload: payload,
-        requestId,
-        userId,
-        functionName: 'callClaudeAPI',
+        request_payload: payload,
+        function_name: 'callClaudeAPI',
       });
 
       if (!response.ok) {
@@ -90,7 +76,10 @@ export class ExternalApiService {
       return responseData;
 
     } catch (error) {
-      this.logger.error('Claude API call failed', error);
+      this.logger.error('ClaudeAPICallError', 'callClaudeAPI', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        request_payload: payload,
+      });
       throw error;
     }
   }
@@ -98,19 +87,20 @@ export class ExternalApiService {
   /**
    * Wikidata で料理カテゴリを検索
    */
-  async searchWikidata(query: string, requestId?: string, userId?: string): Promise<{ qid: string; label: string } | null> {
-    this.logger.debug(`Searching Wikidata for: ${query}`);
+  async searchWikidata(query: string): Promise<{ qid: string; label: string } | null> {
+    this.logger.debug('searchWikidata', 'searchWikidata', {
+      query,
+    });
 
     const endpoint = `https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=ja&type=item&limit=1&search=${encodeURIComponent(query)}`;
 
     try {
       const response = await this.makeExternalApiCall({
-        apiName: 'Wikidata API',
+        api_name: 'Wikidata API',
         endpoint,
         method: 'GET',
-        requestId,
-        userId,
-        functionName: 'searchWikidata',
+        request_payload: {},
+        function_name: 'searchWikidata',
       });
 
       if (!response.ok) {
@@ -118,18 +108,23 @@ export class ExternalApiService {
       }
 
       const data: WikidataSearchResponse = await response.json();
-      
+
       if (data.search && data.search.length > 0) {
         const result = data.search[0];
-        this.logger.debug(`Found Wikidata result: ${result.label}`);
+        this.logger.debug
         return { qid: result.id, label: result.label };
       }
 
-      this.logger.debug('No Wikidata results found');
+      this.logger.debug('searchWikidata', 'searchWikidata', {
+        message: 'No results found'
+      })
       return null;
 
     } catch (error) {
-      this.logger.error('Failed to search Wikidata', error);
+      this.logger.error('WikidataAPICallError', 'searchWikidata', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        query,
+      });
       return null;
     }
   }
@@ -137,14 +132,18 @@ export class ExternalApiService {
   /**
    * Google Custom Search で料理カテゴリのスペルチェック
    */
-  async getCorrectedSpelling(query: string, requestId?: string, userId?: string): Promise<string | null> {
-    this.logger.debug(`Getting corrected spelling for: ${query}`);
+  async getCorrectedSpelling(query: string): Promise<string | null> {
+    this.logger.debug('getCorrectedSpelling', 'getCorrectedSpelling', {
+      query,
+    });
 
     const googleApiKey = env.GOOGLE_API_KEY;
     const searchEngineId = env.GOOGLE_SEARCH_ENGINE_ID;
 
     if (!googleApiKey || !searchEngineId) {
-      this.logger.warn('Google Custom Search API not configured');
+      this.logger.warn('getCorrectedSpelling', 'getCorrectedSpelling', {
+        error_message: 'Google API credentials are not configured',
+      });
       return null;
     }
 
@@ -152,12 +151,11 @@ export class ExternalApiService {
 
     try {
       const response = await this.makeExternalApiCall({
-        apiName: 'Google Custom Search API',
+        api_name: 'Google Custom Search API',
         endpoint,
         method: 'GET',
-        requestId,
-        userId,
-        functionName: 'getCorrectedSpelling',
+        function_name: 'getCorrectedSpelling',
+        request_payload: {},
       });
 
       if (!response.ok) {
@@ -165,26 +163,34 @@ export class ExternalApiService {
       }
 
       const data: GoogleCustomSearchResponse = await response.json();
-      
+
       if (data.spelling?.correctedQuery) {
-        this.logger.debug(`Found corrected spelling: ${data.spelling.correctedQuery}`);
+        this.logger.debug('getCorrectedSpelling', 'getCorrectedSpelling', {
+          correctedQuery: data.spelling.correctedQuery,
+        });
         return data.spelling.correctedQuery;
       }
 
-      this.logger.debug('No spelling correction found');
+      this.logger.debug('getCorrectedSpelling', 'getCorrectedSpelling', {
+        message: 'No spelling correction found',
+      });
       return null;
 
     } catch (error) {
-      this.logger.error('Failed to get corrected spelling', error);
+      this.logger.error('GoogleCustomSearchAPICallError', 'getCorrectedSpelling', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        query,
+      });
       return null;
     }
   }
 
+
   /**
    * 外部API呼び出しとログ記録を行う
    */
-  private async makeExternalApiCall(params: ExternalApiCallParams): Promise<Response> {
-    const { apiName, endpoint, method, requestPayload, requestId, userId, functionName } = params;
+  private async makeExternalApiCall(params: Omit<CreateExternalApiInput, 'status_code' | 'response_time_ms' | 'response_payload' | 'error_message'>): Promise<Response> {
+    const { api_name, endpoint, method, request_payload, function_name } = params;
     const startTime = Date.now();
 
     try {
@@ -193,97 +199,51 @@ export class ExternalApiService {
       };
 
       // API特有のヘッダーを追加
-      if (apiName === 'Claude API') {
+      if (api_name === 'Claude API') {
         headers['anthropic-version'] = '2023-06-01';
-        headers['x-api-key'] = env.CLAUDE_API_KEY || '';
       }
 
       const response = await fetch(endpoint, {
         method,
         headers,
-        body: method === 'POST' ? JSON.stringify(requestPayload) : undefined,
+        body: method === 'POST' ? JSON.stringify(request_payload) : undefined,
       });
 
       const responseTime = Date.now() - startTime;
-      
+
       // 成功時のログ記録
-      await this.logExternalApiCall({
-        apiName,
+      await this.logger.externalApi({
+        api_name,
         endpoint,
         method,
-        requestPayload,
-        responsePayload: await response.clone().json().catch(() => null),
-        statusCode: response.status,
-        responseTimeMs: responseTime,
-        requestId,
-        userId,
-        functionName,
+        request_payload,
+        response_payload: await response.clone().json().catch(() => null),
+        status_code: response.status,
+        response_time_ms: responseTime,
+        function_name,
+        error_message: null,
       });
 
       return response;
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      
+
       // エラー時のログ記録
-      await this.logExternalApiCall({
-        apiName,
+      await this.logger.externalApi({
+        api_name,
         endpoint,
         method,
-        requestPayload,
-        statusCode: 0,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        responseTimeMs: responseTime,
-        requestId,
-        userId,
-        functionName,
+        request_payload: request_payload,
+        response_payload: null,
+        status_code: 0,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        response_time_ms: responseTime,
+        function_name,
       });
 
       throw error;
     }
   }
-
-  /**
-   * 外部API呼び出しログを記録
-   */
-  private async logExternalApiCall(params: {
-    apiName: string;
-    endpoint: string;
-    method: string;
-    requestPayload?: any;
-    responsePayload?: any;
-    statusCode: number;
-    errorMessage?: string;
-    responseTimeMs: number;
-    requestId?: string;
-    userId?: string;
-    functionName?: string;
-  }): Promise<void> {
-    try {
-      await this.prisma.external_api_logs.create({
-        data: {
-          id: crypto.randomUUID(),
-          request_id: params.requestId,
-          function_name: params.functionName,
-          api_name: params.apiName,
-          endpoint: params.endpoint,
-          method: params.method,
-          request_payload: params.requestPayload,
-          response_payload: params.responsePayload,
-          status_code: params.statusCode,
-          error_message: params.errorMessage,
-          response_time_ms: params.responseTimeMs,
-          user_id: params.userId,
-          created_at: new Date(),
-          created_commit_id: env.COMMIT_ID || 'unknown',
-        },
-      });
-
-      this.logger.debug(`External API log recorded: ${params.apiName} ${params.statusCode}`);
-
-    } catch (error) {
-      this.logger.error('Failed to log external API call', error);
-      // Don't throw here - logging failure shouldn't break the main flow
-    }
-  }
 }
+

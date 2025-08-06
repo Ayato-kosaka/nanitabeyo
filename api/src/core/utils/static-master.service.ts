@@ -1,71 +1,56 @@
 // api/src/core/utils/static-master.service.ts
 //
-// Static Master service for retrieving prompt families and variants
-//
 
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Database } from '../../../../shared/supabase/database.types';
+import { TableRow } from '../../../../shared/utils/devDB.types';
+import { loadStaticMaster } from '../../../../shared/utils/loadStaticMaster';
+import { env } from '../config/env';
 
 @Injectable()
 export class StaticMasterService {
   private readonly logger = new Logger(StaticMasterService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor() { }
+
+  /** ───────── キャッシュ領域 ───────── */
+  private cache: Partial<
+    Record<keyof Database['dev']['Tables'], TableRow<any>[]>
+  > = {};
+
+  private lastFetchedAt: Partial<
+    Record<keyof Database['dev']['Tables'], number>
+  > = {};
+
+  private readonly CACHE_TTL_MS = 5 * 60 * 1_000; // 5 min
+
 
   /**
-   * プロンプトファミリーを取得
+   * 🗂️ 静的マスタデータを取得するユーティリティ関数。
+   *
+   * - 一定時間キャッシュを保持し、再取得の頻度を抑える
+   * - 最終取得から `CACHE_DURATION_MS` を超過した場合は再取得
+   *
+   * @param tableName - 対象となるマスタテーブル名（Supabase dev スキーマ）
+   * @returns 該当マスタのレコード配列
    */
-  async getStaticMaster(tableName: 'prompt_families'): Promise<any[]>;
-  async getStaticMaster(tableName: 'prompt_variants'): Promise<any[]>;
-  async getStaticMaster(tableName: string): Promise<any[]> {
-    this.logger.debug(`Getting static master: ${tableName}`);
+  async getStaticMaster<T extends keyof Database["dev"]["Tables"]>(
+    tableName: T,
+  ): Promise<TableRow<T>[]> {
+    const now = Date.now();
+    const last = this.lastFetchedAt[tableName] ?? 0;
+    const expired = now - last > this.CACHE_TTL_MS;
 
-    switch (tableName) {
-      case 'prompt_families':
-        return this.prisma.prompt_families.findMany();
-      case 'prompt_variants':
-        return this.prisma.prompt_variants.findMany();
-      default:
-        throw new Error(`Unsupported static master table: ${tableName}`);
+    if (!this.cache[tableName] || expired) {
+      this.logger.debug(`Cache miss → loading ${tableName} master`);
+      this.cache[tableName] = await loadStaticMaster(
+        env.GCS_BUCKET_NAME,
+        env.GCS_STATIC_MASTER_DIR_PATH,
+        tableName,
+      );
+      this.lastFetchedAt[tableName] = now;
     }
-  }
 
-  /**
-   * プロンプト使用履歴を記録
-   */
-  async createPromptUsage(data: {
-    family_id: string;
-    variant_id: string;
-    target_type: string;
-    target_id: string;
-    generated_text: string;
-    used_prompt_text: string;
-    input_data?: any;
-    llm_model: string;
-    temperature?: number;
-    generated_user: string;
-    created_request_id: string;
-    metadata?: any;
-  }) {
-    this.logger.debug('Creating prompt usage record');
-
-    return this.prisma.prompt_usages.create({
-      data: {
-        id: `prompt_usage_${Date.now()}_${Math.random().toString(36).substring(2)}`,
-        family_id: data.family_id,
-        variant_id: data.variant_id,
-        target_type: data.target_type,
-        target_id: data.target_id,
-        generated_text: data.generated_text,
-        used_prompt_text: data.used_prompt_text,
-        input_data: data.input_data,
-        llm_model: data.llm_model,
-        temperature: data.temperature,
-        generated_user: data.generated_user,
-        created_at: new Date(),
-        created_request_id: data.created_request_id,
-        metadata: data.metadata,
-      },
-    });
-  }
+    return this.cache[tableName] as TableRow<T>[];
+  };
 }

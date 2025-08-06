@@ -7,6 +7,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PromptService } from '../prompt/prompt.service';
 import { ExternalApiService } from '../external-api/external-api.service';
+import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
+import { ClsService } from 'nestjs-cls';
 
 // トピック生成レスポンス型
 export interface DishCategoryTopicResponse {
@@ -22,7 +24,8 @@ export class ClaudeService {
   constructor(
     private readonly promptService: PromptService,
     private readonly externalApiService: ExternalApiService,
-  ) {}
+    private readonly cls: ClsService,
+  ) { }
 
   /**
    * 料理カテゴリ提案を生成する
@@ -36,8 +39,6 @@ export class ClaudeService {
     distance?: number;
     budgetMin?: number;
     budgetMax?: number;
-    requestId: string;
-    userId: string;
   }): Promise<DishCategoryTopicResponse[]> {
     this.logger.debug('Generating dish category recommendations', params);
 
@@ -90,16 +91,14 @@ Generate 10 diverse and appealing dish category recommendations.`;
       // ExternalApiServiceを使ってClaude APIを呼び出し
       const response = await this.externalApiService.callClaudeAPI(
         requestPayload,
-        params.requestId,
-        params.userId
       );
-      
+
       if (response.stop_reason && response.stop_reason !== "end_turn") {
         throw new Error(`Claude API failed: Unexpected stop_reason - ${response.stop_reason}`);
       }
 
       const responseText = response.content[0]?.text || "";
-      
+
       let parsedJson: DishCategoryTopicResponse[];
       try {
         parsedJson = JSON.parse(responseText);
@@ -116,14 +115,13 @@ Generate 10 diverse and appealing dish category recommendations.`;
         family_id: family.id,
         variant_id: variant.id,
         target_type: 'dish_category_recommendations',
-        target_id: params.requestId,
+        target_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
         generated_text: responseText,
         used_prompt_text: fullPrompt,
         input_data: params,
         llm_model: 'claude-3-haiku-20240307',
         temperature: 0.7,
-        generated_user: params.userId,
-        created_request_id: params.requestId,
+        generated_user: this.cls.get<string>(CLS_KEY_USER_ID),
         metadata: {
           response_length: parsedJson.length,
           input_tokens: response.usage.input_tokens,

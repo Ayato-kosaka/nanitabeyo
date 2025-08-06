@@ -17,15 +17,13 @@ export class DishCategoriesService {
   constructor(
     private readonly repo: DishCategoriesRepository,
     private readonly claudeService: ClaudeService,
-  ) {}
+  ) { }
 
   /**
    * 料理カテゴリ提案を生成
    */
   async getRecommendations(
     dto: QueryDishCategoryRecommendationsDto,
-    requestId: string,
-    userId: string,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
     this.logger.debug('Getting dish category recommendations', dto);
 
@@ -39,8 +37,6 @@ export class DishCategoriesService {
       distance: dto.distance,
       budgetMin: dto.budgetMin,
       budgetMax: dto.budgetMax,
-      requestId,
-      userId,
     });
 
     // カテゴリ名リストを抽出
@@ -52,8 +48,8 @@ export class DishCategoriesService {
     // Claude の提案とデータベースの結果をマッピング
     const response: QueryDishCategoryRecommendationsResponse = claudeRecommendations.map(claudeRec => {
       // このカテゴリ名にマッチするデータベースレコードを探す
-      const matchedCategory = dishCategories.find(dbCategory => 
-        dbCategory.dish_category_variants.some(variant => 
+      const matchedCategory = dishCategories.find(dbCategory =>
+        dbCategory.dish_category_variants.some(variant =>
           variant.surface_form === claudeRec.category
         )
       );

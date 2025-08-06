@@ -5,7 +5,6 @@
 
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
-import { ClsService } from 'nestjs-cls';
 import {
   QueryDishCategoryVariantsDto,
   CreateDishCategoryVariantDto,
@@ -18,7 +17,6 @@ import {
 import { DishCategoryVariantsRepository } from './dish-category-variants.repository';
 import { ExternalApiService } from '../../core/external-api/external-api.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../../core/cls/cls.constants';
 
 @Injectable()
 export class DishCategoryVariantsService {
@@ -28,8 +26,7 @@ export class DishCategoryVariantsService {
     private readonly repo: DishCategoryVariantsRepository,
     private readonly externalApiService: ExternalApiService,
     private readonly prisma: PrismaService,
-    private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /**
    * 料理カテゴリ表記揺れを検索
@@ -43,17 +40,17 @@ export class DishCategoryVariantsService {
 
     // レスポンス形式に変換 - 最大20件まで
     const response: QueryDishCategoryVariantsResponse = [];
-    
+
     for (const category of dishCategories) {
       if (response.length >= 20) break;
-      
+
       for (const variant of category.dish_category_variants) {
         if (response.length >= 20) break;
-        
+
         // category.labels[lang] を使用（フォールバックあり）
         const labels = category.labels as Record<string, string>;
         const label = dto.lang && labels[dto.lang] ? labels[dto.lang] : category.label_en;
-        
+
         response.push({
           dishCategoryId: category.id,
           label: label,
@@ -73,31 +70,28 @@ export class DishCategoryVariantsService {
   ): Promise<CreateDishCategoryVariantResponse> {
     this.logger.debug('Creating dish category variant', dto);
 
-    const requestId = this.cls.get(CLS_KEY_REQUEST_ID);
-    const userId = this.cls.get(CLS_KEY_USER_ID);
-
     // まず直接検索
     let foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(dto.name);
-    
+
     if (foundVariant) {
       this.logger.debug('Direct match found');
       return [foundVariant.dish_categories];
     }
 
     // Wikidata で検索（CLS情報を渡す）
-    const wikidataResult = await this.externalApiService.searchWikidata(dto.name, requestId, userId);
+    const wikidataResult = await this.externalApiService.searchWikidata(dto.name);
     if (wikidataResult) {
       foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(wikidataResult.label);
       if (foundVariant) {
         this.logger.debug('Wikidata match found');
         return [foundVariant.dish_categories];
       }
-      
+
       // Wikidata結果のQIDから対応するDish Categoryを探す
       const categoryByQid = await this.repo.findDishCategoryByQid(wikidataResult.qid);
       if (categoryByQid) {
         this.logger.debug('Creating variant for QID match');
-        
+
         // 新しい表記揺れを登録
         await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
           await this.repo.createDishCategoryVariant(
@@ -107,18 +101,18 @@ export class DishCategoryVariantsService {
             'wikidata_qid_match'
           );
         });
-        
+
         return [categoryByQid];
       }
     }
 
     // Google Custom Search でスペルチェック（CLS情報を渡す）
-    const correctedSpelling = await this.externalApiService.getCorrectedSpelling(dto.name, requestId, userId);
+    const correctedSpelling = await this.externalApiService.getCorrectedSpelling(dto.name);
     if (correctedSpelling) {
       foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(correctedSpelling);
       if (foundVariant) {
         this.logger.debug('Corrected spelling match found');
-        
+
         // 新しい表記揺れを登録
         await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
           await this.repo.createDishCategoryVariant(
