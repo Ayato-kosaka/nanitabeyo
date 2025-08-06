@@ -3,7 +3,13 @@
 		"cancel": "Annuler",
 		"ok": "OK",
 		"goStore": "Ouvrir l’App Store",
-		"back": "Retour"
+		"back": "Retour",
+		"close": "Fermer",
+		"save": "Enregistrer",
+		"post": "Publier",
+		"processing": "Traitement...",
+		"error": "Erreur",
+		"success": "Succès"
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
@@ -47,6 +53,19 @@
                         "noMinBudget": "Pas de minimum",
                         "noMaxBudget": "Pas de maximum"
                 },
+		"distanceLabels": {
+			"100m": "100m",
+			"300m": "300m", 
+			"500m": "500m",
+			"800m": "800m",
+			"1km": "1km",
+			"2km": "2km",
+			"3km": "3km",
+			"5km": "5km",
+			"10km": "10km",
+			"15km": "15km",
+			"20km": "20km"
+		},
                 "currencySuffix": "¥",
                 "searchButton": "Rechercher !",
                 "timeSlots": {
@@ -129,9 +148,76 @@
 		"notifications": "Notifications",
 		"profile": "Profil"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "Dépôts",
+			"earnings": "Revenus"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "Aucun dépôt pour le statut sélectionné",
+			"noEarnings": "Aucun revenu pour le statut sélectionné"
+		},
+		"statusLabels": {
+			"active": "Actif",
+			"completed": "Terminé", 
+			"refunded": "Remboursé",
+			"paid": "Payé",
+			"pending": "En attente"
+		},
+		"buttons": {
+			"editProfile": "Modifier le profil"
+		},
+		"placeholders": {
+			"enterBio": "Entrez votre biographie..."
+		}
+	},
 	"NotFound": {
 		"title": "Oups !",
 		"message": "Cet écran n'existe pas.",
 		"goHome": "Retour à l'accueil !"
+	},
+	"Map": {
+		"placeholders": {
+			"searchRestaurants": "Rechercher des restaurants"
+		},
+		"buttons": {
+			"postReview": "Publier un avis",
+			"placeBid": "Placer une enchère",
+			"bid": "Enchérir"
+		},
+		"inputs": {
+			"price": "Prix",
+			"rating": "Évaluation",
+			"comment": "Commentaire",
+			"bidAmount": "Montant de l'enchère"
+		},
+		"placeholders": {
+			"searchRestaurants": "Rechercher des restaurants",
+			"enterPrice": "Entrez le prix",
+			"enterReview": "Entrez votre avis",
+			"enterBidAmount": "Entrez le montant de l'enchère"
+		},
+		"labels": {
+			"endDate": "Date de fin:",
+			"paymentProcessing": "Traitement du paiement...",
+			"currentBidAmount": "Montant de l'enchère actuelle"
+		},
+		"alerts": {
+			"locationError": "Échec de l'obtention des informations de localisation",
+			"currentLocationError": "Échec de l'obtention de la position actuelle", 
+			"bidSuccess": "Enchère placée avec succès pour {{place}} à ¥{{amount}}",
+			"bidError": "Échec du placement de l'enchère",
+			"reviewSuccess": "Avis publié avec succès",
+			"reviewError": "Échec de la publication de l'avis"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "Rechercher un lieu/région"
+		}
 	}
 }

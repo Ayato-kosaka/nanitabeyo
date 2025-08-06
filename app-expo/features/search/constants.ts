@@ -1,4 +1,6 @@
 // Constants and option data for the search feature
+import { i18n } from "@/lib/i18n";
+
 export const timeSlots = [
         { id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
         { id: "lunch", label: "Search.timeSlots.lunch", icon: "🌞" },
@@ -26,17 +28,17 @@ export const moodOptions = [
 
 // Distance options in meters
 export const distanceOptions = [
-	{ value: 100, label: "100m" },
-	{ value: 300, label: "300m" },
-	{ value: 500, label: "500m" },
-	{ value: 800, label: "800m" },
-	{ value: 1000, label: "1km" },
-	{ value: 2000, label: "2km" },
-	{ value: 3000, label: "3km" },
-	{ value: 5000, label: "5km" },
-	{ value: 10000, label: "10km" },
-	{ value: 15000, label: "15km" },
-	{ value: 20000, label: "20km" },
+	{ value: 100, label: i18n.t("Search.distanceLabels.100m") },
+	{ value: 300, label: i18n.t("Search.distanceLabels.300m") },
+	{ value: 500, label: i18n.t("Search.distanceLabels.500m") },
+	{ value: 800, label: i18n.t("Search.distanceLabels.800m") },
+	{ value: 1000, label: i18n.t("Search.distanceLabels.1km") },
+	{ value: 2000, label: i18n.t("Search.distanceLabels.2km") },
+	{ value: 3000, label: i18n.t("Search.distanceLabels.3km") },
+	{ value: 5000, label: i18n.t("Search.distanceLabels.5km") },
+	{ value: 10000, label: i18n.t("Search.distanceLabels.10km") },
+	{ value: 15000, label: i18n.t("Search.distanceLabels.15km") },
+	{ value: 20000, label: i18n.t("Search.distanceLabels.20km") },
 ];
 
 // Budget options in yen

@@ -23,6 +23,7 @@ import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
+import { i18n } from "@/lib/i18n";
 import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import Stars from "@/components/Stars";
@@ -96,7 +97,7 @@ export default function MapScreen() {
 			mapRef.current?.animateToRegion(newRegion, 1000);
 			setSearchQuery("");
 		} catch (error) {
-			Alert.alert("エラー", "位置情報の取得に失敗しました");
+			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.locationError"));
 		}
 	};
 
@@ -112,7 +113,7 @@ export default function MapScreen() {
 			setCurrentRegion(newRegion);
 			mapRef.current?.animateToRegion(newRegion, 1000);
 		} catch (error) {
-			Alert.alert("エラー", "現在地の取得に失敗しました");
+			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.currentLocationError"));
 		}
 	};
 
@@ -123,11 +124,11 @@ export default function MapScreen() {
 		try {
 			// Mock Stripe payment processing
 			await new Promise((resolve) => setTimeout(resolve, 2000));
-			Alert.alert("成功", `${selectedPlace.placeName}に¥${parseInt(bidAmount).toLocaleString()}で入札しました`);
+			Alert.alert(i18n.t("Common.success"), i18n.t("Map.alerts.bidSuccess", { place: selectedPlace.placeName, amount: parseInt(bidAmount).toLocaleString() }));
 			closeBidModal();
 			setBidAmount("");
 		} catch (error) {
-			Alert.alert("エラー", "入札に失敗しました");
+			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.bidError"));
 		} finally {
 			setIsProcessing(false);
 		}
@@ -139,22 +140,22 @@ export default function MapScreen() {
 		setIsProcessing(true);
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 1000));
-			Alert.alert("成功", "レビューを投稿しました");
+			Alert.alert(i18n.t("Common.success"), i18n.t("Map.alerts.reviewSuccess"));
 			closeReviewModal();
 			setReviewText("");
 			setPrice("");
 			setRating(5);
 		} catch (error) {
-			Alert.alert("エラー", "レビューの投稿に失敗しました");
+			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.reviewError"));
 		} finally {
 			setIsProcessing(false);
 		}
 	};
 
 	const bidStatuses = [
-		{ id: "active", label: "アクティブ", color: "#4CAF50" },
-		{ id: "completed", label: "完了", color: "#2196F3" },
-		{ id: "refunded", label: "返金済み", color: "#FF9800" },
+		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
+		{ id: "completed", label: i18n.t("Profile.statusLabels.completed"), color: "#2196F3" },
+		{ id: "refunded", label: i18n.t("Profile.statusLabels.refunded"), color: "#FF9800" },
 	];
 
 	const toggleBidStatus = (statusId: string) => {
@@ -186,7 +187,7 @@ export default function MapScreen() {
 					<Search size={20} color="#666" />
 					<TextInput
 						style={styles.searchInput}
-						placeholder="レストランを検索"
+						placeholder={i18n.t("Map.placeholders.searchRestaurants")}
 						value={searchQuery}
 						onChangeText={(text) => {
 							setSearchQuery(text);
@@ -237,7 +238,7 @@ export default function MapScreen() {
 						</Card>
 
 						<View style={styles.bidAmountContainer}>
-							<Text style={styles.bidAmountLabel}>現在の入札額</Text>
+							<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
 							<Text style={styles.bidAmount}>¥{selectedPlace.totalAmount.toLocaleString()}</Text>
 							<Text style={styles.remainingDays}>残り{selectedPlace.remainingDays}日</Text>
 						</View>
@@ -246,14 +247,14 @@ export default function MapScreen() {
 						<View style={styles.actionButtons}>
 							<PrimaryButton
 								onPress={() => openReviewModal()}
-								label="レビュー投稿"
+								label={i18n.t("Map.buttons.postReview")}
 								icon={<Camera size={20} color="#FFF" />}
 								borderRadius={8}
 								style={{ flex: 1 }}
 							/>
 							<PrimaryButton
 								onPress={() => openBidModal()}
-								label="入札する"
+								label={i18n.t("Map.buttons.placeBid")}
 								icon={<DollarSign size={20} color="#FFF" />}
 								borderRadius={8}
 								style={{ flex: 1 }}
@@ -351,10 +352,10 @@ export default function MapScreen() {
 			{/* Review Modal */}
 			<ReviewBlurModal animationType="slide" presentationStyle="pageSheet">
 				<Card>
-					<Text style={styles.inputLabel}>料金</Text>
+					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.price")}</Text>
 					<TextInput
 						style={styles.textInput}
-						placeholder="料金を入力"
+						placeholder={i18n.t("Map.placeholders.enterPrice")}
 						value={price}
 						onChangeText={setPrice}
 						keyboardType="numeric"
@@ -362,7 +363,7 @@ export default function MapScreen() {
 				</Card>
 
 				<Card>
-					<Text style={styles.inputLabel}>評価</Text>
+					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.rating")}</Text>
 					<View style={styles.ratingInput}>
 						{[1, 2, 3, 4, 5].map((star) => (
 							<TouchableOpacity key={star} onPress={() => setRating(star)}>
@@ -373,10 +374,10 @@ export default function MapScreen() {
 				</Card>
 
 				<Card>
-					<Text style={styles.inputLabel}>コメント</Text>
+					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.comment")}</Text>
 					<TextInput
 						style={[styles.textInput, styles.textArea]}
-						placeholder="レビューを入力"
+						placeholder={i18n.t("Map.placeholders.enterReview")}
 						value={reviewText}
 						onChangeText={setReviewText}
 						multiline
@@ -385,7 +386,7 @@ export default function MapScreen() {
 				</Card>
 
 				<PrimaryButton
-					label="投稿"
+					label={i18n.t("Common.post")}
 					onPress={handleReviewSubmit}
 					disabled={isProcessing}
 					style={{ marginHorizontal: 16 }}
@@ -395,10 +396,10 @@ export default function MapScreen() {
 			{/* Bid Modal */}
 			<BidBlurModal animationType="slide" presentationStyle="pageSheet">
 				<Card>
-					<Text style={styles.inputLabel}>入札額</Text>
+					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.bidAmount")}</Text>
 					<TextInput
 						style={styles.textInput}
-						placeholder="入札額を入力"
+						placeholder={i18n.t("Map.placeholders.enterBidAmount")}
 						value={bidAmount}
 						onChangeText={setBidAmount}
 						keyboardType="numeric"
@@ -409,7 +410,7 @@ export default function MapScreen() {
 					<View style={styles.bidInfoRow}>
 						<Calendar size={16} color="#666" />
 						<Text style={styles.bidInfoText}>
-							終了日: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("ja-JP")}
+							{i18n.t("Map.labels.endDate")} {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("ja-JP")}
 						</Text>
 					</View>
 				</View>
@@ -417,11 +418,11 @@ export default function MapScreen() {
 				{isProcessing && (
 					<View style={styles.processingContainer}>
 						<ActivityIndicator size="large" color="#007AFF" />
-						<Text style={styles.processingText}>決済処理中...</Text>
+						<Text style={styles.processingText}>{i18n.t("Map.labels.paymentProcessing")}</Text>
 					</View>
 				)}
 				<PrimaryButton
-					label="入札"
+					label={i18n.t("Map.buttons.bid")}
 					onPress={handleBid}
 					disabled={isProcessing || !bidAmount}
 					style={{ marginHorizontal: 16 }}

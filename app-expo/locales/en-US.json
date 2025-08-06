@@ -3,7 +3,13 @@
 		"cancel": "Cancel",
 		"ok": "OK",
 		"goStore": "Open App Store",
-		"back": "Back"
+		"back": "Back",
+		"close": "Close",
+		"save": "Save",
+		"post": "Post",
+		"processing": "Processing...",
+		"error": "Error",
+		"success": "Success"
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
@@ -47,6 +53,19 @@
                         "noMinBudget": "No minimum",
                         "noMaxBudget": "No maximum"
                 },
+		"distanceLabels": {
+			"100m": "100m",
+			"300m": "300m", 
+			"500m": "500m",
+			"800m": "800m",
+			"1km": "1km",
+			"2km": "2km",
+			"3km": "3km",
+			"5km": "5km",
+			"10km": "10km",
+			"15km": "15km",
+			"20km": "20km"
+		},
                 "currencySuffix": "¥",
                 "searchButton": "Find it!",
                 "timeSlots": {
@@ -129,9 +148,76 @@
 		"notifications": "Notifications",
 		"profile": "Profile"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "Deposits",
+			"earnings": "Earnings"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "No deposits for the selected status",
+			"noEarnings": "No earnings for the selected status"
+		},
+		"statusLabels": {
+			"active": "Active",
+			"completed": "Completed", 
+			"refunded": "Refunded",
+			"paid": "Paid",
+			"pending": "Pending"
+		},
+		"buttons": {
+			"editProfile": "Edit Profile"
+		},
+		"placeholders": {
+			"enterBio": "Enter your bio..."
+		}
+	},
 	"NotFound": {
 		"title": "Oops!",
 		"message": "This screen doesn't exist.",
 		"goHome": "Go to home screen!"
+	},
+	"Map": {
+		"placeholders": {
+			"searchRestaurants": "Search restaurants"
+		},
+		"buttons": {
+			"postReview": "Post Review",
+			"placeBid": "Place Bid",
+			"bid": "Bid"
+		},
+		"inputs": {
+			"price": "Price",
+			"rating": "Rating",
+			"comment": "Comment",
+			"bidAmount": "Bid Amount"
+		},
+		"placeholders": {
+			"searchRestaurants": "Search restaurants",
+			"enterPrice": "Enter price",
+			"enterReview": "Enter review",
+			"enterBidAmount": "Enter bid amount"
+		},
+		"labels": {
+			"endDate": "End date:",
+			"paymentProcessing": "Processing payment...",
+			"currentBidAmount": "Current bid amount"
+		},
+		"alerts": {
+			"locationError": "Failed to get location information",
+			"currentLocationError": "Failed to get current location",
+			"bidSuccess": "Bid placed successfully for {{place}} at ¥{{amount}}",
+			"bidError": "Failed to place bid",
+			"reviewSuccess": "Review posted successfully",
+			"reviewError": "Failed to post review"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "Search location/area"
+		}
 	}
 }

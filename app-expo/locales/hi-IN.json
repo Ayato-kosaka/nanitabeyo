@@ -3,7 +3,13 @@
 		"cancel": "रद्द करें",
 		"ok": "ओके",
 		"goStore": "ऐप स्टोर खोलें",
-		"back": "वापस"
+		"back": "वापस",
+		"close": "बंद करें",
+		"save": "सेव करें",
+		"post": "पोस्ट करें",
+		"processing": "प्रसंस्करण...",
+		"error": "त्रुटि",
+		"success": "सफलता"
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
@@ -47,6 +53,19 @@
                         "noMinBudget": "कोई न्यूनतम नहीं",
                         "noMaxBudget": "कोई अधिकतम नहीं"
                 },
+		"distanceLabels": {
+			"100m": "100मी",
+			"300m": "300मी", 
+			"500m": "500मी",
+			"800m": "800मी",
+			"1km": "1किमी",
+			"2km": "2किमी",
+			"3km": "3किमी",
+			"5km": "5किमी",
+			"10km": "10किमी",
+			"15km": "15किमी",
+			"20km": "20किमी"
+		},
                 "currencySuffix": "¥",
                 "searchButton": "ढूँढें!",
                 "timeSlots": {
@@ -129,9 +148,76 @@
 		"notifications": "सूचनाएँ",
 		"profile": "प्रोफ़ाइल"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "जमा",
+			"earnings": "आय"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "चयनित स्थिति के लिए कोई जमा नहीं",
+			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं"
+		},
+		"statusLabels": {
+			"active": "सक्रिय",
+			"completed": "पूर्ण", 
+			"refunded": "धनवापसी",
+			"paid": "भुगतान किया गया",
+			"pending": "लंबित"
+		},
+		"buttons": {
+			"editProfile": "प्रोफ़ाइल संपादित करें"
+		},
+		"placeholders": {
+			"enterBio": "अपना परिचय दर्ज करें..."
+		}
+	},
 	"NotFound": {
 		"title": "ओह!",
 		"message": "यह स्क्रीन मौजूद नहीं है।",
 		"goHome": "मुख्य स्क्रीन पर जाएँ!"
+	},
+	"Map": {
+		"placeholders": {
+			"searchRestaurants": "रेस्टोरेंट खोजें"
+		},
+		"buttons": {
+			"postReview": "समीक्षा पोस्ट करें",
+			"placeBid": "बोली लगाएं",
+			"bid": "बोली"
+		},
+		"inputs": {
+			"price": "मूल्य",
+			"rating": "रेटिंग",
+			"comment": "टिप्पणी",
+			"bidAmount": "बोली राशि"
+		},
+		"placeholders": {
+			"searchRestaurants": "रेस्टोरेंट खोजें",
+			"enterPrice": "मूल्य दर्ज करें",
+			"enterReview": "समीक्षा दर्ज करें",
+			"enterBidAmount": "बोली राशि दर्ज करें"
+		},
+		"labels": {
+			"endDate": "समाप्ति तिथि:",
+			"paymentProcessing": "भुगतान प्रसंस्करण...",
+			"currentBidAmount": "वर्तमान बोली राशि"
+		},
+		"alerts": {
+			"locationError": "स्थान जानकारी प्राप्त करने में विफल",
+			"currentLocationError": "वर्तमान स्थान प्राप्त करने में विफल",
+			"bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
+			"bidError": "बोली लगाने में विफल",
+			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
+			"reviewError": "समीक्षा पोस्ट करने में विफल"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "स्थान/क्षेत्र खोजें"
+		}
 	}
 }
