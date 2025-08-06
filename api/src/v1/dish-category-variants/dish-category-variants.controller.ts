@@ -37,11 +37,12 @@ import { RequestUser } from '../../core/auth/auth.types';
 
 // ドメイン Service
 import { DishCategoryVariantsService } from './dish-category-variants.service';
+import { convertPrismaToSupabase_DishCategories } from '../../../../shared/converters/convert_dish_categories';
 
 @ApiTags('DishCategoryVariants')
 @Controller('v1/dish-category-variants')
 export class DishCategoryVariantsController {
-  constructor(private readonly dishCategoryVariantsService: DishCategoryVariantsService) {}
+  constructor(private readonly dishCategoryVariantsService: DishCategoryVariantsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-category-variants                  */
@@ -77,6 +78,6 @@ export class DishCategoryVariantsController {
     @Body() dto: CreateDishCategoryVariantDto,
     @CurrentUser() user?: RequestUser,
   ): Promise<CreateDishCategoryVariantResponse> {
-    return this.dishCategoryVariantsService.createDishCategoryVariant(dto);
+    return convertPrismaToSupabase_DishCategories(await this.dishCategoryVariantsService.createDishCategoryVariant(dto));
   }
 }

@@ -11,12 +11,12 @@ import {
 } from '@shared/v1/dto';
 import {
   QueryDishCategoryVariantsResponse,
-  CreateDishCategoryVariantResponse,
 } from '@shared/v1/res';
 
 import { DishCategoryVariantsRepository } from './dish-category-variants.repository';
 import { ExternalApiService } from '../../core/external-api/external-api.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaDishCategories } from '../../../../shared/converters/convert_dish_categories';
 
 @Injectable()
 export class DishCategoryVariantsService {
@@ -67,7 +67,7 @@ export class DishCategoryVariantsService {
    */
   async createDishCategoryVariant(
     dto: CreateDishCategoryVariantDto,
-  ): Promise<CreateDishCategoryVariantResponse> {
+  ): Promise<PrismaDishCategories> {
     this.logger.debug('Creating dish category variant', dto);
 
     // まず直接検索
@@ -75,35 +75,30 @@ export class DishCategoryVariantsService {
 
     if (foundVariant) {
       this.logger.debug('Direct match found');
-      return [foundVariant.dish_categories];
+      return foundVariant.dish_categories;
     }
 
     // Wikidata で検索（CLS情報を渡す）
     const wikidataResult = await this.externalApiService.searchWikidata(dto.name);
     if (wikidataResult) {
-      foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(wikidataResult.label);
-      if (foundVariant) {
-        this.logger.debug('Wikidata match found');
-        return [foundVariant.dish_categories];
-      }
-
       // Wikidata結果のQIDから対応するDish Categoryを探す
       const categoryByQid = await this.repo.findDishCategoryByQid(wikidataResult.qid);
-      if (categoryByQid) {
-        this.logger.debug('Creating variant for QID match');
-
-        // 新しい表記揺れを登録
-        await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
-          await this.repo.createDishCategoryVariant(
-            tx,
-            categoryByQid.id,
-            dto.name,
-            'wikidata_qid_match'
-          );
-        });
-
-        return [categoryByQid];
+      if (!categoryByQid) {
+        throw new InternalServerErrorException(
+          `No dish category found for Wikidata QID: ${wikidataResult.qid}`,
+        );
       }
+      // 新しい表記揺れを登録
+      await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
+        await this.repo.createDishCategoryVariant(
+          tx,
+          categoryByQid.id,
+          dto.name,
+          'wikidata_qid_match'
+        );
+      });
+
+      return categoryByQid;
     }
 
     // Google Custom Search でスペルチェック（CLS情報を渡す）
@@ -123,7 +118,7 @@ export class DishCategoryVariantsService {
           );
         });
 
-        return [foundVariant.dish_categories];
+        return foundVariant.dish_categories;
       }
     }
 
