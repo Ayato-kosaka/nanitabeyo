@@ -3,21 +3,28 @@
 // Repository for dish categories data access
 //
 
-import { Injectable, Logger } from '@nestjs/common';
-import { Prisma } from '../../../../shared/prisma/client';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AppLoggerService } from '../../core/logger/logger.service';
 
 @Injectable()
 export class DishCategoriesRepository {
-  private readonly logger = new Logger(DishCategoriesRepository.name);
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   /**
    * カテゴリ名リストから料理カテゴリを検索
    */
   async findDishCategoriesByNames(categoryNames: string[]) {
-    this.logger.debug(`Finding dish categories for: ${categoryNames.join(', ')}`);
+    this.logger.debug(
+      'FindDishCategoriesByNames',
+      'findDishCategoriesByNames',
+      {
+        categoryNames,
+      },
+    );
 
     const result = await this.prisma.dish_categories.findMany({
       where: {
@@ -40,7 +47,9 @@ export class DishCategoriesRepository {
       },
     });
 
-    this.logger.debug(`Found ${result.length} dish categories`);
+    this.logger.debug('DishCategoriesFound', 'findDishCategoriesByNames', {
+      count: result.length,
+    });
     return result;
   }
 }

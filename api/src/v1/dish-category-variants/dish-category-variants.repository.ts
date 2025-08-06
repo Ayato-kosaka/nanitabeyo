@@ -3,21 +3,26 @@
 // Repository for dish category variants data access
 //
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AppLoggerService } from '../../core/logger/logger.service';
 
 @Injectable()
 export class DishCategoryVariantsRepository {
-  private readonly logger = new Logger(DishCategoryVariantsRepository.name);
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   /**
    * 料理カテゴリ表記揺れを検索
    */
   async findDishCategoryVariants(q: string, lang?: string) {
-    this.logger.debug(`Finding dish category variants for: ${q}, lang: ${lang}`);
+    this.logger.debug('FindDishCategoryVariants', 'findDishCategoryVariants', {
+      q,
+      lang,
+    });
 
     const result = await this.prisma.dish_categories.findMany({
       where: {
@@ -41,7 +46,9 @@ export class DishCategoryVariantsRepository {
       take: 20, // limit 20
     });
 
-    this.logger.debug(`Found ${result.length} dish category variants`);
+    this.logger.debug('DishCategoryVariantsFound', 'findDishCategoryVariants', {
+      count: result.length,
+    });
     return result;
   }
 
@@ -49,7 +56,13 @@ export class DishCategoryVariantsRepository {
    * surface_form で料理カテゴリ表記揺れを検索
    */
   async findDishCategoryVariantBySurfaceForm(surfaceForm: string) {
-    this.logger.debug(`Finding dish category variant by surface form: ${surfaceForm}`);
+    this.logger.debug(
+      'FindVariantBySurfaceForm',
+      'findDishCategoryVariantBySurfaceForm',
+      {
+        surfaceForm,
+      },
+    );
 
     const result = await this.prisma.dish_category_variants.findUnique({
       where: {
@@ -60,7 +73,9 @@ export class DishCategoryVariantsRepository {
       },
     });
 
-    this.logger.debug(`Found variant: ${result ? 'yes' : 'no'}`);
+    this.logger.debug('VariantFound', 'findDishCategoryVariantBySurfaceForm', {
+      found: !!result,
+    });
     return result;
   }
 
@@ -73,7 +88,15 @@ export class DishCategoryVariantsRepository {
     surfaceForm: string,
     source?: string,
   ) {
-    this.logger.debug(`Creating dish category variant: ${surfaceForm} -> ${dishCategoryId}`);
+    this.logger.debug(
+      'CreateDishCategoryVariant',
+      'createDishCategoryVariant',
+      {
+        dishCategoryId,
+        surfaceForm,
+        source,
+      },
+    );
 
     const result = await tx.dish_category_variants.create({
       data: {
@@ -83,7 +106,13 @@ export class DishCategoryVariantsRepository {
       },
     });
 
-    this.logger.debug(`Created variant: ${result.id}`);
+    this.logger.debug(
+      'DishCategoryVariantCreated',
+      'createDishCategoryVariant',
+      {
+        id: result.id,
+      },
+    );
     return result;
   }
 
@@ -91,7 +120,9 @@ export class DishCategoryVariantsRepository {
    * QID で料理カテゴリを検索
    */
   async findDishCategoryByQid(qid: string) {
-    this.logger.debug(`Finding dish category by QID: ${qid}`);
+    this.logger.debug('FindDishCategoryByQid', 'findDishCategoryByQid', {
+      qid,
+    });
 
     // まずIDとして直接検索
     let result = await this.prisma.dish_categories.findUnique({
@@ -112,7 +143,9 @@ export class DishCategoryVariantsRepository {
       result = categories.length > 0 ? categories[0] : null;
     }
 
-    this.logger.debug(`Found category by QID: ${result ? 'yes' : 'no'}`);
+    this.logger.debug('DishCategoryByQidFound', 'findDishCategoryByQid', {
+      found: !!result,
+    });
     return result;
   }
 
@@ -120,11 +153,13 @@ export class DishCategoryVariantsRepository {
    * 料理カテゴリ一覧を取得
    */
   async getDishCategories() {
-    this.logger.debug('Getting dish categories');
+    this.logger.debug('GetDishCategories', 'getDishCategories', {});
 
     const result = await this.prisma.dish_categories.findMany();
 
-    this.logger.debug(`Found ${result.length} dish categories`);
+    this.logger.debug('DishCategoriesFound', 'getDishCategories', {
+      count: result.length,
+    });
     return result;
   }
 }
