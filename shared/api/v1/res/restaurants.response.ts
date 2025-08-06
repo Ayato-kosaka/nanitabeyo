@@ -6,8 +6,8 @@ import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_b
 
 /** GET /v1/restaurants のレスポンス型 */
 export type QueryRestaurantsResponse = {
-        restaurant: SupabaseRestaurants;
-        meta: { totalCents: number };
+	restaurant: SupabaseRestaurants;
+	meta: { totalCents: number };
 }[];
 
 /** POST /v1/restaurants のレスポンス型 */
@@ -18,10 +18,10 @@ export type CreateRestaurantBidIntentResponse = { clientSecret: string };
 
 /** GET /v1/restaurants/:id/dish-media のレスポンス型 */
 export type QueryRestaurantDishMediaResponse = {
-        restaurant: SupabaseRestaurants;
-        dish: SupabaseDishes;
-        dish_media: SupabaseDishMedia;
-        dish_reviews: SupabaseDishReviews[];
+	restaurant: SupabaseRestaurants;
+	dish: SupabaseDishes;
+	dish_media: SupabaseDishMedia;
+	dish_reviews: SupabaseDishReviews[];
 }[];
 
 /** GET /v1/restaurants/:id/restaurant-bids のレスポンス型 */

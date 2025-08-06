@@ -15,47 +15,47 @@
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
 		"unsupportedVersion": "Cette version n'est plus prise en charge."
 	},
-        "Search": {
-                "DistanceSlider": {
-                        "near": "Proche",
-                        "far": "Loin"
-                },
-                "BudgetSlider": {
-                        "cheap": "Bon marché",
-                        "expensive": "Cher"
-                },
-                "headerTitle": "Quel type de plat recherchez-vous ?🍽",
-                "errors": {
-                        "fetchLocation": "Échec de la récupération de la localisation",
-                        "getCurrentLocation": "Impossible d'obtenir la position actuelle",
-                        "noLocationSelected": "Veuillez sélectionner un lieu",
-                        "searchFailed": "La recherche a échoué"
-                },
-                "sections": {
-                        "location": "Où chercher ?",
-                        "time": "À quelle heure ?",
-                        "scene": "Pour quelle occasion ?",
-                        "mood": "Quelle est votre humeur ?",
-                        "distance": "À quelle distance ?",
-                        "budget": "Budget ?",
-                        "restrictions": "Restrictions"
-                },
-                "required": "Obligatoire",
-                "placeholders": {
-                        "enterLocation": "Saisissez un lieu"
-                },
-                "loading": "Recherche...",
-                "advancedToggle": {
-                        "open": "Recherche avancée",
-                        "close": "Fermer la recherche avancée"
-                },
-                "labels": {
-                        "noMinBudget": "Pas de minimum",
-                        "noMaxBudget": "Pas de maximum"
-                },
+	"Search": {
+		"DistanceSlider": {
+			"near": "Proche",
+			"far": "Loin"
+		},
+		"BudgetSlider": {
+			"cheap": "Bon marché",
+			"expensive": "Cher"
+		},
+		"headerTitle": "Quel type de plat recherchez-vous ?🍽",
+		"errors": {
+			"fetchLocation": "Échec de la récupération de la localisation",
+			"getCurrentLocation": "Impossible d'obtenir la position actuelle",
+			"noLocationSelected": "Veuillez sélectionner un lieu",
+			"searchFailed": "La recherche a échoué"
+		},
+		"sections": {
+			"location": "Où chercher ?",
+			"time": "À quelle heure ?",
+			"scene": "Pour quelle occasion ?",
+			"mood": "Quelle est votre humeur ?",
+			"distance": "À quelle distance ?",
+			"budget": "Budget ?",
+			"restrictions": "Restrictions"
+		},
+		"required": "Obligatoire",
+		"placeholders": {
+			"enterLocation": "Saisissez un lieu"
+		},
+		"loading": "Recherche...",
+		"advancedToggle": {
+			"open": "Recherche avancée",
+			"close": "Fermer la recherche avancée"
+		},
+		"labels": {
+			"noMinBudget": "Pas de minimum",
+			"noMaxBudget": "Pas de maximum"
+		},
 		"distanceLabels": {
 			"100m": "100m",
-			"300m": "300m", 
+			"300m": "300m",
 			"500m": "500m",
 			"800m": "800m",
 			"1km": "1km",
@@ -66,58 +66,58 @@
 			"15km": "15km",
 			"20km": "20km"
 		},
-                "currencySuffix": "¥",
-                "searchButton": "Rechercher !",
-                "timeSlots": {
-                        "morning": "Petit-déjeuner",
-                        "lunch": "Déjeuner",
-                        "dinner": "Dîner",
-                        "lateNight": "Snack de nuit"
-                },
-                "sceneOptions": {
-                        "solo": "Seul",
-                        "date": "Rendez-vous",
-                        "group": "Avec d'autres",
-                        "largeGroup": "Grand groupe",
-                        "tourism": "Tourisme"
-                },
-                "moodOptions": {
-                        "hearty": "Copieux",
-                        "light": "Léger",
-                        "sweet": "Sucré",
-                        "spicy": "Épicé",
-                        "healthy": "Sain",
-                        "junk": "Junk food",
-                        "alcohol": "Principalement des boissons"
-                },
-                "restrictionOptions": {
-                        "vegetarian": "Végétarien",
-                        "glutenFree": "Sans gluten",
-                        "dairyFree": "Sans produits laitiers",
-                        "nutAllergy": "Allergie aux noix",
-                        "seafoodAllergy": "Allergie aux fruits de mer",
-                        "halal": "Halal"
-                }
-        },
-        "Topics": {
-                "HideTopicModal": {
-                        "title": "Masquer",
-                        "description": "Veuillez indiquer la raison du masquage (facultatif)",
+		"currencySuffix": "¥",
+		"searchButton": "Rechercher !",
+		"timeSlots": {
+			"morning": "Petit-déjeuner",
+			"lunch": "Déjeuner",
+			"dinner": "Dîner",
+			"lateNight": "Snack de nuit"
+		},
+		"sceneOptions": {
+			"solo": "Seul",
+			"date": "Rendez-vous",
+			"group": "Avec d'autres",
+			"largeGroup": "Grand groupe",
+			"tourism": "Tourisme"
+		},
+		"moodOptions": {
+			"hearty": "Copieux",
+			"light": "Léger",
+			"sweet": "Sucré",
+			"spicy": "Épicé",
+			"healthy": "Sain",
+			"junk": "Junk food",
+			"alcohol": "Principalement des boissons"
+		},
+		"restrictionOptions": {
+			"vegetarian": "Végétarien",
+			"glutenFree": "Sans gluten",
+			"dairyFree": "Sans produits laitiers",
+			"nutAllergy": "Allergie aux noix",
+			"seafoodAllergy": "Allergie aux fruits de mer",
+			"halal": "Halal"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "Masquer",
+			"description": "Veuillez indiquer la raison du masquage (facultatif)",
 			"placeholder": "Entrez une raison...",
 			"confirm": "Masquer"
 		},
-                "Loading": {
-                        "title": "Nous recherchons des plats faits pour vous",
-                        "subtitle": "Veuillez patienter..."
-                },
-                "errors": {
-                        "fetchFailed": "Échec de récupération des plats",
-                        "invalidSearchParams": "Paramètres de recherche invalides"
-                },
-                "empty": "Aucun plat disponible",
-                "retry": "Retour à la recherche",
-                "chooseThis": "Je choisis celui-ci !"
-        },
+		"Loading": {
+			"title": "Nous recherchons des plats faits pour vous",
+			"subtitle": "Veuillez patienter..."
+		},
+		"errors": {
+			"fetchFailed": "Échec de récupération des plats",
+			"invalidSearchParams": "Paramètres de recherche invalides"
+		},
+		"empty": "Aucun plat disponible",
+		"retry": "Retour à la recherche",
+		"chooseThis": "Je choisis celui-ci !"
+	},
 	"Notifications": {
 		"title": "Notifications",
 		"timeAgo": "il y a {{time}}"
@@ -163,7 +163,7 @@
 		},
 		"statusLabels": {
 			"active": "Actif",
-			"completed": "Terminé", 
+			"completed": "Terminé",
 			"refunded": "Remboursé",
 			"paid": "Payé",
 			"pending": "En attente"
@@ -208,7 +208,7 @@
 		},
 		"alerts": {
 			"locationError": "Échec de l'obtention des informations de localisation",
-			"currentLocationError": "Échec de l'obtention de la position actuelle", 
+			"currentLocationError": "Échec de l'obtention de la position actuelle",
 			"bidSuccess": "Enchère placée avec succès pour {{place}} à ¥{{amount}}",
 			"bidError": "Échec du placement de l'enchère",
 			"reviewSuccess": "Avis publié avec succès",

@@ -7,7 +7,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 // Error view shown when fetching topics fails
 export const TopicsError = ({ error, onBack }: { error: string; onBack: () => void }) => {
 	const { lightImpact } = useHaptics();
-	
+
 	const handleBack = () => {
 		lightImpact();
 		onBack();

@@ -15,47 +15,47 @@
 		"maintenanceMessage": "We are currently undergoing maintenance.",
 		"unsupportedVersion": "This version is no longer supported."
 	},
-        "Search": {
-                "DistanceSlider": {
-                        "near": "Near",
-                        "far": "Far"
-                },
-                "BudgetSlider": {
-                        "cheap": "Cheap",
-                        "expensive": "Expensive"
-                },
-                "headerTitle": "What kind of food are you looking for?🍽",
-                "errors": {
-                        "fetchLocation": "Failed to fetch location",
-                        "getCurrentLocation": "Failed to get current location",
-                        "noLocationSelected": "Please select a location",
-                        "searchFailed": "Search failed"
-                },
-                "sections": {
-                        "location": "Where to search?",
-                        "time": "What time?",
-                        "scene": "What occasion?",
-                        "mood": "What's your mood?",
-                        "distance": "How far?",
-                        "budget": "Budget?",
-                        "restrictions": "Restrictions"
-                },
-                "required": "Required",
-                "placeholders": {
-                        "enterLocation": "Enter a location"
-                },
-                "loading": "Searching...",
-                "advancedToggle": {
-                        "open": "Advanced search",
-                        "close": "Close advanced search"
-                },
-                "labels": {
-                        "noMinBudget": "No minimum",
-                        "noMaxBudget": "No maximum"
-                },
+	"Search": {
+		"DistanceSlider": {
+			"near": "Near",
+			"far": "Far"
+		},
+		"BudgetSlider": {
+			"cheap": "Cheap",
+			"expensive": "Expensive"
+		},
+		"headerTitle": "What kind of food are you looking for?🍽",
+		"errors": {
+			"fetchLocation": "Failed to fetch location",
+			"getCurrentLocation": "Failed to get current location",
+			"noLocationSelected": "Please select a location",
+			"searchFailed": "Search failed"
+		},
+		"sections": {
+			"location": "Where to search?",
+			"time": "What time?",
+			"scene": "What occasion?",
+			"mood": "What's your mood?",
+			"distance": "How far?",
+			"budget": "Budget?",
+			"restrictions": "Restrictions"
+		},
+		"required": "Required",
+		"placeholders": {
+			"enterLocation": "Enter a location"
+		},
+		"loading": "Searching...",
+		"advancedToggle": {
+			"open": "Advanced search",
+			"close": "Close advanced search"
+		},
+		"labels": {
+			"noMinBudget": "No minimum",
+			"noMaxBudget": "No maximum"
+		},
 		"distanceLabels": {
 			"100m": "100m",
-			"300m": "300m", 
+			"300m": "300m",
 			"500m": "500m",
 			"800m": "800m",
 			"1km": "1km",
@@ -66,58 +66,58 @@
 			"15km": "15km",
 			"20km": "20km"
 		},
-                "currencySuffix": "¥",
-                "searchButton": "Find it!",
-                "timeSlots": {
-                        "morning": "Breakfast",
-                        "lunch": "Lunch",
-                        "dinner": "Dinner",
-                        "lateNight": "Late night"
-                },
-                "sceneOptions": {
-                        "solo": "Solo",
-                        "date": "Date",
-                        "group": "With others",
-                        "largeGroup": "Large group",
-                        "tourism": "Tourism"
-                },
-                "moodOptions": {
-                        "hearty": "Hearty",
-                        "light": "Light",
-                        "sweet": "Sweet",
-                        "spicy": "Spicy",
-                        "healthy": "Healthy",
-                        "junk": "Junk",
-                        "alcohol": "Mostly drinks"
-                },
-                "restrictionOptions": {
-                        "vegetarian": "Vegetarian",
-                        "glutenFree": "Gluten free",
-                        "dairyFree": "Dairy free",
-                        "nutAllergy": "Nut allergy",
-                        "seafoodAllergy": "Seafood allergy",
-                        "halal": "Halal"
-                }
-        },
-        "Topics": {
-                "HideTopicModal": {
-                        "title": "Hide",
-                        "description": "Please tell us the reason for hiding (optional)",
+		"currencySuffix": "¥",
+		"searchButton": "Find it!",
+		"timeSlots": {
+			"morning": "Breakfast",
+			"lunch": "Lunch",
+			"dinner": "Dinner",
+			"lateNight": "Late night"
+		},
+		"sceneOptions": {
+			"solo": "Solo",
+			"date": "Date",
+			"group": "With others",
+			"largeGroup": "Large group",
+			"tourism": "Tourism"
+		},
+		"moodOptions": {
+			"hearty": "Hearty",
+			"light": "Light",
+			"sweet": "Sweet",
+			"spicy": "Spicy",
+			"healthy": "Healthy",
+			"junk": "Junk",
+			"alcohol": "Mostly drinks"
+		},
+		"restrictionOptions": {
+			"vegetarian": "Vegetarian",
+			"glutenFree": "Gluten free",
+			"dairyFree": "Dairy free",
+			"nutAllergy": "Nut allergy",
+			"seafoodAllergy": "Seafood allergy",
+			"halal": "Halal"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "Hide",
+			"description": "Please tell us the reason for hiding (optional)",
 			"placeholder": "Enter a reason...",
 			"confirm": "Hide"
 		},
-                "Loading": {
-                        "title": "Searching for dishes perfect for you",
-                        "subtitle": "Please wait a moment..."
-                },
-                "errors": {
-                        "fetchFailed": "Failed to fetch dishes",
-                        "invalidSearchParams": "Invalid search parameters"
-                },
-                "empty": "No dishes available",
-                "retry": "Back to search",
-                "chooseThis": "Choose this!"
-        },
+		"Loading": {
+			"title": "Searching for dishes perfect for you",
+			"subtitle": "Please wait a moment..."
+		},
+		"errors": {
+			"fetchFailed": "Failed to fetch dishes",
+			"invalidSearchParams": "Invalid search parameters"
+		},
+		"empty": "No dishes available",
+		"retry": "Back to search",
+		"chooseThis": "Choose this!"
+	},
 	"Notifications": {
 		"title": "Notifications",
 		"timeAgo": "{{time}} ago"
@@ -163,7 +163,7 @@
 		},
 		"statusLabels": {
 			"active": "Active",
-			"completed": "Completed", 
+			"completed": "Completed",
 			"refunded": "Refunded",
 			"paid": "Paid",
 			"pending": "Pending"

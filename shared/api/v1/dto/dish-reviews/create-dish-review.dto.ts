@@ -3,34 +3,34 @@ import { Type } from "@nestjs/class-transformer";
 
 /** POST /v1/dish-reviews のボディ */
 export class CreateDishReviewDto {
-        /** dishes.id */
-        @IsUUID()
-        dishId!: string;
+	/** dishes.id */
+	@IsUUID()
+	dishId!: string;
 
-        /** コメント */
-        @IsString()
-        comment!: string;
+	/** コメント */
+	@IsString()
+	comment!: string;
 
-        /** 価格 (セント) */
-        @IsOptional()
-        @Type(() => Number)
-        @IsNumber()
-        priceCents?: number;
+	/** 価格 (セント) */
+	@IsOptional()
+	@Type(() => Number)
+	@IsNumber()
+	priceCents?: number;
 
-        /** 通貨コード */
-        @IsOptional()
-        @IsString()
-        currencyCode?: string;
+	/** 通貨コード */
+	@IsOptional()
+	@IsString()
+	currencyCode?: string;
 
-        /** 評価 */
-        @Type(() => Number)
-        @IsNumber()
-        @Min(1)
-        @Max(5)
-        rating!: number;
+	/** 評価 */
+	@Type(() => Number)
+	@IsNumber()
+	@Min(1)
+	@Max(5)
+	rating!: number;
 
-        /** 作成された dish_media.id */
-        @IsOptional()
-        @IsUUID()
-        createdDishMediaId?: string;
+	/** 作成された dish_media.id */
+	@IsOptional()
+	@IsUUID()
+	createdDishMediaId?: string;
 }

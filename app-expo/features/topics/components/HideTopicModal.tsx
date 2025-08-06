@@ -15,12 +15,12 @@ interface Props {
 // Content for the hide topic modal
 export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHideCard }: Props) => {
 	const { lightImpact, errorNotification } = useHaptics();
-	
+
 	const handleClose = () => {
 		lightImpact();
 		onClose();
 	};
-	
+
 	const handleConfirm = () => {
 		errorNotification();
 		confirmHideCard();

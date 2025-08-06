@@ -130,7 +130,13 @@ export default function MapScreen() {
 		try {
 			// Mock Stripe payment processing
 			await new Promise((resolve) => setTimeout(resolve, 2000));
-			Alert.alert(i18n.t("Common.success"), i18n.t("Map.alerts.bidSuccess", { place: selectedPlace.placeName, amount: parseInt(bidAmount).toLocaleString() }));
+			Alert.alert(
+				i18n.t("Common.success"),
+				i18n.t("Map.alerts.bidSuccess", {
+					place: selectedPlace.placeName,
+					amount: parseInt(bidAmount).toLocaleString(),
+				}),
+			);
 			closeBidModal();
 			setBidAmount("");
 		} catch (error) {
@@ -423,7 +429,8 @@ export default function MapScreen() {
 					<View style={styles.bidInfoRow}>
 						<Calendar size={16} color="#666" />
 						<Text style={styles.bidInfoText}>
-							{i18n.t("Map.labels.endDate")} {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("ja-JP")}
+							{i18n.t("Map.labels.endDate")}{" "}
+							{new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("ja-JP")}
 						</Text>
 					</View>
 				</View>

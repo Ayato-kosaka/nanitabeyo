@@ -15,47 +15,47 @@
 		"maintenanceMessage": "当前正在维护中。",
 		"unsupportedVersion": "此版本已不再受支持."
 	},
-        "Search": {
-                "DistanceSlider": {
-                        "near": "近",
-                        "far": "远"
-                },
-                "BudgetSlider": {
-                        "cheap": "便宜",
-                        "expensive": "昂贵"
-                },
-                "headerTitle": "你想找什么样的美食？🍽",
-                "errors": {
-                        "fetchLocation": "获取位置失败",
-                        "getCurrentLocation": "获取当前位置失败",
-                        "noLocationSelected": "请选择位置",
-                        "searchFailed": "搜索失败"
-                },
-                "sections": {
-                        "location": "在哪里搜索？",
-                        "time": "什么时间？",
-                        "scene": "什么场合？",
-                        "mood": "你的心情如何？",
-                        "distance": "距离？",
-                        "budget": "预算？",
-                        "restrictions": "限制条件"
-                },
-                "required": "必填",
-                "placeholders": {
-                        "enterLocation": "请输入地点"
-                },
-                "loading": "搜索中...",
-                "advancedToggle": {
-                        "open": "高级搜索",
-                        "close": "关闭高级搜索"
-                },
-                "labels": {
-                        "noMinBudget": "无下限",
-                        "noMaxBudget": "无上限"
-                },
+	"Search": {
+		"DistanceSlider": {
+			"near": "近",
+			"far": "远"
+		},
+		"BudgetSlider": {
+			"cheap": "便宜",
+			"expensive": "昂贵"
+		},
+		"headerTitle": "你想找什么样的美食？🍽",
+		"errors": {
+			"fetchLocation": "获取位置失败",
+			"getCurrentLocation": "获取当前位置失败",
+			"noLocationSelected": "请选择位置",
+			"searchFailed": "搜索失败"
+		},
+		"sections": {
+			"location": "在哪里搜索？",
+			"time": "什么时间？",
+			"scene": "什么场合？",
+			"mood": "你的心情如何？",
+			"distance": "距离？",
+			"budget": "预算？",
+			"restrictions": "限制条件"
+		},
+		"required": "必填",
+		"placeholders": {
+			"enterLocation": "请输入地点"
+		},
+		"loading": "搜索中...",
+		"advancedToggle": {
+			"open": "高级搜索",
+			"close": "关闭高级搜索"
+		},
+		"labels": {
+			"noMinBudget": "无下限",
+			"noMaxBudget": "无上限"
+		},
 		"distanceLabels": {
 			"100m": "100米",
-			"300m": "300米", 
+			"300m": "300米",
 			"500m": "500米",
 			"800m": "800米",
 			"1km": "1公里",
@@ -66,58 +66,58 @@
 			"15km": "15公里",
 			"20km": "20公里"
 		},
-                "currencySuffix": "¥",
-                "searchButton": "查找！",
-                "timeSlots": {
-                        "morning": "早餐",
-                        "lunch": "午餐",
-                        "dinner": "晚餐",
-                        "lateNight": "夜宵"
-                },
-                "sceneOptions": {
-                        "solo": "一个人",
-                        "date": "约会",
-                        "group": "多人",
-                        "largeGroup": "大团体",
-                        "tourism": "观光"
-                },
-                "moodOptions": {
-                        "hearty": "丰盛",
-                        "light": "清淡",
-                        "sweet": "甜食",
-                        "spicy": "辣的",
-                        "healthy": "健康",
-                        "junk": "垃圾食品",
-                        "alcohol": "以酒为主"
-                },
-                "restrictionOptions": {
-                        "vegetarian": "素食",
-                        "glutenFree": "无麸质",
-                        "dairyFree": "无乳制品",
-                        "nutAllergy": "坚果过敏",
-                        "seafoodAllergy": "海鲜过敏",
-                        "halal": "清真"
-                }
-        },
-        "Topics": {
-                "HideTopicModal": {
-                        "title": "隐藏",
-                        "description": "请告诉我们隐藏的理由（可选）",
+		"currencySuffix": "¥",
+		"searchButton": "查找！",
+		"timeSlots": {
+			"morning": "早餐",
+			"lunch": "午餐",
+			"dinner": "晚餐",
+			"lateNight": "夜宵"
+		},
+		"sceneOptions": {
+			"solo": "一个人",
+			"date": "约会",
+			"group": "多人",
+			"largeGroup": "大团体",
+			"tourism": "观光"
+		},
+		"moodOptions": {
+			"hearty": "丰盛",
+			"light": "清淡",
+			"sweet": "甜食",
+			"spicy": "辣的",
+			"healthy": "健康",
+			"junk": "垃圾食品",
+			"alcohol": "以酒为主"
+		},
+		"restrictionOptions": {
+			"vegetarian": "素食",
+			"glutenFree": "无麸质",
+			"dairyFree": "无乳制品",
+			"nutAllergy": "坚果过敏",
+			"seafoodAllergy": "海鲜过敏",
+			"halal": "清真"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "隐藏",
+			"description": "请告诉我们隐藏的理由（可选）",
 			"placeholder": "请输入理由...",
 			"confirm": "隐藏"
 		},
-                "Loading": {
-                        "title": "正在为你寻找合适的菜品",
-                        "subtitle": "请稍候..."
-                },
-                "errors": {
-                        "fetchFailed": "获取菜品失败",
-                        "invalidSearchParams": "搜索参数无效"
-                },
-                "empty": "没有可显示的菜品",
-                "retry": "返回搜索",
-                "chooseThis": "就选这个！"
-        },
+		"Loading": {
+			"title": "正在为你寻找合适的菜品",
+			"subtitle": "请稍候..."
+		},
+		"errors": {
+			"fetchFailed": "获取菜品失败",
+			"invalidSearchParams": "搜索参数无效"
+		},
+		"empty": "没有可显示的菜品",
+		"retry": "返回搜索",
+		"chooseThis": "就选这个！"
+	},
 	"Notifications": {
 		"title": "通知",
 		"timeAgo": "{{time}}前"
@@ -163,7 +163,7 @@
 		},
 		"statusLabels": {
 			"active": "活跃",
-			"completed": "已完成", 
+			"completed": "已完成",
 			"refunded": "已退款",
 			"paid": "已支付",
 			"pending": "待定"

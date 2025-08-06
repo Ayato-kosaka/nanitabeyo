@@ -23,12 +23,7 @@ import { ExternalApiModule } from '../../core/external-api/external-api.module';
     forwardRef(() => AuthModule),
   ],
   controllers: [DishCategoryVariantsController],
-  providers: [
-    DishCategoryVariantsService,
-    DishCategoryVariantsRepository,
-  ],
-  exports: [
-    DishCategoryVariantsService,
-  ],
+  providers: [DishCategoryVariantsService, DishCategoryVariantsRepository],
+  exports: [DishCategoryVariantsService],
 })
 export class DishCategoryVariantsModule {}

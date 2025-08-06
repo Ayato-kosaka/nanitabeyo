@@ -15,47 +15,47 @@
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
 		"unsupportedVersion": "Esta versión ya no es compatible."
 	},
-        "Search": {
-                "DistanceSlider": {
-                        "near": "Cerca",
-                        "far": "Lejos"
-                },
-                "BudgetSlider": {
-                        "cheap": "Barato",
-                        "expensive": "Caro"
-                },
-                "headerTitle": "¿Qué tipo de comida buscas?🍽",
-                "errors": {
-                        "fetchLocation": "No se pudo obtener la ubicación",
-                        "getCurrentLocation": "No se pudo obtener la ubicación actual",
-                        "noLocationSelected": "Seleccione una ubicación",
-                        "searchFailed": "La búsqueda falló"
-                },
-                "sections": {
-                        "location": "¿Dónde buscar?",
-                        "time": "¿En qué horario?",
-                        "scene": "¿Para qué ocasión?",
-                        "mood": "¿Cómo te sientes?",
-                        "distance": "¿Qué distancia?",
-                        "budget": "¿Presupuesto?",
-                        "restrictions": "Restricciones"
-                },
-                "required": "Obligatorio",
-                "placeholders": {
-                        "enterLocation": "Ingrese un lugar"
-                },
-                "loading": "Buscando...",
-                "advancedToggle": {
-                        "open": "Búsqueda avanzada",
-                        "close": "Cerrar búsqueda avanzada"
-                },
-                "labels": {
-                        "noMinBudget": "Sin mínimo",
-                        "noMaxBudget": "Sin máximo"
-                },
+	"Search": {
+		"DistanceSlider": {
+			"near": "Cerca",
+			"far": "Lejos"
+		},
+		"BudgetSlider": {
+			"cheap": "Barato",
+			"expensive": "Caro"
+		},
+		"headerTitle": "¿Qué tipo de comida buscas?🍽",
+		"errors": {
+			"fetchLocation": "No se pudo obtener la ubicación",
+			"getCurrentLocation": "No se pudo obtener la ubicación actual",
+			"noLocationSelected": "Seleccione una ubicación",
+			"searchFailed": "La búsqueda falló"
+		},
+		"sections": {
+			"location": "¿Dónde buscar?",
+			"time": "¿En qué horario?",
+			"scene": "¿Para qué ocasión?",
+			"mood": "¿Cómo te sientes?",
+			"distance": "¿Qué distancia?",
+			"budget": "¿Presupuesto?",
+			"restrictions": "Restricciones"
+		},
+		"required": "Obligatorio",
+		"placeholders": {
+			"enterLocation": "Ingrese un lugar"
+		},
+		"loading": "Buscando...",
+		"advancedToggle": {
+			"open": "Búsqueda avanzada",
+			"close": "Cerrar búsqueda avanzada"
+		},
+		"labels": {
+			"noMinBudget": "Sin mínimo",
+			"noMaxBudget": "Sin máximo"
+		},
 		"distanceLabels": {
 			"100m": "100m",
-			"300m": "300m", 
+			"300m": "300m",
 			"500m": "500m",
 			"800m": "800m",
 			"1km": "1km",
@@ -66,58 +66,58 @@
 			"15km": "15km",
 			"20km": "20km"
 		},
-                "currencySuffix": "¥",
-                "searchButton": "¡Buscar!",
-                "timeSlots": {
-                        "morning": "Desayuno",
-                        "lunch": "Almuerzo",
-                        "dinner": "Cena",
-                        "lateNight": "Comida nocturna"
-                },
-                "sceneOptions": {
-                        "solo": "Solo",
-                        "date": "Cita",
-                        "group": "Con otros",
-                        "largeGroup": "Grupo grande",
-                        "tourism": "Turismo"
-                },
-                "moodOptions": {
-                        "hearty": "Abundante",
-                        "light": "Ligero",
-                        "sweet": "Dulce",
-                        "spicy": "Picante",
-                        "healthy": "Saludable",
-                        "junk": "Comida chatarra",
-                        "alcohol": "Principalmente bebidas"
-                },
-                "restrictionOptions": {
-                        "vegetarian": "Vegetariano",
-                        "glutenFree": "Sin gluten",
-                        "dairyFree": "Sin lácteos",
-                        "nutAllergy": "Alergia a las nueces",
-                        "seafoodAllergy": "Alergia a mariscos",
-                        "halal": "Halal"
-                }
-        },
-        "Topics": {
-                "HideTopicModal": {
-                        "title": "Ocultar",
-                        "description": "Dinos la razón para ocultarlo (opcional)",
+		"currencySuffix": "¥",
+		"searchButton": "¡Buscar!",
+		"timeSlots": {
+			"morning": "Desayuno",
+			"lunch": "Almuerzo",
+			"dinner": "Cena",
+			"lateNight": "Comida nocturna"
+		},
+		"sceneOptions": {
+			"solo": "Solo",
+			"date": "Cita",
+			"group": "Con otros",
+			"largeGroup": "Grupo grande",
+			"tourism": "Turismo"
+		},
+		"moodOptions": {
+			"hearty": "Abundante",
+			"light": "Ligero",
+			"sweet": "Dulce",
+			"spicy": "Picante",
+			"healthy": "Saludable",
+			"junk": "Comida chatarra",
+			"alcohol": "Principalmente bebidas"
+		},
+		"restrictionOptions": {
+			"vegetarian": "Vegetariano",
+			"glutenFree": "Sin gluten",
+			"dairyFree": "Sin lácteos",
+			"nutAllergy": "Alergia a las nueces",
+			"seafoodAllergy": "Alergia a mariscos",
+			"halal": "Halal"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "Ocultar",
+			"description": "Dinos la razón para ocultarlo (opcional)",
 			"placeholder": "Introduce una razón...",
 			"confirm": "Ocultar"
 		},
-                "Loading": {
-                        "title": "Buscando el plato perfecto para ti",
-                        "subtitle": "Por favor, espera..."
-                },
-                "errors": {
-                        "fetchFailed": "No se pudieron obtener los platos",
-                        "invalidSearchParams": "Parámetros de búsqueda inválidos"
-                },
-                "empty": "No hay platos disponibles",
-                "retry": "Volver a la búsqueda",
-                "chooseThis": "¡Este!"
-        },
+		"Loading": {
+			"title": "Buscando el plato perfecto para ti",
+			"subtitle": "Por favor, espera..."
+		},
+		"errors": {
+			"fetchFailed": "No se pudieron obtener los platos",
+			"invalidSearchParams": "Parámetros de búsqueda inválidos"
+		},
+		"empty": "No hay platos disponibles",
+		"retry": "Volver a la búsqueda",
+		"chooseThis": "¡Este!"
+	},
 	"Notifications": {
 		"title": "Notificaciones",
 		"timeAgo": "hace {{time}}"
@@ -163,7 +163,7 @@
 		},
 		"statusLabels": {
 			"active": "Activo",
-			"completed": "Completado", 
+			"completed": "Completado",
 			"refunded": "Reembolsado",
 			"paid": "Pagado",
 			"pending": "Pendiente"
