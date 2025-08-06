@@ -14,12 +14,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import {
   QueryDishCategoryVariantsDto,
@@ -42,7 +37,9 @@ import { convertPrismaToSupabase_DishCategories } from '../../../../shared/conve
 @ApiTags('DishCategoryVariants')
 @Controller('v1/dish-category-variants')
 export class DishCategoryVariantsController {
-  constructor(private readonly dishCategoryVariantsService: DishCategoryVariantsService) { }
+  constructor(
+    private readonly dishCategoryVariantsService: DishCategoryVariantsService,
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-category-variants                  */
@@ -73,11 +70,16 @@ export class DishCategoryVariantsController {
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: '料理カテゴリ表記揺れ登録' })
   @ApiResponse({ status: 201, description: '登録成功' })
-  @ApiResponse({ status: 500, description: 'マッチする料理カテゴリが見つからない' })
+  @ApiResponse({
+    status: 500,
+    description: 'マッチする料理カテゴリが見つからない',
+  })
   async createDishCategoryVariant(
     @Body() dto: CreateDishCategoryVariantDto,
     @CurrentUser() user?: RequestUser,
   ): Promise<CreateDishCategoryVariantResponse> {
-    return convertPrismaToSupabase_DishCategories(await this.dishCategoryVariantsService.createDishCategoryVariant(dto));
+    return convertPrismaToSupabase_DishCategories(
+      await this.dishCategoryVariantsService.createDishCategoryVariant(dto),
+    );
   }
 }

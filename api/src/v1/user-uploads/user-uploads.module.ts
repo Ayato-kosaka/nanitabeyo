@@ -23,9 +23,7 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [UserUploadsController],
-  providers: [
-    UserUploadsService,
-  ],
+  providers: [UserUploadsService],
   exports: [
     UserUploadsService, // 他ドメインがファイルアップロード機能で再利用できる
   ],

@@ -71,13 +71,20 @@ export class RestaurantsController {
   @ApiQuery({ name: 'lat', required: true, description: '緯度' })
   @ApiQuery({ name: 'lng', required: true, description: '経度' })
   @ApiQuery({ name: 'radius', required: true, description: '検索半径 (m)' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'ページネーション用カーソル' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'ページネーション用カーソル',
+  })
   @ApiResponse({ status: 200, description: '取得成功' })
   async findRestaurants(
     @Query() query: QueryRestaurantsDto,
     @CurrentUser() user?: RequestUser,
   ): Promise<{ data: QueryRestaurantsResponse; nextCursor?: string }> {
-    const items = await this.restaurantsService.findRestaurantsNearby(query, user?.userId);
+    const items = await this.restaurantsService.findRestaurantsNearby(
+      query,
+      user?.userId,
+    );
     return this.restaurantsMapper.toQueryResponse(items);
   }
 
@@ -112,7 +119,11 @@ export class RestaurantsController {
     @Body() dto: CreateRestaurantBidIntentDto,
     @CurrentUser() user: RequestUser,
   ): Promise<CreateRestaurantBidIntentResponse> {
-    const result = await this.restaurantsService.createBidIntent(id, dto, user.userId);
+    const result = await this.restaurantsService.createBidIntent(
+      id,
+      dto,
+      user.userId,
+    );
     return this.restaurantsMapper.toBidIntentResponse(result.clientSecret);
   }
 
@@ -124,14 +135,22 @@ export class RestaurantsController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レストラン料理投稿一覧' })
   @ApiParam({ name: 'id', required: true, description: 'レストランID' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'ページネーション用カーソル' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'ページネーション用カーソル',
+  })
   @ApiResponse({ status: 200, description: '取得成功' })
   async findRestaurantDishMedia(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: QueryRestaurantDishMediaDto,
     @CurrentUser() user?: RequestUser,
   ): Promise<{ data: QueryRestaurantDishMediaResponse; nextCursor?: string }> {
-    const items = await this.restaurantsService.findRestaurantDishMedia(id, query, user?.userId);
+    const items = await this.restaurantsService.findRestaurantDishMedia(
+      id,
+      query,
+      user?.userId,
+    );
     return this.restaurantsMapper.toDishMediaResponse(items);
   }
 
@@ -143,7 +162,11 @@ export class RestaurantsController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レストラン入札履歴一覧' })
   @ApiParam({ name: 'id', required: true, description: 'レストランID' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'ページネーション用カーソル' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'ページネーション用カーソル',
+  })
   @ApiResponse({ status: 200, description: '取得成功' })
   async findRestaurantBids(
     @Param('id', ParseUUIDPipe) id: string,

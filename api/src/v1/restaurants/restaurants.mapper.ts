@@ -24,11 +24,13 @@ import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converte
 
 @Injectable()
 export class RestaurantsMapper {
-  
   /* ------------------------------------------------------------------ */
   /*                GET /v1/restaurants Response Mapping               */
   /* ------------------------------------------------------------------ */
-  toQueryResponse(items: any[]): { data: QueryRestaurantsResponse; nextCursor?: string } {
+  toQueryResponse(items: any[]): {
+    data: QueryRestaurantsResponse;
+    nextCursor?: string;
+  } {
     const hasMore = items.length > 40;
     const data = (hasMore ? items.slice(0, 40) : items).map((item) => ({
       restaurant: {
@@ -67,7 +69,10 @@ export class RestaurantsMapper {
   /* ------------------------------------------------------------------ */
   /*           GET /v1/restaurants/:id/dish-media Response Mapping     */
   /* ------------------------------------------------------------------ */
-  toDishMediaResponse(items: any[]): { data: QueryRestaurantDishMediaResponse; nextCursor?: string } {
+  toDishMediaResponse(items: any[]): {
+    data: QueryRestaurantDishMediaResponse;
+    nextCursor?: string;
+  } {
     const hasMore = items.length > 40;
     const data = (hasMore ? items.slice(0, 40) : items).map((item) => ({
       restaurant: convertPrismaToSupabase_Restaurants({
@@ -97,8 +102,10 @@ export class RestaurantsMapper {
         updated_at: item.dish_media_updated_at,
         lock_no: item.dish_media_lock_no,
       }),
-      dish_reviews: Array.isArray(item.dish_reviews) 
-        ? item.dish_reviews.map((review: any) => convertPrismaToSupabase_DishReviews(review))
+      dish_reviews: Array.isArray(item.dish_reviews)
+        ? item.dish_reviews.map((review: any) =>
+            convertPrismaToSupabase_DishReviews(review),
+          )
         : [],
     }));
 
@@ -111,10 +118,13 @@ export class RestaurantsMapper {
   /* ------------------------------------------------------------------ */
   /*          GET /v1/restaurants/:id/restaurant-bids Response Mapping */
   /* ------------------------------------------------------------------ */
-  toRestaurantBidsResponse(items: any[]): { data: QueryRestaurantBidsResponse; nextCursor?: string } {
+  toRestaurantBidsResponse(items: any[]): {
+    data: QueryRestaurantBidsResponse;
+    nextCursor?: string;
+  } {
     const hasMore = items.length > 40;
-    const data = (hasMore ? items.slice(0, 40) : items).map((item) => 
-      convertPrismaToSupabase_RestaurantBids(item)
+    const data = (hasMore ? items.slice(0, 40) : items).map((item) =>
+      convertPrismaToSupabase_RestaurantBids(item),
     );
 
     return {

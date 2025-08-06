@@ -23,12 +23,7 @@ import { ClaudeModule } from '../../core/claude/claude.module';
     forwardRef(() => AuthModule),
   ],
   controllers: [DishCategoriesController],
-  providers: [
-    DishCategoriesService,
-    DishCategoriesRepository,
-  ],
-  exports: [
-    DishCategoriesService,
-  ],
+  providers: [DishCategoriesService, DishCategoriesRepository],
+  exports: [DishCategoriesService],
 })
 export class DishCategoriesModule {}

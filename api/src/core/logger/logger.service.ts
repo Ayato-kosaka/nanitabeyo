@@ -9,8 +9,10 @@ import { randomUUID } from 'crypto';
 import { env } from '../config/env';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
-import { CreateBackendEventInput, CreateExternalApiInput } from './logger.types';
-
+import {
+  CreateBackendEventInput,
+  CreateExternalApiInput,
+} from './logger.types';
 
 /**
  * AppLoggerService
@@ -20,12 +22,12 @@ import { CreateBackendEventInput, CreateExternalApiInput } from './logger.types'
 @Injectable({ scope: Scope.DEFAULT })
 export class AppLoggerService implements INestLoggerService {
   /** 環境ごとの最小レベル */
-  private readonly minLevel = DEFAULT_LOG_LEVEL as LogLevel;
+  private readonly minLevel = DEFAULT_LOG_LEVEL;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
@@ -79,9 +81,7 @@ export class AppLoggerService implements INestLoggerService {
   /* ------------------------------------------------------------------ */
   /*            外部 API コールを詳細に残すための専用メソッド           */
   /* ------------------------------------------------------------------ */
-  async externalApi(
-    input: CreateExternalApiInput,
-  ) {
+  async externalApi(input: CreateExternalApiInput) {
     try {
       await this.prisma.external_api_logs.create({
         data: {
@@ -106,9 +106,7 @@ export class AppLoggerService implements INestLoggerService {
   /* ------------------------------------------------------------------ */
   /*                           private helpers                          */
   /* ------------------------------------------------------------------ */
-  private async persistBackendEvent(
-    input: CreateBackendEventInput,
-  ) {
+  private async persistBackendEvent(input: CreateBackendEventInput) {
     try {
       await this.prisma.backend_event_logs.create({
         data: {

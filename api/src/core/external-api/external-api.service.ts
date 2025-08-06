@@ -28,13 +28,13 @@ interface GoogleCustomSearchResponse {
 interface ClaudeMessageResponse {
   id: string;
   model: string;
-  role: "assistant";
-  type: "message";
+  role: 'assistant';
+  type: 'message';
   content: {
-    type: "text";
+    type: 'text';
     text: string;
   }[];
-  stop_reason: "end_turn" | "max_tokens" | "stop_sequence" | "tool_use";
+  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
   stop_sequence: string | null;
   usage: {
     input_tokens: number;
@@ -44,7 +44,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /**
    * Claude API呼び出し
@@ -69,12 +69,13 @@ export class ExternalApiService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Claude API request failed: ${response.status} ${errorText}`);
+        throw new Error(
+          `Claude API request failed: ${response.status} ${errorText}`,
+        );
       }
 
       const responseData = await response.json();
       return responseData;
-
     } catch (error) {
       this.logger.error('ClaudeAPICallError', 'callClaudeAPI', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
@@ -87,7 +88,9 @@ export class ExternalApiService {
   /**
    * Wikidata で料理カテゴリを検索
    */
-  async searchWikidata(query: string): Promise<{ qid: string; label: string } | null> {
+  async searchWikidata(
+    query: string,
+  ): Promise<{ qid: string; label: string } | null> {
     this.logger.debug('searchWikidata', 'searchWikidata', {
       query,
     });
@@ -111,15 +114,14 @@ export class ExternalApiService {
 
       if (data.search && data.search.length > 0) {
         const result = data.search[0];
-        this.logger.debug
+        this.logger.debug;
         return { qid: result.id, label: result.label };
       }
 
       this.logger.debug('searchWikidata', 'searchWikidata', {
-        message: 'No results found'
-      })
+        message: 'No results found',
+      });
       return null;
-
     } catch (error) {
       this.logger.error('WikidataAPICallError', 'searchWikidata', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
@@ -159,7 +161,9 @@ export class ExternalApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Google Custom Search API request failed: ${response.status}`);
+        throw new Error(
+          `Google Custom Search API request failed: ${response.status}`,
+        );
       }
 
       const data: GoogleCustomSearchResponse = await response.json();
@@ -175,22 +179,31 @@ export class ExternalApiService {
         message: 'No spelling correction found',
       });
       return null;
-
     } catch (error) {
-      this.logger.error('GoogleCustomSearchAPICallError', 'getCorrectedSpelling', {
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        query,
-      });
+      this.logger.error(
+        'GoogleCustomSearchAPICallError',
+        'getCorrectedSpelling',
+        {
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          query,
+        },
+      );
       return null;
     }
   }
 
-
   /**
    * 外部API呼び出しとログ記録を行う
    */
-  private async makeExternalApiCall(params: Omit<CreateExternalApiInput, 'status_code' | 'response_time_ms' | 'response_payload' | 'error_message'>): Promise<Response> {
-    const { api_name, endpoint, method, request_payload, function_name } = params;
+  private async makeExternalApiCall(
+    params: Omit<
+      CreateExternalApiInput,
+      'status_code' | 'response_time_ms' | 'response_payload' | 'error_message'
+    >,
+  ): Promise<Response> {
+    const { api_name, endpoint, method, request_payload, function_name } =
+      params;
     const startTime = Date.now();
 
     try {
@@ -217,7 +230,10 @@ export class ExternalApiService {
         endpoint,
         method,
         request_payload,
-        response_payload: await response.clone().json().catch(() => null),
+        response_payload: await response
+          .clone()
+          .json()
+          .catch(() => null),
         status_code: response.status,
         response_time_ms: responseTime,
         function_name,
@@ -225,7 +241,6 @@ export class ExternalApiService {
       });
 
       return response;
-
     } catch (error) {
       const responseTime = Date.now() - startTime;
 
@@ -246,4 +261,3 @@ export class ExternalApiService {
     }
   }
 }
-

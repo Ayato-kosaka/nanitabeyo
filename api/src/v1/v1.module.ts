@@ -9,13 +9,13 @@ import { NotifierModule } from 'src/core/notifier/notifier.module';
 
 @Module({
   imports: [
-    HelloModule, 
-    DishMediaModule, 
+    HelloModule,
+    DishMediaModule,
     DishCategoriesModule,
     DishCategoryVariantsModule,
     RestaurantsModule,
     UserUploadsModule,
-    NotifierModule
+    NotifierModule,
   ],
 })
 export class V1Module {}

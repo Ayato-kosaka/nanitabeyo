@@ -94,7 +94,9 @@ export class StorageService {
         contentType,
       });
 
-      const expiresAt = new Date(Date.now() + expiresInSeconds * 1_000).toISOString();
+      const expiresAt = new Date(
+        Date.now() + expiresInSeconds * 1_000,
+      ).toISOString();
 
       return {
         putUrl: url,
@@ -102,11 +104,15 @@ export class StorageService {
         expiresAt,
       };
     } catch (err) {
-      this.logger.error('GcsUploadSignedUrlError', 'generateSignedUrlForUpload', {
-        error_message: (err as Error).message,
-        path,
-        contentType,
-      });
+      this.logger.error(
+        'GcsUploadSignedUrlError',
+        'generateSignedUrlForUpload',
+        {
+          error_message: (err as Error).message,
+          path,
+          contentType,
+        },
+      );
       throw err;
     }
   }

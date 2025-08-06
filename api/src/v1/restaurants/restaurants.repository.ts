@@ -10,10 +10,6 @@ import { Prisma } from '../../../../shared/prisma/client';
 
 import {
   QueryRestaurantsDto,
-  CreateRestaurantDto,
-  CreateRestaurantBidIntentDto,
-  QueryRestaurantDishMediaDto,
-  QueryRestaurantBidsDto,
 } from '@shared/v1/dto';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -31,7 +27,7 @@ export class RestaurantsRepository {
   /* ------------------------------------------------------------------ */
   async findRestaurantsWithBidTotals(dto: QueryRestaurantsDto): Promise<any[]> {
     const { lat, lng, radius, cursor } = dto;
-    
+
     // Using raw SQL for geographic queries as specified in the sequence diagram
     const query = `
       SELECT 
@@ -60,7 +56,7 @@ export class RestaurantsRepository {
     `;
 
     const params = cursor ? [lng, lat, radius, cursor] : [lng, lat, radius];
-    
+
     return this.prisma.$queryRawUnsafe(query, ...params);
   }
 
@@ -80,7 +76,7 @@ export class RestaurantsRepository {
       name: string;
       location: string; // PostGIS POINT format: "lng lat"
       image_url?: string;
-    }
+    },
   ) {
     // Use $executeRaw for geographic data insertion since location is Unsupported
     const result = await tx.$queryRaw<{ id: string }[]>`
@@ -94,7 +90,10 @@ export class RestaurantsRepository {
   /* ------------------------------------------------------------------ */
   /*               GET /v1/restaurants/:id/dish-media                  */
   /* ------------------------------------------------------------------ */
-  async findRestaurantDishMedia(restaurantId: string, cursor?: string): Promise<any[]> {
+  async findRestaurantDishMedia(
+    restaurantId: string,
+    cursor?: string,
+  ): Promise<any[]> {
     const query = `
       SELECT 
         r.*,

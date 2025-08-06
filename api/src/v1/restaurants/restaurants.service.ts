@@ -5,7 +5,11 @@
 // ❸ "副作用" は出来るだけ Service で完結させ、Controller は薄く保つ
 //
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 
 import {
@@ -33,7 +37,10 @@ export class RestaurantsService {
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/restaurants                            */
   /* ------------------------------------------------------------------ */
-  async findRestaurantsNearby(dto: QueryRestaurantsDto, viewerId?: string): Promise<any[]> {
+  async findRestaurantsNearby(
+    dto: QueryRestaurantsDto,
+    viewerId?: string,
+  ): Promise<any[]> {
     this.logger.debug('FindRestaurantsNearby', 'findRestaurantsNearby', {
       lat: dto.lat,
       lng: dto.lng,
@@ -47,7 +54,7 @@ export class RestaurantsService {
     this.logger.debug('FindRestaurantsNearbyResult', 'findRestaurantsNearby', {
       count: records.length,
     });
-    
+
     return records;
   }
 
@@ -60,7 +67,9 @@ export class RestaurantsService {
     });
 
     // Check if restaurant already exists
-    const existingRestaurant = await this.repo.findByGooglePlaceId(dto.googlePlaceId);
+    const existingRestaurant = await this.repo.findByGooglePlaceId(
+      dto.googlePlaceId,
+    );
     if (existingRestaurant) {
       this.logger.debug('RestaurantExists', 'createRestaurant', {
         existingId: existingRestaurant.id,
@@ -69,8 +78,8 @@ export class RestaurantsService {
     }
 
     // Fetch place details from Google Places API
-    const placeDetail = await this.fetchGooglePlaceDetail(dto.googlePlaceId);
-    
+    const placeDetail = this.fetchGooglePlaceDetail(dto.googlePlaceId);
+
     // Create restaurant in transaction
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
@@ -93,7 +102,11 @@ export class RestaurantsService {
   /* ------------------------------------------------------------------ */
   /*              POST /v1/restaurants/:id/bids/intents                 */
   /* ------------------------------------------------------------------ */
-  async createBidIntent(restaurantId: string, dto: CreateRestaurantBidIntentDto, userId: string) {
+  async createBidIntent(
+    restaurantId: string,
+    dto: CreateRestaurantBidIntentDto,
+    userId: string,
+  ) {
     this.logger.debug('CreateBidIntent', 'createBidIntent', {
       restaurantId,
       amountCents: dto.amountCents,
@@ -110,7 +123,7 @@ export class RestaurantsService {
     }
 
     // Create payment intent via external payment service
-    const paymentIntent = await this.createPaymentIntent(dto.amountCents);
+    const paymentIntent = this.createPaymentIntent(dto.amountCents);
 
     this.logger.log('BidIntentCreated', 'createBidIntent', {
       restaurantId,
@@ -124,18 +137,29 @@ export class RestaurantsService {
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/:id/dish-media                    */
   /* ------------------------------------------------------------------ */
-  async findRestaurantDishMedia(restaurantId: string, dto: QueryRestaurantDishMediaDto, viewerId?: string): Promise<any[]> {
+  async findRestaurantDishMedia(
+    restaurantId: string,
+    dto: QueryRestaurantDishMediaDto,
+    viewerId?: string,
+  ): Promise<any[]> {
     this.logger.debug('FindRestaurantDishMedia', 'findRestaurantDishMedia', {
       restaurantId,
       cursor: dto.cursor,
       viewer: viewerId ?? 'anon',
     });
 
-    const records = await this.repo.findRestaurantDishMedia(restaurantId, dto.cursor);
+    const records = await this.repo.findRestaurantDishMedia(
+      restaurantId,
+      dto.cursor,
+    );
 
-    this.logger.debug('FindRestaurantDishMediaResult', 'findRestaurantDishMedia', {
-      count: records.length,
-    });
+    this.logger.debug(
+      'FindRestaurantDishMediaResult',
+      'findRestaurantDishMedia',
+      {
+        count: records.length,
+      },
+    );
 
     return records;
   }
@@ -149,7 +173,10 @@ export class RestaurantsService {
       cursor: dto.cursor,
     });
 
-    const records = await this.repo.findRestaurantBids(restaurantId, dto.cursor);
+    const records = await this.repo.findRestaurantBids(
+      restaurantId,
+      dto.cursor,
+    );
 
     this.logger.debug('FindRestaurantBidsResult', 'findRestaurantBids', {
       count: records.length,
@@ -167,7 +194,7 @@ export class RestaurantsService {
     });
 
     const restaurant = await this.repo.findRestaurantById(id);
-    
+
     if (!restaurant) {
       this.logger.warn('RestaurantNotFound', 'findRestaurantById', {
         restaurantId: id,
@@ -181,8 +208,8 @@ export class RestaurantsService {
   /* ------------------------------------------------------------------ */
   /*                    Private Helper Methods                          */
   /* ------------------------------------------------------------------ */
-  
-  private async fetchGooglePlaceDetail(googlePlaceId: string) {
+
+  private fetchGooglePlaceDetail(googlePlaceId: string) {
     this.logger.debug('FetchGooglePlaceDetail', 'fetchGooglePlaceDetail', {
       googlePlaceId,
     });
@@ -207,11 +234,13 @@ export class RestaurantsService {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         googlePlaceId,
       });
-      throw new BadRequestException('Failed to fetch place details from Google');
+      throw new BadRequestException(
+        'Failed to fetch place details from Google',
+      );
     }
   }
 
-  private async createPaymentIntent(amountCents: number) {
+  private createPaymentIntent(amountCents: number) {
     this.logger.debug('CreatePaymentIntent', 'createPaymentIntent', {
       amountCents,
     });
