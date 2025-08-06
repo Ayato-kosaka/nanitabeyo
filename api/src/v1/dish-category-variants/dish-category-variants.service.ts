@@ -5,6 +5,7 @@
 
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
+import { ClsService } from 'nestjs-cls';
 import {
   QueryDishCategoryVariantsDto,
   CreateDishCategoryVariantDto,
@@ -17,6 +18,7 @@ import {
 import { DishCategoryVariantsRepository } from './dish-category-variants.repository';
 import { ExternalApiService } from '../../core/external-api/external-api.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../../core/cls/cls.constants';
 
 @Injectable()
 export class DishCategoryVariantsService {
@@ -26,6 +28,7 @@ export class DishCategoryVariantsService {
     private readonly repo: DishCategoryVariantsRepository,
     private readonly externalApiService: ExternalApiService,
     private readonly prisma: PrismaService,
+    private readonly cls: ClsService,
   ) {}
 
   /**
@@ -70,6 +73,9 @@ export class DishCategoryVariantsService {
   ): Promise<CreateDishCategoryVariantResponse> {
     this.logger.debug('Creating dish category variant', dto);
 
+    const requestId = this.cls.get(CLS_KEY_REQUEST_ID);
+    const userId = this.cls.get(CLS_KEY_USER_ID);
+
     // まず直接検索
     let foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(dto.name);
     
@@ -78,8 +84,8 @@ export class DishCategoryVariantsService {
       return [foundVariant.dish_categories];
     }
 
-    // Wikidata で検索
-    const wikidataResult = await this.externalApiService.searchWikidata(dto.name);
+    // Wikidata で検索（CLS情報を渡す）
+    const wikidataResult = await this.externalApiService.searchWikidata(dto.name, requestId, userId);
     if (wikidataResult) {
       foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(wikidataResult.label);
       if (foundVariant) {
@@ -106,8 +112,8 @@ export class DishCategoryVariantsService {
       }
     }
 
-    // Google Custom Search でスペルチェック
-    const correctedSpelling = await this.externalApiService.getCorrectedSpelling(dto.name);
+    // Google Custom Search でスペルチェック（CLS情報を渡す）
+    const correctedSpelling = await this.externalApiService.getCorrectedSpelling(dto.name, requestId, userId);
     if (correctedSpelling) {
       foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(correctedSpelling);
       if (foundVariant) {

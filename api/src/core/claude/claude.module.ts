@@ -2,12 +2,12 @@
 
 import { Module } from '@nestjs/common';
 import { ClaudeService } from './claude.service';
-import { StaticMasterService } from '../utils/static-master.service';
-import { PrismaModule } from '../../prisma/prisma.module';
+import { PromptModule } from '../prompt/prompt.module';
+import { ExternalApiModule } from '../external-api/external-api.module';
 
 @Module({
-  imports: [PrismaModule],
-  providers: [ClaudeService, StaticMasterService],
+  imports: [PromptModule, ExternalApiModule],
+  providers: [ClaudeService],
   exports: [ClaudeService],
 })
 export class ClaudeModule {}

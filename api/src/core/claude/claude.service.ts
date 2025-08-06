@@ -5,27 +5,8 @@
 //
 
 import { Injectable, Logger } from '@nestjs/common';
-import { env } from '../config/env';
-import { StaticMasterService } from '../utils/static-master.service';
-import { pickByWeight } from '../utils/backend-utils';
-
-// Claude API のレスポンス型
-interface ClaudeMessageResponse {
-  id: string;
-  model: string;
-  role: "assistant";
-  type: "message";
-  content: {
-    type: "text";
-    text: string;
-  }[];
-  stop_reason: "end_turn" | "max_tokens" | "stop_sequence" | "tool_use";
-  stop_sequence: string | null;
-  usage: {
-    input_tokens: number;
-    output_tokens: number;
-  };
-}
+import { PromptService } from '../prompt/prompt.service';
+import { ExternalApiService } from '../external-api/external-api.service';
 
 // トピック生成レスポンス型
 export interface DishCategoryTopicResponse {
@@ -38,7 +19,10 @@ export interface DishCategoryTopicResponse {
 export class ClaudeService {
   private readonly logger = new Logger(ClaudeService.name);
 
-  constructor(private readonly staticMasterService: StaticMasterService) {}
+  constructor(
+    private readonly promptService: PromptService,
+    private readonly externalApiService: ExternalApiService,
+  ) {}
 
   /**
    * 料理カテゴリ提案を生成する
@@ -57,22 +41,13 @@ export class ClaudeService {
   }): Promise<DishCategoryTopicResponse[]> {
     this.logger.debug('Generating dish category recommendations', params);
 
-    // Static Masterからプロンプトファミリー・バリアントを読み込み
-    const promptFamilies = await this.staticMasterService.getStaticMaster('prompt_families');
-    const selectedFamily = pickByWeight(
-      promptFamilies.filter((x) => x.purpose === 'dish_category_recommendations').filter((x) => x.weight > 0),
-    );
-    if (!selectedFamily) {
-      throw new Error('No eligible prompt families found for dish_category_recommendations.');
+    // PromptServiceからプロンプトを取得
+    const prompt = await this.promptService.getPromptForPurpose('dish_category_recommendations');
+    if (!prompt) {
+      throw new Error('No eligible prompt found for dish_category_recommendations.');
     }
 
-    const promptVariants = await this.staticMasterService.getStaticMaster('prompt_variants');
-    const selectedVariant = promptVariants
-      .filter((x) => x.family_id === selectedFamily.id)
-      .sort((a, b) => b.variant_number - a.variant_number)[0];
-    if (!selectedVariant) {
-      throw new Error('No eligible prompt variants found.');
-    }
+    const { family, variant } = prompt;
 
     const outputFormatHint = `HARD RULES: Use the following JSON format exactly:
 [
@@ -83,7 +58,7 @@ export class ClaudeService {
   }
 ]`;
 
-    const systemPrompt = `${selectedVariant.prompt_text}\n\n${outputFormatHint}`.trim();
+    const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
 
     const variablePromptPart = `Generate dish category recommendations based on:
 ${params.location ? `Location: ${params.location}` : ''}
@@ -112,7 +87,12 @@ Generate 10 diverse and appealing dish category recommendations.`;
     };
 
     try {
-      const response = await this.callClaudeAPI(requestPayload);
+      // ExternalApiServiceを使ってClaude APIを呼び出し
+      const response = await this.externalApiService.callClaudeAPI(
+        requestPayload,
+        params.requestId,
+        params.userId
+      );
       
       if (response.stop_reason && response.stop_reason !== "end_turn") {
         throw new Error(`Claude API failed: Unexpected stop_reason - ${response.stop_reason}`);
@@ -131,10 +111,10 @@ Generate 10 diverse and appealing dish category recommendations.`;
         throw new Error('Claude API failed: Expected array of 10 recommendations');
       }
 
-      // プロンプト使用履歴を記録
-      await this.staticMasterService.createPromptUsage({
-        family_id: selectedFamily.id,
-        variant_id: selectedVariant.id,
+      // PromptServiceを使ってプロンプト使用履歴を記録
+      await this.promptService.createPromptUsage({
+        family_id: family.id,
+        variant_id: variant.id,
         target_type: 'dish_category_recommendations',
         target_id: params.requestId,
         generated_text: responseText,
@@ -158,30 +138,5 @@ Generate 10 diverse and appealing dish category recommendations.`;
       this.logger.error('Failed to generate dish category recommendations', error);
       throw error;
     }
-  }
-
-  private async callClaudeAPI(payload: any): Promise<ClaudeMessageResponse> {
-    const claudeApiKey = env.CLAUDE_API_KEY;
-    
-    if (!claudeApiKey) {
-      throw new Error('CLAUDE_API_KEY is not configured');
-    }
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'x-api-key': claudeApiKey,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Claude API request failed: ${response.status} ${errorText}`);
-    }
-
-    return response.json();
   }
 }
