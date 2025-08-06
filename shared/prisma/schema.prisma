@@ -397,6 +397,7 @@ enum payout_status {
 
 enum prompt_families_purpose {
   spot_guide_manuscript
+  dish_category_recommendations
 
   @@schema("dev")
 }

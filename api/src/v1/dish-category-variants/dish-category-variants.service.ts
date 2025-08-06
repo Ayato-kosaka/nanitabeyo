@@ -38,14 +38,22 @@ export class DishCategoryVariantsService {
 
     const dishCategories = await this.repo.findDishCategoryVariants(dto.q, dto.lang);
 
-    // レスポンス形式に変換
+    // レスポンス形式に変換 - 最大20件まで
     const response: QueryDishCategoryVariantsResponse = [];
     
     for (const category of dishCategories) {
+      if (response.length >= 20) break;
+      
       for (const variant of category.dish_category_variants) {
+        if (response.length >= 20) break;
+        
+        // category.labels[lang] を使用（フォールバックあり）
+        const labels = category.labels as Record<string, string>;
+        const label = dto.lang && labels[dto.lang] ? labels[dto.lang] : category.label_en;
+        
         response.push({
           dishCategoryId: category.id,
-          label: variant.surface_form,
+          label: label,
         });
       }
     }
@@ -67,7 +75,7 @@ export class DishCategoryVariantsService {
     
     if (foundVariant) {
       this.logger.debug('Direct match found');
-      return await this.repo.getDishCategories();
+      return [foundVariant.dish_categories];
     }
 
     // Wikidata で検索
@@ -76,7 +84,25 @@ export class DishCategoryVariantsService {
       foundVariant = await this.repo.findDishCategoryVariantBySurfaceForm(wikidataResult.label);
       if (foundVariant) {
         this.logger.debug('Wikidata match found');
-        return await this.repo.getDishCategories();
+        return [foundVariant.dish_categories];
+      }
+      
+      // Wikidata結果のQIDから対応するDish Categoryを探す
+      const categoryByQid = await this.repo.findDishCategoryByQid(wikidataResult.qid);
+      if (categoryByQid) {
+        this.logger.debug('Creating variant for QID match');
+        
+        // 新しい表記揺れを登録
+        await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
+          await this.repo.createDishCategoryVariant(
+            tx,
+            categoryByQid.id,
+            dto.name,
+            'wikidata_qid_match'
+          );
+        });
+        
+        return [categoryByQid];
       }
     }
 
@@ -97,7 +123,7 @@ export class DishCategoryVariantsService {
           );
         });
 
-        return await this.repo.getDishCategories();
+        return [foundVariant.dish_categories];
       }
     }
 

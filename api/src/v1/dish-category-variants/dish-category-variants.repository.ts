@@ -88,6 +88,35 @@ export class DishCategoryVariantsRepository {
   }
 
   /**
+   * QID で料理カテゴリを検索
+   */
+  async findDishCategoryByQid(qid: string) {
+    this.logger.debug(`Finding dish category by QID: ${qid}`);
+
+    // まずIDとして直接検索
+    let result = await this.prisma.dish_categories.findUnique({
+      where: {
+        id: qid,
+      },
+    });
+
+    // IDで見つからない場合は、tagsでQIDを検索
+    if (!result) {
+      const categories = await this.prisma.dish_categories.findMany({
+        where: {
+          tags: {
+            has: qid,
+          },
+        },
+      });
+      result = categories.length > 0 ? categories[0] : null;
+    }
+
+    this.logger.debug(`Found category by QID: ${result ? 'yes' : 'no'}`);
+    return result;
+  }
+
+  /**
    * 料理カテゴリ一覧を取得
    */
   async getDishCategories() {

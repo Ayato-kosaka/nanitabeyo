@@ -29,7 +29,7 @@ export class ExternalApiService {
   /**
    * Wikidata で料理カテゴリを検索
    */
-  async searchWikidata(query: string): Promise<{ id: string; label: string } | null> {
+  async searchWikidata(query: string): Promise<{ qid: string; label: string } | null> {
     this.logger.debug(`Searching Wikidata for: ${query}`);
 
     try {
@@ -46,7 +46,7 @@ export class ExternalApiService {
       if (data.search && data.search.length > 0) {
         const result = data.search[0];
         this.logger.debug(`Found Wikidata result: ${result.label}`);
-        return { id: result.id, label: result.label };
+        return { qid: result.id, label: result.label };
       }
 
       this.logger.debug('No Wikidata results found');

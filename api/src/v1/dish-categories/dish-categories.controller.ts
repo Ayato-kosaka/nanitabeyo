@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 
 import { QueryDishCategoryRecommendationsDto } from '@shared/v1/dto';
 import { QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
@@ -26,6 +27,7 @@ import { QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
 import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
+import { CLS_KEY_REQUEST_ID } from '../../core/cls/cls.constants';
 
 // ドメイン Service
 import { DishCategoriesService } from './dish-categories.service';
@@ -33,7 +35,10 @@ import { DishCategoriesService } from './dish-categories.service';
 @ApiTags('DishCategories')
 @Controller('v1/dish-categories')
 export class DishCategoriesController {
-  constructor(private readonly dishCategoriesService: DishCategoriesService) {}
+  constructor(
+    private readonly dishCategoriesService: DishCategoriesService,
+    private readonly cls: ClsService,
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-categories/recommendations         */
@@ -59,6 +64,9 @@ export class DishCategoriesController {
     @Query() query: QueryDishCategoryRecommendationsDto,
     @CurrentUser() user?: RequestUser,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
-    return this.dishCategoriesService.getRecommendations(query);
+    const requestId = this.cls.get<string>(CLS_KEY_REQUEST_ID) ?? 'unknown';
+    const userId = user?.userId ?? 'anonymous';
+    
+    return this.dishCategoriesService.getRecommendations(query, requestId, userId);
   }
 }

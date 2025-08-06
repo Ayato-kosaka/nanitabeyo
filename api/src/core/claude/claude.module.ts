@@ -2,9 +2,12 @@
 
 import { Module } from '@nestjs/common';
 import { ClaudeService } from './claude.service';
+import { StaticMasterService } from '../utils/static-master.service';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-  providers: [ClaudeService],
+  imports: [PrismaModule],
+  providers: [ClaudeService, StaticMasterService],
   exports: [ClaudeService],
 })
 export class ClaudeModule {}

@@ -24,6 +24,8 @@ export class DishCategoriesService {
    */
   async getRecommendations(
     dto: QueryDishCategoryRecommendationsDto,
+    requestId: string,
+    userId: string,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
     this.logger.debug('Getting dish category recommendations', dto);
 
@@ -37,6 +39,8 @@ export class DishCategoriesService {
       distance: dto.distance,
       budgetMin: dto.budgetMin,
       budgetMax: dto.budgetMax,
+      requestId,
+      userId,
     });
 
     // カテゴリ名リストを抽出
