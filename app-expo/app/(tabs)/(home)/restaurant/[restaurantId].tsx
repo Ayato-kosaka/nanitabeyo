@@ -244,7 +244,7 @@ export default function RestaurantScreen() {
 							<Search size={20} color="#666" />
 							<TextInput
 								style={styles.searchInput}
-								placeholder="地点・地域を検索"
+								placeholder={i18n.t("Restaurant.placeholders.searchLocation")}
 								value={searchQuery}
 								onChangeText={setSearchQuery}
 							/>

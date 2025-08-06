@@ -46,9 +46,9 @@ function DepositsScreen() {
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["active", "completed", "refunded"]);
 
 	const depositStatuses = [
-		{ id: "active", label: "アクティブ", color: "#4CAF50" },
-		{ id: "completed", label: "完了", color: "#2196F3" },
-		{ id: "refunded", label: "返金済み", color: "#FF9800" },
+		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
+		{ id: "completed", label: i18n.t("Profile.statusLabels.completed"), color: "#2196F3" },
+		{ id: "refunded", label: i18n.t("Profile.statusLabels.refunded"), color: "#FF9800" },
 	];
 
 	const toggleStatus = (statusId: string) => {
@@ -158,8 +158,8 @@ function EarningsScreen() {
 	const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(["paid", "pending"]);
 
 	const earningStatuses = [
-		{ id: "paid", label: "支払済み", color: "#4CAF50" },
-		{ id: "pending", label: "保留中", color: "#FF9800" },
+		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: "#4CAF50" },
+		{ id: "pending", label: i18n.t("Profile.statusLabels.pending"), color: "#FF9800" },
 	];
 
 	const toggleEarningStatus = (statusId: string) => {
@@ -428,7 +428,7 @@ export default function ProfileScreen() {
 								<PrimaryButton
 									style={{ flex: 1 }}
 									onPress={handleEditProfile}
-									label="プロフィールを編集"
+									label={i18n.t("Profile.buttons.editProfile")}
 									icon={<Edit3 size={16} color="#FFFFFF" />}
 								/>
 							</>
@@ -501,11 +501,11 @@ export default function ProfileScreen() {
 						onChangeText={setEditedBio}
 						multiline
 						numberOfLines={4}
-						placeholder="自己紹介を入力してください..."
+						placeholder={i18n.t("Profile.placeholders.enterBio")}
 						placeholderTextColor="#666"
 					/>
 				</Card>
-				<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSaveProfile} label="保存" />
+				<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSaveProfile} label={i18n.t("Common.save")} />
 			</BlurModal>
 		</LinearGradient>
 	);

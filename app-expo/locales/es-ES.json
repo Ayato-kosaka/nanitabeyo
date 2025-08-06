@@ -3,7 +3,13 @@
 		"cancel": "Cancelar",
 		"ok": "Aceptar",
 		"goStore": "Abrir App Store",
-		"back": "Atrás"
+		"back": "Atrás",
+		"close": "Cerrar",
+		"save": "Guardar",
+		"post": "Publicar",
+		"processing": "Procesando...",
+		"error": "Error",
+		"success": "Éxito"
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
@@ -47,6 +53,19 @@
                         "noMinBudget": "Sin mínimo",
                         "noMaxBudget": "Sin máximo"
                 },
+		"distanceLabels": {
+			"100m": "100m",
+			"300m": "300m", 
+			"500m": "500m",
+			"800m": "800m",
+			"1km": "1km",
+			"2km": "2km",
+			"3km": "3km",
+			"5km": "5km",
+			"10km": "10km",
+			"15km": "15km",
+			"20km": "20km"
+		},
                 "currencySuffix": "¥",
                 "searchButton": "¡Buscar!",
                 "timeSlots": {
@@ -141,11 +160,64 @@
 		"emptyState": {
 			"noDeposits": "No hay depósitos para el estado seleccionado",
 			"noEarnings": "No hay ganancias para el estado seleccionado"
+		},
+		"statusLabels": {
+			"active": "Activo",
+			"completed": "Completado", 
+			"refunded": "Reembolsado",
+			"paid": "Pagado",
+			"pending": "Pendiente"
+		},
+		"buttons": {
+			"editProfile": "Editar Perfil"
+		},
+		"placeholders": {
+			"enterBio": "Ingresa tu biografía..."
 		}
 	},
 	"NotFound": {
 		"title": "¡Vaya!",
 		"message": "Esta pantalla no existe.",
 		"goHome": "¡Ir a la pantalla de inicio!"
+	},
+	"Map": {
+		"placeholders": {
+			"searchRestaurants": "Buscar restaurantes"
+		},
+		"buttons": {
+			"postReview": "Publicar Reseña",
+			"placeBid": "Hacer Oferta",
+			"bid": "Ofertar"
+		},
+		"inputs": {
+			"price": "Precio",
+			"rating": "Calificación",
+			"comment": "Comentario",
+			"bidAmount": "Monto de la Oferta"
+		},
+		"placeholders": {
+			"searchRestaurants": "Buscar restaurantes",
+			"enterPrice": "Ingresa el precio",
+			"enterReview": "Ingresa tu reseña",
+			"enterBidAmount": "Ingresa el monto de la oferta"
+		},
+		"labels": {
+			"endDate": "Fecha de fin:",
+			"paymentProcessing": "Procesando pago...",
+			"currentBidAmount": "Monto de oferta actual"
+		},
+		"alerts": {
+			"locationError": "Error al obtener información de ubicación",
+			"currentLocationError": "Error al obtener ubicación actual",
+			"bidSuccess": "Oferta realizada exitosamente para {{place}} por ¥{{amount}}",
+			"bidError": "Error al realizar la oferta",
+			"reviewSuccess": "Reseña publicada exitosamente",
+			"reviewError": "Error al publicar la reseña"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "Buscar ubicación/área"
+		}
 	}
 }

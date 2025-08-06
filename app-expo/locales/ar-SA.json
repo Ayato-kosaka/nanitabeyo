@@ -3,7 +3,13 @@
 		"cancel": "إلغاء",
 		"ok": "موافق",
 		"goStore": "افتح متجر التطبيقات",
-		"back": "رجوع"
+		"back": "رجوع",
+		"close": "إغلاق",
+		"save": "حفظ",
+		"post": "نشر",
+		"processing": "معالجة...",
+		"error": "خطأ",
+		"success": "نجح"
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
@@ -47,6 +53,19 @@
                         "noMinBudget": "لا حد أدنى",
                         "noMaxBudget": "لا حد أقصى"
                 },
+		"distanceLabels": {
+			"100m": "100م",
+			"300m": "300م", 
+			"500m": "500م",
+			"800m": "800م",
+			"1km": "1كم",
+			"2km": "2كم",
+			"3km": "3كم",
+			"5km": "5كم",
+			"10km": "10كم",
+			"15km": "15كم",
+			"20km": "20كم"
+		},
                 "currencySuffix": "¥",
                 "searchButton": "ابحث!",
                 "timeSlots": {
@@ -141,11 +160,64 @@
 		"emptyState": {
 			"noDeposits": "لا توجد ودائع للحالة المحددة",
 			"noEarnings": "لا توجد أرباح للحالة المحددة"
+		},
+		"statusLabels": {
+			"active": "نشط",
+			"completed": "مكتمل", 
+			"refunded": "مسترد",
+			"paid": "مدفوع",
+			"pending": "معلق"
+		},
+		"buttons": {
+			"editProfile": "تعديل الملف الشخصي"
+		},
+		"placeholders": {
+			"enterBio": "أدخل نبذة عنك..."
 		}
 	},
 	"NotFound": {
 		"title": "عذرًا!",
 		"message": "هذه الشاشة غير موجودة.",
 		"goHome": "العودة إلى الشاشة الرئيسية!"
+	},
+	"Map": {
+		"placeholders": {
+			"searchRestaurants": "البحث عن المطاعم"
+		},
+		"buttons": {
+			"postReview": "نشر مراجعة",
+			"placeBid": "تقديم عرض",
+			"bid": "عرض"
+		},
+		"inputs": {
+			"price": "السعر",
+			"rating": "التقييم",
+			"comment": "تعليق",
+			"bidAmount": "مبلغ العرض"
+		},
+		"placeholders": {
+			"searchRestaurants": "البحث عن المطاعم",
+			"enterPrice": "أدخل السعر",
+			"enterReview": "أدخل مراجعتك",
+			"enterBidAmount": "أدخل مبلغ العرض"
+		},
+		"labels": {
+			"endDate": "تاريخ الانتهاء:",
+			"paymentProcessing": "معالجة الدفع...",
+			"currentBidAmount": "مبلغ العرض الحالي"
+		},
+		"alerts": {
+			"locationError": "فشل في الحصول على معلومات الموقع",
+			"currentLocationError": "فشل في الحصول على الموقع الحالي",
+			"bidSuccess": "تم تقديم العرض بنجاح لـ {{place}} بمبلغ ¥{{amount}}",
+			"bidError": "فشل في تقديم العرض",
+			"reviewSuccess": "تم نشر المراجعة بنجاح",
+			"reviewError": "فشل في نشر المراجعة"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "البحث عن موقع/منطقة"
+		}
 	}
 }
