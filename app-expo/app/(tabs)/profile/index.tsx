@@ -36,6 +36,7 @@ import { ImageCardGrid } from "@/components/ImageCardGrid";
 import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -44,6 +45,7 @@ type TabType = "posts" | "saved" | "liked" | "wallet";
 
 function DepositsScreen() {
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["active", "completed", "refunded"]);
+	const { lightImpact } = useHaptics();
 
 	const depositStatuses = [
 		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
@@ -52,6 +54,7 @@ function DepositsScreen() {
 	];
 
 	const toggleStatus = (statusId: string) => {
+		lightImpact();
 		setSelectedStatuses((prev) =>
 			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
 		);
@@ -156,6 +159,7 @@ function DepositsScreen() {
 
 function EarningsScreen() {
 	const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(["paid", "pending"]);
+	const { lightImpact } = useHaptics();
 
 	const earningStatuses = [
 		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: "#4CAF50" },
@@ -163,6 +167,7 @@ function EarningsScreen() {
 	];
 
 	const toggleEarningStatus = (statusId: string) => {
+		lightImpact();
 		setSelectedEarningStatuses((prev) =>
 			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
 		);
@@ -288,6 +293,7 @@ export default function ProfileScreen() {
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const [editedBio, setEditedBio] = useState("");
 	const [isFollowing, setIsFollowing] = useState(false);
+	const { lightImpact, mediumImpact } = useHaptics();
 
 	// Determine if this is the current user's profile or another user's
 	const isOwnProfile = !userId || userId === userProfile.id;
@@ -328,26 +334,36 @@ export default function ProfileScreen() {
 	};
 
 	const handleFollow = () => {
+		mediumImpact();
 		setIsFollowing(!isFollowing);
 	};
 
 	const handleEditProfile = () => {
+		lightImpact();
 		setEditedBio(profile.bio);
 		openEditModal();
 	};
 
 	const handleSaveProfile = () => {
+		mediumImpact();
 		// In a real app, this would update the profile via API
 		console.log("Saving profile with bio:", editedBio);
 		closeEditModal();
 	};
 
 	const handleShareProfile = () => {
+		lightImpact();
 		console.log("Sharing profile:", profile.username);
 	};
 
 	const handlePostPress = (index: number) => {
+		lightImpact();
 		router.push(`/(tabs)/profile/food?startIndex=${index}`);
+	};
+
+	const handleTabSelect = (tab: TabType) => {
+		lightImpact();
+		setSelectedTab(tab);
 	};
 
 	const renderTabIcon = (tab: TabType) => {
@@ -456,7 +472,7 @@ export default function ProfileScreen() {
 						<TouchableOpacity
 							key={tab}
 							style={[styles.tab, selectedTab === tab && styles.activeTab]}
-							onPress={() => setSelectedTab(tab)}>
+							onPress={() => handleTabSelect(tab)}>
 							{renderTabIcon(tab)}
 						</TouchableOpacity>
 					))}

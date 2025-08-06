@@ -6,18 +6,25 @@ import FoodContentFeed from "@/components/FoodContentFeed";
 import FoodContentMap from "@/components/FoodContentMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
+import { useHaptics } from "@/hooks/useHaptics";
 
 export default function ResultScreen() {
 	const { topicId } = useLocalSearchParams<{ topicId: string }>();
+	const { lightImpact } = useHaptics();
 
 	const { currentIndex, showCompletionModal, dishes, handleIndexChange, handleClose, handleReturnToCards } =
 		useSearchResult(topicId as string);
+
+	const handleCloseWithHaptic = () => {
+		lightImpact();
+		handleClose();
+	};
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={styles.closeButtonContainer}>
-				<TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+				<TouchableOpacity style={styles.closeButton} onPress={handleCloseWithHaptic}>
 					<X size={24} color="#000" />
 				</TouchableOpacity>
 			</View>

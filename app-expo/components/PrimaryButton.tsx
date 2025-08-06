@@ -12,6 +12,7 @@ import {
 	ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useHaptics } from "@/hooks/useHaptics";
 
 export interface PrimaryButtonProps {
 	/** 表示テキスト */
@@ -54,12 +55,16 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 	accessibilityLabel,
 }) => {
 	const isDisabled = disabled || loading;
+	const { lightImpact } = useHaptics();
 
 	const handlePress = useCallback(
 		(e: GestureResponderEvent) => {
-			if (!isDisabled) onPress(e);
+			if (!isDisabled) {
+				lightImpact();
+				onPress(e);
+			}
 		},
-		[onPress, isDisabled],
+		[onPress, isDisabled, lightImpact],
 	);
 
 	const getWrapperStyle = useCallback(

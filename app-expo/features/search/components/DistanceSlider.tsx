@@ -2,9 +2,11 @@ import React from "react";
 import { View, Text, PanResponder } from "react-native";
 import { distanceOptions } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 // Slider component to choose search distance
 export function DistanceSlider({ distance, setDistance }: { distance: number; setDistance: (value: number) => void }) {
+	const { selectionChanged } = useHaptics();
 	const currentIndex = distanceOptions.findIndex((option) => option.value === distance);
 	const sliderWidth = 280;
 	const thumbWidth = 24;
@@ -18,6 +20,7 @@ export function DistanceSlider({ distance, setDistance }: { distance: number; se
 			const newPosition = Math.max(0, Math.min(trackWidth, gestureState.moveX - 50));
 			const newIndex = Math.round((newPosition / trackWidth) * (distanceOptions.length - 1));
 			if (newIndex !== currentIndex && newIndex >= 0 && newIndex < distanceOptions.length) {
+				selectionChanged();
 				setDistance(distanceOptions[newIndex].value);
 			}
 		},

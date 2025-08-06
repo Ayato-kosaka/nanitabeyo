@@ -5,6 +5,7 @@ import MapView, { Marker, Region } from "@/components/MapView";
 import FoodContentScreen from "./FoodContentScreen";
 import { FoodItem } from "@/types";
 import { AvatarBubbleMarker } from "./AvatarBubbleMarker";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -31,6 +32,7 @@ export default function FoodContentMap({ items, initialIndex = 0, onIndexChange 
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
+	const { selectionChanged } = useHaptics();
 
 	const coordinates = MOCK_COORDINATES;
 
@@ -85,10 +87,11 @@ export default function FoodContentMap({ items, initialIndex = 0, onIndexChange 
 
 	const handleIndexChange = useCallback(
 		(index: number) => {
+			selectionChanged();
 			setCurrentIndex(index);
 			onIndexChange?.(index);
 		},
-		[onIndexChange],
+		[onIndexChange, selectionChanged],
 	);
 
 	const handleMarkerPress = useCallback((index: number) => {
