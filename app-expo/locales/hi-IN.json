@@ -129,6 +129,20 @@
 		"notifications": "सूचनाएँ",
 		"profile": "प्रोफ़ाइल"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "जमा",
+			"earnings": "आय"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "चयनित स्थिति के लिए कोई जमा नहीं",
+			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं"
+		}
+	},
 	"NotFound": {
 		"title": "ओह!",
 		"message": "यह स्क्रीन मौजूद नहीं है।",

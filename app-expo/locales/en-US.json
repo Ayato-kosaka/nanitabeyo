@@ -129,6 +129,20 @@
 		"notifications": "Notifications",
 		"profile": "Profile"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "Deposits",
+			"earnings": "Earnings"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "No deposits for the selected status",
+			"noEarnings": "No earnings for the selected status"
+		}
+	},
 	"NotFound": {
 		"title": "Oops!",
 		"message": "This screen doesn't exist.",

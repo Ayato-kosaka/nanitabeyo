@@ -129,6 +129,20 @@
 		"notifications": "通知",
 		"profile": "プロフィール"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "入札",
+			"earnings": "収益"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "選択したステータスの入札がありません",
+			"noEarnings": "選択したステータスの収益がありません"
+		}
+	},
 	"NotFound": {
 		"title": "おっと！",
 		"message": "この画面は存在しません。",

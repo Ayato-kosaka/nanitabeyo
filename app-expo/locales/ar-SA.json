@@ -129,6 +129,20 @@
 		"notifications": "الإشعارات",
 		"profile": "الملف الشخصي"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "الودائع",
+			"earnings": "الأرباح"
+		},
+		"numberSuffix": {
+			"million": "م",
+			"thousand": "ك"
+		},
+		"emptyState": {
+			"noDeposits": "لا توجد ودائع للحالة المحددة",
+			"noEarnings": "لا توجد أرباح للحالة المحددة"
+		}
+	},
 	"NotFound": {
 		"title": "عذرًا!",
 		"message": "هذه الشاشة غير موجودة.",

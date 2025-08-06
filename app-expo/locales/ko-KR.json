@@ -129,6 +129,20 @@
 		"notifications": "알림",
 		"profile": "프로필"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "예치금",
+			"earnings": "수익"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "선택한 상태에 대한 예치금이 없습니다",
+			"noEarnings": "선택한 상태에 대한 수익이 없습니다"
+		}
+	},
 	"NotFound": {
 		"title": "이런!",
 		"message": "이 화면은 존재하지 않습니다.",

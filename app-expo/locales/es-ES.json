@@ -129,6 +129,20 @@
 		"notifications": "Notificaciones",
 		"profile": "Perfil"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "Depósitos",
+			"earnings": "Ganancias"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "No hay depósitos para el estado seleccionado",
+			"noEarnings": "No hay ganancias para el estado seleccionado"
+		}
+	},
 	"NotFound": {
 		"title": "¡Vaya!",
 		"message": "Esta pantalla no existe.",

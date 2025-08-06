@@ -129,6 +129,20 @@
 		"notifications": "通知",
 		"profile": "个人资料"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "存款",
+			"earnings": "收益"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "所选状态没有存款",
+			"noEarnings": "所选状态没有收益"
+		}
+	},
 	"NotFound": {
 		"title": "哎呀！",
 		"message": "此屏幕不存在。",
