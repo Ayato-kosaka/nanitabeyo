@@ -1,27 +1,27 @@
 // Constants and option data for the search feature
 export const timeSlots = [
-	{ id: "morning", label: "朝食", icon: "🌅" },
-	{ id: "lunch", label: "ランチ", icon: "🌞" },
-	{ id: "dinner", label: "ディナー", icon: "🌙" },
-	{ id: "late_night", label: "夜食", icon: "🌃" },
+        { id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
+        { id: "lunch", label: "Search.timeSlots.lunch", icon: "🌞" },
+        { id: "dinner", label: "Search.timeSlots.dinner", icon: "🌙" },
+        { id: "late_night", label: "Search.timeSlots.lateNight", icon: "🌃" },
 ] as const;
 
 export const sceneOptions = [
-	{ id: "solo", label: "おひとり様", icon: "👤" },
-	{ id: "date", label: "デート", icon: "💕" },
-	{ id: "group", label: "複数人と", icon: "👥" },
-	{ id: "large_group", label: "大人数", icon: "👥👥" },
-	{ id: "tourism", label: "観光", icon: "🌍" },
+        { id: "solo", label: "Search.sceneOptions.solo", icon: "👤" },
+        { id: "date", label: "Search.sceneOptions.date", icon: "💕" },
+        { id: "group", label: "Search.sceneOptions.group", icon: "👥" },
+        { id: "large_group", label: "Search.sceneOptions.largeGroup", icon: "👥👥" },
+        { id: "tourism", label: "Search.sceneOptions.tourism", icon: "🌍" },
 ] as const;
 
 export const moodOptions = [
-	{ id: "hearty", label: "がっつり", icon: "🍖" },
-	{ id: "light", label: "軽めに", icon: "🥗" },
-	{ id: "sweet", label: "甘いもの", icon: "🍰" },
-	{ id: "spicy", label: "辛いもの", icon: "🌶️" },
-	{ id: "healthy", label: "ヘルシー", icon: "🥬" },
-	{ id: "junk", label: "ジャンク", icon: "🍔" },
-	{ id: "alcohol", label: "お酒メイン", icon: "🍺" },
+        { id: "hearty", label: "Search.moodOptions.hearty", icon: "🍖" },
+        { id: "light", label: "Search.moodOptions.light", icon: "🥗" },
+        { id: "sweet", label: "Search.moodOptions.sweet", icon: "🍰" },
+        { id: "spicy", label: "Search.moodOptions.spicy", icon: "🌶️" },
+        { id: "healthy", label: "Search.moodOptions.healthy", icon: "🥬" },
+        { id: "junk", label: "Search.moodOptions.junk", icon: "🍔" },
+        { id: "alcohol", label: "Search.moodOptions.alcohol", icon: "🍺" },
 ] as const;
 
 // Distance options in meters
@@ -41,33 +41,33 @@ export const distanceOptions = [
 
 // Budget options in yen
 export const budgetOptions = [
-	{ value: null, label: "下限なし" },
-	{ value: 1000, label: "1,000円" },
-	{ value: 2000, label: "2,000円" },
-	{ value: 3000, label: "3,000円" },
-	{ value: 4000, label: "4,000円" },
-	{ value: 5000, label: "5,000円" },
-	{ value: 6000, label: "6,000円" },
-	{ value: 7000, label: "7,000円" },
-	{ value: 8000, label: "8,000円" },
-	{ value: 9000, label: "9,000円" },
-	{ value: 10000, label: "10,000円" },
-	{ value: 15000, label: "15,000円" },
-	{ value: 20000, label: "20,000円" },
-	{ value: 30000, label: "30,000円" },
-	{ value: 40000, label: "40,000円" },
-	{ value: 50000, label: "50,000円" },
-	{ value: 60000, label: "60,000円" },
-	{ value: 80000, label: "80,000円" },
-	{ value: 100000, label: "100,000円" },
-	{ value: null, label: "上限なし" },
+        { value: null, label: "Search.labels.noMinBudget" },
+        { value: 1000, label: "1,000¥" },
+        { value: 2000, label: "2,000¥" },
+        { value: 3000, label: "3,000¥" },
+        { value: 4000, label: "4,000¥" },
+        { value: 5000, label: "5,000¥" },
+        { value: 6000, label: "6,000¥" },
+        { value: 7000, label: "7,000¥" },
+        { value: 8000, label: "8,000¥" },
+        { value: 9000, label: "9,000¥" },
+        { value: 10000, label: "10,000¥" },
+        { value: 15000, label: "15,000¥" },
+        { value: 20000, label: "20,000¥" },
+        { value: 30000, label: "30,000¥" },
+        { value: 40000, label: "40,000¥" },
+        { value: 50000, label: "50,000¥" },
+        { value: 60000, label: "60,000¥" },
+        { value: 80000, label: "80,000¥" },
+        { value: 100000, label: "100,000¥" },
+        { value: null, label: "Search.labels.noMaxBudget" },
 ];
 
 export const restrictionOptions = [
-	{ id: "vegetarian", label: "ベジタリアン", icon: "🌱" },
-	{ id: "gluten_free", label: "グルテンフリー", icon: "🌾" },
-	{ id: "dairy_free", label: "乳製品不使用", icon: "🥛" },
-	{ id: "nut_allergy", label: "ナッツアレルギー", icon: "🥜" },
-	{ id: "seafood_allergy", label: "魚介アレルギー", icon: "🐟" },
-	{ id: "halal", label: "ハラール", icon: "🕌" },
+        { id: "vegetarian", label: "Search.restrictionOptions.vegetarian", icon: "🌱" },
+        { id: "gluten_free", label: "Search.restrictionOptions.glutenFree", icon: "🌾" },
+        { id: "dairy_free", label: "Search.restrictionOptions.dairyFree", icon: "🥛" },
+        { id: "nut_allergy", label: "Search.restrictionOptions.nutAllergy", icon: "🥜" },
+        { id: "seafood_allergy", label: "Search.restrictionOptions.seafoodAllergy", icon: "🐟" },
+        { id: "halal", label: "Search.restrictionOptions.halal", icon: "🕌" },
 ];
