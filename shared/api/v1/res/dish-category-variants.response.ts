@@ -7,4 +7,4 @@ export type QueryDishCategoryVariantsResponse = {
 }[];
 
 /** POST /v1/dish-category-variants のレスポンス型 */
-export type CreateDishCategoryVariantResponse = SupabaseDishCategories[];
+export type CreateDishCategoryVariantResponse = SupabaseDishCategories;

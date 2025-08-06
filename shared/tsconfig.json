@@ -8,5 +8,5 @@
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true
 	},
-	"include": ["scripts/**/*", "types/**/*", "api/**/*", "converters/**/*"]
+	"include": ["scripts/**/*", "types/**/*", "api/**/*", "converters/**/*", "utils/**/*"]
 }
