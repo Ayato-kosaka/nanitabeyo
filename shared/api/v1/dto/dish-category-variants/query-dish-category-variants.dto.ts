@@ -7,7 +7,6 @@ export class QueryDishCategoryVariantsDto {
         q!: string;
 
         /** 言語コード */
-        @IsOptional()
         @IsString()
-        lang?: string;
+        lang!: string;
 }
