@@ -3,6 +3,7 @@ import { StyleSheet, Animated, Dimensions } from "react-native";
 import { PanGestureHandler } from "react-native-gesture-handler";
 import FoodContentScreen from "./FoodContentScreen";
 import { FoodItem } from "@/types";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const { height } = Dimensions.get("window");
 
@@ -16,12 +17,14 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const [feedItems, setFeedItems] = useState<FoodItem[]>([]);
 	const translateY = useRef(new Animated.Value(0)).current;
+	const { selectionChanged } = useHaptics();
 
 	useEffect(() => {
 		setFeedItems(items);
 	}, [items]);
 
 	const updateIndex = (newIndex: number) => {
+		selectionChanged();
 		setCurrentIndex(newIndex);
 		onIndexChange?.(newIndex);
 	};

@@ -16,6 +16,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { ArrowLeft, MapPin, Star, Phone, Clock, Calendar, Camera, Filter, Search, X } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
+import i18n from "@/lib/i18n";
 
 const { width, height } = Dimensions.get("window");
 
@@ -142,10 +143,10 @@ export default function RestaurantScreen() {
 
 	const formatLikeCount = (count: number): string => {
 		if (count >= 1000000) {
-			return (count / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+			return (count / 1000000).toFixed(1).replace(/\.0$/, "") + i18n.t("FoodContentScreen.numberSuffix.million");
 		}
 		if (count >= 1000) {
-			return (count / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+			return (count / 1000).toFixed(1).replace(/\.0$/, "") + i18n.t("FoodContentScreen.numberSuffix.thousand");
 		}
 		return count.toString();
 	};
@@ -243,7 +244,7 @@ export default function RestaurantScreen() {
 							<Search size={20} color="#666" />
 							<TextInput
 								style={styles.searchInput}
-								placeholder="地点・地域を検索"
+								placeholder={i18n.t("Restaurant.placeholders.searchLocation")}
 								value={searchQuery}
 								onChangeText={setSearchQuery}
 							/>

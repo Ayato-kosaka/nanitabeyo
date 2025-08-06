@@ -35,6 +35,8 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
 import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
 import Stars from "@/components/Stars";
+import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -43,14 +45,16 @@ type TabType = "posts" | "saved" | "liked" | "wallet";
 
 function DepositsScreen() {
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["active", "completed", "refunded"]);
+	const { lightImpact } = useHaptics();
 
 	const depositStatuses = [
-		{ id: "active", label: "アクティブ", color: "#4CAF50" },
-		{ id: "completed", label: "完了", color: "#2196F3" },
-		{ id: "refunded", label: "返金済み", color: "#FF9800" },
+		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
+		{ id: "completed", label: i18n.t("Profile.statusLabels.completed"), color: "#2196F3" },
+		{ id: "refunded", label: i18n.t("Profile.statusLabels.refunded"), color: "#FF9800" },
 	];
 
 	const toggleStatus = (statusId: string) => {
+		lightImpact();
 		setSelectedStatuses((prev) =>
 			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
 		);
@@ -145,7 +149,7 @@ function DepositsScreen() {
 			) : (
 				<View style={styles.emptyStateContainer}>
 					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>選択したステータスの入札がありません</Text>
+						<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noDeposits")}</Text>
 					</View>
 				</View>
 			)}
@@ -155,13 +159,15 @@ function DepositsScreen() {
 
 function EarningsScreen() {
 	const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(["paid", "pending"]);
+	const { lightImpact } = useHaptics();
 
 	const earningStatuses = [
-		{ id: "paid", label: "支払済み", color: "#4CAF50" },
-		{ id: "pending", label: "保留中", color: "#FF9800" },
+		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: "#4CAF50" },
+		{ id: "pending", label: i18n.t("Profile.statusLabels.pending"), color: "#FF9800" },
 	];
 
 	const toggleEarningStatus = (statusId: string) => {
+		lightImpact();
 		setSelectedEarningStatuses((prev) =>
 			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
 		);
@@ -221,7 +227,7 @@ function EarningsScreen() {
 			) : (
 				<View style={styles.emptyStateContainer}>
 					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>選択したステータスの収益がありません</Text>
+						<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noEarnings")}</Text>
 					</View>
 				</View>
 			)}
@@ -265,7 +271,7 @@ function WalletTabs() {
 				name="Deposits"
 				component={DepositsScreen}
 				options={{
-					tabBarLabel: "入札",
+					tabBarLabel: i18n.t("Profile.tabs.deposits"),
 					tabBarIcon: ({ color }) => <Wallet size={20} color={color} />,
 				}}
 			/>
@@ -273,7 +279,7 @@ function WalletTabs() {
 				name="Earnings"
 				component={EarningsScreen}
 				options={{
-					tabBarLabel: "収益",
+					tabBarLabel: i18n.t("Profile.tabs.earnings"),
 					tabBarIcon: ({ color }) => <DollarSign size={20} color={color} />,
 				}}
 			/>
@@ -287,6 +293,7 @@ export default function ProfileScreen() {
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const [editedBio, setEditedBio] = useState("");
 	const [isFollowing, setIsFollowing] = useState(false);
+	const { lightImpact, mediumImpact } = useHaptics();
 
 	// Determine if this is the current user's profile or another user's
 	const isOwnProfile = !userId || userId === userProfile.id;
@@ -303,10 +310,10 @@ export default function ProfileScreen() {
 
 	const formatNumber = (num: number): string => {
 		if (num >= 1000000) {
-			return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+			return (num / 1000000).toFixed(1).replace(/\.0$/, "") + i18n.t("Profile.numberSuffix.million");
 		}
 		if (num >= 1000) {
-			return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+			return (num / 1000).toFixed(1).replace(/\.0$/, "") + i18n.t("Profile.numberSuffix.thousand");
 		}
 		return num.toString();
 	};
@@ -327,26 +334,36 @@ export default function ProfileScreen() {
 	};
 
 	const handleFollow = () => {
+		mediumImpact();
 		setIsFollowing(!isFollowing);
 	};
 
 	const handleEditProfile = () => {
+		lightImpact();
 		setEditedBio(profile.bio);
 		openEditModal();
 	};
 
 	const handleSaveProfile = () => {
+		mediumImpact();
 		// In a real app, this would update the profile via API
 		console.log("Saving profile with bio:", editedBio);
 		closeEditModal();
 	};
 
 	const handleShareProfile = () => {
+		lightImpact();
 		console.log("Sharing profile:", profile.username);
 	};
 
 	const handlePostPress = (index: number) => {
+		lightImpact();
 		router.push(`/(tabs)/profile/food?startIndex=${index}`);
+	};
+
+	const handleTabSelect = (tab: TabType) => {
+		lightImpact();
+		setSelectedTab(tab);
 	};
 
 	const renderTabIcon = (tab: TabType) => {
@@ -427,7 +444,7 @@ export default function ProfileScreen() {
 								<PrimaryButton
 									style={{ flex: 1 }}
 									onPress={handleEditProfile}
-									label="プロフィールを編集"
+									label={i18n.t("Profile.buttons.editProfile")}
 									icon={<Edit3 size={16} color="#FFFFFF" />}
 								/>
 							</>
@@ -455,7 +472,7 @@ export default function ProfileScreen() {
 						<TouchableOpacity
 							key={tab}
 							style={[styles.tab, selectedTab === tab && styles.activeTab]}
-							onPress={() => setSelectedTab(tab)}>
+							onPress={() => handleTabSelect(tab)}>
 							{renderTabIcon(tab)}
 						</TouchableOpacity>
 					))}
@@ -500,11 +517,11 @@ export default function ProfileScreen() {
 						onChangeText={setEditedBio}
 						multiline
 						numberOfLines={4}
-						placeholder="自己紹介を入力してください..."
+						placeholder={i18n.t("Profile.placeholders.enterBio")}
 						placeholderTextColor="#666"
 					/>
 				</Card>
-				<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSaveProfile} label="保存" />
+				<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSaveProfile} label={i18n.t("Common.save")} />
 			</BlurModal>
 		</LinearGradient>
 	);

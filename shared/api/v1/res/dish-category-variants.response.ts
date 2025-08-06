@@ -1,4 +1,4 @@
-import { PrismaDishCategories } from "../../../converters/convert_dish_categories";
+import { SupabaseDishCategories } from "../../../converters/convert_dish_categories";
 
 /** GET /v1/dish-category-variants のレスポンス型 */
 export type QueryDishCategoryVariantsResponse = {
@@ -7,4 +7,4 @@ export type QueryDishCategoryVariantsResponse = {
 }[];
 
 /** POST /v1/dish-category-variants のレスポンス型 */
-export type CreateDishCategoryVariantResponse = PrismaDishCategories[];
+export type CreateDishCategoryVariantResponse = SupabaseDishCategories[];

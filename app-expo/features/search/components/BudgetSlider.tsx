@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, PanResponder } from "react-native";
 import { budgetOptions } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 // Slider component to choose budget range
 export function BudgetSlider({
@@ -15,6 +16,8 @@ export function BudgetSlider({
 	setBudgetMin: (value: number | null) => void;
 	setBudgetMax: (value: number | null) => void;
 }) {
+	const { selectionChanged } = useHaptics();
+	
 	const minIndex = budgetMin === null ? 0 : budgetOptions.findIndex((o) => o.value === budgetMin);
 	const maxIndex =
 		budgetMax === null ? budgetOptions.length - 1 : budgetOptions.findIndex((o) => o.value === budgetMax);
@@ -35,11 +38,13 @@ export function BudgetSlider({
 				const newIndex = Math.round((newPosition / trackWidth) * (budgetOptions.length - 1));
 
 				if (isMin) {
-					if (newIndex <= maxIndex && newIndex >= 0) {
+					if (newIndex <= maxIndex && newIndex >= 0 && newIndex !== minIndex) {
+						selectionChanged();
 						setBudgetMin(budgetOptions[newIndex].value);
 					}
 				} else {
-					if (newIndex >= minIndex && newIndex < budgetOptions.length) {
+					if (newIndex >= minIndex && newIndex < budgetOptions.length && newIndex !== maxIndex) {
+						selectionChanged();
 						setBudgetMax(budgetOptions[newIndex].value);
 					}
 				}

@@ -39,8 +39,10 @@ import {
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { BudgetSlider } from "@/features/search/components/BudgetSlider";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 export default function SearchScreen() {
+	const { lightImpact, mediumImpact } = useHaptics();
 	const [location, setLocation] = useState<SearchLocation | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -87,6 +89,7 @@ export default function SearchScreen() {
 	};
 
 	const handleLocationSelect = async (prediction: GooglePlacesPrediction) => {
+		lightImpact();
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
@@ -98,6 +101,7 @@ export default function SearchScreen() {
 	};
 
 	const handleUseCurrentLocation = async () => {
+		lightImpact();
 		try {
 			const currentLocation = await getCurrentLocation();
 			setLocation(currentLocation);
@@ -108,6 +112,7 @@ export default function SearchScreen() {
 	};
 
 	const toggleRestriction = (restrictionId: string) => {
+		lightImpact();
 		setRestrictions((prev) =>
 			prev.includes(restrictionId) ? prev.filter((id) => id !== restrictionId) : [...prev, restrictionId],
 		);
@@ -119,6 +124,7 @@ export default function SearchScreen() {
 			return;
 		}
 
+		mediumImpact();
 		setIsSearching(true);
 
 		try {
@@ -157,6 +163,27 @@ export default function SearchScreen() {
                                 ? i18n.t("Search.labels.noMaxBudget")
                                 : `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
 		return `${minLabel} 〜 ${maxLabel}`;
+	};
+
+	// Wrapper functions for haptic feedback
+	const handleTimeSlotSelect = (slotId: SearchParams["timeSlot"]) => {
+		lightImpact();
+		setTimeSlot(slotId);
+	};
+
+	const handleSceneSelect = (sceneId: SearchParams["scene"]) => {
+		lightImpact();
+		setScene(scene === sceneId ? undefined : sceneId);
+	};
+
+	const handleMoodSelect = (moodId: SearchParams["mood"]) => {
+		lightImpact();
+		setMood(mood === moodId ? undefined : moodId);
+	};
+
+	const handleAdvancedToggle = () => {
+		lightImpact();
+		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
 	const renderLocationSuggestion = ({ item }: { item: GooglePlacesPrediction }) => (
@@ -231,7 +258,7 @@ export default function SearchScreen() {
                                                         <TouchableOpacity
                                                                 key={slot.id}
 								style={[styles.chip, timeSlot === slot.id && styles.selectedChip]}
-								onPress={() => setTimeSlot(slot.id)}>
+								onPress={() => handleTimeSlotSelect(slot.id)}>
 								<Text style={styles.chipEmoji}>{slot.icon}</Text>
                                                                 <Text style={[styles.chipText, timeSlot === slot.id && styles.selectedChipText]}>{i18n.t(slot.label)}</Text>
                                                         </TouchableOpacity>
@@ -250,7 +277,7 @@ export default function SearchScreen() {
                                                         <TouchableOpacity
                                                                 key={option.id}
 								style={[styles.chip, scene === option.id && styles.selectedChip]}
-								onPress={() => setScene(scene === option.id ? undefined : option.id)}>
+								onPress={() => handleSceneSelect(option.id)}>
 								<Text style={styles.chipEmoji}>{option.icon}</Text>
                                                                 <Text style={[styles.chipText, scene === option.id && styles.selectedChipText]}>{i18n.t(option.label)}</Text>
                                                         </TouchableOpacity>
@@ -269,7 +296,7 @@ export default function SearchScreen() {
                                                         <TouchableOpacity
                                                                 key={option.id}
 								style={[styles.chip, mood === option.id && styles.selectedChip]}
-								onPress={() => setMood(mood === option.id ? undefined : option.id)}>
+								onPress={() => handleMoodSelect(option.id)}>
 								<Text style={styles.chipEmoji}>{option.icon}</Text>
                                                                 <Text style={[styles.chipText, mood === option.id && styles.selectedChipText]}>{i18n.t(option.label)}</Text>
                                                         </TouchableOpacity>
@@ -279,7 +306,7 @@ export default function SearchScreen() {
 
 				{/* Advanced Filters Toggle */}
 				{!showAdvancedFilters && (
-					<TouchableOpacity style={styles.advancedToggle} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}>
+					<TouchableOpacity style={styles.advancedToggle} onPress={handleAdvancedToggle}>
 						{showAdvancedFilters ? <ChevronUp size={20} color="#5EA2FF" /> : <Plus size={20} color="#5EA2FF" />}
                                                 <Text style={styles.advancedToggleText}>
                                                         {showAdvancedFilters

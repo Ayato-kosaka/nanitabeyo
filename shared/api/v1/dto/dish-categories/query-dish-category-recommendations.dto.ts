@@ -6,9 +6,8 @@ import { Type } from "@nestjs/class-transformer";
  */
 export class QueryDishCategoryRecommendationsDto {
         /** 位置情報 "lat,lng" */
-        @IsOptional()
         @Matches(/^-?\d{1,2}(?:\.\d+)?,-?\d{1,3}(?:\.\d+)?$/, { message: 'location must be "lat,lng" decimal format' })
-        location?: string;
+        location!: string;
 
         /** 時間帯 */
         @IsOptional()

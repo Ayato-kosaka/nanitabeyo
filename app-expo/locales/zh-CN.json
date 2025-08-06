@@ -3,7 +3,13 @@
 		"cancel": "取消",
 		"ok": "确定",
 		"goStore": "打开应用商店",
-		"back": "返回"
+		"back": "返回",
+		"close": "关闭",
+		"save": "保存",
+		"post": "发布",
+		"processing": "处理中...",
+		"error": "错误",
+		"success": "成功"
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
@@ -47,6 +53,19 @@
                         "noMinBudget": "无下限",
                         "noMaxBudget": "无上限"
                 },
+		"distanceLabels": {
+			"100m": "100米",
+			"300m": "300米", 
+			"500m": "500米",
+			"800m": "800米",
+			"1km": "1公里",
+			"2km": "2公里",
+			"3km": "3公里",
+			"5km": "5公里",
+			"10km": "10公里",
+			"15km": "15公里",
+			"20km": "20公里"
+		},
                 "currencySuffix": "¥",
                 "searchButton": "查找！",
                 "timeSlots": {
@@ -129,9 +148,76 @@
 		"notifications": "通知",
 		"profile": "个人资料"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "存款",
+			"earnings": "收益"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "所选状态没有存款",
+			"noEarnings": "所选状态没有收益"
+		},
+		"statusLabels": {
+			"active": "活跃",
+			"completed": "已完成", 
+			"refunded": "已退款",
+			"paid": "已支付",
+			"pending": "待定"
+		},
+		"buttons": {
+			"editProfile": "编辑个人资料"
+		},
+		"placeholders": {
+			"enterBio": "请输入您的个人简介..."
+		}
+	},
 	"NotFound": {
 		"title": "哎呀！",
 		"message": "此屏幕不存在。",
 		"goHome": "返回首页！"
+	},
+	"Map": {
+		"placeholders": {
+			"searchRestaurants": "搜索餐厅"
+		},
+		"buttons": {
+			"postReview": "发布评论",
+			"placeBid": "出价",
+			"bid": "出价"
+		},
+		"inputs": {
+			"price": "价格",
+			"rating": "评分",
+			"comment": "评论",
+			"bidAmount": "出价金额"
+		},
+		"placeholders": {
+			"searchRestaurants": "搜索餐厅",
+			"enterPrice": "输入价格",
+			"enterReview": "输入评论",
+			"enterBidAmount": "输入出价金额"
+		},
+		"labels": {
+			"endDate": "结束日期:",
+			"paymentProcessing": "付款处理中...",
+			"currentBidAmount": "当前出价金额"
+		},
+		"alerts": {
+			"locationError": "获取位置信息失败",
+			"currentLocationError": "获取当前位置失败",
+			"bidSuccess": "成功为{{place}}出价¥{{amount}}",
+			"bidError": "出价失败",
+			"reviewSuccess": "评论发布成功",
+			"reviewError": "评论发布失败"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "搜索地点/区域"
+		}
 	}
 }

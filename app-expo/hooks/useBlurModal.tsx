@@ -4,6 +4,7 @@ import { BlurView } from "expo-blur";
 import { ScrollView } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
+import { i18n } from "@/lib/i18n";
 
 /* -------------------------------------------------------------------------- */
 /*                                Hook 定義                                   */
@@ -108,7 +109,7 @@ export function useBlurModal({
 								<Pressable
 									onPress={close}
 									accessibilityRole="button"
-									accessibilityLabel="閉じる"
+									accessibilityLabel={i18n.t("Common.close")}
 									hitSlop={10}
 									style={[
 										styles.closeButton,

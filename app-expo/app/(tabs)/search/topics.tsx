@@ -16,12 +16,14 @@ import { useSearchStore } from "@/stores/useSearchStore";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 export default function TopicsScreen() {
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
 	const setDishes = useSearchStore((state) => state.setDishes);
+	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
@@ -64,6 +66,11 @@ export default function TopicsScreen() {
 
 	const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
+	const handleSnapToItem = (index: number) => {
+		selectionChanged();
+		setCurrentIndex(index);
+	};
+
 	const renderCard = ({ item }: { item: Topic }) => <TopicCard item={item} onHide={handleHideCard} />;
 
 	if (isLoading) {
@@ -92,7 +99,7 @@ export default function TopicsScreen() {
 						height={CARD_HEIGHT}
 						data={visibleTopics}
 						renderItem={renderCard}
-						onSnapToItem={setCurrentIndex}
+						onSnapToItem={handleSnapToItem}
 						mode="parallax"
 						modeConfig={{
 							parallaxScrollingScale: 0.9,

@@ -3,7 +3,13 @@
 		"cancel": "취소",
 		"ok": "확인",
 		"goStore": "앱 스토어 열기",
-		"back": "뒤로"
+		"back": "뒤로",
+		"close": "닫기",
+		"save": "저장",
+		"post": "게시",
+		"processing": "처리 중...",
+		"error": "오류",
+		"success": "성공"
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
@@ -47,6 +53,19 @@
                         "noMinBudget": "최소 없음",
                         "noMaxBudget": "최대 없음"
                 },
+		"distanceLabels": {
+			"100m": "100m",
+			"300m": "300m", 
+			"500m": "500m",
+			"800m": "800m",
+			"1km": "1km",
+			"2km": "2km",
+			"3km": "3km",
+			"5km": "5km",
+			"10km": "10km",
+			"15km": "15km",
+			"20km": "20km"
+		},
                 "currencySuffix": "¥",
                 "searchButton": "찾기!",
                 "timeSlots": {
@@ -129,9 +148,76 @@
 		"notifications": "알림",
 		"profile": "프로필"
 	},
+	"Profile": {
+		"tabs": {
+			"deposits": "예치금",
+			"earnings": "수익"
+		},
+		"numberSuffix": {
+			"million": "M",
+			"thousand": "K"
+		},
+		"emptyState": {
+			"noDeposits": "선택한 상태에 대한 예치금이 없습니다",
+			"noEarnings": "선택한 상태에 대한 수익이 없습니다"
+		},
+		"statusLabels": {
+			"active": "활성",
+			"completed": "완료", 
+			"refunded": "환불됨",
+			"paid": "지불됨",
+			"pending": "보류 중"
+		},
+		"buttons": {
+			"editProfile": "프로필 편집"
+		},
+		"placeholders": {
+			"enterBio": "자기소개를 입력하세요..."
+		}
+	},
 	"NotFound": {
 		"title": "이런!",
 		"message": "이 화면은 존재하지 않습니다.",
 		"goHome": "홈 화면으로 이동!"
+	},
+	"Map": {
+		"placeholders": {
+			"searchRestaurants": "레스토랑 검색"
+		},
+		"buttons": {
+			"postReview": "리뷰 게시",
+			"placeBid": "입찰하기",
+			"bid": "입찰"
+		},
+		"inputs": {
+			"price": "가격",
+			"rating": "평점",
+			"comment": "댓글",
+			"bidAmount": "입찰 금액"
+		},
+		"placeholders": {
+			"searchRestaurants": "레스토랑 검색",
+			"enterPrice": "가격 입력",
+			"enterReview": "리뷰 입력",
+			"enterBidAmount": "입찰 금액 입력"
+		},
+		"labels": {
+			"endDate": "종료일:",
+			"paymentProcessing": "결제 처리 중...",
+			"currentBidAmount": "현재 입찰 금액"
+		},
+		"alerts": {
+			"locationError": "위치 정보 가져오기 실패",
+			"currentLocationError": "현재 위치 가져오기 실패",
+			"bidSuccess": "{{place}}에 ¥{{amount}}로 입찰 성공",
+			"bidError": "입찰 실패",
+			"reviewSuccess": "리뷰 게시 성공",
+			"reviewError": "리뷰 게시 실패"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "위치/지역 검색"
+		}
 	}
 }

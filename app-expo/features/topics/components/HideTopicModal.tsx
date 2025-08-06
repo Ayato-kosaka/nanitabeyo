@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-nativ
 import { X } from "lucide-react-native";
 import { width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
+import { useHaptics } from "@/hooks/useHaptics";
 
 interface Props {
 	onClose: () => void;
@@ -12,35 +13,49 @@ interface Props {
 }
 
 // Content for the hide topic modal
-export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHideCard }: Props) => (
-	<View style={styles.modalContainer}>
-		<View style={styles.modalHeader}>
-			<Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
+export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHideCard }: Props) => {
+	const { lightImpact, errorNotification } = useHaptics();
+	
+	const handleClose = () => {
+		lightImpact();
+		onClose();
+	};
+	
+	const handleConfirm = () => {
+		errorNotification();
+		confirmHideCard();
+	};
+
+	return (
+		<View style={styles.modalContainer}>
+			<View style={styles.modalHeader}>
+				<Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
+			</View>
+
+			<Text style={styles.modalDescription}>{i18n.t("Topics.HideTopicModal.description")}</Text>
+
+			<TextInput
+				style={styles.reasonInput}
+				placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
+				value={hideReason}
+				onChangeText={setHideReason}
+				multiline
+				numberOfLines={3}
+				textAlignVertical="top"
+				placeholderTextColor="#79747E"
+			/>
+
+			<View style={styles.modalActions}>
+				<TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
+					<Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
+				</TouchableOpacity>
+				<TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+					<Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
+				</TouchableOpacity>
+			</View>
 		</View>
-
-		<Text style={styles.modalDescription}>{i18n.t("Topics.HideTopicModal.description")}</Text>
-
-		<TextInput
-			style={styles.reasonInput}
-			placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
-			value={hideReason}
-			onChangeText={setHideReason}
-			multiline
-			numberOfLines={3}
-			textAlignVertical="top"
-			placeholderTextColor="#79747E"
-		/>
-
-		<View style={styles.modalActions}>
-			<TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-				<Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
-			</TouchableOpacity>
-			<TouchableOpacity style={styles.confirmButton} onPress={confirmHideCard}>
-				<Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
-			</TouchableOpacity>
-		</View>
-	</View>
-);
+	);
+};
 
 const styles = StyleSheet.create({
 	modalContainer: {
