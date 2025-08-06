@@ -80,6 +80,38 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
+  /*                          Signed URL (UPLOAD)                          */
+  /* ---------------------------------------------------------------------- */
+  async generateSignedUrlForUpload(
+    path: string,
+    contentType: string,
+    expiresInSeconds = 15 * 60, // 15 minutes default
+  ): Promise<{ putUrl: string; objectPath: string; expiresAt: string }> {
+    try {
+      const [url] = await this.bucket.file(path).getSignedUrl({
+        action: 'write',
+        expires: Date.now() + expiresInSeconds * 1_000,
+        contentType,
+      });
+
+      const expiresAt = new Date(Date.now() + expiresInSeconds * 1_000).toISOString();
+
+      return {
+        putUrl: url,
+        objectPath: path,
+        expiresAt,
+      };
+    } catch (err) {
+      this.logger.error('GcsUploadSignedUrlError', 'generateSignedUrlForUpload', {
+        error_message: (err as Error).message,
+        path,
+        contentType,
+      });
+      throw err;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /*                               Delete File                              */
   /* ---------------------------------------------------------------------- */
   async deleteFile(path: string): Promise<void> {
