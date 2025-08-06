@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSearchStore } from "@/stores/useSearchStore";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
+import i18n from "@/lib/i18n";
 
 export default function TopicsScreen() {
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
@@ -37,15 +38,15 @@ export default function TopicsScreen() {
 		if (searchParams) {
 			try {
 				const params: SearchParams = JSON.parse(searchParams);
-				searchTopics(params).catch(() => {
-					showSnackbar("料理の取得に失敗しました");
-				});
-			} catch (error) {
-				showSnackbar("検索パラメータが無効です");
-				router.back();
-			}
-		}
-	}, [searchParams, searchTopics, showSnackbar]);
+                                searchTopics(params).catch(() => {
+                                        showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+                                });
+                        } catch (error) {
+                                showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
+                                router.back();
+                        }
+                }
+        }, [searchParams, searchTopics, showSnackbar]);
 
 	const handleViewDetails = (topic: Topic) => {
 		setDishes(topic.id, topic.feedItems);
@@ -103,10 +104,10 @@ export default function TopicsScreen() {
 			) : (
 				<View style={styles.emptyContainer}>
 					<View style={styles.emptyCard}>
-						<Text style={styles.emptyText}>表示できる料理がありません</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-							<Text style={styles.retryButtonText}>検索に戻る</Text>
-						</TouchableOpacity>
+                                                <Text style={styles.emptyText}>{i18n.t("Topics.empty")}</Text>
+                                                <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
+                                                        <Text style={styles.retryButtonText}>{i18n.t("Topics.retry")}</Text>
+                                                </TouchableOpacity>
 					</View>
 				</View>
 			)}
@@ -124,11 +125,11 @@ export default function TopicsScreen() {
 			{/* Fixed Bottom Action Button */}
 			{visibleTopics.length > 0 && (
 				<View style={styles.bottomActionContainer}>
-					<PrimaryButton
-						label="これにする！"
-						icon={<ThumbsUp size={20} color="#FFF" />}
-						onPress={() => handleViewDetails(visibleTopics[currentIndex])}
-					/>
+                                        <PrimaryButton
+                                                label={i18n.t("Topics.chooseThis")}
+                                                icon={<ThumbsUp size={20} color="#FFF" />}
+                                                onPress={() => handleViewDetails(visibleTopics[currentIndex])}
+                                        />
 				</View>
 			)}
 

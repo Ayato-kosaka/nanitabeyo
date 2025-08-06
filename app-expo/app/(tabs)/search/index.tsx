@@ -29,15 +29,16 @@ import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
 import {
-	timeSlots,
-	sceneOptions,
-	moodOptions,
-	distanceOptions,
-	budgetOptions,
-	restrictionOptions,
+        timeSlots,
+        sceneOptions,
+        moodOptions,
+        distanceOptions,
+        budgetOptions,
+        restrictionOptions,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { BudgetSlider } from "@/features/search/components/BudgetSlider";
+import i18n from "@/lib/i18n";
 
 export default function SearchScreen() {
 	const [location, setLocation] = useState<SearchLocation | null>(null);
@@ -92,7 +93,7 @@ export default function SearchScreen() {
 			setLocationQuery(locationDetails.address);
 			setShowLocationSuggestions(false);
 		} catch (error) {
-			showSnackbar("位置情報の取得に失敗しました");
+                        showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
 	};
 
@@ -102,7 +103,7 @@ export default function SearchScreen() {
 			setLocation(currentLocation);
 			setLocationQuery(currentLocation.address);
 		} catch (error) {
-			showSnackbar("現在地の取得に失敗しました");
+                        showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
 		}
 	};
 
@@ -114,7 +115,7 @@ export default function SearchScreen() {
 
 	const handleSearch = async () => {
 		if (!location) {
-			showSnackbar("検索場所を選択してください");
+                        showSnackbar(i18n.t("Search.errors.noLocationSelected"));
 			return;
 		}
 
@@ -140,15 +141,21 @@ export default function SearchScreen() {
 				},
 			});
 		} catch (error) {
-			showSnackbar("検索に失敗しました");
+                        showSnackbar(i18n.t("Search.errors.searchFailed"));
 		} finally {
 			setIsSearching(false);
 		}
 	};
 
 	const formatBudgetRange = () => {
-		const minLabel = budgetMin === null ? "下限なし" : `${budgetMin.toLocaleString()}円`;
-		const maxLabel = budgetMax === null ? "上限なし" : `${budgetMax.toLocaleString()}円`;
+                const minLabel =
+                        budgetMin === null
+                                ? i18n.t("Search.labels.noMinBudget")
+                                : `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
+                const maxLabel =
+                        budgetMax === null
+                                ? i18n.t("Search.labels.noMaxBudget")
+                                : `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
 		return `${minLabel} 〜 ${maxLabel}`;
 	};
 
@@ -166,7 +173,7 @@ export default function SearchScreen() {
 		<SafeAreaView style={styles.container}>
 			{/* Header */}
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>どんな料理を探しましょう？🍽</Text>
+                                <Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 			</View>
 
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -174,15 +181,15 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<MapPin size={20} color="#5EA2FF" />
-						<Text style={styles.sectionTitle}>どのあたりで探す？</Text>
+                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.location")}</Text>
 						<View style={styles.requiredBadge}>
-							<Text style={styles.requiredText}>必須</Text>
+                                                        <Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
 						</View>
 					</View>
 					<View style={styles.locationInputContainer}>
 						<TextInput
 							style={styles.locationInput}
-							placeholder="場所を入力してください"
+                                                        placeholder={i18n.t("Search.placeholders.enterLocation")}
 							placeholderTextColor="#6B7280"
 							value={locationQuery}
 							onChangeText={handleLocationSearch}
@@ -196,10 +203,10 @@ export default function SearchScreen() {
 					{showLocationSuggestions && (
 						<View style={styles.suggestionsContainer}>
 							{isLocationSearching ? (
-								<View style={styles.loadingContainer}>
-									<ActivityIndicator size="small" color="#5EA2FF" />
-									<Text style={styles.loadingText}>検索中...</Text>
-								</View>
+                                                                <View style={styles.loadingContainer}>
+                                                                        <ActivityIndicator size="small" color="#5EA2FF" />
+                                                                        <Text style={styles.loadingText}>{i18n.t("Search.loading")}</Text>
+                                                                </View>
 							) : (
 								<FlatList
 									data={suggestions}
@@ -217,18 +224,18 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<Clock size={20} color="#5EA2FF" />
-						<Text style={styles.sectionTitle}>時間帯は？</Text>
+                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
-						{timeSlots.map((slot) => (
-							<TouchableOpacity
-								key={slot.id}
+                                                {timeSlots.map((slot) => (
+                                                        <TouchableOpacity
+                                                                key={slot.id}
 								style={[styles.chip, timeSlot === slot.id && styles.selectedChip]}
 								onPress={() => setTimeSlot(slot.id)}>
 								<Text style={styles.chipEmoji}>{slot.icon}</Text>
-								<Text style={[styles.chipText, timeSlot === slot.id && styles.selectedChipText]}>{slot.label}</Text>
-							</TouchableOpacity>
-						))}
+                                                                <Text style={[styles.chipText, timeSlot === slot.id && styles.selectedChipText]}>{i18n.t(slot.label)}</Text>
+                                                        </TouchableOpacity>
+                                                ))}
 					</View>
 				</Card>
 
@@ -236,18 +243,18 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<Users size={20} color="#5EA2FF" />
-						<Text style={styles.sectionTitle}>シーンは？</Text>
+                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
-						{sceneOptions.map((option) => (
-							<TouchableOpacity
-								key={option.id}
+                                                {sceneOptions.map((option) => (
+                                                        <TouchableOpacity
+                                                                key={option.id}
 								style={[styles.chip, scene === option.id && styles.selectedChip]}
 								onPress={() => setScene(scene === option.id ? undefined : option.id)}>
 								<Text style={styles.chipEmoji}>{option.icon}</Text>
-								<Text style={[styles.chipText, scene === option.id && styles.selectedChipText]}>{option.label}</Text>
-							</TouchableOpacity>
-						))}
+                                                                <Text style={[styles.chipText, scene === option.id && styles.selectedChipText]}>{i18n.t(option.label)}</Text>
+                                                        </TouchableOpacity>
+                                                ))}
 					</View>
 				</Card>
 
@@ -255,18 +262,18 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<Heart size={20} color="#5EA2FF" />
-						<Text style={styles.sectionTitle}>気分は？</Text>
+                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
-						{moodOptions.map((option) => (
-							<TouchableOpacity
-								key={option.id}
+                                                {moodOptions.map((option) => (
+                                                        <TouchableOpacity
+                                                                key={option.id}
 								style={[styles.chip, mood === option.id && styles.selectedChip]}
 								onPress={() => setMood(mood === option.id ? undefined : option.id)}>
 								<Text style={styles.chipEmoji}>{option.icon}</Text>
-								<Text style={[styles.chipText, mood === option.id && styles.selectedChipText]}>{option.label}</Text>
-							</TouchableOpacity>
-						))}
+                                                                <Text style={[styles.chipText, mood === option.id && styles.selectedChipText]}>{i18n.t(option.label)}</Text>
+                                                        </TouchableOpacity>
+                                                ))}
 					</View>
 				</Card>
 
@@ -274,7 +281,11 @@ export default function SearchScreen() {
 				{!showAdvancedFilters && (
 					<TouchableOpacity style={styles.advancedToggle} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}>
 						{showAdvancedFilters ? <ChevronUp size={20} color="#5EA2FF" /> : <Plus size={20} color="#5EA2FF" />}
-						<Text style={styles.advancedToggleText}>{showAdvancedFilters ? "詳細検索を閉じる" : "詳細検索"}</Text>
+                                                <Text style={styles.advancedToggleText}>
+                                                        {showAdvancedFilters
+                                                                ? i18n.t("Search.advancedToggle.close")
+                                                                : i18n.t("Search.advancedToggle.open")}
+                                                </Text>
 					</TouchableOpacity>
 				)}
 
@@ -285,7 +296,7 @@ export default function SearchScreen() {
 						<Card>
 							<View style={styles.sectionHeader}>
 								<Distance size={20} color="#5EA2FF" />
-								<Text style={styles.sectionTitle}>距離は？</Text>
+                                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>
@@ -299,7 +310,7 @@ export default function SearchScreen() {
 						<Card>
 							<View style={styles.sectionHeader}>
 								<DollarSign size={20} color="#5EA2FF" />
-								<Text style={styles.sectionTitle}>予算は？</Text>
+                                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
@@ -315,24 +326,24 @@ export default function SearchScreen() {
 						{/* Restrictions */}
 						<Card>
 							<View style={styles.sectionHeader}>
-								<Text style={styles.sectionTitle}>制約条件</Text>
+                                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
 							</View>
 							<View style={styles.restrictionsContainer}>
-								{restrictionOptions.map((option) => (
-									<TouchableOpacity
-										key={option.id}
-										style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
-										onPress={() => toggleRestriction(option.id)}>
-										<Text style={styles.chipEmoji}>{option.icon}</Text>
-										<Text
-											style={[
-												styles.restrictionChipText,
-												restrictions.includes(option.id) && styles.selectedRestrictionChipText,
-											]}>
-											{option.label}
-										</Text>
-									</TouchableOpacity>
-								))}
+                                                                {restrictionOptions.map((option) => (
+                                                                        <TouchableOpacity
+                                                                                key={option.id}
+                                                                                style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
+                                                                                onPress={() => toggleRestriction(option.id)}>
+                                                                                <Text style={styles.chipEmoji}>{option.icon}</Text>
+                                                                                <Text
+                                                                                        style={[
+                                                                                                styles.restrictionChipText,
+                                                                                                restrictions.includes(option.id) && styles.selectedRestrictionChipText,
+                                                                                        ]}>
+                                                                                        {i18n.t(option.label)}
+                                                                                </Text>
+                                                                        </TouchableOpacity>
+                                                                ))}
 							</View>
 						</Card>
 					</>
@@ -350,7 +361,7 @@ export default function SearchScreen() {
 					) : (
 						<>
 							<Search size={24} color="#FFF" />
-							<Text style={styles.fabText}>探して！</Text>
+                                                        <Text style={styles.fabText}>{i18n.t("Search.searchButton")}</Text>
 						</>
 					)}
 				</TouchableOpacity>
