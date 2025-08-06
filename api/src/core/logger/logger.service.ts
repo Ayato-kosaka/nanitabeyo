@@ -7,9 +7,10 @@ import { LogLevel, DEFAULT_LOG_LEVEL } from './logger.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
-import { Prisma } from '../../../../shared/prisma';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
+import { CreateBackendEventInput, CreateExternalApiInput } from './logger.types';
+
 
 /**
  * AppLoggerService
@@ -24,7 +25,7 @@ export class AppLoggerService implements INestLoggerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
@@ -79,17 +80,13 @@ export class AppLoggerService implements INestLoggerService {
   /*            外部 API コールを詳細に残すための専用メソッド           */
   /* ------------------------------------------------------------------ */
   async externalApi(
-    input: Required<
-      Omit<
-        Prisma.external_api_logsCreateInput,
-        'id' | 'user_id' | 'request_id' | 'created_commit_id' | 'created_at'
-      >
-    >,
+    input: CreateExternalApiInput,
   ) {
     try {
       await this.prisma.external_api_logs.create({
         data: {
           ...input,
+          response_payload: input.response_payload ?? undefined,
           id: randomUUID(),
           user_id: this.cls.get<string>(CLS_KEY_USER_ID),
           request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
@@ -110,12 +107,7 @@ export class AppLoggerService implements INestLoggerService {
   /*                           private helpers                          */
   /* ------------------------------------------------------------------ */
   private async persistBackendEvent(
-    input: Required<
-      Omit<
-        Prisma.backend_event_logsCreateInput,
-        'id' | 'user_id' | 'request_id' | 'created_commit_id' | 'created_at'
-      >
-    >,
+    input: CreateBackendEventInput,
   ) {
     try {
       await this.prisma.backend_event_logs.create({
