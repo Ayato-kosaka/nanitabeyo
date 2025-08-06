@@ -42,6 +42,40 @@ interface ClaudeMessageResponse {
   };
 }
 
+// Google Places API のレスポンス型
+interface GooglePlacesAutocompleteResponse {
+  predictions: {
+    place_id: string;
+    description: string;
+    types: string[];
+  }[];
+  status: string;
+}
+
+// Google Places Text Search API のレスポンス型
+interface GooglePlacesTextSearchResponse {
+  results: {
+    place_id: string;
+    name: string;
+    geometry: {
+      location: {
+        lat: number;
+        lng: number;
+      };
+    };
+    photos?: {
+      photo_reference: string;
+    }[];
+    reviews?: {
+      author_name: string;
+      rating: number;
+      text: string;
+      profile_photo_url?: string;
+    }[];
+  }[];
+  status: string;
+}
+
 @Injectable()
 export class ExternalApiService {
   constructor(private readonly logger: AppLoggerService) { }
@@ -182,6 +216,133 @@ export class ExternalApiService {
         query,
       });
       return null;
+    }
+  }
+
+  /**
+   * Google Places Autocomplete API (地名のみ)
+   */
+  async searchPlacesAutocomplete(query: string): Promise<{ place_id: string; description: string }[]> {
+    this.logger.debug('searchPlacesAutocomplete', 'searchPlacesAutocomplete', {
+      query,
+    });
+
+    const googleApiKey = env.GOOGLE_API_KEY;
+
+    if (!googleApiKey) {
+      this.logger.warn('searchPlacesAutocomplete', 'searchPlacesAutocomplete', {
+        error_message: 'Google API key is not configured',
+      });
+      return [];
+    }
+
+    const endpoint = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=geocode&key=${googleApiKey}`;
+
+    try {
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Places Autocomplete API',
+        endpoint,
+        method: 'GET',
+        request_payload: {},
+        function_name: 'searchPlacesAutocomplete',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google Places Autocomplete API request failed: ${response.status}`);
+      }
+
+      const data: GooglePlacesAutocompleteResponse = await response.json();
+
+      if (data.status === 'OK' && data.predictions) {
+        const results = data.predictions
+          .filter(p => p.types.includes('locality') || p.types.includes('administrative_area_level_1'))
+          .map(p => ({
+            place_id: p.place_id,
+            description: p.description,
+          }));
+
+        this.logger.debug('searchPlacesAutocomplete', 'searchPlacesAutocomplete', {
+          resultsCount: results.length,
+        });
+        return results;
+      }
+
+      this.logger.debug('searchPlacesAutocomplete', 'searchPlacesAutocomplete', {
+        message: 'No results found',
+        status: data.status,
+      });
+      return [];
+
+    } catch (error) {
+      this.logger.error('GooglePlacesAutocompleteAPICallError', 'searchPlacesAutocomplete', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        query,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Google Places Text Search API
+   */
+  async searchPlacesText(query: string, location?: string, radius?: number): Promise<any[]> {
+    this.logger.debug('searchPlacesText', 'searchPlacesText', {
+      query,
+      location,
+      radius,
+    });
+
+    const googleApiKey = env.GOOGLE_API_KEY;
+
+    if (!googleApiKey) {
+      this.logger.warn('searchPlacesText', 'searchPlacesText', {
+        error_message: 'Google API key is not configured',
+      });
+      return [];
+    }
+
+    let endpoint = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${googleApiKey}`;
+    
+    if (location && radius) {
+      endpoint += `&location=${location}&radius=${radius}`;
+    }
+
+    try {
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Places Text Search API',
+        endpoint,
+        method: 'GET',
+        request_payload: {},
+        function_name: 'searchPlacesText',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google Places Text Search API request failed: ${response.status}`);
+      }
+
+      const data: GooglePlacesTextSearchResponse = await response.json();
+
+      if (data.status === 'OK' && data.results) {
+        this.logger.debug('searchPlacesText', 'searchPlacesText', {
+          resultsCount: data.results.length,
+        });
+        return data.results;
+      }
+
+      this.logger.debug('searchPlacesText', 'searchPlacesText', {
+        message: 'No results found',
+        status: data.status,
+      });
+      return [];
+
+    } catch (error) {
+      this.logger.error('GooglePlacesTextSearchAPICallError', 'searchPlacesText', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        query,
+        location,
+        radius,
+      });
+      return [];
     }
   }
 
