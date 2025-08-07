@@ -20,7 +20,7 @@ import { GoogleMapsService } from './google-maps.service';
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
-import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { convertPrismaToSupabase_DishReviews, SupabaseDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class DishesService {
@@ -98,19 +98,19 @@ export class DishesService {
               dto.categoryName
             );
 
-            // 3. 料理メディア登録（写真がある場合）
-            let dishMedia = null;
-            if (place.photos && place.photos.length > 0) {
-              const dishMediaRecord = await this.repo.createDishMedia(
-                tx,
-                dish.id,
-                place.photos[0].photo_reference,
-              );
-              dishMedia = convertPrismaToSupabase_DishMedia(dishMediaRecord);
+            // 3. 料理メディア登録
+            if (!place.photos || place.photos.length === 0) {
+              throw new Error('No photos available for this place');
             }
+            const dishMediaRecord = await this.repo.createDishMedia(
+              tx,
+              dish.id,
+              place.photos[0].photo_reference,
+            );
+            const dishMedia = convertPrismaToSupabase_DishMedia(dishMediaRecord);
 
             // 4. レビュー登録（Google レビューがある場合）
-            const dishReviews = [];
+            const dishReviews: SupabaseDishReviews[] = [];
             if (place.reviews && place.reviews.length > 0) {
               for (const review of place.reviews.slice(0, 5)) {
                 // 最大5件

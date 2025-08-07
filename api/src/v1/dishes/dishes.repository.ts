@@ -12,6 +12,7 @@ import { CreateDishDto } from '@shared/v1/dto';
 import { GoogleMapsPlace } from './google-maps.service';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { AppLoggerService } from 'src/core/logger/logger.service';
+import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class DishesRepository {
@@ -155,9 +156,9 @@ export class DishesRepository {
   async createDishReview(
     tx: Prisma.TransactionClient,
     dishId: string,
-    review: any, // Google Maps Review 型
+    review: { text?: string; rating: number; author_name: string; profile_photo_url: string }, // Google Maps Review 型
   ) {
-    return tx.dish_reviews.create({
+    const result = await tx.dish_reviews.create({
       data: {
         dish_id: dishId,
         user_id: null, // Google からのインポートなので null
@@ -170,5 +171,7 @@ export class DishesRepository {
         imported_user_avatar: review.profile_photo_url,
       },
     });
+
+    return result as PrismaDishReviews;
   }
 }
