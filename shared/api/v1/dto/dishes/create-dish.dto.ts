@@ -1,4 +1,5 @@
-import { IsUUID } from "@nestjs/class-validator";
+import { IsString, IsUUID } from "@nestjs/class-validator";
+import { SupabaseDishCategories } from "shared/converters/convert_dish_categories";
 
 /** POST /v1/dishes のボディ */
 export class CreateDishDto {
@@ -7,6 +8,10 @@ export class CreateDishDto {
 	restaurantId!: string;
 
 	/** dish_categories.id */
-	@IsUUID()
-	dishCategory!: string;
+	@IsString()
+	dishCategoryId!: string;
+
+	/** dishes.name */
+	@IsString()
+	dishName!: string;
 }
