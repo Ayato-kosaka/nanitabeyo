@@ -17,6 +17,7 @@
 		"json2csv": "6.0.0-alpha.2",
 		"node-fetch": "2",
 		"ts-node": "^10.9.2",
-		"typescript": "^5.8.3"
+		"typescript": "^5.8.3",
+		"zod": "^3.25.76"
 	}
 }

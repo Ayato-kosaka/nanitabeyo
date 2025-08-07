@@ -7,6 +7,7 @@ import { DialogProvider } from "@/contexts/DialogProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { SnackbarProvider } from "@/contexts/SnackbarProvider";
 import { PaperProvider } from "react-native-paper";
+import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
 import { useColorScheme } from "react-native";
 import { getPaperTheme } from "@/constants/PaperTheme";
@@ -61,15 +62,17 @@ export default function RootLayout() {
 			<SnackbarProvider>
 				<DialogProvider>
 					<AuthProvider>
-						<GestureHandlerRootView style={{ flex: 1 }}>
-							<AppProvider>
-								<Stack screenOptions={{ headerShown: false }}>
-									<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-									<Stack.Screen name="+not-found" />
-								</Stack>
-								<StatusBar style="light" />
-							</AppProvider>
-						</GestureHandlerRootView>
+						<SplashHandler>
+							<GestureHandlerRootView style={{ flex: 1 }}>
+								<AppProvider>
+									<Stack screenOptions={{ headerShown: false }}>
+										<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+										<Stack.Screen name="+not-found" />
+									</Stack>
+									<StatusBar style="light" />
+								</AppProvider>
+							</GestureHandlerRootView>
+						</SplashHandler>
 					</AuthProvider>
 				</DialogProvider>
 			</SnackbarProvider>
