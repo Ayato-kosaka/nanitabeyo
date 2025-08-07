@@ -69,6 +69,15 @@ function isDecimalColumn(columnType: string): boolean {
 }
 
 /**
+ * 指定の型が BigInt 型であるかを判定
+ * @param columnType カラムのデータ型文字列
+ * @returns BigInt 型であれば true
+ */
+function isBigIntColumn(columnType: string): boolean {
+	return columnType.toLowerCase() === "bigint";
+}
+
+/**
  * 配列型かどうかを判定（e.g. text[]）
  * @param columnType カラムのデータ型
  * @returns 配列型であれば true
@@ -115,6 +124,11 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 					return c_not_null
 						? `    ${c_name}: supabase.${c_name}.map((v) => new Prisma.Decimal(v)),`
 						: `    ${c_name}: supabase.${c_name} !== null ? supabase.${c_name}.map((v) => new Prisma.Decimal(v)) : null,`;
+				if (isBigIntColumn(baseType))
+					return c_not_null
+						? `    ${c_name}: supabase.${c_name}.map((v) => BigInt(v)),`
+						: `    ${c_name}: supabase.${c_name} !== null ? supabase.${c_name}.map((v) => BigInt(v)) : null,`;
+				// その他の配列型はそのまま
 				return `    ${c_name}: supabase.${c_name},`;
 			}
 
@@ -126,13 +140,17 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 				return c_not_null
 					? `    ${c_name}: new Prisma.Decimal(supabase.${c_name}),`
 					: `    ${c_name}: supabase.${c_name} !== null ? new Prisma.Decimal(supabase.${c_name}) : null,`;
+			if (isBigIntColumn(baseType))
+				return c_not_null
+					? `    ${c_name}: BigInt(supabase.${c_name}),`
+					: `    ${c_name}: supabase.${c_name} !== null ? BigInt(supabase.${c_name}) : null,`;
 			return `    ${c_name}: supabase.${c_name},`;
 		})
 		.join("\n");
 
 	// Prisma → Supabase 変換本体
 	const toSupabaseBody = columns
-		.map(({ c_name, c_datatype }) => {
+		.map(({ c_name, c_datatype, c_not_null }) => {
 			if (isExccludedType(c_datatype)) return `    ${c_name}: null,`;
 			const isArray = isArrayColumn(c_datatype);
 			const baseType = getBaseType(c_datatype);
@@ -140,11 +158,15 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 			if (isArray) {
 				if (isDateColumn(baseType)) return `    ${c_name}: prisma.${c_name}?.map((v) => v.toISOString()) ?? null,`;
 				if (isDecimalColumn(baseType)) return `    ${c_name}: prisma.${c_name}?.map((v) => v.toNumber()) ?? null,`;
+				if (isBigIntColumn(baseType)) return `    ${c_name}: prisma.${c_name}.map((v) => Number(v)) ?? null,`;
 				return `    ${c_name}: prisma.${c_name},`;
 			}
 
 			if (isDateColumn(baseType)) return `    ${c_name}: prisma.${c_name}?.toISOString() ?? null,`;
 			if (isDecimalColumn(baseType)) return `    ${c_name}: prisma.${c_name}?.toNumber() ?? null,`;
+			if (isBigIntColumn(baseType)) return c_not_null ? `    ${c_name}: Number(prisma.${c_name}),`
+				: `    ${c_name}: prisma.${c_name} !== null ? Number(prisma.${c_name}) : null,`;
+
 			return `    ${c_name}: prisma.${c_name},`;
 		})
 		.join("\n");

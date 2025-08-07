@@ -420,7 +420,7 @@ const config = {
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": "../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../api/prisma",
   "clientVersion": "6.13.0",
