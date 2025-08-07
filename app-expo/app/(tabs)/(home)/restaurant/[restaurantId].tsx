@@ -138,8 +138,20 @@ export default function RestaurantScreen() {
 	});
 	const scrollViewRef = useRef<ScrollView>(null);
 
-	const priceRanges = ["¥1,000以下", "¥1,000-3,000", "¥3,000-5,000", "¥5,000以上"];
-	const categories = ["和食", "イタリアン", "フレンチ", "中華", "アジア料理", "その他"];
+    const priceRanges = [
+        i18n.t("Restaurant.filter.priceRanges.under1000", { currency: i18n.t("Search.currencySuffix") }),
+        i18n.t("Restaurant.filter.priceRanges.range1000to3000", { currency: i18n.t("Search.currencySuffix") }),
+        i18n.t("Restaurant.filter.priceRanges.range3000to5000", { currency: i18n.t("Search.currencySuffix") }),
+        i18n.t("Restaurant.filter.priceRanges.over5000", { currency: i18n.t("Search.currencySuffix") }),
+    ];
+    const categories = [
+        i18n.t("Restaurant.filter.categories.japanese"),
+        i18n.t("Restaurant.filter.categories.italian"),
+        i18n.t("Restaurant.filter.categories.french"),
+        i18n.t("Restaurant.filter.categories.chinese"),
+        i18n.t("Restaurant.filter.categories.asian"),
+        i18n.t("Restaurant.filter.categories.other"),
+    ];
 
 	const formatLikeCount = (count: number): string => {
 		if (count >= 1000000) {
@@ -279,11 +291,11 @@ export default function RestaurantScreen() {
 				<View style={styles.actionButtons}>
 					<TouchableOpacity style={styles.actionButton} onPress={handleMakeReservation}>
 						<Calendar size={20} color="#007AFF" />
-						<Text style={styles.actionButtonText}>予約する</Text>
+                                                <Text style={styles.actionButtonText}>{i18n.t("Restaurant.buttons.reserve")}</Text>
 					</TouchableOpacity>
 					<TouchableOpacity style={styles.actionButton} onPress={handlePostReview}>
 						<Camera size={20} color="#007AFF" />
-						<Text style={styles.actionButtonText}>画像・動画投稿</Text>
+                                                <Text style={styles.actionButtonText}>{i18n.t("Restaurant.buttons.postMedia")}</Text>
 					</TouchableOpacity>
 				</View>
 
@@ -292,14 +304,16 @@ export default function RestaurantScreen() {
 					<TouchableOpacity
 						style={[styles.tab, selectedTab === "posts" && styles.activeTab]}
 						onPress={() => setSelectedTab("posts")}>
-						<Text style={[styles.tabText, selectedTab === "posts" && styles.activeTabText]}>
-							投稿 {foodPosts.length}
-						</Text>
+                                                <Text style={[styles.tabText, selectedTab === "posts" && styles.activeTabText]}>
+                                                        {i18n.t("Restaurant.tabs.posts", { count: foodPosts.length })}
+                                                </Text>
 					</TouchableOpacity>
 					<TouchableOpacity
 						style={[styles.tab, selectedTab === "info" && styles.activeTab]}
 						onPress={() => setSelectedTab("info")}>
-						<Text style={[styles.tabText, selectedTab === "info" && styles.activeTabText]}>店舗情報</Text>
+                                                <Text style={[styles.tabText, selectedTab === "info" && styles.activeTabText]}>
+                                                        {i18n.t("Restaurant.tabs.info")}
+                                                </Text>
 					</TouchableOpacity>
 				</View>
 
@@ -340,16 +354,16 @@ export default function RestaurantScreen() {
 						<TouchableOpacity onPress={() => setShowFilter(false)}>
 							<X size={24} color="#000" />
 						</TouchableOpacity>
-						<Text style={styles.filterTitle}>フィルター</Text>
+                                                <Text style={styles.filterTitle}>{i18n.t("Restaurant.filter.title")}</Text>
 						<TouchableOpacity onPress={handleResetFilters}>
-							<Text style={styles.resetText}>リセット</Text>
+                                                        <Text style={styles.resetText}>{i18n.t("Restaurant.filter.reset")}</Text>
 						</TouchableOpacity>
 					</View>
 
 					<ScrollView style={styles.filterContent}>
 						{/* Price Range Filter */}
 						<View style={styles.filterSection}>
-							<Text style={styles.filterSectionTitle}>価格帯</Text>
+                                                        <Text style={styles.filterSectionTitle}>{i18n.t("Restaurant.filter.sections.priceRange")}</Text>
 							<View style={styles.filterOptions}>
 								{priceRanges.map((range) => (
 									<TouchableOpacity
@@ -375,7 +389,7 @@ export default function RestaurantScreen() {
 
 						{/* Category Filter */}
 						<View style={styles.filterSection}>
-							<Text style={styles.filterSectionTitle}>料理カテゴリ</Text>
+                                                        <Text style={styles.filterSectionTitle}>{i18n.t("Restaurant.filter.sections.category")}</Text>
 							<View style={styles.filterOptions}>
 								{categories.map((category) => (
 									<TouchableOpacity
@@ -402,7 +416,7 @@ export default function RestaurantScreen() {
 
 					<View style={styles.filterFooter}>
 						<TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
-							<Text style={styles.applyButtonText}>適用</Text>
+                                                        <Text style={styles.applyButtonText}>{i18n.t("Restaurant.filter.apply")}</Text>
 						</TouchableOpacity>
 					</View>
 				</SafeAreaView>

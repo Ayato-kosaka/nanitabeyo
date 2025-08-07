@@ -9,8 +9,9 @@
 		"post": "投稿",
 		"processing": "処理中...",
 		"error": "エラー",
-		"success": "成功"
-	},
+                "success": "成功",
+                "daysRemaining": "残り{{count}}日"
+        },
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
 		"unsupportedVersion": "古いバージョンのため利用できません。"
@@ -131,13 +132,16 @@
 			"viewCreatorProfile": "投稿者プロフィールへ",
 			"reservation": "予約"
 		},
-		"actions": {
-			"share": "シェア"
-		},
-		"info": {
-			"walkFromShibuya": "渋谷駅から徒歩13分"
-		}
-	},
+                "actions": {
+                        "share": "シェア"
+                },
+                "buttons": {
+                        "viewRestaurant": "店を見る"
+                },
+                "info": {
+                        "walkFromShibuya": "渋谷駅から徒歩13分"
+                }
+        },
 	"ImageCardGrid": {
 		"openItemDetails": "詳細を表示"
 	},
@@ -161,20 +165,32 @@
 			"noDeposits": "選択したステータスの入札がありません",
 			"noEarnings": "選択したステータスの収益がありません"
 		},
-		"statusLabels": {
-			"active": "アクティブ",
-			"completed": "完了",
-			"refunded": "返金済み",
-			"paid": "支払済み",
-			"pending": "保留中"
-		},
-		"buttons": {
-			"editProfile": "プロフィールを編集"
-		},
-		"placeholders": {
-			"enterBio": "自己紹介を入力してください..."
-		}
-	},
+                "statusLabels": {
+                        "active": "アクティブ",
+                        "completed": "完了",
+                        "refunded": "返金済み",
+                        "paid": "支払済み",
+                        "pending": "保留中"
+                },
+                "buttons": {
+                        "editProfile": "プロフィールを編集",
+                        "follow": "フォロー",
+                        "following": "フォロー中",
+                        "message": "メッセージ"
+                },
+                "stats": {
+                        "following": "フォロー中",
+                        "followers": "フォロワー",
+                        "likes": "いいね"
+                },
+                "labels": {
+                        "bio": "自己紹介"
+                },
+                "privateContent": "この内容は非公開です",
+                "placeholders": {
+                        "enterBio": "自己紹介を入力してください..."
+                }
+        },
 	"NotFound": {
 		"title": "おっと！",
 		"message": "この画面は存在しません。",
@@ -201,23 +217,61 @@
 			"enterReview": "レビューを入力",
 			"enterBidAmount": "入札額を入力"
 		},
-		"labels": {
-			"endDate": "終了日:",
-			"paymentProcessing": "決済処理中...",
-			"currentBidAmount": "現在の入札額"
-		},
-		"alerts": {
-			"locationError": "位置情報の取得に失敗しました",
-			"currentLocationError": "現在地の取得に失敗しました",
-			"bidSuccess": "{{place}}に¥{{amount}}で入札しました",
-			"bidError": "入札に失敗しました",
-			"reviewSuccess": "レビューを投稿しました",
-			"reviewError": "レビューの投稿に失敗しました"
-		}
-	},
-	"Restaurant": {
-		"placeholders": {
-			"searchLocation": "地点・地域を検索"
-		}
-	}
+                "labels": {
+                        "endDate": "終了日:",
+                        "paymentProcessing": "決済処理中...",
+                        "currentBidAmount": "現在の入札額"
+                },
+                "tabs": {
+                        "reviews": "レビュー",
+                        "bids": "入札"
+                },
+                "emptyState": {
+                        "noBidsForStatus": "選択したステータスの入札がありません"
+                },
+                "alerts": {
+                        "locationError": "位置情報の取得に失敗しました",
+                        "currentLocationError": "現在地の取得に失敗しました",
+                        "bidSuccess": "{{place}}に¥{{amount}}で入札しました",
+                        "bidError": "入札に失敗しました",
+                        "reviewSuccess": "レビューを投稿しました",
+                        "reviewError": "レビューの投稿に失敗しました"
+                }
+        },
+        "Restaurant": {
+                "placeholders": {
+                        "searchLocation": "地点・地域を検索"
+                },
+                "buttons": {
+                        "reserve": "予約する",
+                        "postMedia": "画像・動画投稿"
+                },
+                "tabs": {
+                        "posts": "投稿 {{count}}",
+                        "info": "店舗情報"
+                },
+                "filter": {
+                        "title": "フィルター",
+                        "reset": "リセット",
+                        "apply": "適用",
+                        "sections": {
+                                "priceRange": "価格帯",
+                                "category": "料理カテゴリ"
+                        },
+                        "priceRanges": {
+                                "under1000": "1,000{{currency}}以下",
+                                "range1000to3000": "1,000-3,000{{currency}}",
+                                "range3000to5000": "3,000-5,000{{currency}}",
+                                "over5000": "5,000{{currency}}以上"
+                        },
+                        "categories": {
+                                "japanese": "和食",
+                                "italian": "イタリアン",
+                                "french": "フレンチ",
+                                "chinese": "中華",
+                                "asian": "アジア料理",
+                                "other": "その他"
+                        }
+                }
+        }
 }

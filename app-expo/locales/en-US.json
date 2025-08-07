@@ -9,8 +9,9 @@
 		"post": "Post",
 		"processing": "Processing...",
 		"error": "Error",
-		"success": "Success"
-	},
+                "success": "Success",
+                "daysRemaining": "Remaining {{count}} days"
+        },
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
 		"unsupportedVersion": "This version is no longer supported."
@@ -131,13 +132,16 @@
 			"viewCreatorProfile": "Go to creator profile",
 			"reservation": "Reservation"
 		},
-		"actions": {
-			"share": "Share"
-		},
-		"info": {
-			"walkFromShibuya": "13 min walk from Shibuya Station"
-		}
-	},
+                "actions": {
+                        "share": "Share"
+                },
+                "buttons": {
+                        "viewRestaurant": "View restaurant"
+                },
+                "info": {
+                        "walkFromShibuya": "13 min walk from Shibuya Station"
+                }
+        },
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
 	},
@@ -161,20 +165,32 @@
 			"noDeposits": "No deposits for the selected status",
 			"noEarnings": "No earnings for the selected status"
 		},
-		"statusLabels": {
-			"active": "Active",
-			"completed": "Completed",
-			"refunded": "Refunded",
-			"paid": "Paid",
-			"pending": "Pending"
-		},
-		"buttons": {
-			"editProfile": "Edit Profile"
-		},
-		"placeholders": {
-			"enterBio": "Enter your bio..."
-		}
-	},
+                "statusLabels": {
+                        "active": "Active",
+                        "completed": "Completed",
+                        "refunded": "Refunded",
+                        "paid": "Paid",
+                        "pending": "Pending"
+                },
+                "buttons": {
+                        "editProfile": "Edit Profile",
+                        "follow": "Follow",
+                        "following": "Following",
+                        "message": "Message"
+                },
+                "stats": {
+                        "following": "Following",
+                        "followers": "Followers",
+                        "likes": "Likes"
+                },
+                "labels": {
+                        "bio": "Bio"
+                },
+                "privateContent": "This content is private",
+                "placeholders": {
+                        "enterBio": "Enter your bio..."
+                }
+        },
 	"NotFound": {
 		"title": "Oops!",
 		"message": "This screen doesn't exist.",
@@ -201,23 +217,61 @@
 			"enterReview": "Enter review",
 			"enterBidAmount": "Enter bid amount"
 		},
-		"labels": {
-			"endDate": "End date:",
-			"paymentProcessing": "Processing payment...",
-			"currentBidAmount": "Current bid amount"
-		},
-		"alerts": {
-			"locationError": "Failed to get location information",
-			"currentLocationError": "Failed to get current location",
-			"bidSuccess": "Bid placed successfully for {{place}} at ¥{{amount}}",
-			"bidError": "Failed to place bid",
-			"reviewSuccess": "Review posted successfully",
-			"reviewError": "Failed to post review"
-		}
-	},
-	"Restaurant": {
-		"placeholders": {
-			"searchLocation": "Search location/area"
-		}
-	}
+                "labels": {
+                        "endDate": "End date:",
+                        "paymentProcessing": "Processing payment...",
+                        "currentBidAmount": "Current bid amount"
+                },
+                "tabs": {
+                        "reviews": "Reviews",
+                        "bids": "Bids"
+                },
+                "emptyState": {
+                        "noBidsForStatus": "No bids for the selected status"
+                },
+                "alerts": {
+                        "locationError": "Failed to get location information",
+                        "currentLocationError": "Failed to get current location",
+                        "bidSuccess": "Bid placed successfully for {{place}} at ¥{{amount}}",
+                        "bidError": "Failed to place bid",
+                        "reviewSuccess": "Review posted successfully",
+                        "reviewError": "Failed to post review"
+                }
+        },
+        "Restaurant": {
+                "placeholders": {
+                        "searchLocation": "Search location/area"
+                },
+                "buttons": {
+                        "reserve": "Reserve",
+                        "postMedia": "Post media"
+                },
+                "tabs": {
+                        "posts": "Posts {{count}}",
+                        "info": "Info"
+                },
+                "filter": {
+                        "title": "Filter",
+                        "reset": "Reset",
+                        "apply": "Apply",
+                        "sections": {
+                                "priceRange": "Price range",
+                                "category": "Cuisine category"
+                        },
+                        "priceRanges": {
+                                "under1000": "Under {{currency}}1,000",
+                                "range1000to3000": "{{currency}}1,000-3,000",
+                                "range3000to5000": "{{currency}}3,000-5,000",
+                                "over5000": "Over {{currency}}5,000"
+                        },
+                        "categories": {
+                                "japanese": "Japanese",
+                                "italian": "Italian",
+                                "french": "French",
+                                "chinese": "Chinese",
+                                "asian": "Asian",
+                                "other": "Other"
+                        }
+                }
+        }
 }

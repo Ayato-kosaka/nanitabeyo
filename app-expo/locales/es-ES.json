@@ -9,8 +9,9 @@
 		"post": "Publicar",
 		"processing": "Procesando...",
 		"error": "Error",
-		"success": "Éxito"
-	},
+                "success": "Éxito",
+                "daysRemaining": "Quedan {{count}} días"
+        },
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
 		"unsupportedVersion": "Esta versión ya no es compatible."
@@ -131,13 +132,16 @@
 			"viewCreatorProfile": "Ver perfil del creador",
 			"reservation": "Reserva"
 		},
-		"actions": {
-			"share": "Compartir"
-		},
-		"info": {
-			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
-		}
-	},
+                "actions": {
+                        "share": "Compartir"
+                },
+                "buttons": {
+                        "viewRestaurant": "Ver restaurante"
+                },
+                "info": {
+                        "walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
+                }
+        },
 	"ImageCardGrid": {
 		"openItemDetails": "Abrir detalles del elemento"
 	},
@@ -161,20 +165,32 @@
 			"noDeposits": "No hay depósitos para el estado seleccionado",
 			"noEarnings": "No hay ganancias para el estado seleccionado"
 		},
-		"statusLabels": {
-			"active": "Activo",
-			"completed": "Completado",
-			"refunded": "Reembolsado",
-			"paid": "Pagado",
-			"pending": "Pendiente"
-		},
-		"buttons": {
-			"editProfile": "Editar Perfil"
-		},
-		"placeholders": {
-			"enterBio": "Ingresa tu biografía..."
-		}
-	},
+                "statusLabels": {
+                        "active": "Activo",
+                        "completed": "Completado",
+                        "refunded": "Reembolsado",
+                        "paid": "Pagado",
+                        "pending": "Pendiente"
+                },
+                "buttons": {
+                        "editProfile": "Editar Perfil",
+                        "follow": "Seguir",
+                        "following": "Siguiendo",
+                        "message": "Mensaje"
+                },
+                "stats": {
+                        "following": "Siguiendo",
+                        "followers": "Seguidores",
+                        "likes": "Me gusta"
+                },
+                "labels": {
+                        "bio": "Bio"
+                },
+                "privateContent": "Este contenido es privado",
+                "placeholders": {
+                        "enterBio": "Ingresa tu biografía..."
+                }
+        },
 	"NotFound": {
 		"title": "¡Vaya!",
 		"message": "Esta pantalla no existe.",
@@ -201,23 +217,61 @@
 			"enterReview": "Ingresa tu reseña",
 			"enterBidAmount": "Ingresa el monto de la oferta"
 		},
-		"labels": {
-			"endDate": "Fecha de fin:",
-			"paymentProcessing": "Procesando pago...",
-			"currentBidAmount": "Monto de oferta actual"
-		},
-		"alerts": {
-			"locationError": "Error al obtener información de ubicación",
-			"currentLocationError": "Error al obtener ubicación actual",
-			"bidSuccess": "Oferta realizada exitosamente para {{place}} por ¥{{amount}}",
-			"bidError": "Error al realizar la oferta",
-			"reviewSuccess": "Reseña publicada exitosamente",
-			"reviewError": "Error al publicar la reseña"
-		}
-	},
-	"Restaurant": {
-		"placeholders": {
-			"searchLocation": "Buscar ubicación/área"
-		}
-	}
+                "labels": {
+                        "endDate": "Fecha de fin:",
+                        "paymentProcessing": "Procesando pago...",
+                        "currentBidAmount": "Monto de oferta actual"
+                },
+                "tabs": {
+                        "reviews": "Reseñas",
+                        "bids": "Ofertas"
+                },
+                "emptyState": {
+                        "noBidsForStatus": "No hay ofertas para el estado seleccionado"
+                },
+                "alerts": {
+                        "locationError": "Error al obtener información de ubicación",
+                        "currentLocationError": "Error al obtener ubicación actual",
+                        "bidSuccess": "Oferta realizada exitosamente para {{place}} por ¥{{amount}}",
+                        "bidError": "Error al realizar la oferta",
+                        "reviewSuccess": "Reseña publicada exitosamente",
+                        "reviewError": "Error al publicar la reseña"
+                }
+        },
+        "Restaurant": {
+                "placeholders": {
+                        "searchLocation": "Buscar ubicación/área"
+                },
+                "buttons": {
+                        "reserve": "Reservar",
+                        "postMedia": "Publicar multimedia"
+                },
+                "tabs": {
+                        "posts": "Publicaciones {{count}}",
+                        "info": "Información"
+                },
+                "filter": {
+                        "title": "Filtrar",
+                        "reset": "Restablecer",
+                        "apply": "Aplicar",
+                        "sections": {
+                                "priceRange": "Rango de precios",
+                                "category": "Categoría"
+                        },
+                        "priceRanges": {
+                                "under1000": "Menos de {{currency}}1,000",
+                                "range1000to3000": "{{currency}}1,000-3,000",
+                                "range3000to5000": "{{currency}}3,000-5,000",
+                                "over5000": "Más de {{currency}}5,000"
+                        },
+                        "categories": {
+                                "japanese": "Japonesa",
+                                "italian": "Italiana",
+                                "french": "Francesa",
+                                "chinese": "China",
+                                "asian": "Asiática",
+                                "other": "Otra"
+                        }
+                }
+        }
 }
