@@ -1,7 +1,9 @@
+import { EXTENSION_TABLE } from "./storage.utils";
+
 export interface UploadFileParams {
   /** File buffer  */
   buffer: Buffer;
-  mimeType: string;
+  mimeType: keyof typeof EXTENSION_TABLE;
 
   /** e.g. 'user-uploads', 'system-generated' */
   resourceType: string;
@@ -9,9 +11,6 @@ export interface UploadFileParams {
   usageType: string;
   /** e.g. userId, spotId */
   identifier: string;
-
-  /** 任意。拡張子抜きで渡す */
-  fileName?: string;
 
   /** メタデータ (request_id など) */
   metadata?: Record<string, string>;

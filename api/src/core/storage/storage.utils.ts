@@ -4,7 +4,7 @@ import { MAX_FILENAME_BYTES } from './storage.constants';
 /* -------------------------------------------------------------------------- */
 /*                               MIME → ext map                               */
 /* -------------------------------------------------------------------------- */
-const EXTENSION_TABLE: Record<string, string> = {
+export const EXTENSION_TABLE = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
@@ -12,7 +12,7 @@ const EXTENSION_TABLE: Record<string, string> = {
 };
 
 /** 未知の MIME は “bin” 拡張子扱い */
-export const getExt = (mime: string): string => EXTENSION_TABLE[mime] ?? 'bin';
+export const getExt = (mime: keyof typeof EXTENSION_TABLE): string => EXTENSION_TABLE[mime];
 
 /* -------------------------------------------------------------------------- */
 /*                               ファイル名生成                               */
@@ -33,7 +33,6 @@ export const buildFullPath = (params: {
   env: string;
   resourceType: string;
   usageType: string;
-  identifier: string;
   finalFileName: string;
 }): string =>
-  `${params.env}/${params.resourceType}/${params.usageType}/${params.identifier}/${params.finalFileName}`;
+  `${params.env}/${params.resourceType}/${params.usageType}/${params.finalFileName}`;

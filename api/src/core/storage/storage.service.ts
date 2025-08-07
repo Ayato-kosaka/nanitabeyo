@@ -27,17 +27,15 @@ export class StorageService {
     resourceType,
     usageType,
     identifier,
-    fileName,
     metadata = {},
     expiresInSeconds = 24 * 60 * 60,
   }: UploadFileParams): Promise<UploadResult> {
     const ext = getExt(mimeType);
-    const finalFileName = buildFileName(fileName ?? '', ext);
+    const finalFileName = buildFileName(identifier, ext);
     const fullPath = buildFullPath({
       env: env.API_NODE_ENV,
       resourceType,
       usageType,
-      identifier,
       finalFileName,
     });
 

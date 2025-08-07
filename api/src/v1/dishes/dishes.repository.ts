@@ -9,10 +9,10 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDishDto } from '@shared/v1/dto';
-import { GoogleMapsPlace } from './google-maps.service';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { google } from '@googlemaps/places/build/protos/protos';
 
 @Injectable()
 export class DishesRepository {
@@ -53,13 +53,15 @@ export class DishesRepository {
    */
   async createOrGetRestaurant(
     tx: Prisma.TransactionClient,
-    place: GoogleMapsPlace,
+    place: google.maps.places.v1.IPlace,
     placeImageUrl: string,
   ) {
     this.logger.debug('createOrGetRestaurant', 'DishesRepository', {
-      googlePlaceId: place.place_id,
+      googlePlaceId: place.id,
       name: place.name,
     });
+
+    if (!place.id || !place.name || !place.location?.latitude || !place.location?.longitude) throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
 
     // PostGIS geography カラムを扱いつつ、
     // INSERT … ON CONFLICT DO NOTHING RETURNING *
@@ -69,10 +71,10 @@ export class DishesRepository {
           (google_place_id, name, location, image_url, created_at)
         VALUES
           (
-            ${place.place_id},
+            ${place.id},
             ${place.name},
             ST_SetSRID(
-              ST_MakePoint(${place.geometry.location.lng}, ${place.geometry.location.lat}),
+              ST_MakePoint(${place.location.longitude}, ${place.location?.latitude}),
               4326
             ),
             ${placeImageUrl},
@@ -90,11 +92,11 @@ export class DishesRepository {
 
     // Conflict で何も返らなかった場合は既存行を SELECT
     const existing = await tx.restaurants.findUnique({
-      where: { google_place_id: place.place_id },
+      where: { google_place_id: place.id },
     });
     if (!existing) {
       // 理論的には起こらない
-      throw new Error(`Failed to insert or find restaurant with place_id=${place.place_id}`);
+      throw new Error(`Failed to insert or find restaurant with place_id=${place.id}`);
     }
     return existing;
   }
@@ -134,11 +136,8 @@ export class DishesRepository {
   async createDishMedia(
     tx: Prisma.TransactionClient,
     dishId: string,
-    photoReference: string,
+    mediaPath: string,
   ) {
-    // Google Photo Reference を media_path として保存
-    const mediaPath = `google_photos/${photoReference}`;
-
     return tx.dish_media.create({
       data: {
         dish_id: dishId,
@@ -156,19 +155,19 @@ export class DishesRepository {
   async createDishReview(
     tx: Prisma.TransactionClient,
     dishId: string,
-    review: { text?: string; rating: number; author_name: string; profile_photo_url: string }, // Google Maps Review 型
+    review: google.maps.places.v1.IReview
   ) {
     const result = await tx.dish_reviews.create({
       data: {
         dish_id: dishId,
         user_id: null, // Google からのインポートなので null
-        comment: review.text || '',
-        rating: Math.round(review.rating), // Google は小数点、DBは整数
+        comment: review.text?.text || '',
+        rating: review.rating || 0,
         price_cents: null,
         currency_code: null,
         created_dish_media_id: null,
-        imported_user_name: review.author_name,
-        imported_user_avatar: review.profile_photo_url,
+        imported_user_name: review.authorAttribution?.displayName || null,
+        imported_user_avatar: review.authorAttribution?.photoUri || null,
       },
     });
 

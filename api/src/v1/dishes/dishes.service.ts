@@ -21,6 +21,7 @@ import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/co
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertPrismaToSupabase_DishReviews, SupabaseDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { StorageService } from 'src/core/storage/storage.service';
 
 @Injectable()
 export class DishesService {
@@ -29,6 +30,7 @@ export class DishesService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly googleMaps: GoogleMapsService,
+    private readonly storage: StorageService
   ) { }
 
   /* ------------------------------------------------------------------ */
@@ -80,15 +82,33 @@ export class DishesService {
       dto.categoryName,
     );
 
+    if (!googlePlaces || !googlePlaces?.places || !googlePlaces?.contextualContents) {
+      throw new Error('No places found from Google Maps API');
+    }
+
     const results: BulkImportDishesResponse = [];
 
     // 各レストランに対してデータ登録
-    for (const place of googlePlaces) {
+    for (const [index, place] of googlePlaces.places.entries()) {
       try {
+        if (!place.id) throw new Error(`Place ID is missing for place at index ${index}`);
+        const photoName = googlePlaces.contextualContents[index]?.photos?.[0]?.name;
+        if (!photoName) throw new Error(`No photo name found for place: ${place.id}`);
+        const photoMedia = await this.googleMaps.getPhotoMedia(photoName);
+        if (!photoMedia) throw new Error(`No photo URL found for place: ${place.id}`);
+
+        const dishMediaUpload = await this.storage.uploadFile({
+          buffer: photoMedia.buffer,
+          mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
+          resourceType: 'google-maps',
+          usageType: 'photo',
+          identifier: place.id,
+        })
+
         const result = await this.prisma.withTransaction(
           async (tx: Prisma.TransactionClient) => {
             // 1. レストラン登録/取得
-            const restaurant = await this.repo.createOrGetRestaurant(tx, place);
+            const restaurant = await this.repo.createOrGetRestaurant(tx, place, photoMedia.photoUri);
 
             // 2. 料理登録/取得
             const dish = await this.repo.createOrGetDishForCategory(
@@ -99,21 +119,17 @@ export class DishesService {
             );
 
             // 3. 料理メディア登録
-            if (!place.photos || place.photos.length === 0) {
-              throw new Error('No photos available for this place');
-            }
             const dishMediaRecord = await this.repo.createDishMedia(
               tx,
               dish.id,
-              place.photos[0].photo_reference,
+              dishMediaUpload.path,
             );
             const dishMedia = convertPrismaToSupabase_DishMedia(dishMediaRecord);
 
             // 4. レビュー登録（Google レビューがある場合）
             const dishReviews: SupabaseDishReviews[] = [];
             if (place.reviews && place.reviews.length > 0) {
-              for (const review of place.reviews.slice(0, 5)) {
-                // 最大5件
+              for (const review of place.reviews) {
                 const dishReviewRecord = await this.repo.createDishReview(
                   tx,
                   dish.id,
@@ -137,7 +153,7 @@ export class DishesService {
         results.push(result);
       } catch (error) {
         this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
-          placeId: place.place_id,
+          placeId: place.id,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
         // 1つのレストランでエラーが起きても処理を続行
@@ -146,7 +162,7 @@ export class DishesService {
 
     this.logger.log('BulkImportCompleted', 'bulkImportFromGoogle', {
       importedCount: results.length,
-      totalPlaces: googlePlaces.length,
+      totalPlaces: googlePlaces.places?.length,
     });
 
     return results;

@@ -17,11 +17,13 @@ import { GoogleMapsService } from './google-maps.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
+import { StorageModule } from 'src/core/storage/storage.module';
 
 @Module({
   imports: [
     PrismaModule, // DB アクセス
     LoggerModule, // アプリ共通 Logger
+    StorageModule, // 画像アップロードなどのストレージサービス
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishesController],
@@ -34,4 +36,4 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
     DishesService, // 他ドメインが再利用できる
   ],
 })
-export class DishesModule {}
+export class DishesModule { }
