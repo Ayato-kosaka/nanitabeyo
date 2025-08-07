@@ -16,8 +16,9 @@ import { google } from '@googlemaps/places/build/protos/protos';
 
 @Injectable()
 export class DishesRepository {
-  constructor(private readonly prisma: PrismaService,
-    private readonly logger: AppLoggerService
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: AppLoggerService,
   ) { }
 
   /**
