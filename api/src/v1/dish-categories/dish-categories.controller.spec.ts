@@ -47,7 +47,9 @@ describe('DishCategoriesController', () => {
         },
       ];
 
-      mockDishCategoriesService.getRecommendations.mockResolvedValue(expectedResult);
+      mockDishCategoriesService.getRecommendations.mockResolvedValue(
+        expectedResult,
+      );
 
       const result = await controller.getRecommendations(query);
 

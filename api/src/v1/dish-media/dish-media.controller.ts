@@ -54,9 +54,10 @@ import { DishMediaMapper } from './dish-media.mapper';
 @ApiTags('DishMedia')
 @Controller('v1/dish-media')
 export class DishMediaController {
-  constructor(private readonly dishMediaService: DishMediaService,
+  constructor(
+    private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                             GET /v1/dish-media                     */
@@ -77,7 +78,10 @@ export class DishMediaController {
     @Query() query: QueryDishMediaDto,
     @CurrentUser() user?: RequestUser,
   ): Promise<QueryDishMediaResponse> {
-    const items = await this.dishMediaService.findByCriteria(query, user?.userId);
+    const items = await this.dishMediaService.findByCriteria(
+      query,
+      user?.userId,
+    );
     return this.dishMediaMapper.toQueryResponse(items);
   }
 

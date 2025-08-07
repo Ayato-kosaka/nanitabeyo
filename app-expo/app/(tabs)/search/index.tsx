@@ -29,12 +29,12 @@ import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
 import {
-        timeSlots,
-        sceneOptions,
-        moodOptions,
-        distanceOptions,
-        budgetOptions,
-        restrictionOptions,
+	timeSlots,
+	sceneOptions,
+	moodOptions,
+	distanceOptions,
+	budgetOptions,
+	restrictionOptions,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { BudgetSlider } from "@/features/search/components/BudgetSlider";
@@ -96,7 +96,7 @@ export default function SearchScreen() {
 			setLocationQuery(locationDetails.address);
 			setShowLocationSuggestions(false);
 		} catch (error) {
-                        showSnackbar(i18n.t("Search.errors.fetchLocation"));
+			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
 	};
 
@@ -107,7 +107,7 @@ export default function SearchScreen() {
 			setLocation(currentLocation);
 			setLocationQuery(currentLocation.address);
 		} catch (error) {
-                        showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
+			showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
 		}
 	};
 
@@ -120,7 +120,7 @@ export default function SearchScreen() {
 
 	const handleSearch = async () => {
 		if (!location) {
-                        showSnackbar(i18n.t("Search.errors.noLocationSelected"));
+			showSnackbar(i18n.t("Search.errors.noLocationSelected"));
 			return;
 		}
 
@@ -147,21 +147,21 @@ export default function SearchScreen() {
 				},
 			});
 		} catch (error) {
-                        showSnackbar(i18n.t("Search.errors.searchFailed"));
+			showSnackbar(i18n.t("Search.errors.searchFailed"));
 		} finally {
 			setIsSearching(false);
 		}
 	};
 
 	const formatBudgetRange = () => {
-                const minLabel =
-                        budgetMin === null
-                                ? i18n.t("Search.labels.noMinBudget")
-                                : `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
-                const maxLabel =
-                        budgetMax === null
-                                ? i18n.t("Search.labels.noMaxBudget")
-                                : `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
+		const minLabel =
+			budgetMin === null
+				? i18n.t("Search.labels.noMinBudget")
+				: `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
+		const maxLabel =
+			budgetMax === null
+				? i18n.t("Search.labels.noMaxBudget")
+				: `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
 		return `${minLabel} 〜 ${maxLabel}`;
 	};
 
@@ -200,7 +200,7 @@ export default function SearchScreen() {
 		<SafeAreaView style={styles.container}>
 			{/* Header */}
 			<View style={styles.header}>
-                                <Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
+				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 			</View>
 
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -208,15 +208,15 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<MapPin size={20} color="#5EA2FF" />
-                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.location")}</Text>
+						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.location")}</Text>
 						<View style={styles.requiredBadge}>
-                                                        <Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
+							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
 						</View>
 					</View>
 					<View style={styles.locationInputContainer}>
 						<TextInput
 							style={styles.locationInput}
-                                                        placeholder={i18n.t("Search.placeholders.enterLocation")}
+							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							placeholderTextColor="#6B7280"
 							value={locationQuery}
 							onChangeText={handleLocationSearch}
@@ -230,10 +230,10 @@ export default function SearchScreen() {
 					{showLocationSuggestions && (
 						<View style={styles.suggestionsContainer}>
 							{isLocationSearching ? (
-                                                                <View style={styles.loadingContainer}>
-                                                                        <ActivityIndicator size="small" color="#5EA2FF" />
-                                                                        <Text style={styles.loadingText}>{i18n.t("Search.loading")}</Text>
-                                                                </View>
+								<View style={styles.loadingContainer}>
+									<ActivityIndicator size="small" color="#5EA2FF" />
+									<Text style={styles.loadingText}>{i18n.t("Search.loading")}</Text>
+								</View>
 							) : (
 								<FlatList
 									data={suggestions}
@@ -251,18 +251,20 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<Clock size={20} color="#5EA2FF" />
-                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
+						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
-                                                {timeSlots.map((slot) => (
-                                                        <TouchableOpacity
-                                                                key={slot.id}
+						{timeSlots.map((slot) => (
+							<TouchableOpacity
+								key={slot.id}
 								style={[styles.chip, timeSlot === slot.id && styles.selectedChip]}
 								onPress={() => handleTimeSlotSelect(slot.id)}>
 								<Text style={styles.chipEmoji}>{slot.icon}</Text>
-                                                                <Text style={[styles.chipText, timeSlot === slot.id && styles.selectedChipText]}>{i18n.t(slot.label)}</Text>
-                                                        </TouchableOpacity>
-                                                ))}
+								<Text style={[styles.chipText, timeSlot === slot.id && styles.selectedChipText]}>
+									{i18n.t(slot.label)}
+								</Text>
+							</TouchableOpacity>
+						))}
 					</View>
 				</Card>
 
@@ -270,18 +272,20 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<Users size={20} color="#5EA2FF" />
-                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
+						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
-                                                {sceneOptions.map((option) => (
-                                                        <TouchableOpacity
-                                                                key={option.id}
+						{sceneOptions.map((option) => (
+							<TouchableOpacity
+								key={option.id}
 								style={[styles.chip, scene === option.id && styles.selectedChip]}
 								onPress={() => handleSceneSelect(option.id)}>
 								<Text style={styles.chipEmoji}>{option.icon}</Text>
-                                                                <Text style={[styles.chipText, scene === option.id && styles.selectedChipText]}>{i18n.t(option.label)}</Text>
-                                                        </TouchableOpacity>
-                                                ))}
+								<Text style={[styles.chipText, scene === option.id && styles.selectedChipText]}>
+									{i18n.t(option.label)}
+								</Text>
+							</TouchableOpacity>
+						))}
 					</View>
 				</Card>
 
@@ -289,18 +293,20 @@ export default function SearchScreen() {
 				<Card>
 					<View style={styles.sectionHeader}>
 						<Heart size={20} color="#5EA2FF" />
-                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
+						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
-                                                {moodOptions.map((option) => (
-                                                        <TouchableOpacity
-                                                                key={option.id}
+						{moodOptions.map((option) => (
+							<TouchableOpacity
+								key={option.id}
 								style={[styles.chip, mood === option.id && styles.selectedChip]}
 								onPress={() => handleMoodSelect(option.id)}>
 								<Text style={styles.chipEmoji}>{option.icon}</Text>
-                                                                <Text style={[styles.chipText, mood === option.id && styles.selectedChipText]}>{i18n.t(option.label)}</Text>
-                                                        </TouchableOpacity>
-                                                ))}
+								<Text style={[styles.chipText, mood === option.id && styles.selectedChipText]}>
+									{i18n.t(option.label)}
+								</Text>
+							</TouchableOpacity>
+						))}
 					</View>
 				</Card>
 
@@ -308,11 +314,9 @@ export default function SearchScreen() {
 				{!showAdvancedFilters && (
 					<TouchableOpacity style={styles.advancedToggle} onPress={handleAdvancedToggle}>
 						{showAdvancedFilters ? <ChevronUp size={20} color="#5EA2FF" /> : <Plus size={20} color="#5EA2FF" />}
-                                                <Text style={styles.advancedToggleText}>
-                                                        {showAdvancedFilters
-                                                                ? i18n.t("Search.advancedToggle.close")
-                                                                : i18n.t("Search.advancedToggle.open")}
-                                                </Text>
+						<Text style={styles.advancedToggleText}>
+							{showAdvancedFilters ? i18n.t("Search.advancedToggle.close") : i18n.t("Search.advancedToggle.open")}
+						</Text>
 					</TouchableOpacity>
 				)}
 
@@ -323,7 +327,7 @@ export default function SearchScreen() {
 						<Card>
 							<View style={styles.sectionHeader}>
 								<Distance size={20} color="#5EA2FF" />
-                                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>
@@ -337,7 +341,7 @@ export default function SearchScreen() {
 						<Card>
 							<View style={styles.sectionHeader}>
 								<DollarSign size={20} color="#5EA2FF" />
-                                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
@@ -353,24 +357,24 @@ export default function SearchScreen() {
 						{/* Restrictions */}
 						<Card>
 							<View style={styles.sectionHeader}>
-                                                                <Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
 							</View>
 							<View style={styles.restrictionsContainer}>
-                                                                {restrictionOptions.map((option) => (
-                                                                        <TouchableOpacity
-                                                                                key={option.id}
-                                                                                style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
-                                                                                onPress={() => toggleRestriction(option.id)}>
-                                                                                <Text style={styles.chipEmoji}>{option.icon}</Text>
-                                                                                <Text
-                                                                                        style={[
-                                                                                                styles.restrictionChipText,
-                                                                                                restrictions.includes(option.id) && styles.selectedRestrictionChipText,
-                                                                                        ]}>
-                                                                                        {i18n.t(option.label)}
-                                                                                </Text>
-                                                                        </TouchableOpacity>
-                                                                ))}
+								{restrictionOptions.map((option) => (
+									<TouchableOpacity
+										key={option.id}
+										style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
+										onPress={() => toggleRestriction(option.id)}>
+										<Text style={styles.chipEmoji}>{option.icon}</Text>
+										<Text
+											style={[
+												styles.restrictionChipText,
+												restrictions.includes(option.id) && styles.selectedRestrictionChipText,
+											]}>
+											{i18n.t(option.label)}
+										</Text>
+									</TouchableOpacity>
+								))}
 							</View>
 						</Card>
 					</>
@@ -388,7 +392,7 @@ export default function SearchScreen() {
 					) : (
 						<>
 							<Search size={24} color="#FFF" />
-                                                        <Text style={styles.fabText}>{i18n.t("Search.searchButton")}</Text>
+							<Text style={styles.fabText}>{i18n.t("Search.searchButton")}</Text>
 						</>
 					)}
 				</TouchableOpacity>

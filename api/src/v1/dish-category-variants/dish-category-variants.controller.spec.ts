@@ -27,8 +27,12 @@ describe('DishCategoryVariantsController', () => {
       ],
     }).compile();
 
-    controller = module.get<DishCategoryVariantsController>(DishCategoryVariantsController);
-    service = module.get<DishCategoryVariantsService>(DishCategoryVariantsService);
+    controller = module.get<DishCategoryVariantsController>(
+      DishCategoryVariantsController,
+    );
+    service = module.get<DishCategoryVariantsService>(
+      DishCategoryVariantsService,
+    );
   });
 
   it('should be defined', () => {
@@ -45,7 +49,9 @@ describe('DishCategoryVariantsController', () => {
         },
       ];
 
-      mockDishCategoryVariantsService.findDishCategoryVariants.mockResolvedValue(expectedResult);
+      mockDishCategoryVariantsService.findDishCategoryVariants.mockResolvedValue(
+        expectedResult,
+      );
 
       const result = await controller.findDishCategoryVariants(query);
 
@@ -72,7 +78,9 @@ describe('DishCategoryVariantsController', () => {
         },
       ];
 
-      mockDishCategoryVariantsService.createDishCategoryVariant.mockResolvedValue(expectedResult);
+      mockDishCategoryVariantsService.createDishCategoryVariant.mockResolvedValue(
+        expectedResult,
+      );
 
       const result = await controller.createDishCategoryVariant(dto);
 

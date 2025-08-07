@@ -2,8 +2,8 @@ import { SupabaseDishCategories } from "../../../converters/convert_dish_categor
 
 /** GET /v1/dish-category-variants のレスポンス型 */
 export type QueryDishCategoryVariantsResponse = {
-        dishCategoryId: string;
-        label: string;
+	dishCategoryId: string;
+	label: string;
 }[];
 
 /** POST /v1/dish-category-variants のレスポンス型 */
