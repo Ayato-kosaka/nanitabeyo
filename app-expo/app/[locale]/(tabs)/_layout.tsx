@@ -7,6 +7,7 @@ const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
 export default function TabLayout() {
 	return (
 		<Tabs
+			initialRouteName="search"
 			screenOptions={{
 				headerShown: false,
 				tabBarIconStyle: {
