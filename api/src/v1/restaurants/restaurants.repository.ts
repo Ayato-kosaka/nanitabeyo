@@ -113,14 +113,13 @@ export class RestaurantsRepository {
     location: any; // PostGIS geography type
     imageUrl?: string;
   }): Promise<restaurants> {
-    return this.prisma.restaurants.create({
-      data: {
-        google_place_id: data.googlePlaceId,
-        name: data.name,
-        location: data.location,
-        image_url: data.imageUrl,
-      },
-    });
+    // Use raw query since type issues with restaurants create
+    const [result] = await this.prisma.$queryRaw<restaurants[]>`
+      INSERT INTO restaurants (google_place_id, name, location, image_url)
+      VALUES (${data.googlePlaceId}, ${data.name}, ${data.location}, ${data.imageUrl})
+      RETURNING *;
+    `;
+    return result;
   }
 
   /* ------------------------------------------------------------------ */
