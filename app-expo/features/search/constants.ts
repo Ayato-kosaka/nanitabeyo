@@ -1,5 +1,5 @@
 // Constants and option data for the search feature
-import { i18n } from "@/lib/i18n";
+import i18n from "@/lib/i18n";
 
 export const timeSlots = [
 	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
@@ -43,26 +43,26 @@ export const distanceOptions = [
 
 // Budget options in yen
 export const budgetOptions = [
-	{ value: null, label: "Search.labels.noMinBudget" },
-	{ value: 1000, label: "1,000¥" },
-	{ value: 2000, label: "2,000¥" },
-	{ value: 3000, label: "3,000¥" },
-	{ value: 4000, label: "4,000¥" },
-	{ value: 5000, label: "5,000¥" },
-	{ value: 6000, label: "6,000¥" },
-	{ value: 7000, label: "7,000¥" },
-	{ value: 8000, label: "8,000¥" },
-	{ value: 9000, label: "9,000¥" },
-	{ value: 10000, label: "10,000¥" },
-	{ value: 15000, label: "15,000¥" },
-	{ value: 20000, label: "20,000¥" },
-	{ value: 30000, label: "30,000¥" },
-	{ value: 40000, label: "40,000¥" },
-	{ value: 50000, label: "50,000¥" },
-	{ value: 60000, label: "60,000¥" },
-	{ value: 80000, label: "80,000¥" },
-	{ value: 100000, label: "100,000¥" },
-	{ value: null, label: "Search.labels.noMaxBudget" },
+        { value: null, label: "Search.labels.noMinBudget" },
+        { value: 1000, label: `1,000${i18n.t("Search.currencySuffix")}` },
+        { value: 2000, label: `2,000${i18n.t("Search.currencySuffix")}` },
+        { value: 3000, label: `3,000${i18n.t("Search.currencySuffix")}` },
+        { value: 4000, label: `4,000${i18n.t("Search.currencySuffix")}` },
+        { value: 5000, label: `5,000${i18n.t("Search.currencySuffix")}` },
+        { value: 6000, label: `6,000${i18n.t("Search.currencySuffix")}` },
+        { value: 7000, label: `7,000${i18n.t("Search.currencySuffix")}` },
+        { value: 8000, label: `8,000${i18n.t("Search.currencySuffix")}` },
+        { value: 9000, label: `9,000${i18n.t("Search.currencySuffix")}` },
+        { value: 10000, label: `10,000${i18n.t("Search.currencySuffix")}` },
+        { value: 15000, label: `15,000${i18n.t("Search.currencySuffix")}` },
+        { value: 20000, label: `20,000${i18n.t("Search.currencySuffix")}` },
+        { value: 30000, label: `30,000${i18n.t("Search.currencySuffix")}` },
+        { value: 40000, label: `40,000${i18n.t("Search.currencySuffix")}` },
+        { value: 50000, label: `50,000${i18n.t("Search.currencySuffix")}` },
+        { value: 60000, label: `60,000${i18n.t("Search.currencySuffix")}` },
+        { value: 80000, label: `80,000${i18n.t("Search.currencySuffix")}` },
+        { value: 100000, label: `100,000${i18n.t("Search.currencySuffix")}` },
+        { value: null, label: "Search.labels.noMaxBudget" },
 ];
 
 export const restrictionOptions = [

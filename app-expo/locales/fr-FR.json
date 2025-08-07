@@ -9,8 +9,9 @@
 		"post": "Publier",
 		"processing": "Traitement...",
 		"error": "Erreur",
-		"success": "Succès"
-	},
+                "success": "Succès",
+                "daysRemaining": "Il reste {{count}} jours"
+        },
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
 		"unsupportedVersion": "Cette version n'est plus prise en charge."
@@ -131,13 +132,16 @@
 			"viewCreatorProfile": "Voir le profil du créateur",
 			"reservation": "Réservation"
 		},
-		"actions": {
-			"share": "Partager"
-		},
-		"info": {
-			"walkFromShibuya": "À 13 min à pied de la gare de Shibuya"
-		}
-	},
+                "actions": {
+                        "share": "Partager"
+                },
+                "buttons": {
+                        "viewRestaurant": "Voir le restaurant"
+                },
+                "info": {
+                        "walkFromShibuya": "À 13 min à pied de la gare de Shibuya"
+                }
+        },
 	"ImageCardGrid": {
 		"openItemDetails": "Ouvrir les détails de l'article"
 	},
@@ -161,20 +165,32 @@
 			"noDeposits": "Aucun dépôt pour le statut sélectionné",
 			"noEarnings": "Aucun revenu pour le statut sélectionné"
 		},
-		"statusLabels": {
-			"active": "Actif",
-			"completed": "Terminé",
-			"refunded": "Remboursé",
-			"paid": "Payé",
-			"pending": "En attente"
-		},
-		"buttons": {
-			"editProfile": "Modifier le profil"
-		},
-		"placeholders": {
-			"enterBio": "Entrez votre biographie..."
-		}
-	},
+                "statusLabels": {
+                        "active": "Actif",
+                        "completed": "Terminé",
+                        "refunded": "Remboursé",
+                        "paid": "Payé",
+                        "pending": "En attente"
+                },
+                "buttons": {
+                        "editProfile": "Modifier le profil",
+                        "follow": "Suivre",
+                        "following": "Suivi",
+                        "message": "Message"
+                },
+                "stats": {
+                        "following": "Abonnements",
+                        "followers": "Abonnés",
+                        "likes": "J'aime"
+                },
+                "labels": {
+                        "bio": "Bio"
+                },
+                "privateContent": "Ce contenu est privé",
+                "placeholders": {
+                        "enterBio": "Entrez votre biographie..."
+                }
+        },
 	"NotFound": {
 		"title": "Oups !",
 		"message": "Cet écran n'existe pas.",
@@ -201,23 +217,61 @@
 			"enterReview": "Entrez votre avis",
 			"enterBidAmount": "Entrez le montant de l'enchère"
 		},
-		"labels": {
-			"endDate": "Date de fin:",
-			"paymentProcessing": "Traitement du paiement...",
-			"currentBidAmount": "Montant de l'enchère actuelle"
-		},
-		"alerts": {
-			"locationError": "Échec de l'obtention des informations de localisation",
-			"currentLocationError": "Échec de l'obtention de la position actuelle",
-			"bidSuccess": "Enchère placée avec succès pour {{place}} à ¥{{amount}}",
-			"bidError": "Échec du placement de l'enchère",
-			"reviewSuccess": "Avis publié avec succès",
-			"reviewError": "Échec de la publication de l'avis"
-		}
-	},
-	"Restaurant": {
-		"placeholders": {
-			"searchLocation": "Rechercher un lieu/région"
-		}
-	}
+                "labels": {
+                        "endDate": "Date de fin:",
+                        "paymentProcessing": "Traitement du paiement...",
+                        "currentBidAmount": "Montant de l'enchère actuelle"
+                },
+                "tabs": {
+                        "reviews": "Avis",
+                        "bids": "Enchères"
+                },
+                "emptyState": {
+                        "noBidsForStatus": "Aucune enchère pour l'état sélectionné"
+                },
+                "alerts": {
+                        "locationError": "Échec de l'obtention des informations de localisation",
+                        "currentLocationError": "Échec de l'obtention de la position actuelle",
+                        "bidSuccess": "Enchère placée avec succès pour {{place}} à ¥{{amount}}",
+                        "bidError": "Échec du placement de l'enchère",
+                        "reviewSuccess": "Avis publié avec succès",
+                        "reviewError": "Échec de la publication de l'avis"
+                }
+        },
+        "Restaurant": {
+                "placeholders": {
+                        "searchLocation": "Rechercher un lieu/région"
+                },
+                "buttons": {
+                        "reserve": "Réserver",
+                        "postMedia": "Publier des médias"
+                },
+                "tabs": {
+                        "posts": "Publications {{count}}",
+                        "info": "Infos"
+                },
+                "filter": {
+                        "title": "Filtrer",
+                        "reset": "Réinitialiser",
+                        "apply": "Appliquer",
+                        "sections": {
+                                "priceRange": "Tranche de prix",
+                                "category": "Type de cuisine"
+                        },
+                        "priceRanges": {
+                                "under1000": "Moins de {{currency}}1 000",
+                                "range1000to3000": "{{currency}}1 000-3 000",
+                                "range3000to5000": "{{currency}}3 000-5 000",
+                                "over5000": "Plus de {{currency}}5 000"
+                        },
+                        "categories": {
+                                "japanese": "Japonaise",
+                                "italian": "Italienne",
+                                "french": "Française",
+                                "chinese": "Chinoise",
+                                "asian": "Asiatique",
+                                "other": "Autre"
+                        }
+                }
+        }
 }

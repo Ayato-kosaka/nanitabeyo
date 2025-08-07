@@ -23,7 +23,7 @@ import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
-import { i18n } from "@/lib/i18n";
+import i18n from "@/lib/i18n";
 import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import Stars from "@/components/Stars";
@@ -258,8 +258,15 @@ export default function MapScreen() {
 
 						<View style={styles.bidAmountContainer}>
 							<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
-							<Text style={styles.bidAmount}>¥{selectedPlace.totalAmount.toLocaleString()}</Text>
-							<Text style={styles.remainingDays}>残り{selectedPlace.remainingDays}日</Text>
+                                                        <Text style={styles.bidAmount}>
+                                                                {i18n.t("Search.currencySuffix")}
+                                                                {selectedPlace.totalAmount.toLocaleString()}
+                                                        </Text>
+                                                        <Text style={styles.remainingDays}>
+                                                                {i18n.t("Common.daysRemaining", {
+                                                                        count: selectedPlace.remainingDays,
+                                                                })}
+                                                        </Text>
 						</View>
 
 						{/* Action Buttons */}
@@ -285,12 +292,16 @@ export default function MapScreen() {
 							<TouchableOpacity
 								style={[styles.tab, selectedTab === "reviews" && styles.activeTab]}
 								onPress={() => handleTabSelect("reviews")}>
-								<Text style={[styles.tabText, selectedTab === "reviews" && styles.activeTabText]}>レビュー</Text>
+                                                                <Text style={[styles.tabText, selectedTab === "reviews" && styles.activeTabText]}> 
+                                                                        {i18n.t("Map.tabs.reviews")}
+                                                                </Text>
 							</TouchableOpacity>
 							<TouchableOpacity
 								style={[styles.tab, selectedTab === "bids" && styles.activeTab]}
 								onPress={() => handleTabSelect("bids")}>
-								<Text style={[styles.tabText, selectedTab === "bids" && styles.activeTabText]}>入札</Text>
+                                                                <Text style={[styles.tabText, selectedTab === "bids" && styles.activeTabText]}> 
+                                                                        {i18n.t("Map.tabs.bids")}
+                                                                </Text>
 							</TouchableOpacity>
 						</View>
 
@@ -342,7 +353,10 @@ export default function MapScreen() {
 									filteredBidHistory.map((bid) => (
 										<View key={bid.id} style={styles.bidHistoryCard}>
 											<View style={styles.bidHistoryHeader}>
-												<Text style={styles.bidHistoryAmount}>¥{bid.amount.toLocaleString()}</Text>
+                                                                                                <Text style={styles.bidHistoryAmount}>
+                                                                                                        {i18n.t("Search.currencySuffix")}
+                                                                                                        {bid.amount.toLocaleString()}
+                                                                                                </Text>
 												<View
 													style={[
 														styles.bidStatusChip,
@@ -354,12 +368,16 @@ export default function MapScreen() {
 												</View>
 											</View>
 											<Text style={styles.bidHistoryDate}>{bid.date}</Text>
-											<Text style={styles.bidHistoryDays}>残り{bid.remainingDays}日</Text>
+                                                                                        <Text style={styles.bidHistoryDays}>
+                                                                                                {i18n.t("Common.daysRemaining", { count: bid.remainingDays })}
+                                                                                        </Text>
 										</View>
 									))
 								) : (
 									<View style={styles.emptyState}>
-										<Text style={styles.emptyStateText}>選択したステータスの入札がありません</Text>
+                                                                                <Text style={styles.emptyStateText}>
+                                                                                        {i18n.t("Map.emptyState.noBidsForStatus")}
+                                                                                </Text>
 									</View>
 								)}
 							</View>
