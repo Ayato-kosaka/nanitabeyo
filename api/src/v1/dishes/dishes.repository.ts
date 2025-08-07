@@ -104,12 +104,13 @@ export class DishesRepository {
   async createOrGetDishForCategory(
     tx: Prisma.TransactionClient,
     restaurantId: string,
-    categoryId: string,
+    dishCategoryId: string,
+    dishName: string,
   ) {
     const existing = await tx.dishes.findFirst({
       where: {
         restaurant_id: restaurantId,
-        category_id: categoryId,
+        category_id: dishCategoryId,
       },
     });
 
@@ -120,8 +121,8 @@ export class DishesRepository {
     return tx.dishes.create({
       data: {
         restaurant_id: restaurantId,
-        category_id: categoryId,
-        name: null,
+        category_id: dishCategoryId,
+        name: dishName,
       },
     });
   }

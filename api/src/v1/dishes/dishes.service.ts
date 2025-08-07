@@ -71,17 +71,13 @@ export class DishesService {
   async bulkImportFromGoogle(
     dto: BulkImportDishesDto,
   ): Promise<BulkImportDishesResponse> {
-    this.logger.debug('BulkImportFromGoogle', 'bulkImportFromGoogle', {
-      location: dto.location,
-      radius: dto.radius,
-      category: dto.category,
-    });
+    this.logger.debug('BulkImportFromGoogle', 'bulkImportFromGoogle', dto);
 
     // Google Maps Text Search API を呼び出し
     const googlePlaces = await this.googleMaps.searchRestaurants(
       dto.location,
       dto.radius,
-      dto.category,
+      dto.categoryName,
     );
 
     const results: BulkImportDishesResponse = [];
@@ -98,7 +94,8 @@ export class DishesService {
             const dish = await this.repo.createOrGetDishForCategory(
               tx,
               restaurant.id,
-              dto.category,
+              dto.categoryId,
+              dto.categoryName
             );
 
             // 3. 料理メディア登録（写真がある場合）

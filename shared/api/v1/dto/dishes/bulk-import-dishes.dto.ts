@@ -1,4 +1,4 @@
-import { IsNumber, IsUUID, Matches } from "@nestjs/class-validator";
+import { IsNumber, IsString, IsUUID, Matches } from "@nestjs/class-validator";
 import { Type } from "@nestjs/class-transformer";
 
 /** POST /v1/dishes/bulk-import のボディ */
@@ -13,6 +13,10 @@ export class BulkImportDishesDto {
 	radius!: number;
 
 	/** dish_categories.id */
-	@IsUUID()
-	category!: string;
+	@IsString()
+	categoryId!: string;
+
+	/** dish_categories.name */
+	@IsString()
+	categoryName!: string;
 }

@@ -74,20 +74,20 @@ export class GoogleMapsService {
   async searchRestaurants(
     location: string,
     radius: number,
-    category: string,
+    dishCategoryName: string,
   ): Promise<GoogleMapsPlace[]> {
     const [lat, lng] = location.split(',').map(Number);
 
     this.logger.debug('GoogleMapsTextSearch', 'searchRestaurants', {
       location: `${lat},${lng}`,
       radius,
-      category,
+      category: dishCategoryName,
     });
 
     const apiKey = env.GOOGLE_PLACE_API_KEY;
 
     // カテゴリに基づく検索クエリを構築
-    const query = this.buildSearchQuery(category);
+    const query = dishCategoryName;
 
     const url = new URL(
       'https://maps.googleapis.com/maps/api/place/textsearch/json',
@@ -125,7 +125,7 @@ export class GoogleMapsService {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         location,
         radius,
-        category,
+        category: dishCategoryName,
       });
       return [];
     }
@@ -177,19 +177,5 @@ export class GoogleMapsService {
     }
 
     return detailedPlaces;
-  }
-
-  /**
-   * カテゴリIDに基づいて検索クエリを構築
-   */
-  private buildSearchQuery(categoryId: string): string {
-    // カテゴリIDから実際の検索語を生成
-    // TODO: dish_categories テーブルから取得するか、マッピングテーブルを作成
-    const categoryMap: Record<string, string> = {
-      default: 'restaurant food',
-      // 実際のカテゴリIDに応じて拡張
-    };
-
-    return categoryMap[categoryId] || 'restaurant food';
   }
 }
