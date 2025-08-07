@@ -8,8 +8,8 @@ export type CreateDishResponse = SupabaseDishes;
 
 /** POST /v1/dishes/bulk-import のレスポンス型 */
 export type BulkImportDishesResponse = {
-        restaurant: SupabaseRestaurants;
-        dish: SupabaseDishes;
-        dish_media: SupabaseDishMedia;
-        dish_reviews: SupabaseDishReviews[];
+	restaurant: SupabaseRestaurants;
+	dish: SupabaseDishes;
+	dish_media: SupabaseDishMedia;
+	dish_reviews: SupabaseDishReviews[];
 }[];

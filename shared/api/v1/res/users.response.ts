@@ -8,18 +8,18 @@ import { SupabaseDishCategories } from "../../../converters/convert_dish_categor
 
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
 export type QueryUserDishReviewsResponse = {
-        dish_media: SupabaseDishMedia;
-        dish_review: SupabaseDishReviews;
-        signedUrls: string[];
-        hasMedia: boolean;
+	dish_media: SupabaseDishMedia;
+	dish_review: SupabaseDishReviews;
+	signedUrls: string[];
+	hasMedia: boolean;
 }[];
 
 /** GET /v1/users/me/liked-dish-media のレスポンス型 */
 export type QueryMeLikedDishMediaResponse = {
-        restaurant: SupabaseRestaurants;
-        dish: SupabaseDishes;
-        dish_media: SupabaseDishMedia;
-        dish_reviews: SupabaseDishReviews[];
+	restaurant: SupabaseRestaurants;
+	dish: SupabaseDishes;
+	dish_media: SupabaseDishMedia;
+	dish_reviews: SupabaseDishReviews[];
 }[];
 
 /** GET /v1/users/me/payouts のレスポンス型 */
@@ -33,8 +33,8 @@ export type QueryMeSavedDishCategoriesResponse = SupabaseDishCategories[];
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = {
-        restaurant: SupabaseRestaurants;
-        dish: SupabaseDishes;
-        dish_media: SupabaseDishMedia;
-        dish_reviews: SupabaseDishReviews[];
+	restaurant: SupabaseRestaurants;
+	dish: SupabaseDishes;
+	dish_media: SupabaseDishMedia;
+	dish_reviews: SupabaseDishReviews[];
 }[];

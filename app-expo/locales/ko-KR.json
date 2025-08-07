@@ -15,47 +15,47 @@
 		"maintenanceMessage": "현재 점검 중입니다.",
 		"unsupportedVersion": "이 버전은 더 이상 지원되지 않습니다."
 	},
-        "Search": {
-                "DistanceSlider": {
-                        "near": "가까움",
-                        "far": "멀리"
-                },
-                "BudgetSlider": {
-                        "cheap": "저렴함",
-                        "expensive": "비쌈"
-                },
-                "headerTitle": "어떤 음식을 찾고 있나요?🍽",
-                "errors": {
-                        "fetchLocation": "위치를 가져오지 못했습니다",
-                        "getCurrentLocation": "현재 위치를 가져오지 못했습니다",
-                        "noLocationSelected": "위치를 선택해 주세요",
-                        "searchFailed": "검색에 실패했습니다"
-                },
-                "sections": {
-                        "location": "어디에서 찾을까요?",
-                        "time": "시간대는?",
-                        "scene": "어떤 상황?",
-                        "mood": "기분은?",
-                        "distance": "거리?",
-                        "budget": "예산?",
-                        "restrictions": "제한 조건"
-                },
-                "required": "필수",
-                "placeholders": {
-                        "enterLocation": "위치를 입력하세요"
-                },
-                "loading": "검색 중...",
-                "advancedToggle": {
-                        "open": "상세 검색",
-                        "close": "상세 검색 닫기"
-                },
-                "labels": {
-                        "noMinBudget": "최소 없음",
-                        "noMaxBudget": "최대 없음"
-                },
+	"Search": {
+		"DistanceSlider": {
+			"near": "가까움",
+			"far": "멀리"
+		},
+		"BudgetSlider": {
+			"cheap": "저렴함",
+			"expensive": "비쌈"
+		},
+		"headerTitle": "어떤 음식을 찾고 있나요?🍽",
+		"errors": {
+			"fetchLocation": "위치를 가져오지 못했습니다",
+			"getCurrentLocation": "현재 위치를 가져오지 못했습니다",
+			"noLocationSelected": "위치를 선택해 주세요",
+			"searchFailed": "검색에 실패했습니다"
+		},
+		"sections": {
+			"location": "어디에서 찾을까요?",
+			"time": "시간대는?",
+			"scene": "어떤 상황?",
+			"mood": "기분은?",
+			"distance": "거리?",
+			"budget": "예산?",
+			"restrictions": "제한 조건"
+		},
+		"required": "필수",
+		"placeholders": {
+			"enterLocation": "위치를 입력하세요"
+		},
+		"loading": "검색 중...",
+		"advancedToggle": {
+			"open": "상세 검색",
+			"close": "상세 검색 닫기"
+		},
+		"labels": {
+			"noMinBudget": "최소 없음",
+			"noMaxBudget": "최대 없음"
+		},
 		"distanceLabels": {
 			"100m": "100m",
-			"300m": "300m", 
+			"300m": "300m",
 			"500m": "500m",
 			"800m": "800m",
 			"1km": "1km",
@@ -66,58 +66,58 @@
 			"15km": "15km",
 			"20km": "20km"
 		},
-                "currencySuffix": "¥",
-                "searchButton": "찾기!",
-                "timeSlots": {
-                        "morning": "아침",
-                        "lunch": "점심",
-                        "dinner": "저녁",
-                        "lateNight": "야식"
-                },
-                "sceneOptions": {
-                        "solo": "혼자",
-                        "date": "데이트",
-                        "group": "여럿과",
-                        "largeGroup": "대규모",
-                        "tourism": "관광"
-                },
-                "moodOptions": {
-                        "hearty": "든든하게",
-                        "light": "가볍게",
-                        "sweet": "달콤한 것",
-                        "spicy": "매운 것",
-                        "healthy": "건강식",
-                        "junk": "정크",
-                        "alcohol": "술 위주"
-                },
-                "restrictionOptions": {
-                        "vegetarian": "채식",
-                        "glutenFree": "글루텐 프리",
-                        "dairyFree": "유제품 제외",
-                        "nutAllergy": "견과류 알레르기",
-                        "seafoodAllergy": "해산물 알레르기",
-                        "halal": "할랄"
-                }
-        },
-        "Topics": {
-                "HideTopicModal": {
-                        "title": "숨기기",
-                        "description": "숨기는 이유를 알려주세요 (선택사항)",
+		"currencySuffix": "¥",
+		"searchButton": "찾기!",
+		"timeSlots": {
+			"morning": "아침",
+			"lunch": "점심",
+			"dinner": "저녁",
+			"lateNight": "야식"
+		},
+		"sceneOptions": {
+			"solo": "혼자",
+			"date": "데이트",
+			"group": "여럿과",
+			"largeGroup": "대규모",
+			"tourism": "관광"
+		},
+		"moodOptions": {
+			"hearty": "든든하게",
+			"light": "가볍게",
+			"sweet": "달콤한 것",
+			"spicy": "매운 것",
+			"healthy": "건강식",
+			"junk": "정크",
+			"alcohol": "술 위주"
+		},
+		"restrictionOptions": {
+			"vegetarian": "채식",
+			"glutenFree": "글루텐 프리",
+			"dairyFree": "유제품 제외",
+			"nutAllergy": "견과류 알레르기",
+			"seafoodAllergy": "해산물 알레르기",
+			"halal": "할랄"
+		}
+	},
+	"Topics": {
+		"HideTopicModal": {
+			"title": "숨기기",
+			"description": "숨기는 이유를 알려주세요 (선택사항)",
 			"placeholder": "이유를 입력하세요...",
 			"confirm": "숨기기"
 		},
-                "Loading": {
-                        "title": "당신에게 딱 맞는 요리를 찾고 있어요",
-                        "subtitle": "잠시만 기다려 주세요..."
-                },
-                "errors": {
-                        "fetchFailed": "요리를 가져오지 못했습니다",
-                        "invalidSearchParams": "잘못된 검색 매개변수"
-                },
-                "empty": "표시할 요리가 없습니다",
-                "retry": "검색으로 돌아가기",
-                "chooseThis": "이걸로 할래!"
-        },
+		"Loading": {
+			"title": "당신에게 딱 맞는 요리를 찾고 있어요",
+			"subtitle": "잠시만 기다려 주세요..."
+		},
+		"errors": {
+			"fetchFailed": "요리를 가져오지 못했습니다",
+			"invalidSearchParams": "잘못된 검색 매개변수"
+		},
+		"empty": "표시할 요리가 없습니다",
+		"retry": "검색으로 돌아가기",
+		"chooseThis": "이걸로 할래!"
+	},
 	"Notifications": {
 		"title": "알림",
 		"timeAgo": "{{time}} 전"
@@ -163,7 +163,7 @@
 		},
 		"statusLabels": {
 			"active": "활성",
-			"completed": "완료", 
+			"completed": "완료",
 			"refunded": "환불됨",
 			"paid": "지불됨",
 			"pending": "보류 중"

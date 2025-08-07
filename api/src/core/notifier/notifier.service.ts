@@ -1,18 +1,21 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
 import chunk from 'lodash.chunk';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 
 import {
   NOTIFIER_EXPO_CLIENT,
   NOTIFIER_CHUNK_SIZE,
 } from './notifier.constants';
 import { PushMessage, PushTicket } from './notifier.types';
+import { AppLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class NotifierService {
-  private readonly logger = new Logger(NotifierService.name);
-
-  constructor(@Inject(NOTIFIER_EXPO_CLIENT) private readonly expo: Expo) {}
+  constructor(
+    @Inject(NOTIFIER_EXPO_CLIENT) private readonly expo: Expo,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                         Public send API                             */
@@ -51,15 +54,15 @@ export class NotifierService {
           })),
         );
       } catch (err) {
-        this.logger.error(
-          `Expo push chunk failed: ${(err as Error).message}`,
-          err as Error,
-        );
+        const error = err as Error;
+        this.logger.error('ExpoPushChunkFailed', 'sendPush', {
+          error_message: error.message,
+        });
         // チャンク丸ごと失敗時はステータス error で埋める
         tickets.push(
           ...chunkMsgs.map<PushTicket>(() => ({
             status: 'error',
-            message: (err as Error).message,
+            message: error.message,
           })),
         );
       }
@@ -75,7 +78,7 @@ export class NotifierService {
   validateToken(token: string): boolean {
     const ok = Expo.isExpoPushToken(token);
     if (!ok) {
-      this.logger.warn(`Invalid Expo push token skipped: ${token}`);
+      this.logger.warn('InvalidExpoPushToken', 'validateToken', { token });
     }
     return ok;
   }

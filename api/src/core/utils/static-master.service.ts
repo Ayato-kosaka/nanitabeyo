@@ -1,17 +1,16 @@
 // api/src/core/utils/static-master.service.ts
 //
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Database } from '../../../../shared/supabase/database.types';
 import { TableRow } from '../../../../shared/utils/devDB.types';
 import { loadStaticMaster } from '../../../../shared/utils/loadStaticMaster';
 import { env } from '../config/env';
+import { AppLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class StaticMasterService {
-  private readonly logger = new Logger(StaticMasterService.name);
-
-  constructor() { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /** ───────── キャッシュ領域 ───────── */
   private cache: Partial<
@@ -24,7 +23,6 @@ export class StaticMasterService {
 
   private readonly CACHE_TTL_MS = 5 * 60 * 1_000; // 5 min
 
-
   /**
    * 🗂️ 静的マスタデータを取得するユーティリティ関数。
    *
@@ -34,7 +32,7 @@ export class StaticMasterService {
    * @param tableName - 対象となるマスタテーブル名（Supabase dev スキーマ）
    * @returns 該当マスタのレコード配列
    */
-  async getStaticMaster<T extends keyof Database["dev"]["Tables"]>(
+  async getStaticMaster<T extends keyof Database['dev']['Tables']>(
     tableName: T,
   ): Promise<TableRow<T>[]> {
     const now = Date.now();
@@ -42,7 +40,7 @@ export class StaticMasterService {
     const expired = now - last > this.CACHE_TTL_MS;
 
     if (!this.cache[tableName] || expired) {
-      this.logger.debug(`Cache miss → loading ${tableName} master`);
+      this.logger.debug('CacheMiss', 'getStaticMaster', { tableName });
       this.cache[tableName] = await loadStaticMaster(
         env.GCS_BUCKET_NAME,
         env.GCS_STATIC_MASTER_DIR_PATH,
@@ -52,5 +50,5 @@ export class StaticMasterService {
     }
 
     return this.cache[tableName] as TableRow<T>[];
-  };
+  }
 }

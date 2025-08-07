@@ -1,22 +1,20 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import {
-  Bucket,
-  Storage,
-  StorageOptions,
-  UploadOptions,
-} from '@google-cloud/storage';
+import { Inject, Injectable } from '@nestjs/common';
+import { Bucket, Storage } from '@google-cloud/storage';
 import { env } from '../config/env';
-import { STORAGE_CLIENT, MAX_FILENAME_BYTES } from './storage.constants';
+import { AppLoggerService } from '../logger/logger.service';
+import { STORAGE_CLIENT } from './storage.constants';
 import { UploadFileParams, UploadResult } from './storage.types';
 import { getExt, buildFileName, buildFullPath } from './storage.utils';
 
 @Injectable()
 export class StorageService {
-  private readonly logger = new Logger(StorageService.name);
   /** GCS バケットハンドル（ctor で安全に初期化） */
   private readonly bucket: Bucket;
 
-  constructor(@Inject(STORAGE_CLIENT) private readonly storage: Storage) {
+  constructor(
+    @Inject(STORAGE_CLIENT) private readonly storage: Storage,
+    private readonly logger: AppLoggerService,
+  ) {
     this.bucket = this.storage.bucket(env.GCS_BUCKET_NAME);
   }
 
@@ -59,10 +57,10 @@ export class StorageService {
 
       return { path: fullPath, signedUrl };
     } catch (err) {
-      this.logger.error(
-        `Failed to upload to GCS: ${(err as Error).message}`,
-        err as Error,
-      );
+      this.logger.error('GcsUploadError', 'uploadFile', {
+        error_message: (err as Error).message,
+        path: fullPath,
+      });
       throw err;
     }
   }
@@ -88,10 +86,10 @@ export class StorageService {
     try {
       await this.bucket.file(path).delete();
     } catch (err) {
-      this.logger.error(
-        `Failed to delete ${path}: ${(err as Error).message}`,
-        err as Error,
-      );
+      this.logger.error('GcsDeleteError', 'deleteFile', {
+        error_message: (err as Error).message,
+        path,
+      });
       throw err;
     }
   }

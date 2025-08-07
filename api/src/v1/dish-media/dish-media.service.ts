@@ -5,7 +5,7 @@
 // ❸ “副作用” は出来るだけ Service で完結させ、Controller は薄く保つ
 //
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 
 import {
@@ -19,25 +19,28 @@ import { DishMediaRepository } from './dish-media.repository';
 import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotifierService } from '../../core/notifier/notifier.service';
+import { AppLoggerService } from '../../core/logger/logger.service';
 
 @Injectable()
 export class DishMediaService {
-  private readonly logger = new Logger(DishMediaService.name);
-
   constructor(
     private readonly repo: DishMediaRepository,
     private readonly storage: StorageService,
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
+    private readonly logger: AppLoggerService,
   ) {}
 
   /* ------------------------------------------------------------------ */
   /*                         GET /v1/dish-media                         */
   /* ------------------------------------------------------------------ */
   async findByCriteria(dto: QueryDishMediaDto, viewerId?: string) {
-    this.logger.debug(
-      `findByCriteria: location=${dto.location}, radius=${dto.radius}, categoryId=${dto.categoryId}, viewer=${viewerId ?? 'anon'}`,
-    );
+    this.logger.debug('FindByCriteria', 'findByCriteria', {
+      location: dto.location,
+      radius: dto.radius,
+      categoryId: dto.categoryId,
+      viewer: viewerId ?? 'anon',
+    });
 
     const records = await this.repo.findDishMedias(dto, viewerId);
 
@@ -57,7 +60,9 @@ export class DishMediaService {
       }),
     );
 
-    this.logger.debug(`findByCriteria: returned ${withSignedUrl.length} items`);
+    this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
+      count: withSignedUrl.length,
+    });
     return withSignedUrl;
   }
 
@@ -65,7 +70,7 @@ export class DishMediaService {
   /*            POST /v1/dish-media/:id/likes/:userId (いいね)           */
   /* ------------------------------------------------------------------ */
   async likeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
-    this.logger.verbose(`likeDishMedia: media=${id}, user=${userId}`);
+    this.logger.verbose('LikeDishMedia', 'likeDishMedia', { id, userId });
     await this.repo.likeDishMedia(id, userId);
 
     // 非同期通知（失敗してもレスポンスに影響させない）
@@ -79,13 +84,13 @@ export class DishMediaService {
 
   /* --------------------- DELETE /v1/dish-media/:id/likes/:userId ------------------ */
   async unlikeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
-    this.logger.verbose(`unlikeDishMedia: media=${id}, user=${userId}`);
+    this.logger.verbose('UnlikeDishMedia', 'unlikeDishMedia', { id, userId });
     await this.repo.unlikeDishMedia(id, userId);
   }
 
   /* --------------------- POST /v1/dish-media/:id/save/:userId --------------------- */
   async saveDishMedia({ id, userId }: SaveDishMediaParamsDto) {
-    this.logger.verbose(`saveDishMedia: media=${id}, user=${userId}`);
+    this.logger.verbose('SaveDishMedia', 'saveDishMedia', { id, userId });
     await this.repo.saveDishMedia(id, userId);
 
     // TODO: 通知系見直し
@@ -100,12 +105,17 @@ export class DishMediaService {
   /*                     POST /v1/dish-media (投稿)                     */
   /* ------------------------------------------------------------------ */
   async createDishMedia(dto: CreateDishMediaDto, creatorId: string) {
-    this.logger.debug(`createDishMedia: dish=${dto.dishId}, user=${creatorId}`);
+    this.logger.debug('CreateDishMedia', 'createDishMedia', {
+      dishId: dto.dishId,
+      userId: creatorId,
+    });
 
     // dishId が存在するか簡易バリデーション
     const dishExists = await this.repo.dishExists(dto.dishId);
     if (!dishExists) {
-      this.logger.warn(`createDishMedia: dish not found -> ${dto.dishId}`);
+      this.logger.warn('DishNotFound', 'createDishMedia', {
+        dishId: dto.dishId,
+      });
       throw new NotFoundException('Dish not found');
     }
 
@@ -120,8 +130,9 @@ export class DishMediaService {
         ),
     );
 
-    this.logger.log(
-      `createDishMedia: created media=${result.id} (dish=${dto.dishId})`,
-    );
+    this.logger.log('DishMediaCreated', 'createDishMedia', {
+      mediaId: result.id,
+      dishId: dto.dishId,
+    });
   }
 }

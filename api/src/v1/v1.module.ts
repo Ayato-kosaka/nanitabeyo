@@ -7,11 +7,11 @@ import { NotifierModule } from 'src/core/notifier/notifier.module';
 
 @Module({
   imports: [
-    HelloModule, 
-    DishMediaModule, 
+    HelloModule,
+    DishMediaModule,
     DishCategoriesModule,
     DishCategoryVariantsModule,
-    NotifierModule
+    NotifierModule,
   ],
 })
 export class V1Module {}

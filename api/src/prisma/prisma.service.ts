@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient, Prisma } from '../../../shared/prisma/client';
 import { MetricsMiddleware } from './middlewares/metrics.middleware';
+import { AppLoggerService } from '../core/logger/logger.service';
 
 /**
  * PrismaService
@@ -19,9 +15,7 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(PrismaService.name);
-
-  constructor() {
+  constructor(private readonly logger: AppLoggerService) {
     // ★ 注意：ここで log レベルを細かく制御すると、開発時の読みやすさ向上
     super({
       log:
@@ -38,9 +32,9 @@ export class PrismaService
   // ----- Nest Lifecycle ---------------------------------------
 
   async onModuleInit() {
-    this.logger.log('Connecting to DB…');
+    this.logger.log('PrismaConnecting', 'onModuleInit', {});
     await this.$connect();
-    this.logger.log('Prisma connected.');
+    this.logger.log('PrismaConnected', 'onModuleInit', {});
 
     // （任意）マイグレーションを自動で当てたい場合
     // if (process.env.NODE_ENV !== 'production') {
@@ -49,7 +43,7 @@ export class PrismaService
   }
 
   async onModuleDestroy() {
-    this.logger.log('Disconnecting Prisma…');
+    this.logger.log('PrismaDisconnecting', 'onModuleDestroy', {});
     await this.$disconnect();
   }
 

@@ -4,11 +4,12 @@
 // Based on: https://github.com/Ayato-kosaka/nanicore-audio-guide/blob/develop/functions/src/v1/lib/claude.ts
 //
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PromptService } from '../prompt/prompt.service';
 import { ExternalApiService } from '../external-api/external-api.service';
 import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
+import { AppLoggerService } from '../logger/logger.service';
 
 // トピック生成レスポンス型
 export interface DishCategoryTopicResponse {
@@ -19,13 +20,12 @@ export interface DishCategoryTopicResponse {
 
 @Injectable()
 export class ClaudeService {
-  private readonly logger = new Logger(ClaudeService.name);
-
   constructor(
     private readonly promptService: PromptService,
     private readonly externalApiService: ExternalApiService,
     private readonly cls: ClsService,
-  ) { }
+    private readonly logger: AppLoggerService,
+  ) {}
 
   /**
    * 料理カテゴリ提案を生成する
@@ -40,12 +40,20 @@ export class ClaudeService {
     budgetMin?: number;
     budgetMax?: number;
   }): Promise<DishCategoryTopicResponse[]> {
-    this.logger.debug('Generating dish category recommendations', params);
+    this.logger.debug(
+      'GenerateDishCategoryRecommendations',
+      'generateDishCategoryRecommendations',
+      params,
+    );
 
     // PromptServiceからプロンプトを取得
-    const prompt = await this.promptService.getPromptForPurpose('dish_category_recommendations');
+    const prompt = await this.promptService.getPromptForPurpose(
+      'dish_category_recommendations',
+    );
     if (!prompt) {
-      throw new Error('No eligible prompt found for dish_category_recommendations.');
+      throw new Error(
+        'No eligible prompt found for dish_category_recommendations.',
+      );
     }
 
     const { family, variant } = prompt;
@@ -75,13 +83,13 @@ Generate 10 diverse and appealing dish category recommendations.`;
     const fullPrompt = `${systemPrompt}\n\n${variablePromptPart}`;
 
     const requestPayload = {
-      model: "claude-3-haiku-20240307",
+      model: 'claude-3-haiku-20240307',
       max_tokens: 1024,
       temperature: 0.7,
       system: systemPrompt,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: variablePromptPart,
         },
       ],
@@ -89,25 +97,30 @@ Generate 10 diverse and appealing dish category recommendations.`;
 
     try {
       // ExternalApiServiceを使ってClaude APIを呼び出し
-      const response = await this.externalApiService.callClaudeAPI(
-        requestPayload,
-      );
+      const response =
+        await this.externalApiService.callClaudeAPI(requestPayload);
 
-      if (response.stop_reason && response.stop_reason !== "end_turn") {
-        throw new Error(`Claude API failed: Unexpected stop_reason - ${response.stop_reason}`);
+      if (response.stop_reason && response.stop_reason !== 'end_turn') {
+        throw new Error(
+          `Claude API failed: Unexpected stop_reason - ${response.stop_reason}`,
+        );
       }
 
-      const responseText = response.content[0]?.text || "";
+      const responseText = response.content[0]?.text || '';
 
       let parsedJson: DishCategoryTopicResponse[];
       try {
-        parsedJson = JSON.parse(responseText);
+        parsedJson = JSON.parse(responseText) as DishCategoryTopicResponse[];
       } catch (e) {
-        throw new Error(`Claude API failed: Invalid JSON response - ${(e as Error).message}`);
+        throw new Error(
+          `Claude API failed: Invalid JSON response - ${(e as Error).message}`,
+        );
       }
 
       if (!Array.isArray(parsedJson) || parsedJson.length !== 10) {
-        throw new Error('Claude API failed: Expected array of 10 recommendations');
+        throw new Error(
+          'Claude API failed: Expected array of 10 recommendations',
+        );
       }
 
       // PromptServiceを使ってプロンプト使用履歴を記録
@@ -129,11 +142,22 @@ Generate 10 diverse and appealing dish category recommendations.`;
         },
       });
 
-      this.logger.debug(`Generated ${parsedJson.length} dish category recommendations`);
+      this.logger.debug(
+        'DishCategoryRecommendationsGenerated',
+        'generateDishCategoryRecommendations',
+        {
+          count: parsedJson.length,
+        },
+      );
       return parsedJson;
-
     } catch (error) {
-      this.logger.error('Failed to generate dish category recommendations', error);
+      this.logger.error(
+        'GenerateDishCategoryRecommendationsError',
+        'generateDishCategoryRecommendations',
+        {
+          error_message: error instanceof Error ? error.message : String(error),
+        },
+      );
       throw error;
     }
   }

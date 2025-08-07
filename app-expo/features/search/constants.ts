@@ -2,28 +2,28 @@
 import i18n from "@/lib/i18n";
 
 export const timeSlots = [
-        { id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
-        { id: "lunch", label: "Search.timeSlots.lunch", icon: "🌞" },
-        { id: "dinner", label: "Search.timeSlots.dinner", icon: "🌙" },
-        { id: "late_night", label: "Search.timeSlots.lateNight", icon: "🌃" },
+	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
+	{ id: "lunch", label: "Search.timeSlots.lunch", icon: "🌞" },
+	{ id: "dinner", label: "Search.timeSlots.dinner", icon: "🌙" },
+	{ id: "late_night", label: "Search.timeSlots.lateNight", icon: "🌃" },
 ] as const;
 
 export const sceneOptions = [
-        { id: "solo", label: "Search.sceneOptions.solo", icon: "👤" },
-        { id: "date", label: "Search.sceneOptions.date", icon: "💕" },
-        { id: "group", label: "Search.sceneOptions.group", icon: "👥" },
-        { id: "large_group", label: "Search.sceneOptions.largeGroup", icon: "👥👥" },
-        { id: "tourism", label: "Search.sceneOptions.tourism", icon: "🌍" },
+	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤" },
+	{ id: "date", label: "Search.sceneOptions.date", icon: "💕" },
+	{ id: "group", label: "Search.sceneOptions.group", icon: "👥" },
+	{ id: "large_group", label: "Search.sceneOptions.largeGroup", icon: "👥👥" },
+	{ id: "tourism", label: "Search.sceneOptions.tourism", icon: "🌍" },
 ] as const;
 
 export const moodOptions = [
-        { id: "hearty", label: "Search.moodOptions.hearty", icon: "🍖" },
-        { id: "light", label: "Search.moodOptions.light", icon: "🥗" },
-        { id: "sweet", label: "Search.moodOptions.sweet", icon: "🍰" },
-        { id: "spicy", label: "Search.moodOptions.spicy", icon: "🌶️" },
-        { id: "healthy", label: "Search.moodOptions.healthy", icon: "🥬" },
-        { id: "junk", label: "Search.moodOptions.junk", icon: "🍔" },
-        { id: "alcohol", label: "Search.moodOptions.alcohol", icon: "🍺" },
+	{ id: "hearty", label: "Search.moodOptions.hearty", icon: "🍖" },
+	{ id: "light", label: "Search.moodOptions.light", icon: "🥗" },
+	{ id: "sweet", label: "Search.moodOptions.sweet", icon: "🍰" },
+	{ id: "spicy", label: "Search.moodOptions.spicy", icon: "🌶️" },
+	{ id: "healthy", label: "Search.moodOptions.healthy", icon: "🥬" },
+	{ id: "junk", label: "Search.moodOptions.junk", icon: "🍔" },
+	{ id: "alcohol", label: "Search.moodOptions.alcohol", icon: "🍺" },
 ] as const;
 
 // Distance options in meters
@@ -43,33 +43,33 @@ export const distanceOptions = [
 
 // Budget options in yen
 export const budgetOptions = [
-        { value: null, label: "Search.labels.noMinBudget" },
-        { value: 1000, label: "1,000¥" },
-        { value: 2000, label: "2,000¥" },
-        { value: 3000, label: "3,000¥" },
-        { value: 4000, label: "4,000¥" },
-        { value: 5000, label: "5,000¥" },
-        { value: 6000, label: "6,000¥" },
-        { value: 7000, label: "7,000¥" },
-        { value: 8000, label: "8,000¥" },
-        { value: 9000, label: "9,000¥" },
-        { value: 10000, label: "10,000¥" },
-        { value: 15000, label: "15,000¥" },
-        { value: 20000, label: "20,000¥" },
-        { value: 30000, label: "30,000¥" },
-        { value: 40000, label: "40,000¥" },
-        { value: 50000, label: "50,000¥" },
-        { value: 60000, label: "60,000¥" },
-        { value: 80000, label: "80,000¥" },
-        { value: 100000, label: "100,000¥" },
-        { value: null, label: "Search.labels.noMaxBudget" },
+	{ value: null, label: "Search.labels.noMinBudget" },
+	{ value: 1000, label: "1,000¥" },
+	{ value: 2000, label: "2,000¥" },
+	{ value: 3000, label: "3,000¥" },
+	{ value: 4000, label: "4,000¥" },
+	{ value: 5000, label: "5,000¥" },
+	{ value: 6000, label: "6,000¥" },
+	{ value: 7000, label: "7,000¥" },
+	{ value: 8000, label: "8,000¥" },
+	{ value: 9000, label: "9,000¥" },
+	{ value: 10000, label: "10,000¥" },
+	{ value: 15000, label: "15,000¥" },
+	{ value: 20000, label: "20,000¥" },
+	{ value: 30000, label: "30,000¥" },
+	{ value: 40000, label: "40,000¥" },
+	{ value: 50000, label: "50,000¥" },
+	{ value: 60000, label: "60,000¥" },
+	{ value: 80000, label: "80,000¥" },
+	{ value: 100000, label: "100,000¥" },
+	{ value: null, label: "Search.labels.noMaxBudget" },
 ];
 
 export const restrictionOptions = [
-        { id: "vegetarian", label: "Search.restrictionOptions.vegetarian", icon: "🌱" },
-        { id: "gluten_free", label: "Search.restrictionOptions.glutenFree", icon: "🌾" },
-        { id: "dairy_free", label: "Search.restrictionOptions.dairyFree", icon: "🥛" },
-        { id: "nut_allergy", label: "Search.restrictionOptions.nutAllergy", icon: "🥜" },
-        { id: "seafood_allergy", label: "Search.restrictionOptions.seafoodAllergy", icon: "🐟" },
-        { id: "halal", label: "Search.restrictionOptions.halal", icon: "🕌" },
+	{ id: "vegetarian", label: "Search.restrictionOptions.vegetarian", icon: "🌱" },
+	{ id: "gluten_free", label: "Search.restrictionOptions.glutenFree", icon: "🌾" },
+	{ id: "dairy_free", label: "Search.restrictionOptions.dairyFree", icon: "🥛" },
+	{ id: "nut_allergy", label: "Search.restrictionOptions.nutAllergy", icon: "🥜" },
+	{ id: "seafood_allergy", label: "Search.restrictionOptions.seafoodAllergy", icon: "🐟" },
+	{ id: "halal", label: "Search.restrictionOptions.halal", icon: "🕌" },
 ];

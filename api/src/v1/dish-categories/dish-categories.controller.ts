@@ -12,12 +12,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ClsService } from 'nestjs-cls';
 
 import { QueryDishCategoryRecommendationsDto } from '@shared/v1/dto';
@@ -38,7 +33,7 @@ export class DishCategoriesController {
   constructor(
     private readonly dishCategoriesService: DishCategoriesService,
     private readonly cls: ClsService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-categories/recommendations         */

@@ -17,7 +17,7 @@ export function BudgetSlider({
 	setBudgetMax: (value: number | null) => void;
 }) {
 	const { selectionChanged } = useHaptics();
-	
+
 	const minIndex = budgetMin === null ? 0 : budgetOptions.findIndex((o) => o.value === budgetMin);
 	const maxIndex =
 		budgetMax === null ? budgetOptions.length - 1 : budgetOptions.findIndex((o) => o.value === budgetMax);
