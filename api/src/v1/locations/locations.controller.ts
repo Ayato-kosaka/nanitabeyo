@@ -28,7 +28,7 @@ import { LocationsService } from './locations.service';
 @ApiTags('Locations')
 @Controller('v1/locations')
 export class LocationsController {
-  constructor(private readonly locationsService: LocationsService) {}
+  constructor(private readonly locationsService: LocationsService) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/locations/autocomplete (任意認証)             */
@@ -39,15 +39,16 @@ export class LocationsController {
   @ApiOperation({
     summary: 'Google Places API Autocomplete のラッパー（地名のみ）',
   })
+  @ApiQuery({ name: 'q', type: String, description: '検索語' })
   @ApiQuery({
-    name: 'q',
-    required: true,
-    description: '検索語',
+    name: 'languageCode',
+    type: String,
+    description: '言語コード (例: "ja", "en")',
   })
   @ApiResponse({ status: 200, description: '候補リスト取得成功' })
   async autocompleteLocations(
     @Query() query: QueryAutocompleteLocationsDto,
   ): Promise<AutocompleteLocationsResponse> {
-    return this.locationsService.autocompleteLocations(query.q);
+    return this.locationsService.autocompleteLocations(query);
   }
 }

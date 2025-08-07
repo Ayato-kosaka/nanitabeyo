@@ -94,7 +94,7 @@ export class DishesService {
         if (!place.id) throw new Error(`Place ID is missing for place at index ${index}`);
         const photoName = googlePlaces.contextualContents[index]?.photos?.[0]?.name;
         if (!photoName) throw new Error(`No photo name found for place: ${place.id}`);
-        const photoMedia = await this.googleMaps.getPhotoMedia(photoName);
+        const photoMedia = await this.locationsService.getPhotoMedia(photoName);
         if (!photoMedia) throw new Error(`No photo URL found for place: ${place.id}`);
 
         const dishMediaUpload = await this.storage.uploadFile({
@@ -134,12 +134,7 @@ export class DishesService {
                 const dishReviewRecord = await this.repo.createDishReview(
                   tx,
                   dish.id,
-                  {
-                    text: review.text,
-                    rating: review.rating,
-                    author_name: review.author_name,
-                    profile_photo_url: review.profile_photo_url || '',
-                  },
+                  review,
                 );
                 dishReviews.push(
                   convertPrismaToSupabase_DishReviews(dishReviewRecord),
