@@ -11,25 +11,22 @@ import { Module, forwardRef } from '@nestjs/common';
 import { DishesController } from './dishes.controller';
 import { DishesService } from './dishes.service';
 import { DishesRepository } from './dishes.repository';
-import { GoogleMapsService } from './google-maps.service';
 
 // ─── 横串インフラ層 ──────────────────────────────────────────
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
+import { LocationsModule } from '../locations/locations.module'; // Google Places API 連携
 
 @Module({
   imports: [
     PrismaModule, // DB アクセス
     LoggerModule, // アプリ共通 Logger
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
+    LocationsModule, // Google Places API 連携
   ],
   controllers: [DishesController],
-  providers: [
-    DishesService,
-    DishesRepository,
-    GoogleMapsService, // Google Maps API 連携
-  ],
+  providers: [DishesService, DishesRepository],
   exports: [
     DishesService, // 他ドメインが再利用できる
   ],

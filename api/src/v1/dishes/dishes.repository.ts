@@ -9,16 +9,17 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDishDto } from '@shared/v1/dto';
-import { GoogleMapsPlace } from './google-maps.service';
+import { GoogleMapsPlace } from '../locations/locations.service';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class DishesRepository {
-  constructor(private readonly prisma: PrismaService,
-    private readonly logger: AppLoggerService
-  ) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -94,7 +95,9 @@ export class DishesRepository {
     });
     if (!existing) {
       // 理論的には起こらない
-      throw new Error(`Failed to insert or find restaurant with place_id=${place.place_id}`);
+      throw new Error(
+        `Failed to insert or find restaurant with place_id=${place.place_id}`,
+      );
     }
     return existing;
   }
@@ -156,7 +159,12 @@ export class DishesRepository {
   async createDishReview(
     tx: Prisma.TransactionClient,
     dishId: string,
-    review: { text?: string; rating: number; author_name: string; profile_photo_url: string }, // Google Maps Review 型
+    review: {
+      text?: string;
+      rating: number;
+      author_name: string;
+      profile_photo_url: string;
+    }, // Google Maps Review 型
   ) {
     const result = await tx.dish_reviews.create({
       data: {

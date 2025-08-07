@@ -14,13 +14,16 @@ import { CreateDishResponse, BulkImportDishesResponse } from '@shared/v1/res';
 import { DishesRepository } from './dishes.repository';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { GoogleMapsService } from './google-maps.service';
+import { LocationsService } from '../locations/locations.service';
 
 // Import converters
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
-import { convertPrismaToSupabase_DishReviews, SupabaseDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import {
+  convertPrismaToSupabase_DishReviews,
+  SupabaseDishReviews,
+} from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class DishesService {
@@ -28,8 +31,8 @@ export class DishesService {
     private readonly repo: DishesRepository,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-    private readonly googleMaps: GoogleMapsService,
-  ) { }
+    private readonly locationsService: LocationsService,
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -74,7 +77,7 @@ export class DishesService {
     this.logger.debug('BulkImportFromGoogle', 'bulkImportFromGoogle', dto);
 
     // Google Maps Text Search API を呼び出し
-    const googlePlaces = await this.googleMaps.searchRestaurants(
+    const googlePlaces = await this.locationsService.searchRestaurants(
       dto.location,
       dto.radius,
       dto.categoryName,
@@ -88,14 +91,15 @@ export class DishesService {
         const result = await this.prisma.withTransaction(
           async (tx: Prisma.TransactionClient) => {
             // 1. レストラン登録/取得
-            const restaurant = await this.repo.createOrGetRestaurant(tx, place);
+            const placeImageUrl = place.photos?.[0]?.photo_reference || '';
+            const restaurant = await this.repo.createOrGetRestaurant(tx, place, placeImageUrl);
 
             // 2. 料理登録/取得
             const dish = await this.repo.createOrGetDishForCategory(
               tx,
               restaurant.id,
               dto.categoryId,
-              dto.categoryName
+              dto.categoryName,
             );
 
             // 3. 料理メディア登録
@@ -107,7 +111,8 @@ export class DishesService {
               dish.id,
               place.photos[0].photo_reference,
             );
-            const dishMedia = convertPrismaToSupabase_DishMedia(dishMediaRecord);
+            const dishMedia =
+              convertPrismaToSupabase_DishMedia(dishMediaRecord);
 
             // 4. レビュー登録（Google レビューがある場合）
             const dishReviews: SupabaseDishReviews[] = [];
@@ -117,7 +122,12 @@ export class DishesService {
                 const dishReviewRecord = await this.repo.createDishReview(
                   tx,
                   dish.id,
-                  review,
+                  {
+                    text: review.text,
+                    rating: review.rating,
+                    author_name: review.author_name,
+                    profile_photo_url: review.profile_photo_url || '',
+                  },
                 );
                 dishReviews.push(
                   convertPrismaToSupabase_DishReviews(dishReviewRecord),
