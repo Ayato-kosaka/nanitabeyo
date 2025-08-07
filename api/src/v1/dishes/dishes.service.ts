@@ -29,7 +29,7 @@ export class DishesService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly googleMaps: GoogleMapsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -37,13 +37,13 @@ export class DishesService {
   async createOrGetDish(dto: CreateDishDto): Promise<CreateDishResponse> {
     this.logger.debug('CreateOrGetDish', 'createOrGetDish', {
       restaurantId: dto.restaurantId,
-      dishCategory: dto.dishCategory,
+      dishCategoryId: dto.dishCategoryId,
     });
 
     // 既存のdishを検索
     const existingDish = await this.repo.findDishByRestaurantAndCategory(
       dto.restaurantId,
-      dto.dishCategory,
+      dto.dishCategoryId,
     );
 
     if (existingDish) {
@@ -59,7 +59,7 @@ export class DishesService {
     this.logger.log('DishCreated', 'createOrGetDish', {
       dishId: newDish.id,
       restaurantId: dto.restaurantId,
-      categoryId: dto.dishCategory,
+      categoryId: dto.dishCategoryId,
     });
 
     return convertPrismaToSupabase_Dishes(newDish);
@@ -139,7 +139,7 @@ export class DishesService {
 
         results.push(result);
       } catch (error) {
-        this.logger.warn('BulkImportPlaceError', 'bulkImportFromGoogle', {
+        this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
           placeId: place.place_id,
           error: error instanceof Error ? error.message : 'Unknown error',
         });

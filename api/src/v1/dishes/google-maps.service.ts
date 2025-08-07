@@ -66,7 +66,7 @@ interface GoogleMapsTextSearchResponse {
 
 @Injectable()
 export class GoogleMapsService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -119,10 +119,7 @@ export class GoogleMapsService {
         resultCount: data.results.length,
       });
 
-      // 詳細情報を取得（レビューと写真を含む）
-      const detailedPlaces = await this.getPlaceDetails(data.results);
-
-      return detailedPlaces;
+      return data.results;
     } catch (error) {
       this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
         error_message: error instanceof Error ? error.message : 'Unknown error',

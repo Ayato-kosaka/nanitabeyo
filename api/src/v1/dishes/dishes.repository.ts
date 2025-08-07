@@ -10,10 +10,14 @@ import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDishDto } from '@shared/v1/dto';
 import { GoogleMapsPlace } from './google-maps.service';
+import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+import { AppLoggerService } from 'src/core/logger/logger.service';
 
 @Injectable()
 export class DishesRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly logger: AppLoggerService
+  ) { }
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -37,47 +41,61 @@ export class DishesRepository {
     return this.prisma.dishes.create({
       data: {
         restaurant_id: dto.restaurantId,
-        category_id: dto.dishCategory,
-        name: null, // Google API から取得した場合に設定
+        category_id: dto.dishCategoryId,
+        name: dto.dishName,
       },
     });
   }
 
   /**
    * レストランを作成または取得（Google Place データから）
-   * 注意: 現在は地理的位置を保存せず、既存のレストランのみ検索
    */
   async createOrGetRestaurant(
     tx: Prisma.TransactionClient,
     place: GoogleMapsPlace,
+    placeImageUrl: string,
   ) {
-    // 既存レストランを place_id で検索
-    let existing = await tx.restaurants.findFirst({
-      where: {
-        google_place_id: place.place_id,
-      },
+    this.logger.debug('createOrGetRestaurant', 'DishesRepository', {
+      googlePlaceId: place.place_id,
+      name: place.name,
     });
 
-    if (existing) {
-      return existing;
-    }
-
-    // 名前で検索（place_idがない場合のフォールバック）
-    existing = await tx.restaurants.findFirst({
-      where: {
-        name: place.name,
-      },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    // TODO: 新規レストラン作成は geography 型の問題で一時的に無効化
-    // 既存のレストランが見つからない場合は一時的なダミーデータを作成
-    throw new Error(
-      `Restaurant not found: ${place.name}. Please add restaurant manually first.`,
+    // PostGIS geography カラムを扱いつつ、
+    // INSERT … ON CONFLICT DO NOTHING RETURNING *
+    const rows = await tx.$queryRaw<PrismaRestaurants[]>(
+      Prisma.sql`
+        INSERT INTO restaurants
+          (google_place_id, name, location, image_url, created_at)
+        VALUES
+          (
+            ${place.place_id},
+            ${place.name},
+            ST_SetSRID(
+              ST_MakePoint(${place.geometry.location.lng}, ${place.geometry.location.lat}),
+              4326
+            ),
+            ${placeImageUrl},
+            NOW()
+          )
+        ON CONFLICT (google_place_id) DO NOTHING
+        RETURNING *;
+      `,
     );
+
+    if (rows.length === 1) {
+      // 新規挿入に成功
+      return rows[0];
+    }
+
+    // Conflict で何も返らなかった場合は既存行を SELECT
+    const existing = await tx.restaurants.findUnique({
+      where: { google_place_id: place.place_id },
+    });
+    if (!existing) {
+      // 理論的には起こらない
+      throw new Error(`Failed to insert or find restaurant with place_id=${place.place_id}`);
+    }
+    return existing;
   }
 
   /**
