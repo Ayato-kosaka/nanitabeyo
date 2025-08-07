@@ -22,11 +22,7 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   /*                GET /v1/users/:id/dish-reviews                     */
   /* ------------------------------------------------------------------ */
-  async getUserDishReviews(
-    userId: string,
-    cursor?: string,
-    viewerId?: string,
-  ) {
+  async getUserDishReviews(userId: string, cursor?: string, viewerId?: string) {
     this.logger.debug('GetUserDishReviews', 'getUserDishReviews', {
       userId,
       cursor,
@@ -139,9 +135,13 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   async getMeSavedDishCategories(userId?: string, cursor?: string) {
     if (!userId) {
-      this.logger.debug('GetMeSavedDishCategories', 'getMeSavedDishCategories', {
-        message: 'No user provided, returning empty',
-      });
+      this.logger.debug(
+        'GetMeSavedDishCategories',
+        'getMeSavedDishCategories',
+        {
+          message: 'No user provided, returning empty',
+        },
+      );
       return [];
     }
 
@@ -166,9 +166,13 @@ export class UsersService {
       }),
     );
 
-    this.logger.debug('GetMeSavedDishCategoriesResult', 'getMeSavedDishCategories', {
-      count: withSignedUrls.length,
-    });
+    this.logger.debug(
+      'GetMeSavedDishCategoriesResult',
+      'getMeSavedDishCategories',
+      {
+        count: withSignedUrls.length,
+      },
+    );
     return withSignedUrls;
   }
 

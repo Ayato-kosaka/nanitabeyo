@@ -54,7 +54,9 @@ export class UsersMapper {
   /**
    * Safe converter for RestaurantBids that handles bigint type mismatch
    */
-  private convertRestaurantBidsSafe(prisma: PrismaRestaurantBids): SupabaseRestaurantBids {
+  private convertRestaurantBidsSafe(
+    prisma: PrismaRestaurantBids,
+  ): SupabaseRestaurantBids {
     return {
       id: prisma.id,
       restaurant_id: prisma.restaurant_id,
@@ -75,7 +77,9 @@ export class UsersMapper {
   /**
    * Safe converter for DishCategories that handles array null type mismatch
    */
-  private convertDishCategoriesSafe(prisma: PrismaDishCategories): SupabaseDishCategories {
+  private convertDishCategoriesSafe(
+    prisma: PrismaDishCategories,
+  ): SupabaseDishCategories {
     return {
       id: prisma.id,
       label_en: prisma.label_en,
