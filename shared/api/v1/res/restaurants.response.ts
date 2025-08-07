@@ -20,7 +20,7 @@ export type CreateRestaurantBidIntentResponse = { clientSecret: string };
 export type QueryRestaurantDishMediaResponse = {
 	restaurant: SupabaseRestaurants;
 	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
+	dish_media: SupabaseDishMedia & { media_url?: string };
 	dish_reviews: SupabaseDishReviews[];
 }[];
 

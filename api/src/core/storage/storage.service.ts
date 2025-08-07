@@ -80,6 +80,21 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
+  /*                           Signed URL (WRITE)                           */
+  /* ---------------------------------------------------------------------- */
+  async generateSignedUrlForUpload(
+    path: string,
+    expiresInSeconds = 15 * 60, // 15 minutes default
+  ): Promise<string> {
+    const [url] = await this.bucket.file(path).getSignedUrl({
+      action: 'write',
+      expires: Date.now() + expiresInSeconds * 1_000,
+      contentType: 'application/octet-stream', // Generic content type
+    });
+    return url;
+  }
+
+  /* ---------------------------------------------------------------------- */
   /*                               Delete File                              */
   /* ---------------------------------------------------------------------- */
   async deleteFile(path: string): Promise<void> {
