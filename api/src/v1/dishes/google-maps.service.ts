@@ -5,6 +5,7 @@
 //
 
 import { Injectable } from '@nestjs/common';
+import { PlacesClient } from '@googlemaps/places';
 import { env } from '../../core/config/env';
 import { AppLoggerService } from '../../core/logger/logger.service';
 
@@ -66,7 +67,15 @@ interface GoogleMapsTextSearchResponse {
 
 @Injectable()
 export class GoogleMapsService {
-  constructor(private readonly logger: AppLoggerService) { }
+  private readonly placesClient: PlacesClient;
+
+  constructor(private readonly logger: AppLoggerService) {
+    // Initialize PlacesClient with API key authentication
+    this.placesClient = new PlacesClient({
+      apiKey: env.GOOGLE_PLACE_API_KEY,
+      fallback: true, // Use REST API instead of gRPC
+    });
+  }
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -84,43 +93,117 @@ export class GoogleMapsService {
       category: dishCategoryName,
     });
 
-    const apiKey = env.GOOGLE_PLACE_API_KEY;
-
     // カテゴリに基づく検索クエリを構築
     const query = dishCategoryName;
 
-    const url = new URL(
-      'https://maps.googleapis.com/maps/api/place/textsearch/json',
-    );
-    url.searchParams.set('query', query);
-    url.searchParams.set('location', `${lat},${lng}`);
-    url.searchParams.set('radius', radius.toString());
-    url.searchParams.set('type', 'restaurant');
-    url.searchParams.set('key', apiKey);
+    const startTime = Date.now();
+    const requestPayload = {
+      textQuery: query,
+      locationBias: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius,
+        },
+      },
+    };
 
     try {
-      const response = await fetch(url.toString());
+      // PlacesClient を使用してテキスト検索
+      const [response] = await this.placesClient.searchText(requestPayload);
 
-      if (!response.ok) {
-        throw new Error(`Google Maps API request failed: ${response.status}`);
-      }
+      const responseTime = Date.now() - startTime;
 
-      const data: GoogleMapsTextSearchResponse = await response.json();
+      // 外部API呼び出しログを記録
+      await this.logger.externalApi({
+        function_name: 'searchRestaurants',
+        api_name: 'Google Places API',
+        endpoint: 'places.searchText',
+        method: 'POST',
+        request_payload: JSON.stringify(requestPayload),
+        response_payload: JSON.stringify(response),
+        status_code: 200,
+        response_time_ms: responseTime,
+        error_message: null,
+      });
 
-      if (data.status !== 'OK') {
-        this.logger.warn('GoogleMapsAPIError', 'searchRestaurants', {
-          status: data.status,
-          error_message: data.error_message,
-        });
+      if (!response.places || response.places.length === 0) {
+        this.logger.debug(
+          'GoogleMapsTextSearchNoResults',
+          'searchRestaurants',
+          {
+            resultCount: 0,
+          },
+        );
         return [];
       }
 
+      // PlacesAPIのレスポンスを既存のGoogleMapsPlace形式に変換
+      const places: GoogleMapsPlace[] = response.places.map((place) => ({
+        place_id: place.id || '',
+        name: place.displayName?.text || '',
+        formatted_address: place.formattedAddress || '',
+        geometry: {
+          location: {
+            lat: place.location?.latitude || 0,
+            lng: place.location?.longitude || 0,
+          },
+          viewport: {
+            northeast: {
+              lat: place.viewport?.high?.latitude || 0,
+              lng: place.viewport?.high?.longitude || 0,
+            },
+            southwest: {
+              lat: place.viewport?.low?.latitude || 0,
+              lng: place.viewport?.low?.longitude || 0,
+            },
+          },
+        },
+        photos: place.photos?.map((photo) => ({
+          height: photo.heightPx || 0,
+          width: photo.widthPx || 0,
+          photo_reference: photo.name || '',
+          html_attributions:
+            photo.authorAttributions?.map((attr) => attr.displayName || '') ||
+            [],
+        })),
+        reviews: place.reviews?.map((review) => ({
+          author_name: review.authorAttribution?.displayName || '',
+          author_url: review.authorAttribution?.uri || '',
+          language: review.originalText?.languageCode || '',
+          profile_photo_url: review.authorAttribution?.photoUri || '',
+          rating: review.rating || 0,
+          relative_time_description:
+            review.relativePublishTimeDescription || '',
+          text: review.originalText?.text || '',
+          time: this.parseTimestamp(review.publishTime),
+        })),
+        rating: place.rating || undefined,
+        user_ratings_total: place.userRatingCount || undefined,
+        price_level: this.convertPriceLevel(place.priceLevel),
+        types: place.types || [],
+      }));
+
       this.logger.debug('GoogleMapsTextSearchSuccess', 'searchRestaurants', {
-        resultCount: data.results.length,
+        resultCount: places.length,
       });
 
-      return data.results;
+      return places;
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+
+      // エラー時も外部API呼び出しログを記録
+      await this.logger.externalApi({
+        function_name: 'searchRestaurants',
+        api_name: 'Google Places API',
+        endpoint: 'places.searchText',
+        method: 'POST',
+        request_payload: JSON.stringify(requestPayload),
+        response_payload: null,
+        status_code: 500,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        response_time_ms: responseTime,
+      });
+
       this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         location,
@@ -137,38 +220,118 @@ export class GoogleMapsService {
   private async getPlaceDetails(
     places: GoogleMapsPlace[],
   ): Promise<GoogleMapsPlace[]> {
-    const apiKey = env.GOOGLE_PLACE_API_KEY;
     const detailedPlaces: GoogleMapsPlace[] = [];
 
     for (const place of places.slice(0, 10)) {
       // 最大10件に制限
+      const startTime = Date.now();
+      const requestPayload = {
+        name: `places/${place.place_id}`,
+        fieldMask:
+          'id,displayName,formattedAddress,location,viewport,photos,reviews,rating,userRatingCount,priceLevel,types',
+      };
+
       try {
-        const url = new URL(
-          'https://maps.googleapis.com/maps/api/place/details/json',
-        );
-        url.searchParams.set('place_id', place.place_id);
-        url.searchParams.set(
-          'fields',
-          'place_id,name,formatted_address,geometry,photos,reviews,rating,user_ratings_total,price_level,types',
-        );
-        url.searchParams.set('key', apiKey);
+        // PlacesClient を使用して詳細情報を取得
+        const [response] = await this.placesClient.getPlace(requestPayload);
 
-        const response = await fetch(url.toString());
+        const responseTime = Date.now() - startTime;
 
-        if (!response.ok) {
-          this.logger.warn('PlaceDetailsAPIError', 'getPlaceDetails', {
-            placeId: place.place_id,
-            status: response.status,
-          });
-          continue;
-        }
+        // 外部API呼び出しログを記録
+        await this.logger.externalApi({
+          function_name: 'getPlaceDetails',
+          api_name: 'Google Places API',
+          endpoint: 'places.getPlace',
+          method: 'POST',
+          request_payload: JSON.stringify(requestPayload),
+          response_payload: JSON.stringify(response),
+          status_code: 200,
+          response_time_ms: responseTime,
+          error_message: null,
+        });
 
-        const data = await response.json();
+        if (response) {
+          // PlacesAPIのレスポンスを既存のGoogleMapsPlace形式に変換
+          const detailedPlace: GoogleMapsPlace = {
+            place_id: response.id || place.place_id,
+            name: response.displayName?.text || place.name,
+            formatted_address:
+              response.formattedAddress || place.formatted_address,
+            geometry: {
+              location: {
+                lat: response.location?.latitude || place.geometry.location.lat,
+                lng:
+                  response.location?.longitude || place.geometry.location.lng,
+              },
+              viewport: {
+                northeast: {
+                  lat:
+                    response.viewport?.high?.latitude ||
+                    place.geometry.viewport.northeast.lat,
+                  lng:
+                    response.viewport?.high?.longitude ||
+                    place.geometry.viewport.northeast.lng,
+                },
+                southwest: {
+                  lat:
+                    response.viewport?.low?.latitude ||
+                    place.geometry.viewport.southwest.lat,
+                  lng:
+                    response.viewport?.low?.longitude ||
+                    place.geometry.viewport.southwest.lng,
+                },
+              },
+            },
+            photos:
+              response.photos?.map((photo) => ({
+                height: photo.heightPx || 0,
+                width: photo.widthPx || 0,
+                photo_reference: photo.name || '',
+                html_attributions:
+                  photo.authorAttributions?.map(
+                    (attr) => attr.displayName || '',
+                  ) || [],
+              })) || place.photos,
+            reviews:
+              response.reviews?.map((review) => ({
+                author_name: review.authorAttribution?.displayName || '',
+                author_url: review.authorAttribution?.uri || '',
+                language: review.originalText?.languageCode || '',
+                profile_photo_url: review.authorAttribution?.photoUri || '',
+                rating: review.rating || 0,
+                relative_time_description:
+                  review.relativePublishTimeDescription || '',
+                text: review.originalText?.text || '',
+                time: this.parseTimestamp(review.publishTime),
+              })) || place.reviews,
+            rating: response.rating || place.rating,
+            user_ratings_total:
+              response.userRatingCount || place.user_ratings_total,
+            price_level:
+              this.convertPriceLevel(response.priceLevel) ||
+              this.convertPriceLevel(place.price_level),
+            types: response.types || place.types,
+          };
 
-        if (data.status === 'OK' && data.result) {
-          detailedPlaces.push(data.result);
+          detailedPlaces.push(detailedPlace);
         }
       } catch (error) {
+        const responseTime = Date.now() - startTime;
+
+        // エラー時も外部API呼び出しログを記録
+        await this.logger.externalApi({
+          function_name: 'getPlaceDetails',
+          api_name: 'Google Places API',
+          endpoint: 'places.getPlace',
+          method: 'POST',
+          request_payload: JSON.stringify(requestPayload),
+          response_payload: null,
+          status_code: 500,
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          response_time_ms: responseTime,
+        });
+
         this.logger.warn('PlaceDetailsError', 'getPlaceDetails', {
           placeId: place.place_id,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -177,5 +340,127 @@ export class GoogleMapsService {
     }
 
     return detailedPlaces;
+  }
+
+  /**
+   * 写真のメディアデータを取得
+   */
+  async getPhotoMedia(photoRef: string): Promise<Buffer | null> {
+    const startTime = Date.now();
+    const requestPayload = {
+      name: photoRef,
+      maxWidthPx: 800,
+    };
+
+    try {
+      // PlacesClient を使用して写真メディアを取得
+      const [response] = await this.placesClient.getPhotoMedia(requestPayload);
+
+      const responseTime = Date.now() - startTime;
+
+      // 外部API呼び出しログを記録
+      await this.logger.externalApi({
+        function_name: 'getPhotoMedia',
+        api_name: 'Google Places API',
+        endpoint: 'places.getPhotoMedia',
+        method: 'POST',
+        request_payload: JSON.stringify(requestPayload),
+        response_payload: 'Binary media data',
+        status_code: 200,
+        response_time_ms: responseTime,
+        error_message: null,
+      });
+
+      // IPhotoMedia から実際のバイナリデータを取得
+      // Note: 実際のバイナリデータ取得はresponse内のphotoUriを使って追加のHTTP呼び出しが必要な場合があります
+      if (response.photoUri) {
+        // photoUriから実際の画像データを取得
+        const imageResponse = await fetch(response.photoUri);
+        if (imageResponse.ok) {
+          const arrayBuffer = await imageResponse.arrayBuffer();
+          return Buffer.from(arrayBuffer);
+        }
+      }
+
+      return null;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+
+      // エラー時も外部API呼び出しログを記録
+      await this.logger.externalApi({
+        function_name: 'getPhotoMedia',
+        api_name: 'Google Places API',
+        endpoint: 'places.getPhotoMedia',
+        method: 'POST',
+        request_payload: JSON.stringify(requestPayload),
+        response_payload: null,
+        status_code: 500,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        response_time_ms: responseTime,
+      });
+
+      this.logger.warn('PhotoMediaError', 'getPhotoMedia', {
+        photoRef,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return null;
+    }
+  }
+
+  /**
+   * PriceLevel enum を number に変換
+   */
+  private convertPriceLevel(priceLevel: any): number | undefined {
+    if (!priceLevel) return undefined;
+
+    // String または number の場合の処理
+    if (typeof priceLevel === 'string') {
+      switch (priceLevel) {
+        case 'PRICE_LEVEL_FREE':
+          return 0;
+        case 'PRICE_LEVEL_INEXPENSIVE':
+          return 1;
+        case 'PRICE_LEVEL_MODERATE':
+          return 2;
+        case 'PRICE_LEVEL_EXPENSIVE':
+          return 3;
+        case 'PRICE_LEVEL_VERY_EXPENSIVE':
+          return 4;
+        default:
+          return undefined;
+      }
+    }
+
+    // すでに number の場合
+    if (typeof priceLevel === 'number') {
+      return priceLevel >= 0 && priceLevel <= 4 ? priceLevel : undefined;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * ITimestamp または string を UNIX timestamp (seconds) に変換
+   */
+  private parseTimestamp(timestamp: any): number {
+    if (!timestamp) return 0;
+
+    // ITimestamp オブジェクトの場合
+    if (typeof timestamp === 'object' && timestamp.seconds) {
+      return Number(timestamp.seconds);
+    }
+
+    // 文字列の場合
+    if (typeof timestamp === 'string') {
+      return Math.floor(Date.parse(timestamp) / 1000) || 0;
+    }
+
+    // 数値の場合
+    if (typeof timestamp === 'number') {
+      return timestamp;
+    }
+
+    return 0;
   }
 }
