@@ -1,0 +1,37 @@
+// api/src/v1/dishes/dishes.module.ts
+//
+// ❶ "最小構成で早く動かす" + ❷ "あとから機能を足しても破綻しない"
+//    ────────────────────────────────────────────────
+// - Controller / Service / Repository を DI で結線
+// - 共通横串（Prisma, Logger, Auth）と Google Maps サービスを imports に集約
+// - Service を外部の Module から再利用しやすいよう `exports:` で公開
+//
+
+import { Module, forwardRef } from '@nestjs/common';
+import { DishesController } from './dishes.controller';
+import { DishesService } from './dishes.service';
+import { DishesRepository } from './dishes.repository';
+import { GoogleMapsService } from './google-maps.service';
+
+// ─── 横串インフラ層 ──────────────────────────────────────────
+import { PrismaModule } from '../../prisma/prisma.module';
+import { LoggerModule } from '../../core/logger/logger.module';
+import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
+
+@Module({
+  imports: [
+    PrismaModule, // DB アクセス
+    LoggerModule, // アプリ共通 Logger
+    forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
+  ],
+  controllers: [DishesController],
+  providers: [
+    DishesService,
+    DishesRepository,
+    GoogleMapsService, // Google Maps API 連携
+  ],
+  exports: [
+    DishesService, // 他ドメインが再利用できる
+  ],
+})
+export class DishesModule {}

@@ -10,6 +10,6 @@ export type CreateDishResponse = SupabaseDishes;
 export type BulkImportDishesResponse = {
 	restaurant: SupabaseRestaurants;
 	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
+	dish_media: SupabaseDishMedia | null;
 	dish_reviews: SupabaseDishReviews[];
 }[];
