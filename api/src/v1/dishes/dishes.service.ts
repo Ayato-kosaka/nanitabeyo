@@ -8,14 +8,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 
-import {
-  CreateDishDto,
-  BulkImportDishesDto,
-} from '@shared/v1/dto';
-import {
-  CreateDishResponse,
-  BulkImportDishesResponse,
-} from '@shared/v1/res';
+import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
+import { CreateDishResponse, BulkImportDishesResponse } from '@shared/v1/res';
 
 import { DishesRepository } from './dishes.repository';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -61,7 +55,7 @@ export class DishesService {
 
     // 新規作成
     const newDish = await this.repo.createDish(dto);
-    
+
     this.logger.log('DishCreated', 'createOrGetDish', {
       dishId: newDish.id,
       restaurantId: dto.restaurantId,
@@ -74,7 +68,9 @@ export class DishesService {
   /* ------------------------------------------------------------------ */
   /*              POST /v1/dishes/bulk-import (Google一括登録)            */
   /* ------------------------------------------------------------------ */
-  async bulkImportFromGoogle(dto: BulkImportDishesDto): Promise<BulkImportDishesResponse> {
+  async bulkImportFromGoogle(
+    dto: BulkImportDishesDto,
+  ): Promise<BulkImportDishesResponse> {
     this.logger.debug('BulkImportFromGoogle', 'bulkImportFromGoogle', {
       location: dto.location,
       radius: dto.radius,
@@ -119,13 +115,16 @@ export class DishesService {
             // 4. レビュー登録（Google レビューがある場合）
             const dishReviews = [];
             if (place.reviews && place.reviews.length > 0) {
-              for (const review of place.reviews.slice(0, 5)) { // 最大5件
+              for (const review of place.reviews.slice(0, 5)) {
+                // 最大5件
                 const dishReviewRecord = await this.repo.createDishReview(
                   tx,
                   dish.id,
                   review,
                 );
-                dishReviews.push(convertPrismaToSupabase_DishReviews(dishReviewRecord));
+                dishReviews.push(
+                  convertPrismaToSupabase_DishReviews(dishReviewRecord),
+                );
               }
             }
 

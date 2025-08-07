@@ -26,10 +26,7 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishReviewsController],
-  providers: [
-    DishReviewsService,
-    DishReviewsRepository,
-  ],
+  providers: [DishReviewsService, DishReviewsRepository],
   exports: [
     DishReviewsService, // 他ドメインが再利用できる
   ],

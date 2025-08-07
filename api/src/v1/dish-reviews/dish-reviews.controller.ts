@@ -24,10 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import {
-  CreateDishReviewDto,
-  LikeDishReviewParamsDto,
-} from '@shared/v1/dto';
+import { CreateDishReviewDto, LikeDishReviewParamsDto } from '@shared/v1/dto';
 import {
   CreateDishReviewResponse,
   LikeDishReviewResponse,

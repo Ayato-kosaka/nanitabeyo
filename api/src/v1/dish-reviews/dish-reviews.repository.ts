@@ -78,7 +78,7 @@ export class DishReviewsRepository {
   async likeReview(reviewId: string, userId: string) {
     // Generate a unique ID for the reaction
     const reactionId = `${userId}_${reviewId}_like_${Date.now()}`;
-    
+
     return this.prisma.reactions.create({
       data: {
         id: reactionId,

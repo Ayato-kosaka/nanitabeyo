@@ -14,20 +14,10 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import {
-  CreateDishDto,
-  BulkImportDishesDto,
-} from '@shared/v1/dto';
-import {
-  CreateDishResponse,
-  BulkImportDishesResponse,
-} from '@shared/v1/res';
+import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
+import { CreateDishResponse, BulkImportDishesResponse } from '@shared/v1/res';
 
 // 横串 (Auth)
 import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';

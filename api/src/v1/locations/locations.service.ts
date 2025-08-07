@@ -46,14 +46,18 @@ export class LocationsService {
   /**
    * Google Places API Autocomplete を使用して地名候補を取得
    */
-  async autocompleteLocations(query: string): Promise<AutocompleteLocationsResponse> {
+  async autocompleteLocations(
+    query: string,
+  ): Promise<AutocompleteLocationsResponse> {
     this.logger.debug('AutocompleteLocations', 'autocompleteLocations', {
       query,
     });
 
     const apiKey = env.GOOGLE_PLACE_API_KEY;
-    
-    const url = new URL('https://maps.googleapis.com/maps/api/place/autocomplete/json');
+
+    const url = new URL(
+      'https://maps.googleapis.com/maps/api/place/autocomplete/json',
+    );
     url.searchParams.set('input', query);
     url.searchParams.set('types', '(cities)'); // 地名のみに限定
     url.searchParams.set('language', 'ja'); // 日本語で結果を取得
@@ -61,7 +65,7 @@ export class LocationsService {
 
     try {
       const response = await fetch(url.toString());
-      
+
       if (!response.ok) {
         throw new Error(`Google Places API request failed: ${response.status}`);
       }
@@ -69,30 +73,43 @@ export class LocationsService {
       const data: GooglePlacesAutocompleteResponse = await response.json();
 
       if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        this.logger.warn('GooglePlacesAutocompleteError', 'autocompleteLocations', {
-          status: data.status,
-          error_message: data.error_message,
-        });
+        this.logger.warn(
+          'GooglePlacesAutocompleteError',
+          'autocompleteLocations',
+          {
+            status: data.status,
+            error_message: data.error_message,
+          },
+        );
         return [];
       }
 
       // レスポンス形式に変換
-      const places = data.predictions.map(prediction => ({
+      const places = data.predictions.map((prediction) => ({
         place_id: prediction.place_id,
         description: prediction.description,
       }));
 
-      this.logger.debug('AutocompleteLocationsSuccess', 'autocompleteLocations', {
-        query,
-        resultCount: places.length,
-      });
+      this.logger.debug(
+        'AutocompleteLocationsSuccess',
+        'autocompleteLocations',
+        {
+          query,
+          resultCount: places.length,
+        },
+      );
 
       return places;
     } catch (error) {
-      this.logger.error('GooglePlacesAutocompleteCallError', 'autocompleteLocations', {
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        query,
-      });
+      this.logger.error(
+        'GooglePlacesAutocompleteCallError',
+        'autocompleteLocations',
+        {
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          query,
+        },
+      );
       return [];
     }
   }

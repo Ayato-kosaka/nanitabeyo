@@ -77,7 +77,7 @@ export class GoogleMapsService {
     category: string,
   ): Promise<GoogleMapsPlace[]> {
     const [lat, lng] = location.split(',').map(Number);
-    
+
     this.logger.debug('GoogleMapsTextSearch', 'searchRestaurants', {
       location: `${lat},${lng}`,
       radius,
@@ -85,11 +85,13 @@ export class GoogleMapsService {
     });
 
     const apiKey = env.GOOGLE_PLACE_API_KEY;
-    
+
     // カテゴリに基づく検索クエリを構築
     const query = this.buildSearchQuery(category);
-    
-    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
+
+    const url = new URL(
+      'https://maps.googleapis.com/maps/api/place/textsearch/json',
+    );
     url.searchParams.set('query', query);
     url.searchParams.set('location', `${lat},${lng}`);
     url.searchParams.set('radius', radius.toString());
@@ -98,7 +100,7 @@ export class GoogleMapsService {
 
     try {
       const response = await fetch(url.toString());
-      
+
       if (!response.ok) {
         throw new Error(`Google Maps API request failed: ${response.status}`);
       }
@@ -135,19 +137,27 @@ export class GoogleMapsService {
   /**
    * Place Details API を使用して詳細情報（レビュー、写真）を取得
    */
-  private async getPlaceDetails(places: GoogleMapsPlace[]): Promise<GoogleMapsPlace[]> {
+  private async getPlaceDetails(
+    places: GoogleMapsPlace[],
+  ): Promise<GoogleMapsPlace[]> {
     const apiKey = env.GOOGLE_PLACE_API_KEY;
     const detailedPlaces: GoogleMapsPlace[] = [];
 
-    for (const place of places.slice(0, 10)) { // 最大10件に制限
+    for (const place of places.slice(0, 10)) {
+      // 最大10件に制限
       try {
-        const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
+        const url = new URL(
+          'https://maps.googleapis.com/maps/api/place/details/json',
+        );
         url.searchParams.set('place_id', place.place_id);
-        url.searchParams.set('fields', 'place_id,name,formatted_address,geometry,photos,reviews,rating,user_ratings_total,price_level,types');
+        url.searchParams.set(
+          'fields',
+          'place_id,name,formatted_address,geometry,photos,reviews,rating,user_ratings_total,price_level,types',
+        );
         url.searchParams.set('key', apiKey);
 
         const response = await fetch(url.toString());
-        
+
         if (!response.ok) {
           this.logger.warn('PlaceDetailsAPIError', 'getPlaceDetails', {
             placeId: place.place_id,
@@ -157,7 +167,7 @@ export class GoogleMapsService {
         }
 
         const data = await response.json();
-        
+
         if (data.status === 'OK' && data.result) {
           detailedPlaces.push(data.result);
         }
@@ -179,7 +189,7 @@ export class GoogleMapsService {
     // カテゴリIDから実際の検索語を生成
     // TODO: dish_categories テーブルから取得するか、マッピングテーブルを作成
     const categoryMap: Record<string, string> = {
-      'default': 'restaurant food',
+      default: 'restaurant food',
       // 実際のカテゴリIDに応じて拡張
     };
 

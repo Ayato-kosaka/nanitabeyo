@@ -75,7 +75,9 @@ export class DishesRepository {
 
     // TODO: 新規レストラン作成は geography 型の問題で一時的に無効化
     // 既存のレストランが見つからない場合は一時的なダミーデータを作成
-    throw new Error(`Restaurant not found: ${place.name}. Please add restaurant manually first.`);
+    throw new Error(
+      `Restaurant not found: ${place.name}. Please add restaurant manually first.`,
+    );
   }
 
   /**
@@ -116,7 +118,7 @@ export class DishesRepository {
   ) {
     // Google Photo Reference を media_path として保存
     const mediaPath = `google_photos/${photoReference}`;
-    
+
     return tx.dish_media.create({
       data: {
         dish_id: dishId,

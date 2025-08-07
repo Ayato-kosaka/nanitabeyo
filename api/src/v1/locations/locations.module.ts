@@ -21,9 +21,7 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [LocationsController],
-  providers: [
-    LocationsService,
-  ],
+  providers: [LocationsService],
   exports: [
     LocationsService, // 他ドメインが再利用できる
   ],

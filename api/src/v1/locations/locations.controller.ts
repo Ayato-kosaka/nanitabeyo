@@ -14,19 +14,10 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import {
-  QueryAutocompleteLocationsDto,
-} from '@shared/v1/dto';
-import {
-  AutocompleteLocationsResponse,
-} from '@shared/v1/res';
+import { QueryAutocompleteLocationsDto } from '@shared/v1/dto';
+import { AutocompleteLocationsResponse } from '@shared/v1/res';
 
 // 横串 (Auth)
 import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
@@ -45,7 +36,9 @@ export class LocationsController {
   @Get('autocomplete')
   @UseGuards(OptionalJwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: 'Google Places API Autocomplete のラッパー（地名のみ）' })
+  @ApiOperation({
+    summary: 'Google Places API Autocomplete のラッパー（地名のみ）',
+  })
   @ApiQuery({
     name: 'q',
     required: true,

@@ -8,10 +8,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 
-import {
-  CreateDishReviewDto,
-  LikeDishReviewParamsDto,
-} from '@shared/v1/dto';
+import { CreateDishReviewDto, LikeDishReviewParamsDto } from '@shared/v1/dto';
 
 import { DishReviewsRepository } from './dish-reviews.repository';
 import { PrismaService } from '../../prisma/prisma.service';
