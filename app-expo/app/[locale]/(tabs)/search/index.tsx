@@ -40,8 +40,10 @@ import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { BudgetSlider } from "@/features/search/components/BudgetSlider";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 
 export default function SearchScreen() {
+	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const [location, setLocation] = useState<SearchLocation | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
@@ -141,8 +143,9 @@ export default function SearchScreen() {
 
 			// Navigate to cards screen with search parameters
 			router.push({
-				pathname: "/(tabs)/search/topics",
+				pathname: "/[locale]/(tabs)/search/topics",
 				params: {
+					locale,
 					searchParams: JSON.stringify(searchParams),
 				},
 			});

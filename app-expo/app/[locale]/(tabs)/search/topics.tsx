@@ -17,8 +17,10 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 
 export default function TopicsScreen() {
+	const locale = useLocale();
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
@@ -53,8 +55,9 @@ export default function TopicsScreen() {
 	const handleViewDetails = (topic: Topic) => {
 		setDishes(topic.id, topic.feedItems);
 		router.push({
-			pathname: "/(tabs)/search/result",
+			pathname: "/[locale]/(tabs)/search/result",
 			params: {
+				locale,
 				topicId: topic.id,
 			},
 		});
