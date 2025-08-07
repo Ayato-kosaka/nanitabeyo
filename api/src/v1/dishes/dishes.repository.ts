@@ -19,7 +19,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -62,7 +62,13 @@ export class DishesRepository {
       name: place.name,
     });
 
-    if (!place.id || !place.name || !place.location?.latitude || !place.location?.longitude) throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
+    if (
+      !place.id ||
+      !place.name ||
+      !place.location?.latitude ||
+      !place.location?.longitude
+    )
+      throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
 
     // PostGIS geography カラムを扱いつつ、
     // INSERT … ON CONFLICT DO NOTHING RETURNING *
@@ -97,7 +103,9 @@ export class DishesRepository {
     });
     if (!existing) {
       // 理論的には起こらない
-      throw new Error(`Failed to insert or find restaurant with place_id=${place.id}`);
+      throw new Error(
+        `Failed to insert or find restaurant with place_id=${place.id}`,
+      );
     }
     return existing;
   }
@@ -156,7 +164,7 @@ export class DishesRepository {
   async createDishReview(
     tx: Prisma.TransactionClient,
     dishId: string,
-    review: google.maps.places.v1.IReview
+    review: google.maps.places.v1.IReview,
   ) {
     const result = await tx.dish_reviews.create({
       data: {

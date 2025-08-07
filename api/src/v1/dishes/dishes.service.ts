@@ -20,7 +20,10 @@ import { LocationsService } from '../locations/locations.service';
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
-import { convertPrismaToSupabase_DishReviews, SupabaseDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import {
+  convertPrismaToSupabase_DishReviews,
+  SupabaseDishReviews,
+} from '../../../../shared/converters/convert_dish_reviews';
 import { StorageService } from 'src/core/storage/storage.service';
 
 @Injectable()
@@ -31,7 +34,7 @@ export class DishesService {
     private readonly logger: AppLoggerService,
     private readonly storage: StorageService,
     private readonly locationsService: LocationsService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -82,7 +85,11 @@ export class DishesService {
       dto.categoryName,
     );
 
-    if (!googlePlaces || !googlePlaces?.places || !googlePlaces?.contextualContents) {
+    if (
+      !googlePlaces ||
+      !googlePlaces?.places ||
+      !googlePlaces?.contextualContents
+    ) {
       throw new Error('No places found from Google Maps API');
     }
 
@@ -91,11 +98,15 @@ export class DishesService {
     // 各レストランに対してデータ登録
     for (const [index, place] of googlePlaces.places.entries()) {
       try {
-        if (!place.id) throw new Error(`Place ID is missing for place at index ${index}`);
-        const photoName = googlePlaces.contextualContents[index]?.photos?.[0]?.name;
-        if (!photoName) throw new Error(`No photo name found for place: ${place.id}`);
+        if (!place.id)
+          throw new Error(`Place ID is missing for place at index ${index}`);
+        const photoName =
+          googlePlaces.contextualContents[index]?.photos?.[0]?.name;
+        if (!photoName)
+          throw new Error(`No photo name found for place: ${place.id}`);
         const photoMedia = await this.locationsService.getPhotoMedia(photoName);
-        if (!photoMedia) throw new Error(`No photo URL found for place: ${place.id}`);
+        if (!photoMedia)
+          throw new Error(`No photo URL found for place: ${place.id}`);
 
         const dishMediaUpload = await this.storage.uploadFile({
           buffer: photoMedia.buffer,
@@ -103,12 +114,16 @@ export class DishesService {
           resourceType: 'google-maps',
           usageType: 'photo',
           identifier: place.id,
-        })
+        });
 
         const result = await this.prisma.withTransaction(
           async (tx: Prisma.TransactionClient) => {
             // 1. レストラン登録/取得
-            const restaurant = await this.repo.createOrGetRestaurant(tx, place, photoMedia.photoUri);
+            const restaurant = await this.repo.createOrGetRestaurant(
+              tx,
+              place,
+              photoMedia.photoUri,
+            );
 
             // 2. 料理登録/取得
             const dish = await this.repo.createOrGetDishForCategory(

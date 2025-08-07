@@ -12,7 +12,8 @@ export const EXTENSION_TABLE = {
 };
 
 /** 未知の MIME は “bin” 拡張子扱い */
-export const getExt = (mime: keyof typeof EXTENSION_TABLE): string => EXTENSION_TABLE[mime];
+export const getExt = (mime: keyof typeof EXTENSION_TABLE): string =>
+  EXTENSION_TABLE[mime];
 
 /* -------------------------------------------------------------------------- */
 /*                               ファイル名生成                               */

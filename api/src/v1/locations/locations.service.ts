@@ -120,7 +120,9 @@ export class LocationsService {
   /**
    * 写真の参照を使用して、Google Places API から写真の URI を取得
    */
-  async getPhotoMedia(photoRef: string): Promise<{ photoUri: string, buffer: Buffer } | null> {
+  async getPhotoMedia(
+    photoRef: string,
+  ): Promise<{ photoUri: string; buffer: Buffer } | null> {
     const startTime = Date.now();
     const requestPayload = {
       name: photoRef,
@@ -155,8 +157,8 @@ export class LocationsService {
           const arrayBuffer = await imageResponse.arrayBuffer();
           return {
             photoUri: response.photoUri,
-            buffer: Buffer.from(arrayBuffer)
-          }
+            buffer: Buffer.from(arrayBuffer),
+          };
         }
       }
 
@@ -201,10 +203,11 @@ export class LocationsService {
       input: query.q,
       types: ['(cities)'], // 地名のみに限定
       languageCode: query.languageCode,
-    }
+    };
 
     try {
-      const response = await this.placesClient.autocompletePlaces(requestPayload);
+      const response =
+        await this.placesClient.autocompletePlaces(requestPayload);
 
       // 外部API呼び出しログを記録
       await this.logger.externalApi({
@@ -219,15 +222,22 @@ export class LocationsService {
         error_message: null,
       });
       // レスポンス形式に変換
-      const places = response[0].suggestions?.map((suggestion) => ({
-        place_id: suggestion.placePrediction?.placeId,
-        text: suggestion.placePrediction?.text?.text,
-        mainText: suggestion.placePrediction?.structuredFormat?.mainText,
-        secondaryText: suggestion.placePrediction?.structuredFormat?.secondaryText,
-        types: suggestion.placePrediction?.types || [],
-      })).filter(place => place.place_id && place.text && place.mainText && place.secondaryText) as AutocompleteLocationsResponse
-        ;
-
+      const places = response[0].suggestions
+        ?.map((suggestion) => ({
+          place_id: suggestion.placePrediction?.placeId,
+          text: suggestion.placePrediction?.text?.text,
+          mainText: suggestion.placePrediction?.structuredFormat?.mainText,
+          secondaryText:
+            suggestion.placePrediction?.structuredFormat?.secondaryText,
+          types: suggestion.placePrediction?.types || [],
+        }))
+        .filter(
+          (place) =>
+            place.place_id &&
+            place.text &&
+            place.mainText &&
+            place.secondaryText,
+        ) as AutocompleteLocationsResponse;
       this.logger.debug(
         'AutocompleteLocationsSuccess',
         'autocompleteLocations',

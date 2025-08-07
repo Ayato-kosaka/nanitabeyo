@@ -72,18 +72,16 @@ function DepositsScreen() {
 				/>
 				<View style={styles.depositInfo}>
 					<Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
-                                    <Text style={styles.depositAmount}>
-                                            {i18n.t("Search.currencySuffix")}
-                                            {item.bidAmount.toLocaleString()}
-                                    </Text>
+					<Text style={styles.depositAmount}>
+						{i18n.t("Search.currencySuffix")}
+						{item.bidAmount.toLocaleString()}
+					</Text>
 				</View>
 				<View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
 					<Text style={styles.statusText}>{getStatusText(item.status)}</Text>
 				</View>
 			</View>
-                     <Text style={styles.depositDays}>
-                            {i18n.t("Common.daysRemaining", { count: item.remainingDays })}
-                     </Text>
+			<Text style={styles.depositDays}>{i18n.t("Common.daysRemaining", { count: item.remainingDays })}</Text>
 		</View>
 	);
 
@@ -103,11 +101,11 @@ function DepositsScreen() {
 	const getStatusText = (status: string) => {
 		switch (status) {
 			case "active":
-                                return i18n.t("Profile.statusLabels.active");
-                        case "completed":
-                                return i18n.t("Profile.statusLabels.completed");
-                        case "refunded":
-                                return i18n.t("Profile.statusLabels.refunded");
+				return i18n.t("Profile.statusLabels.active");
+			case "completed":
+				return i18n.t("Profile.statusLabels.completed");
+			case "refunded":
+				return i18n.t("Profile.statusLabels.refunded");
 			default:
 				return status;
 		}
@@ -216,10 +214,10 @@ function EarningsScreen() {
 					containerStyle={{ marginVertical: 16 }}
 					renderOverlay={(item) => (
 						<View style={styles.earningCardOverlay}>
-                                                      <Text style={styles.earningCardAmount}>
-                                                              {i18n.t("Search.currencySuffix")}
-                                                              {item.earnings.toLocaleString()}
-                                                      </Text>
+							<Text style={styles.earningCardAmount}>
+								{i18n.t("Search.currencySuffix")}
+								{item.earnings.toLocaleString()}
+							</Text>
 							<View
 								style={[
 									styles.statusChip,
@@ -227,11 +225,11 @@ function EarningsScreen() {
 										backgroundColor: item.status === "paid" ? "#4CAF50" : "#FF9800",
 									},
 								]}>
-                                                                <Text style={styles.statusText}>
-                                                                        {item.status === "paid"
-                                                                                ? i18n.t("Profile.statusLabels.paid")
-                                                                                : i18n.t("Profile.statusLabels.pending")}
-                                                                </Text>
+								<Text style={styles.statusText}>
+									{item.status === "paid"
+										? i18n.t("Profile.statusLabels.paid")
+										: i18n.t("Profile.statusLabels.pending")}
+								</Text>
 							</View>
 						</View>
 					)}
@@ -430,15 +428,15 @@ export default function ProfileScreen() {
 						<View style={styles.statsContainer}>
 							<View style={styles.statColumn}>
 								<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
-                                                                <Text style={styles.statLabel}>{i18n.t("Profile.stats.following")}</Text>
+								<Text style={styles.statLabel}>{i18n.t("Profile.stats.following")}</Text>
 							</View>
 							<View style={styles.statColumn}>
 								<Text style={styles.statNumber}>{formatNumber(profile.followersCount)}</Text>
-                                                                <Text style={styles.statLabel}>{i18n.t("Profile.stats.followers")}</Text>
+								<Text style={styles.statLabel}>{i18n.t("Profile.stats.followers")}</Text>
 							</View>
 							<View style={styles.statColumn}>
 								<Text style={styles.statNumber}>{formatNumber(profile.totalLikes)}</Text>
-                                                                <Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
+								<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
 							</View>
 						</View>
 					</View>
@@ -466,14 +464,12 @@ export default function ProfileScreen() {
 									style={[styles.followButton, isFollowing && styles.followingButton]}
 									onPress={handleFollow}>
 									<Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
-                                                                                {isFollowing
-                                                                                        ? i18n.t("Profile.buttons.following")
-                                                                                        : i18n.t("Profile.buttons.follow")}
+										{isFollowing ? i18n.t("Profile.buttons.following") : i18n.t("Profile.buttons.follow")}
 									</Text>
 								</TouchableOpacity>
 								<TouchableOpacity style={styles.messageButton}>
 									<MessageCircle size={16} color="#FFFFFF" />
-                                                                        <Text style={styles.messageButtonText}>{i18n.t("Profile.buttons.message")}</Text>
+									<Text style={styles.messageButtonText}>{i18n.t("Profile.buttons.message")}</Text>
 								</TouchableOpacity>
 							</>
 						)}
@@ -500,7 +496,7 @@ export default function ProfileScreen() {
 						<View style={styles.privateContainer}>
 							<View style={styles.privateCard}>
 								<Lock size={48} color="#6B7280" />
-                                                                <Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
+								<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
 							</View>
 						</View>
 					) : (
@@ -524,7 +520,7 @@ export default function ProfileScreen() {
 			{/* Edit Profile Modal */}
 			<BlurModal animationType="slide" presentationStyle="pageSheet">
 				<Card>
-                                        <Text style={styles.editLabel}>{i18n.t("Profile.labels.bio")}</Text>
+					<Text style={styles.editLabel}>{i18n.t("Profile.labels.bio")}</Text>
 					<TextInput
 						style={styles.editInput}
 						value={editedBio}

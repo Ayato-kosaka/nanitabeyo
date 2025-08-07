@@ -33,4 +33,4 @@ import { LocationsModule } from '../locations/locations.module'; // Google Place
     DishesService, // 他ドメインが再利用できる
   ],
 })
-export class DishesModule { }
+export class DishesModule {}

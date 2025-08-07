@@ -9,9 +9,9 @@
 		"post": "发布",
 		"processing": "处理中...",
 		"error": "错误",
-                "success": "成功",
-                "daysRemaining": "剩余{{count}}天"
-        },
+		"success": "成功",
+		"daysRemaining": "剩余{{count}}天"
+	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
 		"unsupportedVersion": "此版本已不再受支持."
@@ -132,16 +132,16 @@
 			"viewCreatorProfile": "查看创作者资料",
 			"reservation": "预订"
 		},
-                "actions": {
-                        "share": "分享"
-                },
-                "buttons": {
-                        "viewRestaurant": "查看餐厅"
-                },
-                "info": {
-                        "walkFromShibuya": "距离涩谷站步行13分钟"
-                }
-        },
+		"actions": {
+			"share": "分享"
+		},
+		"buttons": {
+			"viewRestaurant": "查看餐厅"
+		},
+		"info": {
+			"walkFromShibuya": "距离涩谷站步行13分钟"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "打开项目详情"
 	},
@@ -165,32 +165,32 @@
 			"noDeposits": "所选状态没有存款",
 			"noEarnings": "所选状态没有收益"
 		},
-                "statusLabels": {
-                        "active": "活跃",
-                        "completed": "已完成",
-                        "refunded": "已退款",
-                        "paid": "已支付",
-                        "pending": "待定"
-                },
-                "buttons": {
-                        "editProfile": "编辑个人资料",
-                        "follow": "关注",
-                        "following": "已关注",
-                        "message": "消息"
-                },
-                "stats": {
-                        "following": "关注中",
-                        "followers": "粉丝",
-                        "likes": "点赞"
-                },
-                "labels": {
-                        "bio": "简介"
-                },
-                "privateContent": "此内容为私密",
-                "placeholders": {
-                        "enterBio": "请输入您的个人简介..."
-                }
-        },
+		"statusLabels": {
+			"active": "活跃",
+			"completed": "已完成",
+			"refunded": "已退款",
+			"paid": "已支付",
+			"pending": "待定"
+		},
+		"buttons": {
+			"editProfile": "编辑个人资料",
+			"follow": "关注",
+			"following": "已关注",
+			"message": "消息"
+		},
+		"stats": {
+			"following": "关注中",
+			"followers": "粉丝",
+			"likes": "点赞"
+		},
+		"labels": {
+			"bio": "简介"
+		},
+		"privateContent": "此内容为私密",
+		"placeholders": {
+			"enterBio": "请输入您的个人简介..."
+		}
+	},
 	"NotFound": {
 		"title": "哎呀！",
 		"message": "此屏幕不存在。",
@@ -217,61 +217,61 @@
 			"enterReview": "输入评论",
 			"enterBidAmount": "输入出价金额"
 		},
-                "labels": {
-                        "endDate": "结束日期:",
-                        "paymentProcessing": "付款处理中...",
-                        "currentBidAmount": "当前出价金额"
-                },
-                "tabs": {
-                        "reviews": "评论",
-                        "bids": "出价"
-                },
-                "emptyState": {
-                        "noBidsForStatus": "所选状态没有出价"
-                },
-                "alerts": {
-                        "locationError": "获取位置信息失败",
-                        "currentLocationError": "获取当前位置失败",
-                        "bidSuccess": "成功为{{place}}出价¥{{amount}}",
-                        "bidError": "出价失败",
-                        "reviewSuccess": "评论发布成功",
-                        "reviewError": "评论发布失败"
-                }
-        },
-        "Restaurant": {
-                "placeholders": {
-                        "searchLocation": "搜索地点/区域"
-                },
-                "buttons": {
-                        "reserve": "预订",
-                        "postMedia": "发布媒体"
-                },
-                "tabs": {
-                        "posts": "帖子 {{count}}",
-                        "info": "信息"
-                },
-                "filter": {
-                        "title": "筛选",
-                        "reset": "重置",
-                        "apply": "应用",
-                        "sections": {
-                                "priceRange": "价格范围",
-                                "category": "菜系"
-                        },
-                        "priceRanges": {
-                                "under1000": "{{currency}}1,000 以下",
-                                "range1000to3000": "{{currency}}1,000-3,000",
-                                "range3000to5000": "{{currency}}3,000-5,000",
-                                "over5000": "{{currency}}5,000 以上"
-                        },
-                        "categories": {
-                                "japanese": "日本菜",
-                                "italian": "意大利菜",
-                                "french": "法餐",
-                                "chinese": "中餐",
-                                "asian": "亚洲菜",
-                                "other": "其他"
-                        }
-                }
-        }
+		"labels": {
+			"endDate": "结束日期:",
+			"paymentProcessing": "付款处理中...",
+			"currentBidAmount": "当前出价金额"
+		},
+		"tabs": {
+			"reviews": "评论",
+			"bids": "出价"
+		},
+		"emptyState": {
+			"noBidsForStatus": "所选状态没有出价"
+		},
+		"alerts": {
+			"locationError": "获取位置信息失败",
+			"currentLocationError": "获取当前位置失败",
+			"bidSuccess": "成功为{{place}}出价¥{{amount}}",
+			"bidError": "出价失败",
+			"reviewSuccess": "评论发布成功",
+			"reviewError": "评论发布失败"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "搜索地点/区域"
+		},
+		"buttons": {
+			"reserve": "预订",
+			"postMedia": "发布媒体"
+		},
+		"tabs": {
+			"posts": "帖子 {{count}}",
+			"info": "信息"
+		},
+		"filter": {
+			"title": "筛选",
+			"reset": "重置",
+			"apply": "应用",
+			"sections": {
+				"priceRange": "价格范围",
+				"category": "菜系"
+			},
+			"priceRanges": {
+				"under1000": "{{currency}}1,000 以下",
+				"range1000to3000": "{{currency}}1,000-3,000",
+				"range3000to5000": "{{currency}}3,000-5,000",
+				"over5000": "{{currency}}5,000 以上"
+			},
+			"categories": {
+				"japanese": "日本菜",
+				"italian": "意大利菜",
+				"french": "法餐",
+				"chinese": "中餐",
+				"asian": "亚洲菜",
+				"other": "其他"
+			}
+		}
+	}
 }

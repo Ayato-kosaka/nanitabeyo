@@ -114,7 +114,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				<View style={styles.headerLeft}>
 					<Text style={styles.menuName}>{item.name}</Text>
 					<View style={styles.priceRatingContainer}>
-                                                <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text>
+						<Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text>
 						{/* <View style={styles.ratingContainer}>
               {renderStars(5, 4)}
               <Text style={styles.reviewCount}>(127)</Text>

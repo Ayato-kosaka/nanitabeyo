@@ -28,7 +28,7 @@ import { LocationsService } from './locations.service';
 @ApiTags('Locations')
 @Controller('v1/locations')
 export class LocationsController {
-  constructor(private readonly locationsService: LocationsService) { }
+  constructor(private readonly locationsService: LocationsService) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/locations/autocomplete (任意認証)             */

@@ -164,8 +164,10 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 
 			if (isDateColumn(baseType)) return `    ${c_name}: prisma.${c_name}?.toISOString() ?? null,`;
 			if (isDecimalColumn(baseType)) return `    ${c_name}: prisma.${c_name}?.toNumber() ?? null,`;
-			if (isBigIntColumn(baseType)) return c_not_null ? `    ${c_name}: Number(prisma.${c_name}),`
-				: `    ${c_name}: prisma.${c_name} !== null ? Number(prisma.${c_name}) : null,`;
+			if (isBigIntColumn(baseType))
+				return c_not_null
+					? `    ${c_name}: Number(prisma.${c_name}),`
+					: `    ${c_name}: prisma.${c_name} !== null ? Number(prisma.${c_name}) : null,`;
 
 			return `    ${c_name}: prisma.${c_name},`;
 		})

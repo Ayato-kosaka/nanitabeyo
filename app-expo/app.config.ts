@@ -143,7 +143,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		],
 		"expo-font",
 		"expo-web-browser",
-		"expo-localization"
+		"expo-localization",
 	],
 	experiments: {
 		typedRoutes: true,

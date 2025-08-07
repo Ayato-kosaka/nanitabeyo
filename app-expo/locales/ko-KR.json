@@ -9,9 +9,9 @@
 		"post": "게시",
 		"processing": "처리 중...",
 		"error": "오류",
-                "success": "성공",
-                "daysRemaining": "남은 {{count}}일"
-        },
+		"success": "성공",
+		"daysRemaining": "남은 {{count}}일"
+	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
 		"unsupportedVersion": "이 버전은 더 이상 지원되지 않습니다."
@@ -132,16 +132,16 @@
 			"viewCreatorProfile": "작성자 프로필로 이동",
 			"reservation": "예약"
 		},
-                "actions": {
-                        "share": "공유하기"
-                },
-                "buttons": {
-                        "viewRestaurant": "가게 보기"
-                },
-                "info": {
-                        "walkFromShibuya": "시부야역에서 도보 13분"
-                }
-        },
+		"actions": {
+			"share": "공유하기"
+		},
+		"buttons": {
+			"viewRestaurant": "가게 보기"
+		},
+		"info": {
+			"walkFromShibuya": "시부야역에서 도보 13분"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "항목 세부정보 열기"
 	},
@@ -165,32 +165,32 @@
 			"noDeposits": "선택한 상태에 대한 예치금이 없습니다",
 			"noEarnings": "선택한 상태에 대한 수익이 없습니다"
 		},
-                "statusLabels": {
-                        "active": "활성",
-                        "completed": "완료",
-                        "refunded": "환불됨",
-                        "paid": "지불됨",
-                        "pending": "보류 중"
-                },
-                "buttons": {
-                        "editProfile": "프로필 편집",
-                        "follow": "팔로우",
-                        "following": "팔로잉",
-                        "message": "메시지"
-                },
-                "stats": {
-                        "following": "팔로잉",
-                        "followers": "팔로워",
-                        "likes": "좋아요"
-                },
-                "labels": {
-                        "bio": "자기소개"
-                },
-                "privateContent": "이 내용은 비공개입니다",
-                "placeholders": {
-                        "enterBio": "자기소개를 입력하세요..."
-                }
-        },
+		"statusLabels": {
+			"active": "활성",
+			"completed": "완료",
+			"refunded": "환불됨",
+			"paid": "지불됨",
+			"pending": "보류 중"
+		},
+		"buttons": {
+			"editProfile": "프로필 편집",
+			"follow": "팔로우",
+			"following": "팔로잉",
+			"message": "메시지"
+		},
+		"stats": {
+			"following": "팔로잉",
+			"followers": "팔로워",
+			"likes": "좋아요"
+		},
+		"labels": {
+			"bio": "자기소개"
+		},
+		"privateContent": "이 내용은 비공개입니다",
+		"placeholders": {
+			"enterBio": "자기소개를 입력하세요..."
+		}
+	},
 	"NotFound": {
 		"title": "이런!",
 		"message": "이 화면은 존재하지 않습니다.",
@@ -217,61 +217,61 @@
 			"enterReview": "리뷰 입력",
 			"enterBidAmount": "입찰 금액 입력"
 		},
-                "labels": {
-                        "endDate": "종료일:",
-                        "paymentProcessing": "결제 처리 중...",
-                        "currentBidAmount": "현재 입찰 금액"
-                },
-                "tabs": {
-                        "reviews": "리뷰",
-                        "bids": "입찰"
-                },
-                "emptyState": {
-                        "noBidsForStatus": "선택한 상태의 입찰이 없습니다"
-                },
-                "alerts": {
-                        "locationError": "위치 정보 가져오기 실패",
-                        "currentLocationError": "현재 위치 가져오기 실패",
-                        "bidSuccess": "{{place}}에 ¥{{amount}}로 입찰 성공",
-                        "bidError": "입찰 실패",
-                        "reviewSuccess": "리뷰 게시 성공",
-                        "reviewError": "리뷰 게시 실패"
-                }
-        },
-        "Restaurant": {
-                "placeholders": {
-                        "searchLocation": "위치/지역 검색"
-                },
-                "buttons": {
-                        "reserve": "예약하기",
-                        "postMedia": "미디어 게시"
-                },
-                "tabs": {
-                        "posts": "게시물 {{count}}",
-                        "info": "정보"
-                },
-                "filter": {
-                        "title": "필터",
-                        "reset": "초기화",
-                        "apply": "적용",
-                        "sections": {
-                                "priceRange": "가격대",
-                                "category": "카테고리"
-                        },
-                        "priceRanges": {
-                                "under1000": "{{currency}}1,000 이하",
-                                "range1000to3000": "{{currency}}1,000-3,000",
-                                "range3000to5000": "{{currency}}3,000-5,000",
-                                "over5000": "{{currency}}5,000 이상"
-                        },
-                        "categories": {
-                                "japanese": "일식",
-                                "italian": "이탈리아식",
-                                "french": "프랑스식",
-                                "chinese": "중식",
-                                "asian": "아시아 요리",
-                                "other": "기타"
-                        }
-                }
-        }
+		"labels": {
+			"endDate": "종료일:",
+			"paymentProcessing": "결제 처리 중...",
+			"currentBidAmount": "현재 입찰 금액"
+		},
+		"tabs": {
+			"reviews": "리뷰",
+			"bids": "입찰"
+		},
+		"emptyState": {
+			"noBidsForStatus": "선택한 상태의 입찰이 없습니다"
+		},
+		"alerts": {
+			"locationError": "위치 정보 가져오기 실패",
+			"currentLocationError": "현재 위치 가져오기 실패",
+			"bidSuccess": "{{place}}에 ¥{{amount}}로 입찰 성공",
+			"bidError": "입찰 실패",
+			"reviewSuccess": "리뷰 게시 성공",
+			"reviewError": "리뷰 게시 실패"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "위치/지역 검색"
+		},
+		"buttons": {
+			"reserve": "예약하기",
+			"postMedia": "미디어 게시"
+		},
+		"tabs": {
+			"posts": "게시물 {{count}}",
+			"info": "정보"
+		},
+		"filter": {
+			"title": "필터",
+			"reset": "초기화",
+			"apply": "적용",
+			"sections": {
+				"priceRange": "가격대",
+				"category": "카테고리"
+			},
+			"priceRanges": {
+				"under1000": "{{currency}}1,000 이하",
+				"range1000to3000": "{{currency}}1,000-3,000",
+				"range3000to5000": "{{currency}}3,000-5,000",
+				"over5000": "{{currency}}5,000 이상"
+			},
+			"categories": {
+				"japanese": "일식",
+				"italian": "이탈리아식",
+				"french": "프랑스식",
+				"chinese": "중식",
+				"asian": "아시아 요리",
+				"other": "기타"
+			}
+		}
+	}
 }

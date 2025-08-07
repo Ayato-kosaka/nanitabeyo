@@ -9,9 +9,9 @@
 		"post": "पोस्ट करें",
 		"processing": "प्रसंस्करण...",
 		"error": "त्रुटि",
-                "success": "सफलता",
-                "daysRemaining": "{{count}} दिन शेष"
-        },
+		"success": "सफलता",
+		"daysRemaining": "{{count}} दिन शेष"
+	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
 		"unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"
@@ -132,16 +132,16 @@
 			"viewCreatorProfile": "निर्माता की प्रोफ़ाइल पर जाएँ",
 			"reservation": "आरक्षण"
 		},
-                "actions": {
-                        "share": "साझा करें"
-                },
-                "buttons": {
-                        "viewRestaurant": "रेस्टोरेंट देखें"
-                },
-                "info": {
-                        "walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
-                }
-        },
+		"actions": {
+			"share": "साझा करें"
+		},
+		"buttons": {
+			"viewRestaurant": "रेस्टोरेंट देखें"
+		},
+		"info": {
+			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "आइटम विवरण खोलें"
 	},
@@ -165,32 +165,32 @@
 			"noDeposits": "चयनित स्थिति के लिए कोई जमा नहीं",
 			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं"
 		},
-                "statusLabels": {
-                        "active": "सक्रिय",
-                        "completed": "पूर्ण",
-                        "refunded": "धनवापसी",
-                        "paid": "भुगतान किया गया",
-                        "pending": "लंबित"
-                },
-                "buttons": {
-                        "editProfile": "प्रोफ़ाइल संपादित करें",
-                        "follow": "फ़ॉलो",
-                        "following": "फ़ॉलो कर रहे हैं",
-                        "message": "संदेश"
-                },
-                "stats": {
-                        "following": "अनुसरण",
-                        "followers": "अनुयायी",
-                        "likes": "पसंद"
-                },
-                "labels": {
-                        "bio": "परिचय"
-                },
-                "privateContent": "यह सामग्री निजी है",
-                "placeholders": {
-                        "enterBio": "अपना परिचय दर्ज करें..."
-                }
-        },
+		"statusLabels": {
+			"active": "सक्रिय",
+			"completed": "पूर्ण",
+			"refunded": "धनवापसी",
+			"paid": "भुगतान किया गया",
+			"pending": "लंबित"
+		},
+		"buttons": {
+			"editProfile": "प्रोफ़ाइल संपादित करें",
+			"follow": "फ़ॉलो",
+			"following": "फ़ॉलो कर रहे हैं",
+			"message": "संदेश"
+		},
+		"stats": {
+			"following": "अनुसरण",
+			"followers": "अनुयायी",
+			"likes": "पसंद"
+		},
+		"labels": {
+			"bio": "परिचय"
+		},
+		"privateContent": "यह सामग्री निजी है",
+		"placeholders": {
+			"enterBio": "अपना परिचय दर्ज करें..."
+		}
+	},
 	"NotFound": {
 		"title": "ओह!",
 		"message": "यह स्क्रीन मौजूद नहीं है।",
@@ -217,61 +217,61 @@
 			"enterReview": "समीक्षा दर्ज करें",
 			"enterBidAmount": "बोली राशि दर्ज करें"
 		},
-                "labels": {
-                        "endDate": "समाप्ति तिथि:",
-                        "paymentProcessing": "भुगतान प्रसंस्करण...",
-                        "currentBidAmount": "वर्तमान बोली राशि"
-                },
-                "tabs": {
-                        "reviews": "समीक्षाएँ",
-                        "bids": "बोली"
-                },
-                "emptyState": {
-                        "noBidsForStatus": "चयनित स्थिति के लिए कोई बोली नहीं"
-                },
-                "alerts": {
-                        "locationError": "स्थान जानकारी प्राप्त करने में विफल",
-                        "currentLocationError": "वर्तमान स्थान प्राप्त करने में विफल",
-                        "bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
-                        "bidError": "बोली लगाने में विफल",
-                        "reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
-                        "reviewError": "समीक्षा पोस्ट करने में विफल"
-                }
-        },
-        "Restaurant": {
-                "placeholders": {
-                        "searchLocation": "स्थान/क्षेत्र खोजें"
-                },
-                "buttons": {
-                        "reserve": "आरक्षण",
-                        "postMedia": "मीडिया पोस्ट करें"
-                },
-                "tabs": {
-                        "posts": "पोस्ट {{count}}",
-                        "info": "जानकारी"
-                },
-                "filter": {
-                        "title": "फ़िल्टर",
-                        "reset": "रीसेट",
-                        "apply": "लागू करें",
-                        "sections": {
-                                "priceRange": "मूल्य सीमा",
-                                "category": "भोजन श्रेणी"
-                        },
-                        "priceRanges": {
-                                "under1000": "{{currency}}1,000 से कम",
-                                "range1000to3000": "{{currency}}1,000-3,000",
-                                "range3000to5000": "{{currency}}3,000-5,000",
-                                "over5000": "{{currency}}5,000 से अधिक"
-                        },
-                        "categories": {
-                                "japanese": "जापानी",
-                                "italian": "इतालवी",
-                                "french": "फ़्रेंच",
-                                "chinese": "चीनी",
-                                "asian": "एशियाई",
-                                "other": "अन्य"
-                        }
-                }
-        }
+		"labels": {
+			"endDate": "समाप्ति तिथि:",
+			"paymentProcessing": "भुगतान प्रसंस्करण...",
+			"currentBidAmount": "वर्तमान बोली राशि"
+		},
+		"tabs": {
+			"reviews": "समीक्षाएँ",
+			"bids": "बोली"
+		},
+		"emptyState": {
+			"noBidsForStatus": "चयनित स्थिति के लिए कोई बोली नहीं"
+		},
+		"alerts": {
+			"locationError": "स्थान जानकारी प्राप्त करने में विफल",
+			"currentLocationError": "वर्तमान स्थान प्राप्त करने में विफल",
+			"bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
+			"bidError": "बोली लगाने में विफल",
+			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
+			"reviewError": "समीक्षा पोस्ट करने में विफल"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "स्थान/क्षेत्र खोजें"
+		},
+		"buttons": {
+			"reserve": "आरक्षण",
+			"postMedia": "मीडिया पोस्ट करें"
+		},
+		"tabs": {
+			"posts": "पोस्ट {{count}}",
+			"info": "जानकारी"
+		},
+		"filter": {
+			"title": "फ़िल्टर",
+			"reset": "रीसेट",
+			"apply": "लागू करें",
+			"sections": {
+				"priceRange": "मूल्य सीमा",
+				"category": "भोजन श्रेणी"
+			},
+			"priceRanges": {
+				"under1000": "{{currency}}1,000 से कम",
+				"range1000to3000": "{{currency}}1,000-3,000",
+				"range3000to5000": "{{currency}}3,000-5,000",
+				"over5000": "{{currency}}5,000 से अधिक"
+			},
+			"categories": {
+				"japanese": "जापानी",
+				"italian": "इतालवी",
+				"french": "फ़्रेंच",
+				"chinese": "चीनी",
+				"asian": "एशियाई",
+				"other": "अन्य"
+			}
+		}
+	}
 }

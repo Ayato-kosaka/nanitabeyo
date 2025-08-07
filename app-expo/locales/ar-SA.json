@@ -9,9 +9,9 @@
 		"post": "نشر",
 		"processing": "معالجة...",
 		"error": "خطأ",
-                "success": "نجح",
-                "daysRemaining": "متبقي {{count}} يومًا"
-        },
+		"success": "نجح",
+		"daysRemaining": "متبقي {{count}} يومًا"
+	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
 		"unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."
@@ -132,16 +132,16 @@
 			"viewCreatorProfile": "انتقل إلى ملف المُنشئ",
 			"reservation": "حجز"
 		},
-                "actions": {
-                        "share": "مشاركة"
-                },
-                "buttons": {
-                        "viewRestaurant": "عرض المطعم"
-                },
-                "info": {
-                        "walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
-                }
-        },
+		"actions": {
+			"share": "مشاركة"
+		},
+		"buttons": {
+			"viewRestaurant": "عرض المطعم"
+		},
+		"info": {
+			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "فتح تفاصيل العنصر"
 	},
@@ -165,32 +165,32 @@
 			"noDeposits": "لا توجد ودائع للحالة المحددة",
 			"noEarnings": "لا توجد أرباح للحالة المحددة"
 		},
-                "statusLabels": {
-                        "active": "نشط",
-                        "completed": "مكتمل",
-                        "refunded": "مسترد",
-                        "paid": "مدفوع",
-                        "pending": "معلق"
-                },
-                "buttons": {
-                        "editProfile": "تعديل الملف الشخصي",
-                        "follow": "متابعة",
-                        "following": "متابَع",
-                        "message": "رسالة"
-                },
-                "stats": {
-                        "following": "يتابع",
-                        "followers": "متابعون",
-                        "likes": "إعجابات"
-                },
-                "labels": {
-                        "bio": "نبذة"
-                },
-                "privateContent": "هذا المحتوى خاص",
-                "placeholders": {
-                        "enterBio": "أدخل نبذة عنك..."
-                }
-        },
+		"statusLabels": {
+			"active": "نشط",
+			"completed": "مكتمل",
+			"refunded": "مسترد",
+			"paid": "مدفوع",
+			"pending": "معلق"
+		},
+		"buttons": {
+			"editProfile": "تعديل الملف الشخصي",
+			"follow": "متابعة",
+			"following": "متابَع",
+			"message": "رسالة"
+		},
+		"stats": {
+			"following": "يتابع",
+			"followers": "متابعون",
+			"likes": "إعجابات"
+		},
+		"labels": {
+			"bio": "نبذة"
+		},
+		"privateContent": "هذا المحتوى خاص",
+		"placeholders": {
+			"enterBio": "أدخل نبذة عنك..."
+		}
+	},
 	"NotFound": {
 		"title": "عذرًا!",
 		"message": "هذه الشاشة غير موجودة.",
@@ -217,61 +217,61 @@
 			"enterReview": "أدخل مراجعتك",
 			"enterBidAmount": "أدخل مبلغ العرض"
 		},
-                "labels": {
-                        "endDate": "تاريخ الانتهاء:",
-                        "paymentProcessing": "معالجة الدفع...",
-                        "currentBidAmount": "مبلغ العرض الحالي"
-                },
-                "tabs": {
-                        "reviews": "المراجعات",
-                        "bids": "العروض"
-                },
-                "emptyState": {
-                        "noBidsForStatus": "لا توجد عروض للحالة المحددة"
-                },
-                "alerts": {
-                        "locationError": "فشل في الحصول على معلومات الموقع",
-                        "currentLocationError": "فشل في الحصول على الموقع الحالي",
-                        "bidSuccess": "تم تقديم العرض بنجاح لـ {{place}} بمبلغ ¥{{amount}}",
-                        "bidError": "فشل في تقديم العرض",
-                        "reviewSuccess": "تم نشر المراجعة بنجاح",
-                        "reviewError": "فشل في نشر المراجعة"
-                }
-        },
-        "Restaurant": {
-                "placeholders": {
-                        "searchLocation": "البحث عن موقع/منطقة"
-                },
-                "buttons": {
-                        "reserve": "حجز",
-                        "postMedia": "نشر وسائط"
-                },
-                "tabs": {
-                        "posts": "منشورات {{count}}",
-                        "info": "معلومات"
-                },
-                "filter": {
-                        "title": "تصفية",
-                        "reset": "إعادة تعيين",
-                        "apply": "تطبيق",
-                        "sections": {
-                                "priceRange": "نطاق السعر",
-                                "category": "نوع المطبخ"
-                        },
-                        "priceRanges": {
-                                "under1000": "أقل من {{currency}}1,000",
-                                "range1000to3000": "{{currency}}1,000-3,000",
-                                "range3000to5000": "{{currency}}3,000-5,000",
-                                "over5000": "أكثر من {{currency}}5,000"
-                        },
-                        "categories": {
-                                "japanese": "ياباني",
-                                "italian": "إيطالي",
-                                "french": "فرنسي",
-                                "chinese": "صيني",
-                                "asian": "آسيوي",
-                                "other": "آخر"
-                        }
-                }
-        }
+		"labels": {
+			"endDate": "تاريخ الانتهاء:",
+			"paymentProcessing": "معالجة الدفع...",
+			"currentBidAmount": "مبلغ العرض الحالي"
+		},
+		"tabs": {
+			"reviews": "المراجعات",
+			"bids": "العروض"
+		},
+		"emptyState": {
+			"noBidsForStatus": "لا توجد عروض للحالة المحددة"
+		},
+		"alerts": {
+			"locationError": "فشل في الحصول على معلومات الموقع",
+			"currentLocationError": "فشل في الحصول على الموقع الحالي",
+			"bidSuccess": "تم تقديم العرض بنجاح لـ {{place}} بمبلغ ¥{{amount}}",
+			"bidError": "فشل في تقديم العرض",
+			"reviewSuccess": "تم نشر المراجعة بنجاح",
+			"reviewError": "فشل في نشر المراجعة"
+		}
+	},
+	"Restaurant": {
+		"placeholders": {
+			"searchLocation": "البحث عن موقع/منطقة"
+		},
+		"buttons": {
+			"reserve": "حجز",
+			"postMedia": "نشر وسائط"
+		},
+		"tabs": {
+			"posts": "منشورات {{count}}",
+			"info": "معلومات"
+		},
+		"filter": {
+			"title": "تصفية",
+			"reset": "إعادة تعيين",
+			"apply": "تطبيق",
+			"sections": {
+				"priceRange": "نطاق السعر",
+				"category": "نوع المطبخ"
+			},
+			"priceRanges": {
+				"under1000": "أقل من {{currency}}1,000",
+				"range1000to3000": "{{currency}}1,000-3,000",
+				"range3000to5000": "{{currency}}3,000-5,000",
+				"over5000": "أكثر من {{currency}}5,000"
+			},
+			"categories": {
+				"japanese": "ياباني",
+				"italian": "إيطالي",
+				"french": "فرنسي",
+				"chinese": "صيني",
+				"asian": "آسيوي",
+				"other": "آخر"
+			}
+		}
+	}
 }

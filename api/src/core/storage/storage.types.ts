@@ -1,4 +1,4 @@
-import { EXTENSION_TABLE } from "./storage.utils";
+import { EXTENSION_TABLE } from './storage.utils';
 
 export interface UploadFileParams {
   /** File buffer  */
