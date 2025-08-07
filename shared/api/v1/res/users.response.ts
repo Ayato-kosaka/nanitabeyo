@@ -8,7 +8,7 @@ import { SupabaseDishCategories } from "../../../converters/convert_dish_categor
 
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
 export type QueryUserDishReviewsResponse = {
-	dish_media: SupabaseDishMedia;
+	dish_media: SupabaseDishMedia | null;
 	dish_review: SupabaseDishReviews;
 	signedUrls: string[];
 	hasMedia: boolean;
