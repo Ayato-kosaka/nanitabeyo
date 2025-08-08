@@ -34,7 +34,7 @@ export class DishesService {
     private readonly logger: AppLoggerService,
     private readonly storage: StorageService,
     private readonly locationsService: LocationsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */

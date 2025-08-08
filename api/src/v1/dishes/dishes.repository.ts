@@ -19,7 +19,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -28,7 +28,7 @@ export class DishesRepository {
     restaurantId: string,
     categoryId: string,
   ) {
-    return this.prisma.dishes.findFirst({
+    return this.prisma.prisma.dishes.findFirst({
       where: {
         restaurant_id: restaurantId,
         category_id: categoryId,
@@ -40,7 +40,7 @@ export class DishesRepository {
    * 料理を作成
    */
   async createDish(dto: CreateDishDto) {
-    return this.prisma.dishes.create({
+    return this.prisma.prisma.dishes.create({
       data: {
         restaurant_id: dto.restaurantId,
         category_id: dto.dishCategoryId,

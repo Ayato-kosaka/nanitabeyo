@@ -12,13 +12,13 @@ import { CreateDishReviewDto } from '@shared/v1/dto';
 
 @Injectable()
 export class DishReviewsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * 料理が存在するかチェック
    */
   async dishExists(dishId: string): Promise<boolean> {
-    const count = await this.prisma.dishes.count({
+    const count = await this.prisma.prisma.dishes.count({
       where: { id: dishId },
     });
     return count > 0;
@@ -28,7 +28,7 @@ export class DishReviewsRepository {
    * レビューが存在するかチェック
    */
   async reviewExists(reviewId: string): Promise<boolean> {
-    const count = await this.prisma.dish_reviews.count({
+    const count = await this.prisma.prisma.dish_reviews.count({
       where: { id: reviewId },
     });
     return count > 0;
@@ -38,7 +38,7 @@ export class DishReviewsRepository {
    * レビューを ID で取得
    */
   async getReviewById(reviewId: string) {
-    return this.prisma.dish_reviews.findUnique({
+    return this.prisma.prisma.dish_reviews.findUnique({
       where: { id: reviewId },
       select: {
         id: true,
@@ -79,7 +79,7 @@ export class DishReviewsRepository {
     // Generate a unique ID for the reaction
     const reactionId = `${userId}_${reviewId}_like_${Date.now()}`;
 
-    return this.prisma.reactions.create({
+    return this.prisma.prisma.reactions.create({
       data: {
         id: reactionId,
         user_id: userId,

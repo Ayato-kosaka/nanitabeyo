@@ -29,7 +29,7 @@ export class DishMediaService {
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                         GET /v1/dish-media                         */

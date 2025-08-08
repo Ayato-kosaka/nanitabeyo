@@ -83,7 +83,7 @@ export class AppLoggerService implements INestLoggerService {
   /* ------------------------------------------------------------------ */
   async externalApi(input: CreateExternalApiInput) {
     try {
-      await this.prisma.external_api_logs.create({
+      await this.prisma.prisma.external_api_logs.create({
         data: {
           ...input,
           response_payload: input.response_payload ?? undefined,
@@ -108,7 +108,7 @@ export class AppLoggerService implements INestLoggerService {
   /* ------------------------------------------------------------------ */
   private async persistBackendEvent(input: CreateBackendEventInput) {
     try {
-      await this.prisma.backend_event_logs.create({
+      await this.prisma.prisma.backend_event_logs.create({
         data: {
           ...input,
           id: randomUUID(),

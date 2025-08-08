@@ -13,7 +13,7 @@ export class DishCategoryVariantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 料理カテゴリ表記揺れを検索
@@ -24,7 +24,7 @@ export class DishCategoryVariantsRepository {
       lang,
     });
 
-    const result = await this.prisma.dish_categories.findMany({
+    const result = await this.prisma.prisma.dish_categories.findMany({
       where: {
         dish_category_variants: {
           some: {
@@ -64,7 +64,7 @@ export class DishCategoryVariantsRepository {
       },
     );
 
-    const result = await this.prisma.dish_category_variants.findUnique({
+    const result = await this.prisma.prisma.dish_category_variants.findUnique({
       where: {
         surface_form: surfaceForm,
       },
@@ -125,7 +125,7 @@ export class DishCategoryVariantsRepository {
     });
 
     // まずIDとして直接検索
-    let result = await this.prisma.dish_categories.findUnique({
+    let result = await this.prisma.prisma.dish_categories.findUnique({
       where: {
         id: qid,
       },
@@ -133,7 +133,7 @@ export class DishCategoryVariantsRepository {
 
     // IDで見つからない場合は、tagsでQIDを検索
     if (!result) {
-      const categories = await this.prisma.dish_categories.findMany({
+      const categories = await this.prisma.prisma.dish_categories.findMany({
         where: {
           tags: {
             has: qid,
@@ -155,7 +155,7 @@ export class DishCategoryVariantsRepository {
   async getDishCategories() {
     this.logger.debug('GetDishCategories', 'getDishCategories', {});
 
-    const result = await this.prisma.dish_categories.findMany();
+    const result = await this.prisma.prisma.dish_categories.findMany();
 
     this.logger.debug('DishCategoriesFound', 'getDishCategories', {
       count: result.length,

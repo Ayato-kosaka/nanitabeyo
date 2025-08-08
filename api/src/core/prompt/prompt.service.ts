@@ -19,7 +19,7 @@ export class PromptService {
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * プロンプトファミリーとバリアントを取得し、重み付け選択を行う
@@ -100,7 +100,7 @@ export class PromptService {
     });
 
     try {
-      await this.prisma.prompt_usages.create({
+      await this.prisma.prisma.prompt_usages.create({
         data: {
           id: crypto.randomUUID(),
           family_id: params.family_id,

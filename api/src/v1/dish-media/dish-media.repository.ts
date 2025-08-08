@@ -34,7 +34,7 @@ export interface DishMediaFeedItem {
 
 @Injectable()
 export class DishMediaRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /* ------------------------------------------------------------------ */
   /*   1) 料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -48,7 +48,7 @@ export class DishMediaRepository {
     const [lat, lng] = location.split(',').map(Number);
     const meters = radius; // already in metres
 
-    return this.prisma.$queryRaw<DishMediaFeedItem[]>(
+    return this.prisma.prisma.$queryRaw<DishMediaFeedItem[]>(
       Prisma.sql`
       SELECT
         r.id AS restaurant_id,
@@ -94,7 +94,7 @@ export class DishMediaRepository {
   /*                     2) いいね / いいね解除                         */
   /* ------------------------------------------------------------------ */
   async likeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.dish_likes.upsert({
+    await this.prisma.prisma.dish_likes.upsert({
       where: { dish_media_id_user_id: { dish_media_id: id, user_id: userId } },
       update: {},
       create: {
@@ -105,7 +105,7 @@ export class DishMediaRepository {
   }
 
   async unlikeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.dish_likes.deleteMany({
+    await this.prisma.prisma.dish_likes.deleteMany({
       where: { dish_media_id: id, user_id: userId },
     });
   }
@@ -115,7 +115,7 @@ export class DishMediaRepository {
   /* ------------------------------------------------------------------ */
   async saveDishMedia(id: string, userId: string): Promise<void> {
     // TODO: migration
-    // await this.prisma.reactions.upsert({
+    // await this.prisma.prisma.reactions.upsert({
     //     where: { dish_media_id_user_id: { dish_media_id: id, user_id: userId } },
     //     update: { type: 'SAVE' },
     //     create: { dish_media_id: id, user_id: userId, type: 'SAVE' },
@@ -126,7 +126,7 @@ export class DishMediaRepository {
   /*                            4) Dish 存在確認                        */
   /* ------------------------------------------------------------------ */
   async dishExists(dishId: string): Promise<boolean> {
-    const cnt = await this.prisma.dishes.count({ where: { id: dishId } });
+    const cnt = await this.prisma.prisma.dishes.count({ where: { id: dishId } });
     return cnt > 0;
   }
 
