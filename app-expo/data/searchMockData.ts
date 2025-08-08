@@ -1,5 +1,5 @@
 import { Topic, GooglePlacesPrediction } from "@/types/search";
-import { DishMediaEntry } from "@shared/api/v1/res";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 
 export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
 	{

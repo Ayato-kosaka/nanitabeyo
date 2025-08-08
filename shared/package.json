@@ -2,9 +2,14 @@
 	"name": "shared",
 	"version": "1.0.0",
 	"description": "",
-	"main": "index.js",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
 	"scripts": {
-		"generate:converters": "ts-node scripts/generateConvertersFromSheet.ts"
+		"generate:converters": "ts-node scripts/generateConvertersFromSheet.ts",
+		"build": "tsc"
 	},
 	"keywords": [],
 	"author": "",

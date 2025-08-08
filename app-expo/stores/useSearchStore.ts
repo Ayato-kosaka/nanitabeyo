@@ -1,4 +1,4 @@
-import { DishMediaEntry } from "@shared/api/v1/res";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 import { create } from "zustand";
 
 type SearchStore = {

@@ -5,7 +5,7 @@ import MapView, { Marker, Region } from "@/components/MapView";
 import FoodContentScreen from "./FoodContentScreen";
 import { AvatarBubbleMarker } from "./AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
-import { DishMediaEntry } from "@shared/api/v1/res";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 
 const { width, height } = Dimensions.get("window");
 

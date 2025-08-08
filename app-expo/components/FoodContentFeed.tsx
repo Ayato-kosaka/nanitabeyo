@@ -3,7 +3,7 @@ import { StyleSheet, Animated, Dimensions } from "react-native";
 import { PanGestureHandler } from "react-native-gesture-handler";
 import FoodContentScreen from "./FoodContentScreen";
 import { useHaptics } from "@/hooks/useHaptics";
-import { DishMediaEntry } from "@shared/api/v1/res";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 
 const { height } = Dimensions.get("window");
 
