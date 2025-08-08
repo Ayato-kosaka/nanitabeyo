@@ -20,7 +20,7 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
   private isConnected = false;
   private connectionRetries = 0;
-  private readonly MAX_RETRIES = 5;
+  private readonly MAX_RETRIES = 3;
   private readonly RETRY_INTERVAL = 3000; // 3秒
 
   // シングルトンパターンで接続を再利用

@@ -151,7 +151,7 @@ export class LocationsService {
         endpoint: 'places.getPhotoMedia',
         method: 'POST',
         request_payload: JSON.stringify(requestPayload),
-        response_payload: 'Binary media data',
+        response_payload: response.photoUri ?? null,
         status_code: 200,
         response_time_ms: responseTime,
         error_message: null,

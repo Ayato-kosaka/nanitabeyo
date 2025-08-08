@@ -13,6 +13,7 @@ import { PrismaRestaurants } from '../../../../shared/converters/convert_restaur
 import { AppLoggerService } from 'src/core/logger/logger.service';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { google } from '@googlemaps/places/build/protos/protos';
+import { env } from 'src/core/config/env';
 
 @Injectable()
 export class DishesRepository {
@@ -74,7 +75,7 @@ export class DishesRepository {
     // INSERT … ON CONFLICT DO NOTHING RETURNING *
     const rows = await tx.$queryRaw<PrismaRestaurants[]>(
       Prisma.sql`
-        INSERT INTO restaurants
+        INSERT INTO ${Prisma.raw(env.DB_SCHEMA)}.restaurants
           (google_place_id, name, location, image_url, created_at)
         VALUES
           (

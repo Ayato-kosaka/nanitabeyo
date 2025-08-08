@@ -12,6 +12,7 @@ const envSchema = z.object({
   API_COMMIT_ID: z.string(),
   API_NODE_ENV: z.string(),
   CORS_ORIGIN: z.string(),
+  DB_SCHEMA: z.string(),
   SUPABASE_JWT_SECRET: z.string(),
   GOOGLE_PLACE_API_KEY: z.string(),
   GCS_BUCKET_NAME: z.string(),
