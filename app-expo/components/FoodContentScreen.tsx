@@ -126,9 +126,6 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
               <Text style={styles.reviewCount}>(127)</Text>
             </View> */}
 					</View>
-					<View style={styles.priceRatingContainer}>
-						<Text style={styles.price}>{i18n.t("FoodContentScreen.info.walkFromShibuya")}</Text>
-					</View>
 				</View>
 				<View style={styles.headerRight}>
 					{/* <TouchableOpacity

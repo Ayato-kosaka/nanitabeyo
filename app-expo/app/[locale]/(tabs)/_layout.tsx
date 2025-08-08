@@ -28,7 +28,7 @@ export default function TabLayout() {
 				tabBarShowLabel: false,
 			}}>
 			<Tabs.Screen
-				name="(home)"
+				name="home"
 				options={{
 					title: i18n.t("Tabs.home"),
 					href: null,
