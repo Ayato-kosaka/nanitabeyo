@@ -149,6 +149,7 @@ export class DishesService {
                 const dishReviewRecord = await this.repo.createDishReview(
                   tx,
                   dish.id,
+                  dishMediaRecord.id,
                   review,
                 );
                 dishReviews.push(

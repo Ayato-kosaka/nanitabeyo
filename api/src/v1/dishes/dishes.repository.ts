@@ -81,15 +81,23 @@ export class DishesRepository {
           (
             ${place.id},
             ${place.name},
-            ST_SetSRID(
-              ST_MakePoint(${place.location.longitude}, ${place.location?.latitude}),
+            ${Prisma.raw(env.DB_SCHEMA)}.ST_SetSRID(
+              ${Prisma.raw(env.DB_SCHEMA)}.ST_MakePoint(
+                ${place.location.longitude}::double precision,
+                ${place.location.latitude}::double precision
+              ),
               4326
             ),
             ${placeImageUrl},
             NOW()
           )
         ON CONFLICT (google_place_id) DO NOTHING
-        RETURNING *;
+        RETURNING
+          id,
+          google_place_id,
+          name,
+          image_url,
+          created_at;
       `,
     );
 
@@ -165,6 +173,7 @@ export class DishesRepository {
   async createDishReview(
     tx: Prisma.TransactionClient,
     dishId: string,
+    createdDishMediaId: string,
     review: google.maps.places.v1.IReview,
   ) {
     const result = await tx.dish_reviews.create({
@@ -175,7 +184,7 @@ export class DishesRepository {
         rating: review.rating || 0,
         price_cents: null,
         currency_code: null,
-        created_dish_media_id: null,
+        created_dish_media_id: createdDishMediaId,
         imported_user_name: review.authorAttribution?.displayName || null,
         imported_user_avatar: review.authorAttribution?.photoUri || null,
       },
