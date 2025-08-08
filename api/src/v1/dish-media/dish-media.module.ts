@@ -11,6 +11,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { DishMediaController } from './dish-media.controller';
 import { DishMediaService } from './dish-media.service';
 import { DishMediaRepository } from './dish-media.repository';
+import { DishMediaMapper } from './dish-media.mapper';
 
 // ─── 横串インフラ層 ──────────────────────────────────────────
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -29,9 +30,10 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
   providers: [
     DishMediaService,
     DishMediaRepository, // ← ここで DI できるので Service から注入可能
+    DishMediaMapper, // 追加: DishMediaMapper をプロバイダーとして登録
   ],
   exports: [
     DishMediaService, // 他ドメインが “いいね数集計” 等で再利用できる
   ],
 })
-export class DishMediaModule {}
+export class DishMediaModule { }
