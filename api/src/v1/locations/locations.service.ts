@@ -6,7 +6,7 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { PlacesClient } from '@googlemaps/places';
+import { PlacesClient, protos } from '@googlemaps/places';
 import { env } from '../../core/config/env';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { AutocompleteLocationsResponse } from '@shared/v1/res';
@@ -46,7 +46,7 @@ export class LocationsService {
     const query = dishCategoryName;
 
     const startTime = Date.now();
-    const requestPayload = {
+    const requestPayload: protos.google.maps.places.v1.ISearchTextRequest = {
       textQuery: query,
       locationBias: {
         circle: {
@@ -58,14 +58,20 @@ export class LocationsService {
 
     try {
       // PlacesClient を使用してテキスト検索
-      const [response] = await this.placesClient.searchText(requestPayload);
+      const [response] = await this.placesClient.searchText(requestPayload,
+        {
+          otherArgs: {
+            headers: { "X-Goog-FieldMask": "places.id,places.name,places.location,places.reviews,contextualContents.photos.name,contextualContents.reviews" },
+          },
+        },
+      );
 
       const responseTime = Date.now() - startTime;
 
       // 外部API呼び出しログを記録
       await this.logger.externalApi({
         function_name: 'searchRestaurants',
-        api_name: 'Google Places API',
+        api_name: 'Google Places Text Search API',
         endpoint: 'places.searchText',
         method: 'POST',
         request_payload: JSON.stringify(requestPayload),
@@ -97,7 +103,7 @@ export class LocationsService {
       // エラー時も外部API呼び出しログを記録
       await this.logger.externalApi({
         function_name: 'searchRestaurants',
-        api_name: 'Google Places API',
+        api_name: 'Google Places Text Search API',
         endpoint: 'places.searchText',
         method: 'POST',
         request_payload: JSON.stringify(requestPayload),
@@ -113,7 +119,8 @@ export class LocationsService {
         radius,
         category: dishCategoryName,
       });
-      return {};
+
+      throw error;
     }
   }
 
@@ -124,9 +131,11 @@ export class LocationsService {
     photoRef: string,
   ): Promise<{ photoUri: string; buffer: Buffer } | null> {
     const startTime = Date.now();
+    const photoName = photoRef.endsWith('/media') ? photoRef : `${photoRef}/media`;
     const requestPayload = {
-      name: photoRef,
+      name: photoName,
       maxWidthPx: 800,
+      skipHttpRedirect: true
     };
 
     try {
@@ -138,7 +147,7 @@ export class LocationsService {
       // 外部API呼び出しログを記録
       await this.logger.externalApi({
         function_name: 'getPhotoMedia',
-        api_name: 'Google Places API',
+        api_name: 'Google Places Photos API',
         endpoint: 'places.getPhotoMedia',
         method: 'POST',
         request_payload: JSON.stringify(requestPayload),
@@ -169,7 +178,7 @@ export class LocationsService {
       // エラー時も外部API呼び出しログを記録
       await this.logger.externalApi({
         function_name: 'getPhotoMedia',
-        api_name: 'Google Places API',
+        api_name: 'Google Places Photos API',
         endpoint: 'places.getPhotoMedia',
         method: 'POST',
         request_payload: JSON.stringify(requestPayload),
@@ -184,7 +193,7 @@ export class LocationsService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
 
-      return null;
+      throw error;
     }
   }
 
@@ -212,7 +221,7 @@ export class LocationsService {
       // 外部API呼び出しログを記録
       await this.logger.externalApi({
         function_name: 'autocompleteLocations',
-        api_name: 'Google Places API',
+        api_name: 'Google Places Autocomplete API',
         endpoint: 'places.autocompletePlaces',
         method: 'POST',
         request_payload: JSON.stringify(requestPayload),
@@ -258,7 +267,8 @@ export class LocationsService {
           query,
         },
       );
-      return [];
+
+      throw error;
     }
   }
 
