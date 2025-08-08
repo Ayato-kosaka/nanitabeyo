@@ -10,7 +10,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: app-expo
+        working-directory: .
 
     steps:
       - name: ⏬ Checkout repository
@@ -30,6 +30,10 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Build our shared library so it emits .d.ts / .js into shared/dist
+      - name: 📚 Build shared package
+        run: pnpm -F shared run build
+
       - name: 📥 Cache Turbo
         uses: actions/cache@v3
         with:
@@ -47,4 +51,5 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🚀 Run EAS build (development profile)
+        working-directory: app-expo
         run: pnpx eas-cli build --profile development --platform all --non-interactive --no-wait

@@ -19,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: app-expo
+        working-directory: .
 
     steps:
       - name: ⏬ Checkout repository
@@ -39,6 +39,10 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Build our shared library so it emits .d.ts / .js into shared/dist
+      - name: 📚 Build shared package
+        run: pnpm -F shared run build
+
       - name: 🏗 Setup Expo & EAS CLI
         uses: expo/expo-github-action@v8
         with:
@@ -46,18 +50,22 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: ✨ Update environment variable
+        working-directory: app-expo
         run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
 
       - name: 🛠️ Sync environment variables from EAS CLI
+        working-directory: app-expo
         run: pnpx eas-cli env:pull ${{ github.event.inputs.target }} --non-interactive
 
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
 
       - name: 📄 Generate app-ads.txt from secret
+        working-directory: app-expo
         run: echo "${{ secrets.ADMOB_APP_ADS_TXT }}" > dist/app-ads.txt
 
       - name: 🚀 Deploy to Firebase Hosting
+        working-directory: app-expo
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
