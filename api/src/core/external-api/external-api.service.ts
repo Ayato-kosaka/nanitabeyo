@@ -44,7 +44,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
@@ -65,6 +65,10 @@ export class ExternalApiService {
         method: 'POST',
         request_payload: payload,
         function_name: 'callClaudeAPI',
+        customHeaders: {
+          'anthropic-version': '2023-06-01',
+          'x-api-key': claudeApiKey,
+        },
       });
 
       if (!response.ok) {
@@ -200,21 +204,19 @@ export class ExternalApiService {
     params: Omit<
       CreateExternalApiInput,
       'status_code' | 'response_time_ms' | 'response_payload' | 'error_message'
-    >,
+    > & {
+      customHeaders?: Record<string, string>;
+    },
   ): Promise<Response> {
-    const { api_name, endpoint, method, request_payload, function_name } =
+    const { api_name, endpoint, method, request_payload, function_name, customHeaders = {} } =
       params;
     const startTime = Date.now();
 
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        ...customHeaders,
       };
-
-      // API特有のヘッダーを追加
-      if (api_name === 'Claude API') {
-        headers['anthropic-version'] = '2023-06-01';
-      }
 
       const response = await fetch(endpoint, {
         method,

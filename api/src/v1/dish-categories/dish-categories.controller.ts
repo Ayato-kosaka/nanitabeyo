@@ -33,7 +33,7 @@ export class DishCategoriesController {
   constructor(
     private readonly dishCategoriesService: DishCategoriesService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-categories/recommendations         */
@@ -44,7 +44,7 @@ export class DishCategoriesController {
   @ApiOperation({ summary: '料理カテゴリ提案' })
   @ApiQuery({
     name: 'location',
-    required: false,
+    required: true,
     description: '緯度経度 "lat,lng"',
   })
   @ApiQuery({ name: 'timeSlot', required: false, description: '時間帯' })

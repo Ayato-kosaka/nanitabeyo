@@ -25,13 +25,13 @@ export class ClaudeService {
     private readonly externalApiService: ExternalApiService,
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 料理カテゴリ提案を生成する
    */
   async generateDishCategoryRecommendations(params: {
-    location?: string;
+    location: string;
     timeSlot?: string;
     scene?: string;
     mood?: string;
@@ -58,19 +58,20 @@ export class ClaudeService {
 
     const { family, variant } = prompt;
 
-    const outputFormatHint = `HARD RULES: Use the following JSON format exactly:
+    const outputFormatHint = `HARD RULES: Output MUST be valid JSON. Do not include any explanation or text outside of the JSON array.
+HARD RULES: Use the following JSON format exactly:
 [
   {
-    "category": "string (dish category name in Japanese)",
-    "topicTitle": "string (attractive topic title in Japanese)",
-    "reason": "string (brief reason why this is recommended in Japanese)"
+    "category": "string (dish category name)",
+    "topicTitle": "string (attractive topic title)",
+    "reason": "string (brief reason why this is recommended)"
   }
 ]`;
 
     const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
 
     const variablePromptPart = `Generate dish category recommendations based on:
-${params.location ? `Location: ${params.location}` : ''}
+${`Location: ${params.location}`}
 ${params.timeSlot ? `Time slot: ${params.timeSlot}` : ''}
 ${params.scene ? `Scene: ${params.scene}` : ''}
 ${params.mood ? `Mood: ${params.mood}` : ''}
@@ -84,7 +85,7 @@ Generate 10 diverse and appealing dish category recommendations.`;
 
     const requestPayload = {
       model: 'claude-3-haiku-20240307',
-      max_tokens: 1024,
+      max_tokens: 4096,
       temperature: 0.7,
       system: systemPrompt,
       messages: [
