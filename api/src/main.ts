@@ -5,6 +5,7 @@ import { env } from './core/config/env';
 import { ApiExceptionFilter } from './core/filters/api-exception.filter';
 import { ClsService } from 'nestjs-cls';
 import { ResponseWrapInterceptor } from './core/interceptors/response-wrap.interceptor';
+import { AppLoggerService } from './core/logger/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,7 +35,7 @@ async function bootstrap() {
     new ResponseWrapInterceptor(app.get(ClsService), app.get(Reflector)),
   );
 
-  app.useGlobalFilters(new ApiExceptionFilter(app.get(ClsService)));
+  app.useGlobalFilters(new ApiExceptionFilter(app.get(ClsService), app.get(AppLoggerService)));
 
   await app.listen(process.env.PORT ?? 3000);
 }

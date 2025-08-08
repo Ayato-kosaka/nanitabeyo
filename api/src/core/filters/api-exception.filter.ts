@@ -11,10 +11,13 @@ import { ErrorCode, BaseResponse } from '@shared/v1/res';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
 import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
+import { AppLoggerService } from '../logger/logger.service';
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
-  constructor(private readonly cls: ClsService) {}
+  constructor(private readonly cls: ClsService,
+    private readonly logger: AppLoggerService
+  ) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -26,19 +29,34 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code: ErrorCode = ErrorCode.INTERNAL_ERROR;
+    let message = 'Internal server error';
 
-    if (exception instanceof HttpException) {
+    // JSON パースエラーを詳細に処理
+    if (exception instanceof SyntaxError && exception.message.includes('JSON')) {
+      status = HttpStatus.BAD_REQUEST;
+      code = ErrorCode.INVALID_REQUEST_BODY;
+      message = `Invalid JSON format: ${exception.message}`;
+      this.logger.error("JSONParseError", "ApiExceptionFilter", exception.stack);
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const msg = exception.message as ErrorCode;
       code = Object.values(ErrorCode).includes(msg as ErrorCode)
         ? msg
         : ErrorCode.INTERNAL_ERROR;
+      message = exception.message;
+      this.logger.error(`HttpException`, "ApiExceptionFilter", exception.stack);
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      this.logger.error(`UnhandledException`, "ApiExceptionFilter", exception.stack);
+    } else {
+      this.logger.error('UnknownException:', "ApiExceptionFilter", exception);
     }
 
     const body: BaseResponse<null> = {
       data: null,
       success: false,
       errorCode: code,
+      message: status === HttpStatus.INTERNAL_SERVER_ERROR ? 'Internal server error' : message,
     };
 
     res.status(status).json(body);

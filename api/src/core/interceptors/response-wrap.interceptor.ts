@@ -40,7 +40,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
   constructor(
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
-  ) {}
+  ) { }
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     /* ――― 除外判定 ――― */
@@ -71,7 +71,6 @@ export class ResponseWrapInterceptor implements NestInterceptor {
         const body: BaseResponse<unknown> = {
           data: payload,
           success: true,
-          errorCode: null,
         };
         return body;
       }),
