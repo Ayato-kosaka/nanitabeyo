@@ -35,7 +35,7 @@ export class ClaudeService {
     timeSlot?: string;
     scene?: string;
     mood?: string;
-    restrictions?: string;
+    restrictions?: string[];
     distance?: number;
     budgetMin?: number;
     budgetMax?: number;

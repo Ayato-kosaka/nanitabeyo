@@ -368,7 +368,7 @@ export default function ProfileScreen() {
 
 	const handlePostPress = (index: number) => {
 		lightImpact();
-		router.push(`/(tabs)/profile/food?startIndex=${index}`);
+		// router.push(`/(tabs)/profile/food?startIndex=${index}`);
 	};
 
 	const handleTabSelect = (tab: TabType) => {

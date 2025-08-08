@@ -54,8 +54,8 @@ export default function SearchScreen() {
 	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
-	const [budgetMin, setBudgetMin] = useState<number | null>(null);
-	const [budgetMax, setBudgetMax] = useState<number | null>(null);
+	const [budgetMin, setBudgetMin] = useState<number | undefined>(undefined);
+	const [budgetMax, setBudgetMax] = useState<number | undefined>(undefined);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const {
@@ -131,7 +131,7 @@ export default function SearchScreen() {
 
 		try {
 			const searchParams: SearchParams = {
-				location,
+				location: `${location.latitude},${location.longitude}`,
 				timeSlot,
 				scene,
 				mood,
@@ -158,11 +158,11 @@ export default function SearchScreen() {
 
 	const formatBudgetRange = () => {
 		const minLabel =
-			budgetMin === null
+			budgetMin === undefined
 				? i18n.t("Search.labels.noMinBudget")
 				: `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
 		const maxLabel =
-			budgetMax === null
+			budgetMax === undefined
 				? i18n.t("Search.labels.noMaxBudget")
 				: `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
 		return `${minLabel} 〜 ${maxLabel}`;

@@ -1,7 +1,7 @@
 import React from "react";
 import FoodContentFeed from "@/components/FoodContentFeed";
-import { foodItems } from "@/data/foodData";
+import { mockDishItems } from "@/data/searchMockData";
 
 export default function HomeScreen() {
-	return <FoodContentFeed items={foodItems} />;
+	return <FoodContentFeed items={mockDishItems} />;
 }

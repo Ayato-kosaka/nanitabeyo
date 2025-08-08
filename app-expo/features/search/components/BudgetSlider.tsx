@@ -11,16 +11,16 @@ export function BudgetSlider({
 	setBudgetMin,
 	setBudgetMax,
 }: {
-	budgetMin: number | null;
-	budgetMax: number | null;
-	setBudgetMin: (value: number | null) => void;
-	setBudgetMax: (value: number | null) => void;
+	budgetMin: number | undefined;
+	budgetMax: number | undefined;
+	setBudgetMin: (value: number | undefined) => void;
+	setBudgetMax: (value: number | undefined) => void;
 }) {
 	const { selectionChanged } = useHaptics();
 
-	const minIndex = budgetMin === null ? 0 : budgetOptions.findIndex((o) => o.value === budgetMin);
+	const minIndex = budgetMin === undefined ? 0 : budgetOptions.findIndex((o) => o.value === budgetMin);
 	const maxIndex =
-		budgetMax === null ? budgetOptions.length - 1 : budgetOptions.findIndex((o) => o.value === budgetMax);
+		budgetMax === undefined ? budgetOptions.length - 1 : budgetOptions.findIndex((o) => o.value === budgetMax);
 
 	const sliderWidth = 280;
 	const thumbWidth = 24;

@@ -6,8 +6,6 @@ import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Linking, Platform } from "react-native";
 
-type APIVersion = "v1" | "v2";
-
 /**
  * ☁️ API 呼び出しフック
  *
@@ -27,9 +25,8 @@ export const useAPICall = () => {
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
 	 *
-	 * @param endpointName - エンドポイント名（例: "listDishMedia"）
+	 * @param endpointName - エンドポイント名（例: "/v1/dish-categories/recommendations"）
 	 * @param requestPayload - リクエストボディ（JSONまたはFormData）
-	 * @param version - バージョン名（"v1" or "v2"）
 	 * @param isMultipart - multipart/form-data を使用するか
 	 * @returns {Promise<R>} - レスポンスデータ
 	 * @throws ネットワークエラーまたは認証なし・応答エラー時に例外をスロー
@@ -37,7 +34,6 @@ export const useAPICall = () => {
 	const callBackend = useCallback(
 		async <T extends Record<string, any> | FormData, R>(
 			endpointName: string,
-			version: APIVersion,
 			{
 				method = "POST",
 				requestPayload,
@@ -53,7 +49,7 @@ export const useAPICall = () => {
 				method === "GET" && !(requestPayload instanceof FormData)
 					? `?${new URLSearchParams(requestPayload).toString()}`
 					: "";
-			const endpoint = `${Env.BACKEND_BASE_URL}/${version}/${endpointName}${qs}`;
+			const endpoint = `${Env.BACKEND_BASE_URL}/${endpointName}${qs}`;
 
 			// 🔐 認証トークンの有無をチェック
 			const accessToken = session?.access_token;
@@ -141,7 +137,6 @@ export const useAPICall = () => {
 					requestPayload: isMultipart ? "[multipart/form-data]" : requestPayload,
 					endpoint,
 					method,
-					version,
 					requestId,
 				},
 			});

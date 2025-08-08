@@ -24,7 +24,7 @@ export default function TopicsScreen() {
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
-	const setDishes = useSearchStore((state) => state.setDishes);
+	const setDishes = useSearchStore((state) => state.setDishePromises);
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
@@ -53,12 +53,12 @@ export default function TopicsScreen() {
 	}, [searchParams, searchTopics, showSnackbar]);
 
 	const handleViewDetails = (topic: Topic) => {
-		setDishes(topic.id, topic.feedItems);
+		setDishes(topic.categoryId, topic.dishItemsPromise);
 		router.push({
 			pathname: "/[locale]/(tabs)/search/result",
 			params: {
 				locale,
-				topicId: topic.id,
+				topicId: topic.categoryId,
 			},
 		});
 	};

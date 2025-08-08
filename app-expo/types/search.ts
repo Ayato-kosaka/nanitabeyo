@@ -1,4 +1,4 @@
-import { FoodItem } from ".";
+import { DishMediaEntry } from "@shared/api/v1/res";
 
 export interface SearchLocation {
 	latitude: number;
@@ -7,23 +7,23 @@ export interface SearchLocation {
 }
 
 export interface SearchParams {
-	location: SearchLocation;
+	location: string;
 	timeSlot: "morning" | "lunch" | "afternoon" | "dinner" | "late_night";
 	scene?: "solo" | "date" | "group" | "large_group" | "tourism";
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
 	restrictions: string[];
 	distance: number; // meters
-	budgetMin: number | null; // null for no minimum
-	budgetMax: number | null; // null for no maximum
+	budgetMin: number | undefined; // null for no minimum
+	budgetMax: number | undefined; // null for no maximum
 }
 
 export interface Topic {
-	id: string;
+	category: string;
 	topicTitle: string;
 	reason: string;
-	googlePlaceSearchText: string;
+	categoryId: string;
 	imageUrl: string;
-	feedItems: FoodItem[];
+	dishItemsPromise: Promise<DishMediaEntry[]>;
 	isHidden?: boolean;
 }
 

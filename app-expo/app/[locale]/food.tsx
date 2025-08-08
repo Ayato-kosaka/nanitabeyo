@@ -1,10 +1,10 @@
 import React from "react";
 import { useLocalSearchParams } from "expo-router";
 import FoodContentFeed from "@/components/FoodContentFeed";
-import { foodItems } from "@/data/foodData";
+import { mockDishItems } from "@/data/searchMockData";
 
 export default function FoodScreen() {
 	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	return <FoodContentFeed items={foodItems} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} />;
+	return <FoodContentFeed items={mockDishItems} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} />;
 }

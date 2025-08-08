@@ -1,8 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet, Modal, TouchableOpacity, SafeAreaView } from "react-native";
-import { X, RotateCcw, Search } from "lucide-react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { X } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
-import FoodContentFeed from "@/components/FoodContentFeed";
 import FoodContentMap from "@/components/FoodContentMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
@@ -12,7 +11,7 @@ export default function ResultScreen() {
 	const { topicId } = useLocalSearchParams<{ topicId: string }>();
 	const { lightImpact } = useHaptics();
 
-	const { currentIndex, showCompletionModal, dishes, handleIndexChange, handleClose, handleReturnToCards } =
+	const { currentIndex, showCompletionModal, dishesPromise, handleIndexChange, handleClose, handleReturnToCards } =
 		useSearchResult(topicId as string);
 
 	const handleCloseWithHaptic = () => {
@@ -31,7 +30,7 @@ export default function ResultScreen() {
 
 			{/* Feed Content */}
 			{/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-			<FoodContentMap items={dishes} onIndexChange={handleIndexChange} />
+			<FoodContentMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} />
 		</LinearGradient>
 	);
 }

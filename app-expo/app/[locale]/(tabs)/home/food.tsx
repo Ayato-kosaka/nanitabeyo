@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import FoodContentFeed from "@/components/FoodContentFeed";
-import { foodItems } from "@/data/foodData";
+import { mockDishItems } from "@/data/searchMockData";
 
 export default function FoodScreen() {
 	const { startIndex, returnTo } = useLocalSearchParams<{
@@ -12,7 +12,7 @@ export default function FoodScreen() {
 
 	const handleIndexChange = (index: number) => {
 		// Handle completion when reaching the last item
-		if (index >= foodItems.length - 1 && returnTo) {
+		if (index >= mockDishItems.length - 1 && returnTo) {
 			setTimeout(() => {
 				router.back();
 			}, 1000);
@@ -21,7 +21,7 @@ export default function FoodScreen() {
 
 	return (
 		<FoodContentFeed
-			items={foodItems}
+			items={mockDishItems}
 			initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
 			onIndexChange={handleIndexChange}
 		/>

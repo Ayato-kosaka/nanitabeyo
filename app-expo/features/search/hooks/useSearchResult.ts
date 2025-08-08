@@ -6,7 +6,7 @@ import { useSearchStore } from "@/stores/useSearchStore";
 export function useSearchResult(topicId: string) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [showCompletionModal, setShowCompletionModal] = useState(false);
-	const dishes = useSearchStore((state) => state.dishesMap[topicId] || []);
+	const dishesPromise = useSearchStore((state) => state.dishPromisesMap[topicId] || []);
 
 	const handleIndexChange = (index: number) => {
 		setCurrentIndex(index);
@@ -25,7 +25,7 @@ export function useSearchResult(topicId: string) {
 	return {
 		currentIndex,
 		showCompletionModal,
-		dishes,
+		dishesPromise,
 		handleIndexChange,
 		handleClose,
 		handleReturnToCards,

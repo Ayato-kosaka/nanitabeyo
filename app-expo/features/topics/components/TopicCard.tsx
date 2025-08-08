@@ -18,7 +18,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	const handleHide = () => {
 		errorNotification();
-		onHide(item.id);
+		onHide(item.categoryId);
 	};
 
 	return (

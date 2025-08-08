@@ -43,7 +43,7 @@ export const distanceOptions = [
 
 // Budget options in yen
 export const budgetOptions = [
-	{ value: null, label: "Search.labels.noMinBudget" },
+	{ value: undefined, label: "Search.labels.noMinBudget" },
 	{ value: 1000, label: `1,000${i18n.t("Search.currencySuffix")}` },
 	{ value: 2000, label: `2,000${i18n.t("Search.currencySuffix")}` },
 	{ value: 3000, label: `3,000${i18n.t("Search.currencySuffix")}` },
@@ -62,7 +62,7 @@ export const budgetOptions = [
 	{ value: 60000, label: `60,000${i18n.t("Search.currencySuffix")}` },
 	{ value: 80000, label: `80,000${i18n.t("Search.currencySuffix")}` },
 	{ value: 100000, label: `100,000${i18n.t("Search.currencySuffix")}` },
-	{ value: null, label: "Search.labels.noMaxBudget" },
+	{ value: undefined, label: "Search.labels.noMaxBudget" },
 ];
 
 export const restrictionOptions = [

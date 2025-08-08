@@ -3,13 +3,16 @@ import { SupabaseDishes } from "../../../converters/convert_dishes";
 import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
 import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
 
-/** GET /v1/dish-media のレスポンス型 */
-export type QueryDishMediaResponse = {
+/** 一つの料理メディア投稿（dish_media）とそれに関連する情報（レストラン、料理、レビュー） */
+export type DishMediaEntry = {
 	restaurant: SupabaseRestaurants;
 	dish: SupabaseDishes;
 	dish_media: SupabaseDishMedia;
 	dish_reviews: SupabaseDishReviews[];
-}[];
+};
+
+/** GET /v1/dish-media のレスポンス型 */
+export type QueryDishMediaResponse = DishMediaEntry[];
 
 /** POST /v1/dish-media のレスポンス型 */
 export type CreateDishMediaResponse = void;

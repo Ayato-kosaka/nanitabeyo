@@ -26,7 +26,7 @@ export const useHideTopic = (
 
 	// Confirm hiding the selected card
 	const confirmHideCard = () => {
-		const selectedTopic = topics.find((topic) => topic.id === selectedCardId);
+		const selectedTopic = topics.find((topic) => topic.categoryId === selectedCardId);
 		if (selectedCardId && selectedTopic) {
 			hideTopic(selectedCardId, hideReason);
 			showSnackbar(`${selectedTopic?.topicTitle}を非表示にしました`);

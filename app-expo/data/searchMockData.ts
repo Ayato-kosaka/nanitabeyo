@@ -1,4 +1,5 @@
 import { Topic, GooglePlacesPrediction } from "@/types/search";
+import { DishMediaEntry } from "@shared/api/v1/res";
 
 export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
 	{
@@ -43,127 +44,429 @@ export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
 	},
 ];
 
+export const mockDishItems: DishMediaEntry[] = [
+	{
+		"restaurant": {
+			"id": "feed_1",
+			"name": "炙り味噌らーめん 麺匠真武咲弥 渋谷店",
+			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
+			"google_place_id": "place_feed_1",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			location: null,
+		},
+		"dish": {
+			"id": "dish_feed_1",
+			"name": "炙り味噌らーめん 麺匠真武咲弥 渋谷店",
+			"restaurant_id": "feed_1",
+			"category_id": "category_default",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"lock_no": 1
+		},
+		"dish_media": {
+			"id": "media_feed_1",
+			"dish_id": "dish_feed_1",
+			"media_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
+			"thumbnail_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
+			"media_type": "image",
+			"user_id": "user_default",
+			"lock_no": 1,
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z"
+		},
+		"dish_reviews": [
+			{
+				"id": "review_c1",
+				"comment": "香ばしい味噌の香りが最高！",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_1",
+				"user_id": null,
+				"imported_user_name": "ramen_lover",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c2",
+				"comment": "スープが濃厚で飲み干しちゃった",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_1",
+				"user_id": null,
+				"imported_user_name": "foodie123",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c3",
+				"comment": "炙りの香りがたまらない",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_1",
+				"user_id": null,
+				"imported_user_name": "tokyo_gourmet",
+				"imported_user_avatar": null
+			}
+		]
+	},
+	{
+		"restaurant": {
+			"id": "feed_2",
+			"name": "俺流塩らーめん 渋谷三丁目店",
+			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
+			"google_place_id": "place_feed_2",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			location: null,
+		},
+		"dish": {
+			"id": "dish_feed_2",
+			"name": "俺流塩らーめん 渋谷三丁目店",
+			"restaurant_id": "feed_2",
+			"category_id": "category_default",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"lock_no": 1
+		},
+		"dish_media": {
+			"id": "media_feed_2",
+			"dish_id": "dish_feed_2",
+			"media_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
+			"thumbnail_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
+			"media_type": "image",
+			"user_id": "user_default",
+			"lock_no": 1,
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z"
+		},
+		"dish_reviews": [
+			{
+				"id": "review_c4",
+				"comment": "塩味が上品で飽きない",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_2",
+				"user_id": null,
+				"imported_user_name": "noodle_fan",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c5",
+				"comment": "優しいスープに癒された",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_2",
+				"user_id": null,
+				"imported_user_name": "ramen_king",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c6",
+				"comment": "澄んだスープが美しい",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_2",
+				"user_id": null,
+				"imported_user_name": "sio_master",
+				"imported_user_avatar": null
+			}
+		]
+	},
+	{
+		"restaurant": {
+			"id": "feed_3",
+			"name": "らーめん ぎょうざ 大穀",
+			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
+			"google_place_id": "place_feed_3",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			location: null,
+		},
+		"dish": {
+			"id": "dish_feed_3",
+			"name": "らーめん ぎょうざ 大穀",
+			"restaurant_id": "feed_3",
+			"category_id": "category_default",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"lock_no": 1
+		},
+		"dish_media": {
+			"id": "media_feed_3",
+			"dish_id": "dish_feed_3",
+			"media_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
+			"thumbnail_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
+			"media_type": "image",
+			"user_id": "user_default",
+			"lock_no": 1,
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z"
+		},
+		"dish_reviews": [
+			{
+				"id": "review_c7",
+				"comment": "餃子もジューシーで美味しい",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_3",
+				"user_id": null,
+				"imported_user_name": "gyoza_freak",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c8",
+				"comment": "ボリューム満点で満腹",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_3",
+				"user_id": null,
+				"imported_user_name": "ramenholic",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c9",
+				"comment": "昔ながらの味で安心する",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_3",
+				"user_id": null,
+				"imported_user_name": "tokyo_ramen",
+				"imported_user_avatar": null
+			}
+		]
+	},
+	{
+		"restaurant": {
+			"id": "feed_4",
+			"name": "蒙古タンメン中本 渋谷",
+			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
+			"google_place_id": "place_feed_4",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			location: null,
+		},
+		"dish": {
+			"id": "dish_feed_4",
+			"name": "蒙古タンメン中本 渋谷",
+			"restaurant_id": "feed_4",
+			"category_id": "category_default",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"lock_no": 1
+		},
+		"dish_media": {
+			"id": "media_feed_4",
+			"dish_id": "dish_feed_4",
+			"media_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
+			"thumbnail_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
+			"media_type": "image",
+			"user_id": "user_default",
+			"lock_no": 1,
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z"
+		},
+		"dish_reviews": [
+			{
+				"id": "review_c10",
+				"comment": "辛さと旨味のバランスが神！",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_4",
+				"user_id": null,
+				"imported_user_name": "spicy_addict",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c11",
+				"comment": "辛いのにスープを飲み干した",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_4",
+				"user_id": null,
+				"imported_user_name": "ramen_fever",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c12",
+				"comment": "クセになる辛さで汗が止まらない",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_4",
+				"user_id": null,
+				"imported_user_name": "hotspice",
+				"imported_user_avatar": null
+			}
+		]
+	},
+	{
+		"restaurant": {
+			"id": "feed_5",
+			"name": "らーめん金伝丸 渋谷本店",
+			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
+			"google_place_id": "place_feed_5",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			location: null,
+		},
+		"dish": {
+			"id": "dish_feed_5",
+			"name": "らーめん金伝丸 渋谷本店",
+			"restaurant_id": "feed_5",
+			"category_id": "category_default",
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"lock_no": 1
+		},
+		"dish_media": {
+			"id": "media_feed_5",
+			"dish_id": "dish_feed_5",
+			"media_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
+			"thumbnail_path": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
+			"media_type": "image",
+			"user_id": "user_default",
+			"lock_no": 1,
+			"created_at": "2025-08-08T17:19:02.676Z",
+			"updated_at": "2025-08-08T17:19:02.676Z"
+		},
+		"dish_reviews": [
+			{
+				"id": "review_c13",
+				"comment": "深夜のラーメンに最高",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_5",
+				"user_id": null,
+				"imported_user_name": "tokyo_foodie",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c14",
+				"comment": "背脂たっぷりでパンチがある",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_5",
+				"user_id": null,
+				"imported_user_name": "ramen_addict",
+				"imported_user_avatar": null
+			},
+			{
+				"id": "review_c15",
+				"comment": "深いコクで癖になる味",
+				"comment_tsv": null,
+				"created_at": "2025-08-08T17:19:02.676Z",
+				"created_dish_media_id": null,
+				"currency_code": null,
+				"price_cents": null,
+				"rating": 4,
+				"dish_id": "dish_feed_5",
+				"user_id": null,
+				"imported_user_name": "midnight_snacker",
+				"imported_user_avatar": null
+			}
+		]
+	}
+];
+
 export const mockTopicCards: Topic[] = [
 	{
-		id: "card_1",
-		googlePlaceSearchText: "味噌ラーメン",
+		categoryId: "card_1",
+		category: "味噌ラーメン",
 		topicTitle: "濃厚味噌ラーメン",
 		reason: "コクのある味噌スープと香ばしい炒め野菜が夜の食欲をかき立てる。",
-		feedItems: [
-			{
-				id: "feed_1",
-				name: "炙り味噌らーめん 麺匠真武咲弥 渋谷店",
-				image:
-					"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
-				likes: 142,
-				isLiked: false,
-				isSaved: false,
-				comments: [
-					{ id: "c1", username: "ramen_lover", text: "香ばしい味噌の香りが最高！", timestamp: "1h ago" },
-					{ id: "c2", username: "foodie123", text: "スープが濃厚で飲み干しちゃった", timestamp: "3h ago" },
-					{ id: "c3", username: "tokyo_gourmet", text: "炙りの香りがたまらない", timestamp: "5h ago" },
-				],
-			},
-			{
-				id: "feed_2",
-				name: "俺流塩らーめん 渋谷三丁目店",
-				image:
-					"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
-				likes: 98,
-				isLiked: false,
-				isSaved: false,
-				comments: [
-					{ id: "c4", username: "noodle_fan", text: "塩味が上品で飽きない", timestamp: "2h ago" },
-					{ id: "c5", username: "ramen_king", text: "優しいスープに癒された", timestamp: "4h ago" },
-					{ id: "c6", username: "sio_master", text: "澄んだスープが美しい", timestamp: "6h ago" },
-				],
-			},
-			{
-				id: "feed_3",
-				name: "らーめん ぎょうざ 大穀",
-				image:
-					"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
-				likes: 76,
-				isLiked: false,
-				isSaved: false,
-				comments: [
-					{ id: "c7", username: "gyoza_freak", text: "餃子もジューシーで美味しい", timestamp: "30m ago" },
-					{ id: "c8", username: "ramenholic", text: "ボリューム満点で満腹", timestamp: "3h ago" },
-					{ id: "c9", username: "tokyo_ramen", text: "昔ながらの味で安心する", timestamp: "7h ago" },
-				],
-			},
-			{
-				id: "feed_4",
-				name: "蒙古タンメン中本 渋谷",
-				image:
-					"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
-				likes: 210,
-				isLiked: false,
-				isSaved: false,
-				comments: [
-					{ id: "c10", username: "spicy_addict", text: "辛さと旨味のバランスが神！", timestamp: "1h ago" },
-					{ id: "c11", username: "ramen_fever", text: "辛いのにスープを飲み干した", timestamp: "4h ago" },
-					{ id: "c12", username: "hotspice", text: "クセになる辛さで汗が止まらない", timestamp: "8h ago" },
-				],
-			},
-			{
-				id: "feed_5",
-				name: "らーめん金伝丸 渋谷本店",
-				image:
-					"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
-				likes: 134,
-				isLiked: false,
-				isSaved: false,
-				comments: [
-					{ id: "c13", username: "tokyo_foodie", text: "深夜のラーメンに最高", timestamp: "2h ago" },
-					{ id: "c14", username: "ramen_addict", text: "背脂たっぷりでパンチがある", timestamp: "5h ago" },
-					{ id: "c15", username: "midnight_snacker", text: "深いコクで癖になる味", timestamp: "9h ago" },
-				],
-			},
-		],
+		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 	},
 	{
-		id: "card_2",
-		googlePlaceSearchText: "一人焼肉",
+		categoryId: "card_2",
+		category: "一人焼肉",
 		topicTitle: "ソロ焼肉で至福の夜",
 		reason: "誰にも気兼ねせず、自分のペースで焼き上げる肉は格別のご褒美。",
-		feedItems: [],
+		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipN7p6dRdFPv6mJZkpvoya8MZlJb23fME9KRF9Fg=w408-h271-k-no",
 	},
 	{
-		id: "card_3",
-		googlePlaceSearchText: "油そば",
+		categoryId: "card_3",
+		category: "油そば",
 		topicTitle: "旨タレ絡む油そば",
 		reason: "濃いめの特製タレと麺の食感で一口ごとに満足感が増す。",
-		feedItems: [],
+		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4npr2MUHlL9tLu1_mMfU3vSvsUlffxoYTRZPwMz-OgG6yzByp7Id0OOrEe7aXaw_FCZ8yl8_YxdeYWcK8lLOAVgahObUJBr1wn94TJO958BI2Us4C537404w4kd__KGV2_EMtsUt=w408-h306-k-no",
 	},
 	{
-		id: "card_4",
-		googlePlaceSearchText: "唐揚げ定食",
+		categoryId: "card_4",
+		category: "唐揚げ定食",
 		topicTitle: "ジューシー唐揚げ定食",
 		reason: "カリッと揚がった唐揚げからあふれる肉汁が食欲を直撃。",
-		feedItems: [],
+		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipMCK846QdzWMTFmIIib1hCRNvGjsmgQ08tdbjRp=w408-h326-k-no",
 	},
 	{
-		id: "card_5",
-		googlePlaceSearchText: "ハンバーグ",
+		categoryId: "card_5",
+		category: "ハンバーグ",
 		topicTitle: "肉汁あふれるハンバーグ",
 		reason: "ナイフを入れた瞬間に溢れる肉汁と香ばしさで贅沢な満足感を。",
-		feedItems: [],
+		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4npFJRl34iWIfASQQ-4YKpjHxuLb6ILDUPoEYdtici0y0lvH4WyEO9vZobZvqdtZB5OLp_lpNRVnR_0YCOCIdHfnHaMF2y2Wc0mOTCbwKntJ4v03vQAFsOeFnAMyqu-w65UwBiXP5g=w408-h306-k-no",
 	},
 	{
-		id: "card_6",
-		googlePlaceSearchText: "韓国料理",
+		categoryId: "card_6",
+		category: "韓国料理",
 		topicTitle: "ピリ辛韓国料理",
 		reason: "甘辛ダレや香ばしい風味がクセになる。疲れた夜に元気をチャージ。",
-		feedItems: [],
+		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipPW3SRWwsAxuNRdSd479pA-pNL67QaYY6mxpEAt=w408-h326-k-no",
 	},
 ];

@@ -26,8 +26,8 @@ export class QueryDishCategoryRecommendationsDto {
 
 	/** 制限 */
 	@IsOptional()
-	@IsString()
-	restrictions?: string;
+	@IsString({ each: true })
+	restrictions?: string[];
 
 	/** 距離 (m) */
 	@IsOptional()

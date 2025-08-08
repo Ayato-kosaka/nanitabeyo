@@ -3,9 +3,9 @@ import { StyleSheet, View, Dimensions } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Marker, Region } from "@/components/MapView";
 import FoodContentScreen from "./FoodContentScreen";
-import { FoodItem } from "@/types";
 import { AvatarBubbleMarker } from "./AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
+import { DishMediaEntry } from "@shared/api/v1/res";
 
 const { width, height } = Dimensions.get("window");
 
@@ -15,7 +15,7 @@ const CAROUSEL_HEIGHT = height * 0.8;
 const PARALLAX_SCALE = 0.85;
 
 interface FoodContentMapProps {
-	items: FoodItem[];
+	itemsPromise: Promise<DishMediaEntry[]>;
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
 }
@@ -28,18 +28,23 @@ const MOCK_COORDINATES = [
 	{ latitude: 35.658813, longitude: 139.698221 }, // らーめん金伝丸 渋谷本店
 ];
 
-export default function FoodContentMap({ items, initialIndex = 0, onIndexChange }: FoodContentMapProps) {
+export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndexChange }: FoodContentMapProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
-
-	const coordinates = MOCK_COORDINATES;
+	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
+	const coordinates = MOCK_COORDINATES; // TODO: resturant から取る。
+	useEffect(() => {
+		itemsPromise.then((data) => {
+			setItems(data);
+		});
+	}, [itemsPromise]);
 
 	const getMapRegion = useCallback((): Region => {
 		if (coordinates.length === 0) {
 			return {
-				latitude: 35.6762,
+				latitude: 35.6762, // TODO searchParams を引き継ぐ
 				longitude: 139.6503,
 				latitudeDelta: 0.01,
 				longitudeDelta: 0.01,
@@ -99,7 +104,7 @@ export default function FoodContentMap({ items, initialIndex = 0, onIndexChange 
 	}, []);
 
 	const renderCarouselItem = useCallback(
-		({ item }: { item: FoodItem }) => (
+		({ item }: { item: DishMediaEntry }) => (
 			<View style={styles.carouselItem}>
 				<FoodContentScreen item={item} />
 			</View>
@@ -112,36 +117,39 @@ export default function FoodContentMap({ items, initialIndex = 0, onIndexChange 
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
 				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
-					{coordinates.map((coordinate, index) => (
-						<AvatarBubbleMarker
-							key={`marker-${index}`}
-							coordinate={coordinate}
-							title={items[index]?.name}
-							onPress={() => handleMarkerPress(index)}
-							uri={items[index]?.image}
-							color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
-						/>
-					))}
+					{items !== null &&
+						coordinates.map((coordinate, index) => (
+							<AvatarBubbleMarker
+								key={`marker-${index}`}
+								coordinate={coordinate}
+								title={items[index]!.restaurant.name}
+								onPress={() => handleMarkerPress(index)}
+								uri={items[index]!.restaurant.image_url!}
+								color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
+							/>
+						))}
 				</MapView>
 			</View>
 
 			{/* Carousel - Bottom 4/5 of screen, overlapping map */}
-			<Carousel
-				ref={carouselRef}
-				width={width}
-				height={CAROUSEL_HEIGHT}
-				data={items}
-				renderItem={renderCarouselItem}
-				onSnapToItem={handleIndexChange}
-				defaultIndex={initialIndex}
-				mode="parallax"
-				modeConfig={{
-					parallaxScrollingScale: PARALLAX_SCALE,
-					parallaxScrollingOffset: 75,
-				}}
-				style={styles.carousel}
-				containerStyle={styles.carouselContainer}
-			/>
+			{items !== null && (
+				<Carousel
+					ref={carouselRef}
+					width={width}
+					height={CAROUSEL_HEIGHT}
+					data={items}
+					renderItem={renderCarouselItem}
+					onSnapToItem={handleIndexChange}
+					defaultIndex={initialIndex}
+					mode="parallax"
+					modeConfig={{
+						parallaxScrollingScale: PARALLAX_SCALE,
+						parallaxScrollingOffset: 75,
+					}}
+					style={styles.carousel}
+					containerStyle={styles.carouselContainer}
+				/>
+			)}
 		</View>
 	);
 }

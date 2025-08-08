@@ -2,26 +2,21 @@ import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, Animated, Dimensions } from "react-native";
 import { PanGestureHandler } from "react-native-gesture-handler";
 import FoodContentScreen from "./FoodContentScreen";
-import { FoodItem } from "@/types";
 import { useHaptics } from "@/hooks/useHaptics";
+import { DishMediaEntry } from "@shared/api/v1/res";
 
 const { height } = Dimensions.get("window");
 
 interface FoodContentFeedProps {
-	items: FoodItem[];
+	items: DishMediaEntry[];
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
 }
 
 export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange }: FoodContentFeedProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
-	const [feedItems, setFeedItems] = useState<FoodItem[]>([]);
 	const translateY = useRef(new Animated.Value(0)).current;
 	const { selectionChanged } = useHaptics();
-
-	useEffect(() => {
-		setFeedItems(items);
-	}, [items]);
 
 	const updateIndex = (newIndex: number) => {
 		selectionChanged();
@@ -35,7 +30,7 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 		if (event.nativeEvent.oldState === 4) {
 			const { translationY } = event.nativeEvent;
 
-			if (translationY < -height * 0.2 && currentIndex < feedItems.length - 1) {
+			if (translationY < -height * 0.2 && currentIndex < items.length - 1) {
 				updateIndex(currentIndex + 1);
 			} else if (translationY > height * 0.2 && currentIndex > 0) {
 				updateIndex(currentIndex - 1);
@@ -48,7 +43,7 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 		}
 	};
 
-	const currentItem = feedItems[currentIndex];
+	const currentItem = items[currentIndex];
 
 	if (!currentItem) {
 		return null;

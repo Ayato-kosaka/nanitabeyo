@@ -1,32 +1,53 @@
 import { useState, useCallback } from "react";
 import { Topic, SearchParams } from "@/types/search";
-import { mockTopicCards } from "@/data/searchMockData";
+// import { mockTopicCards } from "@/data/searchMockData";
+import { useAPICall } from "@/hooks/useAPICall";
+import { BulkImportDishesDto, type QueryDishCategoryRecommendationsDto } from "@shared/api/v1/dto";
+import type { BulkImportDishesResponse, QueryDishCategoryRecommendationsResponse } from "@shared/api/v1/res";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const { callBackend } = useAPICall();
 
 	const searchTopics = useCallback(async (params: SearchParams): Promise<Topic[]> => {
 		setIsLoading(true);
 		setError(null);
 
 		try {
-			// Simulate API delay
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			const topicsResponse = await callBackend<QueryDishCategoryRecommendationsDto, QueryDishCategoryRecommendationsResponse>(
+				"/v1/dish-categories/recommendations",
+				{
+					method: "GET",
+					requestPayload: params
+				})
+			const toplics = topicsResponse.map(topic => ({
+				...topic,
+				isHidden: false,
+				dishItemsPromise: callBackend<BulkImportDishesDto, BulkImportDishesResponse>(`/v1/dishes/bulk-import`, {
+					method: "POST",
+					requestPayload: {
+						location: params.location,
+						radius: params.distance,
+						categoryId: topic.categoryId,
+						categoryName: topic.category
+					}
+				})
+			}));
 
 			// Mock API response based on search parameters
-			const shuffledTopics = [...mockTopicCards]
-				.sort(() => Math.random() - 0.5)
-				.slice(0, 6)
-				.map((topic) => ({
-					...topic,
-					id: `${topic.id}_${Date.now()}_${Math.random()}`,
-					isHidden: false,
-				}));
+			// const shuffledTopics = [...mockTopicCards]
+			// 	.sort(() => Math.random() - 0.5)
+			// 	.slice(0, 6)
+			// 	.map((topic) => ({
+			// 		...topic,
+			// 		id: `${topic.id}_${Date.now()}_${Math.random()}`,
+			// 		isHidden: false,
+			// 	}));
 
-			setTopics(shuffledTopics);
-			return shuffledTopics;
+			setTopics(toplics);
+			return toplics;
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "おすすめ検索に失敗しました";
 			setError(errorMessage);
@@ -37,7 +58,7 @@ export const useTopicSearch = () => {
 	}, []);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {
-		setTopics((prevTopics) => prevTopics.map((topic) => (topic.id === topicId ? { ...topic, isHidden: true } : topic)));
+		setTopics((prevTopics) => prevTopics.map((topic) => (topic.categoryId === topicId ? { ...topic, isHidden: true } : topic)));
 
 		// Log hide reason for analytics
 		const hideReason = {

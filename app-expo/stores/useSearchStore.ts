@@ -1,25 +1,25 @@
-import { FoodItem } from "@/types";
+import { DishMediaEntry } from "@shared/api/v1/res";
 import { create } from "zustand";
 
 type SearchStore = {
-	dishesMap: Record<string, FoodItem[]>;
-	setDishes: (topicId: string, items: FoodItem[]) => void;
+	dishPromisesMap: Record<string, Promise<DishMediaEntry[]>>;
+	setDishePromises: (topicId: string, items: Promise<DishMediaEntry[]>) => void;
 	clearDishes: (topicId?: string) => void;
 };
 
 export const useSearchStore = create<SearchStore>((set) => ({
-	dishesMap: {},
-	setDishes: (topicId, items) =>
+	dishPromisesMap: {},
+	setDishePromises: (topicId, items) =>
 		set((state) => ({
-			dishesMap: {
-				...state.dishesMap,
+			dishPromisesMap: {
+				...state.dishPromisesMap,
 				[topicId]: items,
 			},
 		})),
 	clearDishes: (topicId) =>
 		set((state) => {
-			if (!topicId) return { dishesMap: {} };
-			const newMap = { ...state.dishesMap };
+			if (!topicId) return { dishPromisesMap: {} };
+			const newMap = { ...state.dishPromisesMap };
 			delete newMap[topicId];
 			return { dishesMap: newMap };
 		}),

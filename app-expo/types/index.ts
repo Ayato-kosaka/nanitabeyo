@@ -1,20 +1,3 @@
-export interface Comment {
-	id: string;
-	username: string;
-	text: string;
-	timestamp: string;
-	avatar?: string;
-}
-
-export interface FoodItem {
-	id: string;
-	name: string;
-	image: string;
-	likes: number;
-	isLiked: boolean;
-	isSaved: boolean;
-	comments: Comment[];
-}
 
 export interface NotificationItem {
 	id: string;
