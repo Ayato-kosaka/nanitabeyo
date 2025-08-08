@@ -10,7 +10,15 @@
 		"processing": "処理中...",
 		"error": "エラー",
 		"success": "成功",
-		"daysRemaining": "残り{{count}}日"
+		"daysRemaining": "残り{{count}}日",
+		"timeAgo": {
+			"seconds": "{{count}}秒前",
+			"minutes": "{{count}}分前",
+			"hours": "{{count}}時間前",
+			"days": "{{count}}日前",
+			"months": "{{count}}ヶ月前",
+			"years": "{{count}}年前"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",

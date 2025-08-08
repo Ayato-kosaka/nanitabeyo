@@ -10,7 +10,15 @@
 		"processing": "معالجة...",
 		"error": "خطأ",
 		"success": "نجح",
-		"daysRemaining": "متبقي {{count}} يومًا"
+		"daysRemaining": "متبقي {{count}} يومًا",
+		"timeAgo": {
+			"seconds": "منذ {{count}} ثانية",
+			"minutes": "منذ {{count}} دقيقة",
+			"hours": "منذ {{count}} ساعة",
+			"days": "منذ {{count}} يوم",
+			"months": "منذ {{count}} شهر",
+			"years": "منذ {{count}} سنة"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",

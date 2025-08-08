@@ -10,7 +10,15 @@
 		"processing": "Traitement...",
 		"error": "Erreur",
 		"success": "Succès",
-		"daysRemaining": "Il reste {{count}} jours"
+		"daysRemaining": "Il reste {{count}} jours",
+		"timeAgo": {
+			"seconds": "il y a {{count}} secondes",
+			"minutes": "il y a {{count}} minutes",
+			"hours": "il y a {{count}} heures",
+			"days": "il y a {{count}} jours",
+			"months": "il y a {{count}} mois",
+			"years": "il y a {{count}} ans"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",

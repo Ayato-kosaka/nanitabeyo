@@ -10,7 +10,15 @@
 		"processing": "Procesando...",
 		"error": "Error",
 		"success": "Éxito",
-		"daysRemaining": "Quedan {{count}} días"
+		"daysRemaining": "Quedan {{count}} días",
+		"timeAgo": {
+			"seconds": "hace {{count}} segundos",
+			"minutes": "hace {{count}} minutos",
+			"hours": "hace {{count}} horas",
+			"days": "hace {{count}} días",
+			"months": "hace {{count}} meses",
+			"years": "hace {{count}} años"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",

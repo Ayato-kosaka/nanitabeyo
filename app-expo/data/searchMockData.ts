@@ -52,7 +52,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 			"google_place_id": "place_feed_1",
 			"created_at": "2025-08-08T17:19:02.676Z",
-			location: null,
+			"location": null
 		},
 		"dish": {
 			"id": "dish_feed_1",
@@ -72,7 +72,12 @@ export const mockDishItems: DishMediaEntry[] = [
 			"user_id": "user_default",
 			"lock_no": 1,
 			"created_at": "2025-08-08T17:19:02.676Z",
-			"updated_at": "2025-08-08T17:19:02.676Z"
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"isSaved": false,
+			"isLiked": false,
+			"likeCount": 100,
+			"mediaImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
+			"thumbnailImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no"
 		},
 		"dish_reviews": [
 			{
@@ -87,7 +92,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_1",
 				"user_id": null,
 				"imported_user_name": "ramen_lover",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "ramen_lover",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c2",
@@ -101,7 +109,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_1",
 				"user_id": null,
 				"imported_user_name": "foodie123",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "foodie123",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c3",
@@ -115,7 +126,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_1",
 				"user_id": null,
 				"imported_user_name": "tokyo_gourmet",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "tokyo_gourmet",
+				"isLiked": false,
+				"likeCount": 10
 			}
 		]
 	},
@@ -126,7 +140,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
 			"google_place_id": "place_feed_2",
 			"created_at": "2025-08-08T17:19:02.676Z",
-			location: null,
+			"location": null
 		},
 		"dish": {
 			"id": "dish_feed_2",
@@ -146,7 +160,12 @@ export const mockDishItems: DishMediaEntry[] = [
 			"user_id": "user_default",
 			"lock_no": 1,
 			"created_at": "2025-08-08T17:19:02.676Z",
-			"updated_at": "2025-08-08T17:19:02.676Z"
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"isSaved": false,
+			"isLiked": false,
+			"likeCount": 100,
+			"mediaImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
+			"thumbnailImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no"
 		},
 		"dish_reviews": [
 			{
@@ -161,7 +180,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_2",
 				"user_id": null,
 				"imported_user_name": "noodle_fan",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "noodle_fan",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c5",
@@ -175,7 +197,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_2",
 				"user_id": null,
 				"imported_user_name": "ramen_king",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "ramen_king",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c6",
@@ -189,7 +214,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_2",
 				"user_id": null,
 				"imported_user_name": "sio_master",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "sio_master",
+				"isLiked": false,
+				"likeCount": 10
 			}
 		]
 	},
@@ -200,7 +228,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
 			"google_place_id": "place_feed_3",
 			"created_at": "2025-08-08T17:19:02.676Z",
-			location: null,
+			"location": null
 		},
 		"dish": {
 			"id": "dish_feed_3",
@@ -220,7 +248,12 @@ export const mockDishItems: DishMediaEntry[] = [
 			"user_id": "user_default",
 			"lock_no": 1,
 			"created_at": "2025-08-08T17:19:02.676Z",
-			"updated_at": "2025-08-08T17:19:02.676Z"
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"isSaved": false,
+			"isLiked": false,
+			"likeCount": 100,
+			"mediaImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
+			"thumbnailImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no"
 		},
 		"dish_reviews": [
 			{
@@ -235,7 +268,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_3",
 				"user_id": null,
 				"imported_user_name": "gyoza_freak",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "gyoza_freak",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c8",
@@ -249,7 +285,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_3",
 				"user_id": null,
 				"imported_user_name": "ramenholic",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "ramenholic",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c9",
@@ -263,7 +302,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_3",
 				"user_id": null,
 				"imported_user_name": "tokyo_ramen",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "tokyo_ramen",
+				"isLiked": false,
+				"likeCount": 10
 			}
 		]
 	},
@@ -274,7 +316,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
 			"google_place_id": "place_feed_4",
 			"created_at": "2025-08-08T17:19:02.676Z",
-			location: null,
+			"location": null
 		},
 		"dish": {
 			"id": "dish_feed_4",
@@ -294,7 +336,12 @@ export const mockDishItems: DishMediaEntry[] = [
 			"user_id": "user_default",
 			"lock_no": 1,
 			"created_at": "2025-08-08T17:19:02.676Z",
-			"updated_at": "2025-08-08T17:19:02.676Z"
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"isSaved": false,
+			"isLiked": false,
+			"likeCount": 100,
+			"mediaImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
+			"thumbnailImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no"
 		},
 		"dish_reviews": [
 			{
@@ -309,7 +356,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_4",
 				"user_id": null,
 				"imported_user_name": "spicy_addict",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "spicy_addict",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c11",
@@ -323,7 +373,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_4",
 				"user_id": null,
 				"imported_user_name": "ramen_fever",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "ramen_fever",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c12",
@@ -337,7 +390,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_4",
 				"user_id": null,
 				"imported_user_name": "hotspice",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "hotspice",
+				"isLiked": false,
+				"likeCount": 10
 			}
 		]
 	},
@@ -348,7 +404,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			"image_url": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
 			"google_place_id": "place_feed_5",
 			"created_at": "2025-08-08T17:19:02.676Z",
-			location: null,
+			"location": null
 		},
 		"dish": {
 			"id": "dish_feed_5",
@@ -368,7 +424,12 @@ export const mockDishItems: DishMediaEntry[] = [
 			"user_id": "user_default",
 			"lock_no": 1,
 			"created_at": "2025-08-08T17:19:02.676Z",
-			"updated_at": "2025-08-08T17:19:02.676Z"
+			"updated_at": "2025-08-08T17:19:02.676Z",
+			"isSaved": false,
+			"isLiked": false,
+			"likeCount": 100,
+			"mediaImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
+			"thumbnailImageUrl": "https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no"
 		},
 		"dish_reviews": [
 			{
@@ -383,7 +444,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_5",
 				"user_id": null,
 				"imported_user_name": "tokyo_foodie",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "tokyo_foodie",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c14",
@@ -397,7 +461,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_5",
 				"user_id": null,
 				"imported_user_name": "ramen_addict",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "ramen_addict",
+				"isLiked": false,
+				"likeCount": 10
 			},
 			{
 				"id": "review_c15",
@@ -411,7 +478,10 @@ export const mockDishItems: DishMediaEntry[] = [
 				"dish_id": "dish_feed_5",
 				"user_id": null,
 				"imported_user_name": "midnight_snacker",
-				"imported_user_avatar": null
+				"imported_user_avatar": null,
+				"username": "midnight_snacker",
+				"isLiked": false,
+				"likeCount": 10
 			}
 		]
 	}

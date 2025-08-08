@@ -10,7 +10,15 @@
 		"processing": "प्रसंस्करण...",
 		"error": "त्रुटि",
 		"success": "सफलता",
-		"daysRemaining": "{{count}} दिन शेष"
+		"daysRemaining": "{{count}} दिन शेष",
+		"timeAgo": {
+			"seconds": "{{count}} सेकंड पहले",
+			"minutes": "{{count}} मिनट पहले",
+			"hours": "{{count}} घंटे पहले",
+			"days": "{{count}} दिन पहले",
+			"months": "{{count}} महीने पहले",
+			"years": "{{count}} साल पहले"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",

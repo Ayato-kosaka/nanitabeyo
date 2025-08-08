@@ -10,7 +10,15 @@
 		"processing": "处理中...",
 		"error": "错误",
 		"success": "成功",
-		"daysRemaining": "剩余{{count}}天"
+		"daysRemaining": "剩余{{count}}天",
+		"timeAgo": {
+			"seconds": "{{count}}秒前",
+			"minutes": "{{count}}分钟前",
+			"hours": "{{count}}小时前",
+			"days": "{{count}}天前",
+			"months": "{{count}}个月前",
+			"years": "{{count}}年前"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",

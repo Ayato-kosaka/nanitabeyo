@@ -7,8 +7,18 @@ import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
 export type DishMediaEntry = {
 	restaurant: SupabaseRestaurants;
 	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
-	dish_reviews: SupabaseDishReviews[];
+	dish_media: SupabaseDishMedia & {
+		isSaved: boolean
+		isLiked: boolean;
+		likeCount: number;
+		mediaImageUrl: string;
+		thumbnailImageUrl: string;
+	};
+	dish_reviews: (SupabaseDishReviews & {
+		username: string;
+		isLiked: boolean;
+		likeCount: number;
+	})[];
 };
 
 /** GET /v1/dish-media のレスポンス型 */

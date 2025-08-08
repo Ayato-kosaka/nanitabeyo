@@ -1,17 +1,19 @@
 import React, { useState, useRef } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, SafeAreaView } from "react-native";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
-import { FoodItem } from "@/types";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
+import type { DishMediaEntry } from "@shared/api/v1/res";
+import { dateStringToTimestamp } from "@/lib/frontend-utils";
 
 const { width, height } = Dimensions.get("window");
 
 interface FoodContentScreenProps {
-	item: FoodItem;
+	item: DishMediaEntry;
 }
 
 const formatLikeCount = (count: number): string => {
@@ -25,15 +27,23 @@ const formatLikeCount = (count: number): string => {
 };
 
 export default function FoodContentScreen({ item }: FoodContentScreenProps) {
-	const [isSaved, setIsSaved] = useState(item.isSaved);
-	const [isLiked, setIsLiked] = useState(item.isLiked);
-	const [likesCount, setLikesCount] = useState(item.likes);
+	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
+	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
+	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
 	const { BlurModal, open: openMenuModal, close: closeMenuModal } = useBlurModal({ intensity: 100 });
-	const [commentLikes, setCommentLikes] = useState<{
-		[key: string]: { isLiked: boolean; count: number };
-	}>({});
+	const [commentLikes, setCommentLikes] = useState(
+		item.dish_reviews.reduce(
+			(acc, review) => {
+				acc[review.id] = { isLiked: false, count: review.likeCount };
+				return acc;
+			},
+			{} as { [key: string]: { isLiked: boolean; count: number } },
+		),
+	);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
+	const router = useRouter();
+	const locale = useLocale();
 
 	const handleCommentLike = (commentId: string) => {
 		lightImpact();
@@ -61,13 +71,19 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 	const handleViewRestaurant = () => {
 		lightImpact();
-		router.push("/(tabs)/(home)/restaurant/1");
+		// router.push("/(tabs)/(home)/restaurant/1");
 	};
 
 	const handleViewCreator = () => {
 		lightImpact();
 		// Navigate to creator's profile
-		router.push("/profile?userId=creator_123");
+		router.push({
+			pathname: `/[locale]/profile`,
+			params: {
+				locale,
+				userId: "123",
+			},
+		});
 	};
 
 	const handleMenuOpen = () => {
@@ -94,25 +110,15 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		},
 	];
 
-	const renderStars = (count: number, filled: number) => {
-		return (
-			<View style={styles.starsContainer}>
-				{[...Array(count)].map((_, index) => (
-					<Star key={index} size={16} color="#FFD700" fill={index < filled ? "#FFD700" : "transparent"} />
-				))}
-			</View>
-		);
-	};
-
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Background Image */}
-			<Image source={{ uri: item.image }} style={styles.backgroundImage} />
+			<Image source={{ uri: item.dish_media.mediaImageUrl }} style={styles.backgroundImage} />
 
 			{/* Top Header */}
 			<View style={styles.topHeader}>
 				<View style={styles.headerLeft}>
-					<Text style={styles.menuName}>{item.name}</Text>
+					<Text style={styles.menuName}>{item.restaurant.name}</Text>
 					<View style={styles.priceRatingContainer}>
 						<Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text>
 						{/* <View style={styles.ratingContainer}>
@@ -141,28 +147,26 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 					style={styles.commentsContainer}
 					showsVerticalScrollIndicator={false}
 					onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}>
-					{item.comments.map((comment) => {
-						const commentLikeData = commentLikes[comment.id] || {
-							isLiked: false,
-							count: 0,
-						};
+					{item.dish_reviews.map((review) => {
 						return (
-							<View key={comment.id} style={styles.commentItem}>
+							<View key={review.id} style={styles.commentItem}>
 								<View style={styles.commentHeader}>
-									<Text style={styles.commentUsername}>{comment.username}</Text>
-									<Text style={styles.commentTimestamp}>{comment.timestamp}</Text>
+									<Text style={styles.commentUsername}>{review.username}</Text>
+									<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 								</View>
 								<View style={styles.commentContent}>
-									<Text style={styles.commentText}>{comment.text}</Text>
+									<Text style={styles.commentText}>{review.comment}</Text>
 									<View style={styles.commentActions}>
-										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(comment.id)}>
+										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(review.id)}>
 											<Heart
 												size={14}
-												color={commentLikeData.isLiked ? "#FF3040" : "#CCCCCC"}
-												fill={commentLikeData.isLiked ? "#FF3040" : "transparent"}
+												color={commentLikes[review.id].isLiked ? "#FF3040" : "#CCCCCC"}
+												fill={commentLikes[review.id].isLiked ? "#FF3040" : "transparent"}
 											/>
 										</TouchableOpacity>
-										{commentLikeData.count > 0 && <Text style={styles.commentLikeCount}>{commentLikeData.count}</Text>}
+										{commentLikes[review.id].count > 0 && (
+											<Text style={styles.commentLikeCount}>{commentLikes[review.id].count}</Text>
+										)}
 									</View>
 								</View>
 							</View>

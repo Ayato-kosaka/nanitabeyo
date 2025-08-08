@@ -10,7 +10,15 @@
 		"processing": "처리 중...",
 		"error": "오류",
 		"success": "성공",
-		"daysRemaining": "남은 {{count}}일"
+		"daysRemaining": "남은 {{count}}일",
+		"timeAgo": {
+			"seconds": "{{count}}초 전",
+			"minutes": "{{count}}분 전",
+			"hours": "{{count}}시간 전",
+			"days": "{{count}}일 전",
+			"months": "{{count}}개월 전",
+			"years": "{{count}}년 전"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
