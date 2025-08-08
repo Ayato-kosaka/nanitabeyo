@@ -3,10 +3,11 @@
 import { Module, Global, Logger } from '@nestjs/common';
 import { AppLoggerService } from './logger.service';
 import { ClsModule } from 'nestjs-cls';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Global()
 @Module({
-  imports: [ClsModule.forRoot({ global: true })],
+  imports: [ClsModule.forRoot({ global: true }), PrismaModule],
   providers: [
     /* Nest のデフォルト Logger を AppLoggerService で置き換え */
     {
@@ -17,4 +18,4 @@ import { ClsModule } from 'nestjs-cls';
   ],
   exports: [AppLoggerService],
 })
-export class LoggerModule {}
+export class LoggerModule { }
