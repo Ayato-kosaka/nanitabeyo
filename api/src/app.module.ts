@@ -20,4 +20,4 @@ import { V2Module } from './v2/v2.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

@@ -18,4 +18,4 @@ import { PrismaModule } from '../../prisma/prisma.module';
   ],
   exports: [AppLoggerService],
 })
-export class LoggerModule { }
+export class LoggerModule {}

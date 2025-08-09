@@ -38,6 +38,7 @@ export class DishCategoriesService {
         distance: dto.distance,
         budgetMin: dto.budgetMin,
         budgetMax: dto.budgetMax,
+        languageTag: dto.languageTag,
       });
 
     // カテゴリ名リストを抽出
