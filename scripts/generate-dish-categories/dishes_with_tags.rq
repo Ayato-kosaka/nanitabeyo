@@ -1,31 +1,45 @@
-# dishes_with_tags.rq
+# dishes_with_tags.rq (改)
 SELECT
-  ?dish                                          # A. dish QID
-  ?labelEN                                       # B. 英語名
+  ?dish
+  ?labelEN
   ?image
-  ?origin
-  (GROUP_CONCAT(DISTINCT ?cuisine;  separator="|") AS ?cuisines)
-  (GROUP_CONCAT(DISTINCT ?ancestor; separator="|") AS ?tags)
+  (GROUP_CONCAT(DISTINCT ?originQ;   separator="|") AS ?origins)
+  (GROUP_CONCAT(DISTINCT ?cuisineQ;  separator="|") AS ?cuisines)
+  (GROUP_CONCAT(DISTINCT ?ancestorQ; separator="|") AS ?tags)
 WHERE {
-  # 1) 料理アイテムを列挙
-  ?dish wdt:P31/wdt:P279* wd:Q746549.            # dish 系列
+  # 料理アイテム
+  ?dish wdt:P31/wdt:P279* wd:Q746549.
 
-  # 2) 英語ラベル
+  # 英語ラベル
   ?dish rdfs:label ?labelEN.
   FILTER (LANG(?labelEN) = "en")
 
-  # 3) オプション情報
-  OPTIONAL { ?dish wdt:P18  ?image. }
-  OPTIONAL { ?dish wdt:P495 ?origin. }
-  OPTIONAL { ?dish wdt:P2012 ?cuisine. }
+  # 画像
+  OPTIONAL { ?dish wdt:P18 ?image. }
 
-  # 4) タグ（祖先 + 自分自身）
+  # 起源（QID 文字列化）
   OPTIONAL {
-    { ?dish (wdt:P31|wdt:P279|wdt:P361)+ ?ancestor. }  # 祖先
+    ?dish wdt:P495 ?origin .
+    BIND( STRAFTER(STR(?origin), "entity/") AS ?originQ )
+  }
+
+  # cuisine（QID 文字列化）
+  OPTIONAL {
+    ?dish wdt:P2012 ?cui .
+    BIND( STRAFTER(STR(?cui), "entity/") AS ?cuisineQ )
+  }
+
+  # タグ（祖先 + 自分自身を QID で）
+  OPTIONAL {
+    {
+      ?dish (wdt:P31|wdt:P279|wdt:P361)+ ?ancestor .
+      BIND( STRAFTER(STR(?ancestor), "entity/") AS ?ancestorQ )
+    }
     UNION
-    { BIND(?dish AS ?ancestor) }                       # 自分
+    {
+      BIND( STRAFTER(STR(?dish), "entity/") AS ?ancestorQ )
+    }
   }
 }
-GROUP BY ?dish ?labelEN ?image ?origin
+GROUP BY ?dish ?labelEN ?image
 ORDER BY ?dish
-# LIMIT 20000 OFFSET 0/20000/40000...
