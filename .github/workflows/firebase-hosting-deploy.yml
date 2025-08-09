@@ -65,10 +65,10 @@ jobs:
         run: echo "${{ secrets.ADMOB_APP_ADS_TXT }}" > dist/app-ads.txt
 
       - name: 🚀 Deploy to Firebase Hosting
-        working-directory: app-expo
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID_PROD }}
+          entryPoint: app-expo
           channelId: ${{ github.event.inputs.target == 'production' && 'live' || github.event.inputs.target }}
