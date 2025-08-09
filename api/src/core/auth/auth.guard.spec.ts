@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
-import { JwtAuthGuard, OptionalJwtAuthGuard } from '../auth.guard';
-import { CLS_KEY_USER_ID } from '../../cls/cls.constants';
+import { JwtAuthGuard, OptionalJwtAuthGuard } from './auth.guard';
+import { CLS_KEY_USER_ID } from '../cls/cls.constants';
 
 describe('Auth Guards CLS User ID Fix', () => {
   let jwtAuthGuard: JwtAuthGuard;
