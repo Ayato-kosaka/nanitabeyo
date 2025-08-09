@@ -25,7 +25,7 @@ export class JwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
     if (err || !user) {
       throw err ?? new UnauthorizedException(info);
     }
-    this.cls.set(CLS_KEY_USER_ID, user.id);
+    this.cls.set(CLS_KEY_USER_ID, user.userId);
     // 返却型はジェネリックなので `as TUser` で整合
     return user as TUser;
   }
@@ -44,8 +44,10 @@ export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
     _ctx: ExecutionContext,
     _status?: any,
   ): TUser {
-    // TODO: user を取得できるようにする。
-    // this.cls.set(CLS_KEY_USER_ID, user?.id);
+    // Set CLS user ID if user is present
+    if (user?.userId) {
+      this.cls.set(CLS_KEY_USER_ID, user.userId);
+    }
     // user が falsy ならそのまま undefined を返却
     // ただし型は TUser (any) にキャストして整合を取る
     return user as TUser;
