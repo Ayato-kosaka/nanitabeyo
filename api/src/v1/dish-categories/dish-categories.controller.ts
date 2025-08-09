@@ -54,6 +54,11 @@ export class DishCategoriesController {
   @ApiQuery({ name: 'distance', required: false, description: '距離 (m)' })
   @ApiQuery({ name: 'budgetMin', required: false, description: '最低予算' })
   @ApiQuery({ name: 'budgetMax', required: false, description: '最高予算' })
+  @ApiQuery({
+    name: 'languageTag',
+    required: true,
+    description: '出力言語 (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA)',
+  })
   @ApiResponse({ status: 200, description: '取得成功' })
   async getRecommendations(
     @Query() query: QueryDishCategoryRecommendationsDto,

@@ -39,6 +39,7 @@ export class ClaudeService {
     distance?: number;
     budgetMin?: number;
     budgetMax?: number;
+    languageTag: string;
   }): Promise<DishCategoryTopicResponse[]> {
     this.logger.debug(
       'GenerateDishCategoryRecommendations',
@@ -66,7 +67,8 @@ HARD RULES: Use the following JSON format exactly:
     "topicTitle": "string (attractive topic title)",
     "reason": "string (brief reason why this is recommended)"
   }
-]`;
+]
+HARD RULES: All text content (category, topicTitle, reason) MUST be in the language specified by the language tag: ${params.languageTag}`;
 
     const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
 
