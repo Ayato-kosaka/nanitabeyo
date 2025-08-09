@@ -148,6 +148,7 @@ function DepositsScreen() {
 					keyExtractor={(item) => item.id}
 					contentContainerStyle={styles.depositsList}
 					showsVerticalScrollIndicator={false}
+					scrollEnabled={false}
 				/>
 			) : (
 				<View style={styles.emptyStateContainer}>
