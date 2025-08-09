@@ -25,9 +25,9 @@ describe('CLS Request ID', () => {
     await clsService.run(async () => {
       const testRequestId = 'test-request-123';
       clsService.set(CLS_KEY_REQUEST_ID, testRequestId);
-      
+
       const retrievedId = clsService.get<string>(CLS_KEY_REQUEST_ID);
-      
+
       expect(retrievedId).toBe(testRequestId);
       expect(retrievedId).not.toBeNull();
       expect(retrievedId).not.toBeUndefined();
