@@ -222,7 +222,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			</View>
 
 			{/* Menu Modal */}
-			<BlurModal animationType="fade" contentContainerStyle={styles.modalOverlay}>
+			<BlurModal contentContainerStyle={styles.modalOverlay}>
 				<View style={styles.menuContainer}>
 					{menuOptions.map((option, index) => (
 						<TouchableOpacity

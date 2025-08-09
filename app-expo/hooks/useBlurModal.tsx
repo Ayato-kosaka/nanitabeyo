@@ -1,10 +1,10 @@
 import React, { ReactNode, memo, useCallback, useEffect, useState } from "react";
-import { BackHandler, Modal, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { BackHandler, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
 import { ScrollView } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import i18n from "@/lib/i18n";
+import { Portal } from "react-native-paper";
 
 /* -------------------------------------------------------------------------- */
 /*                                Hook 定義                                   */
@@ -17,8 +17,6 @@ export interface BlurModalOptions {
 	onClose?: () => void;
 	/** iOS: blur intensity / Android: フェード色の透明度 (0–100) */
 	intensity?: number;
-	/** Android 用フォールバック色 (iOS では無視) */
-	overlayColor?: string;
 	/** 閉じるアイコンサイズ */
 	closeIconSize?: number;
 	/** 閉じるアイコンカラー */
@@ -31,13 +29,11 @@ export function useBlurModal({
 	onOpen,
 	onClose,
 	intensity = 50,
-	overlayColor = "rgba(0,0,0,0.6)",
 	closeIconSize = 28,
 	closeIconColor = "#666666",
 	zIndex = 1100,
 }: BlurModalOptions = {}) {
 	const [visible, setVisible] = useState(false);
-	const insets = useSafeAreaInsets();
 
 	/* ── 開閉メソッド ─────────────────────────────────────────────── */
 	const open = useCallback(() => setVisible(true), []);
@@ -64,47 +60,38 @@ export function useBlurModal({
 		memo(
 			({
 				children,
-				animationType = "fade",
-				presentationStyle = "overFullScreen",
 				contentContainerStyle,
 				showCloseButton = true,
 			}: {
 				children: ReactNode;
-				animationType?: "none" | "slide" | "fade";
-				presentationStyle?: "fullScreen" | "pageSheet" | "formSheet" | "overFullScreen";
-				/** 子要素ラッパー用スタイル (モーダル内) */
 				contentContainerStyle?: StyleProp<ViewStyle>;
-				/** 閉じるボタン表示有無 */
 				showCloseButton?: boolean;
 			}) => {
 				if (!visible) return null;
 				return (
-					<Modal
-						transparent
-						visible={visible}
-						animationType={animationType}
-						presentationStyle={presentationStyle}
-						statusBarTranslucent
-						onRequestClose={close}>
-						{/* 背景レイヤー */}
-						<BlurView intensity={intensity} style={StyleSheet.absoluteFill}>
-							{/* 背景タップで閉じる */}
+					<Portal>
+						{/* Fullscreen layer */}
+						<View style={[StyleSheet.absoluteFill, { zIndex }]} pointerEvents="box-none">
+							{/* Dim overlay to ensure consistent contrast across platforms */}
 							<Pressable
 								onPress={close}
-								style={StyleSheet.absoluteFillObject}
-								android_ripple={{ color: "rgba(255,255,255,0.05)" }}
-							/>
-							{/* コンテンツ領域 (タップ透過) */}
-							<ScrollView
-								pointerEvents="box-none"
-								keyboardShouldPersistTaps="handled"
-								contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + 32 }]}>
-								<View pointerEvents="box-none" style={contentContainerStyle}>
-									{children}
-								</View>
-							</ScrollView>
+								style={[StyleSheet.absoluteFillObject]}
+								android_ripple={{ color: "rgba(255,255,255,0.05)" }}>
+								{/* Blur background */}
+								<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
 
-							{/* 閉じるボタン */}
+								{/* Content (non-blocking layout wrapper) */}
+								<ScrollView
+									pointerEvents="box-none"
+									keyboardShouldPersistTaps="handled"
+									contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+									<View pointerEvents="box-none" style={contentContainerStyle}>
+										{children}
+									</View>
+								</ScrollView>
+							</Pressable>
+
+							{/* Close button */}
 							{showCloseButton && (
 								<Pressable
 									onPress={close}
@@ -114,7 +101,7 @@ export function useBlurModal({
 									style={[
 										styles.closeButton,
 										{
-											top: insets.top + 16,
+											top: 16,
 											right: 16,
 											zIndex: zIndex + 1,
 										},
@@ -122,12 +109,12 @@ export function useBlurModal({
 									<X size={closeIconSize} color={closeIconColor} />
 								</Pressable>
 							)}
-						</BlurView>
-					</Modal>
+						</View>
+					</Portal>
 				);
 			},
 		),
-		[visible, intensity, overlayColor, close, insets, zIndex, closeIconColor, closeIconSize],
+		[visible, intensity, close, zIndex, closeIconColor, closeIconSize],
 	);
 
 	return { BlurModal, open, close, toggle, visible };

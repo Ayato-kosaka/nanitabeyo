@@ -4,7 +4,6 @@ import {
 	Text,
 	StyleSheet,
 	TouchableOpacity,
-	SafeAreaView,
 	Modal,
 	TextInput,
 	ScrollView,
@@ -186,7 +185,7 @@ export default function MapScreen() {
 	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<View style={styles.container}>
 			{/* Map */}
 			<MapView ref={mapRef} style={styles.map} region={currentRegion} onRegionChangeComplete={setCurrentRegion}>
 				{mockActiveBids.map((bid) => (
@@ -239,7 +238,7 @@ export default function MapScreen() {
 			</TouchableOpacity>
 
 			{/* Bottom Sheet */}
-			<RestaurantBlurModal animationType="slide" presentationStyle="pageSheet">
+			<RestaurantBlurModal>
 				{selectedPlace && (
 					<>
 						<Card>
@@ -385,7 +384,7 @@ export default function MapScreen() {
 			</RestaurantBlurModal>
 
 			{/* Review Modal */}
-			<ReviewBlurModal animationType="slide" presentationStyle="pageSheet">
+			<ReviewBlurModal>
 				<Card>
 					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.price")}</Text>
 					<TextInput
@@ -429,7 +428,7 @@ export default function MapScreen() {
 			</ReviewBlurModal>
 
 			{/* Bid Modal */}
-			<BidBlurModal animationType="slide" presentationStyle="pageSheet">
+			<BidBlurModal>
 				<Card>
 					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.bidAmount")}</Text>
 					<TextInput
@@ -464,7 +463,7 @@ export default function MapScreen() {
 					style={{ marginHorizontal: 16 }}
 				/>
 			</BidBlurModal>
-		</SafeAreaView>
+		</View>
 	);
 }
 

@@ -144,7 +144,7 @@ export default function TopicsScreen() {
 			)}
 
 			{/* Hide Card Modal */}
-			<HideTopicBlurModal animationType="fade" contentContainerStyle={styles.modalOverlay}>
+			<HideTopicBlurModal contentContainerStyle={styles.modalOverlay}>
 				<HideTopicModal
 					onClose={closeHideModal}
 					hideReason={hideReason}
@@ -233,8 +233,10 @@ const styles = StyleSheet.create({
 		elevation: 3,
 	},
 	bottomActionContainer: {
-		marginHorizontal: 20,
-		marginVertical: 8,
+		position: "absolute",
+		bottom: 20,
+		left: 8,
+		right: 8,
 		zIndex: 10,
 	},
 	emptyContainer: {

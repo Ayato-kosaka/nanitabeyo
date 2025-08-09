@@ -4,12 +4,14 @@ import { Topic, SearchParams } from "@/types/search";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { BulkImportDishesDto, QueryDishCategoryRecommendationsDto } from "@shared/dist/api/v1/dto";
 import type { BulkImportDishesResponse, QueryDishCategoryRecommendationsResponse } from "@shared/api/v1/res";
+import { useLocale } from "@/hooks/useLocale";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const { callBackend } = useAPICall();
+	const locale = useLocale();
 
 	const searchTopics = useCallback(async (params: SearchParams): Promise<Topic[]> => {
 		setIsLoading(true);
@@ -21,7 +23,7 @@ export const useTopicSearch = () => {
 				QueryDishCategoryRecommendationsResponse
 			>("/v1/dish-categories/recommendations", {
 				method: "GET",
-				requestPayload: params,
+				requestPayload: { ...params, languageTag: locale },
 			});
 			const toplics = topicsResponse.map((topic) => ({
 				...topic,

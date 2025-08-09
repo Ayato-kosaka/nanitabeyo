@@ -8,6 +8,7 @@ export default function TabLayout() {
 	return (
 		<Tabs
 			initialRouteName="search"
+			safeAreaInsets={{ bottom: 0 }}
 			screenOptions={{
 				headerShown: false,
 				tabBarIconStyle: {

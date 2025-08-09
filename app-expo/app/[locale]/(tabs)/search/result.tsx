@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
 import FoodContentMap from "@/components/FoodContentMap";
@@ -22,7 +22,7 @@ export default function ResultScreen() {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
-			<View style={styles.closeButtonContainer}>
+			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
 				<TouchableOpacity style={styles.closeButton} onPress={handleCloseWithHaptic}>
 					<X size={24} color="#000" />
 				</TouchableOpacity>
@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
 	},
 	closeButtonContainer: {
 		position: "absolute",
-		top: 0,
 		right: 0,
 		flexDirection: "row",
 		alignItems: "center",

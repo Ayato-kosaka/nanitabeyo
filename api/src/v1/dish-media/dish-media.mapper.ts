@@ -24,9 +24,12 @@ export class DishMediaMapper {
     return items.map((src) => ({
       restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
       dish: convertPrismaToSupabase_Dishes(src.dish),
-      dish_media: convertPrismaToSupabase_DishMedia(src.dish_media),
+      dish_media: {
+        ...src.dish_media,
+        ...convertPrismaToSupabase_DishMedia(src.dish_media)
+      },
       dish_reviews: src.dish_reviews.map((r) =>
-        convertPrismaToSupabase_DishReviews(r),
+        ({ ...r, ...convertPrismaToSupabase_DishReviews(r) }),
       ),
     }));
   }

@@ -148,6 +148,7 @@ function DepositsScreen() {
 					keyExtractor={(item) => item.id}
 					contentContainerStyle={styles.depositsList}
 					showsVerticalScrollIndicator={false}
+					scrollEnabled={false}
 				/>
 			) : (
 				<View style={styles.emptyStateContainer}>
@@ -518,7 +519,7 @@ export default function ProfileScreen() {
 			</ScrollView>
 
 			{/* Edit Profile Modal */}
-			<BlurModal animationType="slide" presentationStyle="pageSheet">
+			<BlurModal>
 				<Card>
 					<Text style={styles.editLabel}>{i18n.t("Profile.labels.bio")}</Text>
 					<TextInput

@@ -54,6 +54,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			google_place_id: "place_feed_1",
 			created_at: "2025-08-08T17:19:02.676Z",
 			location: null,
+			latitude: 35.657825,
+			longitude: 139.696711,
 		},
 		dish: {
 			id: "dish_feed_1",
@@ -147,6 +149,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			google_place_id: "place_feed_2",
 			created_at: "2025-08-08T17:19:02.676Z",
 			location: null,
+			latitude: 35.65741,
+			longitude: 139.704493,
 		},
 		dish: {
 			id: "dish_feed_2",
@@ -240,6 +244,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			google_place_id: "place_feed_3",
 			created_at: "2025-08-08T17:19:02.676Z",
 			location: null,
+			latitude: 35.65408,
+			longitude: 139.707492,
 		},
 		dish: {
 			id: "dish_feed_3",
@@ -333,6 +339,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			google_place_id: "place_feed_4",
 			created_at: "2025-08-08T17:19:02.676Z",
 			location: null,
+			latitude: 35.659186,
+			longitude: 139.698929,
 		},
 		dish: {
 			id: "dish_feed_4",
@@ -426,6 +434,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			google_place_id: "place_feed_5",
 			created_at: "2025-08-08T17:19:02.676Z",
 			location: null,
+			latitude: 35.658813,
+			longitude: 139.698221,
 		},
 		dish: {
 			id: "dish_feed_5",
