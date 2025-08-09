@@ -48,10 +48,9 @@ export class QueryDishCategoryRecommendationsDto {
 	budgetMax?: number;
 
 	/** 言語タグ (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA) */
-	@IsOptional()
 	@IsString()
 	@Matches(/^[a-z]{2,3}(-[A-Z]{2})?$/, {
 		message: "languageTag must follow IETF BCP 47 format (e.g., en-US, ja-JP, fr-CA)",
 	})
-	languageTag?: string;
+	languageTag!: string;
 }

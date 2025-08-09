@@ -56,7 +56,7 @@ export class DishCategoriesController {
   @ApiQuery({ name: 'budgetMax', required: false, description: '最高予算' })
   @ApiQuery({
     name: 'languageTag',
-    required: false,
+    required: true,
     description: '出力言語 (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA)',
   })
   @ApiResponse({ status: 200, description: '取得成功' })
