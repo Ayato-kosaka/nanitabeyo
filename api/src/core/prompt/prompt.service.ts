@@ -19,7 +19,7 @@ export class PromptService {
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * プロンプトファミリーとバリアントを取得し、重み付け選択を行う

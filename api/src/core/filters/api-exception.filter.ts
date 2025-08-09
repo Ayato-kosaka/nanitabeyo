@@ -1,6 +1,7 @@
 // core/filters/api-exception.filter.ts
 import {
   ArgumentsHost,
+  BadRequestException,
   Catch,
   ExceptionFilter,
   HttpException,
@@ -15,9 +16,10 @@ import { AppLoggerService } from '../logger/logger.service';
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
-  constructor(private readonly cls: ClsService,
-    private readonly logger: AppLoggerService
-  ) { }
+  constructor(
+    private readonly cls: ClsService,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -32,11 +34,52 @@ export class ApiExceptionFilter implements ExceptionFilter {
     let message = 'Internal server error';
 
     // JSON パースエラーを詳細に処理
-    if (exception instanceof SyntaxError && exception.message.includes('JSON')) {
+    if (
+      exception instanceof SyntaxError &&
+      exception.message.includes('JSON')
+    ) {
       status = HttpStatus.BAD_REQUEST;
       code = ErrorCode.INVALID_REQUEST_BODY;
       message = `Invalid JSON format: ${exception.message}`;
-      this.logger.error("JSONParseError", "ApiExceptionFilter", exception.stack);
+      this.logger.error(
+        'JSONParseError',
+        'ApiExceptionFilter',
+        exception.stack,
+      );
+    } else if (exception instanceof BadRequestException) {
+      // バリデーションエラーの詳細メッセージを処理
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+
+      // ValidationPipe が投げるエラーの場合、詳細なメッセージ配列を取得
+      if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null &&
+        'message' in exceptionResponse
+      ) {
+        const responseObj = exceptionResponse as any;
+        if (Array.isArray(responseObj.message)) {
+          // バリデーションエラーメッセージの配列
+          code = ErrorCode.VALIDATION_ERROR;
+          message = responseObj.message.join(', ');
+        } else {
+          // 単一メッセージ
+          code = ErrorCode.VALIDATION_ERROR;
+          message = responseObj.message || exception.message;
+        }
+      } else {
+        // 文字列レスポンスの場合
+        code = ErrorCode.VALIDATION_ERROR;
+        message =
+          typeof exceptionResponse === 'string'
+            ? exceptionResponse
+            : exception.message;
+      }
+      this.logger.error(
+        `ValidationError`,
+        'ApiExceptionFilter',
+        exception.stack,
+      );
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const msg = exception.message as ErrorCode;
@@ -44,19 +87,26 @@ export class ApiExceptionFilter implements ExceptionFilter {
         ? msg
         : ErrorCode.INTERNAL_ERROR;
       message = exception.message;
-      this.logger.error(`HttpException`, "ApiExceptionFilter", exception.stack);
+      this.logger.error(`HttpException`, 'ApiExceptionFilter', exception.stack);
     } else if (exception instanceof Error) {
       message = exception.message;
-      this.logger.error(`UnhandledException`, "ApiExceptionFilter", exception.stack);
+      this.logger.error(
+        `UnhandledException`,
+        'ApiExceptionFilter',
+        exception.stack,
+      );
     } else {
-      this.logger.error('UnknownException:', "ApiExceptionFilter", exception);
+      this.logger.error('UnknownException:', 'ApiExceptionFilter', exception);
     }
 
     const body: BaseResponse<null> = {
       data: null,
       success: false,
       errorCode: code,
-      message: status === HttpStatus.INTERNAL_SERVER_ERROR ? 'Internal server error' : message,
+      message:
+        status === HttpStatus.INTERNAL_SERVER_ERROR
+          ? 'Internal server error'
+          : message,
     };
 
     res.status(status).json(body);

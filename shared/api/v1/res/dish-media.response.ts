@@ -8,7 +8,7 @@ export type DishMediaEntry = {
 	restaurant: SupabaseRestaurants;
 	dish: SupabaseDishes;
 	dish_media: SupabaseDishMedia & {
-		isSaved: boolean
+		isSaved: boolean;
 		isLiked: boolean;
 		likeCount: number;
 		mediaImageUrl: string;

@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient, Prisma } from '../../../shared/prisma/client';
 import { MetricsMiddleware } from './middlewares/metrics.middleware';
 
@@ -15,8 +20,7 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
  * - シングルトンパターンでグローバルに1つのインスタンスを再利用
  */
 @Injectable()
-export class PrismaService
-  implements OnModuleInit, OnModuleDestroy {
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   private isConnected = false;
   private connectionRetries = 0;
@@ -90,7 +94,9 @@ export class PrismaService
         );
 
         // 再試行する前に少し待機
-        await new Promise((resolve) => setTimeout(resolve, this.RETRY_INTERVAL));
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.RETRY_INTERVAL),
+        );
         return this.connectWithRetry();
       } else {
         this.logger.error(

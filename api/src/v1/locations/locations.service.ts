@@ -58,13 +58,14 @@ export class LocationsService {
 
     try {
       // PlacesClient を使用してテキスト検索
-      const [response] = await this.placesClient.searchText(requestPayload,
-        {
-          otherArgs: {
-            headers: { "X-Goog-FieldMask": "places.id,places.name,places.location,places.reviews,contextualContents.photos.name,contextualContents.reviews" },
+      const [response] = await this.placesClient.searchText(requestPayload, {
+        otherArgs: {
+          headers: {
+            'X-Goog-FieldMask':
+              'places.id,places.name,places.location,places.reviews,contextualContents.photos.name,contextualContents.reviews',
           },
         },
-      );
+      });
 
       const responseTime = Date.now() - startTime;
 
@@ -131,11 +132,13 @@ export class LocationsService {
     photoRef: string,
   ): Promise<{ photoUri: string; buffer: Buffer } | null> {
     const startTime = Date.now();
-    const photoName = photoRef.endsWith('/media') ? photoRef : `${photoRef}/media`;
+    const photoName = photoRef.endsWith('/media')
+      ? photoRef
+      : `${photoRef}/media`;
     const requestPayload = {
       name: photoName,
       maxWidthPx: 800,
-      skipHttpRedirect: true
+      skipHttpRedirect: true,
     };
 
     try {
