@@ -8,7 +8,13 @@ SELECT
   (GROUP_CONCAT(DISTINCT ?ancestorQ; separator="|") AS ?tags)
 WHERE {
   # 料理アイテム
-  ?dish wdt:P31/wdt:P279* wd:Q746549.
+  {
+    ?dish wdt:P31/wdt:P279* wd:Q746549.
+  }
+  UNION
+  {
+    ?dish wdt:P279+ wd:Q746549.
+  }
 
   # 英語ラベル
   ?dish rdfs:label ?labelEN.

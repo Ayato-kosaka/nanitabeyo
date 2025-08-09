@@ -1,6 +1,12 @@
 # labels_lang.rq
 SELECT ?dish ?lang ?val WHERE {
-  ?dish wdt:P31/wdt:P279* wd:Q746549.
+  {
+    ?dish wdt:P31/wdt:P279* wd:Q746549.
+  }
+  UNION
+  {
+    ?dish wdt:P279+ wd:Q746549.
+  }
   ?dish rdfs:label ?val.
   BIND(LANG(?val) AS ?lang)
 }
