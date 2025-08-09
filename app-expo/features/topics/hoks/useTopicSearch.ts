@@ -16,13 +16,14 @@ export const useTopicSearch = () => {
 		setError(null);
 
 		try {
-			const topicsResponse = await callBackend<QueryDishCategoryRecommendationsDto, QueryDishCategoryRecommendationsResponse>(
-				"/v1/dish-categories/recommendations",
-				{
-					method: "GET",
-					requestPayload: params
-				})
-			const toplics = topicsResponse.map(topic => ({
+			const topicsResponse = await callBackend<
+				QueryDishCategoryRecommendationsDto,
+				QueryDishCategoryRecommendationsResponse
+			>("/v1/dish-categories/recommendations", {
+				method: "GET",
+				requestPayload: params,
+			});
+			const toplics = topicsResponse.map((topic) => ({
 				...topic,
 				isHidden: false,
 				dishItemsPromise: callBackend<BulkImportDishesDto, BulkImportDishesResponse>(`/v1/dishes/bulk-import`, {
@@ -31,9 +32,9 @@ export const useTopicSearch = () => {
 						location: params.location,
 						radius: params.distance,
 						categoryId: topic.categoryId,
-						categoryName: topic.category
-					}
-				})
+						categoryName: topic.category,
+					},
+				}),
 			}));
 
 			// Mock API response based on search parameters
@@ -58,7 +59,9 @@ export const useTopicSearch = () => {
 	}, []);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {
-		setTopics((prevTopics) => prevTopics.map((topic) => (topic.categoryId === topicId ? { ...topic, isHidden: true } : topic)));
+		setTopics((prevTopics) =>
+			prevTopics.map((topic) => (topic.categoryId === topicId ? { ...topic, isHidden: true } : topic)),
+		);
 
 		// Log hide reason for analytics
 		const hideReason = {

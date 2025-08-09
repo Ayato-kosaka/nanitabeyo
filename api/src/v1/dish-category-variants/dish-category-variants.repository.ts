@@ -13,7 +13,7 @@ export class DishCategoryVariantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * 料理カテゴリ表記揺れを検索

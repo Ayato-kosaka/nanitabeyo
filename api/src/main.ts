@@ -35,7 +35,9 @@ async function bootstrap() {
     new ResponseWrapInterceptor(app.get(ClsService), app.get(Reflector)),
   );
 
-  app.useGlobalFilters(new ApiExceptionFilter(app.get(ClsService), app.get(AppLoggerService)));
+  app.useGlobalFilters(
+    new ApiExceptionFilter(app.get(ClsService), app.get(AppLoggerService)),
+  );
 
   await app.listen(process.env.PORT ?? 3000);
 }
