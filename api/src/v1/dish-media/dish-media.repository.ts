@@ -53,6 +53,8 @@ export class DishMediaRepository {
       SELECT
         r.id AS restaurant_id,
         r.name,
+        r.latitude,
+        r.longitude,
         r.location,
         d.id AS dish_id,
         d.name AS dish_name,
