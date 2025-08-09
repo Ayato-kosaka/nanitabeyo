@@ -34,7 +34,7 @@ export class DishesService {
     private readonly logger: AppLoggerService,
     private readonly storage: StorageService,
     private readonly locationsService: LocationsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -161,8 +161,20 @@ export class DishesService {
             return {
               restaurant: convertPrismaToSupabase_Restaurants(restaurant),
               dish: convertPrismaToSupabase_Dishes(dish),
-              dish_media: dishMedia,
-              dish_reviews: dishReviews,
+              dish_media: {
+                ...dishMedia,
+                mediaImageUrl: photoMedia.photoUri,
+                thumbnailImageUrl: photoMedia.photoUri,
+                isSaved: false, // 初期状態では保存されていない
+                isLiked: false, // 初期状態ではいいねされていない
+                likeCount: 0, // 初期状態ではいいね数は0
+              },
+              dish_reviews: dishReviews.map((r) => ({
+                ...r,
+                username: r.imported_user_name || 'Anonymous', // ユーザー名がない場合は 'Anonymous' とする
+                isLiked: false, // 初期状態ではいいねされていない
+                likeCount: 0, // 初期状態ではいいね数は 0
+              })),
             };
           },
         );

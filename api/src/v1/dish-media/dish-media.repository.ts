@@ -28,13 +28,23 @@ import { PrismaService } from '../../prisma/prisma.service';
 export interface DishMediaFeedItem {
   restaurant: PrismaRestaurants;
   dish: PrismaDishes;
-  dish_media: PrismaDishMedia;
-  dish_reviews: PrismaDishReviews[];
+  dish_media: PrismaDishMedia & {
+    isSaved: boolean;
+    isLiked: boolean;
+    likeCount: number;
+    mediaImageUrl: string;
+    thumbnailImageUrl: string;
+  };
+  dish_reviews: (PrismaDishReviews & {
+    username: string;
+    isLiked: boolean;
+    likeCount: number;
+  })[];
 }
 
 @Injectable()
 export class DishMediaRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /* ------------------------------------------------------------------ */
   /*   1) 料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
