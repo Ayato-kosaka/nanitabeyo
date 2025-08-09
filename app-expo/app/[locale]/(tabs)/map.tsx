@@ -13,6 +13,7 @@ import {
 	FlatList,
 	Dimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MapPin, Search, Navigation, Camera, DollarSign, Star, Calendar, X, Plus } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -31,6 +32,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 const { width, height } = Dimensions.get("window");
 
 export default function MapScreen() {
+	const insets = useSafeAreaInsets();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
 	const [selectedTab, setSelectedTab] = useState<"reviews" | "bids">("reviews");
@@ -200,7 +202,7 @@ export default function MapScreen() {
 			</MapView>
 
 			{/* Search Bar */}
-			<View style={styles.searchContainer}>
+			<View style={[styles.searchContainer, { top: insets.top + 10 }]}>
 				<View style={styles.searchBar}>
 					<Search size={20} color="#666" />
 					<TextInput
@@ -477,7 +479,6 @@ const styles = StyleSheet.create({
 	},
 	searchContainer: {
 		position: "absolute",
-		top: 50,
 		left: 16,
 		right: 16,
 		zIndex: 10,
