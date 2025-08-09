@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Linking, Platform } from "react-native";
+import { BaseResponse } from "@shared/api/v1/res";
 
 /**
  * ☁️ API 呼び出しフック
@@ -32,7 +33,7 @@ export const useAPICall = () => {
 	 * @throws ネットワークエラーまたは認証なし・応答エラー時に例外をスロー
 	 */
 	const callBackend = useCallback(
-		async <T extends Record<string, any> | FormData, R>(
+		async <TRequest extends Record<string, any> | FormData, R>(
 			endpointName: string,
 			{
 				method = "POST",
@@ -40,7 +41,7 @@ export const useAPICall = () => {
 				isMultipart = false,
 			}: {
 				method?: "GET" | "POST";
-				requestPayload: T;
+				requestPayload: TRequest;
 				isMultipart?: boolean;
 			},
 		): Promise<R> => {
@@ -130,9 +131,42 @@ export const useAPICall = () => {
 				};
 			}
 
+			// 2xx のときのみここに到達
+			// BaseResponse<R> を厳密にパースし、success=false は API レベルのエラーとして扱う
+			let json: BaseResponse<R>;
+			try {
+				json = (await response.json()) as BaseResponse<R>;
+			} catch (e) {
+				throw {
+					code: "invalid_response",
+					message: `Failed to parse response JSON for ${endpointName}`,
+					requestId,
+					status: response.status,
+				};
+			}
+
+			if (!json || typeof json !== "object" || typeof json.success !== "boolean") {
+				throw {
+					code: "invalid_response",
+					message: `Malformed response for ${endpointName}`,
+					requestId,
+					status: response.status,
+				};
+			}
+
+			if (!json.success) {
+				throw {
+					code: "api_error",
+					message: json.message || `API returned unsuccessful response for ${endpointName}`,
+					errorCode: json.errorCode,
+					requestId,
+					status: response.status,
+				};
+			}
+
 			logFrontendEvent({
 				event_name: `api_call_${endpointName}`,
-				error_level: "info",
+				error_level: "log",
 				payload: {
 					requestPayload: isMultipart ? "[multipart/form-data]" : requestPayload,
 					endpoint,
@@ -141,7 +175,8 @@ export const useAPICall = () => {
 				},
 			});
 
-			return await response.json();
+			// data のみを返す
+			return json.data;
 		},
 		[logFrontendEvent, session, showDialog],
 	);

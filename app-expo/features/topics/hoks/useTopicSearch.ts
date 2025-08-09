@@ -21,14 +21,14 @@ export const useTopicSearch = () => {
 			const topicsResponse = await callBackend<
 				QueryDishCategoryRecommendationsDto,
 				QueryDishCategoryRecommendationsResponse
-			>("/v1/dish-categories/recommendations", {
+			>("v1/dish-categories/recommendations", {
 				method: "GET",
 				requestPayload: { ...params, languageTag: locale },
 			});
 			const toplics = topicsResponse.map((topic) => ({
 				...topic,
 				isHidden: false,
-				dishItemsPromise: callBackend<BulkImportDishesDto, BulkImportDishesResponse>(`/v1/dishes/bulk-import`, {
+				dishItemsPromise: callBackend<BulkImportDishesDto, BulkImportDishesResponse>(`v1/dishes/bulk-import`, {
 					method: "POST",
 					requestPayload: {
 						location: params.location,

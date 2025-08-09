@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 					logFrontendEvent({
 						event_name: "sessionRestored",
-						error_level: "info",
+						error_level: "log",
 						payload: { user_id: restoredSession.user.id },
 					});
 
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 					logFrontendEvent({
 						event_name: "signInAnonymously",
-						error_level: "info",
+						error_level: "log",
 						payload: { user_id: anonData.session?.user.id },
 					});
 
