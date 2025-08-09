@@ -518,7 +518,7 @@ export default function ProfileScreen() {
 			</ScrollView>
 
 			{/* Edit Profile Modal */}
-			<BlurModal animationType="slide" presentationStyle="pageSheet">
+			<BlurModal>
 				<Card>
 					<Text style={styles.editLabel}>{i18n.t("Profile.labels.bio")}</Text>
 					<TextInput
