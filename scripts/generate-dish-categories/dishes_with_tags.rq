@@ -3,9 +3,9 @@ SELECT
   ?dish
   ?labelEN
   ?image
-  (GROUP_CONCAT(DISTINCT ?originQ;   separator="|") AS ?origins)
-  (GROUP_CONCAT(DISTINCT ?cuisineQ;  separator="|") AS ?cuisines)
-  (GROUP_CONCAT(DISTINCT ?ancestorQ; separator="|") AS ?tags)
+  (GROUP_CONCAT(DISTINCT ?originQ;  separator="|") AS ?origins)
+  (GROUP_CONCAT(DISTINCT ?cuisineQ; separator="|") AS ?cuisines)
+  (GROUP_CONCAT(DISTINCT ?tagQ;     separator="|") AS ?tags)
 WHERE {
   # ==== 取り込み対象 ====
   {
@@ -52,14 +52,12 @@ WHERE {
   OPTIONAL { ?dish wdt:P2012 ?cui    . BIND( STRAFTER(STR(?cui),    "entity/") AS ?cuisineQ ) }
 
   # タグ（祖先 + 自分自身をQIDで）
-  OPTIONAL {
-    {
-      ?dish (wdt:P31|wdt:P279|wdt:P361)+ ?ancestor .
-      BIND( STRAFTER(STR(?ancestor), "entity/") AS ?ancestorQ )
-    } UNION {
-      BIND( STRAFTER(STR(?dish), "entity/") AS ?ancestorQ )
-    }
+  {
+    { BIND(?dish AS ?ancAll) }
+    UNION
+    { ?dish (wdt:P31|wdt:P279|wdt:P361)+ ?ancAll }
   }
+  BIND( STRAFTER(STR(?ancAll), "entity/") AS ?tagQ )
 }
 GROUP BY ?dish ?labelEN ?image
 ORDER BY ?dish
