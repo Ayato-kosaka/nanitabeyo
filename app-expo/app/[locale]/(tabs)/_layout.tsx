@@ -1,10 +1,14 @@
 import { Tabs } from "expo-router";
 import { House as Home, MapPinned, Bell, User, Code, Search } from "lucide-react-native";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 
 const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
 
 export default function TabLayout() {
+	const insets = useSafeAreaInsets();
+	
 	return (
 		<Tabs
 			initialRouteName="search"
@@ -22,6 +26,9 @@ export default function TabLayout() {
 					shadowOpacity: 0.15,
 					shadowRadius: 24,
 					elevation: 12,
+					// Fix iOS bottom margin issue by explicitly setting bottom padding
+					paddingBottom: Platform.OS === "ios" ? insets.bottom : 0,
+					height: Platform.OS === "ios" ? 49 + insets.bottom : 49,
 				},
 				tabBarActiveTintColor: "#5EA2FF",
 				tabBarInactiveTintColor: "#6B7280",

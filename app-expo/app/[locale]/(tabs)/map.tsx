@@ -4,7 +4,6 @@ import {
 	Text,
 	StyleSheet,
 	TouchableOpacity,
-	SafeAreaView,
 	Modal,
 	TextInput,
 	ScrollView,
@@ -13,8 +12,10 @@ import {
 	ActivityIndicator,
 	FlatList,
 	Dimensions,
+	StatusBar,
 } from "react-native";
 import { MapPin, Search, Navigation, Camera, DollarSign, Star, Calendar, X, Plus } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { Marker, Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { GooglePlacesPrediction } from "@/types/search";
@@ -33,6 +34,7 @@ const { width, height } = Dimensions.get("window");
 
 export default function MapScreen() {
 	const { lightImpact, mediumImpact } = useHaptics();
+	const insets = useSafeAreaInsets();
 	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
 	const [selectedTab, setSelectedTab] = useState<"reviews" | "bids">("reviews");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -186,7 +188,8 @@ export default function MapScreen() {
 	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<View style={styles.container}>
+			<StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 			{/* Map */}
 			<MapView ref={mapRef} style={styles.map} region={currentRegion} onRegionChangeComplete={setCurrentRegion}>
 				{mockActiveBids.map((bid) => (
@@ -201,7 +204,7 @@ export default function MapScreen() {
 			</MapView>
 
 			{/* Search Bar */}
-			<View style={styles.searchContainer}>
+			<View style={[styles.searchContainer, { top: insets.top + 16 }]}>
 				<View style={styles.searchBar}>
 					<Search size={20} color="#666" />
 					<TextInput
@@ -234,7 +237,7 @@ export default function MapScreen() {
 			</View>
 
 			{/* Current Location FAB */}
-			<TouchableOpacity style={styles.fab} onPress={handleCurrentLocation}>
+			<TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 120 }]} onPress={handleCurrentLocation}>
 				<Navigation size={24} color="#FFF" />
 			</TouchableOpacity>
 
@@ -322,31 +325,33 @@ export default function MapScreen() {
 						) : (
 							<View style={styles.bidsContent}>
 								{/* Status Filter Chips */}
-								<ScrollView
-									horizontal
-									showsHorizontalScrollIndicator={false}
-									style={styles.statusFilterContainer}
-									contentContainerStyle={styles.statusFilterContent}>
-									{bidStatuses.map((status) => (
-										<TouchableOpacity
-											key={status.id}
-											style={[
-												styles.statusChip,
-												selectedBidStatuses.includes(status.id) && {
-													backgroundColor: status.color,
-												},
-											]}
-											onPress={() => toggleBidStatus(status.id)}>
-											<Text
+								<View style={styles.statusFilterContainer}>
+									<FlatList
+										data={bidStatuses}
+										renderItem={({ item: status }) => (
+											<TouchableOpacity
 												style={[
-													styles.statusChipText,
-													selectedBidStatuses.includes(status.id) && styles.statusChipTextActive,
-												]}>
-												{status.label}
-											</Text>
-										</TouchableOpacity>
-									))}
-								</ScrollView>
+													styles.statusChip,
+													selectedBidStatuses.includes(status.id) && {
+														backgroundColor: status.color,
+													},
+												]}
+												onPress={() => toggleBidStatus(status.id)}>
+												<Text
+													style={[
+														styles.statusChipText,
+														selectedBidStatuses.includes(status.id) && styles.statusChipTextActive,
+													]}>
+													{status.label}
+												</Text>
+											</TouchableOpacity>
+										)}
+										keyExtractor={(item) => item.id}
+										horizontal
+										showsHorizontalScrollIndicator={false}
+										contentContainerStyle={styles.statusFilterContent}
+									/>
+								</View>
 
 								{/* Filtered Bid History */}
 								{filteredBidHistory.length > 0 ? (
@@ -464,7 +469,7 @@ export default function MapScreen() {
 					style={{ marginHorizontal: 16 }}
 				/>
 			</BidBlurModal>
-		</SafeAreaView>
+		</View>
 	);
 }
 
@@ -478,7 +483,6 @@ const styles = StyleSheet.create({
 	},
 	searchContainer: {
 		position: "absolute",
-		top: 50,
 		left: 16,
 		right: 16,
 		zIndex: 10,
@@ -527,7 +531,6 @@ const styles = StyleSheet.create({
 	},
 	fab: {
 		position: "absolute",
-		bottom: 30,
 		right: 20,
 		backgroundColor: "#007AFF",
 		borderRadius: 28,

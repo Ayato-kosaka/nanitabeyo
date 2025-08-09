@@ -206,7 +206,7 @@ export default function SearchScreen() {
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 			</View>
 
-			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 				{/* Location Input */}
 				<Card>
 					<View style={styles.sectionHeader}>
@@ -411,6 +411,8 @@ const styles = StyleSheet.create({
 	},
 	scrollView: {
 		flex: 1,
+	},
+	scrollContent: {
 		paddingBottom: 100,
 	},
 	header: {

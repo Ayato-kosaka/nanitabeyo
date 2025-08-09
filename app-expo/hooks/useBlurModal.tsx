@@ -78,12 +78,28 @@ export function useBlurModal({
 				showCloseButton?: boolean;
 			}) => {
 				if (!visible) return null;
+				
+				// Fix iOS modal presentation style issues
+				const getModalProps = () => {
+					if (Platform.OS === 'ios' && presentationStyle === 'pageSheet') {
+						return {
+							transparent: false,
+							presentationStyle: 'pageSheet' as const,
+						};
+					}
+					return {
+						transparent: true,
+						presentationStyle: presentationStyle,
+					};
+				};
+				
+				const modalProps = getModalProps();
+				
 				return (
 					<Modal
-						transparent
+						{...modalProps}
 						visible={visible}
 						animationType={animationType}
-						presentationStyle={presentationStyle}
 						statusBarTranslucent
 						onRequestClose={close}>
 						{/* 背景レイヤー */}

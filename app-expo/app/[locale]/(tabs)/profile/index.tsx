@@ -85,6 +85,25 @@ function DepositsScreen() {
 		</View>
 	);
 
+	const renderStatusFilterChip = ({ item }: { item: any }) => (
+		<TouchableOpacity
+			style={[
+				styles.statusFilterChip,
+				selectedStatuses.includes(item.id) && {
+					backgroundColor: item.color,
+				},
+			]}
+			onPress={() => toggleStatus(item.id)}>
+			<Text
+				style={[
+					styles.statusFilterChipText,
+					selectedStatuses.includes(item.id) && styles.statusFilterChipTextActive,
+				]}>
+				{item.label}
+			</Text>
+		</TouchableOpacity>
+	);
+
 	const getStatusColor = (status: string) => {
 		switch (status) {
 			case "active":
@@ -111,41 +130,39 @@ function DepositsScreen() {
 		}
 	};
 
+	// Combined data for single FlatList to avoid VirtualizedList warning
+	const listData = [
+		{ type: 'filters', data: depositStatuses },
+		...filteredBids.map(bid => ({ type: 'bid', data: bid }))
+	];
+
+	const renderListItem = ({ item }: { item: any }) => {
+		if (item.type === 'filters') {
+			return (
+				<View style={styles.statusFilterContainer}>
+					<FlatList
+						data={item.data}
+						renderItem={renderStatusFilterChip}
+						keyExtractor={(statusItem) => statusItem.id}
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.statusFilterContent}
+					/>
+				</View>
+			);
+		} else if (item.type === 'bid') {
+			return renderBidItem({ item: item.data });
+		}
+		return null;
+	};
+
 	return (
 		<View style={styles.tabContent}>
-			{/* Status Filter Chips */}
-			<ScrollView
-				horizontal
-				showsHorizontalScrollIndicator={false}
-				style={styles.statusFilterContainer}
-				contentContainerStyle={styles.statusFilterContent}>
-				{depositStatuses.map((status) => (
-					<TouchableOpacity
-						key={status.id}
-						style={[
-							styles.statusFilterChip,
-							selectedStatuses.includes(status.id) && {
-								backgroundColor: status.color,
-							},
-						]}
-						onPress={() => toggleStatus(status.id)}>
-						<Text
-							style={[
-								styles.statusFilterChipText,
-								selectedStatuses.includes(status.id) && styles.statusFilterChipTextActive,
-							]}>
-							{status.label}
-						</Text>
-					</TouchableOpacity>
-				))}
-			</ScrollView>
-
-			{/* Filtered Results */}
-			{filteredBids.length > 0 ? (
+			{filteredBids.length > 0 || listData.length > 1 ? (
 				<FlatList
-					data={filteredBids}
-					renderItem={renderBidItem}
-					keyExtractor={(item) => item.id}
+					data={listData}
+					renderItem={renderListItem}
+					keyExtractor={(item, index) => item.type === 'filters' ? 'filters' : item.data.id}
 					contentContainerStyle={styles.depositsList}
 					showsVerticalScrollIndicator={false}
 				/>
@@ -178,34 +195,38 @@ function EarningsScreen() {
 
 	const filteredEarnings = mockEarnings.filter((earning) => selectedEarningStatuses.includes(earning.status));
 
+	const renderStatusFilterChip = ({ item }: { item: any }) => (
+		<TouchableOpacity
+			style={[
+				styles.statusFilterChip,
+				selectedEarningStatuses.includes(item.id) && {
+					backgroundColor: item.color,
+				},
+			]}
+			onPress={() => toggleEarningStatus(item.id)}>
+			<Text
+				style={[
+					styles.statusFilterChipText,
+					selectedEarningStatuses.includes(item.id) && styles.statusFilterChipTextActive,
+				]}>
+				{item.label}
+			</Text>
+		</TouchableOpacity>
+	);
+
 	return (
 		<View style={styles.tabContent}>
 			{/* Status Filter Chips */}
-			<ScrollView
-				horizontal
-				showsHorizontalScrollIndicator={false}
-				style={styles.statusFilterContainer}
-				contentContainerStyle={styles.statusFilterContent}>
-				{earningStatuses.map((status) => (
-					<TouchableOpacity
-						key={status.id}
-						style={[
-							styles.statusFilterChip,
-							selectedEarningStatuses.includes(status.id) && {
-								backgroundColor: status.color,
-							},
-						]}
-						onPress={() => toggleEarningStatus(status.id)}>
-						<Text
-							style={[
-								styles.statusFilterChipText,
-								selectedEarningStatuses.includes(status.id) && styles.statusFilterChipTextActive,
-							]}>
-							{status.label}
-						</Text>
-					</TouchableOpacity>
-				))}
-			</ScrollView>
+			<View style={styles.statusFilterContainer}>
+				<FlatList
+					data={earningStatuses}
+					renderItem={renderStatusFilterChip}
+					keyExtractor={(item) => item.id}
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={styles.statusFilterContent}
+				/>
+			</View>
 
 			{/* Filtered Results */}
 			{filteredEarnings.length > 0 ? (

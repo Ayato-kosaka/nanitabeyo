@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { X } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FoodContentMap from "@/components/FoodContentMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
@@ -10,6 +11,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 export default function ResultScreen() {
 	const { topicId } = useLocalSearchParams<{ topicId: string }>();
 	const { lightImpact } = useHaptics();
+	const insets = useSafeAreaInsets();
 
 	const { currentIndex, showCompletionModal, dishesPromise, handleIndexChange, handleClose, handleReturnToCards } =
 		useSearchResult(topicId as string);
@@ -22,7 +24,7 @@ export default function ResultScreen() {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
-			<View style={styles.closeButtonContainer}>
+			<View style={[styles.closeButtonContainer, { top: insets.top + 16 }]}>
 				<TouchableOpacity style={styles.closeButton} onPress={handleCloseWithHaptic}>
 					<X size={24} color="#000" />
 				</TouchableOpacity>
@@ -41,12 +43,10 @@ const styles = StyleSheet.create({
 	},
 	closeButtonContainer: {
 		position: "absolute",
-		top: 0,
-		right: 0,
+		right: 16,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		padding: 16,
 		zIndex: 10,
 	},
 	closeButton: {

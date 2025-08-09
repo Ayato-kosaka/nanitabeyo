@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { ThumbsUp, X } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Carousel from "react-native-reanimated-carousel";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hoks/useTopicSearch";
@@ -26,6 +27,8 @@ export default function TopicsScreen() {
 	const carouselRef = useRef<any>(null);
 	const setDishes = useSearchStore((state) => state.setDishePromises);
 	const { selectionChanged } = useHaptics();
+	const insets = useSafeAreaInsets();
+	const { height: screenHeight } = Dimensions.get("window");
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
@@ -87,7 +90,7 @@ export default function TopicsScreen() {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
-			<View style={styles.backButtonContainer}>
+			<View style={[styles.backButtonContainer, { top: insets.top + 16 }]}>
 				<TouchableOpacity style={styles.backButton} onPress={handleBack}>
 					<X size={24} color="#000" />
 				</TouchableOpacity>
@@ -95,11 +98,14 @@ export default function TopicsScreen() {
 
 			{/* Cards Carousel */}
 			{visibleTopics.length > 0 ? (
-				<View style={styles.carouselContainer}>
+				<View style={[styles.carouselContainer, { 
+					marginTop: insets.top + 80,
+					height: screenHeight * 0.6,
+				}]}>
 					<Carousel
 						ref={carouselRef}
 						width={CARD_WIDTH}
-						height={CARD_HEIGHT}
+						height={Math.min(CARD_HEIGHT, screenHeight * 0.5)}
 						data={visibleTopics}
 						renderItem={renderCard}
 						onSnapToItem={handleSnapToItem}
@@ -112,7 +118,7 @@ export default function TopicsScreen() {
 					/>
 				</View>
 			) : (
-				<View style={styles.emptyContainer}>
+				<View style={[styles.emptyContainer, { marginTop: insets.top + 80 }]}>
 					<View style={styles.emptyCard}>
 						<Text style={styles.emptyText}>{i18n.t("Topics.empty")}</Text>
 						<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
@@ -123,7 +129,9 @@ export default function TopicsScreen() {
 			)}
 
 			{/* Page Indicator */}
-			<View style={styles.pageIndicatorContainer}>
+			<View style={[styles.pageIndicatorContainer, { 
+				bottom: insets.bottom + 120,
+			}]}>
 				{visibleTopics.map((_, index) => (
 					<View
 						key={index}
@@ -134,7 +142,9 @@ export default function TopicsScreen() {
 
 			{/* Fixed Bottom Action Button */}
 			{visibleTopics.length > 0 && (
-				<View style={styles.bottomActionContainer}>
+				<View style={[styles.bottomActionContainer, { 
+					bottom: insets.bottom + 20,
+				}]}>
 					<PrimaryButton
 						label={i18n.t("Topics.chooseThis")}
 						icon={<ThumbsUp size={20} color="#FFF" />}
@@ -163,11 +173,10 @@ const styles = StyleSheet.create({
 	},
 	backButtonContainer: {
 		position: "absolute",
-		top: 0,
-		right: 0,
+		right: 16,
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 16,
+		padding: 0,
 		zIndex: 10,
 	},
 	backButton: {
@@ -200,16 +209,17 @@ const styles = StyleSheet.create({
 	carouselContainer: {
 		justifyContent: "center",
 		alignItems: "center",
+		flex: 1,
 	},
 	carousel: {
 		width: width,
 	},
 	pageIndicatorContainer: {
+		position: "absolute",
+		left: 20,
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 8,
-		marginTop: -20,
-		marginLeft: 20,
 	},
 	pageIndicatorDot: {
 		width: 8,
@@ -233,8 +243,9 @@ const styles = StyleSheet.create({
 		elevation: 3,
 	},
 	bottomActionContainer: {
-		marginHorizontal: 20,
-		marginVertical: 8,
+		position: "absolute",
+		left: 20,
+		right: 20,
 		zIndex: 10,
 	},
 	emptyContainer: {

@@ -168,8 +168,8 @@ const styles = StyleSheet.create({
 	},
 	notificationContainer: {
 		flex: 1,
+		backgroundColor: "#F8F9FA",
 		marginTop: 16,
-		paddingTop: 64,
 		borderTopLeftRadius: 32,
 		borderTopRightRadius: 32,
 		shadowColor: "#000",
@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingHorizontal: 16,
+		paddingTop: 32,
 		gap: 12,
 	},
 	notificationItem: {
