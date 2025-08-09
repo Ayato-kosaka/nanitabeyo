@@ -99,7 +99,7 @@ model dish_media {
   user_id        String?      @db.Uuid
   media_path     String
   media_type     String
-  thumbnail_path String?
+  thumbnail_path String
   created_at     DateTime     @default(now()) @db.Timestamptz(6)
   updated_at     DateTime     @default(now()) @db.Timestamptz(6)
   lock_no        Int          @default(0)
@@ -323,12 +323,14 @@ model restaurant_bids {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurants {
-  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  google_place_id String?                  @unique
+  id              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  google_place_id String?                   @unique
   name            String
-  location        Unsupported("geography")
-  image_url       String?
-  created_at      DateTime                 @default(now()) @db.Timestamptz(6)
+  latitude        Float
+  longitude       Float
+  location        Unsupported("geography")? @default(dbgenerated("(dev.st_setsrid(dev.st_makepoint(longitude, latitude), 4326))::dev.geography"))
+  image_url       String
+  created_at      DateTime                  @default(now()) @db.Timestamptz(6)
   dishes          dishes[]
   restaurant_bids restaurant_bids[]
 

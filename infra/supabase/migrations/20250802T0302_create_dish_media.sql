@@ -4,7 +4,7 @@ CREATE TABLE dish_media (
     user_id        UUID        REFERENCES users(id),
     media_path     TEXT        NOT NULL,
     media_type     TEXT        NOT NULL CHECK (media_type IN ('image','video')),
-    thumbnail_path TEXT,
+    thumbnail_path TEXT        NOT NULL,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     lock_no        INTEGER     NOT NULL DEFAULT 0

@@ -9,11 +9,9 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDishDto } from '@shared/v1/dto';
-import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { google } from '@googlemaps/places/build/protos/protos';
-import { env } from 'src/core/config/env';
 
 @Injectable()
 export class DishesRepository {
@@ -73,50 +71,18 @@ export class DishesRepository {
 
     // PostGIS geography カラムを扱いつつ、
     // INSERT … ON CONFLICT DO NOTHING RETURNING *
-    const rows = await tx.$queryRaw<PrismaRestaurants[]>(
-      Prisma.sql`
-        INSERT INTO ${Prisma.raw(env.DB_SCHEMA)}.restaurants
-          (google_place_id, name, location, image_url, created_at)
-        VALUES
-          (
-            ${place.id},
-            ${place.name},
-            ${Prisma.raw(env.DB_SCHEMA)}.ST_SetSRID(
-              ${Prisma.raw(env.DB_SCHEMA)}.ST_MakePoint(
-                ${place.location.longitude}::double precision,
-                ${place.location.latitude}::double precision
-              ),
-              4326
-            ),
-            ${placeImageUrl},
-            NOW()
-          )
-        ON CONFLICT (google_place_id) DO NOTHING
-        RETURNING
-          id,
-          google_place_id,
-          name,
-          image_url,
-          created_at;
-      `,
-    );
-
-    if (rows.length === 1) {
-      // 新規挿入に成功
-      return rows[0];
-    }
-
-    // Conflict で何も返らなかった場合は既存行を SELECT
-    const existing = await tx.restaurants.findUnique({
+    const restaurant = await tx.restaurants.upsert({
       where: { google_place_id: place.id },
+      update: {},
+      create: {
+        google_place_id: place.id!,
+        name: place.name!,
+        latitude: place.location!.latitude!,
+        longitude: place.location!.longitude!,
+        image_url: placeImageUrl,
+      },
     });
-    if (!existing) {
-      // 理論的には起こらない
-      throw new Error(
-        `Failed to insert or find restaurant with place_id=${place.id}`,
-      );
-    }
-    return existing;
+    return restaurant;
   }
 
   /**

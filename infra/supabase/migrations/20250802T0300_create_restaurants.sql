@@ -4,8 +4,13 @@ CREATE TABLE restaurants (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     google_place_id TEXT UNIQUE,
     name            TEXT        NOT NULL,
-    location        GEOGRAPHY(Point,4326) NOT NULL,
-    image_url       TEXT,
+    latitude        DOUBLE PRECISION NOT NULL,
+    longitude       DOUBLE PRECISION NOT NULL,
+    location        GEOGRAPHY(Point,4326)
+        GENERATED ALWAYS AS (
+          ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+        ) STORED,
+    image_url       TEXT        NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
