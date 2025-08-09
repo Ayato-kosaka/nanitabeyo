@@ -681,6 +681,8 @@ export type Database = {
 					google_place_id: string | null;
 					id: string;
 					image_url: string | null;
+					lat: number | null;
+					lng: number | null;
 					location: unknown;
 					name: string;
 				};
@@ -689,6 +691,8 @@ export type Database = {
 					google_place_id?: string | null;
 					id?: string;
 					image_url?: string | null;
+					lat?: number | null;
+					lng?: number | null;
 					location: unknown;
 					name: string;
 				};
@@ -697,6 +701,8 @@ export type Database = {
 					google_place_id?: string | null;
 					id?: string;
 					image_url?: string | null;
+					lat?: number | null;
+					lng?: number | null;
 					location?: unknown;
 					name?: string;
 				};

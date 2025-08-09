@@ -20,7 +20,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -76,7 +76,7 @@ export class DishesRepository {
     const rows = await tx.$queryRaw<PrismaRestaurants[]>(
       Prisma.sql`
         INSERT INTO ${Prisma.raw(env.DB_SCHEMA)}.restaurants
-          (google_place_id, name, location, image_url, created_at)
+          (google_place_id, name, location, lat, lng, image_url, created_at)
         VALUES
           (
             ${place.id},
@@ -88,6 +88,8 @@ export class DishesRepository {
               ),
               4326
             ),
+            ${place.location.latitude}::double precision,
+            ${place.location.longitude}::double precision,
             ${placeImageUrl},
             NOW()
           )
@@ -96,6 +98,8 @@ export class DishesRepository {
           id,
           google_place_id,
           name,
+          lat,
+          lng,
           image_url,
           created_at;
       `,

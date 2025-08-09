@@ -1,4 +1,3 @@
-
 export interface NotificationItem {
 	id: string;
 	type: "like" | "comment" | "follow" | "mention" | "share";

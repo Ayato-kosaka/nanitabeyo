@@ -20848,6 +20848,8 @@ export namespace Prisma {
     id: string | null
     google_place_id: string | null
     name: string | null
+    lat: number | null
+    lng: number | null
     image_url: string | null
     created_at: Date | null
   }
@@ -20856,6 +20858,8 @@ export namespace Prisma {
     id: string | null
     google_place_id: string | null
     name: string | null
+    lat: number | null
+    lng: number | null
     image_url: string | null
     created_at: Date | null
   }
@@ -20864,6 +20868,8 @@ export namespace Prisma {
     id: number
     google_place_id: number
     name: number
+    lat: number
+    lng: number
     image_url: number
     created_at: number
     _all: number
@@ -20874,6 +20880,8 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    lat?: true
+    lng?: true
     image_url?: true
     created_at?: true
   }
@@ -20882,6 +20890,8 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    lat?: true
+    lng?: true
     image_url?: true
     created_at?: true
   }
@@ -20890,6 +20900,8 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    lat?: true
+    lng?: true
     image_url?: true
     created_at?: true
     _all?: true
@@ -20971,6 +20983,8 @@ export namespace Prisma {
     id: string
     google_place_id: string | null
     name: string
+    lat: number | null
+    lng: number | null
     image_url: string | null
     created_at: Date
     _count: RestaurantsCountAggregateOutputType | null
@@ -21038,6 +21052,8 @@ export namespace Prisma {
       id: string
       google_place_id: string | null
       name: string
+      lat: number | null
+      lng: number | null
       image_url: string | null
       created_at: Date
     }, ExtArgs["result"]["restaurants"]>
@@ -25773,6 +25789,8 @@ export namespace Prisma {
     id?: UuidFilter<"restaurants"> | string
     google_place_id?: StringNullableFilter<"restaurants"> | string | null
     name?: StringFilter<"restaurants"> | string
+    lat?: FloatNullableFilter<"restaurants"> | number | null
+    lng?: FloatNullableFilter<"restaurants"> | number | null
     image_url?: StringNullableFilter<"restaurants"> | string | null
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
@@ -25783,6 +25801,8 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrderInput | SortOrder
     name?: SortOrder
+    lat?: SortOrderInput | SortOrder
+    lng?: SortOrderInput | SortOrder
     image_url?: SortOrderInput | SortOrder
     created_at?: SortOrder
     dishes?: dishesOrderByRelationAggregateInput
@@ -25796,6 +25816,8 @@ export namespace Prisma {
     OR?: restaurantsWhereInput[]
     NOT?: restaurantsWhereInput | restaurantsWhereInput[]
     name?: StringFilter<"restaurants"> | string
+    lat?: FloatNullableFilter<"restaurants"> | number | null
+    lng?: FloatNullableFilter<"restaurants"> | number | null
     image_url?: StringNullableFilter<"restaurants"> | string | null
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
@@ -25806,6 +25828,8 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrderInput | SortOrder
     name?: SortOrder
+    lat?: SortOrderInput | SortOrder
+    lng?: SortOrderInput | SortOrder
     image_url?: SortOrderInput | SortOrder
     created_at?: SortOrder
     _count?: restaurantsCountOrderByAggregateInput
@@ -25820,6 +25844,8 @@ export namespace Prisma {
     id?: UuidWithAggregatesFilter<"restaurants"> | string
     google_place_id?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
     name?: StringWithAggregatesFilter<"restaurants"> | string
+    lat?: FloatNullableWithAggregatesFilter<"restaurants"> | number | null
+    lng?: FloatNullableWithAggregatesFilter<"restaurants"> | number | null
     image_url?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"restaurants"> | Date | string
   }
@@ -27288,6 +27314,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    lat?: NullableFloatFieldUpdateOperationsInput | number | null
+    lng?: NullableFloatFieldUpdateOperationsInput | number | null
     image_url?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
@@ -27298,6 +27326,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    lat?: NullableFloatFieldUpdateOperationsInput | number | null
+    lng?: NullableFloatFieldUpdateOperationsInput | number | null
     image_url?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -27308,6 +27338,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    lat?: NullableFloatFieldUpdateOperationsInput | number | null
+    lng?: NullableFloatFieldUpdateOperationsInput | number | null
     image_url?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -27316,6 +27348,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
+    lat?: NullableFloatFieldUpdateOperationsInput | number | null
+    lng?: NullableFloatFieldUpdateOperationsInput | number | null
     image_url?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -28703,6 +28737,8 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    lat?: SortOrder
+    lng?: SortOrder
     image_url?: SortOrder
     created_at?: SortOrder
   }
@@ -28711,6 +28747,8 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    lat?: SortOrder
+    lng?: SortOrder
     image_url?: SortOrder
     created_at?: SortOrder
   }
@@ -28719,6 +28757,8 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    lat?: SortOrder
+    lng?: SortOrder
     image_url?: SortOrder
     created_at?: SortOrder
   }
