@@ -177,7 +177,7 @@ export type Database = {
 					lock_no: number;
 					media_path: string;
 					media_type: string;
-					thumbnail_path: string | null;
+					thumbnail_path: string;
 					updated_at: string;
 					user_id: string | null;
 				};
@@ -188,7 +188,7 @@ export type Database = {
 					lock_no?: number;
 					media_path: string;
 					media_type: string;
-					thumbnail_path?: string | null;
+					thumbnail_path: string;
 					updated_at?: string;
 					user_id?: string | null;
 				};
@@ -199,7 +199,7 @@ export type Database = {
 					lock_no?: number;
 					media_path?: string;
 					media_type?: string;
-					thumbnail_path?: string | null;
+					thumbnail_path?: string;
 					updated_at?: string;
 					user_id?: string | null;
 				};
@@ -680,24 +680,30 @@ export type Database = {
 					created_at: string;
 					google_place_id: string | null;
 					id: string;
-					image_url: string | null;
-					location: unknown;
+					image_url: string;
+					latitude: number;
+					location: unknown | null;
+					longitude: number;
 					name: string;
 				};
 				Insert: {
 					created_at?: string;
 					google_place_id?: string | null;
 					id?: string;
-					image_url?: string | null;
-					location: unknown;
+					image_url: string;
+					latitude: number;
+					location?: unknown | null;
+					longitude: number;
 					name: string;
 				};
 				Update: {
 					created_at?: string;
 					google_place_id?: string | null;
 					id?: string;
-					image_url?: string | null;
-					location?: unknown;
+					image_url?: string;
+					latitude?: number;
+					location?: unknown | null;
+					longitude?: number;
 					name?: string;
 				};
 				Relationships: [];
@@ -1382,7 +1388,7 @@ export type Database = {
 			};
 			populate_geometry_columns: {
 				Args: { tbl_oid: unknown; use_typmod?: boolean } | { use_typmod?: boolean };
-				Returns: number;
+				Returns: string;
 			};
 			postgis_addbbox: {
 				Args: { "": unknown };

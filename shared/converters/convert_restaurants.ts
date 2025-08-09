@@ -16,6 +16,8 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     id: supabase.id,
     google_place_id: supabase.google_place_id,
     name: supabase.name,
+    latitude: supabase.latitude,
+    longitude: supabase.longitude,
 
     image_url: supabase.image_url,
     created_at: new Date(supabase.created_at),
@@ -32,6 +34,8 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     id: prisma.id,
     google_place_id: prisma.google_place_id,
     name: prisma.name,
+    latitude: prisma.latitude,
+    longitude: prisma.longitude,
     location: null,
     image_url: prisma.image_url,
     created_at: prisma.created_at?.toISOString() ?? null,
