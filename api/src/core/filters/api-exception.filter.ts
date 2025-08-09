@@ -1,6 +1,7 @@
 // core/filters/api-exception.filter.ts
 import {
   ArgumentsHost,
+  BadRequestException,
   Catch,
   ExceptionFilter,
   HttpException,
@@ -42,6 +43,40 @@ export class ApiExceptionFilter implements ExceptionFilter {
       message = `Invalid JSON format: ${exception.message}`;
       this.logger.error(
         'JSONParseError',
+        'ApiExceptionFilter',
+        exception.stack,
+      );
+    } else if (exception instanceof BadRequestException) {
+      // バリデーションエラーの詳細メッセージを処理
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+
+      // ValidationPipe が投げるエラーの場合、詳細なメッセージ配列を取得
+      if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null &&
+        'message' in exceptionResponse
+      ) {
+        const responseObj = exceptionResponse as any;
+        if (Array.isArray(responseObj.message)) {
+          // バリデーションエラーメッセージの配列
+          code = ErrorCode.VALIDATION_ERROR;
+          message = responseObj.message.join(', ');
+        } else {
+          // 単一メッセージ
+          code = ErrorCode.VALIDATION_ERROR;
+          message = responseObj.message || exception.message;
+        }
+      } else {
+        // 文字列レスポンスの場合
+        code = ErrorCode.VALIDATION_ERROR;
+        message =
+          typeof exceptionResponse === 'string'
+            ? exceptionResponse
+            : exception.message;
+      }
+      this.logger.error(
+        `ValidationError`,
         'ApiExceptionFilter',
         exception.stack,
       );
