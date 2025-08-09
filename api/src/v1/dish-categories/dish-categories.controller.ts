@@ -33,7 +33,7 @@ export class DishCategoriesController {
   constructor(
     private readonly dishCategoriesService: DishCategoriesService,
     private readonly cls: ClsService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-categories/recommendations         */

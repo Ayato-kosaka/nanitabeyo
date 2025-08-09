@@ -44,7 +44,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /**
    * Claude API呼び出し
@@ -208,8 +208,14 @@ export class ExternalApiService {
       customHeaders?: Record<string, string>;
     },
   ): Promise<Response> {
-    const { api_name, endpoint, method, request_payload, function_name, customHeaders = {} } =
-      params;
+    const {
+      api_name,
+      endpoint,
+      method,
+      request_payload,
+      function_name,
+      customHeaders = {},
+    } = params;
     const startTime = Date.now();
 
     try {
