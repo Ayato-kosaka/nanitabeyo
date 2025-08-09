@@ -95,10 +95,7 @@ function DepositsScreen() {
 			]}
 			onPress={() => toggleStatus(item.id)}>
 			<Text
-				style={[
-					styles.statusFilterChipText,
-					selectedStatuses.includes(item.id) && styles.statusFilterChipTextActive,
-				]}>
+				style={[styles.statusFilterChipText, selectedStatuses.includes(item.id) && styles.statusFilterChipTextActive]}>
 				{item.label}
 			</Text>
 		</TouchableOpacity>
@@ -132,12 +129,12 @@ function DepositsScreen() {
 
 	// Combined data for single FlatList to avoid VirtualizedList warning
 	const listData = [
-		{ type: 'filters', data: depositStatuses },
-		...filteredBids.map(bid => ({ type: 'bid', data: bid }))
+		{ type: "filters", data: depositStatuses },
+		...filteredBids.map((bid) => ({ type: "bid", data: bid })),
 	];
 
 	const renderListItem = ({ item }: { item: any }) => {
-		if (item.type === 'filters') {
+		if (item.type === "filters") {
 			return (
 				<View style={styles.statusFilterContainer}>
 					<FlatList
@@ -150,7 +147,7 @@ function DepositsScreen() {
 					/>
 				</View>
 			);
-		} else if (item.type === 'bid') {
+		} else if (item.type === "bid") {
 			return renderBidItem({ item: item.data });
 		}
 		return null;
@@ -162,7 +159,7 @@ function DepositsScreen() {
 				<FlatList
 					data={listData}
 					renderItem={renderListItem}
-					keyExtractor={(item, index) => item.type === 'filters' ? 'filters' : item.data.id}
+					keyExtractor={(item, index) => (item.type === "filters" ? "filters" : item.data.id)}
 					contentContainerStyle={styles.depositsList}
 					showsVerticalScrollIndicator={false}
 				/>

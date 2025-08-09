@@ -98,10 +98,14 @@ export default function TopicsScreen() {
 
 			{/* Cards Carousel */}
 			{visibleTopics.length > 0 ? (
-				<View style={[styles.carouselContainer, { 
-					marginTop: insets.top + 80,
-					height: screenHeight * 0.6,
-				}]}>
+				<View
+					style={[
+						styles.carouselContainer,
+						{
+							marginTop: insets.top + 80,
+							height: screenHeight * 0.6,
+						},
+					]}>
 					<Carousel
 						ref={carouselRef}
 						width={CARD_WIDTH}
@@ -129,9 +133,13 @@ export default function TopicsScreen() {
 			)}
 
 			{/* Page Indicator */}
-			<View style={[styles.pageIndicatorContainer, { 
-				bottom: insets.bottom + 120,
-			}]}>
+			<View
+				style={[
+					styles.pageIndicatorContainer,
+					{
+						bottom: insets.bottom + 120,
+					},
+				]}>
 				{visibleTopics.map((_, index) => (
 					<View
 						key={index}
@@ -142,9 +150,13 @@ export default function TopicsScreen() {
 
 			{/* Fixed Bottom Action Button */}
 			{visibleTopics.length > 0 && (
-				<View style={[styles.bottomActionContainer, { 
-					bottom: insets.bottom + 20,
-				}]}>
+				<View
+					style={[
+						styles.bottomActionContainer,
+						{
+							bottom: insets.bottom + 20,
+						},
+					]}>
 					<PrimaryButton
 						label={i18n.t("Topics.chooseThis")}
 						icon={<ThumbsUp size={20} color="#FFF" />}

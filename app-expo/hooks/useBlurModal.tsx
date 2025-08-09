@@ -78,13 +78,13 @@ export function useBlurModal({
 				showCloseButton?: boolean;
 			}) => {
 				if (!visible) return null;
-				
+
 				// Fix iOS modal presentation style issues
 				const getModalProps = () => {
-					if (Platform.OS === 'ios' && presentationStyle === 'pageSheet') {
+					if (Platform.OS === "ios" && presentationStyle === "pageSheet") {
 						return {
 							transparent: false,
-							presentationStyle: 'pageSheet' as const,
+							presentationStyle: "pageSheet" as const,
 						};
 					}
 					return {
@@ -92,9 +92,9 @@ export function useBlurModal({
 						presentationStyle: presentationStyle,
 					};
 				};
-				
+
 				const modalProps = getModalProps();
-				
+
 				return (
 					<Modal
 						{...modalProps}

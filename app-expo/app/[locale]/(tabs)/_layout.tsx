@@ -8,7 +8,7 @@ const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
 
 export default function TabLayout() {
 	const insets = useSafeAreaInsets();
-	
+
 	return (
 		<Tabs
 			initialRouteName="search"
