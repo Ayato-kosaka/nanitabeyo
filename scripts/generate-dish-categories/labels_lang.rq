@@ -1,12 +1,22 @@
-# labels_lang.rq
+# labels_lang.rq (widened)
 SELECT ?dish ?lang ?val WHERE {
   {
     ?dish wdt:P31/wdt:P279* wd:Q746549.
-  }
-  UNION
-  {
+  } UNION {
     ?dish wdt:P279+ wd:Q746549.
+  } UNION {
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q1778821
+  } UNION {
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q6460735
+  } UNION {
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q8495
+  } UNION {
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q192874
+  } UNION {
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q117231375
+  } UNION {
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q30022
   }
-  ?dish rdfs:label ?val.
+  ?dish rdfs:label ?val .
   BIND(LANG(?val) AS ?lang)
 }
