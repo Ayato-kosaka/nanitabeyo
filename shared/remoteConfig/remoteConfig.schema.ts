@@ -16,6 +16,7 @@ export const remoteConfigSchema = z.object({
 			...(keyof typeof $Enums.backend_event_logs_error_level)[],
 		],
 	),
+	v1_enable_prisma_query_logs: z.string(),
 });
 
 export type RemoteConfigValues = z.infer<typeof remoteConfigSchema>;

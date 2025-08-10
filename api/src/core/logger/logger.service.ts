@@ -33,7 +33,8 @@ export class AppLoggerService implements INestLoggerService {
   /*                  Nest LoggerService 実装 (console)                 */
   /* ------------------------------------------------------------------ */
   verbose(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.verbose)) console.log(payload);
+    if (this.shouldPrint(LogLevel.verbose))
+      this.printStructured('DEBUG', eventName, functionName, payload);
     this.persistBackendEvent({
       error_level: LogLevel.verbose,
       payload,
@@ -42,7 +43,8 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   debug(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.debug)) console.debug(payload);
+    if (this.shouldPrint(LogLevel.debug))
+      this.printStructured('DEBUG', eventName, functionName, payload);
     this.persistBackendEvent({
       error_level: LogLevel.debug,
       payload,
@@ -51,7 +53,8 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   log(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.log)) console.info(payload);
+    if (this.shouldPrint(LogLevel.log))
+      this.printStructured('INFO', eventName, functionName, payload);
     this.persistBackendEvent({
       error_level: LogLevel.log,
       payload,
@@ -60,7 +63,8 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   warn(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.warn)) console.warn(payload);
+    if (this.shouldPrint(LogLevel.warn))
+      this.printStructured('WARNING', eventName, functionName, payload);
     this.persistBackendEvent({
       error_level: LogLevel.warn,
       payload,
@@ -69,7 +73,8 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   error(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.error)) console.error(payload);
+    if (this.shouldPrint(LogLevel.error))
+      this.printStructured('ERROR', eventName, functionName, payload);
     this.persistBackendEvent({
       error_level: LogLevel.error,
       payload,
@@ -94,11 +99,23 @@ export class AppLoggerService implements INestLoggerService {
           created_commit_id: env.API_COMMIT_ID,
         },
       });
+      // Cloud Run 構造化ログ
+      this.printStructured('INFO', 'externalApi', input.function_name, {
+        api_name: input.api_name,
+        endpoint: input.endpoint,
+        method: input.method,
+        status_code: input.status_code,
+        response_time_ms: input.response_time_ms,
+      });
     } catch (err) {
       /* console にだけ出す（循環ロギングを避ける）*/
-      console.error(
-        'Failed to persist external_api_logs:',
-        (err as Error).message,
+      this.printStructured(
+        'ERROR',
+        'externalApiPersistError',
+        input.function_name,
+        {
+          message: (err as Error).message,
+        },
       );
     }
   }
@@ -119,11 +136,35 @@ export class AppLoggerService implements INestLoggerService {
         },
       });
     } catch (err) {
-      console.error(
-        'Failed to persist backend_event_logs:',
-        (err as Error).message,
+      this.printStructured(
+        'ERROR',
+        'backendEventPersistError',
+        input.function_name,
+        {
+          message: (err as Error).message,
+        },
       );
     }
+  }
+
+  /** Cloud Run で見やすい構造化ログを stdout に出力 */
+  private printStructured(
+    severity: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR',
+    eventName: string,
+    functionName: string,
+    payload: any,
+  ) {
+    const entry = {
+      severity,
+      type: 'app',
+      event_name: eventName,
+      function_name: functionName,
+      request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
+      user_id: this.cls.get<string>(CLS_KEY_USER_ID),
+      payload,
+      timestamp: new Date().toISOString(),
+    };
+    console.log(JSON.stringify(entry));
   }
 
   /** console へ出力すべきか判定 */
