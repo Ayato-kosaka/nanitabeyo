@@ -9,7 +9,7 @@ import { env } from '../config/env';
 
 @Injectable()
 export class StaticMasterService {
-  constructor() { }
+  constructor() {}
 
   /** ───────── キャッシュ領域 ───────── */
   private cache: Partial<

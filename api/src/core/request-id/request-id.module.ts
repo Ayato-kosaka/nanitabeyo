@@ -15,7 +15,11 @@ import { REQUEST_ID_HEADER } from './request-id.constants';
         generateId: true,
         idGenerator: (req: any) => {
           // ヘッダから継承 or 新規採番
-          return (req.headers[REQUEST_ID_HEADER.toLowerCase()] as string | undefined) ?? randomUUID();
+          return (
+            (req.headers[REQUEST_ID_HEADER.toLowerCase()] as
+              | string
+              | undefined) ?? randomUUID()
+          );
         },
         setup: (cls, req, res) => {
           const requestId = cls.getId();

@@ -27,7 +27,7 @@ export class AppLoggerService implements INestLoggerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
@@ -109,9 +109,14 @@ export class AppLoggerService implements INestLoggerService {
       });
     } catch (err) {
       /* console にだけ出す（循環ロギングを避ける）*/
-      this.printStructured('ERROR', 'externalApiPersistError', input.function_name, {
-        message: (err as Error).message,
-      });
+      this.printStructured(
+        'ERROR',
+        'externalApiPersistError',
+        input.function_name,
+        {
+          message: (err as Error).message,
+        },
+      );
     }
   }
 
@@ -131,9 +136,14 @@ export class AppLoggerService implements INestLoggerService {
         },
       });
     } catch (err) {
-      this.printStructured('ERROR', 'backendEventPersistError', input.function_name, {
-        message: (err as Error).message,
-      });
+      this.printStructured(
+        'ERROR',
+        'backendEventPersistError',
+        input.function_name,
+        {
+          message: (err as Error).message,
+        },
+      );
     }
   }
 

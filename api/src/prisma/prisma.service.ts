@@ -39,7 +39,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       this.prisma = new PrismaClient({
         // 本番でも必要に応じてクエリログを Cloud Run に出力
         log: enableQueryLogs
-          ? ([{ emit: 'event', level: 'query' } as Prisma.LogDefinition, 'warn', 'error'] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+          ? ([
+              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+              'warn',
+              'error',
+            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
           : (['warn', 'error'] as Prisma.LogLevel[]),
       });
       // ミドルウェアを適用
@@ -49,7 +53,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       if (!globalForPrisma.prisma) {
         globalForPrisma.prisma = new PrismaClient({
           log: enableQueryLogs
-            ? ([{ emit: 'event', level: 'query' } as Prisma.LogDefinition, 'info', 'warn', 'error'] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+            ? ([
+                { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+                'info',
+                'warn',
+                'error',
+              ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
             : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
         });
         globalForPrisma.prisma.$use(MetricsMiddleware);
@@ -182,7 +191,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       };
       return await this.prisma.$transaction((tx) => exec(tx), transactionOpts);
     } catch (error) {
-      this.logger.error(`Transaction error: ${(error as any).message}`, (error as any).stack);
+      this.logger.error(
+        `Transaction error: ${(error as any).message}`,
+        (error as any).stack,
+      );
       throw error;
     }
   }
