@@ -6,7 +6,7 @@
  * type B = DeepNonNullable<A>; // { foo: string, bar: number }
  */
 export type DeepNonNullable<T> = {
-    [K in keyof T]: Exclude<T[K], null>;
+	[K in keyof T]: Exclude<T[K], null>;
 };
 
 /**
@@ -18,13 +18,13 @@ export type DeepNonNullable<T> = {
  * type B = DeepStrictNonNullable<A>; // { foo: { bar: string } }
  */
 export type DeepStrictNonNullable<T> = {
-    [K in keyof T]: T[K] extends (...args: any) => any
-    ? T[K]
-    : T[K] extends Array<infer U>
-    ? Array<DeepStrictNonNullable<Exclude<U, null>>>
-    : T[K] extends object
-    ? DeepStrictNonNullable<Exclude<T[K], null>>
-    : Exclude<T[K], null>;
+	[K in keyof T]: T[K] extends (...args: any) => any
+		? T[K]
+		: T[K] extends Array<infer U>
+			? Array<DeepStrictNonNullable<Exclude<U, null>>>
+			: T[K] extends object
+				? DeepStrictNonNullable<Exclude<T[K], null>>
+				: Exclude<T[K], null>;
 };
 
 /**
@@ -35,13 +35,13 @@ export type DeepStrictNonNullable<T> = {
  * type B = DeepRequired<A>; // { foo: { bar: string } }
  */
 export type DeepRequired<T> = {
-    [K in keyof T]-?: T[K] extends (...args: any) => any
-    ? T[K]
-    : T[K] extends Array<infer U>
-    ? Array<DeepRequired<U>>
-    : T[K] extends object
-    ? DeepRequired<T[K]>
-    : T[K];
+	[K in keyof T]-?: T[K] extends (...args: any) => any
+		? T[K]
+		: T[K] extends Array<infer U>
+			? Array<DeepRequired<U>>
+			: T[K] extends object
+				? DeepRequired<T[K]>
+				: T[K];
 };
 
 /**
@@ -52,13 +52,13 @@ export type DeepRequired<T> = {
  * type B = DeepPartial<A>; // { foo?: { bar?: string } }
  */
 export type DeepPartial<T> = {
-    [K in keyof T]?: T[K] extends (...args: any) => any
-    ? T[K]
-    : T[K] extends Array<infer U>
-    ? Array<DeepPartial<U>>
-    : T[K] extends object
-    ? DeepPartial<T[K]>
-    : T[K];
+	[K in keyof T]?: T[K] extends (...args: any) => any
+		? T[K]
+		: T[K] extends Array<infer U>
+			? Array<DeepPartial<U>>
+			: T[K] extends object
+				? DeepPartial<T[K]>
+				: T[K];
 };
 
 /**
@@ -69,13 +69,13 @@ export type DeepPartial<T> = {
  * type B = DeepReadonly<A>; // { readonly foo: { readonly bar: string } }
  */
 export type DeepReadonly<T> = {
-    readonly [K in keyof T]: T[K] extends (...args: any) => any
-    ? T[K]
-    : T[K] extends Array<infer U>
-    ? ReadonlyArray<DeepReadonly<U>>
-    : T[K] extends object
-    ? DeepReadonly<T[K]>
-    : T[K];
+	readonly [K in keyof T]: T[K] extends (...args: any) => any
+		? T[K]
+		: T[K] extends Array<infer U>
+			? ReadonlyArray<DeepReadonly<U>>
+			: T[K] extends object
+				? DeepReadonly<T[K]>
+				: T[K];
 };
 
 /**
