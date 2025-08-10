@@ -32,9 +32,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   // シングルトンパターンで接続を再利用
   readonly prisma: PrismaClient;
 
-  constructor(
-    private readonly remoteConfigService: RemoteConfigService,
-  ) {
+  constructor() {
     const enableQueryLogs = env.API_NODE_ENV !== 'production';
 
     if (process.env.NODE_ENV === 'production') {

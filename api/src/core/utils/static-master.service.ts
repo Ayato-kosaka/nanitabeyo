@@ -6,11 +6,10 @@ import { Database } from '../../../../shared/supabase/database.types';
 import { TableRow } from '../../../../shared/utils/devDB.types';
 import { loadStaticMaster } from '../../../../shared/utils/loadStaticMaster';
 import { env } from '../config/env';
-import { AppLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class StaticMasterService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor() { }
 
   /** ───────── キャッシュ領域 ───────── */
   private cache: Partial<
@@ -40,7 +39,6 @@ export class StaticMasterService {
     const expired = now - last > this.CACHE_TTL_MS;
 
     if (!this.cache[tableName] || expired) {
-      this.logger.debug('CacheMiss', 'getStaticMaster', { tableName });
       this.cache[tableName] = await loadStaticMaster(
         env.GCS_BUCKET_NAME,
         env.GCS_STATIC_MASTER_DIR_PATH,
