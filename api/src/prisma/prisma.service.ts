@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaClient, Prisma } from '../../../shared/prisma/client';
 import { MetricsMiddleware } from './middlewares/metrics.middleware';
+import { env } from 'src/core/config/env';
+import { RemoteConfigService } from 'src/core/remote-config/remote-config.service';
 
 // グローバルなシングルトンインスタンスを作成
 // これにより複数のインスタンス作成を防ぎます
@@ -30,10 +32,17 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   // シングルトンパターンで接続を再利用
   readonly prisma: PrismaClient;
 
-  constructor() {
+  constructor(
+    private readonly remoteConfigService: RemoteConfigService,
+  ) {
+    const enableQueryLogs = env.API_NODE_ENV !== 'production';
+
     if (process.env.NODE_ENV === 'production') {
       this.prisma = new PrismaClient({
-        log: ['warn', 'error'],
+        // 本番でも必要に応じてクエリログを Cloud Run に出力
+        log: enableQueryLogs
+          ? ([{ emit: 'event', level: 'query' } as Prisma.LogDefinition, 'warn', 'error'] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+          : (['warn', 'error'] as Prisma.LogLevel[]),
       });
       // ミドルウェアを適用
       this.prisma.$use(MetricsMiddleware);
@@ -41,12 +50,36 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       // 開発環境ではグローバルインスタンスを再利用
       if (!globalForPrisma.prisma) {
         globalForPrisma.prisma = new PrismaClient({
-          log: ['query', 'info', 'warn', 'error'],
-        }); // 閉じ括弧が抜けていました
+          log: enableQueryLogs
+            ? ([{ emit: 'event', level: 'query' } as Prisma.LogDefinition, 'info', 'warn', 'error'] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+            : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
+        });
         globalForPrisma.prisma.$use(MetricsMiddleware);
       }
       this.prisma = globalForPrisma.prisma;
       this.logger.log('Reusing existing Prisma client instance');
+    }
+
+    // Prisma の SQL 実行時間を構造化ログで出力（Cloud Run で見やすく）
+    if (enableQueryLogs) {
+      // Prisma の型制約上、コンストラクタ引数の log 設定が動的だと
+      // $on('query') のシグネチャが `never` になるため any で回避
+      (this.prisma as any).$on('query', (e: any) => {
+        // Cloud Logging の推奨フォーマットに合わせて JSON 一行で出力
+        // e.params は JSON 文字列のことがあるため、そのまま出力
+        const entry = {
+          severity: 'DEBUG',
+          type: 'prisma',
+          message: 'Prisma query',
+          duration_ms: e.duration,
+          query: e.query,
+          params: e.params,
+          target: (e as any).target,
+          timestamp: new Date().toISOString(),
+        };
+        // stdout へ
+        console.log(JSON.stringify(entry));
+      });
     }
   }
 
@@ -101,7 +134,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       } else {
         this.logger.error(
           `Failed to connect to database after ${this.MAX_RETRIES} attempts`,
-          error.stack,
+          (error as any).stack,
         );
 
         if (process.env.NODE_ENV === 'development') {
@@ -151,7 +184,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       };
       return await this.prisma.$transaction((tx) => exec(tx), transactionOpts);
     } catch (error) {
-      this.logger.error(`Transaction error: ${error.message}`, error.stack);
+      this.logger.error(`Transaction error: ${(error as any).message}`, (error as any).stack);
       throw error;
     }
   }
