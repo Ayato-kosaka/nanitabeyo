@@ -75,9 +75,7 @@ function DepositsScreen() {
 				/>
 				<View style={styles.depositInfo}>
 					<Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
-					<Text style={styles.depositAmount}>
-						{formatCurrencyForDisplay(item.bidAmount, locale)}
-					</Text>
+					<Text style={styles.depositAmount}>{formatCurrencyForDisplay(item.bidAmount, locale)}</Text>
 				</View>
 				<View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
 					<Text style={styles.statusText}>{getStatusText(item.status)}</Text>
@@ -218,9 +216,7 @@ function EarningsScreen() {
 					containerStyle={{ marginVertical: 16 }}
 					renderOverlay={(item) => (
 						<View style={styles.earningCardOverlay}>
-							<Text style={styles.earningCardAmount}>
-								{formatCurrencyForDisplay(item.earnings, locale)}
-							</Text>
+							<Text style={styles.earningCardAmount}>{formatCurrencyForDisplay(item.earnings, locale)}</Text>
 							<View
 								style={[
 									styles.statusChip,

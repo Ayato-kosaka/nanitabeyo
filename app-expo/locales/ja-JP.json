@@ -76,6 +76,7 @@
 			"20km": "20km"
 		},
 		"currencySuffix": "円",
+		"_note_currencySuffix": "DEPRECATED: Use formatCurrency() from @/lib/currency instead",
 		"searchButton": "探して！",
 		"timeSlots": {
 			"morning": "朝食",

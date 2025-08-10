@@ -159,13 +159,9 @@ export default function SearchScreen() {
 
 	const formatBudgetRange = () => {
 		const minLabel =
-			budgetMin === undefined
-				? i18n.t("Search.labels.noMinBudget")
-				: formatCurrencyForDisplay(budgetMin, locale);
+			budgetMin === undefined ? i18n.t("Search.labels.noMinBudget") : formatCurrencyForDisplay(budgetMin, locale);
 		const maxLabel =
-			budgetMax === undefined
-				? i18n.t("Search.labels.noMaxBudget")
-				: formatCurrencyForDisplay(budgetMax, locale);
+			budgetMax === undefined ? i18n.t("Search.labels.noMaxBudget") : formatCurrencyForDisplay(budgetMax, locale);
 		return `${minLabel} 〜 ${maxLabel}`;
 	};
 

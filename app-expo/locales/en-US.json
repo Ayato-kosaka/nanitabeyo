@@ -76,6 +76,7 @@
 			"20km": "20km"
 		},
 		"currencySuffix": "¥",
+		"_note_currencySuffix": "DEPRECATED: Use formatCurrency() from @/lib/currency instead",
 		"searchButton": "Find it!",
 		"timeSlots": {
 			"morning": "Breakfast",

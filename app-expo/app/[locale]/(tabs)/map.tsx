@@ -260,9 +260,7 @@ export default function MapScreen() {
 
 						<View style={styles.bidAmountContainer}>
 							<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
-							<Text style={styles.bidAmount}>
-								{formatCurrencyForDisplay(selectedPlace.totalAmount, locale)}
-							</Text>
+							<Text style={styles.bidAmount}>{formatCurrencyForDisplay(selectedPlace.totalAmount, locale)}</Text>
 							<Text style={styles.remainingDays}>
 								{i18n.t("Common.daysRemaining", {
 									count: selectedPlace.remainingDays,
@@ -354,9 +352,7 @@ export default function MapScreen() {
 									filteredBidHistory.map((bid) => (
 										<View key={bid.id} style={styles.bidHistoryCard}>
 											<View style={styles.bidHistoryHeader}>
-												<Text style={styles.bidHistoryAmount}>
-													{formatCurrencyForDisplay(bid.amount, locale)}
-												</Text>
+												<Text style={styles.bidHistoryAmount}>{formatCurrencyForDisplay(bid.amount, locale)}</Text>
 												<View
 													style={[
 														styles.bidStatusChip,
