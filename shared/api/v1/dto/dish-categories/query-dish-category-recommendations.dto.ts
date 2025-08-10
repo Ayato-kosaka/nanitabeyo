@@ -1,13 +1,12 @@
-import { IsNumber, IsOptional, IsString, Matches } from "@nestjs/class-validator";
-import { Type } from "@nestjs/class-transformer";
+import { IsOptional, IsString, Matches } from "@nestjs/class-validator";
 
 /**
  * Query parameters for GET /v1/dish-categories/recommendations
  */
 export class QueryDishCategoryRecommendationsDto {
-	/** 位置情報 "lat,lng" */
-	@Matches(/^-?\d{1,2}(?:\.\d+)?,-?\d{1,3}(?:\.\d+)?$/, { message: 'location must be "lat,lng" decimal format' })
-	location!: string;
+	/** 住所 */
+	@IsString()
+	address!: string;
 
 	/** 時間帯 */
 	@IsOptional()
@@ -28,24 +27,6 @@ export class QueryDishCategoryRecommendationsDto {
 	@IsOptional()
 	@IsString({ each: true })
 	restrictions?: string[];
-
-	/** 距離 (m) */
-	@IsOptional()
-	@Type(() => Number)
-	@IsNumber()
-	distance?: number;
-
-	/** 最低予算 */
-	@IsOptional()
-	@Type(() => Number)
-	@IsNumber()
-	budgetMin?: number;
-
-	/** 最高予算 */
-	@IsOptional()
-	@Type(() => Number)
-	@IsNumber()
-	budgetMax?: number;
 
 	/** 言語タグ (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA) */
 	@IsString()

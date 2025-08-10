@@ -23,7 +23,14 @@ export const useTopicSearch = () => {
 				QueryDishCategoryRecommendationsResponse
 			>("v1/dish-categories/recommendations", {
 				method: "GET",
-				requestPayload: { ...params, languageTag: locale },
+				requestPayload: {
+					address: params.address,
+					timeSlot: params.timeSlot,
+					scene: params.scene,
+					mood: params.mood,
+					restrictions: params.restrictions,
+					languageTag: locale,
+				},
 			});
 			const toplics = topicsResponse.map((topic) => ({
 				...topic,

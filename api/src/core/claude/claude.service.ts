@@ -31,14 +31,11 @@ export class ClaudeService {
    * 料理カテゴリ提案を生成する
    */
   async generateDishCategoryRecommendations(params: {
-    location: string;
+    address: string;
     timeSlot?: string;
     scene?: string;
     mood?: string;
     restrictions?: string[];
-    distance?: number;
-    budgetMin?: number;
-    budgetMax?: number;
     languageTag: string;
   }): Promise<DishCategoryTopicResponse[]> {
     this.logger.debug(
@@ -73,13 +70,11 @@ HARD RULES: All text content (category, topicTitle, reason) MUST be in the langu
     const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
 
     const variablePromptPart = `Generate dish category recommendations based on:
-${`Location: ${params.location}`}
+${`Address: ${params.address}`}
 ${params.timeSlot ? `Time slot: ${params.timeSlot}` : ''}
 ${params.scene ? `Scene: ${params.scene}` : ''}
 ${params.mood ? `Mood: ${params.mood}` : ''}
 ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}
-${params.distance ? `Distance: ${params.distance}m` : ''}
-${params.budgetMin || params.budgetMax ? `Budget: ${params.budgetMin || 0} - ${params.budgetMax || 'unlimited'} yen` : ''}
 
 Generate 10 diverse and appealing dish category recommendations.`;
 
