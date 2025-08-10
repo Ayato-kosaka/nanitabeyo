@@ -23,15 +23,18 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCardGrid } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
+import { formatCurrencyForDisplay } from "@/lib/currency";
 import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import Stars from "@/components/Stars";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 
 const { width, height } = Dimensions.get("window");
 
 export default function MapScreen() {
 	const { lightImpact, mediumImpact } = useHaptics();
+	const locale = useLocale();
 	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
 	const [selectedTab, setSelectedTab] = useState<"reviews" | "bids">("reviews");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -258,8 +261,7 @@ export default function MapScreen() {
 						<View style={styles.bidAmountContainer}>
 							<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
 							<Text style={styles.bidAmount}>
-								{i18n.t("Search.currencySuffix")}
-								{selectedPlace.totalAmount.toLocaleString()}
+								{formatCurrencyForDisplay(selectedPlace.totalAmount, locale)}
 							</Text>
 							<Text style={styles.remainingDays}>
 								{i18n.t("Common.daysRemaining", {
@@ -353,8 +355,7 @@ export default function MapScreen() {
 										<View key={bid.id} style={styles.bidHistoryCard}>
 											<View style={styles.bidHistoryHeader}>
 												<Text style={styles.bidHistoryAmount}>
-													{i18n.t("Search.currencySuffix")}
-													{bid.amount.toLocaleString()}
+													{formatCurrencyForDisplay(bid.amount, locale)}
 												</Text>
 												<View
 													style={[

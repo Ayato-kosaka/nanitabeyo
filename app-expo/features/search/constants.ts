@@ -1,5 +1,6 @@
 // Constants and option data for the search feature
 import i18n from "@/lib/i18n";
+import { formatCurrency } from "@/lib/currency";
 
 export const timeSlots = [
 	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
@@ -42,6 +43,31 @@ export const distanceOptions = [
 ];
 
 // Budget options in yen
+// Function to generate budget options for a specific locale
+export const getBudgetOptions = (locale: string) => [
+	{ value: undefined, label: "Search.labels.noMinBudget" },
+	{ value: 1000, label: formatCurrency(1000, locale) },
+	{ value: 2000, label: formatCurrency(2000, locale) },
+	{ value: 3000, label: formatCurrency(3000, locale) },
+	{ value: 4000, label: formatCurrency(4000, locale) },
+	{ value: 5000, label: formatCurrency(5000, locale) },
+	{ value: 6000, label: formatCurrency(6000, locale) },
+	{ value: 7000, label: formatCurrency(7000, locale) },
+	{ value: 8000, label: formatCurrency(8000, locale) },
+	{ value: 9000, label: formatCurrency(9000, locale) },
+	{ value: 10000, label: formatCurrency(10000, locale) },
+	{ value: 15000, label: formatCurrency(15000, locale) },
+	{ value: 20000, label: formatCurrency(20000, locale) },
+	{ value: 30000, label: formatCurrency(30000, locale) },
+	{ value: 40000, label: formatCurrency(40000, locale) },
+	{ value: 50000, label: formatCurrency(50000, locale) },
+	{ value: 60000, label: formatCurrency(60000, locale) },
+	{ value: 80000, label: formatCurrency(80000, locale) },
+	{ value: 100000, label: formatCurrency(100000, locale) },
+	{ value: undefined, label: "Search.labels.noMaxBudget" },
+];
+
+// Deprecated: Use getBudgetOptions(locale) instead
 export const budgetOptions = [
 	{ value: undefined, label: "Search.labels.noMinBudget" },
 	{ value: 1000, label: `1,000${i18n.t("Search.currencySuffix")}` },

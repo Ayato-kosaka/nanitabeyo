@@ -17,6 +17,8 @@ import { useLocalSearchParams, router } from "expo-router";
 import { ArrowLeft, MapPin, Star, Phone, Clock, Calendar, Camera, Filter, Search, X } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
 import i18n from "@/lib/i18n";
+import { getCurrencySymbol } from "@/lib/currency";
+import { useLocale } from "@/hooks/useLocale";
 
 const { width, height } = Dimensions.get("window");
 
@@ -129,6 +131,7 @@ const foodPosts: FoodPost[] = [
 
 export default function RestaurantScreen() {
 	const { restaurantId } = useLocalSearchParams();
+	const locale = useLocale();
 	const [selectedTab, setSelectedTab] = useState<"posts" | "info">("posts");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showFilter, setShowFilter] = useState(false);
@@ -139,10 +142,10 @@ export default function RestaurantScreen() {
 	const scrollViewRef = useRef<ScrollView>(null);
 
 	const priceRanges = [
-		i18n.t("Restaurant.filter.priceRanges.under1000", { currency: i18n.t("Search.currencySuffix") }),
-		i18n.t("Restaurant.filter.priceRanges.range1000to3000", { currency: i18n.t("Search.currencySuffix") }),
-		i18n.t("Restaurant.filter.priceRanges.range3000to5000", { currency: i18n.t("Search.currencySuffix") }),
-		i18n.t("Restaurant.filter.priceRanges.over5000", { currency: i18n.t("Search.currencySuffix") }),
+		i18n.t("Restaurant.filter.priceRanges.under1000", { currency: getCurrencySymbol(locale) }),
+		i18n.t("Restaurant.filter.priceRanges.range1000to3000", { currency: getCurrencySymbol(locale) }),
+		i18n.t("Restaurant.filter.priceRanges.range3000to5000", { currency: getCurrencySymbol(locale) }),
+		i18n.t("Restaurant.filter.priceRanges.over5000", { currency: getCurrencySymbol(locale) }),
 	];
 	const categories = [
 		i18n.t("Restaurant.filter.categories.japanese"),

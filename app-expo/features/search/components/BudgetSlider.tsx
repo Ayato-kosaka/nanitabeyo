@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, PanResponder } from "react-native";
-import { budgetOptions } from "@/features/search/constants";
+import { getBudgetOptions } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 
@@ -10,13 +10,16 @@ export function BudgetSlider({
 	budgetMax,
 	setBudgetMin,
 	setBudgetMax,
+	locale,
 }: {
 	budgetMin: number | undefined;
 	budgetMax: number | undefined;
 	setBudgetMin: (value: number | undefined) => void;
 	setBudgetMax: (value: number | undefined) => void;
+	locale: string;
 }) {
 	const { selectionChanged } = useHaptics();
+	const budgetOptions = getBudgetOptions(locale);
 
 	const minIndex = budgetMin === undefined ? 0 : budgetOptions.findIndex((o) => o.value === budgetMin);
 	const maxIndex =

@@ -36,7 +36,9 @@ import { ImageCardGrid } from "@/components/ImageCardGrid";
 import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
+import { formatCurrencyForDisplay } from "@/lib/currency";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -46,6 +48,7 @@ type TabType = "posts" | "saved" | "liked" | "wallet";
 function DepositsScreen() {
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["active", "completed", "refunded"]);
 	const { lightImpact } = useHaptics();
+	const locale = useLocale();
 
 	const depositStatuses = [
 		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
@@ -73,8 +76,7 @@ function DepositsScreen() {
 				<View style={styles.depositInfo}>
 					<Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
 					<Text style={styles.depositAmount}>
-						{i18n.t("Search.currencySuffix")}
-						{item.bidAmount.toLocaleString()}
+						{formatCurrencyForDisplay(item.bidAmount, locale)}
 					</Text>
 				</View>
 				<View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
@@ -164,6 +166,7 @@ function DepositsScreen() {
 function EarningsScreen() {
 	const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(["paid", "pending"]);
 	const { lightImpact } = useHaptics();
+	const locale = useLocale();
 
 	const earningStatuses = [
 		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: "#4CAF50" },
@@ -216,8 +219,7 @@ function EarningsScreen() {
 					renderOverlay={(item) => (
 						<View style={styles.earningCardOverlay}>
 							<Text style={styles.earningCardAmount}>
-								{i18n.t("Search.currencySuffix")}
-								{item.earnings.toLocaleString()}
+								{formatCurrencyForDisplay(item.earnings, locale)}
 							</Text>
 							<View
 								style={[

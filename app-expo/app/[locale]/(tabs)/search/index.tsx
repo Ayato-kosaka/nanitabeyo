@@ -33,12 +33,13 @@ import {
 	sceneOptions,
 	moodOptions,
 	distanceOptions,
-	budgetOptions,
+	getBudgetOptions,
 	restrictionOptions,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { BudgetSlider } from "@/features/search/components/BudgetSlider";
 import i18n from "@/lib/i18n";
+import { formatCurrencyForDisplay } from "@/lib/currency";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 
@@ -160,11 +161,11 @@ export default function SearchScreen() {
 		const minLabel =
 			budgetMin === undefined
 				? i18n.t("Search.labels.noMinBudget")
-				: `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
+				: formatCurrencyForDisplay(budgetMin, locale);
 		const maxLabel =
 			budgetMax === undefined
 				? i18n.t("Search.labels.noMaxBudget")
-				: `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
+				: formatCurrencyForDisplay(budgetMax, locale);
 		return `${minLabel} 〜 ${maxLabel}`;
 	};
 
@@ -356,6 +357,7 @@ export default function SearchScreen() {
 									budgetMax={budgetMax}
 									setBudgetMin={setBudgetMin}
 									setBudgetMax={setBudgetMax}
+									locale={locale}
 								/>
 							</View>
 						</Card>

@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
+import { formatCurrency } from "@/lib/currency";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import type { DishMediaEntry } from "@shared/api/v1/res";
@@ -120,7 +121,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				<View style={styles.headerLeft}>
 					<Text style={styles.menuName}>{item.restaurant.name}</Text>
 					<View style={styles.priceRatingContainer}>
-						<Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text>
+						<Text style={styles.price}>{formatCurrency(2800, locale)}</Text>
 						{/* <View style={styles.ratingContainer}>
               {renderStars(5, 4)}
               <Text style={styles.reviewCount}>(127)</Text>
