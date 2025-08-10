@@ -11,6 +11,10 @@ export class CreateDishReviewDto {
 	@IsString()
 	comment!: string;
 
+	/** 言語コード */
+	@IsString()
+	languageCode!: string;
+
 	/** 価格 (セント) */
 	@IsOptional()
 	@Type(() => Number)

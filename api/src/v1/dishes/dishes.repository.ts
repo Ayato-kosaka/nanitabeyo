@@ -18,7 +18,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -147,6 +147,7 @@ export class DishesRepository {
         dish_id: dishId,
         user_id: null, // Google からのインポートなので null
         comment: review.originalText?.text || '',
+        original_language_code: review.originalText?.languageCode || '',
         rating: review.rating || 0,
         price_cents: null,
         currency_code: null,
