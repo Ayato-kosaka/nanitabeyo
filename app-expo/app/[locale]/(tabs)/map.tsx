@@ -13,6 +13,7 @@ import {
 	FlatList,
 	Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MapPin, Search, Navigation, Camera, DollarSign, Star, Calendar, X, Plus } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -185,7 +186,7 @@ export default function MapScreen() {
 	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
 
 	return (
-		<View style={styles.container}>
+		<SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
 			{/* Map */}
 			<MapView ref={mapRef} style={styles.map} region={currentRegion} onRegionChangeComplete={setCurrentRegion}>
 				{mockActiveBids.map((bid) => (
@@ -463,7 +464,7 @@ export default function MapScreen() {
 					style={{ marginHorizontal: 16 }}
 				/>
 			</BidBlurModal>
-		</View>
+		</SafeAreaView>
 	);
 }
 
