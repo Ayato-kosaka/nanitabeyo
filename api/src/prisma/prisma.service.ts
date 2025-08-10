@@ -25,9 +25,11 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   private isConnected = false;
-  private connectionRetries = 0;
+  private circuitOpenUntil = 0;
+  private consecutiveConnFails = 0;
+  private readonly OPEN_BASE_MS = 5_000;   // 初回5秒
+  private readonly OPEN_CAP_MS = 120_000; // 最大2分
   private readonly MAX_RETRIES = 3;
-  private readonly RETRY_INTERVAL = 3000; // 3秒
 
   // シングルトンパターンで接続を再利用
   readonly prisma: PrismaClient;
@@ -40,10 +42,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         // 本番でも必要に応じてクエリログを Cloud Run に出力
         log: enableQueryLogs
           ? ([
-              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-              'warn',
-              'error',
-            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+            'warn',
+            'error',
+          ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
           : (['warn', 'error'] as Prisma.LogLevel[]),
       });
       // ミドルウェアを適用
@@ -54,11 +56,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         globalForPrisma.prisma = new PrismaClient({
           log: enableQueryLogs
             ? ([
-                { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-                'info',
-                'warn',
-                'error',
-              ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+              'info',
+              'warn',
+              'error',
+            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
             : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
         });
         globalForPrisma.prisma.$use(MetricsMiddleware);
@@ -120,41 +122,44 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private isCircuitOpen() {
+    return Date.now() < this.circuitOpenUntil;
+  }
+
+  private openCircuit() {
+    // 失敗回数に応じて開放時間を指数的に延ばす（ジッター付き）
+    const base = Math.min(this.OPEN_BASE_MS * 2 ** this.consecutiveConnFails, this.OPEN_CAP_MS);
+    const jitter = Math.floor(Math.random() * 1000);
+    this.circuitOpenUntil = Date.now() + base + jitter;
+    this.logger.warn(`DB circuit opened for ~${Math.round(base / 1000)}s`);
+  }
+
+  private resetCircuit() {
+    this.circuitOpenUntil = 0;
+    this.consecutiveConnFails = 0;
+  }
+
   private async connectWithRetry(): Promise<void> {
-    try {
-      await this.prisma.$connect();
-      this.isConnected = true;
-      this.connectionRetries = 0;
-      this.logger.log('PrismaConnected');
-    } catch (error) {
-      this.connectionRetries++;
-      if (this.connectionRetries <= this.MAX_RETRIES) {
-        this.logger.warn(
-          `Database connection failed (attempt ${this.connectionRetries}/${this.MAX_RETRIES}). Retrying in ${this.RETRY_INTERVAL / 1000} seconds...`,
-        );
-
-        // 再試行する前に少し待機
-        await new Promise((resolve) =>
-          setTimeout(resolve, this.RETRY_INTERVAL),
-        );
-        return this.connectWithRetry();
-      } else {
-        this.logger.error(
-          `Failed to connect to database after ${this.MAX_RETRIES} attempts`,
-          (error as any).stack,
-        );
-
-        if (process.env.NODE_ENV === 'development') {
-          this.logger.warn(
-            'Running in development mode: continuing without database connection',
-          );
-          // 開発モードではデータベース接続なしでも起動を続行
-        } else {
-          // 本番環境では例外を再スロー
-          throw error;
-        }
+    this.isConnected = false; // ★ 念のため
+    let attempt = 0;
+    while (attempt < this.MAX_RETRIES) {
+      try {
+        await this.prisma.$connect();
+        this.isConnected = true;
+        this.resetCircuit();
+        this.logger.log('PrismaConnected');
+        return;
+      } catch (err) {
+        attempt++;
+        this.consecutiveConnFails++;
+        const backoff = Math.min(1000 * 2 ** attempt, 15_000) + Math.floor(Math.random() * 500);
+        this.logger.warn(`DB connect failed (attempt ${attempt}/${this.MAX_RETRIES}). retry in ${Math.round(backoff / 1000)}s...`);
+        await new Promise(r => setTimeout(r, backoff));
       }
     }
+    this.openCircuit();
+    if (process.env.NODE_ENV !== 'development') throw new Error('Failed to connect DB on startup');
+    this.logger.warn('Dev mode: continue without DB connection');
   }
 
   // ----- Helper Utilities -------------------------------------
@@ -175,27 +180,45 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
    */
   async withTransaction<T>(
     exec: (tx: Prisma.TransactionClient) => Promise<T>,
-    opts?: {
-      maxWait?: number;
-      timeout?: number;
-      isolationLevel?: Prisma.TransactionIsolationLevel;
-    },
+    opts?: { maxWait?: number; timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel },
   ): Promise<T> {
+    if (this.isCircuitOpen()) {
+      throw new Error('DB circuit open (temporarily unavailable)');
+    }
+
     this.ensureConnected();
     try {
-      // タイムアウトを設定して長時間の接続を防止
-      const transactionOpts = {
-        maxWait: opts?.maxWait || 5000, // 5秒
-        timeout: opts?.timeout || 30000, // 30秒
+      const res = await this.prisma.$transaction((tx) => exec(tx), {
+        maxWait: opts?.maxWait ?? 5000,
+        timeout: opts?.timeout ?? 30000,
         isolationLevel: opts?.isolationLevel,
-      };
-      return await this.prisma.$transaction((tx) => exec(tx), transactionOpts);
-    } catch (error) {
-      this.logger.error(
-        `Transaction error: ${(error as any).message}`,
-        (error as any).stack,
-      );
+      });
+      this.resetCircuit(); // ★ 成功したら回路を閉じる
+      return res;
+    } catch (error: any) {
+      // ★ 到達不能系のみ失敗カウント＆回路を開く
+      const msg = String(error?.message || '');
+      if (
+        msg.includes("Can't reach database server") ||
+        msg.includes('ECONN') || msg.includes('ENET') || msg.includes('ETIMEDOUT') ||
+        msg.includes('57P01') /* admin_shutdown */ || msg.includes('08006') /* conn failure */
+      ) {
+        this.consecutiveConnFails++;
+        if (this.consecutiveConnFails >= 2) this.openCircuit();
+        // 接続が死んだ可能性 → 次回 ensureConnected() で弾けるように
+        this.isConnected = false;
+      }
+      this.logger.error(`Transaction error: ${error?.message}`, error?.stack);
       throw error;
+    }
+  }
+
+  async safeLogToDb(op: () => Promise<any>, logger = console) {
+    try {
+      await op();
+    } catch (e: any) {
+      logger.warn(`[db-log-fallback] ${e?.message}`); // stdout へ
+      // 必要ならメモリ/キューに退避し、後で再送
     }
   }
 }
