@@ -17,6 +17,7 @@ export function convertSupabaseToPrisma_DishReviews(supabase: SupabaseDishReview
     dish_id: supabase.dish_id,
     comment: supabase.comment,
 
+    original_language_code: supabase.original_language_code,
     user_id: supabase.user_id,
     rating: supabase.rating,
     price_cents: supabase.price_cents,
@@ -39,6 +40,7 @@ export function convertPrismaToSupabase_DishReviews(prisma: PrismaDishReviews): 
     dish_id: prisma.dish_id,
     comment: prisma.comment,
     comment_tsv: null,
+    original_language_code: prisma.original_language_code,
     user_id: prisma.user_id,
     rating: prisma.rating,
     price_cents: prisma.price_cents,

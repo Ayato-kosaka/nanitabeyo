@@ -182,6 +182,7 @@ exports.Prisma.Dish_reviewsScalarFieldEnum = {
   id: 'id',
   dish_id: 'dish_id',
   comment: 'comment',
+  original_language_code: 'original_language_code',
   user_id: 'user_id',
   rating: 'rating',
   price_cents: 'price_cents',

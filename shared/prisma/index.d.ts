@@ -9452,6 +9452,7 @@ export namespace Prisma {
     id: string | null
     dish_id: string | null
     comment: string | null
+    original_language_code: string | null
     user_id: string | null
     rating: number | null
     price_cents: number | null
@@ -9466,6 +9467,7 @@ export namespace Prisma {
     id: string | null
     dish_id: string | null
     comment: string | null
+    original_language_code: string | null
     user_id: string | null
     rating: number | null
     price_cents: number | null
@@ -9480,6 +9482,7 @@ export namespace Prisma {
     id: number
     dish_id: number
     comment: number
+    original_language_code: number
     user_id: number
     rating: number
     price_cents: number
@@ -9506,6 +9509,7 @@ export namespace Prisma {
     id?: true
     dish_id?: true
     comment?: true
+    original_language_code?: true
     user_id?: true
     rating?: true
     price_cents?: true
@@ -9520,6 +9524,7 @@ export namespace Prisma {
     id?: true
     dish_id?: true
     comment?: true
+    original_language_code?: true
     user_id?: true
     rating?: true
     price_cents?: true
@@ -9534,6 +9539,7 @@ export namespace Prisma {
     id?: true
     dish_id?: true
     comment?: true
+    original_language_code?: true
     user_id?: true
     rating?: true
     price_cents?: true
@@ -9635,6 +9641,7 @@ export namespace Prisma {
     id: string
     dish_id: string
     comment: string
+    original_language_code: string
     user_id: string | null
     rating: number
     price_cents: number | null
@@ -9668,6 +9675,7 @@ export namespace Prisma {
     id?: boolean
     dish_id?: boolean
     comment?: boolean
+    original_language_code?: boolean
     user_id?: boolean
     rating?: boolean
     price_cents?: boolean
@@ -9684,6 +9692,7 @@ export namespace Prisma {
     id?: boolean
     dish_id?: boolean
     comment?: boolean
+    original_language_code?: boolean
     user_id?: boolean
     rating?: boolean
     price_cents?: boolean
@@ -9700,6 +9709,7 @@ export namespace Prisma {
     id?: boolean
     dish_id?: boolean
     comment?: boolean
+    original_language_code?: boolean
     user_id?: boolean
     rating?: boolean
     price_cents?: boolean
@@ -9716,6 +9726,7 @@ export namespace Prisma {
     id?: boolean
     dish_id?: boolean
     comment?: boolean
+    original_language_code?: boolean
     user_id?: boolean
     rating?: boolean
     price_cents?: boolean
@@ -9726,7 +9737,7 @@ export namespace Prisma {
     created_at?: boolean
   }
 
-  export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at", ExtArgs["result"]["dish_reviews"]>
+  export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "original_language_code" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at", ExtArgs["result"]["dish_reviews"]>
   export type dish_reviewsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
@@ -9750,6 +9761,7 @@ export namespace Prisma {
       id: string
       dish_id: string
       comment: string
+      original_language_code: string
       user_id: string | null
       rating: number
       price_cents: number | null
@@ -10186,6 +10198,7 @@ export namespace Prisma {
     readonly id: FieldRef<"dish_reviews", 'String'>
     readonly dish_id: FieldRef<"dish_reviews", 'String'>
     readonly comment: FieldRef<"dish_reviews", 'String'>
+    readonly original_language_code: FieldRef<"dish_reviews", 'String'>
     readonly user_id: FieldRef<"dish_reviews", 'String'>
     readonly rating: FieldRef<"dish_reviews", 'Int'>
     readonly price_cents: FieldRef<"dish_reviews", 'Int'>
@@ -24379,6 +24392,7 @@ export namespace Prisma {
     id: 'id',
     dish_id: 'dish_id',
     comment: 'comment',
+    original_language_code: 'original_language_code',
     user_id: 'user_id',
     rating: 'rating',
     price_cents: 'price_cents',
@@ -25197,6 +25211,7 @@ export namespace Prisma {
     id?: UuidFilter<"dish_reviews"> | string
     dish_id?: UuidFilter<"dish_reviews"> | string
     comment?: StringFilter<"dish_reviews"> | string
+    original_language_code?: StringFilter<"dish_reviews"> | string
     user_id?: UuidNullableFilter<"dish_reviews"> | string | null
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
@@ -25213,6 +25228,7 @@ export namespace Prisma {
     id?: SortOrder
     dish_id?: SortOrder
     comment?: SortOrder
+    original_language_code?: SortOrder
     user_id?: SortOrderInput | SortOrder
     rating?: SortOrder
     price_cents?: SortOrderInput | SortOrder
@@ -25232,6 +25248,7 @@ export namespace Prisma {
     NOT?: dish_reviewsWhereInput | dish_reviewsWhereInput[]
     dish_id?: UuidFilter<"dish_reviews"> | string
     comment?: StringFilter<"dish_reviews"> | string
+    original_language_code?: StringFilter<"dish_reviews"> | string
     user_id?: UuidNullableFilter<"dish_reviews"> | string | null
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
@@ -25248,6 +25265,7 @@ export namespace Prisma {
     id?: SortOrder
     dish_id?: SortOrder
     comment?: SortOrder
+    original_language_code?: SortOrder
     user_id?: SortOrderInput | SortOrder
     rating?: SortOrder
     price_cents?: SortOrderInput | SortOrder
@@ -25270,6 +25288,7 @@ export namespace Prisma {
     id?: UuidWithAggregatesFilter<"dish_reviews"> | string
     dish_id?: UuidWithAggregatesFilter<"dish_reviews"> | string
     comment?: StringWithAggregatesFilter<"dish_reviews"> | string
+    original_language_code?: StringWithAggregatesFilter<"dish_reviews"> | string
     user_id?: UuidNullableWithAggregatesFilter<"dish_reviews"> | string | null
     rating?: IntWithAggregatesFilter<"dish_reviews"> | number
     price_cents?: IntNullableWithAggregatesFilter<"dish_reviews"> | number | null
@@ -26639,6 +26658,7 @@ export namespace Prisma {
   export type dish_reviewsCreateInput = {
     id?: string
     comment: string
+    original_language_code: string
     rating: number
     price_cents?: number | null
     currency_code?: string | null
@@ -26654,6 +26674,7 @@ export namespace Prisma {
     id?: string
     dish_id: string
     comment: string
+    original_language_code: string
     user_id?: string | null
     rating: number
     price_cents?: number | null
@@ -26667,6 +26688,7 @@ export namespace Prisma {
   export type dish_reviewsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26682,6 +26704,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     dish_id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     user_id?: NullableStringFieldUpdateOperationsInput | string | null
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -26696,6 +26719,7 @@ export namespace Prisma {
     id?: string
     dish_id: string
     comment: string
+    original_language_code: string
     user_id?: string | null
     rating: number
     price_cents?: number | null
@@ -26709,6 +26733,7 @@ export namespace Prisma {
   export type dish_reviewsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26722,6 +26747,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     dish_id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     user_id?: NullableStringFieldUpdateOperationsInput | string | null
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -28338,6 +28364,7 @@ export namespace Prisma {
     id?: SortOrder
     dish_id?: SortOrder
     comment?: SortOrder
+    original_language_code?: SortOrder
     user_id?: SortOrder
     rating?: SortOrder
     price_cents?: SortOrder
@@ -28357,6 +28384,7 @@ export namespace Prisma {
     id?: SortOrder
     dish_id?: SortOrder
     comment?: SortOrder
+    original_language_code?: SortOrder
     user_id?: SortOrder
     rating?: SortOrder
     price_cents?: SortOrder
@@ -28371,6 +28399,7 @@ export namespace Prisma {
     id?: SortOrder
     dish_id?: SortOrder
     comment?: SortOrder
+    original_language_code?: SortOrder
     user_id?: SortOrder
     rating?: SortOrder
     price_cents?: SortOrder
@@ -31251,6 +31280,7 @@ export namespace Prisma {
   export type dish_reviewsCreateWithoutDishesInput = {
     id?: string
     comment: string
+    original_language_code: string
     rating: number
     price_cents?: number | null
     currency_code?: string | null
@@ -31264,6 +31294,7 @@ export namespace Prisma {
   export type dish_reviewsUncheckedCreateWithoutDishesInput = {
     id?: string
     comment: string
+    original_language_code: string
     user_id?: string | null
     rating: number
     price_cents?: number | null
@@ -31398,6 +31429,7 @@ export namespace Prisma {
     id?: UuidFilter<"dish_reviews"> | string
     dish_id?: UuidFilter<"dish_reviews"> | string
     comment?: StringFilter<"dish_reviews"> | string
+    original_language_code?: StringFilter<"dish_reviews"> | string
     user_id?: UuidNullableFilter<"dish_reviews"> | string | null
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
@@ -32105,6 +32137,7 @@ export namespace Prisma {
   export type dish_reviewsCreateWithoutUsersInput = {
     id?: string
     comment: string
+    original_language_code: string
     rating: number
     price_cents?: number | null
     currency_code?: string | null
@@ -32119,6 +32152,7 @@ export namespace Prisma {
     id?: string
     dish_id: string
     comment: string
+    original_language_code: string
     rating: number
     price_cents?: number | null
     currency_code?: string | null
@@ -32398,6 +32432,7 @@ export namespace Prisma {
   export type dish_reviewsCreateManyDishesInput = {
     id?: string
     comment: string
+    original_language_code: string
     user_id?: string | null
     rating: number
     price_cents?: number | null
@@ -32448,6 +32483,7 @@ export namespace Prisma {
   export type dish_reviewsUpdateWithoutDishesInput = {
     id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32461,6 +32497,7 @@ export namespace Prisma {
   export type dish_reviewsUncheckedUpdateWithoutDishesInput = {
     id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     user_id?: NullableStringFieldUpdateOperationsInput | string | null
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -32474,6 +32511,7 @@ export namespace Prisma {
   export type dish_reviewsUncheckedUpdateManyWithoutDishesInput = {
     id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     user_id?: NullableStringFieldUpdateOperationsInput | string | null
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -32691,6 +32729,7 @@ export namespace Prisma {
     id?: string
     dish_id: string
     comment: string
+    original_language_code: string
     rating: number
     price_cents?: number | null
     currency_code?: string | null
@@ -32773,6 +32812,7 @@ export namespace Prisma {
   export type dish_reviewsUpdateWithoutUsersInput = {
     id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32787,6 +32827,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     dish_id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
@@ -32800,6 +32841,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     dish_id?: StringFieldUpdateOperationsInput | string
     comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null

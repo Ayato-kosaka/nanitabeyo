@@ -116,20 +116,21 @@ model dish_media {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_reviews {
-  id                    String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  dish_id               String                   @db.Uuid
-  comment               String
-  comment_tsv           Unsupported("tsvector")? @default(dbgenerated("to_tsvector('simple'::regconfig, COALESCE(comment, ''::text))"))
-  user_id               String?                  @db.Uuid
-  rating                Int                      @db.SmallInt
-  price_cents           Int?
-  currency_code         String?                  @db.Char(3)
-  created_dish_media_id String?                  @db.Uuid
-  imported_user_name    String?
-  imported_user_avatar  String?
-  created_at            DateTime                 @default(now()) @db.Timestamptz(6)
-  dishes                dishes                   @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                 users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id                String                   @db.Uuid
+  comment                String
+  comment_tsv            Unsupported("tsvector")? @default(dbgenerated("to_tsvector('simple'::regconfig, COALESCE(comment, ''::text))"))
+  original_language_code String                   @db.Char(2)
+  user_id                String?                  @db.Uuid
+  rating                 Int                      @db.SmallInt
+  price_cents            Int?
+  currency_code          String?                  @db.Char(3)
+  created_dish_media_id  String?                  @db.Uuid
+  imported_user_name     String?
+  imported_user_avatar   String?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  dishes                 dishes                   @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                  users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([created_at], map: "idx_dish_reviews_created_at")
   @@index([dish_id], map: "idx_dish_reviews_dish")
