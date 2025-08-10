@@ -14,6 +14,8 @@ export interface SearchParams {
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
 	restrictions: string[];
 	distance: number; // Keep for bulk-import API compatibility (meters)
+	budgetMin: number | undefined; // null for no minimum
+	budgetMax: number | undefined; // null for no maximum
 }
 
 export interface Topic {

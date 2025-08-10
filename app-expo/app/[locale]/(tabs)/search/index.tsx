@@ -19,6 +19,7 @@ import {
 	Heart,
 	Navigation,
 	MapPin as Distance,
+	DollarSign,
 	Plus,
 	ChevronUp,
 } from "lucide-react-native";
@@ -27,8 +28,16 @@ import { SearchParams, SearchLocation, GooglePlacesPrediction } from "@/types/se
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
-import { timeSlots, sceneOptions, moodOptions, distanceOptions, restrictionOptions } from "@/features/search/constants";
+import {
+	timeSlots,
+	sceneOptions,
+	moodOptions,
+	distanceOptions,
+	budgetOptions,
+	restrictionOptions,
+} from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
+import { BudgetSlider } from "@/features/search/components/BudgetSlider";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -45,6 +54,8 @@ export default function SearchScreen() {
 	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
+	const [budgetMin, setBudgetMin] = useState<number | undefined>(undefined);
+	const [budgetMax, setBudgetMax] = useState<number | undefined>(undefined);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const {
@@ -127,6 +138,8 @@ export default function SearchScreen() {
 				mood,
 				restrictions,
 				distance,
+				budgetMin,
+				budgetMax,
 			};
 
 			// Navigate to cards screen with search parameters
@@ -142,6 +155,18 @@ export default function SearchScreen() {
 		} finally {
 			setIsSearching(false);
 		}
+	};
+
+	const formatBudgetRange = () => {
+		const minLabel =
+			budgetMin === undefined
+				? i18n.t("Search.labels.noMinBudget")
+				: `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
+		const maxLabel =
+			budgetMax === undefined
+				? i18n.t("Search.labels.noMaxBudget")
+				: `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
+		return `${minLabel} 〜 ${maxLabel}`;
 	};
 
 	// Wrapper functions for haptic feedback
@@ -316,6 +341,23 @@ export default function SearchScreen() {
 									{distanceOptions.find((option) => option.value === distance)?.label}
 								</Text>
 								<DistanceSlider distance={distance} setDistance={setDistance} />
+							</View>
+						</Card>
+
+						{/* Budget */}
+						<Card>
+							<View style={styles.sectionHeader}>
+								<DollarSign size={20} color="#5EA2FF" />
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
+							</View>
+							<View style={styles.sliderSection}>
+								<Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
+								<BudgetSlider
+									budgetMin={budgetMin}
+									budgetMax={budgetMax}
+									setBudgetMin={setBudgetMin}
+									setBudgetMax={setBudgetMax}
+								/>
 							</View>
 						</Card>
 
