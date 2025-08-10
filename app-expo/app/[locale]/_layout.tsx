@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { DialogProvider } from "@/contexts/DialogProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
@@ -58,24 +59,26 @@ export default function RootLayout() {
 	if (!fontsLoaded) return null;
 
 	return (
-		<PaperProvider theme={theme}>
-			<SnackbarProvider>
-				<DialogProvider>
-					<AuthProvider>
-						<SplashHandler>
-							<GestureHandlerRootView style={{ flex: 1 }}>
-								<AppProvider>
-									<Stack screenOptions={{ headerShown: false }}>
-										<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-										<Stack.Screen name="+not-found" />
-									</Stack>
-									<StatusBar style="light" />
-								</AppProvider>
-							</GestureHandlerRootView>
-						</SplashHandler>
-					</AuthProvider>
-				</DialogProvider>
-			</SnackbarProvider>
-		</PaperProvider>
+		<SafeAreaProvider>
+			<PaperProvider theme={theme}>
+				<SnackbarProvider>
+					<DialogProvider>
+						<AuthProvider>
+							<SplashHandler>
+								<GestureHandlerRootView style={{ flex: 1 }}>
+									<AppProvider>
+										<Stack screenOptions={{ header: () => null }}>
+											<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+											<Stack.Screen name="+not-found" />
+										</Stack>
+										<StatusBar style="light" />
+									</AppProvider>
+								</GestureHandlerRootView>
+							</SplashHandler>
+						</AuthProvider>
+					</DialogProvider>
+				</SnackbarProvider>
+			</PaperProvider>
+		</SafeAreaProvider>
 	);
 }
