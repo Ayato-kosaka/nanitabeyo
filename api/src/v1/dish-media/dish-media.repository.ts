@@ -44,7 +44,7 @@ export interface DishMediaFeedItem {
 
 @Injectable()
 export class DishMediaRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /* ------------------------------------------------------------------ */
   /*   1) 料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */

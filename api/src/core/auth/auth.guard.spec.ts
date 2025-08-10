@@ -27,7 +27,8 @@ describe('Auth Guards CLS User ID Fix', () => {
     }).compile();
 
     jwtAuthGuard = module.get<JwtAuthGuard>(JwtAuthGuard);
-    optionalJwtAuthGuard = module.get<OptionalJwtAuthGuard>(OptionalJwtAuthGuard);
+    optionalJwtAuthGuard =
+      module.get<OptionalJwtAuthGuard>(OptionalJwtAuthGuard);
     clsService = module.get(ClsService);
   });
 
@@ -45,7 +46,10 @@ describe('Auth Guards CLS User ID Fix', () => {
         {} as ExecutionContext, // ctx
       );
 
-      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'test-user-123');
+      expect(clsService.set).toHaveBeenCalledWith(
+        CLS_KEY_USER_ID,
+        'test-user-123',
+      );
       expect(result).toBe(mockUser);
     });
 
@@ -64,7 +68,7 @@ describe('Auth Guards CLS User ID Fix', () => {
 
     it('should throw error when err is provided', () => {
       const error = new Error('JWT error');
-      
+
       expect(() => {
         jwtAuthGuard.handleRequest(
           error, // err
@@ -92,7 +96,10 @@ describe('Auth Guards CLS User ID Fix', () => {
         {} as ExecutionContext, // ctx
       );
 
-      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'anonymous-user-456');
+      expect(clsService.set).toHaveBeenCalledWith(
+        CLS_KEY_USER_ID,
+        'anonymous-user-456',
+      );
       expect(result).toBe(mockUser);
     });
 
@@ -138,7 +145,10 @@ describe('Auth Guards CLS User ID Fix', () => {
         {} as ExecutionContext,
       );
 
-      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'anonymous-user-uuid-123');
+      expect(clsService.set).toHaveBeenCalledWith(
+        CLS_KEY_USER_ID,
+        'anonymous-user-uuid-123',
+      );
       expect(result).toBe(supabaseAnonymousUser);
     });
   });
