@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
-import type { BulkImportDishesDto, QueryDishCategoryRecommendationsDto } from "@shared/dist/api/v1/dto";
+import type { BulkImportDishesDto, QueryDishCategoryRecommendationsDto } from "@shared/api/v1/dto";
 import type { BulkImportDishesResponse, QueryDishCategoryRecommendationsResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 
