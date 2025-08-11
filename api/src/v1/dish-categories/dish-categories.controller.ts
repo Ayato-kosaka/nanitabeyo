@@ -43,17 +43,14 @@ export class DishCategoriesController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '料理カテゴリ提案' })
   @ApiQuery({
-    name: 'location',
+    name: 'address',
     required: true,
-    description: '緯度経度 "lat,lng"',
+    description: '住所',
   })
   @ApiQuery({ name: 'timeSlot', required: false, description: '時間帯' })
   @ApiQuery({ name: 'scene', required: false, description: 'シーン' })
   @ApiQuery({ name: 'mood', required: false, description: '気分' })
   @ApiQuery({ name: 'restrictions', required: false, description: '制限' })
-  @ApiQuery({ name: 'distance', required: false, description: '距離 (m)' })
-  @ApiQuery({ name: 'budgetMin', required: false, description: '最低予算' })
-  @ApiQuery({ name: 'budgetMax', required: false, description: '最高予算' })
   @ApiQuery({
     name: 'languageTag',
     required: true,

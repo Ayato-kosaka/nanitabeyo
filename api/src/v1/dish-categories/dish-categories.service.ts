@@ -30,14 +30,11 @@ export class DishCategoriesService {
     // Claude API で料理カテゴリ提案を生成
     const claudeRecommendations =
       await this.claudeService.generateDishCategoryRecommendations({
-        location: dto.location,
+        address: dto.address,
         timeSlot: dto.timeSlot,
         scene: dto.scene,
         mood: dto.mood,
         restrictions: dto.restrictions,
-        distance: dto.distance,
-        budgetMin: dto.budgetMin,
-        budgetMax: dto.budgetMax,
         languageTag: dto.languageTag,
       });
 

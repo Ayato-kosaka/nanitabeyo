@@ -7,12 +7,13 @@ export interface SearchLocation {
 }
 
 export interface SearchParams {
-	location: string;
+	address: string;
+	location: string; // Keep for bulk-import API compatibility "lat,lng" format
 	timeSlot: "morning" | "lunch" | "afternoon" | "dinner" | "late_night";
 	scene?: "solo" | "date" | "group" | "large_group" | "tourism";
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
 	restrictions: string[];
-	distance: number; // meters
+	distance: number; // Keep for bulk-import API compatibility (meters)
 	budgetMin: number | undefined; // null for no minimum
 	budgetMax: number | undefined; // null for no maximum
 }

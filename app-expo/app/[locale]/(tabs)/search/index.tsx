@@ -131,6 +131,7 @@ export default function SearchScreen() {
 
 		try {
 			const searchParams: SearchParams = {
+				address: location.address,
 				location: `${location.latitude},${location.longitude}`,
 				timeSlot,
 				scene,
