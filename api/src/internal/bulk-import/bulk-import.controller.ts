@@ -4,11 +4,11 @@
 // ❷ 写真の実体取得・保存と 4テーブルUPSERT を非同期実行
 //
 
-import { 
-  Controller, 
-  Post, 
-  Body, 
-  HttpCode, 
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
@@ -31,7 +31,7 @@ export class BulkImportController {
 
   /**
    * POST /internal/bulk-import/execute
-   * 
+   *
    * Cloud Tasks から呼び出される非同期処理エンドポイント
    * - 写真の実体取得・保存
    * - 4テーブルのUPSERT
@@ -49,7 +49,7 @@ export class BulkImportController {
 
     try {
       await this.executorService.processAsyncJob(payload);
-      
+
       this.logger.log('BulkImportExecuteCompleted', 'executeBulkImport', {
         jobId: payload.jobId,
         idempotencyKey: payload.idempotencyKey,
@@ -60,7 +60,7 @@ export class BulkImportController {
         idempotencyKey: payload.idempotencyKey,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      
+
       // Cloud Tasks のリトライに委譲するため例外を再スロー
       throw error;
     }

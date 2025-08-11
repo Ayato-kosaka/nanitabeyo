@@ -7,5 +7,14 @@ import { DishMediaEntry } from "./dish-media.response";
 /** POST /v1/dishes のレスポンス型 */
 export type CreateDishResponse = SupabaseDishes;
 
-/** POST /v1/dishes/bulk-import のレスポンス型 */
-export type BulkImportDishesResponse = DishMediaEntry[];
+/** 軽量プレビューエントリ型 */
+export interface BulkImportPreviewEntry {
+	placeId: string;
+	restaurantName: string;
+	photoUrl: string;
+	categoryName: string;
+	reviewCount: number;
+}
+
+/** POST /v1/dishes/bulk-import のレスポンス型（軽量プレビュー） */
+export type BulkImportDishesResponse = BulkImportPreviewEntry[];

@@ -2,7 +2,7 @@
 //
 // ❶ Controller から渡される DTO を受け取り Repository・外部API を編成
 // ❷ 1 メソッド = 1 ユースケース（トランザクション／ロギング込み）
-// ❸ Google Maps API との連携処理
+// ❸ Google Maps API との連携処理（軽量プレビュー + 非同期処理）
 //
 
 import { Injectable } from '@nestjs/common';
@@ -18,19 +18,11 @@ import { LocationsService } from '../locations/locations.service';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 
-// Import converters
+// Import converters (for createDish method)
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
-import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
-import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
-import {
-  convertPrismaToSupabase_DishReviews,
-  SupabaseDishReviews,
-} from '../../../../shared/converters/convert_dish_reviews';
 
 // Import job payload interface
-import { 
-  BulkImportJobPayload,
-} from '../../internal/bulk-import/bulk-import-job.interface';
+import { BulkImportJobPayload } from '../../internal/bulk-import/bulk-import-job.interface';
 
 @Injectable()
 export class DishesService {
@@ -119,7 +111,7 @@ export class DishesService {
       try {
         if (!place.id)
           throw new Error(`Place ID is missing for place at index ${index}`);
-        
+
         const photoName =
           googlePlaces.contextualContents?.[index]?.photos?.[0]?.name;
         if (!photoName)
@@ -130,54 +122,13 @@ export class DishesService {
         if (!photoMedia)
           throw new Error(`No photo URL found for place: ${place.id}`);
 
-        // プレビュー用の軽量レスポンス作成（実際のDBデータではなく、表示用の仮データ）
+        // 軽量プレビューレスポンス: 最小限の表示用データのみ
         return {
-          restaurant: {
-            id: place.id, // プレビュー用の仮ID
-            google_place_id: place.id,
-            name: place.displayName?.text || 'Unknown Restaurant',
-            latitude: place.location?.latitude || 0,
-            longitude: place.location?.longitude || 0,
-            image_url: photoMedia.photoUri,
-          },
-          dish: {
-            id: `${place.id}-${dto.categoryId}`, // プレビュー用の仮ID
-            restaurant_id: place.id,
-            category_id: dto.categoryId,
-            name: dto.categoryName,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          dish_media: {
-            id: `${place.id}-${dto.categoryId}-media`, // プレビュー用の仮ID
-            dish_id: `${place.id}-${dto.categoryId}`,
-            media_url: photoMedia.photoUri,
-            media_type: 'photo',
-            mediaImageUrl: photoMedia.photoUri,
-            thumbnailImageUrl: photoMedia.photoUri,
-            isSaved: false,
-            isLiked: false,
-            likeCount: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          dish_reviews: (place.reviews || []).map((review, reviewIndex) => ({
-            id: `${place.id}-${dto.categoryId}-review-${reviewIndex}`, // プレビュー用の仮ID
-            dish_media_id: `${place.id}-${dto.categoryId}-media`,
-            rating: review.rating || 0,
-            text: review.text?.text || null,
-            username: review.authorAttribution?.displayName || 'Anonymous',
-            imported_user_name: review.authorAttribution?.displayName || 'Anonymous',
-            author_url: review.authorAttribution?.uri || null,
-            profile_photo_url: review.authorAttribution?.photoUri || null,
-            relative_time_description: review.relativePublishTimeDescription || null,
-            time: this.parseTimestamp(review.publishTime) || 0,
-            original_language_code: review.originalText?.languageCode || dto.languageCode,
-            isLiked: false,
-            likeCount: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })),
+          placeId: place.id,
+          restaurantName: place.displayName?.text || 'Unknown Restaurant',
+          photoUrl: photoMedia.photoUri,
+          categoryName: dto.categoryName,
+          reviewCount: place.reviews?.length || 0,
         };
       } catch (error) {
         this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
@@ -203,7 +154,7 @@ export class DishesService {
     if (results.length > 0) {
       const jobId = `bulk-import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const idempotencyKey = `${dto.location}-${dto.categoryId}-${Date.now()}`;
-      
+
       const jobPayload: BulkImportJobPayload = {
         jobId,
         idempotencyKey,
@@ -216,7 +167,7 @@ export class DishesService {
 
       try {
         await this.cloudTasksService.enqueueBulkImportJob(jobPayload);
-        
+
         this.logger.log('BulkImportJobEnqueued', 'bulkImportFromGoogle', {
           jobId,
           idempotencyKey,
@@ -237,29 +188,5 @@ export class DishesService {
     });
 
     return results;
-  }
-
-  /**
-   * タイムスタンプを数値に変換
-   */
-  private parseTimestamp(timestamp: any): number {
-    if (!timestamp) return 0;
-
-    // ITimestamp オブジェクトの場合
-    if (typeof timestamp === 'object' && timestamp.seconds) {
-      return Number(timestamp.seconds);
-    }
-
-    // 文字列の場合
-    if (typeof timestamp === 'string') {
-      return Math.floor(Date.parse(timestamp) / 1000) || 0;
-    }
-
-    // 数値の場合
-    if (typeof timestamp === 'number') {
-      return timestamp;
-    }
-
-    return 0;
   }
 }

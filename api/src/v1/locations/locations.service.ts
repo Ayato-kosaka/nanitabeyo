@@ -215,15 +215,15 @@ export class LocationsService {
       if (!response.ok) {
         throw new Error(`Failed to download photo: ${response.status}`);
       }
-      
+
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      
+
       this.logger.debug('PhotoDataDownloaded', 'downloadPhotoData', {
         photoUri,
         dataSize: buffer.length,
       });
-      
+
       return { data: buffer };
     } catch (error) {
       this.logger.error('PhotoDataDownloadError', 'downloadPhotoData', {

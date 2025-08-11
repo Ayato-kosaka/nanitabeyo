@@ -31,7 +31,9 @@ export class BulkImportExecutorService {
     });
 
     // 冪等性チェック: 既に処理済みかどうか確認
-    const isAlreadyProcessed = await this.checkIdempotency(payload.idempotencyKey);
+    const isAlreadyProcessed = await this.checkIdempotency(
+      payload.idempotencyKey,
+    );
     if (isAlreadyProcessed) {
       this.logger.log('JobAlreadyProcessed', 'processAsyncJob', {
         jobId: payload.jobId,
@@ -68,12 +70,17 @@ export class BulkImportExecutorService {
       try {
         // 1. 写真をダウンロード・保存
         let finalPhotoUrl = '';
-        const photoName = payload.contextualContents?.[index]?.photos?.[0]?.name;
+        const photoName =
+          payload.contextualContents?.[index]?.photos?.[0]?.name;
         if (photoName) {
-          const photoMedia = await this.locationsService.getPhotoMedia(photoName);
+          const photoMedia =
+            await this.locationsService.getPhotoMedia(photoName);
           if (photoMedia) {
             try {
-              const photoResponse = await this.locationsService.downloadPhotoData(photoMedia.photoUri);
+              const photoResponse =
+                await this.locationsService.downloadPhotoData(
+                  photoMedia.photoUri,
+                );
               const uploadResult = await this.storage.uploadFile({
                 buffer: photoResponse.data,
                 mimeType: 'image/jpeg',
@@ -95,80 +102,89 @@ export class BulkImportExecutorService {
         }
 
         // 2. データベース登録（トランザクション内）
-        await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
-          // レストラン登録
-          const restaurant = await tx.restaurants.upsert({
-            where: { google_place_id: place.id },
-            update: {
-              name: place.displayName?.text || 'Unknown Restaurant',
-              latitude: place.location?.latitude || 0,
-              longitude: place.location?.longitude || 0,
-              image_url: finalPhotoUrl,
-            },
-            create: {
-              google_place_id: place.id,
-              name: place.displayName?.text || 'Unknown Restaurant',
-              latitude: place.location?.latitude || 0,
-              longitude: place.location?.longitude || 0,
-              image_url: finalPhotoUrl,
-            },
-          });
-
-          // 料理登録
-          let dish = await tx.dishes.findFirst({
-            where: {
-              restaurant_id: restaurant.id,
-              category_id: payload.categoryId,
-            },
-          });
-
-          if (dish) {
-            dish = await tx.dishes.update({
-              where: { id: dish.id },
-              data: { name: payload.categoryName },
+        await this.prisma.withTransaction(
+          async (tx: Prisma.TransactionClient) => {
+            // レストラン登録
+            const restaurant = await tx.restaurants.upsert({
+              where: { google_place_id: place.id },
+              update: {
+                name: place.displayName?.text || 'Unknown Restaurant',
+                latitude: place.location?.latitude || 0,
+                longitude: place.location?.longitude || 0,
+                image_url: finalPhotoUrl,
+              },
+              create: {
+                google_place_id: place.id,
+                name: place.displayName?.text || 'Unknown Restaurant',
+                latitude: place.location?.latitude || 0,
+                longitude: place.location?.longitude || 0,
+                image_url: finalPhotoUrl,
+              },
             });
-          } else {
-            dish = await tx.dishes.create({
-              data: {
+
+            // 料理登録
+            let dish = await tx.dishes.findFirst({
+              where: {
                 restaurant_id: restaurant.id,
                 category_id: payload.categoryId,
-                name: payload.categoryName,
               },
             });
-          }
 
-          // 料理メディア登録
-          if (finalPhotoUrl) {
-            await tx.dish_media.create({
-              data: {
-                dish_id: dish.id,
-                media_path: finalPhotoUrl,
-                media_type: 'photo',
-                thumbnail_path: finalPhotoUrl,
-              },
-            }).catch(() => {
-              // 既に存在する場合はスキップ
-            });
-          }
-
-          // 料理レビュー登録
-          if (place.reviews && place.reviews.length > 0) {
-            for (const review of place.reviews) {
-              await tx.dish_reviews.create({
+            if (dish) {
+              dish = await tx.dishes.update({
+                where: { id: dish.id },
+                data: { name: payload.categoryName },
+              });
+            } else {
+              dish = await tx.dishes.create({
                 data: {
-                  dish_id: dish.id,
-                  comment: review.text?.text || '',
-                  rating: review.rating || 0,
-                  original_language_code: review.originalText?.languageCode || payload.languageCode,
-                  imported_user_name: review.authorAttribution?.displayName || 'Anonymous',
-                  imported_user_avatar: review.authorAttribution?.photoUri,
+                  restaurant_id: restaurant.id,
+                  category_id: payload.categoryId,
+                  name: payload.categoryName,
                 },
-              }).catch(() => {
-                // 既に存在する場合はスキップ
               });
             }
-          }
-        });
+
+            // 料理メディア登録
+            if (finalPhotoUrl) {
+              await tx.dish_media
+                .create({
+                  data: {
+                    dish_id: dish.id,
+                    media_path: finalPhotoUrl,
+                    media_type: 'photo',
+                    thumbnail_path: finalPhotoUrl,
+                  },
+                })
+                .catch(() => {
+                  // 既に存在する場合はスキップ
+                });
+            }
+
+            // 料理レビュー登録
+            if (place.reviews && place.reviews.length > 0) {
+              for (const review of place.reviews) {
+                await tx.dish_reviews
+                  .create({
+                    data: {
+                      dish_id: dish.id,
+                      comment: review.text?.text || '',
+                      rating: review.rating || 0,
+                      original_language_code:
+                        review.originalText?.languageCode ||
+                        payload.languageCode,
+                      imported_user_name:
+                        review.authorAttribution?.displayName || 'Anonymous',
+                      imported_user_avatar: review.authorAttribution?.photoUri,
+                    },
+                  })
+                  .catch(() => {
+                    // 既に存在する場合はスキップ
+                  });
+              }
+            }
+          },
+        );
 
         this.logger.debug('PlaceProcessed', 'processPlaces', {
           placeId: place.id,
@@ -200,6 +216,8 @@ export class BulkImportExecutorService {
    */
   private async markJobCompleted(idempotencyKey: string): Promise<void> {
     // TODO: Redis や専用テーブルに完了マークを記録
-    this.logger.debug('JobMarkCompleted', 'markJobCompleted', { idempotencyKey });
+    this.logger.debug('JobMarkCompleted', 'markJobCompleted', {
+      idempotencyKey,
+    });
   }
 }
