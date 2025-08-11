@@ -1,4 +1,4 @@
-// api/src/internal/bulk-import/oidc.guard.ts
+// api/src/internal/bdishes/oidc.guard.ts
 //
 // Cloud Tasks からの OIDC トークン検証ガード
 //
@@ -9,9 +9,11 @@ import {
   ExecutionContext,
   UnauthorizedException,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { env } from '../../core/config/env';
+import { OAuth2Client } from 'google-auth-library';
 
 /**
  * Cloud Tasks からの OIDC トークンを検証するガード
@@ -24,6 +26,7 @@ import { env } from '../../core/config/env';
 @Injectable()
 export class OIDCGuard implements CanActivate {
   private readonly logger = new Logger(OIDCGuard.name);
+  private client = new OAuth2Client();
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -55,37 +58,31 @@ export class OIDCGuard implements CanActivate {
   /**
    * OIDC トークンを検証
    *
-   * 本格実装では Google JWT ライブラリを使用
-   * 現在は簡略化実装（開発用）
+   * - 署名の検証
+   * - exp（有効期限）の検証
+   * - aud（オーディエンス）の検証
+   * - iss（発行者）の検証
+   * - email の検証（許可されたサービスアカウントのみ）
    */
   private async verifyOIDCToken(token: string): Promise<void> {
-    // TODO: 本格実装では以下を検証:
-    // 1. JWT の署名検証 (Google の公開鍵で)
-    // 2. audience = env.CLOUD_RUN_URL + '/internal/bulk-import/execute'
-    // 3. issuer = 'https://accounts.google.com'
-    // 4. exp (有効期限)
-    // 5. iat (発行時刻)
+    const audience = `${env.CLOUD_RUN_URL}/internal/dishes`;
+    const allowedSa = env.TASKS_INVOKER_SA.toLowerCase();
 
-    if (env.API_NODE_ENV === 'development') {
-      // 開発環境では検証をスキップ
-      this.logger.debug(
-        'OIDCGuard: Skipping token verification in development',
-      );
-      return;
+    // 1) IDトークン検証（署名/exp/aud/iss）
+    const ticket = await this.client.verifyIdToken({
+      idToken: token,
+      audience,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) throw new UnauthorizedException('Invalid token');
+    if (payload.iss !== 'https://accounts.google.com') {
+      throw new UnauthorizedException('Invalid issuer');
     }
-
-    // 本番環境では実際の検証を実行
-    // const jwt = require('jsonwebtoken');
-    // const jwksClient = require('jwks-rsa');
-    //
-    // const client = jwksClient({
-    //   jwksUri: 'https://www.googleapis.com/oauth2/v3/certs'
-    // });
-    //
-    // const decoded = jwt.verify(token, getKey, {
-    //   audience: `${env.CLOUD_RUN_URL}/internal/bulk-import/execute`,
-    //   issuer: 'https://accounts.google.com'
-    // });
+    const email = (payload.email || '').toLowerCase();
+    if (email !== allowedSa) {
+      throw new ForbiddenException('Service account not allowed');
+    }
 
     this.logger.debug('OIDCGuard: Token verification completed');
   }

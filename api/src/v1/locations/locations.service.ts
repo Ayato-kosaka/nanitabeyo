@@ -40,12 +40,7 @@ export class LocationsService {
   }): Promise<google.maps.places.v1.ISearchTextResponse> {
     const [lat, lng] = params.location.split(',').map(Number);
 
-    this.logger.debug('GoogleMapsTextSearch', 'searchRestaurants', {
-      location: `${lat},${lng}`,
-      radius: params.radius,
-      category: params.dishCategoryName,
-      params,
-    });
+    this.logger.debug('GoogleMapsTextSearch', 'searchRestaurants', params);
 
     // カテゴリに基づく検索クエリを構築
     const query = params.dishCategoryName;
@@ -171,7 +166,6 @@ export class LocationsService {
         error_message: null,
       });
 
-      // IPhotoMediaUri から photoUri のみを返却（バイナリ取得は非同期ジョブで実行）
       if (response.photoUri) {
         return {
           photoUri: response.photoUri,

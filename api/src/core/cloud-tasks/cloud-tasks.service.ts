@@ -1,14 +1,14 @@
 // api/src/core/cloud-tasks/cloud-tasks.service.ts
 //
 // Cloud Tasks サービス（シンプル化）
-// 責務: bulk import ジョブのエンキューのみ
+// 責務: ジョブのエンキューのみ
 //
 
 import { Injectable } from '@nestjs/common';
 import { CloudTasksClient } from '@google-cloud/tasks';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
-import { BulkImportJobPayload } from '../../internal/dishes/bulk-import-job.interface';
+import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
 
 @Injectable()
 export class CloudTasksService {
@@ -19,9 +19,10 @@ export class CloudTasksService {
   }
 
   /**
-   * bulk import ジョブをキューに追加
+   * create dish media entry ジョブをキューに追加
    */
-  async enqueueBulkImportJob(payload: BulkImportJobPayload, queueName: string): Promise<void> {
+  async enqueueCreateDishMediaEntry(payload: CreateDishMediaEntryJobPayload): Promise<void> {
+    const queueName = 'dishes-queue';
     const queuePath = this.client.queuePath(
       env.GCP_PROJECT,
       env.TASKS_LOCATION,
@@ -31,14 +32,14 @@ export class CloudTasksService {
     const task = {
       httpRequest: {
         httpMethod: 'POST' as const,
-        url: `${env.CLOUD_RUN_URL}/internal/dishes/execute`,
+        url: `${env.CLOUD_RUN_URL}/internal/dishes/create`,
         headers: {
           'Content-Type': 'application/json',
         },
         body: Buffer.from(JSON.stringify(payload)),
         oidcToken: {
           serviceAccountEmail: env.TASKS_INVOKER_SA,
-          audience: `${env.CLOUD_RUN_URL}/internal/dishes/execute`,
+          audience: `${env.CLOUD_RUN_URL}/internal/dishes`,
         },
       },
     };
@@ -49,14 +50,14 @@ export class CloudTasksService {
         task,
       });
 
-      this.logger.log('CloudTaskEnqueued', 'enqueueBulkImportJob', {
+      this.logger.log('CloudTaskEnqueued', 'enqueueCreateDishMediaEntry', {
         taskName: response.name,
         jobId: payload.jobId,
         idempotencyKey: payload.idempotencyKey,
         queueName,
       });
     } catch (error) {
-      this.logger.error('CloudTaskEnqueueError', 'enqueueBulkImportJob', {
+      this.logger.error('CloudTaskEnqueueError', 'enqueueCreateDishMediaEntry', {
         jobId: payload.jobId,
         queueName,
         error: error instanceof Error ? error.message : 'Unknown error',

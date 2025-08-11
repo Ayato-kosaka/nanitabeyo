@@ -6,11 +6,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
-import { BulkImportJobPayload } from './bulk-import-job.interface';
+import { CreateDishMediaEntryJobPayload } from './create-dish-media-entry.interface';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishesRepository } from '../../v1/dishes/dishes.repository';
+import { convertSupabaseToPrisma_Restaurants } from '../../../../shared/converters/convert_restaurants';
+import { convertSupabaseToPrisma_Dishes } from '../../../../shared/converters/convert_dishes';
+import { convertSupabaseToPrisma_DishMedia } from '../../../../shared/converters/convert_dish_media';
+import { convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class CreateDishMediaEntryService {
@@ -19,12 +23,12 @@ export class CreateDishMediaEntryService {
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
-  ) {}
+  ) { }
 
   /**
    * 非同期ジョブの処理メイン関数
    */
-  async processAsyncJob(payload: BulkImportJobPayload): Promise<void> {
+  async processAsyncJob(payload: CreateDishMediaEntryJobPayload): Promise<void> {
     this.logger.debug('ProcessAsyncJob Started', 'processAsyncJob', {
       jobId: payload.jobId,
       photoUriCount: payload.photoUri.length,
@@ -68,7 +72,7 @@ export class CreateDishMediaEntryService {
   /**
    * 写真のダウンロードと保存を並列処理
    */
-  private async downloadAndStorePhotos(payload: BulkImportJobPayload): Promise<void> {
+  private async downloadAndStorePhotos(payload: CreateDishMediaEntryJobPayload): Promise<void> {
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
       try {
         // 写真データを取得
@@ -76,16 +80,16 @@ export class CreateDishMediaEntryService {
         if (!response.ok) {
           throw new Error(`Failed to download photo: ${response.status}`);
         }
-        
+
         const buffer = Buffer.from(await response.arrayBuffer());
-        
+
         // ストレージに保存
         const uploadResult = await this.storage.uploadFile({
           buffer,
-          mimeType: 'image/jpeg',
-          resourceType: 'dish_media',
-          usageType: 'bulk_import',
-          identifier: `${payload.jobId}-${index}`,
+          mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
+          resourceType: 'google-maps',
+          usageType: 'photo',
+          identifier: payload.restaurants.google_place_id!,
         });
 
         this.logger.debug('PhotoDownloaded', 'downloadAndStorePhotos', {
@@ -110,57 +114,33 @@ export class CreateDishMediaEntryService {
   /**
    * 4テーブルのUPSERT処理（dishesRepository を使用）
    */
-  private async upsertDatabaseEntries(payload: BulkImportJobPayload): Promise<void> {
+  private async upsertDatabaseEntries(payload: CreateDishMediaEntryJobPayload): Promise<void> {
     await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
-        // 1. レストラン登録（update: {} で既存データを保持）
-        const restaurant = await this.dishesRepository.createOrGetRestaurant(
+        // 1. レストラン登録
+        await this.dishesRepository.createOrGetRestaurant(
           tx,
-          {
-            id: payload.restaurants.google_place_id,
-            displayName: { text: payload.restaurants.name },
-            location: {
-              latitude: payload.restaurants.latitude,
-              longitude: payload.restaurants.longitude,
-            }
-          } as any,
-          payload.restaurants.image_url,
+          convertSupabaseToPrisma_Restaurants(payload.restaurants),
+          payload.restaurants.google_place_id!,
         );
 
         // 2. 料理登録
-        const dish = await this.dishesRepository.createOrGetDishForCategory(
+        await this.dishesRepository.createOrGetDishForCategory(
           tx,
-          restaurant.id,
-          payload.dishes.category_id,
-          payload.dishes.name || 'Unknown Dish',
+          convertSupabaseToPrisma_Dishes(payload.dishes),
         );
 
         // 3. 料理メディア登録
-        if (payload.dish_media.media_path) {
-          const dishMedia = await this.dishesRepository.createDishMedia(
-            tx,
-            dish.id,
-            payload.dish_media.media_path,
-          );
-        }
+        await this.dishesRepository.createDishMedia(
+          tx,
+          convertSupabaseToPrisma_DishMedia(payload.dish_media),
+        );
 
         // 4. 料理レビュー登録
-        for (const reviewData of payload.dish_reviews) {
-          await this.dishesRepository.createDishReview(
-            tx,
-            dish.id,
-            null, // dish_media_id は null でも可
-            {
-              text: { text: reviewData.comment },
-              rating: reviewData.rating,
-              originalText: { languageCode: reviewData.original_language_code },
-              authorAttribution: {
-                displayName: reviewData.imported_user_name || 'Anonymous',
-                photoUri: reviewData.imported_user_avatar,
-              },
-            } as any,
-          );
-        }
+        await this.dishesRepository.createDishReviews(
+          tx,
+          payload.dish_reviews.map(review => convertSupabaseToPrisma_DishReviews(review)),
+        );
       },
     );
   }

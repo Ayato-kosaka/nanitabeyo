@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------
 # * Google Cloud CLI (gcloud) で実行する前提
 # * Cloud Tasks 用のインフラを一括作成
-#   - キュー "bulk-import-queue" の作成（冪等）
+#   - キュー の作成（冪等）
 #   - "tasks-invoker" Service Account の作成
 #   - Cloud Run サービスに invoker 権限付与
 # * JSON キーを生成して Base64 文字列を echo 出力（CI/CD 変数登録などで便利）
@@ -17,7 +17,7 @@
 # 
 # 使い方
 # chmod +x infra/gcp/create_tasks_invoker_service_account.sh
-# ./infra/gcp/create_tasks_invoker_service_account.sh your-gcp-project-id asia-northeast1 your-cloud-run-url
+# ./infra/gcp/create_tasks_invoker_service_account.sh your-gcp-project-id asia-northeast1 your-cloud-run-url queue-name
 # ------------------------------------------------------------------------------
 
 set -euo pipefail
@@ -28,7 +28,7 @@ TASKS_LOCATION="${2:-asia-northeast1}"
 CLOUD_RUN_URL="${3:-}"
 SERVICE_ACCOUNT_NAME="tasks-invoker"
 SERVICE_ACCOUNT_DESC="Cloud Tasks Invoker for async job processing"
-QUEUE_NAME="bulk-import-queue"
+QUEUE_NAME="${4:-}"
 KEY_FILE="./${SERVICE_ACCOUNT_NAME}-key.json"
 
 if [[ -z "${PROJECT_ID}" ]]; then
@@ -39,6 +39,12 @@ fi
 
 if [[ -z "${CLOUD_RUN_URL}" ]]; then
   echo "⚠️  CLOUD_RUN_URL が指定されていません。IAM権限のみ設定します。"
+fi
+
+if [[ -z "${QUEUE_NAME}" ]]; then
+  echo "❌ キュー名が指定されていません。"
+  echo "   使い方: ./create_tasks_invoker_service_account.sh <GCP_PROJECT_ID> [TASKS_LOCATION] <QUEUE_NAME>"
+  exit 1
 fi
 
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -64,8 +70,20 @@ gcloud services enable \
   iam.googleapis.com \
   --project="${PROJECT_ID}" --quiet
 
-# ----- 2. Queue creation is handled by cloudtasks-create-que.yml workflow ----
-echo "ℹ️  Cloud Tasks Queue creation is handled by GitHub workflow"
+# ----- 2. Create Cloud Tasks Queue (if absent) --------------------------------
+echo "📋 Creating Cloud Tasks Queue (if not exists)…"
+if ! gcloud tasks queues describe "${QUEUE_NAME}" \
+  --location="${TASKS_LOCATION}" \
+  --project="${PROJECT_ID}" \
+  --quiet >/dev/null 2>&1; then
+  echo "✅ Creating queue: ${QUEUE_NAME}"
+  gcloud tasks queues create "${QUEUE_NAME}" \
+    --location="${TASKS_LOCATION}" \
+    --project="${PROJECT_ID}" \
+    --quiet
+else
+  echo "ℹ️  Queue already exists: ${QUEUE_NAME}. Skipping creation."
+fi
 
 # ----- 3. Create Service Account (if absent) ----------------------------------
 if ! gcloud iam service-accounts list \
@@ -91,19 +109,29 @@ for ROLE in roles/cloudtasks.enqueuer; do
     --quiet
 done
 
-# Cloud Run への invoker 権限（CLOUD_RUN_URL が指定されている場合のみ）
-if [[ -n "${CLOUD_RUN_URL}" ]]; then
-  # Cloud Run サービス名を URL から抽出（簡略化）
-  RUN_SERVICE_NAME=$(echo "${CLOUD_RUN_URL}" | sed -n 's|.*//\([^.]*\)\..*|\1|p')
-  if [[ -n "${RUN_SERVICE_NAME}" ]]; then
-    echo "🔗 Binding Cloud Run invoker role for service: ${RUN_SERVICE_NAME}"
-    gcloud run services add-iam-policy-binding "${RUN_SERVICE_NAME}" \
-      --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-      --role="roles/run.invoker" \
-      --region="${TASKS_LOCATION}" \
-      --project="${PROJECT_ID}" \
-      --quiet || echo "⚠️  Cloud Run IAM binding failed. Service might not exist yet."
-  fi
+# Cloud Run への invoker 権限（CLOUD_RUN_URL or RUN_SERVICE_NAME が指定されている場合）
+RUN_SERVICE_NAME="${RUN_SERVICE_NAME:-}"
+
+if [[ -z "${RUN_SERVICE_NAME}" && -n "${CLOUD_RUN_URL}" ]]; then
+  # URL と一致するサービスを一覧から解決（URL完全一致で探す）
+  RUN_SERVICE_NAME="$(gcloud run services list \
+    --region="${TASKS_LOCATION}" \
+    --project="${PROJECT_ID}" \
+    --format='value(metadata.name,status.url)' \
+    | awk -v url="${CLOUD_RUN_URL}" '$2==url {print $1; exit}')"
+fi
+
+if [[ -n "${RUN_SERVICE_NAME}" ]]; then
+  echo "🔗 Binding Cloud Run invoker role for service: ${RUN_SERVICE_NAME}"
+  gcloud run services add-iam-policy-binding "${RUN_SERVICE_NAME}" \
+    --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+    --role="roles/run.invoker" \
+    --region="${TASKS_LOCATION}" \
+    --project="${PROJECT_ID}" \
+    --quiet || echo "⚠️  Cloud Run IAM binding failed. Service might not exist yet."
+else
+  echo "ℹ️  Cloud Run service not resolved. Skipping run.invoker binding."
+  echo "    Pass either CLOUD_RUN_URL or RUN_SERVICE_NAME (env or arg) if you want this binding."
 fi
 
 # ----- 5. Create JSON Key -----------------------------------------------------
@@ -126,7 +154,3 @@ echo "TASKS_LOCATION=${TASKS_LOCATION}"
 echo "CLOUD_RUN_URL=${CLOUD_RUN_URL:-'<SET_YOUR_CLOUD_RUN_URL>'}"
 echo "TASKS_INVOKER_SA=${SERVICE_ACCOUNT_EMAIL}"
 echo ""
-echo "📋 Next steps:"
-echo "1. Set the above environment variables in your Cloud Run service"
-echo "2. Deploy your application with the internal endpoints"
-echo "3. Test the bulk import API to verify async processing works"

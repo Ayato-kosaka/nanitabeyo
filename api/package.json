@@ -37,6 +37,7 @@
     "abort-controller": "^3.0.0",
     "dotenv": "^16.4.7",
     "expo-server-sdk": "^3.15.0",
+    "google-auth-library": "^10.2.1",
     "lodash.chunk": "^4.2.0",
     "nanoid": "^3.3.11",
     "nestjs-cls": "^6.0.1",

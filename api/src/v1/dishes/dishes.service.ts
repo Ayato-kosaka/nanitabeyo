@@ -6,42 +6,38 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '../../../../shared/prisma/client';
 
 import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
 import { CreateDishResponse, BulkImportDishesResponse } from '@shared/v1/res';
 
 import { DishesRepository } from './dishes.repository';
-import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { LocationsService } from '../locations/locations.service';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 
 // Import converters
-import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
-import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
-import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
+import { convertPrismaToSupabase_Dishes, PrismaDishes } from '../../../../shared/converters/convert_dishes';
+import { convertPrismaToSupabase_Restaurants, PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+import { convertPrismaToSupabase_DishMedia, PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 import {
   convertPrismaToSupabase_DishReviews,
-  SupabaseDishReviews,
+  PrismaDishReviews,
 } from '../../../../shared/converters/convert_dish_reviews';
-import { StorageService } from 'src/core/storage/storage.service';
-
-// Import job payload interface
-import { BulkImportJobPayload } from '../../internal/dishes/bulk-import-job.interface';
+import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
+import { randomUUID } from 'crypto';
+import { buildFileName, buildFullPath, getExt } from 'src/core/storage/storage.utils';
+import { env } from 'src/core/config/env';
 
 @Injectable()
 export class DishesService {
   constructor(
     private readonly repo: DishesRepository,
-    private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-    private readonly storage: StorageService,
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -119,7 +115,7 @@ export class DishesService {
         if (!place.id)
           throw new Error(`Place ID is missing for place at index ${index}`);
         const photoName =
-          googlePlaces.contextualContents[index]?.photos?.[0]?.name;
+          googlePlaces.contextualContents?.[index]?.photos?.[0]?.name;
         if (!photoName)
           throw new Error(`No photo name found for place: ${place.id}`);
 
@@ -128,101 +124,122 @@ export class DishesService {
         if (!photoMedia)
           throw new Error(`No photo URL found for place: ${place.id}`);
 
-        // 同期処理: データベース登録（ストレージアップロードは除外）
-        const result = await this.prisma.withTransaction(
-          async (tx: Prisma.TransactionClient) => {
-            // 1. レストラン登録/取得（update: {} で既存データを保持）
-            const restaurant = await this.repo.createOrGetRestaurant(
-              tx,
-              place,
-              photoMedia.photoUri,
-            );
+        const ext = getExt('image/jpeg');
+        const mediaFileName = buildFileName(place.id, ext);
+        const mediaPath = buildFullPath({
+          env: env.API_NODE_ENV,
+          resourceType: 'google-maps',
+          usageType: 'photo',
+          finalFileName: mediaFileName,
+        });
 
-            // 2. 料理登録/取得
-            const dish = await this.repo.createOrGetDishForCategory(
-              tx,
-              restaurant.id,
-              dto.categoryId,
-              dto.categoryName,
-            );
+        if (
+          !place.id ||
+          !place.name ||
+          !place.location?.latitude ||
+          !place.location?.longitude ||
+          !place.reviews
+        )
+          throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
 
-            // 3. 料理メディア登録（photoUriのみ、ストレージアップロード無し）
-            const dishMediaRecord = await this.repo.createDishMedia(
-              tx,
-              dish.id,
-              photoMedia.photoUri, // photoUri を直接使用
-            );
-            const dishMedia =
-              convertPrismaToSupabase_DishMedia(dishMediaRecord);
 
-            // 4. レビュー登録（Google レビューがある場合）
-            const dishReviews: SupabaseDishReviews[] = [];
-            if (place.reviews && place.reviews.length > 0) {
-              for (const review of place.reviews) {
-                const dishReviewRecord = await this.repo.createDishReview(
-                  tx,
-                  dish.id,
-                  dishMediaRecord.id,
-                  review,
-                );
-                dishReviews.push(
-                  convertPrismaToSupabase_DishReviews(dishReviewRecord),
-                );
-              }
-            }
+        const restaurant: PrismaRestaurants = {
+          id: randomUUID(),
+          google_place_id: place.id,
+          name: place.name,
+          latitude: place.location!.latitude,
+          longitude: place.location!.longitude,
+          image_url: photoMedia.photoUri,
+          created_at: new Date(),
+        };
 
-            // 非同期ジョブ用のペイロード作成
-            const jobId = `dish-import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            const idempotencyKey = `${restaurant.google_place_id}-${dish.id}-${Date.now()}`;
+        const dish: PrismaDishes = {
+          id: randomUUID(),
+          restaurant_id: restaurant.id,
+          category_id: dto.categoryId,
+          name: dto.categoryName,
+          created_at: new Date(),
+          updated_at: new Date(),
+          lock_no: 0,
+        };
 
-            const jobPayload: BulkImportJobPayload = {
-              jobId,
-              idempotencyKey,
-              photoUri: [photoMedia.photoUri],
-              restaurants: convertPrismaToSupabase_Restaurants(restaurant),
-              dishes: convertPrismaToSupabase_Dishes(dish),
-              dish_media: dishMedia,
-              dish_reviews: dishReviews,
-            };
+        const dishMedia: PrismaDishMedia = {
+          id: randomUUID(),
+          dish_id: dish.id,
+          user_id: null, // Google からのインポートなので null
+          media_path: mediaPath,
+          media_type: 'image',
+          thumbnail_path: mediaPath,
+          created_at: new Date(),
+          updated_at: new Date(),
+          lock_no: 0,
+        };
 
-            // 非同期ジョブをキューに投入（写真の実体取得・保存のため）
-            try {
-              await this.cloudTasksService.enqueueBulkImportJob(jobPayload, 'dish-que');
-              this.logger.debug('AsyncJobEnqueued', 'bulkImportFromGoogle', {
-                jobId,
-                placeId: place.id,
-              });
-            } catch (error) {
-              this.logger.error('AsyncJobEnqueueError', 'bulkImportFromGoogle', {
-                jobId,
-                placeId: place.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              });
-              // エンキューエラーでも同期レスポンスは継続
-            }
+        const dishReviews: PrismaDishReviews[] = place.reviews.map((review) => ({
+          id: randomUUID(),
+          dish_id: dish.id,
+          user_id: null, // Google からのインポートなので null
+          comment: review.originalText?.text || '',
+          original_language_code: review.originalText?.languageCode || '',
+          rating: review.rating || 0,
+          price_cents: null,
+          currency_code: null,
+          created_dish_media_id: dishMedia.id,
+          imported_user_name: review.authorAttribution?.displayName || null,
+          imported_user_avatar: review.authorAttribution?.photoUri || null,
+          created_at: new Date(),
+        }));
 
-            return {
-              restaurant: convertPrismaToSupabase_Restaurants(restaurant),
-              dish: convertPrismaToSupabase_Dishes(dish),
-              dish_media: {
-                ...dishMedia,
-                mediaImageUrl: photoMedia.photoUri,
-                thumbnailImageUrl: photoMedia.photoUri,
-                isSaved: false, // 初期状態では保存されていない
-                isLiked: false, // 初期状態ではいいねされていない
-                likeCount: 0, // 初期状態ではいいね数は0
-              },
-              dish_reviews: dishReviews.map((r) => ({
-                ...r,
-                username: r.imported_user_name || 'Anonymous', // ユーザー名がない場合は 'Anonymous' とする
-                isLiked: false, // 初期状態ではいいねされていない
-                likeCount: 0, // 初期状態ではいいね数は 0
-              })),
-            };
+        // 非同期ジョブ用のペイロード作成
+        const jobId = `dish-create-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const idempotencyKey = `${restaurant.google_place_id}-${dish.id}-${Date.now()}`;
+
+        const jobPayload: CreateDishMediaEntryJobPayload = {
+          jobId,
+          idempotencyKey,
+          photoUri: [photoMedia.photoUri],
+          restaurants: convertPrismaToSupabase_Restaurants(restaurant),
+          dishes: convertPrismaToSupabase_Dishes(dish),
+          dish_media: convertPrismaToSupabase_DishMedia(dishMedia),
+          dish_reviews: dishReviews.map((r) => ({
+            ...convertPrismaToSupabase_DishReviews(r)
+          })),
+        };
+
+        // 非同期ジョブをキューに投入（写真の実体取得・保存のため）
+        try {
+          await this.cloudTasksService.enqueueCreateDishMediaEntry(jobPayload);
+          this.logger.debug('AsyncJobEnqueued', 'bulkImportFromGoogle', {
+            jobId,
+            placeId: place.id,
+          });
+        } catch (error) {
+          this.logger.error('AsyncJobEnqueueError', 'bulkImportFromGoogle', {
+            jobId,
+            placeId: place.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          // エンキューエラーでも同期レスポンスは継続
+        }
+
+        return {
+          restaurant: convertPrismaToSupabase_Restaurants(restaurant),
+          dish: convertPrismaToSupabase_Dishes(dish),
+          dish_media: {
+            ...convertPrismaToSupabase_DishMedia(dishMedia),
+            mediaImageUrl: photoMedia.photoUri,
+            thumbnailImageUrl: photoMedia.photoUri,
+            isSaved: false, // 初期状態では保存されていない
+            isLiked: false, // 初期状態ではいいねされていない
+            likeCount: 0, // 初期状態ではいいね数は0
           },
-        );
-
-        return result;
+          dish_reviews: dishReviews.map((r) => ({
+            ...convertPrismaToSupabase_DishReviews(r),
+            username: r.imported_user_name || 'Anonymous', // ユーザー名がない場合は 'Anonymous' とする
+            isLiked: false, // 初期状態ではいいねされていない
+            likeCount: 0, // 初期状態ではいいね数は 0
+          })),
+        };
       } catch (error) {
         this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
           placeId: place.id,
@@ -235,7 +252,7 @@ export class DishesService {
 
     // 並列処理を実行
     const processResults = await Promise.allSettled(processPromises);
-    
+
     // 成功した結果のみを抽出
     const successfulResults = processResults
       .filter(

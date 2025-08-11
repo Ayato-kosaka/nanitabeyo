@@ -35,4 +35,4 @@ import { RemoteConfigModule } from '../../core/remote-config/remote-config.modul
     DishesService, // 他ドメインが再利用できる
   ],
 })
-export class DishesModule {}
+export class DishesModule { }

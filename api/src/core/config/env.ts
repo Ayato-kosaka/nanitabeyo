@@ -20,12 +20,11 @@ const envSchema = z.object({
   CLAUDE_API_KEY: z.string(),
   GOOGLE_API_KEY: z.string(),
   GOOGLE_SEARCH_ENGINE_ID: z.string(),
-  GCS_DEV_PROJECT_ID: z.string().optional(),
-  GCS_DEV_SERVICE_ACCOUNT_BASE64: z.string().optional(),
   GCP_PROJECT: z.string(),
   TASKS_LOCATION: z.string(),
   CLOUD_RUN_URL: z.string(),
   TASKS_INVOKER_SA: z.string(),
+  GCS_DEV_SERVICE_ACCOUNT_BASE64: z.string().optional(),
 });
 
 /**

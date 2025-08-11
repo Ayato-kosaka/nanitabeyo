@@ -12,13 +12,16 @@ import { CreateDishDto } from '@shared/v1/dto';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { google } from '@googlemaps/places/build/protos/protos';
+import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
+import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 
 @Injectable()
 export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -53,33 +56,15 @@ export class DishesRepository {
    */
   async createOrGetRestaurant(
     tx: Prisma.TransactionClient,
-    place: google.maps.places.v1.IPlace,
-    placeImageUrl: string,
+    restaurant: PrismaRestaurants,
+    google_place_id: string,
   ) {
-    this.logger.debug('createOrGetRestaurant', 'DishesRepository', {
-      googlePlaceId: place.id,
-      name: place.name,
-    });
-
-    if (
-      !place.id ||
-      !place.name ||
-      !place.location?.latitude ||
-      !place.location?.longitude
-    )
-      throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
-
-    // PostGIS geography カラムを扱いつつ、
-    // INSERT … ON CONFLICT DO NOTHING RETURNING *
-    const restaurant = await tx.restaurants.upsert({
-      where: { google_place_id: place.id },
+    this.logger.debug('createOrGetRestaurant', 'DishesRepository', restaurant);
+    await tx.restaurants.upsert({
+      where: { google_place_id },
       update: {},
       create: {
-        google_place_id: place.id!,
-        name: place.name!,
-        latitude: place.location!.latitude!,
-        longitude: place.location!.longitude!,
-        image_url: placeImageUrl,
+        ...restaurant
       },
     });
     return restaurant;
@@ -90,14 +75,12 @@ export class DishesRepository {
    */
   async createOrGetDishForCategory(
     tx: Prisma.TransactionClient,
-    restaurantId: string,
-    dishCategoryId: string,
-    dishName: string,
+    dish: PrismaDishes,
   ) {
     const existing = await tx.dishes.findFirst({
       where: {
-        restaurant_id: restaurantId,
-        category_id: dishCategoryId,
+        restaurant_id: dish.restaurant_id,
+        category_id: dish.category_id,
       },
     });
 
@@ -106,11 +89,7 @@ export class DishesRepository {
     }
 
     return tx.dishes.create({
-      data: {
-        restaurant_id: restaurantId,
-        category_id: dishCategoryId,
-        name: dishName,
-      },
+      data: dish,
     });
   }
 
@@ -119,44 +98,22 @@ export class DishesRepository {
    */
   async createDishMedia(
     tx: Prisma.TransactionClient,
-    dishId: string,
-    mediaPath: string,
+    dishMedia: PrismaDishMedia
   ) {
     return tx.dish_media.create({
-      data: {
-        dish_id: dishId,
-        user_id: null, // Google からのインポートなので null
-        media_path: mediaPath,
-        media_type: 'image',
-        thumbnail_path: mediaPath, // 同じパスを使用
-      },
+      data: dishMedia,
     });
   }
 
   /**
    * 料理レビューを作成（Google レビューから）
    */
-  async createDishReview(
+  async createDishReviews(
     tx: Prisma.TransactionClient,
-    dishId: string,
-    createdDishMediaId: string,
-    review: google.maps.places.v1.IReview,
+    reviews: PrismaDishReviews[],
   ) {
-    const result = await tx.dish_reviews.create({
-      data: {
-        dish_id: dishId,
-        user_id: null, // Google からのインポートなので null
-        comment: review.originalText?.text || '',
-        original_language_code: review.originalText?.languageCode || '',
-        rating: review.rating || 0,
-        price_cents: null,
-        currency_code: null,
-        created_dish_media_id: createdDishMediaId,
-        imported_user_name: review.authorAttribution?.displayName || null,
-        imported_user_avatar: review.authorAttribution?.photoUri || null,
-      },
+    return await tx.dish_reviews.createMany({
+      data: reviews,
     });
-
-    return result as PrismaDishReviews;
   }
 }

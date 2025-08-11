@@ -12,7 +12,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { BulkImportJobPayload } from './bulk-import-job.interface';
+import { CreateDishMediaEntryJobPayload } from './create-dish-media-entry.interface';
 import { CreateDishMediaEntryService } from './create-dish-media-entry.service';
 import { OIDCGuard } from './oidc.guard';
 import { AppLoggerService } from '../../core/logger/logger.service';
@@ -27,21 +27,21 @@ export class DishesController {
   constructor(
     private readonly createDishMediaEntryService: CreateDishMediaEntryService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
-   * POST /internal/dishes/execute
+   * POST /internal/dishes/create
    *
    * Cloud Tasks から呼び出される非同期処理エンドポイント
    * - 写真の実体取得・保存
    * - 4テーブルのUPSERT
    */
-  @Post('execute')
+  @Post('create')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async executeBulkImport(
-    @Body() payload: BulkImportJobPayload,
+  async createDishMediaEntry(
+    @Body() payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
-    this.logger.debug('CreateDishMediaEntryStarted', 'executeBulkImport', {
+    this.logger.debug('CreateDishMediaEntryStarted', 'createDishMediaEntry', {
       jobId: payload.jobId,
       idempotencyKey: payload.idempotencyKey,
       photoUriCount: payload.photoUri.length,
@@ -50,12 +50,12 @@ export class DishesController {
     try {
       await this.createDishMediaEntryService.processAsyncJob(payload);
 
-      this.logger.log('CreateDishMediaEntryCompleted', 'executeBulkImport', {
+      this.logger.log('CreateDishMediaEntryCompleted', 'createDishMediaEntry', {
         jobId: payload.jobId,
         idempotencyKey: payload.idempotencyKey,
       });
     } catch (error) {
-      this.logger.error('CreateDishMediaEntryError', 'executeBulkImport', {
+      this.logger.error('CreateDishMediaEntryError', 'createDishMediaEntry', {
         jobId: payload.jobId,
         idempotencyKey: payload.idempotencyKey,
         error: error instanceof Error ? error.message : 'Unknown error',
