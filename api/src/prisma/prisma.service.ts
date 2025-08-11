@@ -27,7 +27,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private isConnected = false;
   private circuitOpenUntil = 0;
   private consecutiveConnFails = 0;
-  private readonly OPEN_BASE_MS = 5_000;   // 初回5秒
+  private readonly OPEN_BASE_MS = 5_000; // 初回5秒
   private readonly OPEN_CAP_MS = 120_000; // 最大2分
   private readonly MAX_RETRIES = 3;
 
@@ -42,10 +42,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         // 本番でも必要に応じてクエリログを Cloud Run に出力
         log: enableQueryLogs
           ? ([
-            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-            'warn',
-            'error',
-          ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+              'warn',
+              'error',
+            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
           : (['warn', 'error'] as Prisma.LogLevel[]),
       });
       // ミドルウェアを適用
@@ -56,11 +56,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         globalForPrisma.prisma = new PrismaClient({
           log: enableQueryLogs
             ? ([
-              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-              'info',
-              'warn',
-              'error',
-            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+                { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+                'info',
+                'warn',
+                'error',
+              ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
             : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
         });
         globalForPrisma.prisma.$use(MetricsMiddleware);
@@ -128,7 +128,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   private openCircuit() {
     // 失敗回数に応じて開放時間を指数的に延ばす（ジッター付き）
-    const base = Math.min(this.OPEN_BASE_MS * 2 ** this.consecutiveConnFails, this.OPEN_CAP_MS);
+    const base = Math.min(
+      this.OPEN_BASE_MS * 2 ** this.consecutiveConnFails,
+      this.OPEN_CAP_MS,
+    );
     const jitter = Math.floor(Math.random() * 1000);
     this.circuitOpenUntil = Date.now() + base + jitter;
     this.logger.warn(`DB circuit opened for ~${Math.round(base / 1000)}s`);
@@ -152,13 +155,18 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       } catch (err) {
         attempt++;
         this.consecutiveConnFails++;
-        const backoff = Math.min(1000 * 2 ** attempt, 15_000) + Math.floor(Math.random() * 500);
-        this.logger.warn(`DB connect failed (attempt ${attempt}/${this.MAX_RETRIES}). retry in ${Math.round(backoff / 1000)}s...`);
-        await new Promise(r => setTimeout(r, backoff));
+        const backoff =
+          Math.min(1000 * 2 ** attempt, 15_000) +
+          Math.floor(Math.random() * 500);
+        this.logger.warn(
+          `DB connect failed (attempt ${attempt}/${this.MAX_RETRIES}). retry in ${Math.round(backoff / 1000)}s...`,
+        );
+        await new Promise((r) => setTimeout(r, backoff));
       }
     }
     this.openCircuit();
-    if (process.env.NODE_ENV !== 'development') throw new Error('Failed to connect DB on startup');
+    if (process.env.NODE_ENV !== 'development')
+      throw new Error('Failed to connect DB on startup');
     this.logger.warn('Dev mode: continue without DB connection');
   }
 
@@ -180,7 +188,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
    */
   async withTransaction<T>(
     exec: (tx: Prisma.TransactionClient) => Promise<T>,
-    opts?: { maxWait?: number; timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel },
+    opts?: {
+      maxWait?: number;
+      timeout?: number;
+      isolationLevel?: Prisma.TransactionIsolationLevel;
+    },
   ): Promise<T> {
     if (this.isCircuitOpen()) {
       throw new Error('DB circuit open (temporarily unavailable)');
@@ -200,8 +212,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       const msg = String(error?.message || '');
       if (
         msg.includes("Can't reach database server") ||
-        msg.includes('ECONN') || msg.includes('ENET') || msg.includes('ETIMEDOUT') ||
-        msg.includes('57P01') /* admin_shutdown */ || msg.includes('08006') /* conn failure */
+        msg.includes('ECONN') ||
+        msg.includes('ENET') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('57P01') /* admin_shutdown */ ||
+        msg.includes('08006') /* conn failure */
       ) {
         this.consecutiveConnFails++;
         if (this.consecutiveConnFails >= 2) this.openCircuit();

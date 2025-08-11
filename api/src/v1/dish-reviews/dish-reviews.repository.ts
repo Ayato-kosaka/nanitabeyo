@@ -12,7 +12,7 @@ import { CreateDishReviewDto } from '@shared/v1/dto';
 
 @Injectable()
 export class DishReviewsRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * 料理が存在するかチェック
