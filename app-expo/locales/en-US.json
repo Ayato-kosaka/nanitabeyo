@@ -46,7 +46,7 @@
 			"scene": "What occasion?",
 			"mood": "What's your mood?",
 			"distance": "How far?",
-			"budget": "Budget?",
+			"priceLevels": "Price range?",
 			"restrictions": "Restrictions"
 		},
 		"required": "Required",
@@ -61,6 +61,16 @@
 		"labels": {
 			"noMinBudget": "No minimum",
 			"noMaxBudget": "No maximum"
+		},
+		"priceLevels": {
+			"free": "Free",
+			"inexpensive": "Cheap",
+			"moderate": "Moderate",
+			"expensive": "Expensive",
+			"veryExpensive": "Very Expensive",
+			"none": "None selected",
+			"all": "All price ranges",
+			"selected": "{{count}} selected"
 		},
 		"distanceLabels": {
 			"100m": "100m",

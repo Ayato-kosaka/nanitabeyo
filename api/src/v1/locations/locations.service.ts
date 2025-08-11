@@ -64,11 +64,7 @@ export class LocationsService {
       ...(options?.pageSize && { pageSize: options.pageSize }),
       ...(options?.minRating && { minRating: options.minRating }),
       ...(options?.languageCode && { languageCode: options.languageCode }),
-      ...(options?.priceLevels && {
-        priceLevels: options.priceLevels
-          .map((level) => this.numberToPriceLevel(level))
-          .filter(Boolean),
-      }),
+      // TODO: price levels filtering - may need different Google API approach
     };
 
     try {

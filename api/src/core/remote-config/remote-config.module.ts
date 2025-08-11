@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { RemoteConfigService } from './remote-config.service';
-import { UtilsModule } from '../utils/utils.module';
+import { StaticMasterService } from '../utils/static-master.service';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-  imports: [UtilsModule],
-  providers: [RemoteConfigService],
+  imports: [PrismaModule],
+  providers: [RemoteConfigService, StaticMasterService],
   exports: [RemoteConfigService],
 })
 export class RemoteConfigModule {}
