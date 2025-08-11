@@ -30,10 +30,6 @@ import {
 // Import job payload interface
 import { 
   BulkImportJobPayload,
-  BulkImportRestaurantData,
-  BulkImportDishData,
-  BulkImportDishMediaData,
-  BulkImportDishReviewData,
 } from '../../internal/bulk-import/bulk-import-job.interface';
 
 @Injectable()
@@ -115,13 +111,8 @@ export class DishesService {
       throw new Error('No places found from Google Maps API');
     }
 
-    // 同期処理: 写真プレビューURL生成と完成済みペイロード作成
-    const lightweightResults: BulkImportDishesResponse = [];
-    const photoUris: string[] = [];
-    const restaurants: BulkImportRestaurantData[] = [];
-    const dishes: BulkImportDishData[] = [];
-    const dishMedias: BulkImportDishMediaData[] = [];
-    const dishReviews: BulkImportDishReviewData[] = [];
+    // 同期処理: 写真プレビューURL生成のみ（軽量レスポンス）
+    const previewResults: BulkImportDishesResponse = [];
 
     // 各レストランに対してプレビューデータ生成（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
@@ -139,11 +130,15 @@ export class DishesService {
         if (!photoMedia)
           throw new Error(`No photo URL found for place: ${place.id}`);
 
-        // プレビュー用の軽量レスポンス作成
-        const previewResult = {
+        // プレビュー用の軽量レスポンス作成（実際のDBデータではなく、表示用の仮データ）
+        return {
           restaurant: {
-            ...this.buildRestaurantData(place, photoMedia.photoUri),
             id: place.id, // プレビュー用の仮ID
+            google_place_id: place.id,
+            name: place.displayName?.text || 'Unknown Restaurant',
+            latitude: place.location?.latitude || 0,
+            longitude: place.location?.longitude || 0,
+            image_url: photoMedia.photoUri,
           },
           dish: {
             id: `${place.id}-${dto.categoryId}`, // プレビュー用の仮ID
@@ -184,40 +179,6 @@ export class DishesService {
             updated_at: new Date().toISOString(),
           })),
         };
-
-        // 非同期ジョブ用データ準備
-        photoUris.push(photoMedia.photoUri);
-        restaurants.push(this.buildRestaurantData(place, photoMedia.photoUri));
-        dishes.push({
-          restaurant_place_id: place.id,
-          category_id: dto.categoryId,
-          name: dto.categoryName,
-        });
-        dishMedias.push({
-          restaurant_place_id: place.id,
-          category_id: dto.categoryId,
-          photo_uri: photoMedia.photoUri,
-          media_type: 'photo',
-        });
-        
-        if (place.reviews && place.reviews.length > 0) {
-          for (const review of place.reviews) {
-            dishReviews.push({
-              restaurant_place_id: place.id,
-              category_id: dto.categoryId,
-              rating: review.rating || 0,
-              text: review.text?.text || null,
-              author_name: review.authorAttribution?.displayName || null,
-              author_url: review.authorAttribution?.uri || null,
-              profile_photo_url: review.authorAttribution?.photoUri || null,
-              relative_time_description: review.relativePublishTimeDescription || null,
-              time: this.parseTimestamp(review.publishTime),
-              original_language_code: review.originalText?.languageCode || dto.languageCode,
-            });
-          }
-        }
-
-        return previewResult;
       } catch (error) {
         this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
           placeId: place.id,
@@ -238,7 +199,7 @@ export class DishesService {
       )
       .map((result) => result.value);
 
-    // 非同期ジョブをCloud Tasksに投入
+    // 非同期ジョブをCloud Tasksに投入（Google Places APIの生データをそのまま渡す）
     if (results.length > 0) {
       const jobId = `bulk-import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const idempotencyKey = `${dto.location}-${dto.categoryId}-${Date.now()}`;
@@ -246,11 +207,11 @@ export class DishesService {
       const jobPayload: BulkImportJobPayload = {
         jobId,
         idempotencyKey,
-        photoUris,
-        restaurants,
-        dishes: dishes,
-        dish_media: dishMedias,
-        dish_reviews: dishReviews,
+        places: googlePlaces.places,
+        contextualContents: googlePlaces.contextualContents,
+        categoryId: dto.categoryId,
+        categoryName: dto.categoryName,
+        languageCode: dto.languageCode,
       };
 
       try {
@@ -259,8 +220,7 @@ export class DishesService {
         this.logger.log('BulkImportJobEnqueued', 'bulkImportFromGoogle', {
           jobId,
           idempotencyKey,
-          restaurantsCount: restaurants.length,
-          dishesCount: dishes.length,
+          placesCount: googlePlaces.places.length,
         });
       } catch (error) {
         this.logger.error('BulkImportJobEnqueueError', 'bulkImportFromGoogle', {
@@ -277,28 +237,6 @@ export class DishesService {
     });
 
     return results;
-  }
-
-  /**
-   * Google Place からレストランデータを構築
-   */
-  private buildRestaurantData(place: any, photoUri: string): BulkImportRestaurantData {
-    return {
-      place_id: place.id,
-      name: place.displayName?.text || 'Unknown Restaurant',
-      address: place.formattedAddress || null,
-      phone_number: place.nationalPhoneNumber || null,
-      website: place.websiteUri || null,
-      price_level: place.priceLevel ? this.convertPriceLevel(place.priceLevel) : null,
-      rating: place.rating || null,
-      user_ratings_total: place.userRatingCount || null,
-      location_lat: place.location?.latitude || null,
-      location_lng: place.location?.longitude || null,
-      photo_uri: photoUri,
-      business_status: place.businessStatus || null,
-      primary_type: place.primaryType || null,
-      opening_hours: place.currentOpeningHours ? JSON.stringify(place.currentOpeningHours) : null,
-    };
   }
 
   /**
@@ -323,35 +261,5 @@ export class DishesService {
     }
 
     return 0;
-  }
-
-  /**
-   * PriceLevel を数値に変換
-   */
-  private convertPriceLevel(priceLevel: any): number | null {
-    if (!priceLevel) return null;
-
-    // 数値の場合はそのまま返す
-    if (typeof priceLevel === 'number') {
-      return priceLevel >= 0 && priceLevel <= 5 ? priceLevel : null;
-    }
-
-    // enum の場合
-    if (typeof priceLevel === 'string') {
-      switch (priceLevel) {
-        case 'PRICE_LEVEL_INEXPENSIVE':
-          return 2;
-        case 'PRICE_LEVEL_MODERATE':
-          return 3;
-        case 'PRICE_LEVEL_EXPENSIVE':
-          return 4;
-        case 'PRICE_LEVEL_VERY_EXPENSIVE':
-          return 5;
-        default:
-          return null;
-      }
-    }
-
-    return null;
   }
 }
