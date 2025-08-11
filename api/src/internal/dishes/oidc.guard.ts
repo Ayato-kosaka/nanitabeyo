@@ -15,7 +15,7 @@ import { env } from '../../core/config/env';
 
 /**
  * Cloud Tasks からの OIDC トークンを検証するガード
- * 
+ *
  * Cloud Tasks は以下の形式でリクエストを送信：
  * - Authorization: Bearer <OIDC_TOKEN>
  * - audience: 内部エンドポイントのURL
@@ -54,7 +54,7 @@ export class OIDCGuard implements CanActivate {
 
   /**
    * OIDC トークンを検証
-   * 
+   *
    * 本格実装では Google JWT ライブラリを使用
    * 現在は簡略化実装（開発用）
    */
@@ -65,21 +65,23 @@ export class OIDCGuard implements CanActivate {
     // 3. issuer = 'https://accounts.google.com'
     // 4. exp (有効期限)
     // 5. iat (発行時刻)
-    
+
     if (env.API_NODE_ENV === 'development') {
       // 開発環境では検証をスキップ
-      this.logger.debug('OIDCGuard: Skipping token verification in development');
+      this.logger.debug(
+        'OIDCGuard: Skipping token verification in development',
+      );
       return;
     }
 
     // 本番環境では実際の検証を実行
     // const jwt = require('jsonwebtoken');
     // const jwksClient = require('jwks-rsa');
-    // 
+    //
     // const client = jwksClient({
     //   jwksUri: 'https://www.googleapis.com/oauth2/v3/certs'
     // });
-    // 
+    //
     // const decoded = jwt.verify(token, getKey, {
     //   audience: `${env.CLOUD_RUN_URL}/internal/bulk-import/execute`,
     //   issuer: 'https://accounts.google.com'

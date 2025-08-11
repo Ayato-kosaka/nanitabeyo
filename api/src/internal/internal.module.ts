@@ -4,9 +4,9 @@
 //
 
 import { Module } from '@nestjs/common';
-import { BulkImportModule } from './bulk-import/bulk-import.module';
+import { InternalDishesModule } from './dishes/dishes.module';
 
 @Module({
-  imports: [BulkImportModule],
+  imports: [InternalDishesModule],
 })
 export class InternalModule {}
