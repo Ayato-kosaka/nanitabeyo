@@ -1,27 +1,13 @@
 import { useState, useCallback } from "react";
-import { GooglePlacesPrediction, SearchLocation } from "@/types/search";
-import { mockGooglePlacesPredictions } from "@/data/searchMockData";
+import { SearchLocation } from "@/types/search";
+import { mockPlacePredictions } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryAutocompleteLocationsDto } from "@shared/api/v1/dto";
-import type { AutocompleteLocationsResponse } from "@shared/api/v1/res";
-
-/**
- * Converts API Place objects to GooglePlacesPrediction objects for frontend compatibility
- */
-const convertApiPlacesToPredictions = (places: AutocompleteLocationsResponse): GooglePlacesPrediction[] => {
-	return places.map((place) => ({
-		placeId: place.place_id,
-		description: place.text,
-		structured_formatting: {
-			main_text: place.mainText,
-			secondary_text: place.secondaryText,
-		},
-	}));
-};
+import type { AutocompleteLocationsResponse, Place } from "@shared/api/v1/res";
 
 export const useLocationSearch = () => {
-	const [suggestions, setSuggestions] = useState<GooglePlacesPrediction[]>([]);
+	const [suggestions, setSuggestions] = useState<Place[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const { callBackend } = useAPICall();
 	const locale = useLocale();
@@ -48,18 +34,17 @@ export const useLocationSearch = () => {
 					},
 				);
 
-				// Convert API response to frontend format
-				const predictions = convertApiPlacesToPredictions(placesResponse);
-				setSuggestions(predictions);
+				// Use API response directly
+				setSuggestions(placesResponse);
 
 				// Keep mock implementation as fallback (commented out as requested)
 				// // Simulate API delay
 				// await new Promise((resolve) => setTimeout(resolve, 300));
 				// // Filter mock data based on query
-				// const filtered = mockGooglePlacesPredictions.filter(
+				// const filtered = mockPlacePredictions.filter(
 				// 	(prediction) =>
-				// 		prediction.description.toLowerCase().includes(query.toLowerCase()) ||
-				// 		prediction.structured_formatting.main_text.toLowerCase().includes(query.toLowerCase()),
+				// 		prediction.text.toLowerCase().includes(query.toLowerCase()) ||
+				// 		prediction.mainText.toLowerCase().includes(query.toLowerCase()),
 				// );
 				// setSuggestions(filtered);
 			} catch (error) {
@@ -72,7 +57,7 @@ export const useLocationSearch = () => {
 		[callBackend, locale],
 	);
 
-	const getLocationDetails = useCallback(async (prediction: GooglePlacesPrediction): Promise<SearchLocation> => {
+	const getLocationDetails = useCallback(async (prediction: Place): Promise<SearchLocation> => {
 		// Mock location details - in real app, use Google Places Details API
 		const mockLocations: Record<string, SearchLocation> = {
 			place_1: {
@@ -103,11 +88,10 @@ export const useLocationSearch = () => {
 		};
 
 		return (
-			mockLocations[prediction.placeId] || {
+			mockLocations[prediction.place_id] || {
 				latitude: 35.6762,
 				longitude: 139.6503,
-				address: prediction.description,
-				placeId: prediction.placeId,
+				address: prediction.text,
 			}
 		);
 	}, []);

@@ -26,12 +26,3 @@ export interface Topic {
 	dishItemsPromise: Promise<DishMediaEntry[]>;
 	isHidden?: boolean;
 }
-
-export interface GooglePlacesPrediction {
-	placeId: string;
-	description: string;
-	structured_formatting: {
-		main_text: string;
-		secondary_text: string;
-	};
-}

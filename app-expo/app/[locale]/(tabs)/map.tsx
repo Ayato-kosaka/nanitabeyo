@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MapPin, Search, Navigation, Camera, DollarSign, Star, Calendar, X, Plus } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
-import { GooglePlacesPrediction } from "@/types/search";
+import type { Place } from "@shared/api/v1/res";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
@@ -87,7 +87,7 @@ export default function MapScreen() {
 		openRestaurantModal();
 	};
 
-	const handleSearchSelect = async (prediction: GooglePlacesPrediction) => {
+	const handleSearchSelect = async (prediction: Place) => {
 		lightImpact();
 		try {
 			const location = await getLocationDetails(prediction);
@@ -221,11 +221,11 @@ export default function MapScreen() {
 					<View style={styles.suggestionsContainer}>
 						<FlatList
 							data={suggestions}
-							keyExtractor={(item) => item.placeId}
+							keyExtractor={(item) => item.place_id}
 							renderItem={({ item }) => (
 								<TouchableOpacity style={styles.suggestionItem} onPress={() => handleSearchSelect(item)}>
 									<MapPin size={16} color="#666" />
-									<Text style={styles.suggestionText}>{item.description}</Text>
+									<Text style={styles.suggestionText}>{item.text}</Text>
 								</TouchableOpacity>
 							)}
 						/>
