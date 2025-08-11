@@ -1,38 +1,76 @@
 import { useState, useCallback } from "react";
 import { GooglePlacesPrediction, SearchLocation } from "@/types/search";
 import { mockGooglePlacesPredictions } from "@/data/searchMockData";
+import { useAPICall } from "@/hooks/useAPICall";
+import { useLocale } from "@/hooks/useLocale";
+import type { QueryAutocompleteLocationsDto } from "@shared/api/v1/dto";
+import type { AutocompleteLocationsResponse } from "@shared/api/v1/res";
+
+/**
+ * Converts API Place objects to GooglePlacesPrediction objects for frontend compatibility
+ */
+const convertApiPlacesToPredictions = (places: AutocompleteLocationsResponse): GooglePlacesPrediction[] => {
+	return places.map((place) => ({
+		placeId: place.place_id,
+		description: place.text,
+		structured_formatting: {
+			main_text: place.mainText,
+			secondary_text: place.secondaryText,
+		},
+	}));
+};
 
 export const useLocationSearch = () => {
 	const [suggestions, setSuggestions] = useState<GooglePlacesPrediction[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
+	const { callBackend } = useAPICall();
+	const locale = useLocale();
 
-	const searchLocations = useCallback(async (query: string) => {
-		if (query.length < 2) {
-			setSuggestions([]);
-			return;
-		}
+	const searchLocations = useCallback(
+		async (query: string) => {
+			if (query.length < 2) {
+				setSuggestions([]);
+				return;
+			}
 
-		setIsSearching(true);
+			setIsSearching(true);
 
-		try {
-			// Simulate API delay
-			await new Promise((resolve) => setTimeout(resolve, 300));
+			try {
+				// Call the real API endpoint
+				const placesResponse = await callBackend<QueryAutocompleteLocationsDto, AutocompleteLocationsResponse>(
+					"v1/locations/autocomplete",
+					{
+						method: "GET",
+						requestPayload: {
+							q: query,
+							languageCode: locale,
+						},
+					},
+				);
 
-			// Filter mock data based on query
-			const filtered = mockGooglePlacesPredictions.filter(
-				(prediction) =>
-					prediction.description.toLowerCase().includes(query.toLowerCase()) ||
-					prediction.structured_formatting.main_text.toLowerCase().includes(query.toLowerCase()),
-			);
+				// Convert API response to frontend format
+				const predictions = convertApiPlacesToPredictions(placesResponse);
+				setSuggestions(predictions);
 
-			setSuggestions(filtered);
-		} catch (error) {
-			console.error("Location search error:", error);
-			setSuggestions([]);
-		} finally {
-			setIsSearching(false);
-		}
-	}, []);
+				// Keep mock implementation as fallback (commented out as requested)
+				// // Simulate API delay
+				// await new Promise((resolve) => setTimeout(resolve, 300));
+				// // Filter mock data based on query
+				// const filtered = mockGooglePlacesPredictions.filter(
+				// 	(prediction) =>
+				// 		prediction.description.toLowerCase().includes(query.toLowerCase()) ||
+				// 		prediction.structured_formatting.main_text.toLowerCase().includes(query.toLowerCase()),
+				// );
+				// setSuggestions(filtered);
+			} catch (error) {
+				console.error("Location search error:", error);
+				setSuggestions([]);
+			} finally {
+				setIsSearching(false);
+			}
+		},
+		[callBackend, locale],
+	);
 
 	const getLocationDetails = useCallback(async (prediction: GooglePlacesPrediction): Promise<SearchLocation> => {
 		// Mock location details - in real app, use Google Places Details API
