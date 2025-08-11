@@ -7,7 +7,8 @@ export interface SearchLocation {
 }
 
 export interface SearchParams {
-	location: string;
+	address: string;
+	location: string; // Keep for bulk-import API compatibility "lat,lng" format
 	timeSlot: "morning" | "lunch" | "afternoon" | "dinner" | "late_night";
 	scene?: "solo" | "date" | "group" | "large_group" | "tourism";
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
