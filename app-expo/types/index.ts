@@ -48,12 +48,3 @@ export interface ApiResponse<T> {
 	limit: number;
 	has_more: boolean;
 }
-
-export interface GooglePlacesPrediction {
-	place_id: string;
-	description: string;
-	structured_formatting: {
-		main_text: string;
-		secondary_text: string;
-	};
-}

@@ -24,7 +24,8 @@ import {
 	ChevronUp,
 } from "lucide-react-native";
 import { router } from "expo-router";
-import { SearchParams, SearchLocation, GooglePlacesPrediction } from "@/types/search";
+import { SearchParams, SearchLocation } from "@/types/search";
+import type { AutocompleteLocation } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
@@ -82,7 +83,7 @@ export default function SearchScreen() {
 		}
 	};
 
-	const handleLocationSelect = async (prediction: GooglePlacesPrediction) => {
+	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
 		try {
 			const locationDetails = await getLocationDetails(prediction);
@@ -179,12 +180,12 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
-	const renderLocationSuggestion = ({ item }: { item: GooglePlacesPrediction }) => (
+	const renderLocationSuggestion = ({ item }: { item: AutocompleteLocation }) => (
 		<TouchableOpacity style={styles.suggestionItem} onPress={() => handleLocationSelect(item)}>
 			<MapPin size={16} color="#666" />
 			<View style={styles.suggestionText}>
-				<Text style={styles.suggestionMain}>{item.structured_formatting.main_text}</Text>
-				<Text style={styles.suggestionSecondary}>{item.structured_formatting.secondary_text}</Text>
+				<Text style={styles.suggestionMain}>{item.mainText}</Text>
+				<Text style={styles.suggestionSecondary}>{item.secondaryText}</Text>
 			</View>
 		</TouchableOpacity>
 	);
@@ -234,7 +235,7 @@ export default function SearchScreen() {
 								<FlatList
 									data={suggestions}
 									renderItem={renderLocationSuggestion}
-									keyExtractor={(item) => item.placeId}
+									keyExtractor={(item) => item.place_id}
 									style={styles.suggestionsList}
 									scrollEnabled={false}
 								/>
