@@ -40,9 +40,11 @@ WHERE {
     ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q30022 .
   }
 
-  # 英語ラベル
-  ?dish rdfs:label ?labelEN .
-  FILTER (LANG(?labelEN) = "en")
+  # 英語ラベル（オプショナル）
+  OPTIONAL {
+    ?dish rdfs:label ?labelEN .
+    FILTER (LANG(?labelEN) = "en")
+  }
 
   # 画像
   OPTIONAL { ?dish wdt:P18 ?image . }
