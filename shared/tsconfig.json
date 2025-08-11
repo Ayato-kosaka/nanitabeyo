@@ -9,5 +9,13 @@
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true
 	},
-	"include": ["scripts/**/*", "types/**/*", "api/**/*", "converters/**/*", "utils/**/*", "supabase/**/*"]
+	"include": [
+		"scripts/**/*",
+		"types/**/*",
+		"api/**/*",
+		"converters/**/*",
+		"utils/**/*",
+		"supabase/**/*",
+		"remoteConfig/**/*"
+	]
 }

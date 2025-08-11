@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Linking, Platform } from "react-native";
-import { BaseResponse } from "@shared/api/v1/res";
+import type { BaseResponse } from "@shared/api/v1/res";
 
 /**
  * ☁️ API 呼び出しフック
