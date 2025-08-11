@@ -13,9 +13,8 @@ export interface SearchParams {
 	scene?: "solo" | "date" | "group" | "large_group" | "tourism";
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
 	restrictions: string[];
-	distance: number; // Keep for bulk-import API compatibility (meters)
-	budgetMin: number | undefined; // null for no minimum
-	budgetMax: number | undefined; // null for no maximum
+	distance: number; // meters
+	priceLevels: number[]; // price levels [0,1,2,3,4]
 }
 
 export interface Topic {

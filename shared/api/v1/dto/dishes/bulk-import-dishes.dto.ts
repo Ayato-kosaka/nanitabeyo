@@ -1,4 +1,4 @@
-import { IsNumber, IsString, IsUUID, Matches } from "@nestjs/class-validator";
+import { IsNumber, IsString, IsUUID, Matches, IsArray, Min, Max, Length, IsIn } from "@nestjs/class-validator";
 import { Type } from "@nestjs/class-transformer";
 
 /** POST /v1/dishes/bulk-import のボディ */
@@ -19,4 +19,23 @@ export class BulkImportDishesDto {
 	/** dish_categories.name */
 	@IsString()
 	categoryName!: string;
+
+	/** 最小評価 (0〜5, 0.5刻み) */
+	@Type(() => Number)
+	@IsNumber()
+	@Min(0)
+	@Max(5)
+	minRating!: number;
+
+	/** 言語コード (2〜5文字) */
+	@IsString()
+	@Length(2, 5)
+	languageCode!: string;
+
+	/** 価格レベル配列 (2: INEXPENSIVE, 3: MODERATE, 4: EXPENSIVE, 5: VERY_EXPENSIVE) */
+	@IsArray()
+	@IsNumber({}, { each: true })
+	@IsIn([2, 3, 4, 5], { each: true })
+	@Type(() => Number)
+	priceLevels!: number[];
 }

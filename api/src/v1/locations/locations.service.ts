@@ -29,21 +29,21 @@ export class LocationsService {
   /**
    * Google Maps Text Search API を使用してレストランを検索
    */
-  async searchRestaurants(
-    location: string,
-    radius: number,
-    dishCategoryName: string,
-  ): Promise<google.maps.places.v1.ISearchTextResponse> {
-    const [lat, lng] = location.split(',').map(Number);
+  async searchRestaurants(params: {
+    location: string;
+    radius: number;
+    dishCategoryName: string;
+    minRating?: number;
+    languageCode?: string;
+    priceLevels?: number[];
+    pageSize?: number;
+  }): Promise<google.maps.places.v1.ISearchTextResponse> {
+    const [lat, lng] = params.location.split(',').map(Number);
 
-    this.logger.debug('GoogleMapsTextSearch', 'searchRestaurants', {
-      location: `${lat},${lng}`,
-      radius,
-      category: dishCategoryName,
-    });
+    this.logger.debug('GoogleMapsTextSearch', 'searchRestaurants', params);
 
     // カテゴリに基づく検索クエリを構築
-    const query = dishCategoryName;
+    const query = params.dishCategoryName;
 
     const startTime = Date.now();
     const requestPayload: protos.google.maps.places.v1.ISearchTextRequest = {
@@ -51,9 +51,17 @@ export class LocationsService {
       locationBias: {
         circle: {
           center: { latitude: lat, longitude: lng },
-          radius,
+          radius: params.radius,
         },
       },
+      ...(params.pageSize && { pageSize: params.pageSize }),
+      ...(params.minRating && { minRating: params.minRating }),
+      ...(params.languageCode && { languageCode: params.languageCode }),
+      ...(params.priceLevels && {
+        priceLevels: params.priceLevels
+          .map((level) => this.numberToPriceLevel(level))
+          .filter((level) => level !== undefined),
+      }),
     };
 
     try {
@@ -116,9 +124,9 @@ export class LocationsService {
 
       this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
-        location,
-        radius,
-        category: dishCategoryName,
+        location: params.location,
+        radius: params.radius,
+        category: params.dishCategoryName,
       });
 
       throw error;
@@ -128,9 +136,7 @@ export class LocationsService {
   /**
    * 写真の参照を使用して、Google Places API から写真の URI を取得
    */
-  async getPhotoMedia(
-    photoRef: string,
-  ): Promise<{ photoUri: string; buffer: Buffer } | null> {
+  async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
     const startTime = Date.now();
     const photoName = photoRef.endsWith('/media')
       ? photoRef
@@ -160,18 +166,10 @@ export class LocationsService {
         error_message: null,
       });
 
-      // IPhotoMedia から実際のバイナリデータを取得
-      // Note: 実際のバイナリデータ取得はresponse内のphotoUriを使って追加のHTTP呼び出しが必要な場合があります
       if (response.photoUri) {
-        // photoUriから実際の画像データを取得
-        const imageResponse = await fetch(response.photoUri);
-        if (imageResponse.ok) {
-          const arrayBuffer = await imageResponse.arrayBuffer();
-          return {
-            photoUri: response.photoUri,
-            buffer: Buffer.from(arrayBuffer),
-          };
-        }
+        return {
+          photoUri: response.photoUri,
+        };
       }
 
       return null;
@@ -196,6 +194,36 @@ export class LocationsService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
 
+      throw error;
+    }
+  }
+
+  /**
+   * 写真URIから実際のバイナリデータをダウンロード（非同期ジョブ用）
+   */
+  async downloadPhotoData(photoUri: string): Promise<{ data: Buffer }> {
+    try {
+      // Google Maps Photo API から実際のバイナリデータを取得
+      // 注: 実際の実装では HTTP クライアントを使用して photoUri から画像をダウンロード
+      const response = await fetch(photoUri);
+      if (!response.ok) {
+        throw new Error(`Failed to download photo: ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      this.logger.debug('PhotoDataDownloaded', 'downloadPhotoData', {
+        photoUri,
+        dataSize: buffer.length,
+      });
+
+      return { data: buffer };
+    } catch (error) {
+      this.logger.error('PhotoDataDownloadError', 'downloadPhotoData', {
+        photoUri,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       throw error;
     }
   }
@@ -305,6 +333,27 @@ export class LocationsService {
     }
 
     return undefined;
+  }
+
+  /**
+   * number を Google Maps PriceLevel enum に変換
+   */
+  private numberToPriceLevel(
+    level: number,
+  ): protos.google.maps.places.v1.PriceLevel | undefined {
+    switch (level) {
+      case 2:
+        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_INEXPENSIVE;
+      case 3:
+        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_MODERATE;
+      case 4:
+        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_EXPENSIVE;
+      case 5:
+        return protos.google.maps.places.v1.PriceLevel
+          .PRICE_LEVEL_VERY_EXPENSIVE;
+      default:
+        return undefined;
+    }
   }
 
   /**

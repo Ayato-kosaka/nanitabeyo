@@ -18,14 +18,14 @@ import { LoggerModule } from '../logger/logger.module';
           env.API_NODE_ENV === 'production'
             ? {}
             : {
-                projectId: env.GCS_DEV_PROJECT_ID,
-                credentials: JSON.parse(
-                  Buffer.from(
-                    env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
-                    'base64',
-                  ).toString('utf-8'),
-                ),
-              };
+              projectId: env.GCP_PROJECT,
+              credentials: JSON.parse(
+                Buffer.from(
+                  env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
+                  'base64',
+                ).toString('utf-8'),
+              ),
+            };
         return new Storage(opts);
       },
     },
@@ -33,4 +33,4 @@ import { LoggerModule } from '../logger/logger.module';
   ],
   exports: [StorageService],
 })
-export class StorageModule {}
+export class StorageModule { }
