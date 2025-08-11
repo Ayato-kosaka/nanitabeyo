@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MapPin, Search, Navigation, Camera, DollarSign, Star, Calendar, X, Plus } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
-import type { Place } from "@shared/api/v1/res";
+import type { AutocompleteLocation } from "@shared/api/v1/res";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
@@ -87,7 +87,7 @@ export default function MapScreen() {
 		openRestaurantModal();
 	};
 
-	const handleSearchSelect = async (prediction: Place) => {
+	const handleSearchSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
 		try {
 			const location = await getLocationDetails(prediction);

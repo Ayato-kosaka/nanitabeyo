@@ -1,8 +1,8 @@
 import { Topic } from "@/types/search";
 import type { DishMediaEntry } from "@shared/api/v1/res";
-import type { Place } from "@shared/api/v1/res";
+import type { AutocompleteLocation } from "@shared/api/v1/res";
 
-export const mockPlacePredictions: Place[] = [
+export const mockPlacePredictions: AutocompleteLocation[] = [
 	{
 		place_id: "place_1",
 		text: "渋谷駅, 東京都渋谷区",

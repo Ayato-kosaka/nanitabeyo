@@ -25,7 +25,7 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams, SearchLocation } from "@/types/search";
-import type { Place } from "@shared/api/v1/res";
+import type { AutocompleteLocation } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
@@ -91,7 +91,7 @@ export default function SearchScreen() {
 		}
 	};
 
-	const handleLocationSelect = async (prediction: Place) => {
+	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
 		try {
 			const locationDetails = await getLocationDetails(prediction);
@@ -190,7 +190,7 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
-	const renderLocationSuggestion = ({ item }: { item: Place }) => (
+	const renderLocationSuggestion = ({ item }: { item: AutocompleteLocation }) => (
 		<TouchableOpacity style={styles.suggestionItem} onPress={() => handleLocationSelect(item)}>
 			<MapPin size={16} color="#666" />
 			<View style={styles.suggestionText}>

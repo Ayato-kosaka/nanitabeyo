@@ -4,10 +4,10 @@ import { mockPlacePredictions } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryAutocompleteLocationsDto } from "@shared/api/v1/dto";
-import type { AutocompleteLocationsResponse, Place } from "@shared/api/v1/res";
+import type { AutocompleteLocationsResponse, AutocompleteLocation } from "@shared/api/v1/res";
 
 export const useLocationSearch = () => {
-	const [suggestions, setSuggestions] = useState<Place[]>([]);
+	const [suggestions, setSuggestions] = useState<AutocompleteLocation[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const { callBackend } = useAPICall();
 	const locale = useLocale();
@@ -57,7 +57,7 @@ export const useLocationSearch = () => {
 		[callBackend, locale],
 	);
 
-	const getLocationDetails = useCallback(async (prediction: Place): Promise<SearchLocation> => {
+	const getLocationDetails = useCallback(async (prediction: AutocompleteLocation): Promise<SearchLocation> => {
 		// Mock location details - in real app, use Google Places Details API
 		const mockLocations: Record<string, SearchLocation> = {
 			place_1: {
