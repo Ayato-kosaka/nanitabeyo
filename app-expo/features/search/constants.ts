@@ -41,28 +41,13 @@ export const distanceOptions = [
 	{ value: 20000, label: i18n.t("Search.distanceLabels.20km") },
 ];
 
-// Budget options in yen
-export const budgetOptions = [
-	{ value: undefined, label: "Search.labels.noMinBudget" },
-	{ value: 1000, label: `1,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 2000, label: `2,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 3000, label: `3,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 4000, label: `4,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 5000, label: `5,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 6000, label: `6,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 7000, label: `7,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 8000, label: `8,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 9000, label: `9,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 10000, label: `10,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 15000, label: `15,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 20000, label: `20,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 30000, label: `30,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 40000, label: `40,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 50000, label: `50,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 60000, label: `60,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 80000, label: `80,000${i18n.t("Search.currencySuffix")}` },
-	{ value: 100000, label: `100,000${i18n.t("Search.currencySuffix")}` },
-	{ value: undefined, label: "Search.labels.noMaxBudget" },
+// Price level options (replaces budget options)
+export const priceLevelOptions = [
+	{ value: 0, label: "Search.priceLevels.free", icon: "🆓" },
+	{ value: 1, label: "Search.priceLevels.inexpensive", icon: "💰" },
+	{ value: 2, label: "Search.priceLevels.moderate", icon: "💰💰" },
+	{ value: 3, label: "Search.priceLevels.expensive", icon: "💰💰💰" },
+	{ value: 4, label: "Search.priceLevels.veryExpensive", icon: "💰💰💰💰" },
 ];
 
 export const restrictionOptions = [

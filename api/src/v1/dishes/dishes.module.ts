@@ -18,6 +18,7 @@ import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
 import { StorageModule } from 'src/core/storage/storage.module';
 import { LocationsModule } from '../locations/locations.module'; // Google Places API 連携
+import { RemoteConfigModule } from '../../core/remote-config/remote-config.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { LocationsModule } from '../locations/locations.module'; // Google Place
     StorageModule, // 画像アップロードなどのストレージサービス
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
     LocationsModule, // Google Places API 連携
+    RemoteConfigModule, // Remote Config サービス
   ],
   controllers: [DishesController],
   providers: [DishesService, DishesRepository],

@@ -28,16 +28,9 @@ import { SearchParams, SearchLocation, GooglePlacesPrediction } from "@/types/se
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
-import {
-	timeSlots,
-	sceneOptions,
-	moodOptions,
-	distanceOptions,
-	budgetOptions,
-	restrictionOptions,
-} from "@/features/search/constants";
+import { timeSlots, sceneOptions, moodOptions, distanceOptions, restrictionOptions } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
-import { BudgetSlider } from "@/features/search/components/BudgetSlider";
+import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -54,8 +47,7 @@ export default function SearchScreen() {
 	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
-	const [budgetMin, setBudgetMin] = useState<number | undefined>(undefined);
-	const [budgetMax, setBudgetMax] = useState<number | undefined>(undefined);
+	const [priceLevels, setPriceLevels] = useState<number[]>([0, 1, 2, 3, 4]); // Default all selected
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const {
@@ -137,8 +129,7 @@ export default function SearchScreen() {
 				mood,
 				restrictions,
 				distance,
-				budgetMin,
-				budgetMax,
+				priceLevels,
 			};
 
 			// Navigate to cards screen with search parameters
@@ -156,16 +147,14 @@ export default function SearchScreen() {
 		}
 	};
 
-	const formatBudgetRange = () => {
-		const minLabel =
-			budgetMin === undefined
-				? i18n.t("Search.labels.noMinBudget")
-				: `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
-		const maxLabel =
-			budgetMax === undefined
-				? i18n.t("Search.labels.noMaxBudget")
-				: `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
-		return `${minLabel} 〜 ${maxLabel}`;
+	const formatPriceLevelsDisplay = () => {
+		if (priceLevels.length === 0) {
+			return i18n.t("Search.priceLevels.none");
+		}
+		if (priceLevels.length === 5) {
+			return i18n.t("Search.priceLevels.all");
+		}
+		return i18n.t("Search.priceLevels.selected", { count: priceLevels.length });
 	};
 
 	// Wrapper functions for haptic feedback
@@ -343,20 +332,15 @@ export default function SearchScreen() {
 							</View>
 						</Card>
 
-						{/* Budget */}
+						{/* Price Levels */}
 						<Card>
 							<View style={styles.sectionHeader}>
 								<DollarSign size={20} color="#5EA2FF" />
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.priceLevels")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
-								<Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
-								<BudgetSlider
-									budgetMin={budgetMin}
-									budgetMax={budgetMax}
-									setBudgetMin={setBudgetMin}
-									setBudgetMax={setBudgetMax}
-								/>
+								<Text style={styles.sliderValue}>{formatPriceLevelsDisplay()}</Text>
+								<PriceLevelsMultiSelect selectedPriceLevels={priceLevels} onPriceLevelsChange={setPriceLevels} />
 							</View>
 						</Card>
 

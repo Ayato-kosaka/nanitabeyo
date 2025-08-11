@@ -33,6 +33,12 @@ export class LocationsService {
     location: string,
     radius: number,
     dishCategoryName: string,
+    options?: {
+      minRating?: number;
+      languageCode?: string;
+      priceLevels?: number[];
+      pageSize?: number;
+    },
   ): Promise<google.maps.places.v1.ISearchTextResponse> {
     const [lat, lng] = location.split(',').map(Number);
 
@@ -40,6 +46,7 @@ export class LocationsService {
       location: `${lat},${lng}`,
       radius,
       category: dishCategoryName,
+      options,
     });
 
     // カテゴリに基づく検索クエリを構築
@@ -54,6 +61,14 @@ export class LocationsService {
           radius,
         },
       },
+      ...(options?.pageSize && { pageSize: options.pageSize }),
+      ...(options?.minRating && { minRating: options.minRating }),
+      ...(options?.languageCode && { languageCode: options.languageCode }),
+      ...(options?.priceLevels && {
+        priceLevels: options.priceLevels
+          .map((level) => this.numberToPriceLevel(level))
+          .filter(Boolean),
+      }),
     };
 
     try {
@@ -128,9 +143,7 @@ export class LocationsService {
   /**
    * 写真の参照を使用して、Google Places API から写真の URI を取得
    */
-  async getPhotoMedia(
-    photoRef: string,
-  ): Promise<{ photoUri: string; buffer: Buffer } | null> {
+  async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
     const startTime = Date.now();
     const photoName = photoRef.endsWith('/media')
       ? photoRef
@@ -160,18 +173,11 @@ export class LocationsService {
         error_message: null,
       });
 
-      // IPhotoMedia から実際のバイナリデータを取得
-      // Note: 実際のバイナリデータ取得はresponse内のphotoUriを使って追加のHTTP呼び出しが必要な場合があります
+      // IPhotoMediaUri から photoUri のみを返却（バイナリ取得は非同期ジョブで実行）
       if (response.photoUri) {
-        // photoUriから実際の画像データを取得
-        const imageResponse = await fetch(response.photoUri);
-        if (imageResponse.ok) {
-          const arrayBuffer = await imageResponse.arrayBuffer();
-          return {
-            photoUri: response.photoUri,
-            buffer: Buffer.from(arrayBuffer),
-          };
-        }
+        return {
+          photoUri: response.photoUri,
+        };
       }
 
       return null;
@@ -305,6 +311,26 @@ export class LocationsService {
     }
 
     return undefined;
+  }
+
+  /**
+   * number を Google Maps PriceLevel enum に変換
+   */
+  private numberToPriceLevel(level: number): string | undefined {
+    switch (level) {
+      case 0:
+        return 'PRICE_LEVEL_FREE';
+      case 1:
+        return 'PRICE_LEVEL_INEXPENSIVE';
+      case 2:
+        return 'PRICE_LEVEL_MODERATE';
+      case 3:
+        return 'PRICE_LEVEL_EXPENSIVE';
+      case 4:
+        return 'PRICE_LEVEL_VERY_EXPENSIVE';
+      default:
+        return undefined;
+    }
   }
 
   /**

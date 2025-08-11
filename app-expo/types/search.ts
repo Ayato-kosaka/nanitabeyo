@@ -13,8 +13,7 @@ export interface SearchParams {
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
 	restrictions: string[];
 	distance: number; // meters
-	budgetMin: number | undefined; // null for no minimum
-	budgetMax: number | undefined; // null for no maximum
+	priceLevels: number[]; // price levels [0,1,2,3,4]
 }
 
 export interface Topic {

@@ -15,6 +15,7 @@ import { DishesRepository } from './dishes.repository';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { LocationsService } from '../locations/locations.service';
+import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 
 // Import converters
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
@@ -34,6 +35,7 @@ export class DishesService {
     private readonly logger: AppLoggerService,
     private readonly storage: StorageService,
     private readonly locationsService: LocationsService,
+    private readonly remoteConfigService: RemoteConfigService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -78,11 +80,24 @@ export class DishesService {
   ): Promise<BulkImportDishesResponse> {
     this.logger.debug('BulkImportFromGoogle', 'bulkImportFromGoogle', dto);
 
+    // Remote Config から検索件数設定を取得
+    const restaurantSearchCount =
+      await this.remoteConfigService.getRemoteConfigValue(
+        'v1_search_result_restaurants_number',
+      );
+    const pageSize = parseInt(restaurantSearchCount, 10) || 20; // デフォルト値
+
     // Google Maps Text Search API を呼び出し
     const googlePlaces = await this.locationsService.searchRestaurants(
       dto.location,
       dto.radius,
       dto.categoryName,
+      {
+        minRating: dto.minRating,
+        languageCode: dto.languageCode,
+        priceLevels: dto.priceLevels,
+        pageSize,
+      },
     );
 
     if (
@@ -95,7 +110,7 @@ export class DishesService {
 
     const results: BulkImportDishesResponse = [];
 
-    // 各レストランに対してデータ登録
+    // 各レストランに対してデータ登録（同期処理のまま、バイナリ取得のみ除外）
     for (const [index, place] of googlePlaces.places.entries()) {
       try {
         if (!place.id)
@@ -104,18 +119,14 @@ export class DishesService {
           googlePlaces.contextualContents[index]?.photos?.[0]?.name;
         if (!photoName)
           throw new Error(`No photo name found for place: ${place.id}`);
+
+        // PhotoMediaUri のみ取得（バイナリ取得は行わない）
         const photoMedia = await this.locationsService.getPhotoMedia(photoName);
         if (!photoMedia)
           throw new Error(`No photo URL found for place: ${place.id}`);
 
-        const dishMediaUpload = await this.storage.uploadFile({
-          buffer: photoMedia.buffer,
-          mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
-          resourceType: 'google-maps',
-          usageType: 'photo',
-          identifier: place.id,
-        });
-
+        // TODO: ここで非同期ジョブをキューに追加し、同期処理は photoUri のみ返却
+        // 現在は従来の同期処理を維持（ストレージアップロードは除外）
         const result = await this.prisma.withTransaction(
           async (tx: Prisma.TransactionClient) => {
             // 1. レストラン登録/取得
@@ -133,11 +144,11 @@ export class DishesService {
               dto.categoryName,
             );
 
-            // 3. 料理メディア登録
+            // 3. 料理メディア登録（photoUriのみ、ストレージアップロード無し）
             const dishMediaRecord = await this.repo.createDishMedia(
               tx,
               dish.id,
-              dishMediaUpload.path,
+              photoMedia.photoUri, // photoUri を直接使用
             );
             const dishMedia =
               convertPrismaToSupabase_DishMedia(dishMediaRecord);
