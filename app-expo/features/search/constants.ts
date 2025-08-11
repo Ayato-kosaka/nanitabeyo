@@ -41,13 +41,12 @@ export const distanceOptions = [
 	{ value: 20000, label: i18n.t("Search.distanceLabels.20km") },
 ];
 
-// Price level options (replaces budget options)
+// Price level options (Google Maps PriceLevel enum compliant, excluding FREE)
 export const priceLevelOptions = [
-	{ value: 0, label: "Search.priceLevels.free", icon: "🆓" },
-	{ value: 1, label: "Search.priceLevels.inexpensive", icon: "💰" },
-	{ value: 2, label: "Search.priceLevels.moderate", icon: "💰💰" },
-	{ value: 3, label: "Search.priceLevels.expensive", icon: "💰💰💰" },
-	{ value: 4, label: "Search.priceLevels.veryExpensive", icon: "💰💰💰💰" },
+	{ value: 2, label: "Search.priceLevels.inexpensive", icon: "💰" },
+	{ value: 3, label: "Search.priceLevels.moderate", icon: "💰💰" },
+	{ value: 4, label: "Search.priceLevels.expensive", icon: "💰💰💰" },
+	{ value: 5, label: "Search.priceLevels.veryExpensive", icon: "💰💰💰💰" },
 ];
 
 export const restrictionOptions = [

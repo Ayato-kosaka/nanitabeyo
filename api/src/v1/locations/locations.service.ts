@@ -29,28 +29,26 @@ export class LocationsService {
   /**
    * Google Maps Text Search API を使用してレストランを検索
    */
-  async searchRestaurants(
-    location: string,
-    radius: number,
-    dishCategoryName: string,
-    options?: {
-      minRating?: number;
-      languageCode?: string;
-      priceLevels?: number[];
-      pageSize?: number;
-    },
-  ): Promise<google.maps.places.v1.ISearchTextResponse> {
-    const [lat, lng] = location.split(',').map(Number);
+  async searchRestaurants(params: {
+    location: string;
+    radius: number;
+    dishCategoryName: string;
+    minRating?: number;
+    languageCode?: string;
+    priceLevels?: number[];
+    pageSize?: number;
+  }): Promise<google.maps.places.v1.ISearchTextResponse> {
+    const [lat, lng] = params.location.split(',').map(Number);
 
     this.logger.debug('GoogleMapsTextSearch', 'searchRestaurants', {
       location: `${lat},${lng}`,
-      radius,
-      category: dishCategoryName,
-      options,
+      radius: params.radius,
+      category: params.dishCategoryName,
+      params,
     });
 
     // カテゴリに基づく検索クエリを構築
-    const query = dishCategoryName;
+    const query = params.dishCategoryName;
 
     const startTime = Date.now();
     const requestPayload: protos.google.maps.places.v1.ISearchTextRequest = {
@@ -58,13 +56,17 @@ export class LocationsService {
       locationBias: {
         circle: {
           center: { latitude: lat, longitude: lng },
-          radius,
+          radius: params.radius,
         },
       },
-      ...(options?.pageSize && { pageSize: options.pageSize }),
-      ...(options?.minRating && { minRating: options.minRating }),
-      ...(options?.languageCode && { languageCode: options.languageCode }),
-      // TODO: price levels filtering - may need different Google API approach
+      ...(params.pageSize && { pageSize: params.pageSize }),
+      ...(params.minRating && { minRating: params.minRating }),
+      ...(params.languageCode && { languageCode: params.languageCode }),
+      ...(params.priceLevels && {
+        priceLevels: params.priceLevels
+          .map((level) => this.numberToPriceLevel(level))
+          .filter((level) => level !== undefined),
+      }),
     };
 
     try {
@@ -312,18 +314,19 @@ export class LocationsService {
   /**
    * number を Google Maps PriceLevel enum に変換
    */
-  private numberToPriceLevel(level: number): string | undefined {
+  private numberToPriceLevel(
+    level: number,
+  ): protos.google.maps.places.v1.PriceLevel | undefined {
     switch (level) {
-      case 0:
-        return 'PRICE_LEVEL_FREE';
-      case 1:
-        return 'PRICE_LEVEL_INEXPENSIVE';
       case 2:
-        return 'PRICE_LEVEL_MODERATE';
+        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_INEXPENSIVE;
       case 3:
-        return 'PRICE_LEVEL_EXPENSIVE';
+        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_MODERATE;
       case 4:
-        return 'PRICE_LEVEL_VERY_EXPENSIVE';
+        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_EXPENSIVE;
+      case 5:
+        return protos.google.maps.places.v1.PriceLevel
+          .PRICE_LEVEL_VERY_EXPENSIVE;
       default:
         return undefined;
     }

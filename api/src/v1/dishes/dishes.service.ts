@@ -85,20 +85,18 @@ export class DishesService {
       await this.remoteConfigService.getRemoteConfigValue(
         'v1_search_result_restaurants_number',
       );
-    const pageSize = parseInt(restaurantSearchCount, 10) || 20; // デフォルト値
+    const pageSize = parseInt(restaurantSearchCount, 10) || 5; // デフォルト値
 
     // Google Maps Text Search API を呼び出し
-    const googlePlaces = await this.locationsService.searchRestaurants(
-      dto.location,
-      dto.radius,
-      dto.categoryName,
-      {
-        minRating: dto.minRating,
-        languageCode: dto.languageCode,
-        priceLevels: dto.priceLevels,
-        pageSize,
-      },
-    );
+    const googlePlaces = await this.locationsService.searchRestaurants({
+      location: dto.location,
+      radius: dto.radius,
+      dishCategoryName: dto.categoryName,
+      minRating: dto.minRating,
+      languageCode: dto.languageCode,
+      priceLevels: dto.priceLevels,
+      pageSize,
+    });
 
     if (
       !googlePlaces ||
@@ -110,8 +108,8 @@ export class DishesService {
 
     const results: BulkImportDishesResponse = [];
 
-    // 各レストランに対してデータ登録（同期処理のまま、バイナリ取得のみ除外）
-    for (const [index, place] of googlePlaces.places.entries()) {
+    // 各レストランに対してデータ登録（並列処理）
+    const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
         if (!place.id)
           throw new Error(`Place ID is missing for place at index ${index}`);
@@ -125,8 +123,16 @@ export class DishesService {
         if (!photoMedia)
           throw new Error(`No photo URL found for place: ${place.id}`);
 
-        // TODO: ここで非同期ジョブをキューに追加し、同期処理は photoUri のみ返却
-        // 現在は従来の同期処理を維持（ストレージアップロードは除外）
+        // 非同期ジョブをキューに追加 (Storage upload, additional processing)
+        this.enqueueAsyncJob({
+          type: 'DISH_PROCESSING',
+          placeId: place.id!,
+          photoUri: photoMedia.photoUri,
+          categoryId: dto.categoryId,
+          categoryName: dto.categoryName,
+        });
+
+        // 同期処理: 基本データ登録のみ
         const result = await this.prisma.withTransaction(
           async (tx: Prisma.TransactionClient) => {
             // 1. レストラン登録/取得
@@ -190,15 +196,27 @@ export class DishesService {
           },
         );
 
-        results.push(result);
+        return result;
       } catch (error) {
         this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
           placeId: place.id,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        // 1つのレストランでエラーが起きても処理を続行
+        // エラーが発生した場合はnullを返す
+        return null;
       }
-    }
+    });
+
+    // 並列処理を実行
+    const processResults = await Promise.allSettled(processPromises);
+
+    // 成功した結果のみを抽出
+    const results = processResults
+      .filter(
+        (result): result is PromiseFulfilledResult<any> =>
+          result.status === 'fulfilled' && result.value !== null,
+      )
+      .map((result) => result.value);
 
     this.logger.log('BulkImportCompleted', 'bulkImportFromGoogle', {
       importedCount: results.length,
@@ -206,5 +224,28 @@ export class DishesService {
     });
 
     return results;
+  }
+
+  /**
+   * 非同期ジョブをキューに追加
+   * TODO: 実際のキューシステム (Bull, Agenda等) に置き換える
+   */
+  private enqueueAsyncJob(job: {
+    type: string;
+    placeId: string;
+    photoUri: string;
+    categoryId: string;
+    categoryName: string;
+  }): void {
+    // 現在は単純にログ出力のみ
+    // 実際の実装では Redis Queue, Bull Queue, Agenda などを使用
+    this.logger.log('AsyncJobEnqueued', 'enqueueAsyncJob', {
+      jobType: job.type,
+      placeId: job.placeId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // TODO: 実際のキューに追加
+    // await this.jobQueue.add(job.type, job);
   }
 }

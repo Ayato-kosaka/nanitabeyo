@@ -62,6 +62,15 @@
 			"noMinBudget": "لا حد أدنى",
 			"noMaxBudget": "لا حد أقصى"
 		},
+		"priceLevels": {
+			"inexpensive": "رخيص",
+			"moderate": "متوسط",
+			"expensive": "مكلف",
+			"veryExpensive": "مكلف جداً",
+			"none": "لم يتم الاختيار",
+			"all": "جميع النطاقات السعرية",
+			"selected": "{{count}} محدد"
+		},
 		"distanceLabels": {
 			"100m": "100م",
 			"300m": "300م",

@@ -32,10 +32,10 @@ export class BulkImportDishesDto {
 	@Length(2, 5)
 	languageCode!: string;
 
-	/** 価格レベル配列 (0: FREE, 1: INEXPENSIVE, 2: MODERATE, 3: EXPENSIVE, 4: VERY_EXPENSIVE) */
+	/** 価格レベル配列 (2: INEXPENSIVE, 3: MODERATE, 4: EXPENSIVE, 5: VERY_EXPENSIVE) */
 	@IsArray()
 	@IsNumber({}, { each: true })
-	@IsIn([0, 1, 2, 3, 4], { each: true })
+	@IsIn([2, 3, 4, 5], { each: true })
 	@Type(() => Number)
 	priceLevels!: number[];
 }

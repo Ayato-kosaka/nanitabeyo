@@ -46,7 +46,7 @@
 			"scene": "シーンは？",
 			"mood": "気分は？",
 			"distance": "距離は？",
-			"priceLevels": "価格帯は？",
+			"budget": "価格帯は？",
 			"restrictions": "制約条件"
 		},
 		"required": "必須",
@@ -63,7 +63,6 @@
 			"noMaxBudget": "上限なし"
 		},
 		"priceLevels": {
-			"free": "無料",
 			"inexpensive": "安い",
 			"moderate": "普通",
 			"expensive": "高い",
