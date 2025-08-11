@@ -1,12 +1,8 @@
-name: Cloud Tasks Infrastructure Setup
+name: Cloud Tasks Queue Creation
 
 on:
   workflow_dispatch:
     inputs:
-      gcp_project_id:
-        description: "GCP Project ID"
-        required: true
-        type: string
       tasks_location:
         description: "Cloud Tasks Location (e.g., asia-northeast1)"
         required: true
@@ -19,11 +15,11 @@ on:
       tasks_queue_name:
         description: "Cloud Tasks Queue Name"
         required: true
-        default: "bulk-import-queue"
+        default: "dish-que"
         type: string
 
 jobs:
-  setup-cloud-tasks:
+  create-queue:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,56 +34,9 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Verify GCP authentication
+      - name: Create Cloud Tasks Queue
         run: |
-          gcloud auth list
-          gcloud config list project
-
-      - name: Make infrastructure script executable
-        run: chmod +x infra/gcp/create_tasks_invoker_service_account.sh
-
-      - name: Setup Cloud Tasks infrastructure
-        run: |
-          ./infra/gcp/create_tasks_invoker_service_account.sh \
-            "${{ github.event.inputs.gcp_project_id }}" \
-            "${{ github.event.inputs.tasks_location }}" \
-            "${{ github.event.inputs.cloud_run_url }}"
-        working-directory: infra/gcp
-
-      - name: Verify queue creation
-        run: |
-          echo "🔍 Verifying Cloud Tasks queue creation..."
-          gcloud tasks queues describe "${{ github.event.inputs.tasks_queue_name }}" \
+          gcloud tasks queues create "${{ github.event.inputs.tasks_queue_name }}" \
             --location="${{ github.event.inputs.tasks_location }}" \
-            --project="${{ github.event.inputs.gcp_project_id }}" \
-            --format="table(name,state,rateLimits.maxConcurrentDispatches)"
-
-      - name: Verify service account creation
-        run: |
-          echo "🔍 Verifying service account creation..."
-          gcloud iam service-accounts describe \
-            "tasks-invoker@${{ github.event.inputs.gcp_project_id }}.iam.gserviceaccount.com" \
-            --project="${{ github.event.inputs.gcp_project_id }}" \
-            --format="table(email,displayName)"
-
-      - name: Display setup summary
-        run: |
-          echo "✅ Cloud Tasks Infrastructure Setup Complete!"
-          echo ""
-          echo "📋 Configuration Summary:"
-          echo "  Project ID: ${{ github.event.inputs.gcp_project_id }}"
-          echo "  Tasks Location: ${{ github.event.inputs.tasks_location }}"
-          echo "  Queue Name: ${{ github.event.inputs.tasks_queue_name }}"
-          echo "  Cloud Run URL: ${{ github.event.inputs.cloud_run_url }}"
-          echo "  Service Account: tasks-invoker@${{ github.event.inputs.gcp_project_id }}.iam.gserviceaccount.com"
-          echo ""
-          echo "🔧 Required Environment Variables for your Cloud Run service:"
-          echo "  GCP_PROJECT=${{ github.event.inputs.gcp_project_id }}"
-          echo "  TASKS_LOCATION=${{ github.event.inputs.tasks_location }}"
-          echo "  CLOUD_RUN_URL=${{ github.event.inputs.cloud_run_url }}"
-          echo "  TASKS_INVOKER_SA=tasks-invoker@${{ github.event.inputs.gcp_project_id }}.iam.gserviceaccount.com"
-          echo ""
-          echo "📝 Next Steps:"
-          echo "1. Update your Cloud Run service environment variables"
-          echo "2. Deploy your application with the new async architecture" 
-          echo "3. Test the /v1/dishes/bulk-import API endpoint"
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --quiet

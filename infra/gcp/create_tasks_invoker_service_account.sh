@@ -64,20 +64,8 @@ gcloud services enable \
   iam.googleapis.com \
   --project="${PROJECT_ID}" --quiet
 
-# ----- 2. Create Cloud Tasks Queue (if absent) --------------------------------
-echo "📋 Creating Cloud Tasks Queue (if not exists)…"
-if ! gcloud tasks queues describe "${QUEUE_NAME}" \
-  --location="${TASKS_LOCATION}" \
-  --project="${PROJECT_ID}" \
-  --quiet >/dev/null 2>&1; then
-  echo "✅ Creating queue: ${QUEUE_NAME}"
-  gcloud tasks queues create "${QUEUE_NAME}" \
-    --location="${TASKS_LOCATION}" \
-    --project="${PROJECT_ID}" \
-    --quiet
-else
-  echo "ℹ️  Queue already exists: ${QUEUE_NAME}. Skipping creation."
-fi
+# ----- 2. Queue creation is handled by cloudtasks-create-que.yml workflow ----
+echo "ℹ️  Cloud Tasks Queue creation is handled by GitHub workflow"
 
 # ----- 3. Create Service Account (if absent) ----------------------------------
 if ! gcloud iam service-accounts list \
