@@ -11,7 +11,6 @@ import {
   HttpCode, 
   HttpStatus,
   UseGuards,
-  Headers,
 } from '@nestjs/common';
 import { BulkImportJobPayload } from './bulk-import-job.interface';
 import { BulkImportExecutorService } from './bulk-import-executor.service';
@@ -41,15 +40,11 @@ export class BulkImportController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async executeBulkImport(
     @Body() payload: BulkImportJobPayload,
-    @Headers('authorization') authHeader?: string,
   ): Promise<void> {
     this.logger.debug('BulkImportExecuteStarted', 'executeBulkImport', {
       jobId: payload.jobId,
       idempotencyKey: payload.idempotencyKey,
-      photoUrisCount: payload.photoUris.length,
-      restaurantsCount: payload.restaurants.length,
-      dishesCount: payload.dishes.length,
-      authPresent: !!authHeader,
+      placesCount: payload.places.length,
     });
 
     try {

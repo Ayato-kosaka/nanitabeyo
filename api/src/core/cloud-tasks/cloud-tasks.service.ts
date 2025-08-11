@@ -1,6 +1,7 @@
 // api/src/core/cloud-tasks/cloud-tasks.service.ts
 //
-// Cloud Tasks クライアントラッパー
+// Cloud Tasks サービス（シンプル化）
+// 責務: bulk import ジョブのエンキューのみ
 //
 
 import { Injectable } from '@nestjs/common';
@@ -59,21 +60,6 @@ export class CloudTasksService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
-    }
-  }
-
-  /**
-   * キューのヘルスチェック
-   */
-  async checkQueueHealth(): Promise<boolean> {
-    try {
-      const [queue] = await this.client.getQueue({ name: this.queuePath });
-      return queue.state === 'RUNNING';
-    } catch (error) {
-      this.logger.error('QueueHealthCheckError', 'checkQueueHealth', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      return false;
     }
   }
 }
