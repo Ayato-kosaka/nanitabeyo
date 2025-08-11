@@ -22,6 +22,11 @@ const envSchema = z.object({
   GOOGLE_SEARCH_ENGINE_ID: z.string(),
   GCS_DEV_PROJECT_ID: z.string().optional(),
   GCS_DEV_SERVICE_ACCOUNT_BASE64: z.string().optional(),
+  // Cloud Tasks configuration for async job processing
+  GCP_PROJECT: z.string(),
+  TASKS_LOCATION: z.string(),
+  CLOUD_RUN_URL: z.string(),
+  TASKS_INVOKER_SA: z.string(),
 });
 
 /**

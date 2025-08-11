@@ -16,7 +16,7 @@ import { DishesRepository } from './dishes.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
-import { StorageModule } from 'src/core/storage/storage.module';
+import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module'; // Cloud Tasks サービス
 import { LocationsModule } from '../locations/locations.module'; // Google Places API 連携
 import { RemoteConfigModule } from '../../core/remote-config/remote-config.module';
 
@@ -24,7 +24,7 @@ import { RemoteConfigModule } from '../../core/remote-config/remote-config.modul
   imports: [
     PrismaModule, // DB アクセス
     LoggerModule, // アプリ共通 Logger
-    StorageModule, // 画像アップロードなどのストレージサービス
+    CloudTasksModule, // Cloud Tasks によるジョブキュー
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
     LocationsModule, // Google Places API 連携
     RemoteConfigModule, // Remote Config サービス

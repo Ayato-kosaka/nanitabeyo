@@ -205,6 +205,36 @@ export class LocationsService {
   }
 
   /**
+   * 写真URIから実際のバイナリデータをダウンロード（非同期ジョブ用）
+   */
+  async downloadPhotoData(photoUri: string): Promise<{ data: Buffer }> {
+    try {
+      // Google Maps Photo API から実際のバイナリデータを取得
+      // 注: 実際の実装では HTTP クライアントを使用して photoUri から画像をダウンロード
+      const response = await fetch(photoUri);
+      if (!response.ok) {
+        throw new Error(`Failed to download photo: ${response.status}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      this.logger.debug('PhotoDataDownloaded', 'downloadPhotoData', {
+        photoUri,
+        dataSize: buffer.length,
+      });
+      
+      return { data: buffer };
+    } catch (error) {
+      this.logger.error('PhotoDataDownloadError', 'downloadPhotoData', {
+        photoUri,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Google Places API Autocomplete を使用して地名候補を取得
    */
   async autocompleteLocations(
