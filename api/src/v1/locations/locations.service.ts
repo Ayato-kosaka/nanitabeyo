@@ -6,24 +6,18 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { PlacesClient, protos } from '@googlemaps/places';
-import { env } from '../../core/config/env';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { AutocompleteLocationsResponse } from '@shared/v1/res';
 import { google } from '@googlemaps/places/build/protos/protos';
-import { last } from 'rxjs';
 import { QueryAutocompleteLocationsDto } from '@shared/v1/dto';
+import { ExternalApiService } from 'src/core/external-api/external-api.service';
+import { protos } from '@googlemaps/places';
 
 @Injectable()
 export class LocationsService {
-  private readonly placesClient: PlacesClient;
 
-  constructor(private readonly logger: AppLoggerService) {
-    // Initialize PlacesClient with API key authentication
-    this.placesClient = new PlacesClient({
-      apiKey: env.GOOGLE_PLACE_API_KEY,
-      fallback: true, // Use REST API instead of gRPC
-    });
+  constructor(private readonly logger: AppLoggerService,
+    private readonly externalApiService: ExternalApiService,) {
   }
 
   /**
@@ -45,7 +39,6 @@ export class LocationsService {
     // カテゴリに基づく検索クエリを構築
     const query = params.dishCategoryName;
 
-    const startTime = Date.now();
     const requestPayload: protos.google.maps.places.v1.ISearchTextRequest = {
       textQuery: query,
       locationBias: {
@@ -65,30 +58,10 @@ export class LocationsService {
     };
 
     try {
-      // PlacesClient を使用してテキスト検索
-      const [response] = await this.placesClient.searchText(requestPayload, {
-        otherArgs: {
-          headers: {
-            'X-Goog-FieldMask':
-              'places.id,places.name,places.location,places.reviews,contextualContents.photos.name,contextualContents.reviews',
-          },
-        },
-      });
-
-      const responseTime = Date.now() - startTime;
-
-      // 外部API呼び出しログを記録
-      await this.logger.externalApi({
-        function_name: 'searchRestaurants',
-        api_name: 'Google Places Text Search API',
-        endpoint: 'places.searchText',
-        method: 'POST',
-        request_payload: JSON.stringify(requestPayload),
-        response_payload: JSON.stringify(response),
-        status_code: 200,
-        response_time_ms: responseTime,
-        error_message: null,
-      });
+      const response = await this.externalApiService.callPlaceSearchText(
+        'places.id,places.name,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.authorAttribution',
+        requestPayload
+      );
 
       if (!response.places || response.places.length === 0) {
         this.logger.debug(
@@ -107,21 +80,6 @@ export class LocationsService {
 
       return response;
     } catch (error) {
-      const responseTime = Date.now() - startTime;
-
-      // エラー時も外部API呼び出しログを記録
-      await this.logger.externalApi({
-        function_name: 'searchRestaurants',
-        api_name: 'Google Places Text Search API',
-        endpoint: 'places.searchText',
-        method: 'POST',
-        request_payload: JSON.stringify(requestPayload),
-        response_payload: null,
-        status_code: 500,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        response_time_ms: responseTime,
-      });
-
       this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         location: params.location,
@@ -137,63 +95,22 @@ export class LocationsService {
    * 写真の参照を使用して、Google Places API から写真の URI を取得
    */
   async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
-    const startTime = Date.now();
-    const photoName = photoRef.endsWith('/media')
-      ? photoRef
-      : `${photoRef}/media`;
-    const requestPayload = {
-      name: photoName,
-      maxWidthPx: 800,
-      skipHttpRedirect: true,
-    };
-
     try {
-      // PlacesClient を使用して写真メディアを取得
-      const [response] = await this.placesClient.getPhotoMedia(requestPayload);
+      const result = await this.externalApiService.getPhotoMedia(photoRef);
 
-      const responseTime = Date.now() - startTime;
-
-      // 外部API呼び出しログを記録
-      await this.logger.externalApi({
-        function_name: 'getPhotoMedia',
-        api_name: 'Google Places Photos API',
-        endpoint: 'places.getPhotoMedia',
-        method: 'POST',
-        request_payload: JSON.stringify(requestPayload),
-        response_payload: response.photoUri ?? null,
-        status_code: 200,
-        response_time_ms: responseTime,
-        error_message: null,
-      });
-
-      if (response.photoUri) {
-        return {
-          photoUri: response.photoUri,
-        };
+      if (result?.photoUri) {
+        this.logger.debug('PhotoMediaDownloaded', 'getPhotoMedia', {
+          photoUri: result.photoUri,
+        });
+        return result;
       }
 
       return null;
     } catch (error) {
-      const responseTime = Date.now() - startTime;
-
-      // エラー時も外部API呼び出しログを記録
-      await this.logger.externalApi({
-        function_name: 'getPhotoMedia',
-        api_name: 'Google Places Photos API',
-        endpoint: 'places.getPhotoMedia',
-        method: 'POST',
-        request_payload: JSON.stringify(requestPayload),
-        response_payload: null,
-        status_code: 500,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        response_time_ms: responseTime,
-      });
-
       this.logger.warn('PhotoMediaError', 'getPhotoMedia', {
         photoRef,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-
       throw error;
     }
   }
@@ -238,31 +155,23 @@ export class LocationsService {
       query,
     });
 
-    const startTime = Date.now();
     const requestPayload = {
       input: query.q,
-      types: ['(cities)'], // 地名のみに限定
       languageCode: query.languageCode,
     };
 
     try {
-      const response =
-        await this.placesClient.autocompletePlaces(requestPayload);
+      const fieldMask =
+        'suggestions.placePrediction.placeId,' +
+        'suggestions.placePrediction.text,' +
+        'suggestions.placePrediction.structuredFormat.mainText,' +
+        'suggestions.placePrediction.structuredFormat.secondaryText,' +
+        'suggestions.placePrediction.types';
 
-      // 外部API呼び出しログを記録
-      await this.logger.externalApi({
-        function_name: 'autocompleteLocations',
-        api_name: 'Google Places Autocomplete API',
-        endpoint: 'places.autocompletePlaces',
-        method: 'POST',
-        request_payload: JSON.stringify(requestPayload),
-        response_payload: JSON.stringify(response),
-        status_code: 200,
-        response_time_ms: Date.now() - startTime,
-        error_message: null,
-      });
-      // レスポンス形式に変換
-      const places = response[0].suggestions
+      const response =
+        await this.externalApiService.callPlacesAutocomplete(fieldMask, requestPayload);
+
+      const places = response.suggestions
         ?.map((suggestion) => ({
           place_id: suggestion.placePrediction?.placeId,
           text: suggestion.placePrediction?.text?.text,
@@ -278,6 +187,7 @@ export class LocationsService {
             place.mainText &&
             place.secondaryText,
         ) as AutocompleteLocationsResponse;
+
       this.logger.debug(
         'AutocompleteLocationsSuccess',
         'autocompleteLocations',
@@ -298,7 +208,6 @@ export class LocationsService {
           query,
         },
       );
-
       throw error;
     }
   }

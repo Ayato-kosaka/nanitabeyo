@@ -33,6 +33,7 @@ import { RemoteConfigModule } from '../../core/remote-config/remote-config.modul
   providers: [DishesService, DishesRepository],
   exports: [
     DishesService, // 他ドメインが再利用できる
+    DishesRepository,
   ],
 })
 export class DishesModule { }

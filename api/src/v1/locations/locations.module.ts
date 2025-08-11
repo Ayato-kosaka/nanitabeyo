@@ -14,10 +14,12 @@ import { LocationsService } from './locations.service';
 // ─── 横串インフラ層 ──────────────────────────────────────────
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard
+import { ExternalApiModule } from 'src/core/external-api/external-api.module';
 
 @Module({
   imports: [
     LoggerModule, // アプリ共通 Logger
+    ExternalApiModule,
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [LocationsController],
@@ -26,4 +28,4 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard
     LocationsService, // 他ドメインが再利用できる
   ],
 })
-export class LocationsModule {}
+export class LocationsModule { }

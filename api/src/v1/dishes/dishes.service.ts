@@ -99,10 +99,11 @@ export class DishesService {
       pageSize,
     });
 
+    const contextualContents = googlePlaces?.contextualContents;
     if (
       !googlePlaces ||
       !googlePlaces?.places ||
-      !googlePlaces?.contextualContents
+      !contextualContents
     ) {
       throw new Error('No places found from Google Maps API');
     }
@@ -112,12 +113,17 @@ export class DishesService {
     // 各レストランに対してデータ登録処理（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
-        if (!place.id)
-          throw new Error(`Place ID is missing for place at index ${index}`);
-        const photoName =
-          googlePlaces.contextualContents?.[index]?.photos?.[0]?.name;
-        if (!photoName)
-          throw new Error(`No photo name found for place: ${place.id}`);
+        const contextualContent = contextualContents[index];
+        const photoName = contextualContent.photos?.[0]?.name
+        if (
+          !place.id ||
+          !place.name ||
+          !place.location?.latitude ||
+          !place.location?.longitude ||
+          !contextualContent.reviews ||
+          !photoName
+        )
+          throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
 
         // PhotoMediaUri のみ取得（バイナリ取得は行わない）
         const photoMedia = await this.locationsService.getPhotoMedia(photoName);
@@ -132,15 +138,6 @@ export class DishesService {
           usageType: 'photo',
           finalFileName: mediaFileName,
         });
-
-        if (
-          !place.id ||
-          !place.name ||
-          !place.location?.latitude ||
-          !place.location?.longitude ||
-          !place.reviews
-        )
-          throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
 
 
         const restaurant: PrismaRestaurants = {
@@ -175,7 +172,7 @@ export class DishesService {
           lock_no: 0,
         };
 
-        const dishReviews: PrismaDishReviews[] = place.reviews.map((review) => ({
+        const dishReviews: PrismaDishReviews[] = contextualContent.reviews.map((review) => ({
           id: randomUUID(),
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null

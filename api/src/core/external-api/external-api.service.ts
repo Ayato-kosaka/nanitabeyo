@@ -7,6 +7,8 @@ import { Injectable } from '@nestjs/common';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { CreateExternalApiInput } from '../logger/logger.types';
+import { google } from '@googlemaps/places/build/protos/protos';
+import { InputJsonValue } from '../../../../shared/prisma/runtime/library';
 
 // Wikidata API のレスポンス型
 interface WikidataSearchResponse {
@@ -44,7 +46,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
@@ -194,6 +196,140 @@ export class ExternalApiService {
         },
       );
       return null;
+    }
+  }
+
+  /**
+   * Google Places API: Text Search
+   */
+  async callPlaceSearchText(fieldMask: string, payload: google.maps.places.v1.ISearchTextRequest): Promise<google.maps.places.v1.ISearchTextResponse> {
+    const apiKey = env.GOOGLE_PLACE_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_PLACE_API_KEY is not configured');
+    }
+
+    const endpoint = 'https://places.googleapis.com/v1/places:searchText';
+
+    try {
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Places Text Search API',
+        endpoint,
+        method: 'POST',
+        request_payload: payload as NonNullable<InputJsonValue>,
+        function_name: 'callPlaceSearchText',
+        customHeaders: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': fieldMask,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Google Places Text Search API request failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.logger.error('GooglePlacesAPICallError', 'callPlaceSearchText', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        fieldMask,
+        request_payload: payload,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Google Places API: Get Photo Media (JSON with photoUri)
+   */
+  async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
+    const apiKey = env.GOOGLE_PLACE_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_PLACE_API_KEY is not configured');
+    }
+
+    const photoName = photoRef.endsWith('/media') ? photoRef : `${photoRef}/media`;
+    const endpoint = `https://places.googleapis.com/v1/${photoName}?maxWidthPx=800&skipHttpRedirect=true`;
+
+    try {
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Places Photos API',
+        endpoint,
+        method: 'GET',
+        request_payload: {},
+        function_name: 'getPhotoMedia',
+        customHeaders: {
+          'X-Goog-Api-Key': apiKey,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Google Places Photos API request failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json().catch(() => null);
+      if (data?.photoUri) {
+        return { photoUri: data.photoUri };
+      }
+      return null;
+    } catch (error) {
+      this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        photoRef,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Google Places API: Autocomplete
+   */
+  async callPlacesAutocomplete(
+    fieldMask: string,
+    payload: google.maps.places.v1.IAutocompletePlacesRequest,
+  ): Promise<google.maps.places.v1.IAutocompletePlacesResponse> {
+    const apiKey = env.GOOGLE_PLACE_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_PLACE_API_KEY is not configured');
+    }
+
+    const endpoint = 'https://places.googleapis.com/v1/places:autocomplete';
+
+    try {
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Places Autocomplete API',
+        endpoint,
+        method: 'POST',
+        request_payload: payload as NonNullable<InputJsonValue>,
+        function_name: 'callPlacesAutocomplete',
+        customHeaders: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': fieldMask,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Google Places Autocomplete API request failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.logger.error('GooglePlacesAutocompleteAPICallError', 'callPlacesAutocomplete', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        request_payload: payload,
+        fieldMask,
+      });
+      throw error;
     }
   }
 
