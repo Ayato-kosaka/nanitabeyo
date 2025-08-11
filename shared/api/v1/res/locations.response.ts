@@ -1,5 +1,5 @@
 /** Google Places API の最小限の型 */
-export interface Place {
+export interface AutocompleteLocation {
 	place_id: string;
 	text: string;
 	mainText: string;
@@ -8,4 +8,4 @@ export interface Place {
 }
 
 /** GET /v1/locations/autocomplete のレスポンス型 */
-export type AutocompleteLocationsResponse = Place[];
+export type AutocompleteLocationsResponse = AutocompleteLocation[];

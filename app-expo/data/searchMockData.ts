@@ -1,46 +1,42 @@
-import { Topic, GooglePlacesPrediction } from "@/types/search";
+import { Topic } from "@/types/search";
 import type { DishMediaEntry } from "@shared/api/v1/res";
+import type { AutocompleteLocation } from "@shared/api/v1/res";
 
-export const mockGooglePlacesPredictions: GooglePlacesPrediction[] = [
+export const mockPlacePredictions: AutocompleteLocation[] = [
 	{
-		placeId: "place_1",
-		description: "渋谷駅, 東京都渋谷区",
-		structured_formatting: {
-			main_text: "渋谷駅",
-			secondary_text: "東京都渋谷区",
-		},
+		place_id: "place_1",
+		text: "渋谷駅, 東京都渋谷区",
+		mainText: "渋谷駅",
+		secondaryText: "東京都渋谷区",
+		types: ["train_station", "transit_station", "establishment", "point_of_interest"],
 	},
 	{
-		placeId: "place_2",
-		description: "新宿駅, 東京都新宿区",
-		structured_formatting: {
-			main_text: "新宿駅",
-			secondary_text: "東京都新宿区",
-		},
+		place_id: "place_2",
+		text: "新宿駅, 東京都新宿区",
+		mainText: "新宿駅",
+		secondaryText: "東京都新宿区",
+		types: ["train_station", "transit_station", "establishment", "point_of_interest"],
 	},
 	{
-		placeId: "place_3",
-		description: "銀座, 東京都中央区",
-		structured_formatting: {
-			main_text: "銀座",
-			secondary_text: "東京都中央区",
-		},
+		place_id: "place_3",
+		text: "銀座, 東京都中央区",
+		mainText: "銀座",
+		secondaryText: "東京都中央区",
+		types: ["sublocality_level_1", "sublocality", "political"],
 	},
 	{
-		placeId: "place_4",
-		description: "原宿駅, 東京都渋谷区",
-		structured_formatting: {
-			main_text: "原宿駅",
-			secondary_text: "東京都渋谷区",
-		},
+		place_id: "place_4",
+		text: "原宿駅, 東京都渋谷区",
+		mainText: "原宿駅",
+		secondaryText: "東京都渋谷区",
+		types: ["train_station", "transit_station", "establishment", "point_of_interest"],
 	},
 	{
-		placeId: "place_5",
-		description: "六本木, 東京都港区",
-		structured_formatting: {
-			main_text: "六本木",
-			secondary_text: "東京都港区",
-		},
+		place_id: "place_5",
+		text: "六本木, 東京都港区",
+		mainText: "六本木",
+		secondaryText: "東京都港区",
+		types: ["sublocality_level_1", "sublocality", "political"],
 	},
 ];
 
