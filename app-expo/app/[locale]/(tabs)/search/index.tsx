@@ -338,7 +338,7 @@ export default function SearchScreen() {
 						<Card>
 							<View style={styles.sectionHeader}>
 								<DollarSign size={20} color="#5EA2FF" />
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.priceLevels")}</Text>
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>{formatPriceLevelsDisplay()}</Text>
