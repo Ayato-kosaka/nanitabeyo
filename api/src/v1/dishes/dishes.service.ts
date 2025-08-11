@@ -106,15 +106,13 @@ export class DishesService {
       throw new Error('No places found from Google Maps API');
     }
 
-    const results: BulkImportDishesResponse = [];
-
     // 各レストランに対してデータ登録（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
         if (!place.id)
           throw new Error(`Place ID is missing for place at index ${index}`);
         const photoName =
-          googlePlaces.contextualContents[index]?.photos?.[0]?.name;
+          googlePlaces.contextualContents?.[index]?.photos?.[0]?.name;
         if (!photoName)
           throw new Error(`No photo name found for place: ${place.id}`);
 

@@ -129,9 +129,9 @@ export class LocationsService {
 
       this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
-        location,
-        radius,
-        category: dishCategoryName,
+        location: params.location,
+        radius: params.radius,
+        category: params.dishCategoryName,
       });
 
       throw error;
