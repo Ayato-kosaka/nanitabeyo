@@ -27,7 +27,7 @@ export class AppLoggerService implements INestLoggerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
@@ -104,9 +104,9 @@ export class AppLoggerService implements INestLoggerService {
       request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
       created_at: new Date(),
       created_commit_id: env.API_COMMIT_ID,
-    }
+    };
 
-    void this.prisma.prisma.external_api_logs.create({ data, }).catch((err) => {
+    void this.prisma.prisma.external_api_logs.create({ data }).catch((err) => {
       /* console にだけ出す（循環ロギングを避ける）*/
       this.printStructured(
         'ERROR',
@@ -116,7 +116,7 @@ export class AppLoggerService implements INestLoggerService {
           message: (err as Error).message,
         },
       );
-    })
+    });
   }
 
   /* ------------------------------------------------------------------ */
@@ -132,7 +132,7 @@ export class AppLoggerService implements INestLoggerService {
       created_commit_id: env.API_COMMIT_ID,
     };
 
-    void this.prisma.prisma.backend_event_logs.create({ data, }).catch((err) => {
+    void this.prisma.prisma.backend_event_logs.create({ data }).catch((err) => {
       this.printStructured(
         'ERROR',
         'backendEventPersistError',

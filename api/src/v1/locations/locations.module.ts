@@ -28,4 +28,4 @@ import { ExternalApiModule } from 'src/core/external-api/external-api.module';
     LocationsService, // 他ドメインが再利用できる
   ],
 })
-export class LocationsModule { }
+export class LocationsModule {}

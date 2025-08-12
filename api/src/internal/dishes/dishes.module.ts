@@ -15,4 +15,4 @@ import { DishesModule as V1DishesModule } from '../../v1/dishes/dishes.module';
   controllers: [DishesController],
   providers: [CreateDishMediaEntryService],
 })
-export class InternalDishesModule { }
+export class InternalDishesModule {}

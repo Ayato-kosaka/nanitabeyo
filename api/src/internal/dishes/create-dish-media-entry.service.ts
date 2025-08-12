@@ -23,12 +23,14 @@ export class CreateDishMediaEntryService {
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
-  ) { }
+  ) {}
 
   /**
    * 非同期ジョブの処理メイン関数
    */
-  async processAsyncJob(payload: CreateDishMediaEntryJobPayload): Promise<void> {
+  async processAsyncJob(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<void> {
     this.logger.debug('ProcessAsyncJob Started', 'processAsyncJob', {
       jobId: payload.jobId,
       photoUriCount: payload.photoUri.length,
@@ -72,7 +74,9 @@ export class CreateDishMediaEntryService {
   /**
    * 写真のダウンロードと保存を並列処理
    */
-  private async downloadAndStorePhotos(payload: CreateDishMediaEntryJobPayload): Promise<void> {
+  private async downloadAndStorePhotos(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<void> {
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
       try {
         // 写真データを取得
@@ -114,35 +118,37 @@ export class CreateDishMediaEntryService {
   /**
    * 4テーブルのUPSERT処理（dishesRepository を使用）
    */
-  private async upsertDatabaseEntries(payload: CreateDishMediaEntryJobPayload): Promise<void> {
-    await this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        // 1. レストラン登録
-        await this.dishesRepository.createOrGetRestaurant(
-          tx,
-          convertSupabaseToPrisma_Restaurants(payload.restaurants),
-          payload.restaurants.google_place_id!,
-        );
+  private async upsertDatabaseEntries(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<void> {
+    await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
+      // 1. レストラン登録
+      await this.dishesRepository.createOrGetRestaurant(
+        tx,
+        convertSupabaseToPrisma_Restaurants(payload.restaurants),
+        payload.restaurants.google_place_id!,
+      );
 
-        // 2. 料理登録
-        await this.dishesRepository.createOrGetDishForCategory(
-          tx,
-          convertSupabaseToPrisma_Dishes(payload.dishes),
-        );
+      // 2. 料理登録
+      await this.dishesRepository.createOrGetDishForCategory(
+        tx,
+        convertSupabaseToPrisma_Dishes(payload.dishes),
+      );
 
-        // 3. 料理メディア登録
-        await this.dishesRepository.createDishMedia(
-          tx,
-          convertSupabaseToPrisma_DishMedia(payload.dish_media),
-        );
+      // 3. 料理メディア登録
+      await this.dishesRepository.createDishMedia(
+        tx,
+        convertSupabaseToPrisma_DishMedia(payload.dish_media),
+      );
 
-        // 4. 料理レビュー登録
-        await this.dishesRepository.createDishReviews(
-          tx,
-          payload.dish_reviews.map(review => convertSupabaseToPrisma_DishReviews(review)),
-        );
-      },
-    );
+      // 4. 料理レビュー登録
+      await this.dishesRepository.createDishReviews(
+        tx,
+        payload.dish_reviews.map((review) =>
+          convertSupabaseToPrisma_DishReviews(review),
+        ),
+      );
+    });
   }
 
   /**

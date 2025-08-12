@@ -46,7 +46,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /**
    * Claude API呼び出し
@@ -202,7 +202,10 @@ export class ExternalApiService {
   /**
    * Google Places API: Text Search
    */
-  async callPlaceSearchText(fieldMask: string, payload: google.maps.places.v1.ISearchTextRequest): Promise<google.maps.places.v1.ISearchTextResponse> {
+  async callPlaceSearchText(
+    fieldMask: string,
+    payload: google.maps.places.v1.ISearchTextRequest,
+  ): Promise<google.maps.places.v1.ISearchTextResponse> {
     const apiKey = env.GOOGLE_PLACE_API_KEY;
     if (!apiKey) {
       throw new Error('GOOGLE_PLACE_API_KEY is not configured');
@@ -251,7 +254,9 @@ export class ExternalApiService {
       throw new Error('GOOGLE_PLACE_API_KEY is not configured');
     }
 
-    const photoName = photoRef.endsWith('/media') ? photoRef : `${photoRef}/media`;
+    const photoName = photoRef.endsWith('/media')
+      ? photoRef
+      : `${photoRef}/media`;
     const endpoint = `https://places.googleapis.com/v1/${photoName}?maxWidthPx=800&skipHttpRedirect=true`;
 
     try {
@@ -324,11 +329,16 @@ export class ExternalApiService {
       const data = await response.json();
       return data;
     } catch (error) {
-      this.logger.error('GooglePlacesAutocompleteAPICallError', 'callPlacesAutocomplete', {
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        request_payload: payload,
-        fieldMask,
-      });
+      this.logger.error(
+        'GooglePlacesAutocompleteAPICallError',
+        'callPlacesAutocomplete',
+        {
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          request_payload: payload,
+          fieldMask,
+        },
+      );
       throw error;
     }
   }

@@ -15,10 +15,10 @@ import { protos } from '@googlemaps/places';
 
 @Injectable()
 export class LocationsService {
-
-  constructor(private readonly logger: AppLoggerService,
-    private readonly externalApiService: ExternalApiService,) {
-  }
+  constructor(
+    private readonly logger: AppLoggerService,
+    private readonly externalApiService: ExternalApiService,
+  ) {}
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -60,7 +60,7 @@ export class LocationsService {
     try {
       const response = await this.externalApiService.callPlaceSearchText(
         'places.id,places.name,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.authorAttribution',
-        requestPayload
+        requestPayload,
       );
 
       if (!response.places || response.places.length === 0) {
@@ -168,8 +168,10 @@ export class LocationsService {
         'suggestions.placePrediction.structuredFormat.secondaryText,' +
         'suggestions.placePrediction.types';
 
-      const response =
-        await this.externalApiService.callPlacesAutocomplete(fieldMask, requestPayload);
+      const response = await this.externalApiService.callPlacesAutocomplete(
+        fieldMask,
+        requestPayload,
+      );
 
       const places = response.suggestions
         ?.map((suggestion) => ({

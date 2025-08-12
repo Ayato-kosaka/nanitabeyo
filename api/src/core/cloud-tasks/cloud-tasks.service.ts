@@ -21,7 +21,9 @@ export class CloudTasksService {
   /**
    * create dish media entry ジョブをキューに追加
    */
-  async enqueueCreateDishMediaEntry(payload: CreateDishMediaEntryJobPayload): Promise<void> {
+  async enqueueCreateDishMediaEntry(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<void> {
     const queueName = 'dishes-queue';
     const queuePath = this.client.queuePath(
       env.GCP_PROJECT,
@@ -57,11 +59,15 @@ export class CloudTasksService {
         queueName,
       });
     } catch (error) {
-      this.logger.error('CloudTaskEnqueueError', 'enqueueCreateDishMediaEntry', {
-        jobId: payload.jobId,
-        queueName,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      this.logger.error(
+        'CloudTaskEnqueueError',
+        'enqueueCreateDishMediaEntry',
+        {
+          jobId: payload.jobId,
+          queueName,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
       throw error;
     }
   }
