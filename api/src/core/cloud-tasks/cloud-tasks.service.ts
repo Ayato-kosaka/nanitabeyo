@@ -24,6 +24,18 @@ export class CloudTasksService {
   async enqueueCreateDishMediaEntry(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
+    const url = `${env.CLOUD_RUN_URL}/internal/dishes/create`;
+    if (env.CLOUD_RUN_URL.startsWith('http://localhost')) {
+      void fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+      return;
+    }
+
     const queueName = 'dish-queue';
     const queuePath = this.client.queuePath(
       env.GCP_PROJECT,
@@ -34,7 +46,7 @@ export class CloudTasksService {
     const task = {
       httpRequest: {
         httpMethod: 'POST' as const,
-        url: `${env.CLOUD_RUN_URL}/internal/dishes/create`,
+        url,
         headers: {
           'Content-Type': 'application/json',
         },
