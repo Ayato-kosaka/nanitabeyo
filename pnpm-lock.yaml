@@ -32,6 +32,9 @@ importers:
       "@google-cloud/storage":
         specifier: ^7.16.0
         version: 7.16.0(encoding@0.1.13)
+      "@google-cloud/tasks":
+        specifier: ^5.0.0
+        version: 5.5.2(encoding@0.1.13)
       "@google-cloud/vision":
         specifier: ^5.2.0
         version: 5.3.2
@@ -68,6 +71,9 @@ importers:
       expo-server-sdk:
         specifier: ^3.15.0
         version: 3.15.0(encoding@0.1.13)
+      google-auth-library:
+        specifier: ^10.2.1
+        version: 10.2.1
       lodash.chunk:
         specifier: ^4.2.0
         version: 4.2.0
@@ -375,7 +381,7 @@ importers:
     devDependencies:
       detox:
         specifier: ^20.36.4
-        version: 20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3)))
+        version: 20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0))
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3))
@@ -1396,6 +1402,11 @@ packages:
     resolution:
       { integrity: sha512-7/5LRgykyOfQENcm6hDKP8SX/u9XxE5YOiWOkgkwcoO+cG8xT/cyOvp9wwN3IxfdYgpHs8CE7Nq2PKX2lNaEXw== }
     engines: { node: ">=14" }
+
+  "@google-cloud/tasks@5.5.2":
+    resolution:
+      { integrity: sha512-F934h4rI3OLlEVgzthDzE5RDQqT2brlq+BeD15eHNBi4sGMTdaz/b4y3eMFxJvB2hZk5mEKlLnsb9Pt2EcmNSQ== }
+    engines: { node: ">=v14" }
 
   "@google-cloud/vision@5.3.2":
     resolution:
@@ -5849,6 +5860,11 @@ packages:
   google-auth-library@10.2.0:
     resolution:
       { integrity: sha512-gy/0hRx8+Ye0HlUm3GrfpR4lbmJQ6bJ7F44DmN7GtMxxzWSojLzx0Bhv/hj7Wlj7a2On0FcT8jrz8Y1c1nxCyg== }
+    engines: { node: ">=18" }
+
+  google-auth-library@10.2.1:
+    resolution:
+      { integrity: sha512-HMxFl2NfeHYnaL1HoRIN1XgorKS+6CDaM+z9LSSN+i/nKDDL4KFFEWogMXu7jV4HZQy2MsxpY+wA5XIf3w410A== }
     engines: { node: ">=18" }
 
   google-auth-library@9.15.1:
@@ -12218,6 +12234,13 @@ snapshots:
       - encoding
       - supports-color
 
+  "@google-cloud/tasks@5.5.2(encoding@0.1.13)":
+    dependencies:
+      google-gax: 4.6.1(encoding@0.1.13)
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   "@google-cloud/vision@5.3.2":
     dependencies:
       "@google-cloud/promisify": 5.0.0
@@ -13869,10 +13892,10 @@ snapshots:
     optionalDependencies:
       expect: 29.7.0
 
-  "@wix-pilot/detox@1.0.13(@wix-pilot/core@3.4.1(expect@29.7.0))(detox@20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3))))(expect@29.7.0)":
+  "@wix-pilot/detox@1.0.13(@wix-pilot/core@3.4.1(expect@29.7.0))(detox@20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)))(expect@29.7.0)":
     dependencies:
       "@wix-pilot/core": 3.4.1(expect@29.7.0)
-      detox: 20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3)))
+      detox: 20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0))
       expect: 29.7.0
 
   "@xhmikosr/archive-type@7.1.0":
@@ -15243,10 +15266,10 @@ snapshots:
 
   detect-newline@3.1.0: {}
 
-  detox@20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3))):
+  detox@20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)):
     dependencies:
       "@wix-pilot/core": 3.4.1(expect@29.7.0)
-      "@wix-pilot/detox": 1.0.13(@wix-pilot/core@3.4.1(expect@29.7.0))(detox@20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3))))(expect@29.7.0)
+      "@wix-pilot/detox": 1.0.13(@wix-pilot/core@3.4.1(expect@29.7.0))(detox@20.40.2(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)))(expect@29.7.0)
       ajv: 8.17.1
       bunyan: 1.8.15
       bunyan-debug-stream: 3.1.1(bunyan@1.8.15)
@@ -15258,7 +15281,7 @@ snapshots:
       funpermaproxy: 1.1.0
       glob: 8.1.0
       ini: 1.3.8
-      jest-environment-emit: 1.2.0(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3)))
+      jest-environment-emit: 1.2.0(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0))
       json-cycle: 1.5.0
       lodash: 4.17.21
       multi-sort-stream: 1.0.4
@@ -16858,6 +16881,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  google-auth-library@10.2.1:
+    dependencies:
+      base64-js: 1.5.1
+      ecdsa-sig-formatter: 1.0.11
+      gaxios: 7.1.1
+      gcp-metadata: 7.0.1
+      google-logging-utils: 1.1.1
+      gtoken: 8.0.0
+      jws: 4.0.0
+    transitivePeerDependencies:
+      - supports-color
+
   google-auth-library@9.15.1(encoding@0.1.13):
     dependencies:
       base64-js: 1.5.1
@@ -16894,7 +16929,7 @@ snapshots:
       "@grpc/proto-loader": 0.7.15
       abort-controller: 3.0.0
       duplexify: 4.1.3
-      google-auth-library: 10.2.0
+      google-auth-library: 10.2.1
       google-logging-utils: 1.1.1
       node-fetch: 3.3.2
       object-hash: 3.0.0
@@ -17617,7 +17652,7 @@ snapshots:
       jest-util: 29.7.0
       pretty-format: 29.7.0
 
-  jest-environment-emit@1.2.0(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)(ts-node@10.9.2(@swc/core@1.13.3)(@types/node@22.17.0)(typescript@5.8.3))):
+  jest-environment-emit@1.2.0(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.17.0)):
     dependencies:
       bunyamin: 1.6.3(@types/bunyan@1.8.11)(bunyan@2.0.5)
       bunyan: 2.0.5

@@ -17,6 +17,8 @@ export const remoteConfigSchema = z.object({
 		],
 	),
 	v1_enable_prisma_query_logs: z.string(),
+	v1_search_result_dish_categories_number: z.string(),
+	v1_search_result_restaurants_number: z.string(),
 });
 
 export type RemoteConfigValues = z.infer<typeof remoteConfigSchema>;

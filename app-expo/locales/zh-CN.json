@@ -62,6 +62,15 @@
 			"noMinBudget": "无下限",
 			"noMaxBudget": "无上限"
 		},
+		"priceLevels": {
+			"inexpensive": "便宜",
+			"moderate": "中等",
+			"expensive": "昂贵",
+			"veryExpensive": "非常昂贵",
+			"none": "未选择",
+			"all": "所有价位",
+			"selected": "已选择{{count}}个"
+		},
 		"distanceLabels": {
 			"100m": "100米",
 			"300m": "300米",

@@ -29,23 +29,18 @@ import type { AutocompleteLocation } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
-import {
-	timeSlots,
-	sceneOptions,
-	moodOptions,
-	distanceOptions,
-	budgetOptions,
-	restrictionOptions,
-} from "@/features/search/constants";
+import { timeSlots, sceneOptions, moodOptions, distanceOptions, restrictionOptions } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
-import { BudgetSlider } from "@/features/search/components/BudgetSlider";
+import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
+import { useLogger } from "@/hooks/useLogger";
 
 export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 	const [location, setLocation] = useState<SearchLocation | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -55,8 +50,7 @@ export default function SearchScreen() {
 	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
-	const [budgetMin, setBudgetMin] = useState<number | undefined>(undefined);
-	const [budgetMax, setBudgetMax] = useState<number | undefined>(undefined);
+	const [priceLevels, setPriceLevels] = useState<number[]>([0, 1, 2, 3, 4]); // Default all selected
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const {
@@ -69,6 +63,13 @@ export default function SearchScreen() {
 	const { showSnackbar } = useSnackbar();
 
 	useEffect(() => {
+		// Screen view logging
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: { screen: "search" },
+		});
+
 		// Auto-detect current location on mount
 		getCurrentLocation().then(setLocation).catch(console.error);
 
@@ -79,7 +80,7 @@ export default function SearchScreen() {
 		else if (hour < 17) setTimeSlot("afternoon");
 		else if (hour < 22) setTimeSlot("dinner");
 		else setTimeSlot("late_night");
-	}, [getCurrentLocation]);
+	}, [getCurrentLocation, logFrontendEvent]);
 
 	const handleLocationSearch = (query: string) => {
 		setLocationQuery(query);
@@ -93,23 +94,48 @@ export default function SearchScreen() {
 
 	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
+		logFrontendEvent({
+			event_name: "location_selected",
+			error_level: "log",
+			payload: { placeId: prediction.place_id, mainText: prediction.mainText },
+		});
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
 			setLocationQuery(locationDetails.address);
 			setShowLocationSuggestions(false);
 		} catch (error) {
+			logFrontendEvent({
+				event_name: "location_selection_failed",
+				error_level: "error",
+				payload: { placeId: prediction.place_id, error: String(error) },
+			});
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
 	};
 
 	const handleUseCurrentLocation = async () => {
 		lightImpact();
+		logFrontendEvent({
+			event_name: "current_location_requested",
+			error_level: "log",
+			payload: {},
+		});
 		try {
 			const currentLocation = await getCurrentLocation();
 			setLocation(currentLocation);
 			setLocationQuery(currentLocation.address);
+			logFrontendEvent({
+				event_name: "current_location_success",
+				error_level: "log",
+				payload: { hasLocation: !!currentLocation },
+			});
 		} catch (error) {
+			logFrontendEvent({
+				event_name: "current_location_failed",
+				error_level: "error",
+				payload: { error: String(error) },
+			});
 			showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
 		}
 	};
@@ -130,19 +156,32 @@ export default function SearchScreen() {
 		mediumImpact();
 		setIsSearching(true);
 
-		try {
-			const searchParams: SearchParams = {
-				address: location.address,
-				location: `${location.latitude},${location.longitude}`,
+		const searchParams: SearchParams = {
+			address: location.address,
+			location: `${location.latitude},${location.longitude}`,
+			timeSlot,
+			scene,
+			mood,
+			restrictions,
+			distance,
+			priceLevels,
+		};
+
+		logFrontendEvent({
+			event_name: "search_started",
+			error_level: "log",
+			payload: {
+				hasLocation: !!location,
 				timeSlot,
 				scene,
 				mood,
-				restrictions,
+				restrictionsCount: restrictions.length,
 				distance,
-				budgetMin,
-				budgetMax,
-			};
+				priceLevelsCount: priceLevels.length,
+			},
+		});
 
+		try {
 			// Navigate to cards screen with search parameters
 			router.push({
 				pathname: "/[locale]/(tabs)/search/topics",
@@ -151,23 +190,32 @@ export default function SearchScreen() {
 					searchParams: JSON.stringify(searchParams),
 				},
 			});
+
+			logFrontendEvent({
+				event_name: "search_navigation_success",
+				error_level: "log",
+				payload: { targetScreen: "topics" },
+			});
 		} catch (error) {
+			logFrontendEvent({
+				event_name: "search_failed",
+				error_level: "error",
+				payload: { error: String(error) },
+			});
 			showSnackbar(i18n.t("Search.errors.searchFailed"));
 		} finally {
 			setIsSearching(false);
 		}
 	};
 
-	const formatBudgetRange = () => {
-		const minLabel =
-			budgetMin === undefined
-				? i18n.t("Search.labels.noMinBudget")
-				: `${budgetMin.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
-		const maxLabel =
-			budgetMax === undefined
-				? i18n.t("Search.labels.noMaxBudget")
-				: `${budgetMax.toLocaleString()}${i18n.t("Search.currencySuffix")}`;
-		return `${minLabel} 〜 ${maxLabel}`;
+	const formatPriceLevelsDisplay = () => {
+		if (priceLevels.length === 0) {
+			return i18n.t("Search.priceLevels.none");
+		}
+		if (priceLevels.length === 5) {
+			return i18n.t("Search.priceLevels.all");
+		}
+		return i18n.t("Search.priceLevels.selected", { count: priceLevels.length });
 	};
 
 	// Wrapper functions for haptic feedback
@@ -345,20 +393,15 @@ export default function SearchScreen() {
 							</View>
 						</Card>
 
-						{/* Budget */}
+						{/* Price Levels */}
 						<Card>
 							<View style={styles.sectionHeader}>
 								<DollarSign size={20} color="#5EA2FF" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
-								<Text style={styles.sliderValue}>{formatBudgetRange()}</Text>
-								<BudgetSlider
-									budgetMin={budgetMin}
-									budgetMax={budgetMax}
-									setBudgetMin={setBudgetMin}
-									setBudgetMax={setBudgetMax}
-								/>
+								<Text style={styles.sliderValue}>{formatPriceLevelsDisplay()}</Text>
+								<PriceLevelsMultiSelect selectedPriceLevels={priceLevels} onPriceLevelsChange={setPriceLevels} />
 							</View>
 						</Card>
 

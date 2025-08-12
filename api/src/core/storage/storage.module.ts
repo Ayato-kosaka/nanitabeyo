@@ -18,7 +18,7 @@ import { LoggerModule } from '../logger/logger.module';
           env.API_NODE_ENV === 'production'
             ? {}
             : {
-                projectId: env.GCS_DEV_PROJECT_ID,
+                projectId: env.GCP_PROJECT,
                 credentials: JSON.parse(
                   Buffer.from(
                     env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,

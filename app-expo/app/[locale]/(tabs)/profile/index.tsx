@@ -37,6 +37,7 @@ import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -305,16 +306,30 @@ export default function ProfileScreen() {
 	const [editedBio, setEditedBio] = useState("");
 	const [isFollowing, setIsFollowing] = useState(false);
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
 	// Determine if this is the current user's profile or another user's
 	const isOwnProfile = !userId || userId === userProfile.id;
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
 
 	React.useEffect(() => {
+		// Screen view logging
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: {
+				screen: "profile",
+				isOwnProfile,
+				profileUserId: profile.id,
+				followerCount: profile.followersCount,
+				followingCount: profile.followingCount,
+			},
+		});
+
 		if (profile && !isOwnProfile) {
 			setIsFollowing(profile.isFollowing || false);
 		}
-	}, [profile, isOwnProfile]);
+	}, [profile, isOwnProfile, logFrontendEvent]);
 
 	// Add wallet tab for own profile
 	const availableTabs: TabType[] = isOwnProfile ? ["posts", "saved", "liked", "wallet"] : ["posts"];
@@ -346,13 +361,30 @@ export default function ProfileScreen() {
 
 	const handleFollow = () => {
 		mediumImpact();
-		setIsFollowing(!isFollowing);
+		const newFollowState = !isFollowing;
+		setIsFollowing(newFollowState);
+
+		logFrontendEvent({
+			event_name: newFollowState ? "user_followed" : "user_unfollowed",
+			error_level: "log",
+			payload: {
+				targetUserId: profile.id,
+				targetUsername: profile.username,
+				followersCount: profile.followersCount,
+			},
+		});
 	};
 
 	const handleEditProfile = () => {
 		lightImpact();
 		setEditedBio(profile.bio);
 		openEditModal();
+
+		logFrontendEvent({
+			event_name: "profile_edit_started",
+			error_level: "log",
+			payload: { currentBioLength: profile.bio.length },
+		});
 	};
 
 	const handleSaveProfile = () => {
@@ -360,21 +392,56 @@ export default function ProfileScreen() {
 		// In a real app, this would update the profile via API
 		console.log("Saving profile with bio:", editedBio);
 		closeEditModal();
+
+		logFrontendEvent({
+			event_name: "profile_edit_saved",
+			error_level: "log",
+			payload: {
+				oldBioLength: profile.bio.length,
+				newBioLength: editedBio.length,
+			},
+		});
 	};
 
 	const handleShareProfile = () => {
 		lightImpact();
 		console.log("Sharing profile:", profile.username);
+
+		logFrontendEvent({
+			event_name: "profile_shared",
+			error_level: "log",
+			payload: {
+				profileUserId: profile.id,
+				profileUsername: profile.username,
+				isOwnProfile,
+			},
+		});
 	};
 
 	const handlePostPress = (index: number) => {
 		lightImpact();
 		// router.push(`/(tabs)/profile/food?startIndex=${index}`);
+
+		logFrontendEvent({
+			event_name: "profile_post_clicked",
+			error_level: "log",
+			payload: { postIndex: index, selectedTab },
+		});
 	};
 
 	const handleTabSelect = (tab: TabType) => {
 		lightImpact();
 		setSelectedTab(tab);
+
+		logFrontendEvent({
+			event_name: "profile_tab_selected",
+			error_level: "log",
+			payload: {
+				selectedTab: tab,
+				previousTab: selectedTab,
+				isOwnProfile,
+			},
+		});
 	};
 
 	const renderTabIcon = (tab: TabType) => {

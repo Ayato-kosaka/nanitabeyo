@@ -87,27 +87,26 @@ export class AppLoggerService implements INestLoggerService {
   /*            外部 API コールを詳細に残すための専用メソッド           */
   /* ------------------------------------------------------------------ */
   async externalApi(input: CreateExternalApiInput) {
-    try {
-      await this.prisma.prisma.external_api_logs.create({
-        data: {
-          ...input,
-          response_payload: input.response_payload ?? undefined,
-          id: randomUUID(),
-          user_id: this.cls.get<string>(CLS_KEY_USER_ID),
-          request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
-          created_at: new Date(),
-          created_commit_id: env.API_COMMIT_ID,
-        },
-      });
-      // Cloud Run 構造化ログ
-      this.printStructured('INFO', 'externalApi', input.function_name, {
-        api_name: input.api_name,
-        endpoint: input.endpoint,
-        method: input.method,
-        status_code: input.status_code,
-        response_time_ms: input.response_time_ms,
-      });
-    } catch (err) {
+    // Cloud Run 構造化ログ
+    this.printStructured('INFO', 'externalApi', input.function_name, {
+      api_name: input.api_name,
+      endpoint: input.endpoint,
+      method: input.method,
+      status_code: input.status_code,
+      response_time_ms: input.response_time_ms,
+    });
+
+    const data = {
+      ...input,
+      response_payload: input.response_payload ?? undefined,
+      id: randomUUID(),
+      user_id: this.cls.get<string>(CLS_KEY_USER_ID),
+      request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
+      created_at: new Date(),
+      created_commit_id: env.API_COMMIT_ID,
+    };
+
+    void this.prisma.prisma.external_api_logs.create({ data }).catch((err) => {
       /* console にだけ出す（循環ロギングを避ける）*/
       this.printStructured(
         'ERROR',
@@ -117,25 +116,23 @@ export class AppLoggerService implements INestLoggerService {
           message: (err as Error).message,
         },
       );
-    }
+    });
   }
 
   /* ------------------------------------------------------------------ */
   /*                           private helpers                          */
   /* ------------------------------------------------------------------ */
   private async persistBackendEvent(input: CreateBackendEventInput) {
-    try {
-      await this.prisma.prisma.backend_event_logs.create({
-        data: {
-          ...input,
-          id: randomUUID(),
-          user_id: this.cls.get<string>(CLS_KEY_USER_ID),
-          request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
-          created_at: new Date(),
-          created_commit_id: env.API_COMMIT_ID,
-        },
-      });
-    } catch (err) {
+    const data = {
+      ...input,
+      id: randomUUID(),
+      user_id: this.cls.get<string>(CLS_KEY_USER_ID),
+      request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
+      created_at: new Date(),
+      created_commit_id: env.API_COMMIT_ID,
+    };
+
+    void this.prisma.prisma.backend_event_logs.create({ data }).catch((err) => {
       this.printStructured(
         'ERROR',
         'backendEventPersistError',
@@ -144,7 +141,7 @@ export class AppLoggerService implements INestLoggerService {
           message: (err as Error).message,
         },
       );
-    }
+    });
   }
 
   /** Cloud Run で見やすい構造化ログを stdout に出力 */

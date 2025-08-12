@@ -1,4 +1,4 @@
-import { Prisma } from '../../../../shared/prisma/client';
+import { PrismaClient } from '../../../../shared/prisma/client';
 import { performance } from 'node:perf_hooks';
 import {
   Counter,
@@ -44,58 +44,67 @@ const queryLatency =
     registers: [registry],
   });
 
-/* -------------------------------------------------------------------------- */
-/*                           Prisma Metrics Middleware                        */
-/* -------------------------------------------------------------------------- */
-export const MetricsMiddleware: Prisma.Middleware = async (params, next) => {
-  const start = performance.now();
-  let span: Span | undefined;
 
-  // ─── OpenTelemetry span (Optional) ───────────────────────────
-  try {
-    const tracer = trace.getTracer('prisma');
-    span = tracer.startSpan(`Prisma ${params.model}.${params.action}`, {
-      attributes: {
-        'db.system': 'postgresql',
-        'db.operation': params.action,
-        'db.prisma.model': params.model ?? 'raw',
+/* ------------------------ Prisma Client Extension ---------------------- */
+/**
+ * Prisma Client をメトリクス計測付きに拡張して返す
+ */
+export function withMetrics<TClient extends PrismaClient>(client: TClient): TClient {
+  return client.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          const start = performance.now();
+
+          // OpenTelemetry span（任意）
+          let endSpan: ((status: 'success' | 'error', err?: any) => void) | null =
+            null;
+          try {
+            const tracer = trace.getTracer('prisma');
+            const span = tracer.startSpan(
+              `Prisma ${model ?? 'raw'}.${operation}`,
+              {
+                attributes: {
+                  'db.system': 'postgresql',
+                  'db.operation': operation,
+                  'db.prisma.model': model ?? 'raw',
+                },
+              },
+            );
+            endSpan = (status, err) => {
+              const ms = performance.now() - start;
+              span.setAttribute('db.duration_ms', ms);
+              if (status === 'error' && err) {
+                span.recordException(err);
+                span.setStatus({
+                  code: SpanStatusCode.ERROR,
+                  message: String(err?.message ?? ''),
+                });
+              }
+              span.end();
+            };
+          } catch {
+            /* tracer 未初期化でも黙殺 */
+          }
+
+          try {
+            const res = await query(args);
+            const ms = performance.now() - start;
+            queryCounter.labels(model ?? 'raw', operation, 'success').inc();
+            queryLatency.labels(model ?? 'raw', operation, 'success').observe(ms);
+            endSpan?.('success');
+            return res;
+          } catch (err) {
+            const ms = performance.now() - start;
+            queryCounter.labels(model ?? 'raw', operation, 'error').inc();
+            queryLatency.labels(model ?? 'raw', operation, 'error').observe(ms);
+            endSpan?.('error', err);
+            throw err;
+          }
+        },
       },
-    });
-  } catch {
-    /* tracer 未初期化でも黙殺 */
-  }
-
-  try {
-    const result = await next(params);
-    recordMetrics('success', performance.now() - start, span);
-    return result;
-  } catch (error) {
-    recordMetrics('error', performance.now() - start, span, error as Error);
-    throw error;
-  }
-
-  // ─── 共通メトリクス処理 ────────────────────────────────────
-  function recordMetrics(
-    status: 'success' | 'error',
-    duration: number,
-    span?: Span,
-    err?: Error,
-  ) {
-    const model = params.model ?? 'raw';
-    const { action } = params;
-
-    queryCounter.labels(model, action, status).inc();
-    queryLatency.labels(model, action, status).observe(duration);
-
-    if (span) {
-      span.setAttribute('db.duration_ms', duration);
-      if (status === 'error' && err) {
-        span.recordException(err);
-        span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
-      }
-      span.end();
-    }
-  }
+    },
+  }) as unknown as TClient;
 };
 
 /* -------------------------------------------------------------------------- */
