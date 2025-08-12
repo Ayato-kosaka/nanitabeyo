@@ -40,7 +40,7 @@ FILTERS=(
 
 RANGES=()
 max=200000000
-step=10000
+step=1000000
 for ((i=0; i<=$max; i+=$step)); do
   start=$i
   end=$((i+step))
