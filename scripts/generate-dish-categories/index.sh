@@ -81,6 +81,11 @@ for pattern in "${FILTERS[@]}"; do
       continue
     fi
 
+    if [[ $(wc -l < "$tmpfile") -le 1 ]]; then
+      echo "INFO: No rows (header only) for part $part_idx. Break to next WHERE pattern."
+      break
+    fi
+
     if [[ $part_idx -eq 0 ]]; then
       cat "$tmpfile" >> "$OUT_CSV"
     else
