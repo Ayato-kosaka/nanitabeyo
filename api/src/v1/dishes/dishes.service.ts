@@ -34,7 +34,6 @@ import {
   PrismaDishReviews,
 } from '../../../../shared/converters/convert_dish_reviews';
 import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
-import { randomUUID } from 'crypto';
 import {
   buildFileName,
   buildFullPath,
@@ -50,7 +49,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -149,7 +148,7 @@ export class DishesService {
         });
 
         const restaurant: PrismaRestaurants = {
-          id: randomUUID(),
+          id: 'unknown',
           google_place_id: place.id,
           name: place.name,
           latitude: place.location!.latitude,
@@ -159,7 +158,7 @@ export class DishesService {
         };
 
         const dish: PrismaDishes = {
-          id: randomUUID(),
+          id: 'unknown',
           restaurant_id: restaurant.id,
           category_id: dto.categoryId,
           name: dto.categoryName,
@@ -169,7 +168,7 @@ export class DishesService {
         };
 
         const dishMedia: PrismaDishMedia = {
-          id: randomUUID(),
+          id: 'unknown',
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
           media_path: mediaPath,
@@ -182,7 +181,7 @@ export class DishesService {
 
         const dishReviews: PrismaDishReviews[] = contextualContent.reviews.map(
           (review) => ({
-            id: randomUUID(),
+            id: 'unknown',
             dish_id: dish.id,
             user_id: null, // Google からのインポートなので null
             comment: review.originalText?.text || '',
