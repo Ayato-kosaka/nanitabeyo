@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { StyleSheet, View, Dimensions } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Marker, Region } from "@/components/MapView";
@@ -20,21 +20,16 @@ interface FoodContentMapProps {
 	onIndexChange?: (index: number) => void;
 }
 
-const MOCK_COORDINATES = [
-	{ latitude: 35.657825, longitude: 139.696711 }, // 炙り味噌らーめん 麺匠真武咲弥 渋谷店
-	{ latitude: 35.65741, longitude: 139.704493 }, // 俺流塩らーめん 渋谷三丁目店
-	{ latitude: 35.65408, longitude: 139.707492 }, // らーめん ぎょうざ 大穀
-	{ latitude: 35.659186, longitude: 139.698929 }, // 蒙古タンメン中本 渋谷
-	{ latitude: 35.658813, longitude: 139.698221 }, // らーめん金伝丸 渋谷本店
-];
-
 export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndexChange }: FoodContentMapProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
 	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
-	const coordinates = MOCK_COORDINATES; // TODO: resturant から取る。
+	const coordinates = useMemo(
+		() => items?.map((item) => ({ latitude: item.restaurant.latitude, longitude: item.restaurant.longitude })) || [],
+		[items],
+	);
 	useEffect(() => {
 		itemsPromise.then((data) => {
 			setItems(data);
