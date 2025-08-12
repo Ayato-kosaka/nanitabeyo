@@ -7,6 +7,7 @@ import { useBlurModal } from "@/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
+import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 
@@ -42,11 +43,13 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
 
 	const handleCommentLike = (commentId: string) => {
 		lightImpact();
+		const currentLikeState = commentLikes[commentId]?.isLiked || false;
 		setCommentLikes((prev) => ({
 			...prev,
 			[commentId]: {
@@ -54,6 +57,16 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				count: prev[commentId]?.isLiked ? (prev[commentId]?.count || 0) - 1 : (prev[commentId]?.count || 0) + 1,
 			},
 		}));
+
+		logFrontendEvent({
+			event_name: currentLikeState ? "comment_unliked" : "comment_liked",
+			error_level: "log",
+			payload: {
+				commentId,
+				dishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+			},
+		});
 	};
 
 	const handleLike = () => {
@@ -61,17 +74,47 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		const willLike = !isLiked;
 		setIsLiked(willLike);
 		setLikesCount((prev) => (willLike ? prev + 1 : prev - 1));
+
+		logFrontendEvent({
+			event_name: willLike ? "dish_liked" : "dish_unliked",
+			error_level: "log",
+			payload: {
+				dishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+				previousLikeCount: likesCount,
+				newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
+			},
+		});
 	};
 
 	const handleSave = () => {
 		lightImpact();
 		const willSave = !isSaved;
 		setIsSaved(willSave);
+
+		logFrontendEvent({
+			event_name: willSave ? "dish_saved" : "dish_unsaved",
+			error_level: "log",
+			payload: {
+				dishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+			},
+		});
 	};
 
 	const handleViewRestaurant = () => {
 		lightImpact();
 		// router.push("/(tabs)/(home)/restaurant/1");
+
+		logFrontendEvent({
+			event_name: "restaurant_view_clicked",
+			error_level: "log",
+			payload: {
+				restaurantId: item.restaurant.id,
+				restaurantName: item.restaurant.name,
+				fromDishId: item.dish_media.id,
+			},
+		});
 	};
 
 	const handleViewCreator = () => {
@@ -84,17 +127,45 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				userId: "123",
 			},
 		});
+
+		logFrontendEvent({
+			event_name: "creator_profile_clicked",
+			error_level: "log",
+			payload: {
+				creatorUserId: "123",
+				fromDishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+			},
+		});
 	};
 
 	const handleMenuOpen = () => {
 		lightImpact();
 		openMenuModal();
+
+		logFrontendEvent({
+			event_name: "dish_menu_opened",
+			error_level: "log",
+			payload: {
+				dishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+			},
+		});
 	};
 
 	const handleMenuOptionPress = (onPress: () => void) => {
 		lightImpact();
 		closeMenuModal();
 		onPress();
+
+		logFrontendEvent({
+			event_name: "dish_menu_option_selected",
+			error_level: "log",
+			payload: {
+				dishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+			},
+		});
 	};
 
 	const menuOptions = [
