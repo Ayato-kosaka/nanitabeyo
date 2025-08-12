@@ -20,13 +20,82 @@ echo "▼ Start generating dish categories..."
 # ========== STEP 1: Get core dish info (QID, label, tags, etc.) ==========
 echo "→ [1] Fetching dishes_with_tags from Wikidata..."
 
-curl -sG "${WDQS_URL}" \
-  --data-urlencode query@"${WORKDIR}/dishes_with_tags.rq" \
-  -H "Accept: text/csv" \
-  -H "User-Agent: food-app/0.1 (contact: you@example.com)" \
-  -o "${TMPDIR}/dishes_raw.csv"
+FILTERS=(
+  # A. 料理（dish）…インスタンスも含める
+  '{ ?dish wdt:P31/wdt:P279* wd:Q746549 . }'
+  '{ ?dish wdt:P279+ wd:Q746549. }'
+  # B. 菜系（cuisine）…クラス/インスタンス両方
+  '{ ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q1778821 . }'
+  # C. 食事（meal）…朝食/昼食/夕食などを含む概念
+  '{ ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q6460735 . }'
+  # D. デザート（甘味の上位）
+  '{ ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q8495 . }'
+  # E. ヌードル（うどん等を包含）
+  '{ ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q192874 . }'
+  # F. 定食（和定食/朝食セットの受け皿）
+  '{ ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q117231375 . }'
+  # G. カフェ（店舗種別）
+  '{ ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q30022 . }'
+)
 
-echo "✅ Raw dish data saved to ${TMPDIR}/dishes_raw.csv"
+RANGES=()
+max=200000000
+step=10000
+for ((i=0; i<=$max; i+=$step)); do
+  start=$i
+  end=$((i+step))
+  RANGES+=("$start $end")
+done
+
+OUT_CSV="${TMPDIR}/dishes_raw.csv"
+> "$OUT_CSV"
+part_idx=0
+
+for pattern in "${FILTERS[@]}"; do
+  for range in "${RANGES[@]}"; do
+    read start end <<< "$range"
+
+    filter="${pattern}
+      BIND( xsd:integer(STRAFTER(STR(?dish), \"entity/Q\")) AS ?qnum )
+      FILTER( ?qnum >= ${start} && ?qnum < ${end} )"
+
+    qfile="${TMPDIR}/query_${part_idx}.rq"
+    tmpfile="${TMPDIR}/part_${part_idx}.csv"
+
+    FILTER="$filter" envsubst < "${WORKDIR}/dishes_with_tags.template.rq" > "$qfile"
+
+    echo "  → Part ${part_idx}: pattern='${pattern}' range=${start}-${end}"
+    if ! curl -fsSLG --retry 5 --retry-delay 10 "${WDQS_URL}" \
+        --data-urlencode query@"$qfile" \
+        -H "Accept: text/csv" \
+        -H "User-Agent: food-app/0.1 (contact: your-email-or-url)" \
+        -o "$tmpfile"; then
+      echo "WARN: Failed part $part_idx after retries, skipping..." >&2
+      part_idx=$((part_idx + 1))
+      continue
+    fi
+
+    if [[ ! -s "$tmpfile" ]]; then
+      echo "WARN: Empty result for part $part_idx, skipping..." >&2
+      part_idx=$((part_idx + 1))
+      continue
+    fi
+
+    if [[ $part_idx -eq 0 ]]; then
+      cat "$tmpfile" >> "$OUT_CSV"
+    else
+      tail -n +2 "$tmpfile" >> "$OUT_CSV"
+    fi
+
+    part_idx=$((part_idx + 1))
+  done
+done
+
+# 重複排除（dish列基準）
+awk -F, '!seen[$1]++' "$OUT_CSV" > "${TMPDIR}/dishes_raw_dedup.csv" \
+  && mv "${TMPDIR}/dishes_raw_dedup.csv" "$OUT_CSV"
+
+echo "✅ Combined raw dish data saved to ${OUT_CSV}"
 
 # ========== STEP 2: Preprocess CSV to PostgreSQL format ==========
 echo "→ [2] Transforming CSV to PostgreSQL-compatible format..."
