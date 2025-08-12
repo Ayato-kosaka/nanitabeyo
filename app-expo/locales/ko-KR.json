@@ -62,15 +62,6 @@
 			"noMinBudget": "최소 없음",
 			"noMaxBudget": "최대 없음"
 		},
-		"priceLevels": {
-			"inexpensive": "저렴함",
-			"moderate": "보통",
-			"expensive": "비쌈",
-			"veryExpensive": "매우 비쌈",
-			"none": "선택 안됨",
-			"all": "모든 가격대",
-			"selected": "{{count}}개 선택됨"
-		},
 		"distanceLabels": {
 			"100m": "100m",
 			"300m": "300m",

@@ -62,15 +62,6 @@
 			"noMinBudget": "कोई न्यूनतम नहीं",
 			"noMaxBudget": "कोई अधिकतम नहीं"
 		},
-		"priceLevels": {
-			"inexpensive": "सस्ता",
-			"moderate": "मध्यम",
-			"expensive": "महंगा",
-			"veryExpensive": "बहुत महंगा",
-			"none": "कोई नहीं चुना गया",
-			"all": "सभी मूल्य श्रेणियां",
-			"selected": "{{count}} चुने गए"
-		},
 		"distanceLabels": {
 			"100m": "100मी",
 			"300m": "300मी",

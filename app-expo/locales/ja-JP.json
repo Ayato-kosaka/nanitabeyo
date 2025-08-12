@@ -62,15 +62,6 @@
 			"noMinBudget": "下限なし",
 			"noMaxBudget": "上限なし"
 		},
-		"priceLevels": {
-			"inexpensive": "安い",
-			"moderate": "普通",
-			"expensive": "高い",
-			"veryExpensive": "とても高い",
-			"none": "未選択",
-			"all": "すべての価格帯",
-			"selected": "{{count}}個選択"
-		},
 		"distanceLabels": {
 			"100m": "100m",
 			"300m": "300m",

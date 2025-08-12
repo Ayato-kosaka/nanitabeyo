@@ -62,15 +62,6 @@
 			"noMinBudget": "No minimum",
 			"noMaxBudget": "No maximum"
 		},
-		"priceLevels": {
-			"inexpensive": "Cheap",
-			"moderate": "Moderate",
-			"expensive": "Expensive",
-			"veryExpensive": "Very Expensive",
-			"none": "None selected",
-			"all": "All price ranges",
-			"selected": "{{count}} selected"
-		},
 		"distanceLabels": {
 			"100m": "100m",
 			"300m": "300m",
