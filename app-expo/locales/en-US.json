@@ -62,15 +62,6 @@
 			"noMinBudget": "No minimum",
 			"noMaxBudget": "No maximum"
 		},
-		"priceLevels": {
-			"inexpensive": "Cheap",
-			"moderate": "Moderate",
-			"expensive": "Expensive",
-			"veryExpensive": "Very Expensive",
-			"none": "None selected",
-			"all": "All price ranges",
-			"selected": "{{count}} selected"
-		},
 		"distanceLabels": {
 			"100m": "100m",
 			"300m": "300m",
@@ -214,9 +205,6 @@
 		"goHome": "Go to home screen!"
 	},
 	"Map": {
-		"placeholders": {
-			"searchRestaurants": "Search restaurants"
-		},
 		"buttons": {
 			"postReview": "Post Review",
 			"placeBid": "Place Bid",
@@ -253,7 +241,8 @@
 			"bidError": "Failed to place bid",
 			"reviewSuccess": "Review posted successfully",
 			"reviewError": "Failed to post review"
-		}
+		},
+		"currentLocation": "Current location"
 	},
 	"Restaurant": {
 		"placeholders": {

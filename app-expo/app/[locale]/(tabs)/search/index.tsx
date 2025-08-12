@@ -24,7 +24,7 @@ import {
 	ChevronUp,
 } from "lucide-react-native";
 import { router } from "expo-router";
-import { SearchParams, SearchLocation } from "@/types/search";
+import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -41,7 +41,7 @@ export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const [location, setLocation] = useState<SearchLocation | null>(null);
+	const [location, setLocation] = useState<Pick<SearchParams, "address" | "latitude" | "longitude"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
@@ -50,15 +50,15 @@ export default function SearchScreen() {
 	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
-	const [priceLevels, setPriceLevels] = useState<number[]>([0, 1, 2, 3, 4]); // Default all selected
+	const [priceLevels, setPriceLevels] = useState<number[]>([2, 3, 4, 5]); // Default all selected
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const {
 		suggestions,
 		isSearching: isLocationSearching,
 		searchLocations,
-		getLocationDetails,
 		getCurrentLocation,
+		getLocationDetails,
 	} = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
 
@@ -157,8 +157,7 @@ export default function SearchScreen() {
 		setIsSearching(true);
 
 		const searchParams: SearchParams = {
-			address: location.address,
-			location: `${location.latitude},${location.longitude}`,
+			...location,
 			timeSlot,
 			scene,
 			mood,
@@ -207,17 +206,6 @@ export default function SearchScreen() {
 			setIsSearching(false);
 		}
 	};
-
-	const formatPriceLevelsDisplay = () => {
-		if (priceLevels.length === 0) {
-			return i18n.t("Search.priceLevels.none");
-		}
-		if (priceLevels.length === 5) {
-			return i18n.t("Search.priceLevels.all");
-		}
-		return i18n.t("Search.priceLevels.selected", { count: priceLevels.length });
-	};
-
 	// Wrapper functions for haptic feedback
 	const handleTimeSlotSelect = (slotId: SearchParams["timeSlot"]) => {
 		lightImpact();
@@ -400,8 +388,18 @@ export default function SearchScreen() {
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
-								<Text style={styles.sliderValue}>{formatPriceLevelsDisplay()}</Text>
-								<PriceLevelsMultiSelect selectedPriceLevels={priceLevels} onPriceLevelsChange={setPriceLevels} />
+								<PriceLevelsMultiSelect
+									selectedPriceLevels={priceLevels}
+									onPriceLevelsChange={setPriceLevels}
+									customStyles={{
+										chipGrid: styles.chipGrid,
+										chip: styles.chip,
+										selectedChip: styles.selectedChip,
+										chipEmoji: styles.chipEmoji,
+										chipText: styles.chipText,
+										selectedChipText: styles.selectedChipText,
+									}}
+								/>
 							</View>
 						</Card>
 

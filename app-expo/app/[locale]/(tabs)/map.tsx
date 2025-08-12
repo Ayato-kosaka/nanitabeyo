@@ -58,7 +58,7 @@ export default function MapScreen() {
 	} = useBlurModal({ intensity: 100, zIndex: 1300 });
 
 	const mapRef = useRef<any>(null);
-	const { suggestions, isSearching, searchLocations, getLocationDetails, getCurrentLocation } = useLocationSearch();
+	const { suggestions, getLocationDetails, searchLocations, getCurrentLocation } = useLocationSearch();
 
 	const [currentRegion, setCurrentRegion] = useState<Region>({
 		latitude: 35.6762,

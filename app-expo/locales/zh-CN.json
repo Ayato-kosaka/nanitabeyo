@@ -62,15 +62,6 @@
 			"noMinBudget": "无下限",
 			"noMaxBudget": "无上限"
 		},
-		"priceLevels": {
-			"inexpensive": "便宜",
-			"moderate": "中等",
-			"expensive": "昂贵",
-			"veryExpensive": "非常昂贵",
-			"none": "未选择",
-			"all": "所有价位",
-			"selected": "已选择{{count}}个"
-		},
 		"distanceLabels": {
 			"100m": "100米",
 			"300m": "300米",
@@ -214,9 +205,6 @@
 		"goHome": "返回首页！"
 	},
 	"Map": {
-		"placeholders": {
-			"searchRestaurants": "搜索餐厅"
-		},
 		"buttons": {
 			"postReview": "发布评论",
 			"placeBid": "出价",
@@ -253,7 +241,8 @@
 			"bidError": "出价失败",
 			"reviewSuccess": "评论发布成功",
 			"reviewError": "评论发布失败"
-		}
+		},
+		"currentLocation": "当前位置"
 	},
 	"Restaurant": {
 		"placeholders": {

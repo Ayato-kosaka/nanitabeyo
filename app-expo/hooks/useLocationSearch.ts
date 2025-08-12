@@ -1,11 +1,14 @@
 import { useState, useCallback } from "react";
-import { SearchLocation } from "@/types/search";
 import { mockPlacePredictions } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import * as Location from "expo-location";
 import type { QueryAutocompleteLocationsDto } from "@shared/api/v1/dto";
 import type { AutocompleteLocationsResponse, AutocompleteLocation } from "@shared/api/v1/res";
+import { SearchParams } from "@/types/search";
+import i18n from "@/lib/i18n";
+
 
 export const useLocationSearch = () => {
 	const [suggestions, setSuggestions] = useState<AutocompleteLocation[]>([]);
@@ -81,46 +84,22 @@ export const useLocationSearch = () => {
 		[callBackend, locale, logFrontendEvent],
 	);
 
-	const getLocationDetails = useCallback(async (prediction: AutocompleteLocation): Promise<SearchLocation> => {
+	const getLocationDetails = useCallback(async (prediction: AutocompleteLocation): Promise<Pick<SearchParams, 'address' | 'latitude' | 'longitude'>> => {
 		// Mock location details - in real app, use Google Places Details API
-		const mockLocations: Record<string, SearchLocation> = {
-			place_1: {
-				latitude: 35.658,
-				longitude: 139.7016,
-				address: "東京都渋谷区道玄坂2-1-1",
-			},
-			place_2: {
-				latitude: 35.6896,
-				longitude: 139.7006,
-				address: "東京都新宿区新宿3-38-1",
-			},
-			place_3: {
-				latitude: 35.6762,
-				longitude: 139.7653,
-				address: "東京都中央区銀座4-6-16",
-			},
-			place_4: {
-				latitude: 35.6702,
-				longitude: 139.7026,
-				address: "東京都渋谷区神宮前1-19-11",
-			},
-			place_5: {
-				latitude: 35.6627,
-				longitude: 139.7314,
-				address: "東京都港区六本木6-10-1",
-			},
+		const mockLocationDetail: Pick<SearchParams, 'latitude' | 'longitude'> = {
+			latitude: 35.658,
+			longitude: 139.7016,
 		};
 
 		return (
-			mockLocations[prediction.place_id] || {
-				latitude: 35.6762,
-				longitude: 139.6503,
-				address: prediction.text,
+			{
+				...mockLocationDetail,
+				address: prediction.mainText,
 			}
 		);
 	}, []);
 
-	const getCurrentLocation = useCallback(async (): Promise<SearchLocation> => {
+	const getCurrentLocation = useCallback(async (): Promise<Pick<SearchParams, 'address' | 'latitude' | 'longitude'>> => {
 		logFrontendEvent({
 			event_name: "current_location_fetch_started",
 			error_level: "debug",
@@ -128,12 +107,34 @@ export const useLocationSearch = () => {
 		});
 
 		try {
-			// Mock current location - in real app, use expo-location
-			const location = {
-				latitude: 35.6762,
-				longitude: 139.6503,
-				address: "現在地（東京都渋谷区）",
-			};
+			const { status } = await Location.requestForegroundPermissionsAsync();
+			if (status !== "granted") {
+				logFrontendEvent({
+					event_name: "current_location_permission_denied",
+					error_level: "warn",
+					payload: {},
+				});
+			}
+
+			const position = await Location.getCurrentPositionAsync({
+				accuracy: Location.Accuracy.Balanced,
+			});
+			const { latitude, longitude } = position.coords;
+
+			let address = i18n.t("Map.currentLocation");
+			try {
+				const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+				if (results && results.length > 0) {
+					const r = results[0];
+					address = r.city || address;
+				}
+			} catch {
+				logFrontendEvent({
+					event_name: "current_location_reverse_geocode_failed",
+					error_level: "warn",
+					payload: { latitude, longitude },
+				});
+			}
 
 			logFrontendEvent({
 				event_name: "current_location_fetch_success",
@@ -141,7 +142,11 @@ export const useLocationSearch = () => {
 				payload: { hasLocation: true },
 			});
 
-			return location;
+			return {
+				latitude,
+				longitude,
+				address,
+			};
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "current_location_fetch_failed",
@@ -156,7 +161,7 @@ export const useLocationSearch = () => {
 		suggestions,
 		isSearching,
 		searchLocations,
-		getLocationDetails,
 		getCurrentLocation,
+		getLocationDetails,
 	};
 };

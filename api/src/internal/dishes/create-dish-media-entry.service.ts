@@ -23,7 +23,7 @@ export class CreateDishMediaEntryService {
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
-  ) {}
+  ) { }
 
   /**
    * 非同期ジョブの処理メイン関数
@@ -123,30 +123,37 @@ export class CreateDishMediaEntryService {
   ): Promise<void> {
     await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
       // 1. レストラン登録
-      await this.dishesRepository.createOrGetRestaurant(
+      const restaurant = await this.dishesRepository.createOrGetRestaurant(
         tx,
         convertSupabaseToPrisma_Restaurants(payload.restaurants),
         payload.restaurants.google_place_id!,
       );
 
       // 2. 料理登録
-      await this.dishesRepository.createOrGetDishForCategory(
+      const dish = await this.dishesRepository.createOrGetDishForCategory(
         tx,
-        convertSupabaseToPrisma_Dishes(payload.dishes),
+        {
+          ...convertSupabaseToPrisma_Dishes(payload.dishes),
+          restaurant_id: restaurant.id,
+        },
       );
 
       // 3. 料理メディア登録
       await this.dishesRepository.createDishMedia(
         tx,
-        convertSupabaseToPrisma_DishMedia(payload.dish_media),
+        convertSupabaseToPrisma_DishMedia({
+          ...payload.dish_media,
+          dish_id: dish.id,
+        }),
       );
 
       // 4. 料理レビュー登録
       await this.dishesRepository.createDishReviews(
         tx,
-        payload.dish_reviews.map((review) =>
-          convertSupabaseToPrisma_DishReviews(review),
-        ),
+        payload.dish_reviews.map((review) => ({
+          ...convertSupabaseToPrisma_DishReviews(review)
+          , dish_id: dish.id,
+        }),),
       );
     });
   }

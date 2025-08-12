@@ -21,7 +21,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -60,14 +60,16 @@ export class DishesRepository {
     google_place_id: string,
   ) {
     this.logger.debug('createOrGetRestaurant', 'DishesRepository', restaurant);
-    await tx.restaurants.upsert({
+    // Omit auto-increment IDs so DB can assign them
+    const { id: _omitId, ...createData } = restaurant;
+
+    return await tx.restaurants.upsert({
       where: { google_place_id },
       update: {},
       create: {
-        ...restaurant,
+        ...createData,
       },
     });
-    return restaurant;
   }
 
   /**
@@ -88,8 +90,10 @@ export class DishesRepository {
       return existing;
     }
 
+    const { id: _omitId, ...createData } = dish;
+
     return tx.dishes.create({
-      data: dish,
+      data: createData,
     });
   }
 
@@ -100,8 +104,9 @@ export class DishesRepository {
     tx: Prisma.TransactionClient,
     dishMedia: PrismaDishMedia,
   ) {
+    const { id: _omitId, ...createData } = dishMedia;
     return tx.dish_media.create({
-      data: dishMedia,
+      data: createData,
     });
   }
 
@@ -113,7 +118,10 @@ export class DishesRepository {
     reviews: PrismaDishReviews[],
   ) {
     return await tx.dish_reviews.createMany({
-      data: reviews,
+      data: reviews.map((review) => {
+        const { id: _omitId, ...createDta } = review;
+        return createDta;
+      }),
     });
   }
 }

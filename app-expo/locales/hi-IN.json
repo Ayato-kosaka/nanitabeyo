@@ -62,15 +62,6 @@
 			"noMinBudget": "कोई न्यूनतम नहीं",
 			"noMaxBudget": "कोई अधिकतम नहीं"
 		},
-		"priceLevels": {
-			"inexpensive": "सस्ता",
-			"moderate": "मध्यम",
-			"expensive": "महंगा",
-			"veryExpensive": "बहुत महंगा",
-			"none": "कोई नहीं चुना गया",
-			"all": "सभी मूल्य श्रेणियां",
-			"selected": "{{count}} चुने गए"
-		},
 		"distanceLabels": {
 			"100m": "100मी",
 			"300m": "300मी",
@@ -214,9 +205,6 @@
 		"goHome": "मुख्य स्क्रीन पर जाएँ!"
 	},
 	"Map": {
-		"placeholders": {
-			"searchRestaurants": "रेस्टोरेंट खोजें"
-		},
 		"buttons": {
 			"postReview": "समीक्षा पोस्ट करें",
 			"placeBid": "बोली लगाएं",
@@ -253,7 +241,8 @@
 			"bidError": "बोली लगाने में विफल",
 			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
 			"reviewError": "समीक्षा पोस्ट करने में विफल"
-		}
+		},
+		"currentLocation": "वर्तमान स्थान"
 	},
 	"Restaurant": {
 		"placeholders": {

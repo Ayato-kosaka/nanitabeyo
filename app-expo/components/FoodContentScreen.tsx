@@ -189,9 +189,9 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			{/* Top Header */}
 			<View style={styles.topHeader}>
 				<View style={styles.headerLeft}>
-					<Text style={styles.menuName}>{item.restaurant.name}</Text>
+					<Text style={styles.menuName}>{item.dish.name}</Text>
 					<View style={styles.priceRatingContainer}>
-						<Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text>
+						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
 						{/* <View style={styles.ratingContainer}>
               {renderStars(5, 4)}
               <Text style={styles.reviewCount}>(127)</Text>
@@ -251,7 +251,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 						<TouchableOpacity style={styles.actionButton} onPress={() => handleViewRestaurant()}>
 							<Image
 								source={{
-									uri: "https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
+									uri: item.restaurant.image_url,
 								}}
 								style={styles.restaurantAvatar}
 								onError={() => console.log("Failed to load restaurant avatar")}

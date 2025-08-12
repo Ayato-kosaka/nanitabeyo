@@ -29,6 +29,11 @@ export class OIDCGuard implements CanActivate {
   private client = new OAuth2Client();
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (env.CLOUD_RUN_URL.startsWith('http://localhost')) {
+      this.logger.debug('Running in local environment, skipping OIDC verification');
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers.authorization;
 
