@@ -16,4 +16,4 @@ import { DishesRepository } from 'src/v1/dishes/dishes.repository';
   controllers: [DishesController],
   providers: [CreateDishMediaEntryService],
 })
-export class InternalDishesModule { }
+export class InternalDishesModule {}

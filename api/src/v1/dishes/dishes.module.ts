@@ -36,4 +36,4 @@ import { RemoteConfigModule } from '../../core/remote-config/remote-config.modul
     DishesRepository,
   ],
 })
-export class DishesModule { }
+export class DishesModule {}

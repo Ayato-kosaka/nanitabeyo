@@ -27,7 +27,7 @@ export class DishesController {
   constructor(
     private readonly createDishMediaEntryService: CreateDishMediaEntryService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * POST /internal/dishes/create

@@ -21,7 +21,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -64,7 +64,7 @@ export class DishesRepository {
       where: { google_place_id },
       update: {},
       create: {
-        ...restaurant
+        ...restaurant,
       },
     });
     return restaurant;
@@ -98,7 +98,7 @@ export class DishesRepository {
    */
   async createDishMedia(
     tx: Prisma.TransactionClient,
-    dishMedia: PrismaDishMedia
+    dishMedia: PrismaDishMedia,
   ) {
     return tx.dish_media.create({
       data: dishMedia,

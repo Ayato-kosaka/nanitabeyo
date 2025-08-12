@@ -17,16 +17,29 @@ import { RemoteConfigService } from '../../core/remote-config/remote-config.serv
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 
 // Import converters
-import { convertPrismaToSupabase_Dishes, PrismaDishes } from '../../../../shared/converters/convert_dishes';
-import { convertPrismaToSupabase_Restaurants, PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
-import { convertPrismaToSupabase_DishMedia, PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
+import {
+  convertPrismaToSupabase_Dishes,
+  PrismaDishes,
+} from '../../../../shared/converters/convert_dishes';
+import {
+  convertPrismaToSupabase_Restaurants,
+  PrismaRestaurants,
+} from '../../../../shared/converters/convert_restaurants';
+import {
+  convertPrismaToSupabase_DishMedia,
+  PrismaDishMedia,
+} from '../../../../shared/converters/convert_dish_media';
 import {
   convertPrismaToSupabase_DishReviews,
   PrismaDishReviews,
 } from '../../../../shared/converters/convert_dish_reviews';
 import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
 import { randomUUID } from 'crypto';
-import { buildFileName, buildFullPath, getExt } from 'src/core/storage/storage.utils';
+import {
+  buildFileName,
+  buildFullPath,
+  getExt,
+} from 'src/core/storage/storage.utils';
 import { env } from 'src/core/config/env';
 
 @Injectable()
@@ -37,7 +50,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -100,11 +113,7 @@ export class DishesService {
     });
 
     const contextualContents = googlePlaces?.contextualContents;
-    if (
-      !googlePlaces ||
-      !googlePlaces?.places ||
-      !contextualContents
-    ) {
+    if (!googlePlaces || !googlePlaces?.places || !contextualContents) {
       throw new Error('No places found from Google Maps API');
     }
 
@@ -114,7 +123,7 @@ export class DishesService {
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
         const contextualContent = contextualContents[index];
-        const photoName = contextualContent.photos?.[0]?.name
+        const photoName = contextualContent.photos?.[0]?.name;
         if (
           !place.id ||
           !place.name ||
@@ -138,7 +147,6 @@ export class DishesService {
           usageType: 'photo',
           finalFileName: mediaFileName,
         });
-
 
         const restaurant: PrismaRestaurants = {
           id: randomUUID(),
@@ -172,20 +180,22 @@ export class DishesService {
           lock_no: 0,
         };
 
-        const dishReviews: PrismaDishReviews[] = contextualContent.reviews.map((review) => ({
-          id: randomUUID(),
-          dish_id: dish.id,
-          user_id: null, // Google からのインポートなので null
-          comment: review.originalText?.text || '',
-          original_language_code: review.originalText?.languageCode || '',
-          rating: review.rating || 0,
-          price_cents: null,
-          currency_code: null,
-          created_dish_media_id: dishMedia.id,
-          imported_user_name: review.authorAttribution?.displayName || null,
-          imported_user_avatar: review.authorAttribution?.photoUri || null,
-          created_at: new Date(),
-        }));
+        const dishReviews: PrismaDishReviews[] = contextualContent.reviews.map(
+          (review) => ({
+            id: randomUUID(),
+            dish_id: dish.id,
+            user_id: null, // Google からのインポートなので null
+            comment: review.originalText?.text || '',
+            original_language_code: review.originalText?.languageCode || '',
+            rating: review.rating || 0,
+            price_cents: null,
+            currency_code: null,
+            created_dish_media_id: dishMedia.id,
+            imported_user_name: review.authorAttribution?.displayName || null,
+            imported_user_avatar: review.authorAttribution?.photoUri || null,
+            created_at: new Date(),
+          }),
+        );
 
         // 非同期ジョブ用のペイロード作成
         const jobId = `dish-create-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -199,7 +209,7 @@ export class DishesService {
           dishes: convertPrismaToSupabase_Dishes(dish),
           dish_media: convertPrismaToSupabase_DishMedia(dishMedia),
           dish_reviews: dishReviews.map((r) => ({
-            ...convertPrismaToSupabase_DishReviews(r)
+            ...convertPrismaToSupabase_DishReviews(r),
           })),
         };
 
