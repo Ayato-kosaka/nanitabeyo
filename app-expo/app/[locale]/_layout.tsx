@@ -14,6 +14,7 @@ import { useColorScheme } from "react-native";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
+import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 
 /**
@@ -42,19 +43,36 @@ export default function RootLayout() {
 	const locale = useLocale();
 	const scheme = useColorScheme();
 	const theme = getPaperTheme(scheme, locale);
+	const { logFrontendEvent } = useLogger();
 
 	const fontsLoaded = useLocaleFonts(locale);
 
 	useEffect(() => {
 		const isLocaleSupported = isValidBcp47Tag(locale);
 
+		// Log locale initialization
+		logFrontendEvent({
+			event_name: "locale_initialized",
+			error_level: "log",
+			payload: {
+				locale,
+				isSupported: isLocaleSupported,
+				colorScheme: scheme,
+			},
+		});
+
 		if (!isLocaleSupported) {
+			logFrontendEvent({
+				event_name: "locale_validation_failed",
+				error_level: "warn",
+				payload: { locale, redirectTo: "/" },
+			});
 			router.replace("/");
 			return;
 		}
 
 		i18n.locale = getResolvedLocale(locale);
-	}, [locale]);
+	}, [locale, scheme, router, logFrontendEvent]);
 
 	if (!fontsLoaded) return null;
 

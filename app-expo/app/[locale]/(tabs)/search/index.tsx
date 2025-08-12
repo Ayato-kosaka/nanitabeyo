@@ -35,10 +35,12 @@ import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevels
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
+import { useLogger } from "@/hooks/useLogger";
 
 export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 	const [location, setLocation] = useState<SearchLocation | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -61,6 +63,13 @@ export default function SearchScreen() {
 	const { showSnackbar } = useSnackbar();
 
 	useEffect(() => {
+		// Screen view logging
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: { screen: "search" },
+		});
+
 		// Auto-detect current location on mount
 		getCurrentLocation().then(setLocation).catch(console.error);
 
@@ -71,7 +80,7 @@ export default function SearchScreen() {
 		else if (hour < 17) setTimeSlot("afternoon");
 		else if (hour < 22) setTimeSlot("dinner");
 		else setTimeSlot("late_night");
-	}, [getCurrentLocation]);
+	}, [getCurrentLocation, logFrontendEvent]);
 
 	const handleLocationSearch = (query: string) => {
 		setLocationQuery(query);
@@ -85,23 +94,48 @@ export default function SearchScreen() {
 
 	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
+		logFrontendEvent({
+			event_name: "location_selected",
+			error_level: "log",
+			payload: { placeId: prediction.place_id, mainText: prediction.mainText },
+		});
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
 			setLocationQuery(locationDetails.address);
 			setShowLocationSuggestions(false);
 		} catch (error) {
+			logFrontendEvent({
+				event_name: "location_selection_failed",
+				error_level: "error",
+				payload: { placeId: prediction.place_id, error: String(error) },
+			});
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
 	};
 
 	const handleUseCurrentLocation = async () => {
 		lightImpact();
+		logFrontendEvent({
+			event_name: "current_location_requested",
+			error_level: "log",
+			payload: {},
+		});
 		try {
 			const currentLocation = await getCurrentLocation();
 			setLocation(currentLocation);
 			setLocationQuery(currentLocation.address);
+			logFrontendEvent({
+				event_name: "current_location_success",
+				error_level: "log",
+				payload: { hasLocation: !!currentLocation },
+			});
 		} catch (error) {
+			logFrontendEvent({
+				event_name: "current_location_failed",
+				error_level: "error",
+				payload: { error: String(error) },
+			});
 			showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
 		}
 	};
@@ -122,18 +156,32 @@ export default function SearchScreen() {
 		mediumImpact();
 		setIsSearching(true);
 
-		try {
-			const searchParams: SearchParams = {
-				address: location.address,
-				location: `${location.latitude},${location.longitude}`,
+		const searchParams: SearchParams = {
+			address: location.address,
+			location: `${location.latitude},${location.longitude}`,
+			timeSlot,
+			scene,
+			mood,
+			restrictions,
+			distance,
+			priceLevels,
+		};
+
+		logFrontendEvent({
+			event_name: "search_started",
+			error_level: "log",
+			payload: {
+				hasLocation: !!location,
 				timeSlot,
 				scene,
 				mood,
-				restrictions,
+				restrictionsCount: restrictions.length,
 				distance,
-				priceLevels,
-			};
+				priceLevelsCount: priceLevels.length,
+			},
+		});
 
+		try {
 			// Navigate to cards screen with search parameters
 			router.push({
 				pathname: "/[locale]/(tabs)/search/topics",
@@ -142,7 +190,18 @@ export default function SearchScreen() {
 					searchParams: JSON.stringify(searchParams),
 				},
 			});
+
+			logFrontendEvent({
+				event_name: "search_navigation_success",
+				error_level: "log",
+				payload: { targetScreen: "topics" },
+			});
 		} catch (error) {
+			logFrontendEvent({
+				event_name: "search_failed",
+				error_level: "error",
+				payload: { error: String(error) },
+			});
 			showSnackbar(i18n.t("Search.errors.searchFailed"));
 		} finally {
 			setIsSearching(false);

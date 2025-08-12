@@ -68,6 +68,18 @@ export const useAPICall = () => {
 			}
 
 			// 🌐 API 呼び出し
+			const startTime = Date.now();
+			logFrontendEvent({
+				event_name: "api_call_started",
+				error_level: "debug",
+				payload: {
+					endpoint: endpointName,
+					method,
+					isMultipart,
+					hasRequestPayload: !!requestPayload,
+				},
+			});
+
 			const response = await fetch(endpoint, {
 				method,
 				headers,
@@ -76,6 +88,7 @@ export const useAPICall = () => {
 			});
 
 			const requestId = response.headers.get("x-request-id");
+			const duration = Date.now() - startTime;
 
 			// ❌ エラー処理
 			if (!response.ok) {
@@ -87,6 +100,20 @@ export const useAPICall = () => {
 				} catch {
 					// レスポンスボディがJSONでない場合はスキップ
 				}
+
+				// Log API error
+				logFrontendEvent({
+					event_name: "api_call_error",
+					error_level: "error",
+					payload: {
+						endpoint: endpointName,
+						method,
+						status: response.status,
+						requestId,
+						errorCode: errorPayload.error,
+						errorMessage: errorPayload.message || errorMessage,
+					},
+				});
 
 				// 特定エラーコードによる分岐
 				if (response.status === 403) {
@@ -165,13 +192,15 @@ export const useAPICall = () => {
 			}
 
 			logFrontendEvent({
-				event_name: `api_call_${endpointName}`,
+				event_name: "api_call_success",
 				error_level: "log",
 				payload: {
-					requestPayload: isMultipart ? "[multipart/form-data]" : requestPayload,
-					endpoint,
+					endpoint: endpointName,
 					method,
 					requestId,
+					duration,
+					status: response.status,
+					hasData: !!json.data,
 				},
 			});
 

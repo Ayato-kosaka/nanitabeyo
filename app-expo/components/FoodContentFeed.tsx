@@ -3,6 +3,7 @@ import { StyleSheet, Animated, Dimensions } from "react-native";
 import { PanGestureHandler } from "react-native-gesture-handler";
 import FoodContentScreen from "./FoodContentScreen";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 
 const { height } = Dimensions.get("window");
@@ -17,11 +18,38 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const translateY = useRef(new Animated.Value(0)).current;
 	const { selectionChanged } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+
+	useEffect(() => {
+		// Log component mount with initial state
+		logFrontendEvent({
+			event_name: "food_feed_mounted",
+			error_level: "log",
+			payload: {
+				itemCount: items.length,
+				initialIndex,
+				hasItems: items.length > 0,
+			},
+		});
+	}, [items.length, initialIndex, logFrontendEvent]);
 
 	const updateIndex = (newIndex: number) => {
 		selectionChanged();
+		const previousIndex = currentIndex;
 		setCurrentIndex(newIndex);
 		onIndexChange?.(newIndex);
+
+		// Log swipe navigation
+		logFrontendEvent({
+			event_name: "food_feed_swipe",
+			error_level: "log",
+			payload: {
+				fromIndex: previousIndex,
+				toIndex: newIndex,
+				direction: newIndex > previousIndex ? "down" : "up",
+				currentItemId: items[newIndex]?.id,
+			},
+		});
 	};
 
 	const onGestureEvent = Animated.event([{ nativeEvent: { translationY: translateY } }], { useNativeDriver: true });
