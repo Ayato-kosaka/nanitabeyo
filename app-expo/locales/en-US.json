@@ -205,9 +205,6 @@
 		"goHome": "Go to home screen!"
 	},
 	"Map": {
-		"placeholders": {
-			"searchRestaurants": "Search restaurants"
-		},
 		"buttons": {
 			"postReview": "Post Review",
 			"placeBid": "Place Bid",
@@ -244,7 +241,8 @@
 			"bidError": "Failed to place bid",
 			"reviewSuccess": "Review posted successfully",
 			"reviewError": "Failed to post review"
-		}
+		},
+		"currentLocation": "Current location"
 	},
 	"Restaurant": {
 		"placeholders": {

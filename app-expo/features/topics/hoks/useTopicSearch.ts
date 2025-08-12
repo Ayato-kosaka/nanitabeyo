@@ -38,7 +38,7 @@ export const useTopicSearch = () => {
 				dishItemsPromise: callBackend<BulkImportDishesDto, BulkImportDishesResponse>(`v1/dishes/bulk-import`, {
 					method: "POST",
 					requestPayload: {
-						location: params.location,
+						location: `${params.latitude},${params.longitude}`,
 						radius: params.distance,
 						categoryId: topic.categoryId,
 						categoryName: topic.category,

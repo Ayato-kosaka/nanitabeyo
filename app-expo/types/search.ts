@@ -1,14 +1,9 @@
 import type { DishMediaEntry } from "@shared/api/v1/res";
 
-export interface SearchLocation {
-	latitude: number;
-	longitude: number;
-	address: string;
-}
-
 export interface SearchParams {
 	address: string;
-	location: string; // Keep for bulk-import API compatibility "lat,lng" format
+	latitude: number;
+	longitude: number;
 	timeSlot: "morning" | "lunch" | "afternoon" | "dinner" | "late_night";
 	scene?: "solo" | "date" | "group" | "large_group" | "tourism";
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";

@@ -35,12 +35,6 @@ export interface UserPost {
 	dishName?: string;
 }
 
-export interface SearchLocation {
-	latitude: number;
-	longitude: number;
-	address: string;
-}
-
 export interface ApiResponse<T> {
 	data: T[];
 	total: number;

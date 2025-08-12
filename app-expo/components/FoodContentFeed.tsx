@@ -47,7 +47,7 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 				fromIndex: previousIndex,
 				toIndex: newIndex,
 				direction: newIndex > previousIndex ? "down" : "up",
-				currentItemId: items[newIndex]?.id,
+				currentItemId: items[newIndex]?.dish_media.id,
 			},
 		});
 	};

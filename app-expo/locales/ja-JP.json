@@ -205,9 +205,7 @@
 		"goHome": "ホーム画面へ戻る"
 	},
 	"Map": {
-		"placeholders": {
-			"searchRestaurants": "レストランを検索"
-		},
+		"currentLocation": "現在地",
 		"buttons": {
 			"postReview": "レビュー投稿",
 			"placeBid": "入札する",

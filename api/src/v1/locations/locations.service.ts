@@ -215,38 +215,6 @@ export class LocationsService {
   }
 
   /**
-   * PriceLevel enum を number に変換
-   */
-  private convertPriceLevel(priceLevel: any): number | undefined {
-    if (!priceLevel) return undefined;
-
-    // String または number の場合の処理
-    if (typeof priceLevel === 'string') {
-      switch (priceLevel) {
-        case 'PRICE_LEVEL_FREE':
-          return 0;
-        case 'PRICE_LEVEL_INEXPENSIVE':
-          return 1;
-        case 'PRICE_LEVEL_MODERATE':
-          return 2;
-        case 'PRICE_LEVEL_EXPENSIVE':
-          return 3;
-        case 'PRICE_LEVEL_VERY_EXPENSIVE':
-          return 4;
-        default:
-          return undefined;
-      }
-    }
-
-    // すでに number の場合
-    if (typeof priceLevel === 'number') {
-      return priceLevel >= 0 && priceLevel <= 4 ? priceLevel : undefined;
-    }
-
-    return undefined;
-  }
-
-  /**
    * number を Google Maps PriceLevel enum に変換
    */
   private numberToPriceLevel(
@@ -265,29 +233,5 @@ export class LocationsService {
       default:
         return undefined;
     }
-  }
-
-  /**
-   * ITimestamp または string を UNIX timestamp (seconds) に変換
-   */
-  private parseTimestamp(timestamp: any): number {
-    if (!timestamp) return 0;
-
-    // ITimestamp オブジェクトの場合
-    if (typeof timestamp === 'object' && timestamp.seconds) {
-      return Number(timestamp.seconds);
-    }
-
-    // 文字列の場合
-    if (typeof timestamp === 'string') {
-      return Math.floor(Date.parse(timestamp) / 1000) || 0;
-    }
-
-    // 数値の場合
-    if (typeof timestamp === 'number') {
-      return timestamp;
-    }
-
-    return 0;
   }
 }

@@ -205,9 +205,7 @@
 		"goHome": "¡Ir a la pantalla de inicio!"
 	},
 	"Map": {
-		"placeholders": {
-			"searchRestaurants": "Buscar restaurantes"
-		},
+		"currentLocation": "Ubicación actual",
 		"buttons": {
 			"postReview": "Publicar Reseña",
 			"placeBid": "Hacer Oferta",
