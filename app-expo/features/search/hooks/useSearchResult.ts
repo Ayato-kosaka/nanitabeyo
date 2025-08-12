@@ -17,10 +17,10 @@ export function useSearchResult(topicId: string) {
 			error_level: "log",
 			payload: {
 				topicId,
-				hasDishPromise: !!dishesPromise.length,
+				hasDishPromise: !!dishesPromise,
 			},
 		});
-	}, [topicId, dishesPromise.length, logFrontendEvent]);
+	}, [topicId, dishesPromise, logFrontendEvent]);
 
 	const handleIndexChange = (index: number) => {
 		const previousIndex = currentIndex;
