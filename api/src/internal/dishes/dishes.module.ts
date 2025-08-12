@@ -9,10 +9,9 @@ import { CreateDishMediaEntryService } from './create-dish-media-entry.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { CoreModule } from '../../core/core.module';
 import { DishesModule as V1DishesModule } from '../../v1/dishes/dishes.module';
-import { DishesRepository } from 'src/v1/dishes/dishes.repository';
 
 @Module({
-  imports: [PrismaModule, CoreModule, V1DishesModule, DishesRepository],
+  imports: [PrismaModule, CoreModule, V1DishesModule],
   controllers: [DishesController],
   providers: [CreateDishMediaEntryService],
 })
