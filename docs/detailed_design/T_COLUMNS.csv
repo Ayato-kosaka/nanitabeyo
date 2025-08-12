@@ -47,7 +47,7 @@
 "dish_reviews","dish_id","UUID",false,"dishes.id",false,true,"N/A",true,"レビュー対象料理 ID","","","",""
 "dish_reviews","comment","text",false,false,false,true,"N/A",false,"レビュー本文","","","",""
 "dish_reviews","comment_tsv","tsvector",false,false,false,true,"N/A","GIN インデックス","全文検索用 tsvector (GENERATED ALWAYS AS (to_tsvector('simple', coalesce(comment,''))) STORED)","","","",""
-"dish_reviews","original_language_code","text",false,false,false,true,"N/A",false,"レビューの言語","","","",""
+"dish_reviews","original_language_code","char(2)",false,false,false,true,"N/A",false,"レビューの言語","","","",""
 "dish_reviews","user_id","UUID",false,"users.id",false,false,"N/A",false,"レビューユーザ ID","","","",""
 "dish_reviews","rating","smallint",false,false,false,true,"N/A",false,"評価（★）","","","",""
 "dish_reviews","price_cents","int",false,false,false,false,"N/A",false,"価格（センチ単位）","","","",""

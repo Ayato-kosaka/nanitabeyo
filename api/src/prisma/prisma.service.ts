@@ -5,9 +5,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaClient, Prisma } from '../../../shared/prisma/client';
-import { MetricsMiddleware } from './middlewares/metrics.middleware';
+import { withMetrics } from './middlewares/metrics.middleware';
 import { env } from 'src/core/config/env';
-import { RemoteConfigService } from 'src/core/remote-config/remote-config.service';
 
 // グローバルなシングルトンインスタンスを作成
 // これにより複数のインスタンス作成を防ぎます
@@ -38,32 +37,29 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const enableQueryLogs = env.API_NODE_ENV !== 'production';
 
     if (process.env.NODE_ENV === 'production') {
-      this.prisma = new PrismaClient({
+      this.prisma = withMetrics(new PrismaClient({
         // 本番でも必要に応じてクエリログを Cloud Run に出力
         log: enableQueryLogs
           ? ([
-              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-              'warn',
-              'error',
-            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+            'warn',
+            'error',
+          ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
           : (['warn', 'error'] as Prisma.LogLevel[]),
-      });
-      // ミドルウェアを適用
-      this.prisma.$use(MetricsMiddleware);
+      }));
     } else {
       // 開発環境ではグローバルインスタンスを再利用
       if (!globalForPrisma.prisma) {
-        globalForPrisma.prisma = new PrismaClient({
+        globalForPrisma.prisma = withMetrics(new PrismaClient({
           log: enableQueryLogs
             ? ([
-                { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-                'info',
-                'warn',
-                'error',
-              ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+              'info',
+              'warn',
+              'error',
+            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
             : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
-        });
-        globalForPrisma.prisma.$use(MetricsMiddleware);
+        }));
       }
       this.prisma = globalForPrisma.prisma;
       this.logger.log('Reusing existing Prisma client instance');
@@ -71,24 +67,28 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
     // Prisma の SQL 実行時間を構造化ログで出力（Cloud Run で見やすく）
     if (enableQueryLogs) {
-      // Prisma の型制約上、コンストラクタ引数の log 設定が動的だと
-      // $on('query') のシグネチャが `never` になるため any で回避
-      (this.prisma as any).$on('query', (e: any) => {
-        // Cloud Logging の推奨フォーマットに合わせて JSON 一行で出力
-        // e.params は JSON 文字列のことがあるため、そのまま出力
-        const entry = {
-          severity: 'DEBUG',
-          type: 'prisma',
-          message: 'Prisma query',
-          duration_ms: e.duration,
-          query: e.query,
-          params: e.params,
-          target: (e as any).target,
-          timestamp: new Date().toISOString(),
-        };
-        // stdout へ
-        console.log(JSON.stringify(entry));
-      });
+      if (typeof this.prisma.$on === 'function') {
+        // Prisma の型制約上、コンストラクタ引数の log 設定が動的だと
+        // $on('query') のシグネチャが `never` になるため any で回避
+        (this.prisma as any).$on('query', (e: any) => {
+          // Cloud Logging の推奨フォーマットに合わせて JSON 一行で出力
+          // e.params は JSON 文字列のことがあるため、そのまま出力
+          const entry = {
+            severity: 'DEBUG',
+            type: 'prisma',
+            message: 'Prisma query',
+            duration_ms: e.duration,
+            query: e.query,
+            params: e.params,
+            target: (e as any).target,
+            timestamp: new Date().toISOString(),
+          };
+          // stdout へ
+          console.log(JSON.stringify(entry));
+        });
+      } else {
+        console.log('Prisma $on("query") is not available, skipping query logging');
+      }
     }
   }
 
