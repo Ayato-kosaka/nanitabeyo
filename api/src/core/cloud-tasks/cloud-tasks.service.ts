@@ -24,7 +24,7 @@ export class CloudTasksService {
   async enqueueCreateDishMediaEntry(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
-    const queueName = 'dishes-queue';
+    const queueName = 'dish-queue';
     const queuePath = this.client.queuePath(
       env.GCP_PROJECT,
       env.TASKS_LOCATION,

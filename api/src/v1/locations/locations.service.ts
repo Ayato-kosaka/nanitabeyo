@@ -18,7 +18,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) {}
+  ) { }
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -59,7 +59,7 @@ export class LocationsService {
 
     try {
       const response = await this.externalApiService.callPlaceSearchText(
-        'places.id,places.name,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.authorAttribution',
+        'places.id,places.name,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
         requestPayload,
       );
 
