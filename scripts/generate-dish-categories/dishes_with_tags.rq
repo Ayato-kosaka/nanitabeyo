@@ -1,0 +1,63 @@
+# dishes_with_tags.rq (widened)
+SELECT
+  ?dish
+  ?labelEN
+  ?image
+  (GROUP_CONCAT(DISTINCT ?originQ;   separator="|") AS ?origins)
+  (GROUP_CONCAT(DISTINCT ?cuisineQ;  separator="|") AS ?cuisines)
+  (GROUP_CONCAT(DISTINCT ?ancestorQ; separator="|") AS ?tags)
+WHERE {
+  # ==== 取り込み対象 ====
+  {
+    # A. 料理（dish）…インスタンスも含める
+    ?dish wdt:P31/wdt:P279* wd:Q746549.
+  }
+  UNION {
+    ?dish wdt:P279+ wd:Q746549.
+  }
+  UNION {
+    # B. 菜系（cuisine）…クラス/インスタンス両方
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q1778821 .
+  }
+  UNION {
+    # C. 食事（meal）…朝食/昼食/夕食などを含む概念
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q6460735 .
+  }
+  UNION {
+    # D. デザート（甘味の上位）
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q8495 .
+  }
+  UNION {
+    # E. ヌードル（うどん等を包含）
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q192874 .
+  }
+  UNION {
+    # F. 定食（和定食/朝食セットの受け皿）
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q117231375 .
+  }
+  UNION {
+    # G. カフェ（店舗種別）
+    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q30022 .
+  }
+
+  # 英語ラベル
+  ?dish rdfs:label ?labelEN .
+  FILTER (LANG(?labelEN) = "en")
+
+  # 画像
+  OPTIONAL { ?dish wdt:P18 ?image . }
+
+  # 起源 / cuisine（QIDだけ拾う）
+  OPTIONAL { ?dish wdt:P495 ?origin . BIND( STRAFTER(STR(?origin), "entity/") AS ?originQ ) }
+  OPTIONAL { ?dish wdt:P2012 ?cui    . BIND( STRAFTER(STR(?cui),    "entity/") AS ?cuisineQ ) }
+
+  # タグ（祖先 + 自分自身をQIDで）
+  {
+    { BIND(?dish AS ?ancAll) }
+    # UNION
+    # { ?dish (wdt:P31|wdt:P279|wdt:P361)+ ?ancAll }
+  }
+  BIND( STRAFTER(STR(?ancAll), "entity/") AS ?tagQ )
+}
+GROUP BY ?dish ?labelEN ?image
+ORDER BY ?dish
