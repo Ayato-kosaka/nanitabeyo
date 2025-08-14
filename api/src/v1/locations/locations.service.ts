@@ -151,10 +151,6 @@ export class LocationsService {
   async autocompleteLocations(
     query: QueryAutocompleteLocationsDto,
   ): Promise<AutocompleteLocationsResponse> {
-    this.logger.debug('AutocompleteLocations', 'autocompleteLocations', {
-      query,
-    });
-
     const requestPayload = {
       input: query.q,
       languageCode: query.languageCode,
