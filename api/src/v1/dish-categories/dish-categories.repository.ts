@@ -12,7 +12,7 @@ export class DishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * カテゴリ名リストから料理カテゴリを検索
@@ -31,7 +31,7 @@ export class DishCategoriesRepository {
         dish_category_variants: {
           some: {
             surface_form: {
-              in: categoryNames,
+              in: categoryNames.map(name => name.toLowerCase()), // Ensure case-insensitive search
             },
           },
         },
@@ -40,7 +40,7 @@ export class DishCategoriesRepository {
         dish_category_variants: {
           where: {
             surface_form: {
-              in: categoryNames,
+              in: categoryNames.map(name => name.toLowerCase()), // Ensure case-insensitive search
             },
           },
         },
