@@ -13,15 +13,14 @@ export class DishCategoryVariantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 料理カテゴリ表記揺れを検索
    */
-  async findDishCategoryVariants(q: string, lang?: string) {
+  async findDishCategoryVariants(q: string) {
     this.logger.debug('FindDishCategoryVariants', 'findDishCategoryVariants', {
       q,
-      lang,
     });
 
     const result = await this.prisma.prisma.dish_categories.findMany({
@@ -29,7 +28,7 @@ export class DishCategoryVariantsRepository {
         dish_category_variants: {
           some: {
             surface_form: {
-              startsWith: q,
+              startsWith: q.toLowerCase(), // Ensure case-insensitive search
             },
           },
         },
@@ -38,7 +37,7 @@ export class DishCategoryVariantsRepository {
         dish_category_variants: {
           where: {
             surface_form: {
-              startsWith: q,
+              startsWith: q.toLowerCase(), // Ensure case-insensitive search
             },
           },
         },
@@ -66,7 +65,7 @@ export class DishCategoryVariantsRepository {
 
     const result = await this.prisma.prisma.dish_category_variants.findUnique({
       where: {
-        surface_form: surfaceForm,
+        surface_form: surfaceForm.toLowerCase(), // Ensure case-insensitive search
       },
       include: {
         dish_categories: true,
@@ -101,7 +100,7 @@ export class DishCategoryVariantsRepository {
     const result = await tx.dish_category_variants.create({
       data: {
         dish_category_id: dishCategoryId,
-        surface_form: surfaceForm,
+        surface_form: surfaceForm.toLowerCase(), // Ensure case-insensitive storage
         source: source,
       },
     });
