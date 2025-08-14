@@ -41,9 +41,9 @@ SELECT
   CASE WHEN cuisines IS NULL OR cuisines = '' THEN '{}' ELSE '{'||REPLACE(cuisines,'|', ',') ||'}' END AS cuisine,
   CASE WHEN tags     IS NULL OR tags     = '' THEN '{}' ELSE '{'||REPLACE(tags,    '|', ',') ||'}' END AS tags
 FROM stdin
-" > "${TMPDIR}/dishes_pg.csv"
+" > "${DISHES_CSV}"
 
-echo "✅ Preprocessed to ${TMPDIR}/dishes_pg.csv"
+echo "✅ Preprocessed to ${DISHES_CSV}"
 
 # ========== STEP 3: Import dish_categories ==========
 echo "→ [3] Importing into dish_categories table..."
@@ -101,10 +101,13 @@ DELETE FROM dish_categories;
 INSERT INTO dish_categories
 (id, label_en, labels, image_url, origin, cuisine, tags)
 SELECT
-  id,
+  CASE
+    WHEN id ~ '^http' THEN REGEXP_REPLACE(id, '.*/(Q[0-9]+)$', '\1')
+    ELSE id
+  END AS id,
   label_en,
   labels,
-  COALESCE(NULLIF(image_url, 'NULL'), ''),        -- 念のため二重保険
+  image_url,
   COALESCE(origin,  ARRAY[]::text[]),
   COALESCE(cuisine, ARRAY[]::text[]),
   COALESCE(tags,    ARRAY[]::text[])
@@ -115,14 +118,15 @@ SET label_en = EXCLUDED.label_en,
     origin = EXCLUDED.origin,
     cuisine = EXCLUDED.cuisine,
     tags = EXCLUDED.tags,
-    updated_at = now();
+    updated_at = now(),
+    lock_no = dish_categories.lock_no + 1;
   \copy (SELECT id, label_en FROM dish_categories) TO '${TMPDIR}/dishes_final.csv' CSV HEADER
 SQL
 
 echo "✅ dish_categories updated."
 
 # ========== STEP 4: Fetch multilingual labels ==========
-echo "→ [4] Fetching multilingual labels from Wikidata..."
+echo "→ [4-1] Fetching multilingual labels from Wikidata..."
 
 curl -sG "${WDQS_URL}" \
   --data-urlencode query@"${WORKDIR}/labels_lang.rq" \
@@ -131,6 +135,60 @@ curl -sG "${WDQS_URL}" \
   -o "${TMPDIR}/labels.csv"
 
 echo "✅ Multilingual labels saved to ${TMPDIR}/labels.csv"
+
+echo "→ [4-2] Applying multilingual labels to dish_categories..."
+
+psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
+  -v schema="${DB_SCHEMA:-public}" <<SQL
+SET search_path TO :"schema";
+
+-- labels.csv を受ける一時テーブル
+CREATE TEMP TABLE tmp_labels_raw (
+  id TEXT,
+  lang TEXT,
+  label TEXT
+);
+
+\copy tmp_labels_raw FROM '${TMPDIR}/labels.csv' CSV HEADER
+
+-- ID 形式を dish_categories.id (= 'Q12345' など) に正規化
+-- URLが入ってきたケースにも対応
+DROP TABLE IF EXISTS tmp_labels_norm;
+CREATE TEMP TABLE tmp_labels_norm AS
+SELECT
+  CASE
+    WHEN id ~ '^http' THEN REGEXP_REPLACE(id, '.*/(Q[0-9]+)$', '\1')
+    ELSE id
+  END AS id,
+  LOWER(lang) AS lang,
+  label
+FROM tmp_labels_raw
+WHERE lang IS NOT NULL AND label IS NOT NULL AND label <> '';
+
+-- 同一 (id,lang) の重複がある場合は、短いラベルを優先（任意の方針）
+DROP TABLE IF EXISTS tmp_labels_dedup;
+CREATE TEMP TABLE tmp_labels_dedup AS
+SELECT DISTINCT ON (id, lang)
+       id, lang, label
+FROM tmp_labels_norm
+ORDER BY id, lang, LENGTH(label), label;
+
+-- lang -> label の JSONB に集約
+DROP TABLE IF EXISTS tmp_labels_json;
+CREATE TEMP TABLE tmp_labels_json AS
+SELECT id, jsonb_object_agg(lang, label) AS labels
+FROM tmp_labels_dedup
+GROUP BY id;
+
+-- dish_categories.labels を更新 (labels.csv の内容を優先して上書き)
+UPDATE dish_categories d
+SET labels = COALESCE(j.labels, '{}'::jsonb),
+    updated_at = now()
+FROM tmp_labels_json j
+WHERE d.id = j.id;
+SQL
+
+echo "✅ Multilingual labels applied to dish_categories."
 
 # ========== STEP 5: Generate variants with Python ==========
 echo "→ [5] Generating surface forms (variants)..."
