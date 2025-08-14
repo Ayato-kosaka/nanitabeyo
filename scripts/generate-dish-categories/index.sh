@@ -212,5 +212,118 @@ SQL
 
 echo "✅ dish_category_variants inserted."
 
+# ========== STEP 7: Fetch ancestor tags from Wikidata and apply ==========
+echo "→ [7] Fetching ancestor tags via WDQS and updating dish_categories.tags ..."
+
+TAGS_RAW_CSV="${TMPDIR}/tags_raw.csv"
+: > "${TAGS_RAW_CSV}"   # 空にしておく
+
+# 7-1) dishes_final.csv の id を読み込み → SQL でバッチ化（200件/バッチ）
+#      psql 側で「各バッチの VALUES ブロック」を組み立てて、bash で1行ずつ処理します
+psql -qAtX "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
+  -v schema="${DB_SCHEMA:-public}" <<SQL | while IFS=$'\t' read -r batch_no values_block; do
+SET search_path TO :"schema";
+
+-- 行番号付与 → 200件ごとにグルーピング
+WITH numbered AS (
+  SELECT id,
+         ROW_NUMBER() OVER (ORDER BY id) AS rn
+  FROM dish_categories
+)
+SELECT
+  ((rn-1)/200) AS batch_no,
+  'VALUES ?dish { ' || STRING_AGG('wd:'||id, ' ') || ' }' AS values_block -- 例: VALUES ?dish { wd:Q100136136 wd:Q100138427  ... }
+FROM numbered
+GROUP BY ((rn-1)/200)
+ORDER BY ((rn-1)/200);
+SQL
+
+  # 7-2) バッチごとに WDQS へ問い合わせ
+    echo "   - WDQS batch ${batch_no}"
+    curl -sG "${WDQS_URL}" \
+      --data-urlencode query="
+PREFIX wd:  <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+SELECT ?dish ?tagQ WHERE {
+  ${values_block}
+  {
+    BIND(?dish AS ?ancAll)
+  }
+  UNION
+  {
+    ?dish (wdt:P31|wdt:P279|wdt:P361)+ ?ancAll
+  }
+  BIND( STRAFTER(STR(?ancAll), 'entity/') AS ?tagQ )
+}" \
+      -H "Accept: text/csv" \
+      -H "User-Agent: food-app/0.1 (contact: you@example.com)" \
+      >> "${TAGS_RAW_CSV}"
+
+    # ポライトに少し待つ（WDQSに優しく）
+    sleep 0.8
+  done
+
+# 7-3) 取得CSVをDBに取り込み → dish_categories.tags を更新
+psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
+  -v schema="${DB_SCHEMA:-public}" <<SQL
+SET search_path TO :"schema";
+
+-- 取り込みテーブル
+DROP TABLE IF EXISTS tmp_step7_tags_raw;
+CREATE TEMP TABLE tmp_step7_tags_raw (
+  dish TEXT,
+  tagQ TEXT
+);
+
+-- header 行が複数ついている可能性があるので、\copy 後に除外する
+\copy tmp_step7_tags_raw (dish, tagQ) FROM '${TAGS_RAW_CSV}' CSV HEADER
+
+-- 正規化（wd:Q123 → Q123、URL → Q123）
+DROP TABLE IF EXISTS tmp_step7_tags_norm;
+CREATE TEMP TABLE tmp_step7_tags_norm AS
+SELECT
+  CASE
+    WHEN dish ~ '^wd:'  THEN REGEXP_REPLACE(dish, '^wd:(Q[0-9]+)$', '\1')
+    WHEN dish ~ '^http' THEN REGEXP_REPLACE(dish, '.*/(Q[0-9]+)$', '\1')
+    ELSE dish
+  END AS id,
+  CASE
+    WHEN tagQ ~ '^wd:'  THEN REGEXP_REPLACE(tagQ, '^wd:(Q[0-9]+)$', '\1')
+    WHEN tagQ ~ '^http' THEN REGEXP_REPLACE(tagQ, '.*/(Q[0-9]+)$', '\1')
+    ELSE tagQ
+  END AS tag_q
+FROM tmp_step7_tags_raw
+WHERE dish IS NOT NULL AND tagQ IS NOT NULL AND dish <> '' AND tagQ <> ''
+  AND LOWER(dish) <> 'dish' AND LOWER(tagQ) <> 'tagq'; -- ヘッダ除去保険
+
+-- 重複除去
+DROP TABLE IF EXISTS tmp_step7_tags_dist;
+CREATE TEMP TABLE tmp_step7_tags_dist AS
+SELECT DISTINCT id, tag_q
+FROM tmp_step7_tags_norm;
+
+-- id ごとに配列へ集約
+DROP TABLE IF EXISTS tmp_step7_tags_agg;
+CREATE TEMP TABLE tmp_step7_tags_agg AS
+SELECT id, ARRAY_AGG(tag_q ORDER BY tag_q) AS tags_new
+FROM tmp_step7_tags_dist
+GROUP BY id;
+
+-- 更新
+UPDATE dish_categories d
+SET tags = m.tags_new,
+    updated_at = NOW(),
+    lock_no = lock_no + 1;
+FROM tmp_step7_tags_agg m
+WHERE d.id = m.id;
+
+-- 反映件数のログ
+\echo [psql] step7_tags_updated=:ROW_COUNT
+SQL
+
+echo "✅ Ancestor tags applied to dish_categories.tags"
+
+
 # ========== FINISH ==========
 echo "🎉 Dish category master generation complete!"
