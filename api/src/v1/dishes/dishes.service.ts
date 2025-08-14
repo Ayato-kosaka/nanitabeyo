@@ -125,7 +125,7 @@ export class DishesService {
         const photoName = contextualContent.photos?.[0]?.name;
         if (
           !place.id ||
-          !place.name ||
+          !place.displayName ||
           !place.location?.latitude ||
           !place.location?.longitude ||
           !contextualContent.reviews ||
@@ -150,7 +150,7 @@ export class DishesService {
         const restaurant: PrismaRestaurants = {
           id: 'unknown',
           google_place_id: place.id,
-          name: place.name,
+          name: place.displayName,
           latitude: place.location!.latitude,
           longitude: place.location!.longitude,
           image_url: photoMedia.photoUri,

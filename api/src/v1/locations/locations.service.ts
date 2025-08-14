@@ -59,7 +59,7 @@ export class LocationsService {
 
     try {
       const response = await this.externalApiService.callPlaceSearchText(
-        'places.id,places.name,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
+        'places.id,places.displayName,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
         requestPayload,
       );
 
