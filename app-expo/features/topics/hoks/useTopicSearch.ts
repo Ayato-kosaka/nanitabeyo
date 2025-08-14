@@ -3,8 +3,9 @@ import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { BulkImportDishesDto, QueryDishCategoryRecommendationsDto } from "@shared/api/v1/dto";
-import type { BulkImportDishesResponse, QueryDishCategoryRecommendationsResponse } from "@shared/api/v1/res";
+import type { BulkImportDishesResponse, DishMediaEntry, QueryDishCategoryRecommendationsResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
+import { getRemoteConfig } from "@/lib/remoteConfig";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -35,18 +36,29 @@ export const useTopicSearch = () => {
 			const toplics = topicsResponse.map((topic) => ({
 				...topic,
 				isHidden: false,
-				dishItemsPromise: callBackend<BulkImportDishesDto, BulkImportDishesResponse>(`v1/dishes/bulk-import`, {
-					method: "POST",
-					requestPayload: {
-						location: `${params.latitude},${params.longitude}`,
-						radius: params.distance,
-						categoryId: topic.categoryId,
-						categoryName: topic.category,
-						minRating: 4, // Fixed value as per requirement
-						languageCode: locale.split("-")[0], // First part of locale (e.g., "ja" from "ja-JP")
-						priceLevels: params.priceLevels,
-					},
-				}),
+				dishItemsPromise: (async (): Promise<DishMediaEntry[]> => {
+					const remoteConfig = getRemoteConfig();
+					const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
+					let dishItems: DishMediaEntry[] = [];
+
+					// TODO: GET /v1/dish-media
+					if (dishItems.length < searchResultRestaurantsNumber) {
+						dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dish-media", {
+							method: "POST",
+							requestPayload: {
+								location: `${params.latitude},${params.longitude}`,
+								radius: params.distance,
+								categoryId: topic.categoryId,
+								categoryName: topic.category,
+								minRating: 4, // Fixed value as per requirement
+								languageCode: locale.split("-")[0], // First part of locale (e.g., "ja" from "ja-JP")
+								priceLevels: params.priceLevels,
+							},
+						})
+					}
+					dishItems.slice(0, searchResultRestaurantsNumber);
+					return dishItems;
+				})(),
 			}));
 
 			// Mock API response based on search parameters
