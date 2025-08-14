@@ -46,7 +46,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
@@ -120,7 +120,10 @@ export class ExternalApiService {
 
       if (data.search && data.search.length > 0) {
         const result = data.search[0];
-        this.logger.debug;
+        this.logger.debug('searchWikidata', 'searchWikidata', {
+          qid: result.id,
+          label: result.label,
+        });
         return { qid: result.id, label: result.label };
       }
 
