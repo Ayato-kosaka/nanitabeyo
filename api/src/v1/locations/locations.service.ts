@@ -175,20 +175,27 @@ export class LocationsService {
 
       const places = response.suggestions
         ?.map((suggestion) => ({
-          place_id: suggestion.placePrediction?.placeId,
-          text: suggestion.placePrediction?.text?.text,
-          mainText: suggestion.placePrediction?.structuredFormat?.mainText,
+          place_id: suggestion.placePrediction?.placeId ?? '',
+          text: suggestion.placePrediction?.text?.text ?? '',
+          mainText: suggestion.placePrediction?.structuredFormat?.mainText?.text ?? '',
           secondaryText:
-            suggestion.placePrediction?.structuredFormat?.secondaryText,
+            suggestion.placePrediction?.structuredFormat?.secondaryText?.text ?? '',
           types: suggestion.placePrediction?.types || [],
         }))
         .filter(
           (place) =>
-            place.place_id &&
-            place.text &&
-            place.mainText &&
-            place.secondaryText,
-        ) as AutocompleteLocationsResponse;
+            place.place_id !== '' &&
+            place.text !== '' &&
+            place.mainText !== '' &&
+            place.secondaryText !== '',
+        );
+
+      if (!places) {
+        this.logger.debug('AutocompleteLocationsNoResults', 'autocompleteLocations', {
+          query,
+        });
+        return [];
+      }
 
       this.logger.debug(
         'AutocompleteLocationsSuccess',

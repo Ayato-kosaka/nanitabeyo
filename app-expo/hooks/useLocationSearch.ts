@@ -26,12 +26,6 @@ export const useLocationSearch = () => {
 
 			setIsSearching(true);
 
-			logFrontendEvent({
-				event_name: "location_search_started",
-				error_level: "debug",
-				payload: { query, queryLength: query.length, locale },
-			});
-
 			try {
 				// Call the real API endpoint
 				const placesResponse = await callBackend<QueryAutocompleteLocationsDto, AutocompleteLocationsResponse>(
@@ -100,12 +94,6 @@ export const useLocationSearch = () => {
 	}, []);
 
 	const getCurrentLocation = useCallback(async (): Promise<Pick<SearchParams, 'address' | 'latitude' | 'longitude'>> => {
-		logFrontendEvent({
-			event_name: "current_location_fetch_started",
-			error_level: "debug",
-			payload: {},
-		});
-
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
 			if (status !== "granted") {

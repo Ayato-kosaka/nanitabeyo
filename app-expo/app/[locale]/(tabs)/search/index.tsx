@@ -523,7 +523,6 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 		backgroundColor: "#FFF",
 		borderRadius: 16,
-		maxHeight: 200,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.1,
@@ -541,9 +540,7 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: "#6B7280",
 	},
-	suggestionsList: {
-		maxHeight: 200,
-	},
+	suggestionsList: {},
 	suggestionItem: {
 		flexDirection: "row",
 		alignItems: "center",
