@@ -59,7 +59,7 @@ export class LocationsService {
 
     try {
       const response = await this.externalApiService.callPlaceSearchText(
-        'places.id,places.name,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
+        'places.id,places.displayName,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
         requestPayload,
       );
 
@@ -151,10 +151,6 @@ export class LocationsService {
   async autocompleteLocations(
     query: QueryAutocompleteLocationsDto,
   ): Promise<AutocompleteLocationsResponse> {
-    this.logger.debug('AutocompleteLocations', 'autocompleteLocations', {
-      query,
-    });
-
     const requestPayload = {
       input: query.q,
       languageCode: query.languageCode,
@@ -175,20 +171,27 @@ export class LocationsService {
 
       const places = response.suggestions
         ?.map((suggestion) => ({
-          place_id: suggestion.placePrediction?.placeId,
-          text: suggestion.placePrediction?.text?.text,
-          mainText: suggestion.placePrediction?.structuredFormat?.mainText,
+          place_id: suggestion.placePrediction?.placeId ?? '',
+          text: suggestion.placePrediction?.text?.text ?? '',
+          mainText: suggestion.placePrediction?.structuredFormat?.mainText?.text ?? '',
           secondaryText:
-            suggestion.placePrediction?.structuredFormat?.secondaryText,
+            suggestion.placePrediction?.structuredFormat?.secondaryText?.text ?? '',
           types: suggestion.placePrediction?.types || [],
         }))
         .filter(
           (place) =>
-            place.place_id &&
-            place.text &&
-            place.mainText &&
-            place.secondaryText,
-        ) as AutocompleteLocationsResponse;
+            place.place_id !== '' &&
+            place.text !== '' &&
+            place.mainText !== '' &&
+            place.secondaryText !== '',
+        );
+
+      if (!places) {
+        this.logger.debug('AutocompleteLocationsNoResults', 'autocompleteLocations', {
+          query,
+        });
+        return [];
+      }
 
       this.logger.debug(
         'AutocompleteLocationsSuccess',
