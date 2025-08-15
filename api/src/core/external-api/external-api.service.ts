@@ -347,6 +347,73 @@ export class ExternalApiService {
   }
 
   /**
+   * Google Places API: Place Details (New)
+   */
+  async callPlaceDetails(
+    fieldMask: string,
+    placeId: string,
+    languageCode: string,
+    sessionToken?: string,
+  ): Promise<google.maps.places.v1.IPlace> {
+    const apiKey = env.GOOGLE_PLACE_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_PLACE_API_KEY is not configured');
+    }
+
+    const endpoint = `https://places.googleapis.com/v1/places/${placeId}`;
+
+    try {
+      const headers: Record<string, string> = {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': fieldMask,
+      };
+
+      if (sessionToken) {
+        headers['X-Goog-FieldMask'] = fieldMask;
+      }
+
+      const url = new URL(endpoint);
+      url.searchParams.append('languageCode', languageCode);
+      if (sessionToken) {
+        url.searchParams.append('sessionToken', sessionToken);
+      }
+
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Places Details API',
+        endpoint: url.toString(),
+        method: 'GET',
+        request_payload: {},
+        function_name: 'callPlaceDetails',
+        customHeaders: headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Google Places Details API request failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.logger.error(
+        'GooglePlacesDetailsAPICallError',
+        'callPlaceDetails',
+        {
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          placeId,
+          languageCode,
+          sessionToken,
+          fieldMask,
+        },
+      );
+      throw error;
+    }
+  }
+
+  /**
    * 外部API呼び出しとログ記録を行う
    */
   private async makeExternalApiCall(

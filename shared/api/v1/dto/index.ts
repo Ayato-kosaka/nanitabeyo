@@ -14,6 +14,7 @@ export { CreateDishDto } from "./dishes/create-dish.dto";
 export { BulkImportDishesDto } from "./dishes/bulk-import-dishes.dto";
 
 export { QueryAutocompleteLocationsDto } from "./locations/query-autocomplete-locations.dto";
+export { QueryLocationDetailsDto } from "./locations/query-location-details.dto";
 
 export { QueryRestaurantsDto } from "./restaurants/query-restaurants.dto";
 export { CreateRestaurantDto } from "./restaurants/create-restaurant.dto";

@@ -1,11 +1,12 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { mockPlacePredictions } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import * as Location from "expo-location";
-import type { QueryAutocompleteLocationsDto } from "@shared/api/v1/dto";
-import type { AutocompleteLocationsResponse, AutocompleteLocation } from "@shared/api/v1/res";
+import { v4 as uuidv4 } from "uuid";
+import type { QueryAutocompleteLocationsDto, QueryLocationDetailsDto } from "@shared/api/v1/dto";
+import type { AutocompleteLocationsResponse, AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { SearchParams } from "@/types/search";
 import i18n from "@/lib/i18n";
 
@@ -15,6 +16,39 @@ export const useLocationSearch = () => {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const locale = useLocale();
+	
+	// Session token for Google Places API
+	const sessionTokenRef = useRef<string | null>(null);
+	
+	/**
+	 * Generate a URL/filename safe Base64 encoded UUIDv4 session token
+	 */
+	const generateSessionToken = useCallback((): string => {
+		const uuid = uuidv4();
+		// Convert UUID to Base64 and make it URL/filename safe
+		return Buffer.from(uuid.replace(/-/g, ''), 'hex')
+			.toString('base64')
+			.replace(/\+/g, '-')
+			.replace(/\//g, '_')
+			.replace(/=/g, '');
+	}, []);
+	
+	/**
+	 * Get or create session token
+	 */
+	const getSessionToken = useCallback((): string => {
+		if (!sessionTokenRef.current) {
+			sessionTokenRef.current = generateSessionToken();
+		}
+		return sessionTokenRef.current;
+	}, [generateSessionToken]);
+	
+	/**
+	 * Clear session token (called after place details request)
+	 */
+	const clearSessionToken = useCallback(() => {
+		sessionTokenRef.current = null;
+	}, []);
 
 	const searchLocations = useCallback(
 		async (query: string) => {
@@ -26,7 +60,7 @@ export const useLocationSearch = () => {
 			setIsSearching(true);
 
 			try {
-				// Call the real API endpoint
+				// Call the real API endpoint with session token
 				const placesResponse = await callBackend<QueryAutocompleteLocationsDto, AutocompleteLocationsResponse>(
 					"v1/locations/autocomplete",
 					{
@@ -34,6 +68,7 @@ export const useLocationSearch = () => {
 						requestPayload: {
 							q: query,
 							languageCode: locale,
+							sessionToken: getSessionToken(),
 						},
 					},
 				);
@@ -74,23 +109,70 @@ export const useLocationSearch = () => {
 				setIsSearching(false);
 			}
 		},
-		[callBackend, locale, logFrontendEvent],
+		[callBackend, locale, logFrontendEvent, getSessionToken],
 	);
 
 	const getLocationDetails = useCallback(
-		async (prediction: AutocompleteLocation): Promise<Pick<SearchParams, "address" | "latitude" | "longitude">> => {
-			// Mock location details - in real app, use Google Places Details API
-			const mockLocationDetail: Pick<SearchParams, "latitude" | "longitude"> = {
-				latitude: 35.658,
-				longitude: 139.7016,
-			};
+		async (prediction: AutocompleteLocation): Promise<Pick<SearchParams, "address" | "latitude" | "longitude" | "viewport" | "regionCode">> => {
+			try {
+				// Call the real API endpoint for location details
+				const detailsResponse = await callBackend<QueryLocationDetailsDto, LocationDetailsResponse>(
+					"v1/locations/details",
+					{
+						method: "GET",
+						requestPayload: {
+							placeId: prediction.place_id,
+							languageCode: "en", // Fixed to "en" as per requirements
+							sessionToken: sessionTokenRef.current || undefined,
+						},
+					},
+				);
 
-			return {
-				...mockLocationDetail,
-				address: prediction.mainText,
-			};
+				// Clear session token after use
+				clearSessionToken();
+
+				logFrontendEvent({
+					event_name: "location_details_success",
+					error_level: "log",
+					payload: {
+						placeId: prediction.place_id,
+						hasLocation: true,
+					},
+				});
+
+				return {
+					latitude: detailsResponse.location.latitude,
+					longitude: detailsResponse.location.longitude,
+					address: detailsResponse.address || prediction.mainText,
+					viewport: detailsResponse.viewport,
+					regionCode: detailsResponse.regionCode,
+				};
+			} catch (error) {
+				// Clear session token on error too
+				clearSessionToken();
+
+				logFrontendEvent({
+					event_name: "location_details_failed",
+					error_level: "error",
+					payload: { 
+						placeId: prediction.place_id,
+						error: String(error) 
+					},
+				});
+
+				// Fallback to mock data if API fails
+				const mockLocationDetail: Pick<SearchParams, "latitude" | "longitude"> = {
+					latitude: 35.658,
+					longitude: 139.7016,
+				};
+
+				return {
+					...mockLocationDetail,
+					address: prediction.mainText,
+				};
+			}
 		},
-		[],
+		[callBackend, logFrontendEvent, clearSessionToken],
 	);
 
 	const getCurrentLocation = useCallback(async (): Promise<

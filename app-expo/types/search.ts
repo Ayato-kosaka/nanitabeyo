@@ -4,6 +4,17 @@ export interface SearchParams {
 	address: string;
 	latitude: number;
 	longitude: number;
+	viewport?: {
+		low: {
+			latitude: number;
+			longitude: number;
+		};
+		high: {
+			latitude: number;
+			longitude: number;
+		};
+	};
+	regionCode?: string;
 	timeSlot: "morning" | "lunch" | "afternoon" | "dinner" | "late_night";
 	scene?: "solo" | "date" | "group" | "large_group" | "tourism";
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";

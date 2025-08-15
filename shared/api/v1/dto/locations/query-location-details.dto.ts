@@ -1,12 +1,12 @@
 import { IsOptional, IsString } from "@nestjs/class-validator";
 
-/** GET /v1/locations/autocomplete のクエリ */
-export class QueryAutocompleteLocationsDto {
-	/** 検索語 */
+/** GET /v1/locations/details のクエリ */
+export class QueryLocationDetailsDto {
+	/** Place ID */
 	@IsString()
-	q!: string;
+	placeId!: string;
 
-	/** 言語コード (例: 'ja', 'en') */
+	/** 言語コード (例: 'en', 'ja') */
 	@IsString()
 	languageCode!: string;
 

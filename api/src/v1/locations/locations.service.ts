@@ -7,9 +7,9 @@
 
 import { Injectable } from '@nestjs/common';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { AutocompleteLocationsResponse } from '@shared/v1/res';
+import { AutocompleteLocationsResponse, LocationDetailsResponse } from '@shared/v1/res';
 import { google } from '@googlemaps/places/build/protos/protos';
-import { QueryAutocompleteLocationsDto } from '@shared/v1/dto';
+import { QueryAutocompleteLocationsDto, QueryLocationDetailsDto } from '@shared/v1/dto';
 import { ExternalApiService } from 'src/core/external-api/external-api.service';
 import { protos } from '@googlemaps/places';
 
@@ -154,6 +154,7 @@ export class LocationsService {
     const requestPayload = {
       input: query.q,
       languageCode: query.languageCode,
+      sessionToken: query.sessionToken,
     };
 
     try {
@@ -213,6 +214,94 @@ export class LocationsService {
       this.logger.error(
         'GooglePlacesAutocompleteCallError',
         'autocompleteLocations',
+        {
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          query,
+        },
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Google Places API Details (New) を使用して地点の詳細情報を取得
+   */
+  async getLocationDetails(
+    query: QueryLocationDetailsDto,
+  ): Promise<LocationDetailsResponse> {
+    try {
+      const fieldMask =
+        'location,viewport,addressComponents,postalAddress';
+
+      const response = await this.externalApiService.callPlaceDetails(
+        fieldMask,
+        query.placeId,
+        query.languageCode,
+        query.sessionToken,
+      );
+
+      // location field from response
+      const location = {
+        latitude: response.location?.latitude || 0,
+        longitude: response.location?.longitude || 0,
+      };
+
+      // viewport field from response
+      const viewport = {
+        low: {
+          latitude: response.viewport?.low?.latitude || 0,
+          longitude: response.viewport?.low?.longitude || 0,
+        },
+        high: {
+          latitude: response.viewport?.high?.latitude || 0,
+          longitude: response.viewport?.high?.longitude || 0,
+        },
+      };
+
+      // Extract address from addressComponents
+      const addressComponents = response.addressComponents || [];
+      const relevantTypes = [
+        'locality',
+        'administrative_area_level_7',
+        'administrative_area_level_6',
+        'administrative_area_level_5',
+        'administrative_area_level_4',
+        'administrative_area_level_3',
+        'administrative_area_level_2',
+        'administrative_area_level_1',
+        'country',
+      ];
+
+      const address = addressComponents
+        .filter((component) =>
+          component.types?.some((type) => relevantTypes.includes(type)),
+        )
+        .map((component) => component.longText)
+        .filter(Boolean)
+        .join(', ');
+
+      // regionCode from postalAddress
+      const regionCode = response.postalAddress?.regionCode || '';
+
+      this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
+        placeId: query.placeId,
+        location,
+        viewport,
+        address,
+        regionCode,
+      });
+
+      return {
+        location,
+        viewport,
+        address,
+        regionCode,
+      };
+    } catch (error) {
+      this.logger.error(
+        'GooglePlacesDetailsCallError',
+        'getLocationDetails',
         {
           error_message:
             error instanceof Error ? error.message : 'Unknown error',
