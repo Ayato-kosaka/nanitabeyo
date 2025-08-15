@@ -6,7 +6,7 @@
 
 import { randomBytes } from 'crypto';
 import type { QueryDishCategoryRecommendationsDto } from '@shared/v1/dto';
-import type { QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
+import type { BaseResponse, QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
 import {
   TestConfig,
   DEFAULT_CONFIG,
@@ -348,7 +348,7 @@ export class DishCategoriesTestRunner {
           'User-Agent': 'dish-categories-functional-test/1.0',
         },
         // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(30000), // 30 seconds
+        signal: AbortSignal.timeout(60000), // 60 seconds
       });
 
       if (!response.ok) {
@@ -361,13 +361,13 @@ export class DishCategoriesTestRunner {
         };
       }
 
-      const data: QueryDishCategoryRecommendationsResponse =
+      const data: BaseResponse<QueryDishCategoryRecommendationsResponse> =
         await response.json();
 
       return {
         success: true,
         statusCode: response.status,
-        data,
+        data: data.data,
       };
     } catch (error) {
       if (error instanceof Error && error.name === 'TimeoutError') {

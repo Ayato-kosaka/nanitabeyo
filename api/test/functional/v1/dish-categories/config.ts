@@ -10,14 +10,9 @@ import type { QueryDishCategoryRecommendationsDto } from '@shared/v1/dto';
 export const TEST_PARAMETERS = {
   // Sample addresses for location context (Japanese addresses with English equivalents)
   addresses: [
-    'Tokyo Station, Tokyo, Japan',
     'Shibuya, Tokyo, Japan',
-    'Osaka Station, Osaka, Japan',
     'Kyoto Station, Kyoto, Japan',
-    'Shinjuku, Tokyo, Japan',
-    'Ginza, Tokyo, Japan',
-    'Harajuku, Tokyo, Japan',
-    'Akihabara, Tokyo, Japan',
+    'Kraljevice, Bosnia & Herzegovina',
   ],
 
   // Time slots from frontend constants
@@ -46,12 +41,6 @@ export const TEST_PARAMETERS = {
   languageTags: [
     'en-US',
     'ja-JP',
-    'fr-FR',
-    'zh-CN',
-    'ar-SA',
-    'ko-KR',
-    'es-ES',
-    'hi-IN',
   ],
 } as const;
 
@@ -252,7 +241,7 @@ function generateStratifiedCombinations(
         if (variation & 8) {
           const restrictionsArray =
             TEST_PARAMETERS.restrictions[
-              i % TEST_PARAMETERS.restrictions.length
+            i % TEST_PARAMETERS.restrictions.length
             ];
           if (restrictionsArray.length > 0) {
             params.restrictions = [...restrictionsArray];

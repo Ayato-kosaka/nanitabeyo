@@ -34,6 +34,8 @@ export interface TestResult {
   category?: string;
   topicTitle?: string;
   reason?: string;
+  categoryId?: string;
+  imageUrl?: string;
 
   // Full response (optional)
   fullResponse?: QueryDishCategoryRecommendationsResponse;
@@ -58,6 +60,8 @@ const CSV_HEADERS = [
   'category',
   'topic_title',
   'reason',
+  'category_id',
+  'image_url',
 ] as const;
 
 /**
@@ -155,6 +159,8 @@ export class CsvWriter {
       result.category || '',
       result.topicTitle || '',
       result.reason || '',
+      result.categoryId || '',
+      result.imageUrl || '',
     ];
   }
 
@@ -207,10 +213,8 @@ export function createTestResults(
     error?: string;
   },
 ): TestResult[] {
-  const baseResult: Omit<
-    TestResult,
-    'categoryIndex' | 'category' | 'topicTitle' | 'reason'
-  > = {
+  const baseResult: Omit<TestResult, 'category' | 'topicTitle' | 'reason' | 'categoryId' | 'imageUrl'> = {
+    requestIndex,
     requestId,
     timestamp: new Date().toISOString(),
     success: response.success,
@@ -239,6 +243,8 @@ export function createTestResults(
       category: item.category,
       topicTitle: item.topicTitle,
       reason: item.reason,
+      categoryId: item.categoryId,
+      imageUrl: item.imageUrl,
     }));
   }
 
@@ -250,6 +256,8 @@ export function createTestResults(
       category: undefined,
       topicTitle: undefined,
       reason: undefined,
+      categoryId: undefined,
+      imageUrl: undefined,
     },
   ];
 }
@@ -280,7 +288,7 @@ export function generateSummary(results: TestResult[]): TestSummary {
   const averageResponseCount =
     successful.length > 0
       ? successful.reduce((sum, r) => sum + (r.responseCount || 0), 0) /
-        successful.length
+      successful.length
       : 0;
 
   const uniqueCategories = new Set(
@@ -336,8 +344,8 @@ Performance:
 
 Errors by Status Code:
 ${Object.entries(summary.errorsByStatus)
-  .map(([status, count]) => `- ${status}: ${count}`)
-  .join('\n')}
+      .map(([status, count]) => `- ${status}: ${count}`)
+      .join('\n')}
 `;
 
   await fs.promises.writeFile(logPath, logContent);
