@@ -15,7 +15,7 @@ import {
 } from './config';
 import {
   CsvWriter,
-  createTestResult,
+  createTestResults,
   generateSummary,
   writeSummaryLog,
   type TestResult,
@@ -202,9 +202,11 @@ export class DishCategoriesTestRunner {
     for (let i = 0; i < combinations.length; i++) {
       const combination = combinations[i];
       const requestId = this.generateRequestId();
+      const requestIndex = i + 1; // 1-based index
 
       // Create promise for this request
       const promise = this.executeTestWithRateLimit(
+        requestIndex,
         requestId,
         combination,
         i + 1,
@@ -221,6 +223,7 @@ export class DishCategoriesTestRunner {
    * Execute single test with rate limiting
    */
   private async executeTestWithRateLimit(
+    requestIndex: number,
     requestId: string,
     params: QueryDishCategoryRecommendationsDto,
     index: number,
@@ -236,7 +239,7 @@ export class DishCategoriesTestRunner {
     await this.semaphore.acquire();
 
     try {
-      await this.executeTest(requestId, params, index, total);
+      await this.executeTest(requestIndex, requestId, params, index, total);
     } finally {
       this.semaphore.release();
     }
@@ -246,6 +249,7 @@ export class DishCategoriesTestRunner {
    * Execute single test with retry logic
    */
   private async executeTest(
+    requestIndex: number,
     requestId: string,
     params: QueryDishCategoryRecommendationsDto,
     index: number,
@@ -259,20 +263,25 @@ export class DishCategoriesTestRunner {
         const response = await this.makeApiRequest(params);
         const duration = Date.now() - startTime;
 
-        // Create and store result
-        const result = createTestResult(requestId, params, {
+        // Create and store results (one per category)
+        const results = createTestResults(requestIndex, requestId, params, {
           ...response,
           duration,
         });
 
-        this.results.push(result);
-        await this.csvWriter.writeResult(result);
+        this.results.push(...results);
+
+        // Write all results to CSV
+        for (const result of results) {
+          await this.csvWriter.writeResult(result);
+        }
 
         // Log progress
         const status = response.success ? '✅' : '❌';
         const progressPercent = ((index / total) * 100).toFixed(1);
+        const categoryCount = response.data?.length || 0;
         console.log(
-          `${status} [${progressPercent}%] ${index}/${total} - ${params.address} (${params.languageTag}) - ${duration}ms`,
+          `${status} [${progressPercent}%] ${index}/${total} - ${params.address} (${params.languageTag}) - ${duration}ms - ${categoryCount} categories`,
         );
 
         return; // Success, exit retry loop
@@ -291,14 +300,18 @@ export class DishCategoriesTestRunner {
 
     // All retries failed
     const duration = Date.now() - startTime;
-    const result = createTestResult(requestId, params, {
+    const results = createTestResults(requestIndex, requestId, params, {
       success: false,
       duration,
       error: lastError || 'Unknown error after retries',
     });
 
-    this.results.push(result);
-    await this.csvWriter.writeResult(result);
+    this.results.push(...results);
+
+    // Write failed result to CSV
+    for (const result of results) {
+      await this.csvWriter.writeResult(result);
+    }
 
     const progressPercent = ((index / total) * 100).toFixed(1);
     console.log(
@@ -408,7 +421,13 @@ export class DishCategoriesTestRunner {
  */
 export async function main(): Promise<void> {
   // Parse command line arguments
-  const args = process.argv.slice(2);
+  let args = process.argv.slice(2);
+  
+  // Remove the standalone '--' separator that npm/pnpm adds
+  if (args[0] === '--') {
+    args = args.slice(1);
+  }
+
   const config: Partial<TestConfig> = {};
 
   for (let i = 0; i < args.length; i += 2) {

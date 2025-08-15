@@ -11,6 +11,7 @@ import type { QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
 
 // Test result interface
 export interface TestResult {
+  requestIndex: number; // Sequential index for grouping rows by request
   requestId: string;
   timestamp: string;
   success: boolean;
@@ -28,10 +29,11 @@ export interface TestResult {
 
   // Response summary
   responseCount?: number;
-  firstCategory?: string;
-  firstTopicTitle?: string;
-  firstReason?: string;
-  categoriesPreview?: string; // Comma-separated first 3 categories
+  
+  // Category data (one category per row)
+  category?: string;
+  topicTitle?: string;
+  reason?: string;
 
   // Full response (optional)
   fullResponse?: QueryDishCategoryRecommendationsResponse;
@@ -39,6 +41,7 @@ export interface TestResult {
 
 // CSV header columns
 const CSV_HEADERS = [
+  'request_index',
   'request_id',
   'timestamp',
   'success',
@@ -52,10 +55,9 @@ const CSV_HEADERS = [
   'restrictions',
   'language_tag',
   'response_count',
-  'first_category',
-  'first_topic_title',
-  'first_reason',
-  'categories_preview',
+  'category',
+  'topic_title',
+  'reason',
 ] as const;
 
 /**
@@ -136,6 +138,7 @@ export class CsvWriter {
    */
   private formatResultAsRow(result: TestResult): string[] {
     return [
+      result.requestIndex.toString(),
       result.requestId,
       result.timestamp,
       result.success.toString(),
@@ -149,10 +152,9 @@ export class CsvWriter {
       result.restrictions?.join(';') || '', // Use semicolon separator for array
       result.languageTag,
       result.responseCount?.toString() || '',
-      result.firstCategory || '',
-      result.firstTopicTitle || '',
-      result.firstReason || '',
-      result.categoriesPreview || '',
+      result.category || '',
+      result.topicTitle || '',
+      result.reason || '',
     ];
   }
 
@@ -191,9 +193,11 @@ export class CsvWriter {
 }
 
 /**
- * Create test result from request and response
+ * Create test results from request and response
+ * Returns one result per category in the response
  */
-export function createTestResult(
+export function createTestResults(
+  requestIndex: number,
   requestId: string,
   request: QueryDishCategoryRecommendationsDto,
   response: {
@@ -203,8 +207,9 @@ export function createTestResult(
     data?: QueryDishCategoryRecommendationsResponse;
     error?: string;
   },
-): TestResult {
-  const result: TestResult = {
+): TestResult[] {
+  const baseResult: Omit<TestResult, 'category' | 'topicTitle' | 'reason'> = {
+    requestIndex,
     requestId,
     timestamp: new Date().toISOString(),
     success: response.success,
@@ -219,27 +224,31 @@ export function createTestResult(
     mood: request.mood,
     restrictions: request.restrictions,
     languageTag: request.languageTag,
+
+    // Response summary
+    responseCount: response.data?.length || 0,
+    fullResponse: response.data,
   };
 
-  // Add response summary if successful
-  if (response.success && response.data) {
-    result.responseCount = response.data.length;
-
-    if (response.data.length > 0) {
-      const first = response.data[0];
-      result.firstCategory = first.category;
-      result.firstTopicTitle = first.topicTitle;
-      result.firstReason = first.reason;
-
-      // Create preview of first 3 categories
-      const categories = response.data.slice(0, 3).map((item) => item.category);
-      result.categoriesPreview = categories.join(';');
-    }
-
-    result.fullResponse = response.data;
+  // If successful and has data, create one row per category
+  if (response.success && response.data && response.data.length > 0) {
+    return response.data.map((item) => ({
+      ...baseResult,
+      category: item.category,
+      topicTitle: item.topicTitle,
+      reason: item.reason,
+    }));
   }
 
-  return result;
+  // If failed or no data, create single row with empty category fields
+  return [
+    {
+      ...baseResult,
+      category: undefined,
+      topicTitle: undefined,
+      reason: undefined,
+    },
+  ];
 }
 
 /**
