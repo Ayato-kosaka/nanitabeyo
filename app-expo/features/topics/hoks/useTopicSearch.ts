@@ -47,59 +47,66 @@ export const useTopicSearch = () => {
 				},
 			});
 
-			const topicsWithCategoryIds = await Promise.all(
-				topicsResponse.map(async (topic, index) => {
-					if (!!topic.categoryId) return topic;
-					try {
-						const createDishCategoryVariantResponse = await callBackend<
-							CreateDishCategoryVariantDto,
-							CreateDishCategoryVariantResponse
-						>("v1/dish-category-variants", {
-							method: "POST",
-							requestPayload: {
-								name: topic.category,
-							},
-						});
-						return {
-							...topic,
-							categoryId: createDishCategoryVariantResponse.id,
-							imageUrl: createDishCategoryVariantResponse.image_url,
-						};
-					} catch (error) {
-						console.error(`Error creating dish category variant for topic ${index}:`, error);
-						return topic;
-					}
-				}),
-			);
-
-			const toplics = topicsWithCategoryIds
+			let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
 				.filter((topic) => topic.categoryId)
-				.slice(0, searchResultTopicsNumber)
-				.map((topic) => ({
-					...topic,
-					isHidden: false,
-					dishItemsPromise: (async (): Promise<DishMediaEntry[]> => {
-						let dishItems: DishMediaEntry[] = [];
+				.slice(0, searchResultTopicsNumber);
 
-						// TODO: GET /v1/dish-media
-						if (dishItems.length < searchResultRestaurantsNumber) {
-							dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dish-media", {
+			if (topicsResponseWithCategoryIds.length < searchResultTopicsNumber) {
+				const createDishCategoryVariantResponse = await Promise.all(
+					topicsResponse.map(async (topic, index) => {
+						if (!!topic.categoryId) return topic;
+						try {
+							const createDishCategoryVariantResponse = await callBackend<
+								CreateDishCategoryVariantDto,
+								CreateDishCategoryVariantResponse
+							>("v1/dish-category-variants", {
 								method: "POST",
 								requestPayload: {
-									location: `${params.latitude},${params.longitude}`,
-									radius: params.distance,
-									categoryId: topic.categoryId,
-									categoryName: topic.category,
-									minRating: 4, // Fixed value as per requirement
-									languageCode: locale.split("-")[0], // First part of locale (e.g., "ja" from "ja-JP")
-									priceLevels: params.priceLevels,
+									name: topic.category,
 								},
 							});
+							return {
+								...topic,
+								categoryId: createDishCategoryVariantResponse.id,
+								imageUrl: createDishCategoryVariantResponse.image_url,
+							};
+						} catch (error) {
+							console.error(`Error creating dish category variant for topic ${topic.category}:`, error);
+							return topic;
 						}
-						dishItems.slice(0, searchResultRestaurantsNumber);
-						return dishItems;
-					})(),
-				}));
+					}),
+				);
+				topicsResponseWithCategoryIds = createDishCategoryVariantResponse
+					.filter((topic) => topic.categoryId)
+					.slice(0, searchResultTopicsNumber);
+			}
+
+			const toplics = topicsResponseWithCategoryIds.map((topic) => ({
+				...topic,
+				isHidden: false,
+				dishItemsPromise: (async (): Promise<DishMediaEntry[]> => {
+					let dishItems: DishMediaEntry[] = [];
+
+					// TODO: GET /v1/dish-media
+					if (dishItems.length < searchResultRestaurantsNumber) {
+						// if (false) {
+						dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dishes/bulk-import", {
+							method: "POST",
+							requestPayload: {
+								location: `${params.latitude},${params.longitude}`,
+								radius: params.distance,
+								categoryId: topic.categoryId,
+								categoryName: topic.category,
+								minRating: 4, // Fixed value as per requirement
+								languageCode: locale.split("-")[0], // First part of locale (e.g., "ja" from "ja-JP")
+								priceLevels: params.priceLevels,
+							},
+						});
+					}
+					dishItems.slice(0, searchResultRestaurantsNumber);
+					return dishItems;
+				})(),
+			}));
 
 			// Mock API response based on search parameters
 			// const shuffledTopics = [...mockTopicCards]
