@@ -16,8 +16,14 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { QueryAutocompleteLocationsDto, QueryLocationDetailsDto } from '@shared/v1/dto';
-import { AutocompleteLocationsResponse, LocationDetailsResponse } from '@shared/v1/res';
+import {
+  QueryAutocompleteLocationsDto,
+  QueryLocationDetailsDto,
+} from '@shared/v1/dto';
+import {
+  AutocompleteLocationsResponse,
+  LocationDetailsResponse,
+} from '@shared/v1/res';
 
 // 横串 (Auth)
 import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';

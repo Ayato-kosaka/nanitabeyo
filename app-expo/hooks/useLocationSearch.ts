@@ -16,23 +16,23 @@ export const useLocationSearch = () => {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const locale = useLocale();
-	
+
 	// Session token for Google Places API
 	const sessionTokenRef = useRef<string | null>(null);
-	
+
 	/**
 	 * Generate a URL/filename safe Base64 encoded UUIDv4 session token
 	 */
 	const generateSessionToken = useCallback((): string => {
 		const uuid = uuidv4();
 		// Convert UUID to Base64 and make it URL/filename safe
-		return Buffer.from(uuid.replace(/-/g, ''), 'hex')
-			.toString('base64')
-			.replace(/\+/g, '-')
-			.replace(/\//g, '_')
-			.replace(/=/g, '');
+		return Buffer.from(uuid.replace(/-/g, ""), "hex")
+			.toString("base64")
+			.replace(/\+/g, "-")
+			.replace(/\//g, "_")
+			.replace(/=/g, "");
 	}, []);
-	
+
 	/**
 	 * Get or create session token
 	 */
@@ -42,7 +42,7 @@ export const useLocationSearch = () => {
 		}
 		return sessionTokenRef.current;
 	}, [generateSessionToken]);
-	
+
 	/**
 	 * Clear session token (called after place details request)
 	 */
@@ -113,7 +113,9 @@ export const useLocationSearch = () => {
 	);
 
 	const getLocationDetails = useCallback(
-		async (prediction: AutocompleteLocation): Promise<Pick<SearchParams, "address" | "latitude" | "longitude" | "viewport" | "regionCode">> => {
+		async (
+			prediction: AutocompleteLocation,
+		): Promise<Pick<SearchParams, "address" | "latitude" | "longitude" | "viewport" | "regionCode">> => {
 			try {
 				// Call the real API endpoint for location details
 				const detailsResponse = await callBackend<QueryLocationDetailsDto, LocationDetailsResponse>(
@@ -154,9 +156,9 @@ export const useLocationSearch = () => {
 				logFrontendEvent({
 					event_name: "location_details_failed",
 					error_level: "error",
-					payload: { 
+					payload: {
 						placeId: prediction.place_id,
-						error: String(error) 
+						error: String(error),
 					},
 				});
 

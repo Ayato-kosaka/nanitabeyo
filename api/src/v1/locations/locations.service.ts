@@ -7,9 +7,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { AutocompleteLocationsResponse, LocationDetailsResponse } from '@shared/v1/res';
+import {
+  AutocompleteLocationsResponse,
+  LocationDetailsResponse,
+} from '@shared/v1/res';
 import { google } from '@googlemaps/places/build/protos/protos';
-import { QueryAutocompleteLocationsDto, QueryLocationDetailsDto } from '@shared/v1/dto';
+import {
+  QueryAutocompleteLocationsDto,
+  QueryLocationDetailsDto,
+} from '@shared/v1/dto';
 import { ExternalApiService } from 'src/core/external-api/external-api.service';
 import { protos } from '@googlemaps/places';
 
@@ -231,8 +237,7 @@ export class LocationsService {
     query: QueryLocationDetailsDto,
   ): Promise<LocationDetailsResponse> {
     try {
-      const fieldMask =
-        'location,viewport,addressComponents,postalAddress';
+      const fieldMask = 'location,viewport,addressComponents,postalAddress';
 
       const response = await this.externalApiService.callPlaceDetails(
         fieldMask,
@@ -281,8 +286,11 @@ export class LocationsService {
         .filter(Boolean)
         .join(', ');
 
-      // regionCode from postalAddress
-      const regionCode = response.postalAddress?.regionCode || '';
+      // regionCode from addressComponents - extract country short text
+      const countryComponent = addressComponents.find((component) =>
+        component.types?.includes('country'),
+      );
+      const regionCode = countryComponent?.shortText || '';
 
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,
@@ -299,15 +307,10 @@ export class LocationsService {
         regionCode,
       };
     } catch (error) {
-      this.logger.error(
-        'GooglePlacesDetailsCallError',
-        'getLocationDetails',
-        {
-          error_message:
-            error instanceof Error ? error.message : 'Unknown error',
-          query,
-        },
-      );
+      this.logger.error('GooglePlacesDetailsCallError', 'getLocationDetails', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        query,
+      });
       throw error;
     }
   }

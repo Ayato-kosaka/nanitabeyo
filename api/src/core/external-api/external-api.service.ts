@@ -397,18 +397,13 @@ export class ExternalApiService {
       const data = await response.json();
       return data;
     } catch (error) {
-      this.logger.error(
-        'GooglePlacesDetailsAPICallError',
-        'callPlaceDetails',
-        {
-          error_message:
-            error instanceof Error ? error.message : 'Unknown error',
-          placeId,
-          languageCode,
-          sessionToken,
-          fieldMask,
-        },
-      );
+      this.logger.error('GooglePlacesDetailsAPICallError', 'callPlaceDetails', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        placeId,
+        languageCode,
+        sessionToken,
+        fieldMask,
+      });
       throw error;
     }
   }
