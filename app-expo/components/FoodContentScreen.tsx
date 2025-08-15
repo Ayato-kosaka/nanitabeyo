@@ -246,49 +246,6 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			{/* Bottom Section */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
-					{/* Action Buttons */}
-					<View style={styles.rightActions}>
-						<TouchableOpacity style={styles.actionButton} onPress={() => handleViewRestaurant()}>
-							<Image
-								source={{
-									uri: item.restaurant.image_url,
-								}}
-								style={styles.restaurantAvatar}
-								onError={() => console.log("Failed to load restaurant avatar")}
-							/>
-						</TouchableOpacity>
-
-						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-								<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
-							</TouchableOpacity>
-							<Text style={styles.actionText}>{formatLikeCount(likesCount)}</Text>
-						</View>
-
-						<TouchableOpacity style={styles.actionButton} onPress={handleSave}>
-							<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
-						</TouchableOpacity>
-
-						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={() => {}}>
-								<Share size={28} color="#FFFFFF" />
-							</TouchableOpacity>
-							<Text style={styles.actionText}>{i18n.t("FoodContentScreen.actions.share")}</Text>
-						</View>
-
-						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={() => {}}>
-								<MapPinned size={28} color="#FFFFFF" />
-							</TouchableOpacity>
-						</View>
-
-						{/* <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleMenuOpen}
-            >
-              <EllipsisVertical size={28} color="#FFFFFF" />
-            </TouchableOpacity> */}
-					</View>
 				</View>
 			</View>
 
