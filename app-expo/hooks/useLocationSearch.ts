@@ -4,7 +4,8 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import * as Location from "expo-location";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, parse as uuidParse } from 'uuid';
+import { encode as b64encode } from 'base-64';
 import type { QueryAutocompleteLocationsDto, QueryLocationDetailsDto } from "@shared/api/v1/dto";
 import type { AutocompleteLocationsResponse, AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { SearchParams } from "@/types/search";
@@ -24,19 +25,23 @@ export const useLocationSearch = () => {
 	 * Generate a URL/filename safe Base64 encoded UUIDv4 session token
 	 */
 	const generateSessionToken = useCallback((): string => {
-		const uuid = uuidv4();
-		// Convert UUID to Base64 and make it URL/filename safe
-		return Buffer.from(uuid.replace(/-/g, ""), "hex")
-			.toString("base64")
-			.replace(/\+/g, "-")
-			.replace(/\//g, "_")
-			.replace(/=/g, "");
+		// uuidParse は UUID 文字列を 16 byte の Uint8Array に変換
+		const bytes = uuidParse(uuidv4());
+		let binary = '';
+		for (let i = 0; i < bytes.length; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
+		// base-64 パッケージは標準 Base64 (btoa 相当)
+		const base64 = b64encode(binary);
+		// URL / filename safe 化
+		return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 	}, []);
 
 	/**
 	 * Get or create session token
 	 */
 	const getSessionToken = useCallback((): string => {
+		console.log("Getting session token ", sessionTokenRef.current);
 		if (!sessionTokenRef.current) {
 			sessionTokenRef.current = generateSessionToken();
 		}
@@ -115,7 +120,7 @@ export const useLocationSearch = () => {
 	const getLocationDetails = useCallback(
 		async (
 			prediction: AutocompleteLocation,
-		): Promise<Pick<SearchParams, "address" | "latitude" | "longitude" | "viewport" | "regionCode">> => {
+		): Promise<LocationDetailsResponse> => {
 			try {
 				// Call the real API endpoint for location details
 				const detailsResponse = await callBackend<QueryLocationDetailsDto, LocationDetailsResponse>(
@@ -142,13 +147,7 @@ export const useLocationSearch = () => {
 					},
 				});
 
-				return {
-					latitude: detailsResponse.location.latitude,
-					longitude: detailsResponse.location.longitude,
-					address: detailsResponse.address || prediction.mainText,
-					viewport: detailsResponse.viewport,
-					regionCode: detailsResponse.regionCode,
-				};
+				return detailsResponse;
 			} catch (error) {
 				// Clear session token on error too
 				clearSessionToken();
@@ -162,23 +161,14 @@ export const useLocationSearch = () => {
 					},
 				});
 
-				// Fallback to mock data if API fails
-				const mockLocationDetail: Pick<SearchParams, "latitude" | "longitude"> = {
-					latitude: 35.658,
-					longitude: 139.7016,
-				};
-
-				return {
-					...mockLocationDetail,
-					address: prediction.mainText,
-				};
+				throw error;
 			}
 		},
 		[callBackend, logFrontendEvent, clearSessionToken],
 	);
 
 	const getCurrentLocation = useCallback(async (): Promise<
-		Pick<SearchParams, "address" | "latitude" | "longitude">
+		Pick<SearchParams, "address" | "location" | "regionCode">
 	> => {
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
@@ -217,9 +207,9 @@ export const useLocationSearch = () => {
 			});
 
 			return {
-				latitude,
-				longitude,
+				location: position.coords,
 				address,
+				regionCode: locale.split("-")[1],
 			};
 		} catch (error) {
 			logFrontendEvent({

@@ -24,7 +24,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) {}
+  ) { }
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -246,26 +246,43 @@ export class LocationsService {
         query.sessionToken,
       );
 
+      if (!response.location ||
+        !response.location.latitude ||
+        !response.location.longitude ||
+        !response.viewport ||
+        !response.viewport.low ||
+        !response.viewport.low.latitude ||
+        !response.viewport.low.longitude ||
+        !response.viewport.high ||
+        !response.viewport.high.latitude ||
+        !response.viewport.high.longitude ||
+        !response.addressComponents ||
+        response.addressComponents.some(
+          (component) => !component.shortText || !component.types
+        )
+      )
+        throw new Error('Invalid response from Google Places API: Missing required fields',);
+
       // location field from response
       const location = {
-        latitude: response.location?.latitude || 0,
-        longitude: response.location?.longitude || 0,
+        latitude: response.location.latitude,
+        longitude: response.location.longitude,
       };
 
       // viewport field from response
       const viewport = {
         low: {
-          latitude: response.viewport?.low?.latitude || 0,
-          longitude: response.viewport?.low?.longitude || 0,
+          latitude: response.viewport.low.latitude,
+          longitude: response.viewport.low.longitude,
         },
         high: {
-          latitude: response.viewport?.high?.latitude || 0,
-          longitude: response.viewport?.high?.longitude || 0,
+          latitude: response.viewport.high.latitude,
+          longitude: response.viewport.high.longitude,
         },
       };
 
       // Extract address from addressComponents
-      const addressComponents = response.addressComponents || [];
+      const addressComponents = response.addressComponents;
       const relevantTypes = [
         'locality',
         'administrative_area_level_7',
@@ -280,7 +297,7 @@ export class LocationsService {
 
       const address = addressComponents
         .filter((component) =>
-          component.types?.some((type) => relevantTypes.includes(type)),
+          component.types!.some((type) => relevantTypes.includes(type)),
         )
         .map((component) => component.longText)
         .filter(Boolean)
@@ -290,7 +307,9 @@ export class LocationsService {
       const countryComponent = addressComponents.find((component) =>
         component.types?.includes('country'),
       );
-      const regionCode = countryComponent?.shortText || '';
+      const regionCode = countryComponent?.shortText;
+      if (!regionCode)
+        throw new Error('Invalid response from Google Places API: Missing region code');
 
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,

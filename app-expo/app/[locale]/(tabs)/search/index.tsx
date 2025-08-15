@@ -25,7 +25,7 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
-import type { AutocompleteLocation } from "@shared/api/v1/res";
+import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
@@ -41,7 +41,7 @@ export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const [location, setLocation] = useState<Pick<SearchParams, "address" | "latitude" | "longitude"> | null>(null);
+	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
@@ -169,15 +169,7 @@ export default function SearchScreen() {
 		logFrontendEvent({
 			event_name: "search_started",
 			error_level: "log",
-			payload: {
-				hasLocation: !!location,
-				timeSlot,
-				scene,
-				mood,
-				restrictionsCount: restrictions.length,
-				distance,
-				priceLevelsCount: priceLevels.length,
-			},
+			payload: searchParams,
 		});
 
 		try {
@@ -188,12 +180,6 @@ export default function SearchScreen() {
 					locale,
 					searchParams: JSON.stringify(searchParams),
 				},
-			});
-
-			logFrontendEvent({
-				event_name: "search_navigation_success",
-				error_level: "log",
-				payload: { targetScreen: "topics" },
 			});
 		} catch (error) {
 			logFrontendEvent({
