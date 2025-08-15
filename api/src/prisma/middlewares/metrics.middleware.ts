@@ -44,12 +44,13 @@ const queryLatency =
     registers: [registry],
   });
 
-
 /* ------------------------ Prisma Client Extension ---------------------- */
 /**
  * Prisma Client をメトリクス計測付きに拡張して返す
  */
-export function withMetrics<TClient extends PrismaClient>(client: TClient): TClient {
+export function withMetrics<TClient extends PrismaClient>(
+  client: TClient,
+): TClient {
   return client.$extends({
     query: {
       $allModels: {
@@ -57,8 +58,9 @@ export function withMetrics<TClient extends PrismaClient>(client: TClient): TCli
           const start = performance.now();
 
           // OpenTelemetry span（任意）
-          let endSpan: ((status: 'success' | 'error', err?: any) => void) | null =
-            null;
+          let endSpan:
+            | ((status: 'success' | 'error', err?: any) => void)
+            | null = null;
           try {
             const tracer = trace.getTracer('prisma');
             const span = tracer.startSpan(
@@ -91,7 +93,9 @@ export function withMetrics<TClient extends PrismaClient>(client: TClient): TCli
             const res = await query(args);
             const ms = performance.now() - start;
             queryCounter.labels(model ?? 'raw', operation, 'success').inc();
-            queryLatency.labels(model ?? 'raw', operation, 'success').observe(ms);
+            queryLatency
+              .labels(model ?? 'raw', operation, 'success')
+              .observe(ms);
             endSpan?.('success');
             return res;
           } catch (err) {
@@ -105,7 +109,7 @@ export function withMetrics<TClient extends PrismaClient>(client: TClient): TCli
       },
     },
   }) as unknown as TClient;
-};
+}
 
 /* -------------------------------------------------------------------------- */
 /*                              Export Registry                               */

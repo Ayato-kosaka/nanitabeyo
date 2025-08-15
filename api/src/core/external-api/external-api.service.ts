@@ -46,7 +46,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /**
    * Claude API呼び出し

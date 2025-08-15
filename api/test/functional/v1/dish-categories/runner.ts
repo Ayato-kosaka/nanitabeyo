@@ -1,24 +1,24 @@
 /**
  * Functional test runner for dish-categories/recommendations API
- * 
+ *
  * Executes comprehensive parameter testing with rate limiting, retries, and CSV output
  */
 
 import { randomBytes } from 'crypto';
 import type { QueryDishCategoryRecommendationsDto } from '@shared/v1/dto';
 import type { QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
-import { 
-  TestConfig, 
-  DEFAULT_CONFIG, 
-  generateParameterCombinations, 
-  validateConfig 
+import {
+  TestConfig,
+  DEFAULT_CONFIG,
+  generateParameterCombinations,
+  validateConfig,
 } from './config';
-import { 
-  CsvWriter, 
-  createTestResult, 
-  generateSummary, 
+import {
+  CsvWriter,
+  createTestResult,
+  generateSummary,
   writeSummaryLog,
-  type TestResult 
+  type TestResult,
 } from './csv';
 
 /**
@@ -65,7 +65,7 @@ class TokenBucket {
     const now = Date.now();
     const elapsed = now - this.lastRefill;
     const tokensToAdd = elapsed * this.refillRate;
-    
+
     this.tokens = Math.min(this.capacity, this.tokens + tokensToAdd);
     this.lastRefill = now;
   }
@@ -103,7 +103,7 @@ class Semaphore {
       return;
     }
 
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
       this.waiting.push(resolve);
     });
   }
@@ -134,10 +134,10 @@ export class DishCategoriesTestRunner {
   constructor(config: Partial<TestConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     validateConfig(this.config);
-    
+
     this.tokenBucket = new TokenBucket(
       this.config.maxConcurrent * 2, // Allow some burst capacity
-      this.config.requestsPerMinute
+      this.config.requestsPerMinute,
     );
     this.semaphore = new Semaphore(this.config.maxConcurrent);
     this.csvWriter = new CsvWriter(this.config.csvOutputPath);
@@ -175,11 +175,14 @@ export class DishCategoriesTestRunner {
       await writeSummaryLog(summary, this.config.logOutputPath);
 
       console.log('\n✅ Test execution completed');
-      console.log(`⏱️  Total time: ${((endTime - startTime) / 1000).toFixed(2)}s`);
-      console.log(`📈 Success rate: ${(summary.successRate * 100).toFixed(2)}%`);
+      console.log(
+        `⏱️  Total time: ${((endTime - startTime) / 1000).toFixed(2)}s`,
+      );
+      console.log(
+        `📈 Success rate: ${(summary.successRate * 100).toFixed(2)}%`,
+      );
       console.log(`📁 Results saved to: ${this.config.csvOutputPath}`);
       console.log(`📄 Summary saved to: ${this.config.logOutputPath}`);
-
     } catch (error) {
       console.error('❌ Test execution failed:', error);
       throw error;
@@ -191,15 +194,22 @@ export class DishCategoriesTestRunner {
   /**
    * Execute all test combinations
    */
-  private async executeTests(combinations: QueryDishCategoryRecommendationsDto[]): Promise<void> {
+  private async executeTests(
+    combinations: QueryDishCategoryRecommendationsDto[],
+  ): Promise<void> {
     const promises: Array<Promise<void>> = [];
-    
+
     for (let i = 0; i < combinations.length; i++) {
       const combination = combinations[i];
       const requestId = this.generateRequestId();
-      
+
       // Create promise for this request
-      const promise = this.executeTestWithRateLimit(requestId, combination, i + 1, combinations.length);
+      const promise = this.executeTestWithRateLimit(
+        requestId,
+        combination,
+        i + 1,
+        combinations.length,
+      );
       promises.push(promise);
     }
 
@@ -214,7 +224,7 @@ export class DishCategoriesTestRunner {
     requestId: string,
     params: QueryDishCategoryRecommendationsDto,
     index: number,
-    total: number
+    total: number,
   ): Promise<void> {
     // Wait for rate limit token
     while (!this.tokenBucket.consume()) {
@@ -239,7 +249,7 @@ export class DishCategoriesTestRunner {
     requestId: string,
     params: QueryDishCategoryRecommendationsDto,
     index: number,
-    total: number
+    total: number,
   ): Promise<void> {
     const startTime = Date.now();
     let lastError: string | undefined;
@@ -254,23 +264,26 @@ export class DishCategoriesTestRunner {
           ...response,
           duration,
         });
-        
+
         this.results.push(result);
         await this.csvWriter.writeResult(result);
 
         // Log progress
         const status = response.success ? '✅' : '❌';
         const progressPercent = ((index / total) * 100).toFixed(1);
-        console.log(`${status} [${progressPercent}%] ${index}/${total} - ${params.address} (${params.languageTag}) - ${duration}ms`);
-        
-        return; // Success, exit retry loop
+        console.log(
+          `${status} [${progressPercent}%] ${index}/${total} - ${params.address} (${params.languageTag}) - ${duration}ms`,
+        );
 
+        return; // Success, exit retry loop
       } catch (error) {
         lastError = error instanceof Error ? error.message : String(error);
-        
+
         if (attempt < this.config.maxRetries) {
           const delay = this.calculateRetryDelay(attempt);
-          console.log(`⚠️  Retry ${attempt + 1}/${this.config.maxRetries} for ${requestId} in ${delay}ms`);
+          console.log(
+            `⚠️  Retry ${attempt + 1}/${this.config.maxRetries} for ${requestId} in ${delay}ms`,
+          );
           await this.delay(delay);
         }
       }
@@ -283,29 +296,33 @@ export class DishCategoriesTestRunner {
       duration,
       error: lastError || 'Unknown error after retries',
     });
-    
+
     this.results.push(result);
     await this.csvWriter.writeResult(result);
-    
+
     const progressPercent = ((index / total) * 100).toFixed(1);
-    console.log(`❌ [${progressPercent}%] ${index}/${total} - ${params.address} FAILED: ${lastError}`);
+    console.log(
+      `❌ [${progressPercent}%] ${index}/${total} - ${params.address} FAILED: ${lastError}`,
+    );
   }
 
   /**
    * Make API request to dish-categories/recommendations endpoint
    */
-  private async makeApiRequest(params: QueryDishCategoryRecommendationsDto): Promise<ApiResponse> {
+  private async makeApiRequest(
+    params: QueryDishCategoryRecommendationsDto,
+  ): Promise<ApiResponse> {
     const url = new URL(this.config.endpoint, this.config.baseUrl);
-    
+
     // Add query parameters
     url.searchParams.set('address', params.address);
     url.searchParams.set('languageTag', params.languageTag);
-    
+
     if (params.timeSlot) url.searchParams.set('timeSlot', params.timeSlot);
     if (params.scene) url.searchParams.set('scene', params.scene);
     if (params.mood) url.searchParams.set('mood', params.mood);
     if (params.restrictions) {
-      params.restrictions.forEach(restriction => {
+      params.restrictions.forEach((restriction) => {
         url.searchParams.append('restrictions', restriction);
       });
     }
@@ -331,14 +348,14 @@ export class DishCategoriesTestRunner {
         };
       }
 
-      const data: QueryDishCategoryRecommendationsResponse = await response.json();
-      
+      const data: QueryDishCategoryRecommendationsResponse =
+        await response.json();
+
       return {
         success: true,
         statusCode: response.status,
         data,
       };
-
     } catch (error) {
       if (error instanceof Error && error.name === 'TimeoutError') {
         return {
@@ -346,7 +363,7 @@ export class DishCategoriesTestRunner {
           error: 'Request timeout (30s)',
         };
       }
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -359,13 +376,13 @@ export class DishCategoriesTestRunner {
    */
   private calculateRetryDelay(attempt: number): number {
     const baseDelay = this.config.retryDelayBase * Math.pow(2, attempt);
-    
+
     if (this.config.retryJitter) {
       // Add random jitter (±25%)
       const jitter = (Math.random() - 0.5) * 0.5 * baseDelay;
       return Math.max(100, baseDelay + jitter); // Minimum 100ms
     }
-    
+
     return baseDelay;
   }
 
@@ -382,7 +399,7 @@ export class DishCategoriesTestRunner {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -393,11 +410,11 @@ export async function main(): Promise<void> {
   // Parse command line arguments
   const args = process.argv.slice(2);
   const config: Partial<TestConfig> = {};
-  
+
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i];
     const value = args[i + 1];
-    
+
     switch (key) {
       case '--strategy':
         config.strategy = value as any;

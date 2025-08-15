@@ -2,8 +2,17 @@ import { useState, useCallback } from "react";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
-import type { BulkImportDishesDto, CreateDishCategoryVariantDto, QueryDishCategoryRecommendationsDto } from "@shared/api/v1/dto";
-import type { BulkImportDishesResponse, DishMediaEntry, QueryDishCategoryRecommendationsResponse, CreateDishCategoryVariantResponse } from "@shared/api/v1/res";
+import type {
+	BulkImportDishesDto,
+	CreateDishCategoryVariantDto,
+	QueryDishCategoryRecommendationsDto,
+} from "@shared/api/v1/dto";
+import type {
+	BulkImportDishesResponse,
+	DishMediaEntry,
+	QueryDishCategoryRecommendationsResponse,
+	CreateDishCategoryVariantResponse,
+} from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 
@@ -38,28 +47,30 @@ export const useTopicSearch = () => {
 				},
 			});
 
-			const topicsWithCategoryIds = await Promise.all(topicsResponse.map(async (topic, index) => {
-				if (!!topic.categoryId) return topic;
-				try {
-					const createDishCategoryVariantResponse = await callBackend<
-						CreateDishCategoryVariantDto,
-						CreateDishCategoryVariantResponse
-					>("v1/dish-category-variants", {
-						method: "POST",
-						requestPayload: {
-							name: topic.category,
-						}
-					});
-					return {
-						...topic,
-						categoryId: createDishCategoryVariantResponse.id,
-						imageUrl: createDishCategoryVariantResponse.image_url,
+			const topicsWithCategoryIds = await Promise.all(
+				topicsResponse.map(async (topic, index) => {
+					if (!!topic.categoryId) return topic;
+					try {
+						const createDishCategoryVariantResponse = await callBackend<
+							CreateDishCategoryVariantDto,
+							CreateDishCategoryVariantResponse
+						>("v1/dish-category-variants", {
+							method: "POST",
+							requestPayload: {
+								name: topic.category,
+							},
+						});
+						return {
+							...topic,
+							categoryId: createDishCategoryVariantResponse.id,
+							imageUrl: createDishCategoryVariantResponse.image_url,
+						};
+					} catch (error) {
+						console.error(`Error creating dish category variant for topic ${index}:`, error);
+						return topic;
 					}
-				} catch (error) {
-					console.error(`Error creating dish category variant for topic ${index}:`, error);
-					return topic;
-				}
-			}));
+				}),
+			);
 
 			const toplics = topicsWithCategoryIds
 				.filter((topic) => topic.categoryId)
@@ -83,7 +94,7 @@ export const useTopicSearch = () => {
 									languageCode: locale.split("-")[0], // First part of locale (e.g., "ja" from "ja-JP")
 									priceLevels: params.priceLevels,
 								},
-							})
+							});
 						}
 						dishItems.slice(0, searchResultRestaurantsNumber);
 						return dishItems;

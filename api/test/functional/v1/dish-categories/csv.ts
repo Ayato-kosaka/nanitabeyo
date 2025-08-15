@@ -1,6 +1,6 @@
 /**
  * CSV utility for dish-categories/recommendations functional test results
- * 
+ *
  * Handles CSV output generation with proper escaping and formatting
  */
 
@@ -17,7 +17,7 @@ export interface TestResult {
   statusCode?: number;
   duration: number; // milliseconds
   errorMessage?: string;
-  
+
   // Request parameters
   address: string;
   timeSlot?: string;
@@ -25,14 +25,14 @@ export interface TestResult {
   mood?: string;
   restrictions?: string[];
   languageTag: string;
-  
+
   // Response summary
   responseCount?: number;
   firstCategory?: string;
   firstTopicTitle?: string;
   firstReason?: string;
   categoriesPreview?: string; // Comma-separated first 3 categories
-  
+
   // Full response (optional)
   fullResponse?: QueryDishCategoryRecommendationsResponse;
 }
@@ -89,7 +89,7 @@ export class CsvWriter {
 
     const row = this.formatResultAsRow(result);
     const csvLine = this.formatCsvLine(row);
-    
+
     return new Promise((resolve, reject) => {
       this.writeStream!.write(csvLine + '\n', (error) => {
         if (error) reject(error);
@@ -117,7 +117,7 @@ export class CsvWriter {
    */
   private async writeHeaders(): Promise<void> {
     if (this.headerWritten) return;
-    
+
     const headerLine = this.formatCsvLine(CSV_HEADERS);
     return new Promise((resolve, reject) => {
       this.writeStream!.write(headerLine + '\n', (error) => {
@@ -160,7 +160,7 @@ export class CsvWriter {
    * Format array of values as CSV line with proper escaping
    */
   private formatCsvLine(values: readonly string[]): string {
-    return values.map(value => this.escapeCsvValue(value)).join(',');
+    return values.map((value) => this.escapeCsvValue(value)).join(',');
   }
 
   /**
@@ -168,7 +168,12 @@ export class CsvWriter {
    */
   private escapeCsvValue(value: string): string {
     // If value contains comma, newline, or quote, wrap in quotes and escape quotes
-    if (value.includes(',') || value.includes('\n') || value.includes('\r') || value.includes('"')) {
+    if (
+      value.includes(',') ||
+      value.includes('\n') ||
+      value.includes('\r') ||
+      value.includes('"')
+    ) {
       return '"' + value.replace(/"/g, '""') + '"';
     }
     return value;
@@ -197,7 +202,7 @@ export function createTestResult(
     duration: number;
     data?: QueryDishCategoryRecommendationsResponse;
     error?: string;
-  }
+  },
 ): TestResult {
   const result: TestResult = {
     requestId,
@@ -206,7 +211,7 @@ export function createTestResult(
     statusCode: response.statusCode,
     duration: response.duration,
     errorMessage: response.error,
-    
+
     // Request parameters
     address: request.address,
     timeSlot: request.timeSlot,
@@ -219,18 +224,18 @@ export function createTestResult(
   // Add response summary if successful
   if (response.success && response.data) {
     result.responseCount = response.data.length;
-    
+
     if (response.data.length > 0) {
       const first = response.data[0];
       result.firstCategory = first.category;
       result.firstTopicTitle = first.topicTitle;
       result.firstReason = first.reason;
-      
+
       // Create preview of first 3 categories
-      const categories = response.data.slice(0, 3).map(item => item.category);
+      const categories = response.data.slice(0, 3).map((item) => item.category);
       result.categoriesPreview = categories.join(';');
     }
-    
+
     result.fullResponse = response.data;
   }
 
@@ -252,23 +257,28 @@ export interface TestSummary {
 }
 
 export function generateSummary(results: TestResult[]): TestSummary {
-  const successful = results.filter(r => r.success);
-  const failed = results.filter(r => !r.success);
-  
-  const averageResponseTime = successful.length > 0 
-    ? successful.reduce((sum, r) => sum + r.duration, 0) / successful.length
-    : 0;
-    
-  const averageResponseCount = successful.length > 0
-    ? successful.reduce((sum, r) => sum + (r.responseCount || 0), 0) / successful.length
-    : 0;
-    
+  const successful = results.filter((r) => r.success);
+  const failed = results.filter((r) => !r.success);
+
+  const averageResponseTime =
+    successful.length > 0
+      ? successful.reduce((sum, r) => sum + r.duration, 0) / successful.length
+      : 0;
+
+  const averageResponseCount =
+    successful.length > 0
+      ? successful.reduce((sum, r) => sum + (r.responseCount || 0), 0) /
+        successful.length
+      : 0;
+
   const uniqueCategories = new Set(
-    successful.flatMap(r => r.fullResponse?.map(item => item.category) || [])
+    successful.flatMap(
+      (r) => r.fullResponse?.map((item) => item.category) || [],
+    ),
   ).size;
-  
+
   const errorsByStatus: Record<string, number> = {};
-  failed.forEach(r => {
+  failed.forEach((r) => {
     const key = r.statusCode ? r.statusCode.toString() : 'unknown';
     errorsByStatus[key] = (errorsByStatus[key] || 0) + 1;
   });
@@ -288,7 +298,10 @@ export function generateSummary(results: TestResult[]): TestSummary {
 /**
  * Write summary to log file
  */
-export async function writeSummaryLog(summary: TestSummary, logPath: string): Promise<void> {
+export async function writeSummaryLog(
+  summary: TestSummary,
+  logPath: string,
+): Promise<void> {
   const dir = path.dirname(logPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
