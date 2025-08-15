@@ -1,9 +1,6 @@
-import type { DishMediaEntry } from "@shared/api/v1/res";
+import type { DishMediaEntry, LocationDetailsResponse } from "@shared/api/v1/res";
 
-export interface SearchParams {
-	address: string;
-	latitude: number;
-	longitude: number;
+export type SearchParams = Omit<LocationDetailsResponse, 'viewport'> & {
 	timeSlot: "morning" | "lunch" | "afternoon" | "dinner" | "late_night";
 	scene?: "solo" | "date" | "group" | "large_group" | "tourism";
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";

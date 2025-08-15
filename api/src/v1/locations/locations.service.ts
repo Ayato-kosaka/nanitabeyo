@@ -7,9 +7,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { AutocompleteLocationsResponse } from '@shared/v1/res';
+import {
+  AutocompleteLocationsResponse,
+  LocationDetailsResponse,
+} from '@shared/v1/res';
 import { google } from '@googlemaps/places/build/protos/protos';
-import { QueryAutocompleteLocationsDto } from '@shared/v1/dto';
+import {
+  QueryAutocompleteLocationsDto,
+  QueryLocationDetailsDto,
+} from '@shared/v1/dto';
 import { ExternalApiService } from 'src/core/external-api/external-api.service';
 import { protos } from '@googlemaps/places';
 
@@ -18,7 +24,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) {}
+  ) { }
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -154,6 +160,7 @@ export class LocationsService {
     const requestPayload = {
       input: query.q,
       languageCode: query.languageCode,
+      sessionToken: query.sessionToken,
     };
 
     try {
@@ -219,6 +226,110 @@ export class LocationsService {
           query,
         },
       );
+      throw error;
+    }
+  }
+
+  /**
+   * Google Places API Details (New) を使用して地点の詳細情報を取得
+   */
+  async getLocationDetails(
+    query: QueryLocationDetailsDto,
+  ): Promise<LocationDetailsResponse> {
+    try {
+      const fieldMask = 'location,viewport,addressComponents,postalAddress';
+
+      const response = await this.externalApiService.callPlaceDetails(
+        fieldMask,
+        query.placeId,
+        query.languageCode,
+        query.sessionToken,
+      );
+
+      if (!response.location ||
+        !response.location.latitude ||
+        !response.location.longitude ||
+        !response.viewport ||
+        !response.viewport.low ||
+        !response.viewport.low.latitude ||
+        !response.viewport.low.longitude ||
+        !response.viewport.high ||
+        !response.viewport.high.latitude ||
+        !response.viewport.high.longitude ||
+        !response.addressComponents ||
+        response.addressComponents.some(
+          (component) => !component.shortText || !component.types
+        )
+      )
+        throw new Error('Invalid response from Google Places API: Missing required fields',);
+
+      // location field from response
+      const location = {
+        latitude: response.location.latitude,
+        longitude: response.location.longitude,
+      };
+
+      // viewport field from response
+      const viewport = {
+        low: {
+          latitude: response.viewport.low.latitude,
+          longitude: response.viewport.low.longitude,
+        },
+        high: {
+          latitude: response.viewport.high.latitude,
+          longitude: response.viewport.high.longitude,
+        },
+      };
+
+      // Extract address from addressComponents
+      const addressComponents = response.addressComponents;
+      const relevantTypes = [
+        'locality',
+        'administrative_area_level_7',
+        'administrative_area_level_6',
+        'administrative_area_level_5',
+        'administrative_area_level_4',
+        'administrative_area_level_3',
+        'administrative_area_level_2',
+        'administrative_area_level_1',
+        'country',
+      ];
+
+      const address = addressComponents
+        .filter((component) =>
+          component.types!.some((type) => relevantTypes.includes(type)),
+        )
+        .map((component) => component.longText)
+        .filter(Boolean)
+        .join(', ');
+
+      // regionCode from addressComponents - extract country short text
+      const countryComponent = addressComponents.find((component) =>
+        component.types?.includes('country'),
+      );
+      const regionCode = countryComponent?.shortText;
+      if (!regionCode)
+        throw new Error('Invalid response from Google Places API: Missing region code');
+
+      this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
+        placeId: query.placeId,
+        location,
+        viewport,
+        address,
+        regionCode,
+      });
+
+      return {
+        location,
+        viewport,
+        address,
+        regionCode,
+      };
+    } catch (error) {
+      this.logger.error('GooglePlacesDetailsCallError', 'getLocationDetails', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        query,
+      });
       throw error;
     }
   }

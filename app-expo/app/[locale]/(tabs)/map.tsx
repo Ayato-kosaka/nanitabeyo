@@ -69,7 +69,7 @@ export default function MapScreen() {
 
 	const [selectedBidStatuses, setSelectedBidStatuses] = useState<string[]>(["active", "completed", "refunded"]);
 	useEffect(() => {
-		getCurrentLocation().then((location) => {
+		getCurrentLocation().then(({ location }) => {
 			const newRegion = {
 				latitude: location.latitude,
 				longitude: location.longitude,
@@ -90,7 +90,7 @@ export default function MapScreen() {
 	const handleSearchSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
 		try {
-			const location = await getLocationDetails(prediction);
+			const { location } = await getLocationDetails(prediction);
 			const newRegion = {
 				latitude: location.latitude,
 				longitude: location.longitude,
@@ -108,7 +108,7 @@ export default function MapScreen() {
 	const handleCurrentLocation = async () => {
 		lightImpact();
 		try {
-			const location = await getCurrentLocation();
+			const { location } = await getCurrentLocation();
 			const newRegion = {
 				latitude: location.latitude,
 				longitude: location.longitude,
