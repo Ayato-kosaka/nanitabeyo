@@ -3,6 +3,7 @@
 *.log
 *.json
 *.txt
+*.js
 
 # But allow this .gitignore file itself
 !.gitignore

@@ -21,7 +21,10 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:functional:reco": "ts-node -r tsconfig-paths/register test/functional/v1/dish-categories/runner.ts"
+    "test:functional:reco": "ts-node -r tsconfig-paths/register test/functional/v1/dish-categories/runner.ts",
+    "test:functional:reco:mock": "node test/functional/v1/dish-categories/simple-test.js",
+    "test:functional:reco:quick": "RECO_MAX_REQUESTS=10 REQUESTS_PER_MINUTE=60 MAX_CONCURRENT=1 ts-node -r tsconfig-paths/register test/functional/v1/dish-categories/runner.ts --strategy random",
+    "test:functional:reco:staging": "RECO_MAX_REQUESTS=50 REQUESTS_PER_MINUTE=20 ts-node -r tsconfig-paths/register test/functional/v1/dish-categories/runner.ts --strategy stratified"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",

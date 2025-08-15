@@ -18,7 +18,10 @@
 		"db:migration": "bash scripts/apply-migration.sh",
 		"db:pull": "bash scripts/db-pull.sh",
 		"db:reset": "bash scripts/reset-schema.sh",
-		"deploy:storage": "pnpm firebase deploy --only storage"
+		"deploy:storage": "pnpm firebase deploy --only storage",
+		"test:functional:reco": "cd api && pnpm test:functional:reco",
+		"test:functional:reco:mock": "cd api && pnpm test:functional:reco:mock",
+		"test:functional:reco:quick": "cd api && pnpm test:functional:reco:quick"
 	},
 	"devDependencies": {
 		"firebase-tools": "^14.1.0",
