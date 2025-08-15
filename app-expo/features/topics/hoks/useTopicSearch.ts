@@ -97,7 +97,7 @@ export const useTopicSearch = () => {
 								radius: params.distance,
 								categoryId: topic.categoryId,
 								categoryName: topic.category,
-								minRating: 4, // Fixed value as per requirement
+								minRating: 3.0, // Fixed value as per requirement
 								languageCode: locale.split("-")[0], // First part of locale (e.g., "ja" from "ja-JP")
 								priceLevels: params.priceLevels,
 							},

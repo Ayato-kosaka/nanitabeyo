@@ -61,6 +61,7 @@ export class LocationsService {
           .map((level) => this.numberToPriceLevel(level))
           .filter((level) => level !== undefined),
       }),
+      rankPreference: "DISTANCE"
     };
 
     try {
