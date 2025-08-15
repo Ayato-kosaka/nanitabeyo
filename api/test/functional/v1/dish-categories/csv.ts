@@ -11,7 +11,7 @@ import type { QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
 
 // Test result interface
 export interface TestResult {
-  requestIndex: number; // Sequential index for grouping rows by request
+  categoryIndex: number; // Index of category within the request (1, 2, 3...)
   requestId: string;
   timestamp: string;
   success: boolean;
@@ -29,7 +29,7 @@ export interface TestResult {
 
   // Response summary
   responseCount?: number;
-  
+
   // Category data (one category per row)
   category?: string;
   topicTitle?: string;
@@ -41,8 +41,8 @@ export interface TestResult {
 
 // CSV header columns
 const CSV_HEADERS = [
-  'request_index',
   'request_id',
+  'category_index',
   'timestamp',
   'success',
   'status_code',
@@ -138,8 +138,8 @@ export class CsvWriter {
    */
   private formatResultAsRow(result: TestResult): string[] {
     return [
-      result.requestIndex.toString(),
       result.requestId,
+      result.categoryIndex.toString(),
       result.timestamp,
       result.success.toString(),
       result.statusCode?.toString() || '',
@@ -197,7 +197,6 @@ export class CsvWriter {
  * Returns one result per category in the response
  */
 export function createTestResults(
-  requestIndex: number,
   requestId: string,
   request: QueryDishCategoryRecommendationsDto,
   response: {
@@ -208,8 +207,10 @@ export function createTestResults(
     error?: string;
   },
 ): TestResult[] {
-  const baseResult: Omit<TestResult, 'category' | 'topicTitle' | 'reason'> = {
-    requestIndex,
+  const baseResult: Omit<
+    TestResult,
+    'categoryIndex' | 'category' | 'topicTitle' | 'reason'
+  > = {
     requestId,
     timestamp: new Date().toISOString(),
     success: response.success,
@@ -230,20 +231,22 @@ export function createTestResults(
     fullResponse: response.data,
   };
 
-  // If successful and has data, create one row per category
+  // If successful and has data, create one row per category with category index
   if (response.success && response.data && response.data.length > 0) {
-    return response.data.map((item) => ({
+    return response.data.map((item, index) => ({
       ...baseResult,
+      categoryIndex: index + 1, // 1-based index for each category in this request
       category: item.category,
       topicTitle: item.topicTitle,
       reason: item.reason,
     }));
   }
 
-  // If failed or no data, create single row with empty category fields
+  // If failed or no data, create single row with category index 1
   return [
     {
       ...baseResult,
+      categoryIndex: 1,
       category: undefined,
       topicTitle: undefined,
       reason: undefined,

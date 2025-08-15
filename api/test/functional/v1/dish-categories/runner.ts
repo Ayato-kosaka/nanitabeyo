@@ -264,7 +264,7 @@ export class DishCategoriesTestRunner {
         const duration = Date.now() - startTime;
 
         // Create and store results (one per category)
-        const results = createTestResults(requestIndex, requestId, params, {
+        const results = createTestResults(requestId, params, {
           ...response,
           duration,
         });
@@ -300,7 +300,7 @@ export class DishCategoriesTestRunner {
 
     // All retries failed
     const duration = Date.now() - startTime;
-    const results = createTestResults(requestIndex, requestId, params, {
+    const results = createTestResults(requestId, params, {
       success: false,
       duration,
       error: lastError || 'Unknown error after retries',
@@ -422,7 +422,7 @@ export class DishCategoriesTestRunner {
 export async function main(): Promise<void> {
   // Parse command line arguments
   let args = process.argv.slice(2);
-  
+
   // Remove the standalone '--' separator that npm/pnpm adds
   if (args[0] === '--') {
     args = args.slice(1);
