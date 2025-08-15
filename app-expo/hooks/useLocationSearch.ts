@@ -9,7 +9,6 @@ import type { AutocompleteLocationsResponse, AutocompleteLocation } from "@share
 import { SearchParams } from "@/types/search";
 import i18n from "@/lib/i18n";
 
-
 export const useLocationSearch = () => {
 	const [suggestions, setSuggestions] = useState<AutocompleteLocation[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
@@ -78,22 +77,25 @@ export const useLocationSearch = () => {
 		[callBackend, locale, logFrontendEvent],
 	);
 
-	const getLocationDetails = useCallback(async (prediction: AutocompleteLocation): Promise<Pick<SearchParams, 'address' | 'latitude' | 'longitude'>> => {
-		// Mock location details - in real app, use Google Places Details API
-		const mockLocationDetail: Pick<SearchParams, 'latitude' | 'longitude'> = {
-			latitude: 35.658,
-			longitude: 139.7016,
-		};
+	const getLocationDetails = useCallback(
+		async (prediction: AutocompleteLocation): Promise<Pick<SearchParams, "address" | "latitude" | "longitude">> => {
+			// Mock location details - in real app, use Google Places Details API
+			const mockLocationDetail: Pick<SearchParams, "latitude" | "longitude"> = {
+				latitude: 35.658,
+				longitude: 139.7016,
+			};
 
-		return (
-			{
+			return {
 				...mockLocationDetail,
 				address: prediction.mainText,
-			}
-		);
-	}, []);
+			};
+		},
+		[],
+	);
 
-	const getCurrentLocation = useCallback(async (): Promise<Pick<SearchParams, 'address' | 'latitude' | 'longitude'>> => {
+	const getCurrentLocation = useCallback(async (): Promise<
+		Pick<SearchParams, "address" | "latitude" | "longitude">
+	> => {
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
 			if (status !== "granted") {

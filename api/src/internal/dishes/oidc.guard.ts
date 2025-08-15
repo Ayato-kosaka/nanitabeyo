@@ -30,7 +30,9 @@ export class OIDCGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (env.CLOUD_RUN_URL.startsWith('http://localhost')) {
-      this.logger.debug('Running in local environment, skipping OIDC verification');
+      this.logger.debug(
+        'Running in local environment, skipping OIDC verification',
+      );
       return true;
     }
 
