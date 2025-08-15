@@ -213,8 +213,7 @@ export function createTestResults(
     error?: string;
   },
 ): TestResult[] {
-  const baseResult: Omit<TestResult, 'category' | 'topicTitle' | 'reason' | 'categoryId' | 'imageUrl'> = {
-    requestIndex,
+  const baseResult: Omit<TestResult, 'categoryIndex' | 'category' | 'topicTitle' | 'reason' | 'categoryId' | 'imageUrl'> = {
     requestId,
     timestamp: new Date().toISOString(),
     success: response.success,
