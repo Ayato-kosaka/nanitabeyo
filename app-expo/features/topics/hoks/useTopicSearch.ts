@@ -38,32 +38,40 @@ export const useTopicSearch = () => {
 				},
 			});
 
-			const topicsWithCategoryIds = await Promise.all(topicsResponse.map(async (topic, index) => {
-				if (!!topic.categoryId) return topic;
-				try {
-					const createDishCategoryVariantResponse = await callBackend<
-						CreateDishCategoryVariantDto,
-						CreateDishCategoryVariantResponse
-					>("v1/dish-category-variants", {
-						method: "POST",
-						requestPayload: {
-							name: topic.category,
-						}
-					});
-					return {
-						...topic,
-						categoryId: createDishCategoryVariantResponse.id,
-						imageUrl: createDishCategoryVariantResponse.image_url,
-					}
-				} catch (error) {
-					console.error(`Error creating dish category variant for topic ${index}:`, error);
-					return topic;
-				}
-			}));
-
-			const toplics = topicsWithCategoryIds
+			let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
 				.filter((topic) => topic.categoryId)
-				.slice(0, searchResultTopicsNumber)
+				.slice(0, searchResultTopicsNumber);
+
+			if (topicsResponseWithCategoryIds.length < searchResultTopicsNumber) {
+				const createDishCategoryVariantResponse
+					= await Promise.all(topicsResponse.map(async (topic, index) => {
+						if (!!topic.categoryId) return topic;
+						try {
+							const createDishCategoryVariantResponse = await callBackend<
+								CreateDishCategoryVariantDto,
+								CreateDishCategoryVariantResponse
+							>("v1/dish-category-variants", {
+								method: "POST",
+								requestPayload: {
+									name: topic.category,
+								}
+							});
+							return {
+								...topic,
+								categoryId: createDishCategoryVariantResponse.id,
+								imageUrl: createDishCategoryVariantResponse.image_url,
+							}
+						} catch (error) {
+							console.error(`Error creating dish category variant for topic ${topic.category}:`, error);
+							return topic;
+						}
+					}));
+				topicsResponseWithCategoryIds = createDishCategoryVariantResponse
+					.filter((topic) => topic.categoryId)
+					.slice(0, searchResultTopicsNumber);
+			}
+
+			const toplics = topicsResponseWithCategoryIds
 				.map((topic) => ({
 					...topic,
 					isHidden: false,
@@ -72,7 +80,8 @@ export const useTopicSearch = () => {
 
 						// TODO: GET /v1/dish-media
 						if (dishItems.length < searchResultRestaurantsNumber) {
-							dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dish-media", {
+							// if (false) {
+							dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dishes/bulk-import", {
 								method: "POST",
 								requestPayload: {
 									location: `${params.latitude},${params.longitude}`,
@@ -84,7 +93,7 @@ export const useTopicSearch = () => {
 									priceLevels: params.priceLevels,
 								},
 							})
-						}
+						};
 						dishItems.slice(0, searchResultRestaurantsNumber);
 						return dishItems;
 					})(),
