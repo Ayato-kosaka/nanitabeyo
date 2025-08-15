@@ -1,0 +1,8 @@
+# Functional test outputs - keep these out of version control
+*.csv
+*.log
+*.json
+*.txt
+
+# But allow this .gitignore file itself
+!.gitignore
