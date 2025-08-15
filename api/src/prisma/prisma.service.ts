@@ -37,29 +37,33 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const enableQueryLogs = env.API_NODE_ENV !== 'production';
 
     if (process.env.NODE_ENV === 'production') {
-      this.prisma = withMetrics(new PrismaClient({
-        // 本番でも必要に応じてクエリログを Cloud Run に出力
-        log: enableQueryLogs
-          ? ([
-            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-            'warn',
-            'error',
-          ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
-          : (['warn', 'error'] as Prisma.LogLevel[]),
-      }));
+      this.prisma = withMetrics(
+        new PrismaClient({
+          // 本番でも必要に応じてクエリログを Cloud Run に出力
+          log: enableQueryLogs
+            ? ([
+                { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+                'warn',
+                'error',
+              ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+            : (['warn', 'error'] as Prisma.LogLevel[]),
+        }),
+      );
     } else {
       // 開発環境ではグローバルインスタンスを再利用
       if (!globalForPrisma.prisma) {
-        globalForPrisma.prisma = withMetrics(new PrismaClient({
-          log: enableQueryLogs
-            ? ([
-              { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-              'info',
-              'warn',
-              'error',
-            ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
-            : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
-        }));
+        globalForPrisma.prisma = withMetrics(
+          new PrismaClient({
+            log: enableQueryLogs
+              ? ([
+                  { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+                  'info',
+                  'warn',
+                  'error',
+                ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
+              : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
+          }),
+        );
       }
       this.prisma = globalForPrisma.prisma;
       this.logger.log('Reusing existing Prisma client instance');
@@ -87,7 +91,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
           console.log(JSON.stringify(entry));
         });
       } else {
-        console.log('Prisma $on("query") is not available, skipping query logging');
+        console.log(
+          'Prisma $on("query") is not available, skipping query logging',
+        );
       }
     }
   }

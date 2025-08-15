@@ -18,7 +18,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) { }
+  ) {}
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -173,9 +173,11 @@ export class LocationsService {
         ?.map((suggestion) => ({
           place_id: suggestion.placePrediction?.placeId ?? '',
           text: suggestion.placePrediction?.text?.text ?? '',
-          mainText: suggestion.placePrediction?.structuredFormat?.mainText?.text ?? '',
+          mainText:
+            suggestion.placePrediction?.structuredFormat?.mainText?.text ?? '',
           secondaryText:
-            suggestion.placePrediction?.structuredFormat?.secondaryText?.text ?? '',
+            suggestion.placePrediction?.structuredFormat?.secondaryText?.text ??
+            '',
           types: suggestion.placePrediction?.types || [],
         }))
         .filter(
@@ -187,9 +189,13 @@ export class LocationsService {
         );
 
       if (!places) {
-        this.logger.debug('AutocompleteLocationsNoResults', 'autocompleteLocations', {
-          query,
-        });
+        this.logger.debug(
+          'AutocompleteLocationsNoResults',
+          'autocompleteLocations',
+          {
+            query,
+          },
+        );
         return [];
       }
 

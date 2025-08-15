@@ -23,7 +23,7 @@ export class CreateDishMediaEntryService {
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
-  ) { }
+  ) {}
 
   /**
    * 非同期ジョブの処理メイン関数
@@ -130,13 +130,10 @@ export class CreateDishMediaEntryService {
       );
 
       // 2. 料理登録
-      const dish = await this.dishesRepository.createOrGetDishForCategory(
-        tx,
-        {
-          ...convertSupabaseToPrisma_Dishes(payload.dishes),
-          restaurant_id: restaurant.id,
-        },
-      );
+      const dish = await this.dishesRepository.createOrGetDishForCategory(tx, {
+        ...convertSupabaseToPrisma_Dishes(payload.dishes),
+        restaurant_id: restaurant.id,
+      });
 
       // 3. 料理メディア登録
       await this.dishesRepository.createDishMedia(
@@ -151,9 +148,9 @@ export class CreateDishMediaEntryService {
       await this.dishesRepository.createDishReviews(
         tx,
         payload.dish_reviews.map((review) => ({
-          ...convertSupabaseToPrisma_DishReviews(review)
-          , dish_id: dish.id,
-        }),),
+          ...convertSupabaseToPrisma_DishReviews(review),
+          dish_id: dish.id,
+        })),
       );
     });
   }

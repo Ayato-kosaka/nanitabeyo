@@ -24,7 +24,7 @@ export class DishCategoryVariantsService {
     private readonly externalApiService: ExternalApiService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * 料理カテゴリ表記揺れを検索
@@ -38,9 +38,7 @@ export class DishCategoryVariantsService {
       dto,
     );
 
-    const dishCategories = await this.repo.findDishCategoryVariants(
-      dto.q,
-    );
+    const dishCategories = await this.repo.findDishCategoryVariants(dto.q);
 
     // レスポンス形式に変換 - 最大20件まで
     const response: QueryDishCategoryVariantsResponse = [];
