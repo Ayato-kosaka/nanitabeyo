@@ -23,6 +23,11 @@ api/lib/
 api/.env
 api/.runtimeconfig.json
 
+# --- Functional Test Results ---
+test-results/
+*.csv
+*.log
+
 # --- E2E / Detox ---
 e2e/artifacts/
 e2e/tmp/
