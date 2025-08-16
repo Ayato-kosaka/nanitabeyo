@@ -16,7 +16,11 @@
 		"production": {
 			"autoIncrement": true,
 			"environment": "production",
-			"channel": "production"
+			"channel": "production",
+			"ios": {
+				"cocoapods": "1.15.2"
+			},
+			"cache": { "key": "fix-nullbyte-2025-08-17" }
 		}
 	},
 	"submit": {
