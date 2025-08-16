@@ -11,7 +11,7 @@
 		"web": "expo start --web",
 		"build:web": "expo export --platform web",
 		"lint": "expo lint",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "tsc -p tsconfig.dev.json --noEmit",
 		"test": "jest --watchAll",
 		"reset": "node ./scripts/reset-project.js"
 	},
