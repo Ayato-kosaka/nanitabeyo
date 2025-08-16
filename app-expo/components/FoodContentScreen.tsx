@@ -87,7 +87,16 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 					count: currentLikeState ? (prev[commentId]?.count || 0) + 1 : (prev[commentId]?.count || 0) - 1,
 				},
 			}));
-			console.error("Failed to like comment:", error);
+			logFrontendEvent({
+				event_name: "comment_like_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					comment_id: commentId,
+					target_id: item.id,
+					action_type: "like",
+				},
+			});
 		}
 	};
 
@@ -119,7 +128,16 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			// Revert state on error
 			setIsLiked(!willLike);
 			setLikesCount((prev) => (willLike ? prev - 1 : prev + 1));
-			console.error("Failed to like dish:", error);
+			logFrontendEvent({
+				event_name: "dish_like_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.dish_media.id,
+					action_type: "like",
+					willReact: willLike,
+				},
+			});
 		}
 	};
 
@@ -147,7 +165,16 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		} catch (error) {
 			// Revert state on error
 			setIsSaved(!willSave);
-			console.error("Failed to save dish:", error);
+			logFrontendEvent({
+				event_name: "dish_save_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.dish_media.id,
+					action_type: "save",
+					willReact: willSave,
+				},
+			});
 		}
 	};
 

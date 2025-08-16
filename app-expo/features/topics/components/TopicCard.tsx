@@ -4,12 +4,14 @@ import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
 	const [isSaved, setIsSaved] = useState(false);
 	const { lightImpact, errorNotification } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
@@ -26,7 +28,16 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		} catch (error) {
 			// Revert state on error
 			setIsSaved(!willSave);
-			console.error("Failed to save reaction:", error);
+			logFrontendEvent({
+				event_name: "topic_save_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.categoryId,
+					action_type: "save",
+					willReact: willSave,
+				},
+			});
 		}
 	};
 
@@ -42,7 +53,15 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 				willReact: true,
 			});
 		} catch (error) {
-			console.error("Failed to hide reaction:", error);
+			logFrontendEvent({
+				event_name: "topic_hide_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.categoryId,
+					action_type: "hide",
+				},
+			});
 		}
 	};
 

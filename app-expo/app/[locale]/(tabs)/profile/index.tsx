@@ -375,7 +375,15 @@ export default function ProfileScreen() {
 					nextCursor: response.nextCursor,
 				};
 			} catch (error) {
-				console.error("Failed to fetch user posts:", error);
+				logFrontendEvent({
+					event_name: "fetch_user_posts_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						userId: isOwnProfile ? "me" : userId,
+						cursor: cursor || "initial",
+					},
+				});
 				throw error;
 			}
 		},
@@ -398,7 +406,14 @@ export default function ProfileScreen() {
 					nextCursor: response.nextCursor,
 				};
 			} catch (error) {
-				console.error("Failed to fetch liked posts:", error);
+				logFrontendEvent({
+					event_name: "fetch_liked_posts_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
 				throw error;
 			}
 		},
@@ -421,7 +436,14 @@ export default function ProfileScreen() {
 					nextCursor: response.nextCursor,
 				};
 			} catch (error) {
-				console.error("Failed to fetch saved topics:", error);
+				logFrontendEvent({
+					event_name: "fetch_saved_topics_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
 				throw error;
 			}
 		},
@@ -444,7 +466,14 @@ export default function ProfileScreen() {
 					nextCursor: response.nextCursor,
 				};
 			} catch (error) {
-				console.error("Failed to fetch saved posts:", error);
+				logFrontendEvent({
+					event_name: "fetch_saved_posts_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
 				throw error;
 			}
 		},
@@ -553,7 +582,15 @@ export default function ProfileScreen() {
 					},
 				}));
 			} catch (error) {
-				console.error(`Failed to load more data for ${tab}:`, error);
+				logFrontendEvent({
+					event_name: "load_more_data_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						tab: tab,
+						cursor: paginationState[tab]?.nextCursor || "unknown",
+					},
+				});
 				setPaginationState((prev) => ({
 					...prev,
 					[tab]: { ...prev[tab], isLoadingMore: false },
