@@ -73,7 +73,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 		try {
 			await toggleReaction({
-				target_type: "dish_likes",
+				target_type: "dish_reviews",
 				target_id: commentId,
 				action_type: "like",
 				willReact: willLike,
@@ -92,8 +92,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				error_level: "log",
 				payload: {
 					error: error instanceof Error ? error.message : String(error),
-					comment_id: commentId,
-					target_id: item.id,
+					target_id: commentId,
 					action_type: "like",
 				},
 			});
