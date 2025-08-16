@@ -4,9 +4,9 @@ import { version } from "./package.json";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
-	name: "dish-scroll",
-	slug: "dish-scroll",
-	owner: "dish-scroll",
+	name: "nanitabeyo",
+	slug: "nanitabeyo",
+	owner: "nanitabeyo",
 	runtimeVersion: version.split(".").slice(0, 2).join("."),
 	version,
 	orientation: "portrait",
@@ -18,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	userInterfaceStyle: "automatic",
 	newArchEnabled: true,
 	ios: {
-		bundleIdentifier: "com.dish.scroll",
+		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
 		infoPlist: {
@@ -29,7 +29,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		},
 	},
 	android: {
-		package: "com.dish.scroll",
+		package: "com.nanitabeyo",
 		versionCode: 1,
 		adaptiveIcon: {
 			foregroundImage: "./assets/images/adaptive-icon.png",
