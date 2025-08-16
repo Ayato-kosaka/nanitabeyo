@@ -5,8 +5,8 @@ import { version } from "./package.json";
 export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
 	name: "nanitabeyo",
-	slug: "nanitabeyo",
-	owner: "nanitabeyo",
+	slug: "dish-scroll",
+	owner: "dish-scroll",
 	runtimeVersion: version.split(".").slice(0, 2).join("."),
 	version,
 	orientation: "portrait",

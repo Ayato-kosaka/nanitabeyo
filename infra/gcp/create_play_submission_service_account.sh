@@ -20,7 +20,9 @@
 #   - roles/serviceusage.serviceUsageConsumer   (API 呼び出し前提)
 #   - roles/storage.objectViewer               (Play Asset 配信等で参照が必要なケースを想定)
 # オプション (--with-fcm) を指定した場合追加:
-#   - roles/firebase.messagingAdmin            (FCM v1 送信用 / 最小権限に応じ調整可)
+#   - (優先) roles/cloudmessaging.admin          (FCM v1 送信用・推奨: より限定的)
+#   - (フォールバック) roles/firebase.admin     (広域: 付与範囲が広いため注意)
+#   - 以前利用していた roles/firebase.messagingAdmin は現在プロジェクトに付与できないケースがあるため除外
 #
 # Play Console 側で必要となる権限 (ブラウザで付与 / 自動付与不可):
 #   - アカウント権限: 「アプリの作成と公開」等、内部テスト / 本番リリースに必要な権限
@@ -53,7 +55,7 @@ Usage: create_play_submission_service_account.sh <GCP_PROJECT_ID> [--name <servi
 
 Options:
   --name <name>    作成する Service Account の名前 (default: playstore-submit-sa)
-  --with-fcm       FCM v1 (Android Push) 用ロール roles/firebase.messagingAdmin を追加付与
+  --with-fcm       FCM v1 (Android Push) 用ロールを追加付与 (cloudmessaging.admin -> firebase.admin の順に試行)
   -h, --help       このヘルプを表示
 
 出力:
@@ -118,17 +120,51 @@ BASE_ROLES=(
   roles/storage.objectViewer
 )
 if [[ "${WITH_FCM}" == true ]]; then
-  BASE_ROLES+=(roles/firebase.messagingAdmin)
+  # 付与可能な FCM 関連ロールを順番に試行
+  FCM_CANDIDATE_ROLES=(
+    roles/cloudmessaging.admin
+    roles/firebase.admin
+  )
 fi
 
 echo "🔗 Binding IAM Roles…"
 for ROLE in "${BASE_ROLES[@]}"; do
   echo "  -> ${ROLE}"
-  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  if ! gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member="serviceAccount:${SA_EMAIL}" \
     --role="${ROLE}" \
-    --quiet >/dev/null
+    --quiet >/dev/null 2>&1; then
+      echo "     ⚠️  Failed to bind ${ROLE} (ignored)" >&2
+  fi
 done
+
+if [[ "${WITH_FCM}" == true ]]; then
+  echo "🔗 Binding FCM related role (trying candidates)…"
+  FCM_BOUND=false
+  for FCM_ROLE in "${FCM_CANDIDATE_ROLES[@]}"; do
+    echo "  -> Trying ${FCM_ROLE}"
+    if gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+      --member="serviceAccount:${SA_EMAIL}" \
+      --role="${FCM_ROLE}" \
+      --quiet >/dev/null 2>&1; then
+        echo "     ✅ Bound ${FCM_ROLE}"
+        FCM_BOUND=true
+        break
+    else
+      echo "     ❌ Cannot bind ${FCM_ROLE} (will try next)"
+    fi
+  done
+  if [[ "${FCM_BOUND}" == false ]]; then
+    cat <<'FCMWARN'
+⚠️  いずれの FCM 関連ロールも自動付与できませんでした。
+    コンソールで手動付与してください:
+      1. https://console.cloud.google.com/iam-admin/iam?project=<PROJECT_ID>
+      2. 対象 Service Account を編集
+      3. 次のいずれかのロールを付与: Cloud Messaging Admin / Firebase Admin
+    最小権限ポリシーに従い不要に広いロール付与を避けてください。
+FCMWARN
+  fi
+fi
 
 # ----- 4. Create JSON Key ----------------------------------------------------
 # 既存キーをそのまま再利用したいケースもあるので毎回作成 (要回転時も便利)
