@@ -24,7 +24,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) { }
+  ) {}
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -61,7 +61,7 @@ export class LocationsService {
           .map((level) => this.numberToPriceLevel(level))
           .filter((level) => level !== undefined),
       }),
-      rankPreference: "DISTANCE"
+      rankPreference: 'DISTANCE',
     };
 
     try {
@@ -247,7 +247,8 @@ export class LocationsService {
         query.sessionToken,
       );
 
-      if (!response.location ||
+      if (
+        !response.location ||
         !response.location.latitude ||
         !response.location.longitude ||
         !response.viewport ||
@@ -259,10 +260,12 @@ export class LocationsService {
         !response.viewport.high.longitude ||
         !response.addressComponents ||
         response.addressComponents.some(
-          (component) => !component.shortText || !component.types
+          (component) => !component.shortText || !component.types,
         )
       )
-        throw new Error('Invalid response from Google Places API: Missing required fields',);
+        throw new Error(
+          'Invalid response from Google Places API: Missing required fields',
+        );
 
       // location field from response
       const location = {
@@ -310,7 +313,9 @@ export class LocationsService {
       );
       const regionCode = countryComponent?.shortText;
       if (!regionCode)
-        throw new Error('Invalid response from Google Places API: Missing region code');
+        throw new Error(
+          'Invalid response from Google Places API: Missing region code',
+        );
 
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,

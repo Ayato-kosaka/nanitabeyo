@@ -213,7 +213,15 @@ export function createTestResults(
     error?: string;
   },
 ): TestResult[] {
-  const baseResult: Omit<TestResult, 'categoryIndex' | 'category' | 'topicTitle' | 'reason' | 'categoryId' | 'imageUrl'> = {
+  const baseResult: Omit<
+    TestResult,
+    | 'categoryIndex'
+    | 'category'
+    | 'topicTitle'
+    | 'reason'
+    | 'categoryId'
+    | 'imageUrl'
+  > = {
     requestId,
     timestamp: new Date().toISOString(),
     success: response.success,
@@ -287,7 +295,7 @@ export function generateSummary(results: TestResult[]): TestSummary {
   const averageResponseCount =
     successful.length > 0
       ? successful.reduce((sum, r) => sum + (r.responseCount || 0), 0) /
-      successful.length
+        successful.length
       : 0;
 
   const uniqueCategories = new Set(
@@ -343,8 +351,8 @@ Performance:
 
 Errors by Status Code:
 ${Object.entries(summary.errorsByStatus)
-      .map(([status, count]) => `- ${status}: ${count}`)
-      .join('\n')}
+  .map(([status, count]) => `- ${status}: ${count}`)
+  .join('\n')}
 `;
 
   await fs.promises.writeFile(logPath, logContent);
