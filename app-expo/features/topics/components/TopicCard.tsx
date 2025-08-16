@@ -4,21 +4,46 @@ import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
+import { toggleReaction } from "@/lib/reactions";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
 	const [isSaved, setIsSaved] = useState(false);
 	const { lightImpact, errorNotification } = useHaptics();
 
-	const handleSave = () => {
+	const handleSave = async () => {
 		const willSave = !isSaved;
 		lightImpact();
 		setIsSaved(willSave);
+
+		try {
+			await toggleReaction({
+				target_type: "dish_categories",
+				target_id: item.categoryId,
+				action_type: "save",
+				willReact: willSave,
+			});
+		} catch (error) {
+			// Revert state on error
+			setIsSaved(!willSave);
+			console.error("Failed to save reaction:", error);
+		}
 	};
 
-	const handleHide = () => {
+	const handleHide = async () => {
 		errorNotification();
 		onHide(item.categoryId);
+
+		try {
+			await toggleReaction({
+				target_type: "dish_categories",
+				target_id: item.categoryId,
+				action_type: "hide",
+				willReact: true,
+			});
+		} catch (error) {
+			console.error("Failed to hide reaction:", error);
+		}
 	};
 
 	return (
