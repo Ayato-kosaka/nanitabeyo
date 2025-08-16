@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE TABLE dish_category_variants (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     dish_category_id TEXT       NOT NULL REFERENCES dish_categories(id),
-    surface_form    TEXT        NOT NULL  CHECK (username = lower(username)),
+    surface_form    TEXT        NOT NULL  CHECK (surface_form = lower(surface_form)),
     source          TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (surface_form)  -- 表記揺れは単独一意
