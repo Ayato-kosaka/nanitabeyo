@@ -207,26 +207,8 @@ export class LocationsService {
         return [];
       }
 
-      this.logger.debug(
-        'AutocompleteLocationsSuccess',
-        'autocompleteLocations',
-        {
-          query,
-          resultCount: places.length,
-        },
-      );
-
       return places;
     } catch (error) {
-      this.logger.error(
-        'GooglePlacesAutocompleteCallError',
-        'autocompleteLocations',
-        {
-          error_message:
-            error instanceof Error ? error.message : 'Unknown error',
-          query,
-        },
-      );
       throw error;
     }
   }
