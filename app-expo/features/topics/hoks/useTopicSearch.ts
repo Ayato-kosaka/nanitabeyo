@@ -108,13 +108,13 @@ export const useTopicSearch = () => {
 				})(),
 			}));
 
-			// Mock API response based on search parameters
-			// const shuffledTopics = [...mockTopicCards]
+			// // Mock API response based on search parameters
+			// const toplics = [...mockTopicCards]
 			// 	.sort(() => Math.random() - 0.5)
 			// 	.slice(0, 6)
 			// 	.map((topic) => ({
 			// 		...topic,
-			// 		id: `${topic.id}_${Date.now()}_${Math.random()}`,
+			// 		id: `${topic.categoryId}_${Date.now()}_${Math.random()}`,
 			// 		isHidden: false,
 			// 	}));
 
