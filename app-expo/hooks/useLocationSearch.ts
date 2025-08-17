@@ -4,7 +4,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import * as Location from "expo-location";
-import { v4 as uuidv4, parse as uuidParse } from 'uuid';
+import { getRandomBytesAsync } from "expo-crypto";
 import { encode as b64encode } from 'base-64';
 import type { QueryAutocompleteLocationsDto, QueryLocationDetailsDto } from "@shared/api/v1/dto";
 import type { AutocompleteLocationsResponse, AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
@@ -24,9 +24,9 @@ export const useLocationSearch = () => {
 	/**
 	 * Generate a URL/filename safe Base64 encoded UUIDv4 session token
 	 */
-	const generateSessionToken = useCallback((): string => {
+	const generateSessionToken = useCallback(async (): Promise<string> => {
 		// uuidParse は UUID 文字列を 16 byte の Uint8Array に変換
-		const bytes = uuidParse(uuidv4());
+		const bytes = await getRandomBytesAsync(16);
 		let binary = '';
 		for (let i = 0; i < bytes.length; i++) {
 			binary += String.fromCharCode(bytes[i]);
@@ -40,10 +40,9 @@ export const useLocationSearch = () => {
 	/**
 	 * Get or create session token
 	 */
-	const getSessionToken = useCallback((): string => {
-		console.log("Getting session token ", sessionTokenRef.current);
+	const getSessionToken = useCallback(async (): Promise<string> => {
 		if (!sessionTokenRef.current) {
-			sessionTokenRef.current = generateSessionToken();
+			sessionTokenRef.current = await generateSessionToken();
 		}
 		return sessionTokenRef.current;
 	}, [generateSessionToken]);
@@ -73,7 +72,7 @@ export const useLocationSearch = () => {
 						requestPayload: {
 							q: query,
 							languageCode: locale,
-							sessionToken: getSessionToken(),
+							sessionToken: await getSessionToken(),
 						},
 					},
 				);

@@ -1,4 +1,5 @@
-// import { v4 as uuidv4 } from "uuid";
+
+// import { randomUUID as uuidv4 } from "expo-crypto";
 // import { supabase } from "./supabase";
 // import { Env } from "@/constants/Env";
 // import type { DeepNonNullable } from "@shared/utils/types";
