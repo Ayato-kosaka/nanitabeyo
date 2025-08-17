@@ -41,7 +41,6 @@ export const useLocationSearch = () => {
 	 * Get or create session token
 	 */
 	const getSessionToken = useCallback(async (): Promise<string> => {
-		console.log("Getting session token ", sessionTokenRef.current);
 		if (!sessionTokenRef.current) {
 			sessionTokenRef.current = await generateSessionToken();
 		}
