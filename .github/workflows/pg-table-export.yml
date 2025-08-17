@@ -2,7 +2,7 @@ name: PostgreSQL Export Table(s) to CSV
 
 on:
   # schedule:
-  #   - cron: '0 18 * * *'  # 毎日 JST 03:00 (UTC 18:00 前日) 実行したい場合の例
+  #   - cron: '0 3 * * *'  # 毎日3時 JST
   workflow_dispatch:
     inputs:
       schema:
@@ -14,192 +14,66 @@ on:
         required: false
         default: ""
 
-concurrency:
-  group: postgres-export-${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.schema || 'public' }}-${{ github.event.inputs.table_name || 'ALL' }}
-  cancel-in-progress: false
-
-permissions:
-  id-token: write # Needed for Workload Identity Federation
-  contents: read # To read repo metadata (commit SHA, etc.)
-
 jobs:
   export-postgres-tables:
-    name: Export PostgreSQL tables to GCS
     runs-on: ubuntu-latest
 
     env:
       DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
       GCS_BUCKET: ${{ secrets.GCS_BUCKET_NAME_PROD }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      # Inputs surfaced as env (normalized later)
-      INPUT_SCHEMA: ${{ github.event.inputs.schema }}
-      INPUT_TABLE_NAME: ${{ github.event.inputs.table_name }}
+      GCP_KEY: ${{ secrets.GCP_SA_KEY }}
 
     steps:
-      - name: Checkout (optional, kept for commit metadata consistency)
-        uses: actions/checkout@v4
-
-      - name: Set up timestamps and metadata
-        id: meta
+      - name: Set up timestamp and metadata
+        id: vars
         run: |
-          set -euo pipefail
-          TZ=UTC
-          iso_ts="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            # Compact form (e.g. 20250817-105123)
-          compact_ts="$(date -u +'%Y%m%d-%H%M%S')"
-          echo "iso_timestamp=$iso_ts" >> "$GITHUB_OUTPUT"
-          echo "compact_timestamp=$compact_ts" >> "$GITHUB_OUTPUT"
-          echo "commit_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-          echo "run_id=${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
-          echo "run_attempt=${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
-      - name: Install psql client
+      - name: Install dependencies
         run: |
-          set -euo pipefail
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends postgresql-client
-          psql --version
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
 
-      - name: Auth to Google Cloud (WIF)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: Set up gcloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-          export_default_credentials: true
-
-      - name: Validate & normalize inputs
-        id: inputs
-        shell: bash
+      - name: Authenticate to Google Cloud
         run: |
-          set -euo pipefail
-          # Normalize schema (default to public if empty or whitespace)
-          schema="${INPUT_SCHEMA:-public}"
-          schema="$(echo "$schema" | xargs || true)"
-          if [ -z "$schema" ]; then
-            schema="public"
-          fi
+          echo "$GCP_KEY" > /tmp/key.json
+          gcloud auth activate-service-account --key-file=/tmp/key.json
+          gcloud config set project $(jq -r .project_id /tmp/key.json)
 
-          # Normalize table name (empty means all)
-          table_name="${INPUT_TABLE_NAME:-}"
-          table_name="$(echo "$table_name" | xargs || true)"
-
-          # Basic validation
-          if ! [[ "$schema" =~ ^[A-Za-z0-9_]+$ ]]; then
-            echo "ERROR: Invalid schema name '${schema}'" >&2
-            exit 1
-          fi
-          if [ -n "$table_name" ] && ! [[ "$table_name" =~ ^[A-Za-z0-9_]+$ ]]; then
-            echo "ERROR: Invalid table name '${table_name}'" >&2
-            exit 1
-          fi
-
-          echo "schema=$schema" >> "$GITHUB_OUTPUT"
-          echo "table_name=$table_name" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve table list
-        id: tables
-        shell: bash
-        env:
-          SCHEMA: ${{ steps.inputs.outputs.schema }}
-          SINGLE_TABLE: ${{ steps.inputs.outputs.table_name }}
+      - name: Parse workflow inputs with fallbacks
+        id: parse-inputs
         run: |
-          set -euo pipefail
-          IFS=$'\n'
-          if [ -n "$SINGLE_TABLE" ]; then
-            echo "Detected single table mode: $SINGLE_TABLE"
-            tables=("$SINGLE_TABLE")
-          else
-            echo "Fetching table list from schema: $SCHEMA"
-            query="SELECT tablename FROM pg_tables WHERE schemaname = '$SCHEMA' ORDER BY tablename;"
-            mapfile -t tables < <(psql "$DATABASE_URL" -Atc "$query")
-          fi
+          SCHEMA="${{ github.event.inputs.schema }}"
+          TABLE_NAME="${{ github.event.inputs.table_name }}"
 
-          if [ "${#tables[@]}" -eq 0 ]; then
-            echo "No tables found. Exiting gracefully."
-            echo "count=0" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          SCHEMA=${SCHEMA:-public}
 
-          echo "Tables to export: ${tables[*]}"
-          printf '%s\n' "${tables[@]}" > tables.list
-          echo "count=${#tables[@]}" >> "$GITHUB_OUTPUT"
+          echo "schema=$SCHEMA" >> $GITHUB_OUTPUT
+          echo "table_name=$TABLE_NAME" >> $GITHUB_OUTPUT
 
-          # Export as a JSON-like string for debug (not strictly JSON if spaces)
-          echo "table_list=${tables[*]}" >> "$GITHUB_OUTPUT"
-
-      - name: Export tables to CSV
-        if: ${{ steps.tables.outputs.count != '0' }}
-        shell: bash
-        env:
-          SCHEMA: ${{ steps.inputs.outputs.schema }}
+      - name: Export table(s) to CSV
         run: |
-          set -euo pipefail
           mkdir -p export
-          while IFS= read -r table; do
-            [ -z "$table" ] && continue
-            outfile="export/${table}.csv"
-            echo "Exporting ${SCHEMA}.${table} -> ${outfile}"
-            # Use CSV with header; force UTF8
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "\COPY \"${SCHEMA}\".\"${table}\" TO STDOUT WITH (FORMAT CSV, HEADER, ENCODING 'UTF8')" > "$outfile"
-            # Simple size check
-            ls -lh "$outfile"
-          done < tables.list
+          if [ -n "${{ steps.parse-inputs.outputs.table_name }}" ]; then
+            tables="${{ steps.parse-inputs.outputs.table_name }}"
+          else
+            tables=$(psql "$DATABASE_URL" -t -c "SELECT tablename FROM pg_tables WHERE schemaname = '${{ steps.parse-inputs.outputs.schema }}';" | xargs)
+          fi
 
-      - name: Upload CSVs to GCS (gcloud storage)
-        if: ${{ steps.tables.outputs.count != '0' }}
-        shell: bash
-        env:
-          SCHEMA: ${{ steps.inputs.outputs.schema }}
-          COMPACT_TS: ${{ steps.meta.outputs.compact_timestamp }}
-          COMMIT_SHA: ${{ steps.meta.outputs.commit_sha }}
-          ISO_TS: ${{ steps.meta.outputs.iso_timestamp }}
-          GCS_BUCKET: ${{ env.GCS_BUCKET }}
-        run: |
-          set -euo pipefail
-          base_path="system/PostgreSQL/csv_export/${COMPACT_TS}"
-          dest="gs://${GCS_BUCKET}/${base_path}"
-          echo "Uploading to ${dest}"
-          shopt -s nullglob
-          for f in export/*.csv; do
-            fname="$(basename "$f")"
-            # gcloud storage cp supports --meta key=val[,key2=val2]
-            gcloud storage cp \
-              --quiet \
-              --metadata=commit-sha="${COMMIT_SHA}",schema="${SCHEMA}",exported-at="${ISO_TS}" \
-              "$f" "${dest}/${fname}"
+          for table in $tables; do
+            csv_file="export/${table}.csv"
+            echo "Exporting $table to $csv_file"
+            psql "$DATABASE_URL" -c "\\COPY \"${{ steps.parse-inputs.outputs.schema }}\".\"$table\" TO '$csv_file' WITH CSV HEADER"
           done
-          echo "GCS upload complete."
-          echo "GCS path: ${dest}"
 
-          # NOTE: もし従来の gsutil を使いたい場合の例:
-          # for f in export/*.csv; do
-          #   gsutil -h "x-goog-meta-commit-sha:${COMMIT_SHA}" \
-          #          -h "x-goog-meta-schema:${SCHEMA}" \
-          #          -h "x-goog-meta-exported-at:${ISO_TS}" \
-          #          cp "$f" "${dest}/"
-          # done
-
-      - name: Upload CSVs as GitHub Artifact (optional)
-        if: ${{ steps.tables.outputs.count != '0' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: postgres-csv-${{ steps.meta.outputs.compact_timestamp }}
-          path: export/*.csv
-          retention-days: 7
-
-      - name: Summary
+      - name: Upload CSVs to GCS with metadata
         run: |
-          set -euo pipefail
-          echo "Export summary:"
-          echo "  Schema:          ${{ steps.inputs.outputs.schema }}"
-          echo "  Table (single):  ${{ steps.inputs.outputs.table_name || 'ALL' }}"
-          echo "  Table count:     ${{ steps.tables.outputs.count }}"
-          echo "  Commit SHA:      ${{ steps.meta.outputs.commit_sha }}"
-          echo "  Timestamp (ISO): ${{ steps.meta.outputs.iso_timestamp }}"
-          echo "  GCS Bucket:      ${{ env.GCS_BUCKET }}"
-          echo "  Run:             $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          export_path="gs://${GCS_BUCKET}/system/PostgreSQL/csv_export/${{ steps.vars.outputs.timestamp }}/"
+
+          for file in export/*; do
+            gsutil -h "x-goog-meta-commit-sha:${{ steps.vars.outputs.sha }}" \
+                   -h "x-goog-meta-schema:${{ steps.parse-inputs.outputs.schema }}" \
+                   -h "x-goog-meta-exported-at:${{ steps.vars.outputs.timestamp }}" \
+                   cp "$file" "$export_path"
+          done
