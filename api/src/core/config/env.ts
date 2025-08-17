@@ -25,6 +25,8 @@ const envSchema = z.object({
   CLOUD_RUN_URL: z.string(),
   TASKS_INVOKER_SA: z.string(),
   GCS_DEV_SERVICE_ACCOUNT_BASE64: z.string().optional(),
+  LOG_BATCH_MAX: z.string().transform(Number).default('200'),
+  LOG_SPILL_THRESHOLD: z.string().transform(Number).default('500'),
 });
 
 /**
