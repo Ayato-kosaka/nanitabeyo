@@ -102,7 +102,7 @@ export default function SearchScreen() {
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
-			setLocationQuery(locationDetails.address);
+			setLocationQuery(prediction.mainText);
 			setShowLocationSuggestions(false);
 		} catch (error) {
 			logFrontendEvent({
