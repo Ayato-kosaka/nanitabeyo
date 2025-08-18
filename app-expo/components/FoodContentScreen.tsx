@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, SafeAreaView } from "react-native";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -63,6 +63,10 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
+
+	useEffect(() => {
+		scrollViewRef.current?.scrollToEnd({ animated: false });
+	}, [item.dish_reviews.length]);
 
 	const handleCommentLike = async (commentId: string) => {
 		lightImpact();
@@ -327,11 +331,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 			{/* Comments Section */}
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
-				<ScrollView
-					ref={scrollViewRef}
-					style={styles.commentsContainer}
-					showsVerticalScrollIndicator={false}
-					onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}>
+				<ScrollView ref={scrollViewRef} style={styles.commentsContainer} showsVerticalScrollIndicator={false}>
 					{item.dish_reviews.map((review) => {
 						const expandedChars = commentExpandedChars[review.id] || 100;
 						const isTextTruncated = review.comment.length > expandedChars;
