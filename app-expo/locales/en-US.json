@@ -142,7 +142,8 @@
 			"reservation": "Reservation"
 		},
 		"actions": {
-			"share": "Share"
+			"share": "Share",
+			"seeMore": "see more"
 		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"

@@ -142,7 +142,8 @@
 			"reservation": "حجز"
 		},
 		"actions": {
-			"share": "مشاركة"
+			"share": "مشاركة",
+			"seeMore": "عرض المزيد"
 		},
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"

@@ -142,7 +142,8 @@
 			"reservation": "予約"
 		},
 		"actions": {
-			"share": "シェア"
+			"share": "シェア",
+			"seeMore": "もっと見る"
 		},
 		"buttons": {
 			"viewRestaurant": "店を見る"

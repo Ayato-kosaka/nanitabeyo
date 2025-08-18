@@ -142,7 +142,8 @@
 			"reservation": "आरक्षण"
 		},
 		"actions": {
-			"share": "साझा करें"
+			"share": "साझा करें",
+			"seeMore": "और देखें"
 		},
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"

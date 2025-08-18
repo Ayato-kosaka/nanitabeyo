@@ -142,7 +142,8 @@
 			"reservation": "预订"
 		},
 		"actions": {
-			"share": "分享"
+			"share": "分享",
+			"seeMore": "查看更多"
 		},
 		"buttons": {
 			"viewRestaurant": "查看餐厅"

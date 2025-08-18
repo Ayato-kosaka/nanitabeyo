@@ -350,7 +350,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 											{isTextTruncated && "...  "}
 											{isTextTruncated && (
 												<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
-													<Text style={styles.seeMoreText}>see more</Text>
+													<Text style={styles.seeMoreText}>{i18n.t("FoodContentScreen.actions.seeMore")}</Text>
 												</TouchableOpacity>
 											)}
 										</Text>

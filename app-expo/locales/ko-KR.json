@@ -142,7 +142,8 @@
 			"reservation": "예약"
 		},
 		"actions": {
-			"share": "공유하기"
+			"share": "공유하기",
+			"seeMore": "더 보기"
 		},
 		"buttons": {
 			"viewRestaurant": "가게 보기"
