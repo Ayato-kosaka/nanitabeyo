@@ -25,6 +25,7 @@
 		"unsupportedVersion": "古いバージョンのため利用できません。"
 	},
 	"Search": {
+		"currentLocation": "現在地",
 		"DistanceSlider": {
 			"near": "近い",
 			"far": "遠い"
@@ -141,7 +142,8 @@
 			"reservation": "予約"
 		},
 		"actions": {
-			"share": "シェア"
+			"share": "シェア",
+			"seeMore": "もっと見る"
 		},
 		"buttons": {
 			"viewRestaurant": "店を見る"

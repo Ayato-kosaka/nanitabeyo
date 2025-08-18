@@ -25,6 +25,7 @@
 		"unsupportedVersion": "이 버전은 더 이상 지원되지 않습니다."
 	},
 	"Search": {
+		"currentLocation": "현재 위치",
 		"DistanceSlider": {
 			"near": "가까움",
 			"far": "멀리"
@@ -141,7 +142,8 @@
 			"reservation": "예약"
 		},
 		"actions": {
-			"share": "공유하기"
+			"share": "공유하기",
+			"seeMore": "더 보기"
 		},
 		"buttons": {
 			"viewRestaurant": "가게 보기"

@@ -7,8 +7,8 @@ import { StyleProp } from "react-native";
 import { ViewStyle } from "react-native";
 
 interface PriceLevelsMultiSelectProps {
-	selectedPriceLevels: number[];
-	onPriceLevelsChange: (priceLevels: number[]) => void;
+	selectedPriceLevels: (typeof priceLevelOptions)[number]["value"][];
+	onPriceLevelsChange: (priceLevels: (typeof priceLevelOptions)[number]["value"][]) => void;
 	customStyles?: {
 		chipGrid?: StyleProp<ViewStyle>;
 		chip?: StyleProp<ViewStyle>;
@@ -26,7 +26,7 @@ export function PriceLevelsMultiSelect({
 }: PriceLevelsMultiSelectProps) {
 	const { lightImpact } = useHaptics();
 
-	const togglePriceLevel = (priceLevel: number) => {
+	const togglePriceLevel = (priceLevel: (typeof priceLevelOptions)[number]["value"]) => {
 		lightImpact();
 		const isSelected = selectedPriceLevels.includes(priceLevel);
 		if (isSelected) {

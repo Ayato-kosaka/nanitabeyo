@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, SafeAreaView } from "react-native";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -10,6 +10,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
+import { getRemoteConfig } from "@/lib/remoteConfig";
 import { toggleReaction } from "@/lib/reactions";
 
 const { width, height } = Dimensions.get("window");
@@ -42,11 +43,27 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			{} as { [key: string]: { isLiked: boolean; count: number } },
 		),
 	);
+	// State to track expanded characters count for each comment
+	const [commentExpandedChars, setCommentExpandedChars] = useState(
+		item.dish_reviews.reduce(
+			(acc, review) => {
+				const remoteConfig = getRemoteConfig();
+				const charLimit = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
+				acc[review.id] = charLimit;
+				return acc;
+			},
+			{} as { [key: string]: number },
+		),
+	);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
+
+	useEffect(() => {
+		scrollViewRef.current?.scrollToEnd({ animated: false });
+	}, [item.dish_reviews.length]);
 
 	const handleCommentLike = async (commentId: string) => {
 		lightImpact();
@@ -97,6 +114,32 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				},
 			});
 		}
+	};
+
+	const handleSeeMore = (commentId: string) => {
+		lightImpact();
+		const remoteConfig = getRemoteConfig();
+		const defaultCharLimit = 100; // fallback if remote config is not available
+		const charLimit = remoteConfig?.v1_dish_comment_review_show_number
+			? parseInt(remoteConfig.v1_dish_comment_review_show_number, 10)
+			: defaultCharLimit;
+
+		setCommentExpandedChars((prev) => ({
+			...prev,
+			[commentId]: prev[commentId] + charLimit,
+		}));
+
+		logFrontendEvent({
+			event_name: "comment_see_more_clicked",
+			error_level: "log",
+			payload: {
+				commentId,
+				dishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+				previousExpandedChars: commentExpandedChars[commentId],
+				newExpandedChars: commentExpandedChars[commentId] + charLimit,
+			},
+		});
 	};
 
 	const handleLike = async () => {
@@ -285,12 +328,12 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 			{/* Comments Section */}
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
-				<ScrollView
-					ref={scrollViewRef}
-					style={styles.commentsContainer}
-					showsVerticalScrollIndicator={false}
-					onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}>
+				<ScrollView ref={scrollViewRef} style={styles.commentsContainer} showsVerticalScrollIndicator={false}>
 					{item.dish_reviews.map((review) => {
+						const expandedChars = commentExpandedChars[review.id]!;
+						const isTextTruncated = review.comment.length > expandedChars;
+						const displayText = isTextTruncated ? review.comment.substring(0, expandedChars) : review.comment;
+
 						return (
 							<View key={review.id} style={styles.commentItem}>
 								<View style={styles.commentHeader}>
@@ -298,7 +341,17 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 									<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 								</View>
 								<View style={styles.commentContent}>
-									<Text style={styles.commentText}>{review.comment}</Text>
+									<View style={styles.commentTextContainer}>
+										<Text style={styles.commentText}>
+											{displayText}
+											{isTextTruncated && "...  "}
+											{isTextTruncated && (
+												<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
+													<Text style={styles.seeMoreText}>{i18n.t("FoodContentScreen.actions.seeMore")}</Text>
+												</TouchableOpacity>
+											)}
+										</Text>
+									</View>
 									<View style={styles.commentActions}>
 										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(review.id)}>
 											<Heart
@@ -308,7 +361,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 											/>
 										</TouchableOpacity>
 										{commentLikes[review.id].count > 0 && (
-											<Text style={styles.commentLikeCount}>{commentLikes[review.id].count}</Text>
+											<Text style={styles.commentLikeCount}>{formatLikeCount(commentLikes[review.id].count)}</Text>
 										)}
 									</View>
 								</View>
@@ -528,21 +581,28 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "flex-start",
 	},
+	commentTextContainer: {
+		flex: 1,
+		marginRight: 8,
+	},
 	commentText: {
 		fontSize: 14,
 		color: "#FFFFFF",
 		lineHeight: 20,
-		flex: 1,
-		marginRight: 8,
 		fontWeight: "400",
 	},
+	seeMoreButton: {},
+	seeMoreText: {
+		fontSize: 12,
+		color: "#CCCCCC",
+		fontWeight: "500",
+	},
 	commentActions: {
-		flexDirection: "row",
 		alignItems: "center",
+		width: 18,
 	},
 	commentLikeButton: {
-		marginRight: 8,
-		padding: 4,
+		paddingVertical: 4,
 	},
 	commentLikeCount: {
 		fontSize: 12,

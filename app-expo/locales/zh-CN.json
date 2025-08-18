@@ -25,6 +25,7 @@
 		"unsupportedVersion": "此版本已不再受支持."
 	},
 	"Search": {
+		"currentLocation": "当前位置",
 		"DistanceSlider": {
 			"near": "近",
 			"far": "远"
@@ -141,7 +142,8 @@
 			"reservation": "预订"
 		},
 		"actions": {
-			"share": "分享"
+			"share": "分享",
+			"seeMore": "查看更多"
 		},
 		"buttons": {
 			"viewRestaurant": "查看餐厅"

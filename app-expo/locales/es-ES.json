@@ -25,6 +25,7 @@
 		"unsupportedVersion": "Esta versión ya no es compatible."
 	},
 	"Search": {
+		"currentLocation": "Ubicación actual",
 		"DistanceSlider": {
 			"near": "Cerca",
 			"far": "Lejos"
@@ -141,7 +142,8 @@
 			"reservation": "Reserva"
 		},
 		"actions": {
-			"share": "Compartir"
+			"share": "Compartir",
+			"seeMore": "ver más"
 		},
 		"buttons": {
 			"viewRestaurant": "Ver restaurante"

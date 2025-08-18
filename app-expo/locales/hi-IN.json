@@ -25,6 +25,7 @@
 		"unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"
 	},
 	"Search": {
+		"currentLocation": "वर्तमान स्थान",
 		"DistanceSlider": {
 			"near": "पास",
 			"far": "दूर"
@@ -141,7 +142,8 @@
 			"reservation": "आरक्षण"
 		},
 		"actions": {
-			"share": "साझा करें"
+			"share": "साझा करें",
+			"seeMore": "और देखें"
 		},
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"

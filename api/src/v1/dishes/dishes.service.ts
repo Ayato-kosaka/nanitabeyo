@@ -40,6 +40,7 @@ import {
   getExt,
 } from 'src/core/storage/storage.utils';
 import { env } from 'src/core/config/env';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class DishesService {
@@ -49,7 +50,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -168,7 +169,7 @@ export class DishesService {
         };
 
         const dishMedia: PrismaDishMedia = {
-          id: 'unknown',
+          id: randomUUID(),
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
           media_path: mediaPath,
@@ -181,7 +182,7 @@ export class DishesService {
 
         const dishReviews: PrismaDishReviews[] = contextualContent.reviews.map(
           (review) => ({
-            id: 'unknown',
+            id: randomUUID(),
             dish_id: dish.id,
             user_id: null, // Google からのインポートなので null
             comment: review.originalText?.text || '',

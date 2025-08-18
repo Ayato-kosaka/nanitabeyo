@@ -24,7 +24,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) {}
+  ) { }
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -35,7 +35,7 @@ export class LocationsService {
     dishCategoryName: string;
     minRating?: number;
     languageCode?: string;
-    priceLevels?: number[];
+    priceLevels?: string[];
     pageSize?: number;
   }): Promise<google.maps.places.v1.ISearchTextResponse> {
     const [lat, lng] = params.location.split(',').map(Number);
@@ -56,11 +56,8 @@ export class LocationsService {
       ...(params.pageSize && { pageSize: params.pageSize }),
       ...(params.minRating && { minRating: params.minRating }),
       ...(params.languageCode && { languageCode: params.languageCode }),
-      ...(params.priceLevels && {
-        priceLevels: params.priceLevels
-          .map((level) => this.numberToPriceLevel(level))
-          .filter((level) => level !== undefined),
-      }),
+      // priceLevels は string 配列なので、型チェックを回避するためにキャスト
+      ...(params.priceLevels && { priceLevels: params.priceLevels.map(level => level as unknown as protos.google.maps.places.v1.PriceLevel) }),
       rankPreference: 'DISTANCE',
     };
 
@@ -319,27 +316,6 @@ export class LocationsService {
         query,
       });
       throw error;
-    }
-  }
-
-  /**
-   * number を Google Maps PriceLevel enum に変換
-   */
-  private numberToPriceLevel(
-    level: number,
-  ): protos.google.maps.places.v1.PriceLevel | undefined {
-    switch (level) {
-      case 2:
-        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_INEXPENSIVE;
-      case 3:
-        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_MODERATE;
-      case 4:
-        return protos.google.maps.places.v1.PriceLevel.PRICE_LEVEL_EXPENSIVE;
-      case 5:
-        return protos.google.maps.places.v1.PriceLevel
-          .PRICE_LEVEL_VERY_EXPENSIVE;
-      default:
-        return undefined;
     }
   }
 }
