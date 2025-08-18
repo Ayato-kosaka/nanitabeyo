@@ -6,7 +6,10 @@
 
 import { randomBytes } from 'crypto';
 import type { QueryDishCategoryRecommendationsDto } from '@shared/v1/dto';
-import type { BaseResponse, QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
+import type {
+  BaseResponse,
+  QueryDishCategoryRecommendationsResponse,
+} from '@shared/v1/res';
 import {
   TestConfig,
   DEFAULT_CONFIG,
