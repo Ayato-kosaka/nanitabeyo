@@ -19,6 +19,29 @@ interface FoodContentScreenProps {
 	item: DishMediaEntry;
 }
 
+// Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
+const isFullWidthChar = (ch: string) => {
+	const code = ch.charCodeAt(0);
+	return code > 0xff; // simple heuristic
+};
+
+// Return substring fitting within unitLimit (FW=2, others=1)
+const sliceByUnitLimit = (text: string, unitLimit: number) => {
+	let units = 0;
+	let i = 0;
+	while (i < text.length) {
+		const add = isFullWidthChar(text[i]) ? 2 : 1;
+		if (units + add > unitLimit) break;
+		units += add;
+		i++;
+	}
+	return {
+		substring: text.slice(0, i),
+		isTruncated: i < text.length,
+		usedUnits: units,
+	};
+};
+
 const formatLikeCount = (count: number): string => {
 	if (count >= 1000000) {
 		return (count / 1000000).toFixed(1).replace(/\.0$/, "") + i18n.t("FoodContentScreen.numberSuffix.million");
@@ -49,6 +72,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			(acc, review) => {
 				const remoteConfig = getRemoteConfig();
 				const charLimit = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
+				// Interpret as unit limit (FW=2, half=1)
 				acc[review.id] = charLimit;
 				return acc;
 			},
@@ -119,14 +143,11 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	const handleSeeMore = (commentId: string) => {
 		lightImpact();
 		const remoteConfig = getRemoteConfig();
-		const defaultCharLimit = 100; // fallback if remote config is not available
-		const charLimit = remoteConfig?.v1_dish_comment_review_show_number
-			? parseInt(remoteConfig.v1_dish_comment_review_show_number, 10)
-			: defaultCharLimit;
+		const charUnitIncrement = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
 
 		setCommentExpandedChars((prev) => ({
 			...prev,
-			[commentId]: prev[commentId] + charLimit,
+			[commentId]: prev[commentId] + charUnitIncrement,
 		}));
 
 		logFrontendEvent({
@@ -137,7 +158,8 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				dishId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 				previousExpandedChars: commentExpandedChars[commentId],
-				newExpandedChars: commentExpandedChars[commentId] + charLimit,
+				newExpandedChars: commentExpandedChars[commentId] + charUnitIncrement,
+				unitIncrement: charUnitIncrement,
 			},
 		});
 	};
@@ -330,9 +352,9 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
 				<ScrollView ref={scrollViewRef} style={styles.commentsContainer} showsVerticalScrollIndicator={false}>
 					{item.dish_reviews.map((review) => {
-						const expandedChars = commentExpandedChars[review.id]!;
-						const isTextTruncated = review.comment.length > expandedChars;
-						const displayText = isTextTruncated ? review.comment.substring(0, expandedChars) : review.comment;
+						const unitLimit = commentExpandedChars[review.id]!;
+						const { substring, isTruncated } = sliceByUnitLimit(review.comment, unitLimit);
+						const displayText = substring;
 
 						return (
 							<View key={review.id} style={styles.commentItem}>
@@ -344,8 +366,8 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 									<View style={styles.commentTextContainer}>
 										<Text style={styles.commentText}>
 											{displayText}
-											{isTextTruncated && "...  "}
-											{isTextTruncated && (
+											{isTruncated && "...  "}
+											{isTruncated && (
 												<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
 													<Text style={styles.seeMoreText}>{i18n.t("FoodContentScreen.actions.seeMore")}</Text>
 												</TouchableOpacity>
