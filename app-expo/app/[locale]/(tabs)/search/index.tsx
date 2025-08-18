@@ -29,7 +29,14 @@ import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
-import { timeSlots, sceneOptions, moodOptions, distanceOptions, restrictionOptions } from "@/features/search/constants";
+import {
+	timeSlots,
+	sceneOptions,
+	moodOptions,
+	distanceOptions,
+	restrictionOptions,
+	priceLevelOptions,
+} from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
 import i18n from "@/lib/i18n";
@@ -50,7 +57,12 @@ export default function SearchScreen() {
 	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
-	const [priceLevels, setPriceLevels] = useState<number[]>([2, 3, 4, 5]); // Default all selected
+	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
+		"PRICE_LEVEL_INEXPENSIVE",
+		"PRICE_LEVEL_MODERATE",
+		"PRICE_LEVEL_EXPENSIVE",
+		"PRICE_LEVEL_VERY_EXPENSIVE",
+	]); // Default all selected
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const {
