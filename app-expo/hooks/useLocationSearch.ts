@@ -80,16 +80,6 @@ export const useLocationSearch = () => {
 				// Use API response directly
 				setSuggestions(placesResponse);
 
-				logFrontendEvent({
-					event_name: "location_search_success",
-					error_level: "log",
-					payload: {
-						query,
-						resultCount: placesResponse.length,
-						hasResults: placesResponse.length > 0,
-					},
-				});
-
 				// Keep mock implementation as fallback (commented out as requested)
 				// // Simulate API delay
 				// await new Promise((resolve) => setTimeout(resolve, 300));
