@@ -76,7 +76,7 @@ export const useTopicSearch = () => {
 	);
 
 	const searchTopics = useCallback(
-		async (params: SearchParams): Promise<Topic[]> => {
+		async (params: SearchParams) => {
 			setIsLoading(true);
 			setError(null);
 
@@ -101,7 +101,7 @@ export const useTopicSearch = () => {
 				});
 
 				let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
-					.filter((topic) => topic.categoryId)
+					.filter((topic) => topic.categoryId && topic.imageUrl)
 					.slice(0, searchResultTopicsNumber);
 
 				// Early display: Create topics from initial response and set them immediately
@@ -143,36 +143,34 @@ export const useTopicSearch = () => {
 				// Delayed addition: If we need more topics, create dish category variants and append them
 				if (topicsResponseWithCategoryIds.length < searchResultTopicsNumber) {
 					const createDishCategoryVariantResponse = await Promise.all(
-						topicsResponse.map(async (topic, index) => {
-							if (!!topic.categoryId) return topic;
-							try {
-								const createDishCategoryVariantResponse = await callBackend<
-									CreateDishCategoryVariantDto,
-									CreateDishCategoryVariantResponse
-								>("v1/dish-category-variants", {
-									method: "POST",
-									requestPayload: {
-										name: topic.category,
-									},
-								});
-								return {
-									...topic,
-									categoryId: createDishCategoryVariantResponse.id,
-									imageUrl: createDishCategoryVariantResponse.image_url,
-								};
-							} catch (error) {
-								console.error(`Error creating dish category variant for topic ${topic.category}:`, error);
-								return topic;
-							}
-						}),
+						topicsResponse
+							.filter((topic) =>
+								!topicsResponseWithCategoryIds.find((existing) => existing.categoryId === topic.categoryId))
+							.map(async (topic, index) => {
+								try {
+									const createDishCategoryVariantResponse = await callBackend<
+										CreateDishCategoryVariantDto,
+										CreateDishCategoryVariantResponse
+									>("v1/dish-category-variants", {
+										method: "POST",
+										requestPayload: {
+											name: topic.category,
+										},
+									});
+									return {
+										...topic,
+										categoryId: createDishCategoryVariantResponse.id,
+										imageUrl: createDishCategoryVariantResponse.image_url,
+									};
+								} catch (error) {
+									console.error(`Error creating dish category variant for topic ${topic.category}:`, error);
+									return topic;
+								}
+							}),
 					);
 
 					const additionalTopicsWithCategoryIds = createDishCategoryVariantResponse
-						.filter(
-							(topic) =>
-								topic.categoryId &&
-								!topicsResponseWithCategoryIds.find((existing) => existing.categoryId === topic.categoryId),
-						)
+						.filter((topic) => topic.categoryId && topic.imageUrl)
 						.slice(0, searchResultTopicsNumber - topicsResponseWithCategoryIds.length);
 
 					// Add additional topics to the array (append to the end)
@@ -187,11 +185,6 @@ export const useTopicSearch = () => {
 					topicsResponseWithCategoryIds = [...topicsResponseWithCategoryIds, ...additionalTopicsWithCategoryIds];
 				}
 
-				// Return the final topics (used by the promise return)
-				const finalTopics = await Promise.all(
-					topicsResponseWithCategoryIds.map((topic) => createTopicWithImagePreload(topic)),
-				);
-
 				// // Mock API response based on search parameters
 				// const toplics = [...mockTopicCards]
 				// 	.sort(() => Math.random() - 0.5)
@@ -202,11 +195,12 @@ export const useTopicSearch = () => {
 				// 		isHidden: false,
 				// 	}));
 
-				return finalTopics;
 			} catch (err) {
 				const errorMessage = err instanceof Error ? err.message : "おすすめ検索に失敗しました";
 				setError(errorMessage);
 				throw new Error(errorMessage);
+			} finally {
+				setIsLoading(false);
 			}
 		},
 		[callBackend, locale, createDishItemsPromise, logFrontendEvent],

@@ -39,6 +39,7 @@ export default function TopicsScreen() {
 	} = useHideTopic(topics, hideTopic, showSnackbar);
 
 	useEffect(() => {
+		console.log("TopicsScreen mounted, searchParams:");
 		if (searchParams) {
 			try {
 				const params: SearchParams = JSON.parse(searchParams);
@@ -50,7 +51,7 @@ export default function TopicsScreen() {
 				router.back();
 			}
 		}
-	}, [searchParams, searchTopics, showSnackbar]);
+	}, [searchParams]);
 
 	const handleViewDetails = (topic: Topic) => {
 		setDishes(topic.categoryId, topic.dishItemsPromise);
