@@ -16,6 +16,7 @@ import type {
 } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
+import { useLogger } from "@/hooks/useLogger";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -23,6 +24,7 @@ export const useTopicSearch = () => {
 	const [error, setError] = useState<string | null>(null);
 	const { callBackend } = useAPICall();
 	const locale = useLocale();
+	const { logFrontendEvent } = useLogger();
 
 	// Helper function to create dishItemsPromise with image preloading (DRY principle)
 	const createDishItemsPromise = useCallback(
@@ -53,7 +55,15 @@ export const useTopicSearch = () => {
 								try {
 									await Image.prefetch(dishItem.dish_media.mediaImageUrl);
 								} catch (error) {
-									console.warn("Failed to preload dish media image:", error);
+									logFrontendEvent({
+										event_name: "image_preload_failed",
+										error_level: "warn",
+										payload: { 
+											imageType: "dish_media",
+											imageUrl: dishItem.dish_media.mediaImageUrl,
+											error: error instanceof Error ? error.message : String(error)
+										}
+									});
 								}
 							}
 						}),
@@ -62,7 +72,7 @@ export const useTopicSearch = () => {
 				return dishItems.slice(0, searchResultRestaurantsNumber);
 			})();
 		},
-		[callBackend, locale],
+		[callBackend, locale, logFrontendEvent],
 	);
 
 	const searchTopics = useCallback(
@@ -101,7 +111,15 @@ export const useTopicSearch = () => {
 						try {
 							await Image.prefetch(topic.imageUrl);
 						} catch (error) {
-							console.warn("Failed to preload topic image:", error);
+							logFrontendEvent({
+								event_name: "image_preload_failed",
+								error_level: "warn",
+								payload: { 
+									imageType: "topic",
+									imageUrl: topic.imageUrl,
+									error: error instanceof Error ? error.message : String(error)
+								}
+							});
 						}
 					}
 
@@ -118,6 +136,8 @@ export const useTopicSearch = () => {
 						topicsResponseWithCategoryIds.map((topic) => createTopicWithImagePreload(topic)),
 					);
 					setTopics(initialTopics);
+					// Set loading to false after early display
+					setIsLoading(false);
 				}
 
 				// Delayed addition: If we need more topics, create dish category variants and append them
@@ -187,11 +207,9 @@ export const useTopicSearch = () => {
 				const errorMessage = err instanceof Error ? err.message : "おすすめ検索に失敗しました";
 				setError(errorMessage);
 				throw new Error(errorMessage);
-			} finally {
-				setIsLoading(false);
 			}
 		},
-		[callBackend, locale, createDishItemsPromise],
+		[callBackend, locale, createDishItemsPromise, logFrontendEvent],
 	);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {
