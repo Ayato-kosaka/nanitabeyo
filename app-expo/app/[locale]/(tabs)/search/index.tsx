@@ -71,7 +71,12 @@ export default function SearchScreen() {
 		});
 
 		// Auto-detect current location on mount
-		getCurrentLocation().then(setLocation).catch(console.error);
+		getCurrentLocation()
+			.then((currentLocation) => {
+				setLocation(currentLocation);
+				setLocationQuery(currentLocation.address);
+			})
+			.catch(console.error);
 
 		// Auto-set time slot based on current time
 		const hour = new Date().getHours();

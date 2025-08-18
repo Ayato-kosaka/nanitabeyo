@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	View,
 	Text,
@@ -9,6 +9,8 @@ import {
 	Dimensions,
 	FlatList,
 	TextInput,
+	ActivityIndicator,
+	RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -27,7 +29,7 @@ import {
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { UserProfile, UserPost } from "@/types";
-import { userProfile, otherUserProfile, userPosts, savedPosts, likedPosts } from "@/data/profileData";
+import { userProfile, otherUserProfile } from "@/data/profileData";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
@@ -38,11 +40,34 @@ import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useAPICall } from "@/hooks/useAPICall";
+import { useWithLoading } from "@/hooks/useWithLoading";
+import type {
+	QueryUserDishReviewsResponse,
+	QueryMeLikedDishMediaResponse,
+	QueryMeSavedDishCategoriesResponse,
+	QueryMeSavedDishMediaResponse,
+	PaginatedResponse,
+} from "@shared/api/v1/res";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
 
 type TabType = "posts" | "saved" | "liked" | "wallet";
+
+// Interface for API data structures
+interface ProfileData {
+	userPosts: QueryUserDishReviewsResponse;
+	likedPosts: QueryMeLikedDishMediaResponse;
+	savedTopics: QueryMeSavedDishCategoriesResponse;
+	savedPosts: QueryMeSavedDishMediaResponse;
+}
+
+interface PaginationState {
+	cursor: string | null;
+	hasNextPage: boolean;
+	isLoadingMore: boolean;
+}
 
 function DepositsScreen() {
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["active", "completed", "refunded"]);
@@ -307,10 +332,291 @@ export default function ProfileScreen() {
 	const [isFollowing, setIsFollowing] = useState(false);
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
+	const { isLoading, withLoading } = useWithLoading();
+
+	// API Data State
+	const [profileData, setProfileData] = useState<ProfileData>({
+		userPosts: [],
+		likedPosts: [],
+		savedTopics: [],
+		savedPosts: [],
+	});
+
+	// Pagination State for each tab
+	const [paginationState, setPaginationState] = useState<Record<TabType, PaginationState>>({
+		posts: { cursor: null, hasNextPage: true, isLoadingMore: false },
+		saved: { cursor: null, hasNextPage: true, isLoadingMore: false },
+		liked: { cursor: null, hasNextPage: true, isLoadingMore: false },
+		wallet: { cursor: null, hasNextPage: false, isLoadingMore: false },
+	});
+
+	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [fetchError, setFetchError] = useState<string | null>(null);
 
 	// Determine if this is the current user's profile or another user's
 	const isOwnProfile = !userId || userId === userProfile.id;
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
+
+	// Data fetching functions
+	const fetchUserPosts = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<PaginatedResponse<QueryUserDishReviewsResponse[0]>>(
+					`v1/users/${isOwnProfile ? "me" : userId}/dish-reviews`,
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_user_posts_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						userId: isOwnProfile ? "me" : userId,
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend, isOwnProfile, userId],
+	);
+
+	const fetchLikedPosts = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<PaginatedResponse<QueryMeLikedDishMediaResponse[0]>>(
+					"v1/users/me/liked-dish-media",
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_liked_posts_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend],
+	);
+
+	const fetchSavedTopics = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<PaginatedResponse<QueryMeSavedDishCategoriesResponse[0]>>(
+					"v1/users/me/saved-dish-categories",
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_saved_topics_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend],
+	);
+
+	const fetchSavedPosts = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<PaginatedResponse<QueryMeSavedDishMediaResponse[0]>>(
+					"v1/users/me/saved-dish-media",
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_saved_posts_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend],
+	);
+
+	// Load initial data for a specific tab
+	const loadInitialData = useCallback(
+		async (tab: TabType) => {
+			if (tab === "wallet") return;
+
+			setFetchError(null);
+
+			try {
+				let response;
+				switch (tab) {
+					case "posts":
+						response = await fetchUserPosts();
+						setProfileData((prev) => ({ ...prev, userPosts: response.data }));
+						break;
+					case "liked":
+						if (!isOwnProfile) return;
+						response = await fetchLikedPosts();
+						setProfileData((prev) => ({ ...prev, likedPosts: response.data }));
+						break;
+					case "saved":
+						if (!isOwnProfile) return;
+						// For saved tab, we need both topics and posts
+						const [topicsResponse, postsResponse] = await Promise.all([fetchSavedTopics(), fetchSavedPosts()]);
+						setProfileData((prev) => ({
+							...prev,
+							savedTopics: topicsResponse.data,
+							savedPosts: postsResponse.data,
+						}));
+						// Use the posts response for pagination
+						response = postsResponse;
+						break;
+					default:
+						return;
+				}
+
+				setPaginationState((prev) => ({
+					...prev,
+					[tab]: {
+						cursor: response.nextCursor,
+						hasNextPage: !!response.nextCursor,
+						isLoadingMore: false,
+					},
+				}));
+			} catch (error) {
+				setFetchError(error instanceof Error ? error.message : "Failed to load data");
+				setPaginationState((prev) => ({
+					...prev,
+					[tab]: { ...prev[tab], hasNextPage: false, isLoadingMore: false },
+				}));
+			}
+		},
+		[fetchUserPosts, fetchLikedPosts, fetchSavedTopics, fetchSavedPosts, isOwnProfile],
+	);
+
+	// Load more data for infinite scroll
+	const loadMoreData = useCallback(
+		async (tab: TabType) => {
+			const currentState = paginationState[tab];
+			if (!currentState.hasNextPage || currentState.isLoadingMore || tab === "wallet") return;
+
+			setPaginationState((prev) => ({
+				...prev,
+				[tab]: { ...prev[tab], isLoadingMore: true },
+			}));
+
+			try {
+				let response;
+				switch (tab) {
+					case "posts":
+						response = await fetchUserPosts(currentState.cursor || undefined);
+						setProfileData((prev) => ({
+							...prev,
+							userPosts: [...prev.userPosts, ...response.data],
+						}));
+						break;
+					case "liked":
+						response = await fetchLikedPosts(currentState.cursor || undefined);
+						setProfileData((prev) => ({
+							...prev,
+							likedPosts: [...prev.likedPosts, ...response.data],
+						}));
+						break;
+					case "saved":
+						response = await fetchSavedPosts(currentState.cursor || undefined);
+						setProfileData((prev) => ({
+							...prev,
+							savedPosts: [...prev.savedPosts, ...response.data],
+						}));
+						break;
+					default:
+						return;
+				}
+
+				setPaginationState((prev) => ({
+					...prev,
+					[tab]: {
+						cursor: response.nextCursor,
+						hasNextPage: !!response.nextCursor,
+						isLoadingMore: false,
+					},
+				}));
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "load_more_data_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						tab: tab,
+						cursor: paginationState[tab]?.nextCursor || "unknown",
+					},
+				});
+				setPaginationState((prev) => ({
+					...prev,
+					[tab]: { ...prev[tab], isLoadingMore: false },
+				}));
+			}
+		},
+		[paginationState, fetchUserPosts, fetchLikedPosts, fetchSavedPosts],
+	);
+
+	// Refresh data
+	const refreshData = useCallback(
+		async (tab: TabType) => {
+			setIsRefreshing(true);
+			setPaginationState((prev) => ({
+				...prev,
+				[tab]: { cursor: null, hasNextPage: true, isLoadingMore: false },
+			}));
+
+			try {
+				await loadInitialData(tab);
+			} finally {
+				setIsRefreshing(false);
+			}
+		},
+		[loadInitialData],
+	);
 
 	React.useEffect(() => {
 		// Screen view logging
@@ -331,6 +637,17 @@ export default function ProfileScreen() {
 		}
 	}, [profile, isOwnProfile, logFrontendEvent]);
 
+	// Load initial data when component mounts or tab changes
+	React.useEffect(() => {
+		const loadData = async () => {
+			await withLoading(async () => {
+				await loadInitialData(selectedTab);
+			});
+		};
+
+		loadData();
+	}, [selectedTab, withLoading, loadInitialData]);
+
 	// Add wallet tab for own profile
 	const availableTabs: TabType[] = isOwnProfile ? ["posts", "saved", "liked", "wallet"] : ["posts"];
 
@@ -344,18 +661,18 @@ export default function ProfileScreen() {
 		return num.toString();
 	};
 
-	const getCurrentPosts = (): UserPost[] => {
+	const getCurrentPosts = (): any[] => {
 		switch (selectedTab) {
 			case "posts":
-				return userPosts;
+				return profileData.userPosts;
 			case "saved":
-				return savedPosts;
+				return profileData.savedPosts;
 			case "wallet":
 				return [];
 			case "liked":
-				return likedPosts;
+				return profileData.likedPosts;
 			default:
-				return userPosts;
+				return profileData.userPosts;
 		}
 	};
 
@@ -429,7 +746,7 @@ export default function ProfileScreen() {
 		});
 	};
 
-	const handleTabSelect = (tab: TabType) => {
+	const handleTabSelect = async (tab: TabType) => {
 		lightImpact();
 		setSelectedTab(tab);
 
@@ -442,6 +759,27 @@ export default function ProfileScreen() {
 				isOwnProfile,
 			},
 		});
+
+		// Load data for the new tab if it hasn't been loaded yet
+		const currentData = getCurrentPostsForTab(tab);
+		if (currentData.length === 0 && tab !== "wallet") {
+			await withLoading(async () => {
+				await loadInitialData(tab);
+			});
+		}
+	};
+
+	const getCurrentPostsForTab = (tab: TabType): any[] => {
+		switch (tab) {
+			case "posts":
+				return profileData.userPosts;
+			case "saved":
+				return profileData.savedPosts;
+			case "liked":
+				return profileData.likedPosts;
+			default:
+				return [];
+		}
 	};
 
 	const renderTabIcon = (tab: TabType) => {
@@ -458,6 +796,90 @@ export default function ProfileScreen() {
 			case "liked":
 				return <Heart size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
 		}
+	};
+
+	// Render item for API data
+	const renderApiPostItem = ({ item }: { item: any }) => {
+		// Handle different data structures based on API responses
+		let imageUrl, title, rating, reviewCount;
+
+		if (selectedTab === "posts") {
+			// QueryUserDishReviewsResponse structure
+			imageUrl = item.dish_media?.mediaImageUrl || item.signedUrls?.[0];
+			title = item.dish_media?.dishName || "Dish";
+			rating = item.dish_review?.rating || 0;
+			reviewCount = 1; // Single review
+		} else if (selectedTab === "liked" || selectedTab === "saved") {
+			// QueryMeLikedDishMediaResponse / QueryMeSavedDishMediaResponse structure
+			imageUrl = item.dish_media?.mediaImageUrl;
+			title = item.dish?.name || "Dish";
+			rating =
+				item.dish_reviews?.reduce((sum: number, review: any) => sum + review.rating, 0) /
+				(item.dish_reviews?.length || 1);
+			reviewCount = item.dish_reviews?.length || 0;
+		}
+
+		return (
+			<TouchableOpacity
+				style={styles.postItem}
+				onPress={() => handlePostPress(0)} // Index doesn't matter for logging
+			>
+				<Image source={{ uri: imageUrl }} style={styles.postImage} />
+				<View style={styles.reviewCardOverlay}>
+					<Text style={styles.reviewCardTitle}>{title}</Text>
+					<View style={styles.reviewCardRating}>
+						<Stars rating={rating} />
+						<Text style={styles.reviewCardRatingText}>({reviewCount})</Text>
+					</View>
+				</View>
+			</TouchableOpacity>
+		);
+	};
+
+	// Render loading footer
+	const renderLoadingFooter = () => {
+		if (!paginationState[selectedTab]?.isLoadingMore) return null;
+
+		return (
+			<View style={styles.loadingFooter}>
+				<ActivityIndicator size="small" color="#5EA2FF" />
+			</View>
+		);
+	};
+
+	// Render empty state
+	const renderEmptyState = () => {
+		if (isLoading) {
+			return (
+				<View style={styles.loadingContainer}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
+					<Text style={styles.loadingText}>Loading...</Text>
+				</View>
+			);
+		}
+
+		if (fetchError) {
+			return (
+				<View style={styles.emptyStateContainer}>
+					<View style={styles.emptyStateCard}>
+						<Text style={styles.emptyStateText}>Failed to load data: {fetchError}</Text>
+						<TouchableOpacity style={styles.retryButton} onPress={() => refreshData(selectedTab)}>
+							<Text style={styles.retryButtonText}>Retry</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+			);
+		}
+
+		return (
+			<View style={styles.emptyStateContainer}>
+				<View style={styles.emptyStateCard}>
+					<Text style={styles.emptyStateText}>
+						{selectedTab === "posts" ? "No posts yet" : selectedTab === "liked" ? "No liked posts" : "No saved items"}
+					</Text>
+				</View>
+			</View>
+		);
 	};
 
 	const shouldShowTab = (tab: TabType): boolean => {
@@ -486,8 +908,8 @@ export default function ProfileScreen() {
 				</View>
 			</View>
 
-			<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-				{/* Profile Info */}
+			{/* Profile Info - Fixed Header */}
+			<View style={styles.profileSection}>
 				<Card>
 					{/* Avatar and Stats */}
 					<View style={styles.profileHeader}>
@@ -555,35 +977,43 @@ export default function ProfileScreen() {
 						</TouchableOpacity>
 					))}
 				</View>
+			</View>
 
-				{/* Posts Grid */}
-				<View style={[styles.postsContainer, { marginTop: 0 }]}>
-					{selectedTab === "wallet" ? (
-						<WalletTabs />
-					) : selectedTab === "saved" && !isOwnProfile ? (
-						<View style={styles.privateContainer}>
-							<View style={styles.privateCard}>
-								<Lock size={48} color="#6B7280" />
-								<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
-							</View>
-						</View>
-					) : (
-						<ImageCardGrid
-							data={getCurrentPosts()}
-							containerStyle={{ marginVertical: 16 }}
-							renderOverlay={(item) => (
-								<View style={styles.reviewCardOverlay}>
-									<Text style={styles.reviewCardTitle}>{item.dishName}</Text>
-									<View style={styles.reviewCardRating}>
-										<Stars rating={item.likes / 10000} />
-										<Text style={styles.reviewCardRatingText}>({item.reviewCount})</Text>
-									</View>
-								</View>
-							)}
-						/>
-					)}
+			{/* Posts Content - FlatList for infinite scroll */}
+			{selectedTab === "wallet" ? (
+				<WalletTabs />
+			) : selectedTab === "saved" && !isOwnProfile ? (
+				<View style={styles.privateContainer}>
+					<View style={styles.privateCard}>
+						<Lock size={48} color="#6B7280" />
+						<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
+					</View>
 				</View>
-			</ScrollView>
+			) : (
+				<FlatList
+					data={getCurrentPosts()}
+					renderItem={renderApiPostItem}
+					keyExtractor={(item, index) => {
+						// Handle different ID structures from different APIs
+						return item.id || item.dish_media?.id || item.dish_review?.id || `${selectedTab}-${index}`;
+					}}
+					numColumns={2}
+					contentContainerStyle={styles.flatListContent}
+					showsVerticalScrollIndicator={false}
+					onEndReached={() => loadMoreData(selectedTab)}
+					onEndReachedThreshold={0.5}
+					refreshControl={
+						<RefreshControl
+							refreshing={isRefreshing}
+							onRefresh={() => refreshData(selectedTab)}
+							colors={["#5EA2FF"]}
+							tintColor="#5EA2FF"
+						/>
+					}
+					ListEmptyComponent={renderEmptyState}
+					ListFooterComponent={renderLoadingFooter}
+				/>
+			)}
 
 			{/* Edit Profile Modal */}
 			<BlurModal>
@@ -971,5 +1401,55 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 		textAlign: "center",
 		fontWeight: "500",
+	},
+	profileSection: {
+		paddingHorizontal: 16,
+	},
+	flatListContent: {
+		padding: 8,
+	},
+	postItem: {
+		flex: 1,
+		aspectRatio: 9 / 16,
+		margin: 4,
+		borderRadius: 16,
+		overflow: "hidden",
+		position: "relative",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.15,
+		shadowRadius: 8,
+		elevation: 6,
+	},
+	postImage: {
+		width: "100%",
+		height: "100%",
+		resizeMode: "cover",
+	},
+	loadingFooter: {
+		paddingVertical: 20,
+		alignItems: "center",
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingTop: 50,
+	},
+	loadingText: {
+		marginTop: 10,
+		fontSize: 16,
+		color: "#6B7280",
+	},
+	retryButton: {
+		marginTop: 16,
+		backgroundColor: "#5EA2FF",
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 20,
+	},
+	retryButtonText: {
+		color: "#FFFFFF",
+		fontWeight: "600",
 	},
 });
