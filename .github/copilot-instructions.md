@@ -1,4 +1,4 @@
-# Food App (dish-scroll) Development Instructions
+# Food App (nanitabeyo) Development Instructions
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
