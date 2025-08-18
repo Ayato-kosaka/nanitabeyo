@@ -345,12 +345,15 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 								</View>
 								<View style={styles.commentContent}>
 									<View style={styles.commentTextContainer}>
-										<Text style={styles.commentText}>{displayText}</Text>
-										{isTextTruncated && (
-											<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
-												<Text style={styles.seeMoreText}>see more</Text>
-											</TouchableOpacity>
-										)}
+										<Text style={styles.commentText}>
+											{displayText}
+											{isTextTruncated && "...  "}
+											{isTextTruncated && (
+												<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
+													<Text style={styles.seeMoreText}>see more</Text>
+												</TouchableOpacity>
+											)}
+										</Text>
 									</View>
 									<View style={styles.commentActions}>
 										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(review.id)}>
@@ -591,15 +594,11 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 		fontWeight: "400",
 	},
-	seeMoreButton: {
-		marginTop: 4,
-		alignSelf: "flex-start",
-	},
+	seeMoreButton: {},
 	seeMoreText: {
-		fontSize: 14,
-		color: "#5EA2FF",
+		fontSize: 12,
+		color: "#CCCCCC",
 		fontWeight: "500",
-		textDecorationLine: "underline",
 	},
 	commentActions: {
 		flexDirection: "row",
