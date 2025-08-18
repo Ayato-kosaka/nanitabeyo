@@ -35,66 +35,51 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   constructor() {
     const enableQueryLogs = env.API_NODE_ENV !== 'production';
+    const isWatchMode = process.env.NODE_ENV !== 'production';
+    const base = new PrismaClient({
+      log: enableQueryLogs
+        ? ([{ emit: 'event', level: 'query' } as Prisma.LogDefinition, 'warn', 'error'] as any)
+        : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
+    });
 
-    if (process.env.NODE_ENV === 'production') {
-      this.prisma = withMetrics(
-        new PrismaClient({
-          // 本番でも必要に応じてクエリログを Cloud Run に出力
-          log: enableQueryLogs
-            ? ([
-                { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-                'warn',
-                'error',
-              ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
-            : (['warn', 'error'] as Prisma.LogLevel[]),
-        }),
-      );
+
+
+    // Prisma の SQL 実行時間を構造化ログで出力（Cloud Run で見やすく）
+    if (enableQueryLogs) {
+      // Prisma の型制約上、コンストラクタ引数の log 設定が動的だと
+      // $on('query') のシグネチャが `never` になるため any で回避
+      (base as any).$on('query', (e: any) => {
+        // Cloud Logging の推奨フォーマットに合わせて JSON 一行で出力
+        // e.params は JSON 文字列のことがあるため、そのまま出力
+        const entry = {
+          severity: 'DEBUG',
+          type: 'prisma',
+          message: 'Prisma query',
+          duration_ms: e.duration,
+          query: e.query.substring(0, 200),
+          params: e.params.substring(0, 200),
+          target: (e as any).target,
+          timestamp: new Date().toISOString(),
+        };
+        // stdout へ
+        console.log(JSON.stringify(entry));
+      });
     } else {
+      console.log(
+        'Prisma $on("query") is not available, skipping query logging',
+      );
+    }
+
+    if (isWatchMode) {
       // 開発環境ではグローバルインスタンスを再利用
       if (!globalForPrisma.prisma) {
-        globalForPrisma.prisma = withMetrics(
-          new PrismaClient({
-            log: enableQueryLogs
-              ? ([
-                  { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-                  'info',
-                  'warn',
-                  'error',
-                ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
-              : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
-          }),
+        globalForPrisma.prisma = withMetrics(base
         );
       }
       this.prisma = globalForPrisma.prisma;
       this.logger.log('Reusing existing Prisma client instance');
-    }
-
-    // Prisma の SQL 実行時間を構造化ログで出力（Cloud Run で見やすく）
-    if (enableQueryLogs) {
-      if (typeof this.prisma.$on === 'function') {
-        // Prisma の型制約上、コンストラクタ引数の log 設定が動的だと
-        // $on('query') のシグネチャが `never` になるため any で回避
-        (this.prisma as any).$on('query', (e: any) => {
-          // Cloud Logging の推奨フォーマットに合わせて JSON 一行で出力
-          // e.params は JSON 文字列のことがあるため、そのまま出力
-          const entry = {
-            severity: 'DEBUG',
-            type: 'prisma',
-            message: 'Prisma query',
-            duration_ms: e.duration,
-            query: e.query,
-            params: e.params,
-            target: (e as any).target,
-            timestamp: new Date().toISOString(),
-          };
-          // stdout へ
-          console.log(JSON.stringify(entry));
-        });
-      } else {
-        console.log(
-          'Prisma $on("query") is not available, skipping query logging',
-        );
-      }
+    } else {
+      this.prisma = withMetrics(base);
     }
   }
 
