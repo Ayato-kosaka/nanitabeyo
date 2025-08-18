@@ -41,6 +41,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			{} as { [key: string]: { isLiked: boolean; count: number } },
 		),
 	);
+	const [isCommentLikeInProgress, setIsCommentLikeInProgress] = useState(false);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -49,6 +50,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 	const handleCommentLike = (commentId: string) => {
 		lightImpact();
+		setIsCommentLikeInProgress(true);
 		const currentLikeState = commentLikes[commentId]?.isLiked || false;
 		setCommentLikes((prev) => ({
 			...prev,
@@ -67,6 +69,11 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				restaurantId: item.restaurant.id,
 			},
 		});
+
+		// Clear the flag after a short delay to allow state update to complete
+		setTimeout(() => {
+			setIsCommentLikeInProgress(false);
+		}, 100);
 	};
 
 	const handleLike = () => {
@@ -214,7 +221,11 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 					ref={scrollViewRef}
 					style={styles.commentsContainer}
 					showsVerticalScrollIndicator={false}
-					onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}>
+					onContentSizeChange={() => {
+						if (!isCommentLikeInProgress) {
+							scrollViewRef.current?.scrollToEnd({ animated: false });
+						}
+					}}>
 					{item.dish_reviews.map((review) => {
 						return (
 							<View key={review.id} style={styles.commentItem}>
