@@ -74,7 +74,7 @@ export default function SearchScreen() {
 		getCurrentLocation()
 			.then((currentLocation) => {
 				setLocation(currentLocation);
-				setLocationQuery(currentLocation.address);
+				setLocationQuery(i18n.t("Search.currentLocation"));
 			})
 			.catch(console.error);
 
@@ -129,7 +129,7 @@ export default function SearchScreen() {
 		try {
 			const currentLocation = await getCurrentLocation();
 			setLocation(currentLocation);
-			setLocationQuery(currentLocation.address);
+			setLocationQuery(i18n.t("Search.currentLocation"));
 			logFrontendEvent({
 				event_name: "current_location_success",
 				error_level: "log",

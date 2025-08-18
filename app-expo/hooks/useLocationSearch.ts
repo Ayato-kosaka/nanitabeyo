@@ -182,7 +182,7 @@ export const useLocationSearch = () => {
 			});
 			const { latitude, longitude } = position.coords;
 
-			let address = `${i18n.t("Map.currentLocation")} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+			let address = `${i18n.t("Search.currentLocation")} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
 			try {
 				const results = await Location.reverseGeocodeAsync({ latitude, longitude });
 				if (results && results.length > 0) {

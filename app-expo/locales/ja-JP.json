@@ -25,6 +25,7 @@
 		"unsupportedVersion": "古いバージョンのため利用できません。"
 	},
 	"Search": {
+		"currentLocation": "現在地",
 		"DistanceSlider": {
 			"near": "近い",
 			"far": "遠い"

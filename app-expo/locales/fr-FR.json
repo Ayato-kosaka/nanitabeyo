@@ -25,6 +25,7 @@
 		"unsupportedVersion": "Cette version n'est plus prise en charge."
 	},
 	"Search": {
+		"currentLocation": "Localisation actuelle",
 		"DistanceSlider": {
 			"near": "Proche",
 			"far": "Loin"

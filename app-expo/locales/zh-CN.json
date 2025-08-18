@@ -25,6 +25,7 @@
 		"unsupportedVersion": "此版本已不再受支持."
 	},
 	"Search": {
+		"currentLocation": "当前位置",
 		"DistanceSlider": {
 			"near": "近",
 			"far": "远"
