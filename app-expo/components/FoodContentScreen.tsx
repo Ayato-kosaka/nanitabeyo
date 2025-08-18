@@ -48,10 +48,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		item.dish_reviews.reduce(
 			(acc, review) => {
 				const remoteConfig = getRemoteConfig();
-				const defaultCharLimit = 100; // fallback if remote config is not available
-				const charLimit = remoteConfig?.v1_dish_comment_review_show_number
-					? parseInt(remoteConfig.v1_dish_comment_review_show_number, 10)
-					: defaultCharLimit;
+				const charLimit = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
 				acc[review.id] = charLimit;
 				return acc;
 			},
@@ -333,7 +330,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
 				<ScrollView ref={scrollViewRef} style={styles.commentsContainer} showsVerticalScrollIndicator={false}>
 					{item.dish_reviews.map((review) => {
-						const expandedChars = commentExpandedChars[review.id] || 100;
+						const expandedChars = commentExpandedChars[review.id]!;
 						const isTextTruncated = review.comment.length > expandedChars;
 						const displayText = isTextTruncated ? review.comment.substring(0, expandedChars) : review.comment;
 
