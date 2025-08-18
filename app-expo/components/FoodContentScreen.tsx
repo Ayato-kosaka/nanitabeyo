@@ -364,7 +364,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 											/>
 										</TouchableOpacity>
 										{commentLikes[review.id].count > 0 && (
-											<Text style={styles.commentLikeCount}>{commentLikes[review.id].count}</Text>
+											<Text style={styles.commentLikeCount}>{formatLikeCount(commentLikes[review.id].count)}</Text>
 										)}
 									</View>
 								</View>
@@ -601,12 +601,11 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	commentActions: {
-		flexDirection: "row",
 		alignItems: "center",
+		width: 18,
 	},
 	commentLikeButton: {
-		marginRight: 8,
-		padding: 4,
+		paddingVertical: 4,
 	},
 	commentLikeCount: {
 		fontSize: 12,
