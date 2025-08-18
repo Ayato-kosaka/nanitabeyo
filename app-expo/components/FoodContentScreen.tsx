@@ -10,6 +10,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
+import { CommentText } from "./CommentText";
 
 const { width, height } = Dimensions.get("window");
 
@@ -223,7 +224,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 									<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 								</View>
 								<View style={styles.commentContent}>
-									<Text style={styles.commentText}>{review.comment}</Text>
+									<CommentText text={review.comment} style={styles.commentText} />
 									<View style={styles.commentActions}>
 										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(review.id)}>
 											<Heart
