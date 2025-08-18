@@ -21,3 +21,15 @@ export type CreateExternalApiInput = NullableField<
   >,
   'error_message' | 'response_payload'
 >;
+
+// Buffered log entries (complete records ready for DB insertion)
+export type BufferedBackendEventLog = NonNullableFields<
+  Required<Prisma.backend_event_logsCreateInput>
+>;
+
+export type BufferedExternalApiLog = NonNullableFields<
+  Required<Omit<Prisma.external_api_logsCreateInput, 'error_message' | 'response_payload'>>
+> & {
+  error_message?: string | null;
+  response_payload?: any | null;
+};
