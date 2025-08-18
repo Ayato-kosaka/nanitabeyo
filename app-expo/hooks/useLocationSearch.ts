@@ -5,7 +5,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import * as Location from "expo-location";
 import { getRandomBytesAsync } from "expo-crypto";
-import { encode as b64encode } from 'base-64';
+import { encode as b64encode } from "base-64";
 import type { QueryAutocompleteLocationsDto, QueryLocationDetailsDto } from "@shared/api/v1/dto";
 import type { AutocompleteLocationsResponse, AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { SearchParams } from "@/types/search";
@@ -27,14 +27,14 @@ export const useLocationSearch = () => {
 	const generateSessionToken = useCallback(async (): Promise<string> => {
 		// uuidParse は UUID 文字列を 16 byte の Uint8Array に変換
 		const bytes = await getRandomBytesAsync(16);
-		let binary = '';
+		let binary = "";
 		for (let i = 0; i < bytes.length; i++) {
 			binary += String.fromCharCode(bytes[i]);
 		}
 		// base-64 パッケージは標準 Base64 (btoa 相当)
 		const base64 = b64encode(binary);
 		// URL / filename safe 化
-		return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+		return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 	}, []);
 
 	/**
@@ -117,9 +117,7 @@ export const useLocationSearch = () => {
 	);
 
 	const getLocationDetails = useCallback(
-		async (
-			prediction: AutocompleteLocation,
-		): Promise<LocationDetailsResponse> => {
+		async (prediction: AutocompleteLocation): Promise<LocationDetailsResponse> => {
 			try {
 				// Call the real API endpoint for location details
 				const detailsResponse = await callBackend<QueryLocationDetailsDto, LocationDetailsResponse>(
