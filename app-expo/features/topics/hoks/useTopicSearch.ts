@@ -28,7 +28,7 @@ export const useTopicSearch = () => {
 
 	// Helper function to create dishItemsPromise with image preloading (DRY principle)
 	const createDishItemsPromise = useCallback(
-		(topic: any, params: SearchParams, searchResultRestaurantsNumber: number): Promise<DishMediaEntry[]> => {
+		(topic: QueryDishCategoryRecommendationsResponse[number], params: SearchParams, searchResultRestaurantsNumber: number): Promise<DishMediaEntry[]> => {
 			return (async (): Promise<DishMediaEntry[]> => {
 				let dishItems: DishMediaEntry[] = [];
 
@@ -51,14 +51,14 @@ export const useTopicSearch = () => {
 					// Preload dish media images
 					await Promise.allSettled(
 						dishItems.map(async (dishItem) => {
-							if (dishItem.dish_media.mediaType === "image") {
+							if (dishItem.dish_media.media_type === "image") {
 								try {
 									await Image.prefetch(dishItem.dish_media.mediaImageUrl);
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
 										error_level: "warn",
-										payload: { 
+										payload: {
 											imageType: "dish_media",
 											imageUrl: dishItem.dish_media.mediaImageUrl,
 											error: error instanceof Error ? error.message : String(error)
@@ -105,7 +105,7 @@ export const useTopicSearch = () => {
 					.slice(0, searchResultTopicsNumber);
 
 				// Early display: Create topics from initial response and set them immediately
-				const createTopicWithImagePreload = async (topic: any): Promise<Topic> => {
+				const createTopicWithImagePreload = async (topic: QueryDishCategoryRecommendationsResponse[number]): Promise<Topic> => {
 					// Preload topic image
 					if (topic.imageUrl) {
 						try {
@@ -114,7 +114,7 @@ export const useTopicSearch = () => {
 							logFrontendEvent({
 								event_name: "image_preload_failed",
 								error_level: "warn",
-								payload: { 
+								payload: {
 									imageType: "topic",
 									imageUrl: topic.imageUrl,
 									error: error instanceof Error ? error.message : String(error)
