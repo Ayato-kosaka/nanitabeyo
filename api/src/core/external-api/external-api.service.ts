@@ -46,7 +46,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /**
    * Claude API呼び出し
@@ -477,7 +477,8 @@ export class ExternalApiService {
           request_payload: request_payload,
           response_payload: null,
           status_code: 0,
-          error_message: error instanceof Error ? error.message : 'Unknown error',
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
           response_time_ms: responseTime,
           function_name,
         });
