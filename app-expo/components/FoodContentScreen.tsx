@@ -10,6 +10,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
+import { getRemoteConfig } from "@/lib/remoteConfig";
 
 const { width, height } = Dimensions.get("window");
 
@@ -41,6 +42,21 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			{} as { [key: string]: { isLiked: boolean; count: number } },
 		),
 	);
+	// State to track expanded characters count for each comment
+	const [commentExpandedChars, setCommentExpandedChars] = useState(
+		item.dish_reviews.reduce(
+			(acc, review) => {
+				const remoteConfig = getRemoteConfig();
+				const defaultCharLimit = 100; // fallback if remote config is not available
+				const charLimit = remoteConfig?.v1_dish_comment_review_show_number
+					? parseInt(remoteConfig.v1_dish_comment_review_show_number, 10)
+					: defaultCharLimit;
+				acc[review.id] = charLimit;
+				return acc;
+			},
+			{} as { [key: string]: number },
+		),
+	);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -65,6 +81,32 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				commentId,
 				dishId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
+			},
+		});
+	};
+
+	const handleSeeMore = (commentId: string) => {
+		lightImpact();
+		const remoteConfig = getRemoteConfig();
+		const defaultCharLimit = 100; // fallback if remote config is not available
+		const charLimit = remoteConfig?.v1_dish_comment_review_show_number
+			? parseInt(remoteConfig.v1_dish_comment_review_show_number, 10)
+			: defaultCharLimit;
+
+		setCommentExpandedChars((prev) => ({
+			...prev,
+			[commentId]: prev[commentId] + charLimit,
+		}));
+
+		logFrontendEvent({
+			event_name: "comment_see_more_clicked",
+			error_level: "log",
+			payload: {
+				commentId,
+				dishId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+				previousExpandedChars: commentExpandedChars[commentId],
+				newExpandedChars: commentExpandedChars[commentId] + charLimit,
 			},
 		});
 	};
@@ -216,6 +258,10 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 					showsVerticalScrollIndicator={false}
 					onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}>
 					{item.dish_reviews.map((review) => {
+						const expandedChars = commentExpandedChars[review.id] || 100;
+						const isTextTruncated = review.comment.length > expandedChars;
+						const displayText = isTextTruncated ? review.comment.substring(0, expandedChars) : review.comment;
+
 						return (
 							<View key={review.id} style={styles.commentItem}>
 								<View style={styles.commentHeader}>
@@ -223,7 +269,14 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 									<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 								</View>
 								<View style={styles.commentContent}>
-									<Text style={styles.commentText}>{review.comment}</Text>
+									<View style={styles.commentTextContainer}>
+										<Text style={styles.commentText}>{displayText}</Text>
+										{isTextTruncated && (
+											<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
+												<Text style={styles.seeMoreText}>see more</Text>
+											</TouchableOpacity>
+										)}
+									</View>
 									<View style={styles.commentActions}>
 										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(review.id)}>
 											<Heart
@@ -453,13 +506,25 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "flex-start",
 	},
+	commentTextContainer: {
+		flex: 1,
+		marginRight: 8,
+	},
 	commentText: {
 		fontSize: 14,
 		color: "#FFFFFF",
 		lineHeight: 20,
-		flex: 1,
-		marginRight: 8,
 		fontWeight: "400",
+	},
+	seeMoreButton: {
+		marginTop: 4,
+		alignSelf: "flex-start",
+	},
+	seeMoreText: {
+		fontSize: 14,
+		color: "#5EA2FF",
+		fontWeight: "500",
+		textDecorationLine: "underline",
 	},
 	commentActions: {
 		flexDirection: "row",

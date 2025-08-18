@@ -1,7 +1,7 @@
 import { usePathname } from "expo-router";
 import { useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import * as Crypto from 'expo-crypto';
+import * as Crypto from "expo-crypto";
 import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import { EnumLiteral } from "@shared/utils/devDB.types";
