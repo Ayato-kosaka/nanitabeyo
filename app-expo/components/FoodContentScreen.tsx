@@ -11,6 +11,7 @@ import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { getRemoteConfig } from "@/lib/remoteConfig";
+import { toggleReaction } from "@/lib/reactions";
 
 const { width, height } = Dimensions.get("window");
 
@@ -63,14 +64,16 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	const router = useRouter();
 	const locale = useLocale();
 
-	const handleCommentLike = (commentId: string) => {
+	const handleCommentLike = async (commentId: string) => {
 		lightImpact();
 		const currentLikeState = commentLikes[commentId]?.isLiked || false;
+		const willLike = !currentLikeState;
+
 		setCommentLikes((prev) => ({
 			...prev,
 			[commentId]: {
-				isLiked: !prev[commentId]?.isLiked,
-				count: prev[commentId]?.isLiked ? (prev[commentId]?.count || 0) - 1 : (prev[commentId]?.count || 0) + 1,
+				isLiked: willLike,
+				count: currentLikeState ? (prev[commentId]?.count || 0) - 1 : (prev[commentId]?.count || 0) + 1,
 			},
 		}));
 
@@ -83,6 +86,33 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				restaurantId: item.restaurant.id,
 			},
 		});
+
+		try {
+			await toggleReaction({
+				target_type: "dish_reviews",
+				target_id: commentId,
+				action_type: "like",
+				willReact: willLike,
+			});
+		} catch (error) {
+			// Revert state on error
+			setCommentLikes((prev) => ({
+				...prev,
+				[commentId]: {
+					isLiked: currentLikeState,
+					count: currentLikeState ? (prev[commentId]?.count || 0) + 1 : (prev[commentId]?.count || 0) - 1,
+				},
+			}));
+			logFrontendEvent({
+				event_name: "comment_like_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: commentId,
+					action_type: "like",
+				},
+			});
+		}
 	};
 
 	const handleSeeMore = (commentId: string) => {
@@ -111,7 +141,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		});
 	};
 
-	const handleLike = () => {
+	const handleLike = async () => {
 		lightImpact();
 		const willLike = !isLiked;
 		setIsLiked(willLike);
@@ -127,9 +157,32 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
 			},
 		});
+
+		try {
+			await toggleReaction({
+				target_type: "dish_media",
+				target_id: item.dish_media.id,
+				action_type: "like",
+				willReact: willLike,
+			});
+		} catch (error) {
+			// Revert state on error
+			setIsLiked(!willLike);
+			setLikesCount((prev) => (willLike ? prev - 1 : prev + 1));
+			logFrontendEvent({
+				event_name: "dish_like_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.dish_media.id,
+					action_type: "like",
+					willReact: willLike,
+				},
+			});
+		}
 	};
 
-	const handleSave = () => {
+	const handleSave = async () => {
 		lightImpact();
 		const willSave = !isSaved;
 		setIsSaved(willSave);
@@ -142,6 +195,28 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				restaurantId: item.restaurant.id,
 			},
 		});
+
+		try {
+			await toggleReaction({
+				target_type: "dish_media",
+				target_id: item.dish_media.id,
+				action_type: "save",
+				willReact: willSave,
+			});
+		} catch (error) {
+			// Revert state on error
+			setIsSaved(!willSave);
+			logFrontendEvent({
+				event_name: "dish_save_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.dish_media.id,
+					action_type: "save",
+					willReact: willSave,
+				},
+			});
+		}
 	};
 
 	const handleViewRestaurant = () => {
