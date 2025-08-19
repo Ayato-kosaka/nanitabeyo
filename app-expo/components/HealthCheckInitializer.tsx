@@ -3,7 +3,7 @@ import { useHealthCheck } from "@/hooks/useHealthCheck";
 
 /**
  * HealthCheckInitializer
- * 
+ *
  * アプリ起動時にヘルスチェックを実行する軽量コンポーネント
  * - 画面描画を妨げない
  * - プロバイダ初期化後に実行

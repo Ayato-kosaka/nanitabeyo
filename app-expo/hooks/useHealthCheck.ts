@@ -13,7 +13,7 @@ interface HealthCheckState {
 
 /**
  * 🏥 ヘルスチェックフック
- * 
+ *
  * アプリ起動時に `/health` を非同期で呼び出し、
  * 503/426 エラーの場合は適切なダイアログを表示する
  */
@@ -34,7 +34,7 @@ export const useHealthCheck = () => {
 			return;
 		}
 
-		setState(prev => ({ ...prev, isChecking: true, error: null }));
+		setState((prev) => ({ ...prev, isChecking: true, error: null }));
 
 		try {
 			logFrontendEvent({
@@ -63,7 +63,7 @@ export const useHealthCheck = () => {
 					},
 				});
 
-				setState(prev => ({
+				setState((prev) => ({
 					...prev,
 					isChecking: false,
 					hasCompleted: true,
@@ -99,7 +99,7 @@ export const useHealthCheck = () => {
 						},
 					});
 
-					setState(prev => ({
+					setState((prev) => ({
 						...prev,
 						isChecking: false,
 						hasCompleted: true,
@@ -121,7 +121,7 @@ export const useHealthCheck = () => {
 						},
 					});
 
-					setState(prev => ({
+					setState((prev) => ({
 						...prev,
 						isChecking: false,
 						hasCompleted: true,
@@ -129,7 +129,7 @@ export const useHealthCheck = () => {
 					}));
 				} else {
 					// その他のエラー
-					setState(prev => ({
+					setState((prev) => ({
 						...prev,
 						isChecking: false,
 						hasCompleted: true,
@@ -146,7 +146,7 @@ export const useHealthCheck = () => {
 				},
 			});
 
-			setState(prev => ({
+			setState((prev) => ({
 				...prev,
 				isChecking: false,
 				hasCompleted: true,

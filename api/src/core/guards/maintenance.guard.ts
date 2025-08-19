@@ -12,7 +12,7 @@ import { isVersionGreaterOrEqual } from '../utils/version.util';
 
 /**
  * 🔒 メンテナンス・バージョン制御ガード
- * 
+ *
  * GCS上の設定に基づき、全APIでメンテナンス・強制アップデートを制御
  * - is_maintenance === 'true' → HTTP 503 Service Unavailable
  * - X-App-Version < minimum_supported_version → HTTP 426 Upgrade Required
@@ -39,7 +39,9 @@ export class MaintenanceGuard implements CanActivate {
       // GCS設定から値を取得
       const [isMaintenanceStr, minimumVersionStr] = await Promise.all([
         this.remoteConfigService.getRemoteConfigValue('is_maintenance'),
-        this.remoteConfigService.getRemoteConfigValue('minimum_supported_version'),
+        this.remoteConfigService.getRemoteConfigValue(
+          'minimum_supported_version',
+        ),
       ]);
 
       const isMaintenance = isMaintenanceStr === 'true';
