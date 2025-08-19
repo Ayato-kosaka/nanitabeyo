@@ -1,4 +1,6 @@
-const { withInfoPlist, withStringsXml } = require("@expo/config-plugins");
+const { withInfoPlist, withStringsXml, IOSConfig, AndroidConfig } = require("@expo/config-plugins");
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Custom Expo config plugin to add localized app names
@@ -31,20 +33,23 @@ function withLocalizedAppName(config) {
 		// Enable mixed localizations
 		config.modResults.CFBundleAllowMixedLocalizations = true;
 
+		// Set default display name to CraveCatch (fallback)
+		config.modResults.CFBundleDisplayName = "CraveCatch";
+
 		// Set localized app names for iOS
 		config.modResults.CFBundleLocalizations = Object.keys(LOCALIZED_APP_NAMES);
 
 		return config;
 	});
 
-	// Configure Android localization
+	// Configure Android localization with default strings
 	config = withStringsXml(config, (config) => {
 		// Add default app name
 		config.modResults = config.modResults || {};
 		config.modResults.resources = config.modResults.resources || {};
 		config.modResults.resources.string = config.modResults.resources.string || [];
 
-		// Add app_name string resource
+		// Add app_name string resource (default: CraveCatch)
 		const existingAppName = config.modResults.resources.string.find((item) => item.$.name === "app_name");
 
 		if (!existingAppName) {
@@ -61,5 +66,7 @@ function withLocalizedAppName(config) {
 
 	return config;
 }
+
+module.exports = withLocalizedAppName;
 
 module.exports = withLocalizedAppName;
