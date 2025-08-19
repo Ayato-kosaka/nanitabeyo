@@ -7,12 +7,14 @@ This implementation replaces individual Prisma `create` calls with batched `crea
 ## Key Changes
 
 ### 1. CLS Buffer Constants (`api/src/core/cls/cls.constants.ts`)
+
 ```typescript
 export const CLS_KEY_API_LOG_BUFFER = 'apiLogBuffer';
 export const CLS_KEY_BE_LOG_BUFFER = 'beLogBuffer';
 ```
 
 ### 2. Environment Configuration (`api/src/core/config/env.ts`)
+
 ```typescript
 LOG_BATCH_MAX: z.string().transform(Number).default('200'),       // Max items per createMany call
 LOG_SPILL_THRESHOLD: z.string().transform(Number).default('500'), // Buffer overflow protection
@@ -21,12 +23,14 @@ LOG_SPILL_THRESHOLD: z.string().transform(Number).default('500'), // Buffer over
 ### 3. Logger Service Modifications (`api/src/core/logger/logger.service.ts`)
 
 **Before:**
+
 ```typescript
 void this.prisma.prisma.backend_event_logs.create({ data }).catch((err) => { ... });
 void this.prisma.prisma.external_api_logs.create({ data }).catch((err) => { ... });
 ```
 
 **After:**
+
 ```typescript
 this.enqueueBackendEventLog(data);
 this.enqueueExternalApiLog(data);
@@ -61,12 +65,13 @@ Based on demonstration testing:
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LOG_BATCH_MAX` | 200 | Maximum number of log entries per `createMany` operation |
-| `LOG_SPILL_THRESHOLD` | 500 | Buffer size limit before overflow protection kicks in |
+| Variable              | Default | Description                                              |
+| --------------------- | ------- | -------------------------------------------------------- |
+| `LOG_BATCH_MAX`       | 200     | Maximum number of log entries per `createMany` operation |
+| `LOG_SPILL_THRESHOLD` | 500     | Buffer size limit before overflow protection kicks in    |
 
 ### Example .env
+
 ```bash
 LOG_BATCH_MAX=200
 LOG_SPILL_THRESHOLD=500
@@ -97,6 +102,7 @@ LOG_SPILL_THRESHOLD=500
 ## Testing
 
 The implementation includes:
+
 - Unit tests for buffer management and overflow protection
 - Integration tests for middleware lifecycle
 - Demonstration script showing performance improvements
