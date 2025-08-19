@@ -100,7 +100,7 @@ export class UsersController {
     @CurrentUser() user?: RequestUser,
   ): Promise<QueryMeLikedDishMediaResponse> {
     if (!user?.userId) {
-      return [];
+      return { data: [], nextCursor: null };
     }
     const items = await this.usersService.getMeLikedDishMedia(
       user.userId,
@@ -174,7 +174,7 @@ export class UsersController {
     @CurrentUser() user?: RequestUser,
   ): Promise<QueryMeSavedDishCategoriesResponse> {
     if (!user?.userId) {
-      return [];
+      return { data: [], nextCursor: null };
     }
     const items = await this.usersService.getMeSavedDishCategories(
       user.userId,
@@ -201,7 +201,7 @@ export class UsersController {
     @CurrentUser() user?: RequestUser,
   ): Promise<QueryMeSavedDishMediaResponse> {
     if (!user?.userId) {
-      return [];
+      return { data: [], nextCursor: null };
     }
     const items = await this.usersService.getMeSavedDishMedia(
       user.userId,

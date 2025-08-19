@@ -8,33 +8,51 @@ import { SupabaseDishCategories } from "../../../converters/convert_dish_categor
 
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
 export type QueryUserDishReviewsResponse = {
-	dish_media: SupabaseDishMedia;
-	dish_review: SupabaseDishReviews;
-	signedUrls: string[];
-	hasMedia: boolean;
-}[];
+	data: {
+		dish_media: SupabaseDishMedia;
+		dish_review: SupabaseDishReviews;
+		signedUrls: string[];
+		hasMedia: boolean;
+	}[];
+	nextCursor: string | null;
+};
 
 /** GET /v1/users/me/liked-dish-media のレスポンス型 */
 export type QueryMeLikedDishMediaResponse = {
-	restaurant: SupabaseRestaurants;
-	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
-	dish_reviews: SupabaseDishReviews[];
-}[];
+	data: {
+		restaurant: SupabaseRestaurants;
+		dish: SupabaseDishes;
+		dish_media: SupabaseDishMedia;
+		dish_reviews: SupabaseDishReviews[];
+	}[];
+	nextCursor: string | null;
+};
 
 /** GET /v1/users/me/payouts のレスポンス型 */
-export type QueryMePayoutsResponse = SupabasePayouts[];
+export type QueryMePayoutsResponse = {
+	data: SupabasePayouts[];
+	nextCursor: string | null;
+};
 
 /** GET /v1/users/me/restaurant-bids のレスポンス型 */
-export type QueryMeRestaurantBidsResponse = SupabaseRestaurantBids[];
+export type QueryMeRestaurantBidsResponse = {
+	data: SupabaseRestaurantBids[];
+	nextCursor: string | null;
+};
 
 /** GET /v1/users/me/saved-dish-categories のレスポンス型 */
-export type QueryMeSavedDishCategoriesResponse = SupabaseDishCategories[];
+export type QueryMeSavedDishCategoriesResponse = {
+	data: SupabaseDishCategories[];
+	nextCursor: string | null;
+};
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = {
-	restaurant: SupabaseRestaurants;
-	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
-	dish_reviews: SupabaseDishReviews[];
-}[];
+	data: {
+		restaurant: SupabaseRestaurants;
+		dish: SupabaseDishes;
+		dish_media: SupabaseDishMedia;
+		dish_reviews: SupabaseDishReviews[];
+	}[];
+	nextCursor: string | null;
+};

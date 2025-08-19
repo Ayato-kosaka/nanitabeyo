@@ -61,11 +61,23 @@ export class UsersService {
       }),
     );
 
+    // Generate nextCursor from last item's created_at
+    const nextCursor =
+      withSignedUrls.length > 0
+        ? withSignedUrls[
+            withSignedUrls.length - 1
+          ].dish_review.created_at.toISOString()
+        : null;
+
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: withSignedUrls.length,
+      nextCursor,
     });
 
-    return withSignedUrls;
+    return {
+      data: withSignedUrls,
+      nextCursor,
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -99,11 +111,21 @@ export class UsersService {
       }),
     );
 
+    // Generate nextCursor from last item's created_at
+    const nextCursor =
+      records.length > 0
+        ? records[records.length - 1].created_at.toISOString()
+        : null;
+
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
       count: withSignedUrls.length,
+      nextCursor,
     });
 
-    return withSignedUrls;
+    return {
+      data: withSignedUrls,
+      nextCursor,
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -117,11 +139,21 @@ export class UsersService {
 
     const records = await this.repo.findUserPayouts(userId, dto.cursor);
 
+    // Generate nextCursor from last item's created_at
+    const nextCursor =
+      records.length > 0
+        ? records[records.length - 1].created_at.toISOString()
+        : null;
+
     this.logger.debug('GetMePayoutsResult', 'getMePayouts', {
       count: records.length,
+      nextCursor,
     });
 
-    return records;
+    return {
+      data: records,
+      nextCursor,
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -135,11 +167,21 @@ export class UsersService {
 
     const records = await this.repo.findUserRestaurantBids(userId, dto.cursor);
 
+    // Generate nextCursor from last item's created_at
+    const nextCursor =
+      records.length > 0
+        ? records[records.length - 1].created_at.toISOString()
+        : null;
+
     this.logger.debug('GetMeRestaurantBidsResult', 'getMeRestaurantBids', {
       count: records.length,
+      nextCursor,
     });
 
-    return records;
+    return {
+      data: records,
+      nextCursor,
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -179,10 +221,20 @@ export class UsersService {
       'getMeSavedDishCategories',
       {
         count: withSignedUrls.length,
+        nextCursor:
+          records.length > 0
+            ? records[records.length - 1].created_at.toISOString()
+            : null,
       },
     );
 
-    return withSignedUrls;
+    return {
+      data: withSignedUrls,
+      nextCursor:
+        records.length > 0
+          ? records[records.length - 1].created_at.toISOString()
+          : null,
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -218,8 +270,18 @@ export class UsersService {
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
       count: withSignedUrls.length,
+      nextCursor:
+        records.length > 0
+          ? records[records.length - 1].created_at.toISOString()
+          : null,
     });
 
-    return withSignedUrls;
+    return {
+      data: withSignedUrls,
+      nextCursor:
+        records.length > 0
+          ? records[records.length - 1].created_at.toISOString()
+          : null,
+    };
   }
 }
