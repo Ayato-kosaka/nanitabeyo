@@ -169,25 +169,29 @@ export class AppLoggerService implements INestLoggerService {
   /* ------------------------------------------------------------------ */
   /*                        Buffer Management                           */
   /* ------------------------------------------------------------------ */
-  
+
   /** Enqueue backend event log to buffer with overflow protection */
   private enqueueBackendEventLog(data: BufferedBackendEventLog): void {
     try {
-      const buffer = this.cls.get<BufferedBackendEventLog[]>(CLS_KEY_BE_LOG_BUFFER) || [];
-      
+      const buffer =
+        this.cls.get<BufferedBackendEventLog[]>(CLS_KEY_BE_LOG_BUFFER) || [];
+
       // Check for buffer overflow and handle it
       if (buffer.length >= env.LOG_SPILL_THRESHOLD) {
         // Log warning about buffer overflow (to console only to avoid circular logging)
-        console.warn('Backend event log buffer overflow, discarding oldest entries', {
-          bufferSize: buffer.length,
-          threshold: env.LOG_SPILL_THRESHOLD,
-          timestamp: new Date().toISOString(),
-        });
-        
+        console.warn(
+          'Backend event log buffer overflow, discarding oldest entries',
+          {
+            bufferSize: buffer.length,
+            threshold: env.LOG_SPILL_THRESHOLD,
+            timestamp: new Date().toISOString(),
+          },
+        );
+
         // Keep only the most recent entries (discard oldest)
         buffer.splice(0, buffer.length - env.LOG_SPILL_THRESHOLD + 1);
       }
-      
+
       buffer.push(data);
       this.cls.set(CLS_KEY_BE_LOG_BUFFER, buffer);
     } catch (error) {
@@ -202,21 +206,25 @@ export class AppLoggerService implements INestLoggerService {
   /** Enqueue external API log to buffer with overflow protection */
   private enqueueExternalApiLog(data: BufferedExternalApiLog): void {
     try {
-      const buffer = this.cls.get<BufferedExternalApiLog[]>(CLS_KEY_API_LOG_BUFFER) || [];
-      
+      const buffer =
+        this.cls.get<BufferedExternalApiLog[]>(CLS_KEY_API_LOG_BUFFER) || [];
+
       // Check for buffer overflow and handle it
       if (buffer.length >= env.LOG_SPILL_THRESHOLD) {
         // Log warning about buffer overflow (to console only to avoid circular logging)
-        console.warn('External API log buffer overflow, discarding oldest entries', {
-          bufferSize: buffer.length,
-          threshold: env.LOG_SPILL_THRESHOLD,
-          timestamp: new Date().toISOString(),
-        });
-        
+        console.warn(
+          'External API log buffer overflow, discarding oldest entries',
+          {
+            bufferSize: buffer.length,
+            threshold: env.LOG_SPILL_THRESHOLD,
+            timestamp: new Date().toISOString(),
+          },
+        );
+
         // Keep only the most recent entries (discard oldest)
         buffer.splice(0, buffer.length - env.LOG_SPILL_THRESHOLD + 1);
       }
-      
+
       buffer.push(data);
       this.cls.set(CLS_KEY_API_LOG_BUFFER, buffer);
     } catch (error) {

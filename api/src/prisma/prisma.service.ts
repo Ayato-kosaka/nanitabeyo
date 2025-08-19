@@ -35,7 +35,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const isWatchMode = process.env.NODE_ENV !== 'production';
     const base = new PrismaClient({
       log: enableQueryLogs
-        ? ([{ emit: 'event', level: 'query' } as Prisma.LogDefinition, 'warn', 'error'] as any)
+        ? ([
+            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+            'warn',
+            'error',
+          ] as any)
         : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
     });
 
