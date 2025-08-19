@@ -320,6 +320,7 @@ export class ExternalApiService {
           'X-Goog-Api-Key': apiKey,
           'X-Goog-FieldMask': fieldMask,
         },
+        skipLogging: true, // Skip logging for autocomplete to reduce noise
       });
 
       if (!response.ok) {
@@ -417,6 +418,7 @@ export class ExternalApiService {
       'status_code' | 'response_time_ms' | 'response_payload' | 'error_message'
     > & {
       customHeaders?: Record<string, string>;
+      skipLogging?: boolean;
     },
   ): Promise<Response> {
     const {
@@ -426,6 +428,7 @@ export class ExternalApiService {
       request_payload,
       function_name,
       customHeaders = {},
+      skipLogging = false,
     } = params;
     const startTime = Date.now();
 
@@ -443,38 +446,43 @@ export class ExternalApiService {
 
       const responseTime = Date.now() - startTime;
 
-      // 成功時のログ記録
-      await this.logger.externalApi({
-        api_name,
-        endpoint,
-        method,
-        request_payload,
-        response_payload: await response
-          .clone()
-          .json()
-          .catch(() => null),
-        status_code: response.status,
-        response_time_ms: responseTime,
-        function_name,
-        error_message: null,
-      });
+      if (!skipLogging) {
+        // 成功時のログ記録
+        await this.logger.externalApi({
+          api_name,
+          endpoint,
+          method,
+          request_payload,
+          response_payload: await response
+            .clone()
+            .json()
+            .catch(() => null),
+          status_code: response.status,
+          response_time_ms: responseTime,
+          function_name,
+          error_message: null,
+        });
+      }
 
       return response;
     } catch (error) {
       const responseTime = Date.now() - startTime;
 
-      // エラー時のログ記録
-      await this.logger.externalApi({
-        api_name,
-        endpoint,
-        method,
-        request_payload: request_payload,
-        response_payload: null,
-        status_code: 0,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        response_time_ms: responseTime,
-        function_name,
-      });
+      if (!skipLogging) {
+        // エラー時のログ記録
+        await this.logger.externalApi({
+          api_name,
+          endpoint,
+          method,
+          request_payload: request_payload,
+          response_payload: null,
+          status_code: 0,
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          response_time_ms: responseTime,
+          function_name,
+        });
+      }
 
       throw error;
     }

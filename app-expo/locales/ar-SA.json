@@ -1,4 +1,10 @@
 {
+	"ios": {
+		"CFBundleDisplayName": "CraveCatch"
+	},
+	"android": {
+		"app_name": "CraveCatch"
+	},
 	"Common": {
 		"cancel": "إلغاء",
 		"ok": "موافق",
@@ -141,13 +147,17 @@
 			"reservation": "حجز"
 		},
 		"actions": {
-			"share": "مشاركة"
+			"share": "مشاركة",
+			"openMap": "افتح الخريطة"
 		},
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
 		"info": {
 			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
+		},
+		"errors": {
+			"mapOpenFailed": "تعذر فتح تطبيق الخرائط"
 		}
 	},
 	"ImageCardGrid": {

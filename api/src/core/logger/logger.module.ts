@@ -1,7 +1,14 @@
 // api/src/core/logger/logger.module.ts
 // ------------------------------------
-import { Module, Global, Logger } from '@nestjs/common';
+import {
+  Module,
+  Global,
+  Logger,
+  MiddlewareConsumer,
+  NestModule,
+} from '@nestjs/common';
 import { AppLoggerService } from './logger.service';
+import { LogFlushMiddleware } from './log-flush.middleware';
 import { ClsModule } from 'nestjs-cls';
 import { PrismaModule } from '../../prisma/prisma.module';
 
@@ -15,7 +22,13 @@ import { PrismaModule } from '../../prisma/prisma.module';
       useClass: AppLoggerService,
     },
     AppLoggerService,
+    LogFlushMiddleware,
   ],
   exports: [AppLoggerService],
 })
-export class LoggerModule {}
+export class LoggerModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply log flush middleware to all routes
+    consumer.apply(LogFlushMiddleware).forRoutes('*');
+  }
+}

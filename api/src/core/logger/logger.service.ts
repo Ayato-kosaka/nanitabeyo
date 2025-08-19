@@ -8,10 +8,17 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
 import { ClsService } from 'nestjs-cls';
-import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
+import {
+  CLS_KEY_REQUEST_ID,
+  CLS_KEY_USER_ID,
+  CLS_KEY_API_LOG_BUFFER,
+  CLS_KEY_BE_LOG_BUFFER,
+} from '../cls/cls.constants';
 import {
   CreateBackendEventInput,
   CreateExternalApiInput,
+  BufferedBackendEventLog,
+  BufferedExternalApiLog,
 } from './logger.types';
 
 /**
@@ -96,7 +103,7 @@ export class AppLoggerService implements INestLoggerService {
       response_time_ms: input.response_time_ms,
     });
 
-    const data = {
+    const data: BufferedExternalApiLog = {
       ...input,
       response_payload: input.response_payload ?? undefined,
       id: randomUUID(),
@@ -106,24 +113,15 @@ export class AppLoggerService implements INestLoggerService {
       created_commit_id: env.API_COMMIT_ID,
     };
 
-    void this.prisma.prisma.external_api_logs.create({ data }).catch((err) => {
-      /* console にだけ出す（循環ロギングを避ける）*/
-      this.printStructured(
-        'ERROR',
-        'externalApiPersistError',
-        input.function_name,
-        {
-          message: (err as Error).message,
-        },
-      );
-    });
+    // Enqueue to buffer instead of direct DB write
+    this.enqueueExternalApiLog(data);
   }
 
   /* ------------------------------------------------------------------ */
   /*                           private helpers                          */
   /* ------------------------------------------------------------------ */
   private async persistBackendEvent(input: CreateBackendEventInput) {
-    const data = {
+    const data: BufferedBackendEventLog = {
       ...input,
       id: randomUUID(),
       user_id: this.cls.get<string>(CLS_KEY_USER_ID),
@@ -132,16 +130,8 @@ export class AppLoggerService implements INestLoggerService {
       created_commit_id: env.API_COMMIT_ID,
     };
 
-    void this.prisma.prisma.backend_event_logs.create({ data }).catch((err) => {
-      this.printStructured(
-        'ERROR',
-        'backendEventPersistError',
-        input.function_name,
-        {
-          message: (err as Error).message,
-        },
-      );
-    });
+    // Enqueue to buffer instead of direct DB write
+    this.enqueueBackendEventLog(data);
   }
 
   /** Cloud Run で見やすい構造化ログを stdout に出力 */
@@ -174,5 +164,75 @@ export class AppLoggerService implements INestLoggerService {
       LogLevel.error,
     ];
     return order.indexOf(level) >= order.indexOf(this.minLevel);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                        Buffer Management                           */
+  /* ------------------------------------------------------------------ */
+
+  /** Enqueue backend event log to buffer with overflow protection */
+  private enqueueBackendEventLog(data: BufferedBackendEventLog): void {
+    try {
+      const buffer =
+        this.cls.get<BufferedBackendEventLog[]>(CLS_KEY_BE_LOG_BUFFER) || [];
+
+      // Check for buffer overflow and handle it
+      if (buffer.length >= env.LOG_SPILL_THRESHOLD) {
+        // Log warning about buffer overflow (to console only to avoid circular logging)
+        console.warn(
+          'Backend event log buffer overflow, discarding oldest entries',
+          {
+            bufferSize: buffer.length,
+            threshold: env.LOG_SPILL_THRESHOLD,
+            timestamp: new Date().toISOString(),
+          },
+        );
+
+        // Keep only the most recent entries (discard oldest)
+        buffer.splice(0, buffer.length - env.LOG_SPILL_THRESHOLD + 1);
+      }
+
+      buffer.push(data);
+      this.cls.set(CLS_KEY_BE_LOG_BUFFER, buffer);
+    } catch (error) {
+      // Fallback: log error to console only
+      console.error('Failed to enqueue backend event log:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /** Enqueue external API log to buffer with overflow protection */
+  private enqueueExternalApiLog(data: BufferedExternalApiLog): void {
+    try {
+      const buffer =
+        this.cls.get<BufferedExternalApiLog[]>(CLS_KEY_API_LOG_BUFFER) || [];
+
+      // Check for buffer overflow and handle it
+      if (buffer.length >= env.LOG_SPILL_THRESHOLD) {
+        // Log warning about buffer overflow (to console only to avoid circular logging)
+        console.warn(
+          'External API log buffer overflow, discarding oldest entries',
+          {
+            bufferSize: buffer.length,
+            threshold: env.LOG_SPILL_THRESHOLD,
+            timestamp: new Date().toISOString(),
+          },
+        );
+
+        // Keep only the most recent entries (discard oldest)
+        buffer.splice(0, buffer.length - env.LOG_SPILL_THRESHOLD + 1);
+      }
+
+      buffer.push(data);
+      this.cls.set(CLS_KEY_API_LOG_BUFFER, buffer);
+    } catch (error) {
+      // Fallback: log error to console only
+      console.error('Failed to enqueue external API log:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 }

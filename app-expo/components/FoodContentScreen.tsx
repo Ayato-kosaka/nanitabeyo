@@ -1,8 +1,19 @@
 import React, { useState, useRef } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, SafeAreaView } from "react-native";
+import {
+	View,
+	Text,
+	StyleSheet,
+	Image,
+	TouchableOpacity,
+	ScrollView,
+	Dimensions,
+	SafeAreaView,
+	Alert,
+} from "react-native";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Linking from "expo-linking";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -153,6 +164,49 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		});
 	};
 
+	const handleMapPinPress = async () => {
+		lightImpact();
+
+		logFrontendEvent({
+			event_name: "map_pin_clicked",
+			error_level: "log",
+			payload: {
+				restaurantId: item.restaurant.id,
+				restaurantName: item.restaurant.name,
+				googlePlaceId: item.restaurant.google_place_id,
+				fromDishId: item.dish_media.id,
+			},
+		});
+
+		if (!item.restaurant.google_place_id) {
+			Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+			return;
+		}
+
+		try {
+			const mapUrl = `https://www.google.com/maps/place/?q=place_id:${item.restaurant.google_place_id}`;
+			const canOpen = await Linking.canOpenURL(mapUrl);
+
+			if (canOpen) {
+				await Linking.openURL(mapUrl);
+			} else {
+				Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+			}
+		} catch (error) {
+			Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+
+			logFrontendEvent({
+				event_name: "map_pin_open_failed",
+				error_level: "error",
+				payload: {
+					restaurantId: item.restaurant.id,
+					googlePlaceId: item.restaurant.google_place_id,
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			});
+		}
+	};
+
 	const handleMenuOptionPress = (onPress: () => void) => {
 		lightImpact();
 		closeMenuModal();
@@ -245,8 +299,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 			{/* Bottom Section */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
-				<View pointerEvents="box-none" style={styles.actionRow}>
-				</View>
+				<View pointerEvents="box-none" style={styles.actionRow}></View>
 			</View>
 
 			{/* Menu Modal */}

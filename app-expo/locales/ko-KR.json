@@ -1,4 +1,10 @@
 {
+	"ios": {
+		"CFBundleDisplayName": "CraveCatch"
+	},
+	"android": {
+		"app_name": "CraveCatch"
+	},
 	"Common": {
 		"cancel": "취소",
 		"ok": "확인",
@@ -141,13 +147,17 @@
 			"reservation": "예약"
 		},
 		"actions": {
-			"share": "공유하기"
+			"share": "공유하기",
+			"openMap": "지도 열기"
 		},
 		"buttons": {
 			"viewRestaurant": "가게 보기"
 		},
 		"info": {
 			"walkFromShibuya": "시부야역에서 도보 13분"
+		},
+		"errors": {
+			"mapOpenFailed": "지도 앱을 열 수 없습니다"
 		}
 	},
 	"ImageCardGrid": {

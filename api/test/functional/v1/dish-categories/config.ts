@@ -38,10 +38,7 @@ export const TEST_PARAMETERS = {
   ] as string[][],
 
   // Language tags from i18n supported locales (primary ones)
-  languageTags: [
-    'en-US',
-    'ja-JP',
-  ],
+  languageTags: ['en-US', 'ja-JP'],
 } as const;
 
 // Sampling strategy types
@@ -241,7 +238,7 @@ function generateStratifiedCombinations(
         if (variation & 8) {
           const restrictionsArray =
             TEST_PARAMETERS.restrictions[
-            i % TEST_PARAMETERS.restrictions.length
+              i % TEST_PARAMETERS.restrictions.length
             ];
           if (restrictionsArray.length > 0) {
             params.restrictions = [...restrictionsArray];

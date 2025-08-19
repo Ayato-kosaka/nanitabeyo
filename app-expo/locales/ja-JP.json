@@ -1,4 +1,10 @@
 {
+	"ios": {
+		"CFBundleDisplayName": "なに食べよ"
+	},
+	"android": {
+		"app_name": "なに食べよ"
+	},
 	"Common": {
 		"cancel": "キャンセル",
 		"ok": "OK",
@@ -141,10 +147,14 @@
 			"reservation": "予約"
 		},
 		"actions": {
-			"share": "シェア"
+			"share": "シェア",
+			"openMap": "地図を開く"
 		},
 		"buttons": {
 			"viewRestaurant": "店を見る"
+		},
+		"errors": {
+			"mapOpenFailed": "地図アプリを開けませんでした"
 		},
 		"info": {
 			"walkFromShibuya": "渋谷駅から徒歩13分"

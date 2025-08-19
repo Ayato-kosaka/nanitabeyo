@@ -26,75 +26,58 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private isConnected = false;
   private circuitOpenUntil = 0;
   private consecutiveConnFails = 0;
-  private readonly OPEN_BASE_MS = 5_000; // 初回5秒
-  private readonly OPEN_CAP_MS = 120_000; // 最大2分
-  private readonly MAX_RETRIES = 3;
 
   // シングルトンパターンで接続を再利用
   readonly prisma: PrismaClient;
 
   constructor() {
     const enableQueryLogs = env.API_NODE_ENV !== 'production';
-
-    if (process.env.NODE_ENV === 'production') {
-      this.prisma = withMetrics(
-        new PrismaClient({
-          // 本番でも必要に応じてクエリログを Cloud Run に出力
-          log: enableQueryLogs
-            ? ([
-                { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-                'warn',
-                'error',
-              ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
-            : (['warn', 'error'] as Prisma.LogLevel[]),
-        }),
-      );
-    } else {
-      // 開発環境ではグローバルインスタンスを再利用
-      if (!globalForPrisma.prisma) {
-        globalForPrisma.prisma = withMetrics(
-          new PrismaClient({
-            log: enableQueryLogs
-              ? ([
-                  { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-                  'info',
-                  'warn',
-                  'error',
-                ] as (Prisma.LogLevel | Prisma.LogDefinition)[])
-              : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
-          }),
-        );
-      }
-      this.prisma = globalForPrisma.prisma;
-      this.logger.log('Reusing existing Prisma client instance');
-    }
+    const isWatchMode = process.env.NODE_ENV !== 'production';
+    const base = new PrismaClient({
+      log: enableQueryLogs
+        ? ([
+            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+            'warn',
+            'error',
+          ] as any)
+        : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
+    });
 
     // Prisma の SQL 実行時間を構造化ログで出力（Cloud Run で見やすく）
     if (enableQueryLogs) {
-      if (typeof this.prisma.$on === 'function') {
-        // Prisma の型制約上、コンストラクタ引数の log 設定が動的だと
-        // $on('query') のシグネチャが `never` になるため any で回避
-        (this.prisma as any).$on('query', (e: any) => {
-          // Cloud Logging の推奨フォーマットに合わせて JSON 一行で出力
-          // e.params は JSON 文字列のことがあるため、そのまま出力
-          const entry = {
-            severity: 'DEBUG',
-            type: 'prisma',
-            message: 'Prisma query',
-            duration_ms: e.duration,
-            query: e.query,
-            params: e.params,
-            target: (e as any).target,
-            timestamp: new Date().toISOString(),
-          };
-          // stdout へ
-          console.log(JSON.stringify(entry));
-        });
-      } else {
-        console.log(
-          'Prisma $on("query") is not available, skipping query logging',
-        );
+      // Prisma の型制約上、コンストラクタ引数の log 設定が動的だと
+      // $on('query') のシグネチャが `never` になるため any で回避
+      (base as any).$on('query', (e: any) => {
+        // Cloud Logging の推奨フォーマットに合わせて JSON 一行で出力
+        // e.params は JSON 文字列のことがあるため、そのまま出力
+        const entry = {
+          severity: 'DEBUG',
+          type: 'prisma',
+          message: 'Prisma query',
+          duration_ms: e.duration,
+          query: e.query.substring(0, 200),
+          params: e.params.substring(0, 200),
+          target: (e as any).target,
+          timestamp: new Date().toISOString(),
+        };
+        // stdout へ
+        console.log(JSON.stringify(entry));
+      });
+    } else {
+      console.log(
+        'Prisma $on("query") is not available, skipping query logging',
+      );
+    }
+
+    if (isWatchMode) {
+      // 開発環境ではグローバルインスタンスを再利用
+      if (!globalForPrisma.prisma) {
+        globalForPrisma.prisma = withMetrics(base);
       }
+      this.prisma = globalForPrisma.prisma;
+      this.logger.log('Reusing existing Prisma client instance');
+    } else {
+      this.prisma = withMetrics(base);
     }
   }
 
@@ -135,8 +118,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private openCircuit() {
     // 失敗回数に応じて開放時間を指数的に延ばす（ジッター付き）
     const base = Math.min(
-      this.OPEN_BASE_MS * 2 ** this.consecutiveConnFails,
-      this.OPEN_CAP_MS,
+      env.PRISMA_OPEN_BASE_MS * 2 ** this.consecutiveConnFails,
+      env.PRISMA_OPEN_CAP_MS,
     );
     const jitter = Math.floor(Math.random() * 1000);
     this.circuitOpenUntil = Date.now() + base + jitter;
@@ -151,7 +134,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private async connectWithRetry(): Promise<void> {
     this.isConnected = false; // ★ 念のため
     let attempt = 0;
-    while (attempt < this.MAX_RETRIES) {
+    while (attempt < env.PRISMA_MAX_RETRIES) {
       try {
         await this.prisma.$connect();
         this.isConnected = true;
@@ -165,7 +148,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
           Math.min(1000 * 2 ** attempt, 15_000) +
           Math.floor(Math.random() * 500);
         this.logger.warn(
-          `DB connect failed (attempt ${attempt}/${this.MAX_RETRIES}). retry in ${Math.round(backoff / 1000)}s...`,
+          `DB connect failed (attempt ${attempt}/${env.PRISMA_MAX_RETRIES}). retry in ${Math.round(backoff / 1000)}s...`,
         );
         await new Promise((r) => setTimeout(r, backoff));
       }
@@ -195,8 +178,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   async withTransaction<T>(
     exec: (tx: Prisma.TransactionClient) => Promise<T>,
     opts?: {
-      maxWait?: number;
-      timeout?: number;
+      maxWait?: number; // TX開始までに接続を掴めるまで待つ時間
+      timeout?: number; // TXが開始した後に走ってよい最大時間
       isolationLevel?: Prisma.TransactionIsolationLevel;
     },
   ): Promise<T> {
@@ -207,8 +190,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     this.ensureConnected();
     try {
       const res = await this.prisma.$transaction((tx) => exec(tx), {
-        maxWait: opts?.maxWait ?? 5000,
-        timeout: opts?.timeout ?? 30000,
+        maxWait: opts?.maxWait ?? env.PRISMA_TX_MAX_WAIT,
+        timeout: opts?.timeout ?? env.PRISMA_TX_TIMEOUT,
         isolationLevel: opts?.isolationLevel,
       });
       this.resetCircuit(); // ★ 成功したら回路を閉じる
