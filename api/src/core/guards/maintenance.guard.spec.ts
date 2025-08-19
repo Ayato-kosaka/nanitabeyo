@@ -5,17 +5,21 @@ import { MaintenanceGuard } from './maintenance.guard';
 import { RemoteConfigService } from '../remote-config/remote-config.service';
 
 // Mock request object
-const createMockRequest = (url: string, headers: Record<string, string> = {}) => ({
+const createMockRequest = (
+  url: string,
+  headers: Record<string, string> = {},
+) => ({
   url,
   headers,
 });
 
 // Mock execution context
-const createMockContext = (request: any): ExecutionContext => ({
-  switchToHttp: () => ({
-    getRequest: () => request,
-  }),
-}) as ExecutionContext;
+const createMockContext = (request: any): ExecutionContext =>
+  ({
+    switchToHttp: () => ({
+      getRequest: () => request,
+    }),
+  }) as ExecutionContext;
 
 describe('MaintenanceGuard', () => {
   let guard: MaintenanceGuard;
@@ -56,7 +60,9 @@ describe('MaintenanceGuard', () => {
         .mockResolvedValueOnce('false') // is_maintenance
         .mockResolvedValueOnce('1.0.0'); // minimum_supported_version
 
-      const request = createMockRequest('/health', { 'x-app-version': '1.1.0' });
+      const request = createMockRequest('/health', {
+        'x-app-version': '1.1.0',
+      });
       const context = createMockContext(request);
 
       const result = await guard.canActivate(context);
@@ -82,7 +88,9 @@ describe('MaintenanceGuard', () => {
         .mockResolvedValueOnce('true') // is_maintenance
         .mockResolvedValueOnce('1.0.0'); // minimum_supported_version
 
-      const request = createMockRequest('/health', { 'x-app-version': '1.1.0' });
+      const request = createMockRequest('/health', {
+        'x-app-version': '1.1.0',
+      });
       const context = createMockContext(request);
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -102,7 +110,9 @@ describe('MaintenanceGuard', () => {
         .mockResolvedValueOnce('false') // is_maintenance
         .mockResolvedValueOnce('2.0.0'); // minimum_supported_version
 
-      const request = createMockRequest('/health', { 'x-app-version': '1.5.0' });
+      const request = createMockRequest('/health', {
+        'x-app-version': '1.5.0',
+      });
       const context = createMockContext(request);
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -122,7 +132,9 @@ describe('MaintenanceGuard', () => {
         new Error('GCS connection failed'),
       );
 
-      const request = createMockRequest('/health', { 'x-app-version': '1.0.0' });
+      const request = createMockRequest('/health', {
+        'x-app-version': '1.0.0',
+      });
       const context = createMockContext(request);
 
       // Should not throw and should allow access

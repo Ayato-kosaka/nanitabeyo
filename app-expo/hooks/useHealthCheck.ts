@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { Env } from "@/constants/Env";
 import { useLogger } from "./useLogger";
-import { useDialog } from "@/contexts/DialogProvider";
-import { Linking, Platform } from "react-native";
-import i18n from "@/lib/i18n";
+import { useAPICall } from "./useAPICall";
 
 interface HealthCheckState {
 	isChecking: boolean;
 	hasCompleted: boolean;
 	error: string | null;
+}
+
+interface HealthData {
+	status: "ok";
+	timestamp: string;
 }
 
 /**
@@ -19,7 +21,7 @@ interface HealthCheckState {
  */
 export const useHealthCheck = () => {
 	const { logFrontendEvent } = useLogger();
-	const { showDialog } = useDialog();
+	const { callBackend } = useAPICall();
 	const [state, setState] = useState<HealthCheckState>({
 		isChecking: false,
 		hasCompleted: false,
@@ -43,117 +45,61 @@ export const useHealthCheck = () => {
 				payload: {},
 			});
 
-			const response = await fetch(`${Env.BACKEND_BASE_URL}/health`, {
+			await callBackend<{}, HealthData>("health", {
 				method: "GET",
-				headers: {
-					"x-app-version": Env.APP_VERSION,
-					"Content-Type": "application/json",
-				},
+				requestPayload: {},
 			});
 
-			const requestId = response.headers.get("x-request-id");
-
-			if (response.ok) {
-				logFrontendEvent({
-					event_name: "health_check_success",
-					error_level: "log",
-					payload: {
-						status: response.status,
-						requestId,
-					},
-				});
-
-				setState((prev) => ({
-					...prev,
-					isChecking: false,
-					hasCompleted: true,
-					error: null,
-				}));
-			} else {
-				// エラーレスポンスの処理
-				let errorPayload: { error?: string; message?: string; errorCode?: string } = {};
-				try {
-					errorPayload = await response.json();
-				} catch {
-					// JSONパースエラーは無視
-				}
-
-				logFrontendEvent({
-					event_name: "health_check_error",
-					error_level: "error",
-					payload: {
-						status: response.status,
-						requestId,
-						errorCode: errorPayload.errorCode,
-						errorMessage: errorPayload.message,
-					},
-				});
-
-				// ステータスコード別の処理
-				if (response.status === 503) {
-					// メンテナンスモード
-					showDialog(i18n.t("Error.maintenanceMessage"), {
-						okLabel: i18n.t("Common.ok"),
-						onConfirm: () => {
-							// ダイアログを閉じてもアプリは操作不可状態を維持
-						},
-					});
-
-					setState((prev) => ({
-						...prev,
-						isChecking: false,
-						hasCompleted: true,
-						error: "maintenance_mode",
-					}));
-				} else if (response.status === 426) {
-					// 強制アップデート
-					const storeUrl = Platform.select({
-						ios: Env.APP_STORE_URL,
-						android: Env.PLAY_STORE_URL,
-					});
-
-					showDialog(i18n.t("Error.unsupportedVersion"), {
-						okLabel: i18n.t("Common.goStore"),
-						onConfirm: () => {
-							if (storeUrl) {
-								Linking.openURL(storeUrl);
-							}
-						},
-					});
-
-					setState((prev) => ({
-						...prev,
-						isChecking: false,
-						hasCompleted: true,
-						error: "unsupported_version",
-					}));
-				} else {
-					// その他のエラー
-					setState((prev) => ({
-						...prev,
-						isChecking: false,
-						hasCompleted: true,
-						error: `http_error_${response.status}`,
-					}));
-				}
-			}
-		} catch (error) {
 			logFrontendEvent({
-				event_name: "health_check_network_error",
-				error_level: "error",
-				payload: {
-					error: String(error),
-				},
+				event_name: "health_check_success",
+				error_level: "log",
+				payload: {},
 			});
 
 			setState((prev) => ({
 				...prev,
 				isChecking: false,
 				hasCompleted: true,
-				error: "network_error",
+				error: null,
 			}));
+		} catch (error: any) {
+			logFrontendEvent({
+				event_name: "health_check_error",
+				error_level: "error",
+				payload: {
+					error: String(error),
+					code: error?.code,
+					status: error?.status,
+					requestId: error?.requestId,
+				},
+			});
+
+			// callBackend内で既にダイアログ表示等の処理が行われているため、
+			// ここではエラー状態の設定のみを行う
+			if (error?.code === "maintenance_mode") {
+				setState((prev) => ({
+					...prev,
+					isChecking: false,
+					hasCompleted: true,
+					error: "maintenance_mode",
+				}));
+			} else if (error?.code === "unsupported_version") {
+				setState((prev) => ({
+					...prev,
+					isChecking: false,
+					hasCompleted: true,
+					error: "unsupported_version",
+				}));
+			} else {
+				setState((prev) => ({
+					...prev,
+					isChecking: false,
+					hasCompleted: true,
+					error: error?.code || "network_error",
+				}));
+			}
 		}
-	}, [state.isChecking, state.hasCompleted, logFrontendEvent, showDialog]);
+	}, [state.isChecking, state.hasCompleted, logFrontendEvent, callBackend]);
 
 	/**
 	 * 起動時にヘルスチェックを自動実行

@@ -21,13 +21,10 @@ interface HealthData {
 @Controller()
 export class HealthController {
   @Get('health')
-  getHealth(): BaseResponse<HealthData> {
+  getHealth(): HealthData {
     return {
-      data: {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-      },
-      success: true,
+      status: 'ok',
+      timestamp: new Date().toISOString(),
     };
   }
 }

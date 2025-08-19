@@ -5,6 +5,7 @@ This document describes the maintenance and forced update control system impleme
 ## Overview
 
 The system consists of two main components:
+
 1. **Backend**: Global guard that checks maintenance status and app version requirements
 2. **Frontend**: Health check and error handling for maintenance/version scenarios
 
@@ -24,6 +25,7 @@ Located in `api/src/core/guards/maintenance.guard.ts`, this global guard:
 ### Health Endpoint
 
 A new `/health` endpoint provides:
+
 - Lightweight health status check
 - Subject to maintenance/version guard (not exempted)
 - Returns 200 in normal conditions
@@ -32,6 +34,7 @@ A new `/health` endpoint provides:
 ### Configuration Cache
 
 The `RemoteConfigService` now includes:
+
 - 5-minute TTL caching for performance
 - Reduced GCS API calls
 - Automatic cache invalidation
@@ -41,6 +44,7 @@ The `RemoteConfigService` now includes:
 ### Health Check Hook
 
 `app-expo/hooks/useHealthCheck.ts` provides:
+
 - Async health check on app startup
 - Non-blocking UI rendering
 - Automatic 503/426 error handling
@@ -49,6 +53,7 @@ The `RemoteConfigService` now includes:
 ### Enhanced API Error Handling
 
 `app-expo/hooks/useAPICall.ts` now handles:
+
 - HTTP 503: Shows maintenance dialog
 - HTTP 426: Shows forced update dialog with store redirect
 - Backward compatibility with existing 403 error handling
@@ -56,6 +61,7 @@ The `RemoteConfigService` now includes:
 ### Integration
 
 The health check is integrated into the app startup flow via:
+
 - `HealthCheckInitializer` component
 - Added to app layout without blocking UI
 - Runs after providers are initialized
@@ -76,6 +82,7 @@ The system reads these values from GCS static master configuration:
 ### Environment Variables
 
 Required environment variables for API:
+
 - `GCS_BUCKET_NAME`: GCS bucket for static master files
 - `GCS_STATIC_MASTER_DIR_PATH`: Directory path in GCS bucket
 
@@ -126,6 +133,7 @@ curl http://localhost:3000/health
 ### Allowed Paths
 
 These paths bypass maintenance/version checks:
+
 - `/metrics` - For monitoring and health checks
 
 ### Cache Behavior
@@ -150,6 +158,7 @@ All maintenance/version errors follow the standard API response format:
 ## Localization
 
 All required error messages are available in all supported locales:
+
 - `Error.maintenanceMessage`: Maintenance mode message
 - `Error.unsupportedVersion`: Version upgrade required message
 - `Common.goStore`: Store redirect button text
