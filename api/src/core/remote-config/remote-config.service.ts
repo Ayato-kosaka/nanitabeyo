@@ -8,7 +8,7 @@ import {
 
 @Injectable()
 export class RemoteConfigService {
-  constructor(private readonly staticMasterService: StaticMasterService) { }
+  constructor(private readonly staticMasterService: StaticMasterService) {}
 
   /**
    * 🔧 Remote Config の静的マスタから指定キーの値を取得する。

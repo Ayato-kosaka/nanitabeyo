@@ -40,21 +40,9 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 		setState((prev) => ({ ...prev, isChecking: true, error: null }));
 
 		try {
-			logFrontendEvent({
-				event_name: "health_check_started",
-				error_level: "debug",
-				payload: {},
-			});
-
 			await callBackend<{}, HealthData>("health", {
 				method: "GET",
 				requestPayload: {},
-			});
-
-			logFrontendEvent({
-				event_name: "health_check_success",
-				error_level: "log",
-				payload: {},
 			});
 
 			setState((prev) => ({
