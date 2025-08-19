@@ -1,18 +1,413 @@
-/// Prisma クライアントの生成設定
-/// @note `multiSchema` 機能を有効化することで、1つのクライアントから複数スキーマへアクセス可能
-/// @see https://www.prisma.io/docs/orm/prisma-schema/data-model/multi-schema
 generator client {
   provider        = "prisma-client-js"
   output          = "../../shared/prisma"
   previewFeatures = ["multiSchema"]
 }
 
-/// データベース接続情報
-/// @note `schemas` に対象スキーマを配列で指定（本テンプレートでは動的差し替え用に dev を使用）
-/// @example 本番環境: SCHEMA=public, 開発環境: SCHEMA=dev など環境ごとに切り替え可能
-/// @see https://www.prisma.io/docs/orm/prisma-schema/data-model/multi-schema#specifying-multiple-schemas
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["dev"] // ⬅️ ビルド時にこの値を差し替える運用を想定
+  schemas  = ["dev"]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model backend_event_logs {
+  id                String                          @id
+  event_name        String?
+  error_level       backend_event_logs_error_level?
+  function_name     String?
+  user_id           String?                         @db.Uuid
+  payload           Json?                           @db.Json
+  request_id        String?
+  created_at        DateTime                        @db.Timestamptz(6)
+  created_commit_id String
+
+  @@index([created_at], map: "idx_backend_event_logs_created_at")
+  @@index([error_level], map: "idx_backend_event_logs_error_level")
+  @@index([request_id], map: "idx_backend_event_logs_request_id")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model config {
+  key         String  @id
+  value       String
+  description String?
+
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_categories {
+  id                     String                   @id
+  label_en               String
+  labels                 Json
+  image_url              String
+  origin                 String[]
+  cuisine                String[]
+  tags                   String[]
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  lock_no                Int                      @default(0)
+  dish_category_variants dish_category_variants[]
+  dishes                 dishes[]
+
+  @@index([tags], map: "idx_dish_categories_tags", type: Gin)
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_category_variants {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_category_id String
+  surface_form     String          @unique
+  source           String?
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([surface_form(ops: raw("gin_trgm_ops"))], map: "idx_dcv_surface_form_trgm", type: Gin)
+  @@index([dish_category_id], map: "idx_dish_category_variants_dish_category_id")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_likes {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_media_id String     @db.Uuid
+  user_id       String     @db.Uuid
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
+  dish_media    dish_media @relation(fields: [dish_media_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users         users      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([dish_media_id, user_id])
+  @@index([dish_media_id], map: "idx_dish_likes_media")
+  @@index([user_id], map: "idx_dish_likes_user")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_media {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id        String       @db.Uuid
+  user_id        String?      @db.Uuid
+  media_path     String
+  media_type     String
+  thumbnail_path String
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  lock_no        Int          @default(0)
+  dish_likes     dish_likes[]
+  dishes         dishes       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payouts        payouts[]
+
+  @@index([dish_id], map: "idx_dish_media_dish")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_reviews {
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id                String                   @db.Uuid
+  comment                String
+  comment_tsv            Unsupported("tsvector")? @default(dbgenerated("to_tsvector('simple'::regconfig, COALESCE(comment, ''::text))"))
+  original_language_code String                   @db.Char(2)
+  user_id                String?                  @db.Uuid
+  rating                 Int                      @db.SmallInt
+  price_cents            Int?
+  currency_code          String?                  @db.Char(3)
+  created_dish_media_id  String?                  @db.Uuid
+  imported_user_name     String?
+  imported_user_avatar   String?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  dishes                 dishes                   @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                  users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([created_at], map: "idx_dish_reviews_created_at")
+  @@index([dish_id], map: "idx_dish_reviews_dish")
+  @@index([comment_tsv], map: "idx_dish_reviews_fulltext", type: Gin)
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dishes {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  restaurant_id   String?         @db.Uuid
+  category_id     String
+  name            String?
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+  lock_no         Int             @default(0)
+  dish_media      dish_media[]
+  dish_reviews    dish_reviews[]
+  dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  restaurants     restaurants?    @relation(fields: [restaurant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([category_id], map: "idx_dishes_category")
+  @@index([restaurant_id], map: "idx_dishes_restaurant")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model external_api_logs {
+  id                String   @id
+  request_id        String?
+  function_name     String?
+  api_name          String?
+  endpoint          String?
+  method            String?
+  request_payload   Json?    @db.Json
+  response_payload  Json?    @db.Json
+  status_code       Int?     @db.SmallInt
+  error_message     String?
+  response_time_ms  Int?
+  user_id           String?  @db.Uuid
+  created_at        DateTime @db.Timestamptz(6)
+  created_commit_id String
+
+  @@index([created_at], map: "idx_external_api_logs_created_at")
+  @@index([request_id], map: "idx_external_api_logs_request_id")
+  @@index([status_code], map: "idx_external_api_logs_status_code")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model frontend_event_logs {
+  id                  String                           @id
+  user_id             String?                          @db.Uuid
+  event_name          String?
+  error_level         frontend_event_logs_error_level?
+  path_name           String?
+  payload             String?
+  created_at          DateTime                         @db.Timestamptz(6)
+  created_app_version String
+  created_commit_id   String
+
+  @@index([created_at], map: "idx_frontend_event_logs_created_at")
+  @@index([error_level], map: "idx_frontend_event_logs_error_level")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payouts {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bid_id          String          @db.Uuid
+  transfer_id     String          @unique
+  dish_media_id   String          @db.Uuid
+  amount_cents    BigInt
+  currency_code   String?         @db.Char(3)
+  status          payout_status
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+  lock_no         Int             @default(0)
+  restaurant_bids restaurant_bids @relation(fields: [bid_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_media      dish_media      @relation(fields: [dish_media_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([bid_id, dish_media_id])
+  @@index([created_at], map: "idx_payouts_created_at")
+  @@index([dish_media_id], map: "idx_payouts_media")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model prompt_families {
+  id              String                  @id
+  name            String
+  description     String
+  purpose         prompt_families_purpose
+  weight          Int
+  prompt_variants prompt_variants[]
+
+  @@index([weight], map: "idx_prompt_families_weight")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model prompt_usages {
+  id                 String   @id
+  family_id          String
+  variant_id         String
+  target_type        String
+  target_id          String
+  generated_text     String
+  used_prompt_text   String
+  input_data         Json?
+  llm_model          String
+  temperature        Decimal? @db.Decimal(3, 2)
+  generated_user     String   @db.Uuid
+  created_at         DateTime @db.Timestamptz(6)
+  created_request_id String
+  metadata           Json?
+
+  @@index([family_id], map: "idx_prompt_usages_family_id")
+  @@index([target_id], map: "idx_prompt_usages_target_id")
+  @@index([target_type], map: "idx_prompt_usages_target_type")
+  @@index([variant_id], map: "idx_prompt_usages_variant_id")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model prompt_variants {
+  id               String          @id
+  family_id        String
+  variant_number   Int
+  prompt_text      String
+  improvement_note String?
+  created_by       String
+  metadata         Json?
+  prompt_families  prompt_families @relation(fields: [family_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([family_id, variant_number])
+  @@index([family_id], map: "idx_prompt_variants_family_id")
+  @@index([variant_number], map: "idx_prompt_variants_variant_number")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model reactions {
+  id              String   @id
+  user_id         String   @db.Uuid
+  target_type     String
+  target_id       String
+  action_type     String
+  created_at      DateTime @db.Timestamptz(6)
+  created_version String
+  lock_no         Int
+
+  @@index([target_id], map: "idx_reactions_target_id")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model restaurant_bids {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  restaurant_id     String                @db.Uuid
+  user_id           String                @db.Uuid
+  payment_intent_id String?
+  amount_cents      BigInt
+  currency_code     String                @db.Char(3)
+  start_date        DateTime              @db.Date
+  end_date          DateTime              @db.Date
+  status            restaurant_bid_status
+  refund_id         String?
+  created_at        DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime              @default(now()) @db.Timestamptz(6)
+  lock_no           Int                   @default(0)
+  payouts           payouts[]
+  restaurants       restaurants           @relation(fields: [restaurant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users             users                 @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([restaurant_id], map: "idx_restaurant_bids_restaurant")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model restaurants {
+  id              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  google_place_id String?                   @unique
+  name            String
+  latitude        Float
+  longitude       Float
+  location        Unsupported("geography")? @default(dbgenerated("(dev.st_setsrid(dev.st_makepoint(longitude, latitude), 4326))::dev.geography"))
+  image_url       String
+  created_at      DateTime                  @default(now()) @db.Timestamptz(6)
+  dishes          dishes[]
+  restaurant_bids restaurant_bids[]
+
+  @@index([location], map: "idx_restaurants_location", type: Gist)
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username        String            @unique(map: "uq_users_username") @db.Citext
+  display_name    String?
+  avatar          String?
+  bio             String?
+  last_login_at   DateTime?         @db.Timestamptz(6)
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+  lock_no         Int               @default(0)
+  dish_likes      dish_likes[]
+  dish_media      dish_media[]
+  dish_reviews    dish_reviews[]
+  restaurant_bids restaurant_bids[]
+
+  @@schema("dev")
+}
+
+enum backend_event_logs_error_level {
+  verbose
+  debug
+  log
+  warn
+  error
+
+  @@schema("dev")
+}
+
+enum frontend_event_logs_error_level {
+  verbose
+  debug
+  log
+  warn
+  error
+
+  @@schema("dev")
+}
+
+enum payout_status {
+  pending
+  paid
+  refunded
+
+  @@schema("dev")
+}
+
+enum prompt_families_purpose {
+  spot_guide_manuscript
+
+  @@schema("dev")
+}
+
+enum restaurant_bid_status {
+  pending
+  paid
+  refunded
+
+  @@schema("dev")
 }
