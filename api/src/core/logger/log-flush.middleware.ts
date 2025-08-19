@@ -43,8 +43,10 @@ export class LogFlushMiddleware implements NestMiddleware {
   }
 
   private async flushLogs(): Promise<void> {
-    const beBuffer = this.cls.get<BufferedBackendEventLog[]>(CLS_KEY_BE_LOG_BUFFER) || [];
-    const apiBuffer = this.cls.get<BufferedExternalApiLog[]>(CLS_KEY_API_LOG_BUFFER) || [];
+    const beBuffer =
+      this.cls.get<BufferedBackendEventLog[]>(CLS_KEY_BE_LOG_BUFFER) || [];
+    const apiBuffer =
+      this.cls.get<BufferedExternalApiLog[]>(CLS_KEY_API_LOG_BUFFER) || [];
 
     // Flush backend event logs if any
     if (beBuffer.length > 0) {
@@ -57,10 +59,12 @@ export class LogFlushMiddleware implements NestMiddleware {
     }
   }
 
-  private async flushBackendEventLogs(logs: BufferedBackendEventLog[]): Promise<void> {
+  private async flushBackendEventLogs(
+    logs: BufferedBackendEventLog[],
+  ): Promise<void> {
     try {
       const chunks = chunk(logs, env.LOG_BATCH_MAX);
-      
+
       for (const chunk of chunks) {
         await this.prisma.prisma.backend_event_logs.createMany({
           data: chunk,
@@ -77,10 +81,12 @@ export class LogFlushMiddleware implements NestMiddleware {
     }
   }
 
-  private async flushExternalApiLogs(logs: BufferedExternalApiLog[]): Promise<void> {
+  private async flushExternalApiLogs(
+    logs: BufferedExternalApiLog[],
+  ): Promise<void> {
     try {
       const chunks = chunk(logs, env.LOG_BATCH_MAX);
-      
+
       for (const chunk of chunks) {
         await this.prisma.prisma.external_api_logs.createMany({
           data: chunk,
