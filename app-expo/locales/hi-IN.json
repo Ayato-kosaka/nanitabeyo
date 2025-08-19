@@ -141,13 +141,17 @@
 			"reservation": "आरक्षण"
 		},
 		"actions": {
-			"share": "साझा करें"
+			"share": "साझा करें",
+			"openMap": "मानचित्र खोलें"
 		},
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
 		"info": {
 			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
+		},
+		"errors": {
+			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका"
 		}
 	},
 	"ImageCardGrid": {
