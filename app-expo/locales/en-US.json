@@ -147,10 +147,14 @@
 			"reservation": "Reservation"
 		},
 		"actions": {
-			"share": "Share"
+			"share": "Share",
+			"openMap": "Open map"
 		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"
+		},
+		"errors": {
+			"mapOpenFailed": "Could not open map application"
 		},
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"
