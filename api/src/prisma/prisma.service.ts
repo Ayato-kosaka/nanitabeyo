@@ -38,11 +38,13 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const isWatchMode = process.env.NODE_ENV !== 'production';
     const base = new PrismaClient({
       log: enableQueryLogs
-        ? ([{ emit: 'event', level: 'query' } as Prisma.LogDefinition, 'warn', 'error'] as any)
+        ? ([
+            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+            'warn',
+            'error',
+          ] as any)
         : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
     });
-
-
 
     // Prisma の SQL 実行時間を構造化ログで出力（Cloud Run で見やすく）
     if (enableQueryLogs) {
@@ -73,8 +75,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     if (isWatchMode) {
       // 開発環境ではグローバルインスタンスを再利用
       if (!globalForPrisma.prisma) {
-        globalForPrisma.prisma = withMetrics(base
-        );
+        globalForPrisma.prisma = withMetrics(base);
       }
       this.prisma = globalForPrisma.prisma;
       this.logger.log('Reusing existing Prisma client instance');

@@ -1,4 +1,10 @@
 {
+	"ios": {
+		"CFBundleDisplayName": "CraveCatch"
+	},
+	"android": {
+		"app_name": "CraveCatch"
+	},
 	"Common": {
 		"cancel": "إلغاء",
 		"ok": "موافق",

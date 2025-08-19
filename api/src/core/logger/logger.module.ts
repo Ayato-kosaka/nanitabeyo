@@ -1,6 +1,12 @@
 // api/src/core/logger/logger.module.ts
 // ------------------------------------
-import { Module, Global, Logger, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import {
+  Module,
+  Global,
+  Logger,
+  MiddlewareConsumer,
+  NestModule,
+} from '@nestjs/common';
 import { AppLoggerService } from './logger.service';
 import { LogFlushMiddleware } from './log-flush.middleware';
 import { ClsModule } from 'nestjs-cls';

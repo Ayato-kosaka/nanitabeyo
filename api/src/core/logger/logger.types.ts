@@ -28,7 +28,12 @@ export type BufferedBackendEventLog = NonNullableFields<
 >;
 
 export type BufferedExternalApiLog = NonNullableFields<
-  Required<Omit<Prisma.external_api_logsCreateInput, 'error_message' | 'response_payload'>>
+  Required<
+    Omit<
+      Prisma.external_api_logsCreateInput,
+      'error_message' | 'response_payload'
+    >
+  >
 > & {
   error_message?: string | null;
   response_payload?: any | null;
