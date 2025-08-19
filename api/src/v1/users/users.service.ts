@@ -19,6 +19,9 @@ import {
 import { UsersRepository } from './users.repository';
 import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
+import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { DishMediaRepository } from '../dish-media/dish-media.repository';
 
 @Injectable()
 export class UsersService {
@@ -26,7 +29,8 @@ export class UsersService {
     private readonly repo: UsersRepository,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
+    private readonly dishMediaRepo: DishMediaRepository,
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */
@@ -37,36 +41,35 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const records = await this.repo.findUserDishReviews(userId, dto.cursor);
+    const entries = await this.dishMediaRepo.findDishMediaEntryByReviewedUser(userId, dto.cursor);
 
     // 署名 URL を付与
     const withSignedUrls = await Promise.all(
-      records.map(async (rec) => {
-        const signedUrls: string[] = [];
-        const hasMedia = !!rec.dish_media;
-
-        if (hasMedia && rec.dish_media?.media_path) {
-          const signedUrl = await this.storage.generateSignedUrl(
-            rec.dish_media.media_path,
-          );
-          signedUrls.push(signedUrl);
-        }
-
+      entries.map(async (entry) => {
+        const mediaUrl = await this.storage.generateSignedUrl(entry.dish_media.media_path);
+        const thumbnailImageUrl = await this.storage.generateSignedUrl(entry.dish_media.thumbnail_path);
         return {
-          dish_media: rec.dish_media,
-          dish_review: rec,
-          signedUrls,
-          hasMedia,
+          ...entry,
+          dish_media: {
+            ...entry.dish_media,
+            mediaUrl,
+            thumbnailImageUrl
+          },
+
         };
       }),
-    );
+    ).then(list => list.filter((v): v is NonNullable<typeof v> => !!v)
+      .map(list => ({
+        ...list,
+        dish_media: {
+          ...list.dish_media,
+          isMe: list.dish_media.user_id === userId
+        }
+      })));
 
-    // Generate nextCursor from last item's created_at
     const nextCursor =
       withSignedUrls.length > 0
-        ? withSignedUrls[
-            withSignedUrls.length - 1
-          ].dish_review.created_at.toISOString()
+        ? withSignedUrls[withSignedUrls.length - 1].dish_reviews[0].created_at.toISOString()
         : null;
 
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
@@ -201,26 +204,11 @@ export class UsersService {
       dto.cursor,
     );
 
-    // 署名 URL を付与
-    const withSignedUrls = await Promise.all(
-      records.map(async (rec) => {
-        let signedUrl = '';
-        if (rec.image_url) {
-          signedUrl = await this.storage.generateSignedUrl(rec.image_url);
-        }
-
-        return {
-          ...rec,
-          image_url: signedUrl,
-        };
-      }),
-    );
-
     this.logger.debug(
       'GetMeSavedDishCategoriesResult',
       'getMeSavedDishCategories',
       {
-        count: withSignedUrls.length,
+        count: records.length,
         nextCursor:
           records.length > 0
             ? records[records.length - 1].created_at.toISOString()
@@ -229,7 +217,7 @@ export class UsersService {
     );
 
     return {
-      data: withSignedUrls,
+      data: records,
       nextCursor:
         records.length > 0
           ? records[records.length - 1].created_at.toISOString()

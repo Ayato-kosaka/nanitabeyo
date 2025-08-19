@@ -57,7 +57,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                             GET /v1/dish-media                     */
@@ -82,7 +82,7 @@ export class DishMediaController {
       query,
       user?.userId,
     );
-    return this.dishMediaMapper.toQueryResponse(items);
+    return this.dishMediaMapper.toQueryDishMediaResponse(items);
   }
 
   /* ------------------------------------------------------------------ */

@@ -6,7 +6,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { DishMediaFeedItem } from './dish-media.repository';
+import { DishMediaEntryEntity } from './dish-media.repository';
 import { QueryDishMediaResponse } from '@shared/v1/res';
 
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
@@ -14,13 +14,20 @@ import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/co
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
+export type DishMediaEntryItem = DishMediaEntryEntity & {
+  dish_media: {
+    mediaUrl: string;
+    thumbnailImageUrl: string;
+  }
+}
+
 @Injectable()
 export class DishMediaMapper {
   /**
-   * Repository から取得した `DishMediaFeedItem[]` を
+   * Repository から取得した `DishMediaEntryEntity[]` を
    * Controller が返す `QueryDishMediaResponse` に整形する
    */
-  toQueryResponse(items: DishMediaFeedItem[]): QueryDishMediaResponse {
+  toQueryDishMediaResponse(items: DishMediaEntryItem[]): QueryDishMediaResponse {
     return items.map((src) => ({
       restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
       dish: convertPrismaToSupabase_Dishes(src.dish),

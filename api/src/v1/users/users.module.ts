@@ -9,6 +9,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { StorageModule } from '../../core/storage/storage.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module';
+import { DishMediaRepository } from '../dish-media/dish-media.repository';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { AuthModule } from '../../core/auth/auth.module';
     forwardRef(() => AuthModule), // For JWT Guards and CurrentUser decorator
   ],
   controllers: [UsersController],
-  providers: [UsersService, UsersRepository, UsersMapper],
+  providers: [UsersService, UsersRepository, UsersMapper, DishMediaRepository],
   exports: [UsersService, UsersRepository],
 })
-export class UsersModule {}
+export class UsersModule { }

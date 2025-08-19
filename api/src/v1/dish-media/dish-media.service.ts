@@ -20,6 +20,7 @@ import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { reverse } from 'dns';
 
 @Injectable()
 export class DishMediaService {
@@ -29,7 +30,7 @@ export class DishMediaService {
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                         GET /v1/dish-media                         */
@@ -47,18 +48,20 @@ export class DishMediaService {
     // 署名 URL を付与
     const withSignedUrl = await Promise.all(
       records.map(async (rec) => {
-        const signedUrl = await this.storage.generateSignedUrl(
+        const mediaUrl = await this.storage.generateSignedUrl(
           rec.dish_media.media_path,
         );
+        const thumbnailImageUrl = await this.storage.generateSignedUrl(rec.dish_media.thumbnail_path)
         return {
           ...rec,
           dish_media: {
             ...rec.dish_media,
-            media_url: signedUrl,
+            mediaUrl,
+            thumbnailImageUrl,
           },
         };
       }),
-    );
+    ).then(list => list.filter((v): v is NonNullable<typeof v> => !!v));
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
       count: withSignedUrl.length,

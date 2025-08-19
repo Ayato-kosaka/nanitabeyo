@@ -36,7 +36,6 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     name: prisma.name,
     latitude: prisma.latitude,
     longitude: prisma.longitude,
-    location: null,
     image_url: prisma.image_url,
     created_at: prisma.created_at?.toISOString() ?? null,
   };

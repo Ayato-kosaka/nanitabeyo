@@ -12,58 +12,7 @@ export class UsersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
-
-  /**
-   * ユーザーが投稿したレビューを取得（料理メディア情報含む）
-   */
-  async findUserDishReviews(userId: string, cursor?: string, limit = 42) {
-    this.logger.debug('FindUserDishReviews', 'findUserDishReviews', {
-      userId,
-      cursor,
-      limit,
-    });
-
-    const whereClause: any = {
-      user_id: userId,
-    };
-
-    if (cursor) {
-      whereClause.created_at = {
-        lt: new Date(cursor),
-      };
-    }
-
-    const result = await this.prisma.prisma.dish_reviews.findMany({
-      where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
-      take: limit,
-    });
-
-    // Get related dish_media for reviews that have created_dish_media_id
-    const reviewsWithMedia = await Promise.all(
-      result.map(async (review) => {
-        let dish_media: any = null;
-        if (review.created_dish_media_id) {
-          dish_media = await this.prisma.prisma.dish_media.findUnique({
-            where: { id: review.created_dish_media_id },
-          });
-        }
-        return {
-          ...review,
-          dish_media,
-        };
-      }),
-    );
-
-    this.logger.debug('UserDishReviewsFound', 'findUserDishReviews', {
-      count: reviewsWithMedia.length,
-    });
-
-    return reviewsWithMedia;
-  }
+  ) { }
 
   /**
    * ユーザーがいいねした料理メディアを取得
