@@ -50,7 +50,7 @@ export class DishMediaRepository {
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
   /* ------------------------------------------------------------------ */
   async findDishMedias(
-    { location, radius, categoryId }: QueryDishMediaDto,
+    { location, radius, categoryId, limit = 42, cursor, sort = "-createdAt" }: QueryDishMediaDto,
     viewerId?: string,
   ): Promise<DishMediaEntryEntity[]> {
     // Haversine 距離 (PostgreSQL + PostGIS) の簡易例
@@ -58,34 +58,20 @@ export class DishMediaRepository {
     const [lat, lng] = location.split(',').map(Number);
     const meters = radius; // already in metres
 
-    return this.prisma.prisma.$queryRaw<DishMediaEntryEntity[]>(
+    const dishMediaIds = await this.prisma.prisma.$queryRaw<string[]>(
       Prisma.sql`
       SELECT
-        r.id AS restaurant_id,
-        r.name,
-        r.latitude,
-        r.longitude,
-        r.location,
-        d.id AS dish_id,
-        d.name AS dish_name,
-        d.category_id,
-        dm.id AS dish_media_id,
-        dm.media_path,
-        dm.media_type,
-        dm.created_at,
-        json_agg(
-          json_build_object(
-            'id', dr.id,
-            'user_id', dr.user_id,
-            'rating', dr.rating,
-            'comment', dr.comment,
-            'created_at', dr.created_at
-          ) ORDER BY dr.created_at DESC
-        ) AS dish_reviews
+        dm.id
       FROM restaurants r
         JOIN dishes d        ON d.restaurant_id = r.id
-        JOIN dish_media dm   ON dm.dish_id = d.id
-        LEFT JOIN dish_reviews dr ON dr.dish_id = d.id
+        -- ここで「各 dish の最新メディア 1件」に絞る（d:dm=1:1）
+        JOIN LATERAL (
+          SELECT dm.*
+          FROM dish_media dm
+          WHERE dm.dish_id = d.id
+          ORDER BY dm.created_at DESC, dm.id DESC
+          LIMIT 1
+        ) dm ON TRUE
       WHERE
         ( ST_DistanceSphere(r.location, ST_MakePoint(${lng}, ${lat})) <= ${meters} )
         AND (${categoryId} IS NULL OR d.category_id = ${categoryId})
@@ -95,11 +81,32 @@ export class DishMediaRepository {
             SELECT dish_media_id FROM user_seen_dish WHERE user_id = ${viewerId}
           )
         )
+        AND (
+          ${cursor} IS NULL
+          OR (
+            ${sort} = '-createdAt' AND dm.created_at < ${cursor}
+            OR ${sort} = 'createdAt' AND dm.created_at > ${cursor}
+            OR ${sort} = 'distance' AND ST_DistanceSphere(r.location, ST_MakePoint(${lng}, ${lat})) > ${cursor}
+          )
+        )
       GROUP BY r.id, d.id, dm.id
-      ORDER BY dm.created_at DESC
-      LIMIT 1;
+      ORDER BY
+        CASE
+          WHEN ${sort} = 'createdAt' THEN dm.created_at
+        END ASC,
+        CASE
+          WHEN ${sort} = '-createdAt' OR ${sort} IS NULL THEN dm.created_at
+        END DESC,
+        CASE
+          WHEN ${sort} = 'distance' THEN ST_DistanceSphere(r.location, ST_MakePoint(${lng}, ${lat}))
+        END ASC
+      LIMIT ${limit};
     `,
     );
+
+    const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, { userId: viewerId });
+
+    return dishMediaEntries;
   }
 
   /* ------------------------------------------------------------------ */
@@ -132,7 +139,7 @@ export class DishMediaRepository {
     });
     const dishMediaIds = reviews.map(review => review.created_dish_media_id).filter(id => id !== null);// TODO migration して null は外す。
 
-    const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, userId, 0);
+    const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, { userId, limit: 0 });
 
     return dishMediaEntries;
   }
@@ -146,9 +153,12 @@ export class DishMediaRepository {
    */
   private async getDishMediaEntriesByIds(
     dishMediaIds: string[],
-    userId: string,
-    limit: number,
+    option: {
+      userId?: string,
+      limit?: number,
+    }
   ): Promise<DishMediaEntryEntity[]> {
+    const { userId, limit = 6 } = option;
     if (dishMediaIds.length === 0) return [];
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
