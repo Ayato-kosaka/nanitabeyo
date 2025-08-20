@@ -122,44 +122,57 @@ export class DishMediaRepository {
       };
     }
 
-    const result = await this.prisma.prisma.dish_reviews.findMany({
+    const reviews = await this.prisma.prisma.dish_reviews.findMany({
       where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: { created_at: 'desc' },
+      take: limit,
       include: {
-        dish_media: {
-          include: {
-            dish_likes: {
-              where: {
-                user_id: userId,
-              },
-            },
-            _count: {
-              select: {
-                dish_likes: true,
-              },
-            },
-          },
-        },
-        dishes: {
-          include: {
-            restaurants: true,
-          },
-        },
         users: true,
       },
-      take: limit,
     });
+    const dishMediaIds = reviews.map(review => review.created_dish_media_id).filter(id => id !== null);// TODO migration して null は外す。
+
+    const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, userId, 0);
+
+    return dishMediaEntries;
+  }
+
+  /**
+   * dishMediaIds から DishMediaEntryEntity 配列を構築
+   *  - dish_media 本体 / dishes.restaurants
+   *  - user の like/save 状態 (dish_likes + reactions)
+   *  - review の like 状態 & likeCount
+   *  - 順序は入力 dishMediaIds の順を維持
+   */
+  private async getDishMediaEntriesByIds(
+    dishMediaIds: string[],
+    userId: string,
+    limit: number,
+  ): Promise<DishMediaEntryEntity[]> {
+    if (dishMediaIds.length === 0) return [];
+
+    const dishMedias = await this.prisma.prisma.dish_media.findMany({
+      where: { id: { in: dishMediaIds } },
+      include: {
+        dish_likes: { where: { user_id: userId } }, // User がいいねしているか
+        _count: { select: { dish_likes: true } }, // いいね数を取得
+        dishes: { include: { restaurants: true } },
+        dish_reviews: {
+          orderBy: { created_at: 'desc' },
+          take: limit,
+          include: { users: true },
+        },
+      },
+    });
+
+    const dishMediaMap = new Map(dishMedias.map(m => [m.id, m]));
+
+    const allReviewIds = dishMedias.flatMap(m => m.dish_reviews.map(r => r.id));
 
     const userReactions = await this.prisma.prisma.reactions.findMany({
       where: {
         user_id: userId,
-        target_id: {
-          in: [...result.map(review => review.dish_media!.id) // TODO migration して ! は外す。
-            , ...result.map(review => review.id)
-          ]
-        },
+        target_id: { in: [...dishMediaIds, ...allReviewIds] },
       },
       select: { target_type: true, target_id: true, action_type: true },
     });
@@ -170,38 +183,37 @@ export class DishMediaRepository {
       by: ['target_id'],
       where: {
         target_type: 'dish_reviews',
-        target_id: { in: result.map(review => review.id) },
-        action_type: 'like'
+        target_id: { in: allReviewIds },
+        action_type: 'like',
       },
       _count: { target_id: true },
     });
-    const reviewLikeCountMap = new Map(
-      reviewLikeCounts.map(r => [r.target_id, r._count.target_id])
-    );
+    const reviewLikeCountMap = new Map(reviewLikeCounts.map(r => [r.target_id, r._count.target_id]));
 
-    this.logger.debug('DishMediaEntryFound', 'findDishMediaEntryByReviewedUser', {
-      count: result.length,
+    return dishMediaIds.map(dishMediaId => {
+      const dishMedia = dishMediaMap.get(dishMediaId);
+      if (!dishMedia) {
+        this.logger.warn('DishMediaNotFound', 'getDishMediaEntriesByIds', { dishMediaId });
+        throw new Error(`Dish media not found for ID: ${dishMediaId}`);
+      }
+      return {
+        restaurant: dishMedia.dishes.restaurants!, // TODO migration して ! は外す。
+        dish: dishMedia.dishes,
+        dish_media: {
+          ...dishMedia as PrismaDishMedia,
+          isSaved: reactionSet.has(reactionKey('dish_media', dishMedia.id, 'save')),
+          isLiked: dishMedia.dish_likes.length > 0 ||
+            reactionSet.has(reactionKey('dish_media', dishMedia.id, 'like')),
+          likeCount: dishMedia._count.dish_likes, // 【設計】dish_media の likeCount に reactions(匿名ユーザー)は含めない
+        },
+        dish_reviews: dishMedia.dish_reviews.map(review => ({
+          ...review,
+          username: review.imported_user_name ?? review.users?.display_name ?? 'unknown',
+          isLiked: reactionSet.has(reactionKey('dish_reviews', review.id, 'like')),
+          likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+        })),
+      };
     });
-
-    const dishMediaEntries = result.map(review => ({
-      restaurant: review.dishes.restaurants!, // TODO migration して ! は外す。
-      dish: review.dishes,
-      dish_media: {
-        ...review.dish_media as PrismaDishMedia,
-        isSaved: reactionSet.has(reactionKey('dish_media', review.dish_media!.id, 'save')), // TODO migration して ! は外す。
-        isLiked: review.dish_media!.dish_likes.length > 0
-          || reactionSet.has(reactionKey('dish_media', review.dish_media!.id, 'like')), // TODO migration して ! は外す。
-        likeCount: review.dish_media?._count.dish_likes ?? 0, // 【設計】dish_media の likeCount に reactions(匿名ユーザー)は含めない
-      },
-      dish_reviews: [{
-        ...review,
-        username: review.imported_user_name ?? review.users?.display_name ?? 'unknown',
-        isLiked: reactionSet.has(reactionKey('dish_reviews', review.id, 'like')),
-        likeCount: reviewLikeCountMap.get(review.id) ?? 0,
-      }]
-    }));
-
-    return dishMediaEntries;
   }
 
   /* ------------------------------------------------------------------ */
