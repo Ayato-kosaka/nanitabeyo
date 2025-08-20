@@ -49,7 +49,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -151,6 +151,7 @@ export class DishesService {
           id: 'unknown',
           google_place_id: place.id,
           name: place.displayName.text,
+          name_language_code: 'TBD',
           latitude: place.location!.latitude,
           longitude: place.location!.longitude,
           image_url: photoMedia.photoUri,
