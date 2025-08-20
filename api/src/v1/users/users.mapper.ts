@@ -17,6 +17,9 @@ import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converte
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { convertPrismaToSupabase_DishCategories, PrismaDishCategories } from '../../../../shared/converters/convert_dish_categories';
+import { convertPrismaToSupabase_Payouts, PrismaPayouts } from '../../../../shared/converters/convert_payouts';
+import { convertPrismaToSupabase_RestaurantBids, PrismaRestaurantBids } from '../../../../shared/converters/convert_restaurant_bids';
 
 @Injectable()
 export class UsersMapper {
@@ -72,9 +75,12 @@ export class UsersMapper {
   /**
    * GET /v1/users/me/payouts のレスポンス変換
    */
-  toMePayoutsResponse(result: any): QueryMePayoutsResponse {
+  toMePayoutsResponse(result: {
+    data: PrismaPayouts[],
+    nextCursor: string | null;
+  }): QueryMePayoutsResponse {
     return {
-      data: result.data,
+      data: result.data.map((p) => convertPrismaToSupabase_Payouts(p)),
       nextCursor: result.nextCursor,
     };
   }
@@ -82,9 +88,12 @@ export class UsersMapper {
   /**
    * GET /v1/users/me/restaurant-bids のレスポンス変換
    */
-  toMeRestaurantBidsResponse(result: any): QueryMeRestaurantBidsResponse {
+  toMeRestaurantBidsResponse(result: {
+    data: PrismaRestaurantBids[],
+    nextCursor: string | null;
+  }): QueryMeRestaurantBidsResponse {
     return {
-      data: result.data,
+      data: result.data.map((b) => convertPrismaToSupabase_RestaurantBids(b)),
       nextCursor: result.nextCursor,
     };
   }
@@ -92,11 +101,12 @@ export class UsersMapper {
   /**
    * GET /v1/users/me/saved-dish-categories のレスポンス変換
    */
-  toMeSavedDishCategoriesResponse(
-    result: any,
-  ): QueryMeSavedDishCategoriesResponse {
+  toMeSavedDishCategoriesResponse(result: {
+    data: PrismaDishCategories[],
+    nextCursor: string | null;
+  }): QueryMeSavedDishCategoriesResponse {
     return {
-      data: result.data,
+      data: result.data.map((src) => convertPrismaToSupabase_DishCategories(src)),
       nextCursor: result.nextCursor,
     };
   }

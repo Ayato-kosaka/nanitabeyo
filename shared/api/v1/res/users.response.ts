@@ -17,9 +17,7 @@ export type QueryMePayoutsResponse = PaginatedResponse<SupabasePayouts>;
 export type QueryMeRestaurantBidsResponse = PaginatedResponse<SupabaseRestaurantBids>;
 
 /** GET /v1/users/me/saved-dish-categories のレスポンス型 */
-export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishCategories & {
-	isSaved: boolean;
-}>;
+export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishCategories>;
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
