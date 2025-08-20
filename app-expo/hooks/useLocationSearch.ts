@@ -119,6 +119,9 @@ export const useLocationSearch = () => {
 	const getLocationDetails = useCallback(
 		async (prediction: AutocompleteLocation): Promise<LocationDetailsResponse> => {
 			try {
+				// Extract language code from locale
+				const localLanguageCode = locale.split("-")[0];
+				
 				// Call the real API endpoint for location details
 				const detailsResponse = await callBackend<QueryLocationDetailsDto, LocationDetailsResponse>(
 					"v1/locations/details",
@@ -126,7 +129,7 @@ export const useLocationSearch = () => {
 						method: "GET",
 						requestPayload: {
 							placeId: prediction.place_id,
-							languageCode: "en", // Fixed to "en" as per requirements
+							languageCode: localLanguageCode,
 							sessionToken: sessionTokenRef.current || undefined,
 						},
 					},
@@ -165,7 +168,7 @@ export const useLocationSearch = () => {
 	);
 
 	const getCurrentLocation = useCallback(async (): Promise<
-		Pick<SearchParams, "address" | "location" | "regionCode">
+		Omit<LocationDetailsResponse, "viewport">
 	> => {
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
@@ -206,7 +209,7 @@ export const useLocationSearch = () => {
 			return {
 				location: position.coords,
 				address,
-				regionCode: locale.split("-")[1],
+				localLanguageCode: locale.split("-")[0],
 			};
 		} catch (error) {
 			logFrontendEvent({

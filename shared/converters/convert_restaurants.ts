@@ -2,7 +2,9 @@ import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
 
-export type PrismaRestaurants = Omit<Prisma.RestaurantsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
+export type PrismaRestaurants = Omit<Prisma.RestaurantsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'> & {
+  name_language_code?: string; // Add the new field as optional for backward compatibility
+};
 
 export type SupabaseRestaurants = TableRow<'restaurants'>;
 
@@ -16,6 +18,7 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     id: supabase.id,
     google_place_id: supabase.google_place_id,
     name: supabase.name,
+    name_language_code: (supabase as any).name_language_code || 'en', // Fallback for existing data
     latitude: supabase.latitude,
     longitude: supabase.longitude,
 
@@ -34,10 +37,11 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     id: prisma.id,
     google_place_id: prisma.google_place_id,
     name: prisma.name,
+    name_language_code: (prisma as any).name_language_code || 'en', // Include new field
     latitude: prisma.latitude,
     longitude: prisma.longitude,
     location: null,
     image_url: prisma.image_url,
     created_at: prisma.created_at?.toISOString() ?? null,
-  };
+  } as any; // Type assertion to handle the new field
 }

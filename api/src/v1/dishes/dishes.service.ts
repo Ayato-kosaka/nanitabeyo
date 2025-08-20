@@ -151,6 +151,7 @@ export class DishesService {
           id: 'unknown',
           google_place_id: place.id,
           name: place.displayName.text,
+          name_language_code: dto.languageCode,
           latitude: place.location!.latitude,
           longitude: place.location!.longitude,
           image_url: photoMedia.photoUri,
