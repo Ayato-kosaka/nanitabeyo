@@ -22,6 +22,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
+import { DishMediaService } from '../dish-media/dish-media.service';
 
 @Injectable()
 export class UsersService {
@@ -30,6 +31,7 @@ export class UsersService {
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
     private readonly dishMediaRepo: DishMediaRepository,
+    private readonly dishMediaService: DishMediaService,
   ) { }
 
   /* ------------------------------------------------------------------ */
@@ -41,44 +43,32 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const entries = await this.dishMediaRepo.findDishMediaEntryByReviewedUser(userId, dto.cursor);
+    const reviews = await this.dishMediaRepo.findDisReviesByUser(userId, dto.cursor);
 
-    // 署名 URL を付与
-    const withSignedUrls = await Promise.all(
-      entries.map(async (entry) => {
-        const mediaUrl = await this.storage.generateSignedUrl(entry.dish_media.media_path);
-        const thumbnailImageUrl = await this.storage.generateSignedUrl(entry.dish_media.thumbnail_path);
-        return {
-          ...entry,
-          dish_media: {
-            ...entry.dish_media,
-            mediaUrl,
-            thumbnailImageUrl
-          },
-
-        };
-      }),
-    ).then(list => list.filter((v): v is NonNullable<typeof v> => !!v)
-      .map(list => ({
-        ...list,
-        dish_media: {
-          ...list.dish_media,
-          isMe: list.dish_media.user_id === userId
-        }
-      })));
+    const dishMediaEntries = await this.dishMediaService.fetchDishMediaEntryItems(
+      reviews.map(review => review.created_dish_media_id),
+      { userId, reviewLimit: 0 },
+    );
 
     const nextCursor =
-      withSignedUrls.length > 0
-        ? withSignedUrls[withSignedUrls.length - 1].dish_reviews[0].created_at.toISOString()
+      reviews.length > 0
+        ? reviews[reviews.length - 1].created_at.toISOString()
         : null;
 
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
-      count: withSignedUrls.length,
+      count: reviews.length,
       nextCursor,
     });
 
     return {
-      data: withSignedUrls,
+      data: dishMediaEntries.map(list => ({
+        ...list,
+        dish_media: {
+          ...list.dish_media,
+          isMe: list.dish_media.user_id === userId
+        },
+        dish_reviews: reviews.filter(review => review.created_dish_media_id === list.dish_media.id)
+      })),
       nextCursor,
     };
   }

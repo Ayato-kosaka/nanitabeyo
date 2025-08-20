@@ -46,7 +46,9 @@ export class DishMediaService {
 
     const dishMediaIds = await this.repo.findDishMediaIds(dto, viewerId);
 
-    const dishMediaEntryItems = await this.fetchDishMediaEntryItems(dishMediaIds, viewerId);
+    const dishMediaEntryItems = await this.fetchDishMediaEntryItems(dishMediaIds, {
+      userId: viewerId,
+    });
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
       count: dishMediaEntryItems.length,
@@ -57,13 +59,16 @@ export class DishMediaService {
   /**
    * dishMediaIds から DishMediaEntryItem[] を取得し署名付き URL を付与
    */
-  async fetchDishMediaEntryItems(
+  public async fetchDishMediaEntryItems(
     dishMediaIds: string[],
-    viewerId?: string,
+    option: {
+      userId?: string,
+      reviewLimit?: number,
+    }
   ): Promise<DishMediaEntryItem[]> {
     if (!dishMediaIds.length) return [];
 
-    const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(dishMediaIds, { userId: viewerId });
+    const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(dishMediaIds, option);
 
     const dishMediaEntryItems = await Promise.all<DishMediaEntryItem>(
       dishMediaEntries.map(async (rec) => {

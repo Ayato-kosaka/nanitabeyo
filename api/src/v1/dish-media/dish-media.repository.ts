@@ -43,6 +43,7 @@ export interface DishMediaEntryEntity {
 
 @Injectable()
 export class DishMediaRepository {
+  private readonly reactionKey = (type: string, id: string, action: string) => `${type}:${id}:${action}`;
   constructor(private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService) { }
 
@@ -106,9 +107,9 @@ export class DishMediaRepository {
   }
 
   /* ------------------------------------------------------------------ */
-  /*   ユーザーがレビューした料理メディアエントリーを取得する           */
+  /*   ユーザーがレビューした料理レビューを取得する                     */
   /* ------------------------------------------------------------------ */
-  async findDishMediaEntryByReviewedUser(userId: string, cursor?: string, limit = 42): Promise<string[]> {
+  async findDisReviesByUser(userId: string, cursor?: string, limit = 42): Promise<DishMediaEntryEntity['dish_reviews']> {
     this.logger.debug('FindDishMediaEntryByReviewedUser', 'findDishMediaEntryByReviewedUser', {
       userId,
       cursor,
@@ -134,8 +135,14 @@ export class DishMediaRepository {
       },
     });
 
-    return reviews.map(review => review.created_dish_media_id).filter(id => id !== null);// TODO migration して null は外す。
-    // const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, { userId, limit: 0 });
+    const { reactionSet, reviewLikeCountMap } = await this.buildReactionAggregates(reviews.map(review => review.created_dish_media_id), reviews.map(review => review.id), userId);
+
+    return reviews.map(review => ({
+      ...review,
+      username: review.imported_user_name ?? review.users?.display_name ?? 'unknown',
+      isLiked: reactionSet.has(this.reactionKey('dish_reviews', review.id, 'like')),
+      likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+    }));
   }
 
   /**
@@ -149,10 +156,10 @@ export class DishMediaRepository {
     dishMediaIds: string[],
     option: {
       userId?: string,
-      limit?: number,
+      reviewLimit?: number,
     }
   ): Promise<DishMediaEntryEntity[]> {
-    const { userId, limit = 6 } = option;
+    const { userId, reviewLimit = 6 } = option;
     if (dishMediaIds.length === 0) return [];
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
@@ -163,36 +170,16 @@ export class DishMediaRepository {
         dishes: { include: { restaurants: true } },
         dish_reviews: {
           orderBy: { created_at: 'desc' },
-          take: limit,
+          take: reviewLimit,
           include: { users: true },
         },
       },
     });
 
     const dishMediaMap = new Map(dishMedias.map(m => [m.id, m]));
-
     const allReviewIds = dishMedias.flatMap(m => m.dish_reviews.map(r => r.id));
 
-    const userReactions = await this.prisma.prisma.reactions.findMany({
-      where: {
-        user_id: userId,
-        target_id: { in: [...dishMediaIds, ...allReviewIds] },
-      },
-      select: { target_type: true, target_id: true, action_type: true },
-    });
-    const reactionKey = (t: string, id: string, action: string) => `${t}:${id}:${action}`;
-    const reactionSet = new Set(userReactions.map(r => reactionKey(r.target_type, r.target_id, r.action_type)));
-
-    const reviewLikeCounts = await this.prisma.prisma.reactions.groupBy({
-      by: ['target_id'],
-      where: {
-        target_type: 'dish_reviews',
-        target_id: { in: allReviewIds },
-        action_type: 'like',
-      },
-      _count: { target_id: true },
-    });
-    const reviewLikeCountMap = new Map(reviewLikeCounts.map(r => [r.target_id, r._count.target_id]));
+    const { reactionSet, reviewLikeCountMap } = await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
 
     return dishMediaIds.map(dishMediaId => {
       const dishMedia = dishMediaMap.get(dishMediaId);
@@ -205,19 +192,67 @@ export class DishMediaRepository {
         dish: dishMedia.dishes,
         dish_media: {
           ...dishMedia as PrismaDishMedia,
-          isSaved: reactionSet.has(reactionKey('dish_media', dishMedia.id, 'save')),
+          isSaved: reactionSet.has(this.reactionKey('dish_media', dishMedia.id, 'save')),
           isLiked: dishMedia.dish_likes.length > 0 ||
-            reactionSet.has(reactionKey('dish_media', dishMedia.id, 'like')),
-          likeCount: dishMedia._count.dish_likes, // 【設計】dish_media の likeCount に reactions(匿名ユーザー)は含めない
+            reactionSet.has(this.reactionKey('dish_media', dishMedia.id, 'like')),
+          likeCount: dishMedia._count.dish_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
         },
         dish_reviews: dishMedia.dish_reviews.map(review => ({
           ...review,
           username: review.imported_user_name ?? review.users?.display_name ?? 'unknown',
-          isLiked: reactionSet.has(reactionKey('dish_reviews', review.id, 'like')),
+          isLiked: reactionSet.has(this.reactionKey('dish_reviews', review.id, 'like')),
           likeCount: reviewLikeCountMap.get(review.id) ?? 0,
         })),
       };
     });
+  }
+
+  // --- new helper ---
+  private async buildReactionAggregates(
+    dishMediaIds: string[],
+    reviewIds: string[],
+    userId?: string,
+  ): Promise<{
+    reactionSet: Set<string>,
+    reviewLikeCountMap: Map<string, number>
+  }> {
+    const reviewLikeCounts = reviewIds.length
+      ? await this.prisma.prisma.reactions.groupBy({
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
+      : [];
+    const reviewLikeCountMap = new Map(
+      reviewLikeCounts.map(r => [r.target_id, r._count.target_id]),
+    );
+
+    if (!userId) {
+      return {
+        reactionSet: new Set<string>(),
+        reviewLikeCountMap,
+      };
+    }
+
+    const targetIds = [...dishMediaIds, ...reviewIds];
+    const userReactions = targetIds.length
+      ? await this.prisma.prisma.reactions.findMany({
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
+      : [];
+    const reactionSet = new Set(
+      userReactions.map(r => this.reactionKey(r.target_type, r.target_id, r.action_type)),
+    );
+
+    return { reactionSet, reviewLikeCountMap };
   }
 
   /* ------------------------------------------------------------------ */
