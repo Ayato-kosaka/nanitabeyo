@@ -47,6 +47,24 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		output: "static",
 		favicon: "./assets/images/favicon.png",
 	},
+	locales: {
+		"ar": "./locales/ar-SA.json",
+		"ar-SA": "./locales/ar-SA.json",
+		"en": "./locales/en-US.json",
+		"en-US": "./locales/en-US.json",
+		"es": "./locales/es-ES.json",
+		"es-ES": "./locales/es-ES.json",
+		"fr": "./locales/fr-FR.json",
+		"fr-FR": "./locales/fr-FR.json",
+		"hi": "./locales/hi-IN.json",
+		"hi-IN": "./locales/hi-IN.json",
+		"ja": "./locales/ja-JP.json",
+		"ja-JP": "./locales/ja-JP.json",
+		"ko": "./locales/ko-KR.json",
+		"ko-KR": "./locales/ko-KR.json",
+		"zh": "./locales/zh-CN.json",
+		"zh-CN": "./locales/zh-CN.json"
+	},
 	plugins: [
 		"expo-router",
 		// [
