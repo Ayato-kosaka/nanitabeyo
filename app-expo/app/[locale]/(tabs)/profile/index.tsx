@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
 	View,
 	Text,
@@ -47,8 +47,13 @@ import type {
 	QueryMeLikedDishMediaResponse,
 	QueryMeSavedDishCategoriesResponse,
 	QueryMeSavedDishMediaResponse,
-	PaginatedResponse,
 } from "@shared/api/v1/res";
+import type {
+	QueryMeLikedDishMediaDto,
+	QueryMeSavedDishCategoriesDto,
+	QueryMeSavedDishMediaDto,
+	QueryUserDishReviewsDto,
+} from "@shared/api/v1/dto";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -57,10 +62,10 @@ type TabType = "posts" | "saved" | "liked" | "wallet";
 
 // Interface for API data structures
 interface ProfileData {
-	userPosts: QueryUserDishReviewsResponse;
-	likedPosts: QueryMeLikedDishMediaResponse;
-	savedTopics: QueryMeSavedDishCategoriesResponse;
-	savedPosts: QueryMeSavedDishMediaResponse;
+	userPosts: QueryUserDishReviewsResponse["data"];
+	likedPosts: QueryMeLikedDishMediaResponse["data"];
+	savedTopics: QueryMeSavedDishCategoriesResponse["data"];
+	savedPosts: QueryMeSavedDishMediaResponse["data"];
 }
 
 interface PaginationState {
@@ -362,7 +367,7 @@ export default function ProfileScreen() {
 	const fetchUserPosts = useCallback(
 		async (cursor?: string) => {
 			try {
-				const response = await callBackend<PaginatedResponse<QueryUserDishReviewsResponse[0]>>(
+				const response = await callBackend<QueryUserDishReviewsDto, QueryUserDishReviewsResponse>(
 					`v1/users/${isOwnProfile ? "me" : userId}/dish-reviews`,
 					{
 						method: "GET",
@@ -393,7 +398,7 @@ export default function ProfileScreen() {
 	const fetchLikedPosts = useCallback(
 		async (cursor?: string) => {
 			try {
-				const response = await callBackend<PaginatedResponse<QueryMeLikedDishMediaResponse[0]>>(
+				const response = await callBackend<QueryMeLikedDishMediaDto, QueryMeLikedDishMediaResponse>(
 					"v1/users/me/liked-dish-media",
 					{
 						method: "GET",
@@ -423,7 +428,7 @@ export default function ProfileScreen() {
 	const fetchSavedTopics = useCallback(
 		async (cursor?: string) => {
 			try {
-				const response = await callBackend<PaginatedResponse<QueryMeSavedDishCategoriesResponse[0]>>(
+				const response = await callBackend<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse>(
 					"v1/users/me/saved-dish-categories",
 					{
 						method: "GET",
@@ -453,7 +458,7 @@ export default function ProfileScreen() {
 	const fetchSavedPosts = useCallback(
 		async (cursor?: string) => {
 			try {
-				const response = await callBackend<PaginatedResponse<QueryMeSavedDishMediaResponse[0]>>(
+				const response = await callBackend<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse>(
 					"v1/users/me/saved-dish-media",
 					{
 						method: "GET",
@@ -491,13 +496,15 @@ export default function ProfileScreen() {
 				let response;
 				switch (tab) {
 					case "posts":
-						response = await fetchUserPosts();
-						setProfileData((prev) => ({ ...prev, userPosts: response.data }));
+						const userPostsresponse = await fetchUserPosts();
+						setProfileData((prev) => ({ ...prev, userPosts: userPostsresponse.data }));
+						response = userPostsresponse;
 						break;
 					case "liked":
 						if (!isOwnProfile) return;
-						response = await fetchLikedPosts();
-						setProfileData((prev) => ({ ...prev, likedPosts: response.data }));
+						const likedPostsResponse = await fetchLikedPosts();
+						setProfileData((prev) => ({ ...prev, likedPosts: likedPostsResponse.data }));
+						response = likedPostsResponse;
 						break;
 					case "saved":
 						if (!isOwnProfile) return;
@@ -549,25 +556,28 @@ export default function ProfileScreen() {
 				let response;
 				switch (tab) {
 					case "posts":
-						response = await fetchUserPosts(currentState.cursor || undefined);
+						const userPostsresponse = await fetchUserPosts(currentState.cursor || undefined);
 						setProfileData((prev) => ({
 							...prev,
-							userPosts: [...prev.userPosts, ...response.data],
+							userPosts: [...prev.userPosts, ...userPostsresponse.data],
 						}));
+						response = userPostsresponse;
 						break;
 					case "liked":
-						response = await fetchLikedPosts(currentState.cursor || undefined);
+						const likedPostsResponse = await fetchLikedPosts(currentState.cursor || undefined);
 						setProfileData((prev) => ({
 							...prev,
-							likedPosts: [...prev.likedPosts, ...response.data],
+							likedPosts: [...prev.likedPosts, ...likedPostsResponse.data],
 						}));
+						response = likedPostsResponse;
 						break;
 					case "saved":
-						response = await fetchSavedPosts(currentState.cursor || undefined);
+						const topicsResponse = await fetchSavedTopics(currentState.cursor || undefined);
 						setProfileData((prev) => ({
 							...prev,
-							savedPosts: [...prev.savedPosts, ...response.data],
+							savedTopics: topicsResponse.data,
 						}));
+						response = topicsResponse;
 						break;
 					default:
 						return;
@@ -588,7 +598,7 @@ export default function ProfileScreen() {
 					payload: {
 						error: error instanceof Error ? error.message : String(error),
 						tab: tab,
-						cursor: paginationState[tab]?.nextCursor || "unknown",
+						cursor: paginationState[tab]?.cursor || "unknown",
 					},
 				});
 				setPaginationState((prev) => ({
