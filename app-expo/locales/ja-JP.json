@@ -189,8 +189,8 @@
 		"emptyState": {
 			"noDeposits": "選択したステータスの入札がありません",
 			"noEarnings": "選択したステータスの収益がありません",
-			"noPosts": "投稿はまだありません",
-			"noLikedPosts": "いいねした投稿はありません",
+			"noDishReviews": "投稿はまだありません",
+			"noLikedDishMediaEntries": "いいねした投稿はありません",
 			"noSavedItems": "保存されたアイテムはありません"
 		},
 		"statusLabels": {

@@ -189,8 +189,8 @@
 		"emptyState": {
 			"noDeposits": "所选状态没有存款",
 			"noEarnings": "所选状态没有收益",
-			"noPosts": "暂无帖子",
-			"noLikedPosts": "暂无点赞的帖子",
+			"noDishReviews": "暂无帖子",
+			"noLikedDishMediaEntries": "暂无点赞的帖子",
 			"noSavedItems": "没有已保存的项目"
 		},
 		"statusLabels": {

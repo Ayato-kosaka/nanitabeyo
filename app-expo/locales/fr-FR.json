@@ -189,8 +189,8 @@
 		"emptyState": {
 			"noDeposits": "Aucun dépôt pour le statut sélectionné",
 			"noEarnings": "Aucun revenu pour le statut sélectionné",
-			"noPosts": "Aucune publication pour l'instant",
-			"noLikedPosts": "Aucune publication aimée",
+			"noDishReviews": "Aucune publication pour l'instant",
+			"noLikedDishMediaEntries": "Aucune publication aimée",
 			"noSavedItems": "Aucun élément enregistré"
 		},
 		"statusLabels": {

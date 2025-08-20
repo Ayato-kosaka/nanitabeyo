@@ -189,8 +189,8 @@
 		"emptyState": {
 			"noDeposits": "No hay depósitos para el estado seleccionado",
 			"noEarnings": "No hay ganancias para el estado seleccionado",
-			"noPosts": "Aún no hay publicaciones",
-			"noLikedPosts": "No hay publicaciones con me gusta",
+			"noDishReviews": "Aún no hay publicaciones",
+			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
 			"noSavedItems": "No hay elementos guardados"
 		},
 		"statusLabels": {

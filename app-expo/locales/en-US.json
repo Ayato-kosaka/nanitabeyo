@@ -189,8 +189,8 @@
 		"emptyState": {
 			"noDeposits": "No deposits for the selected status",
 			"noEarnings": "No earnings for the selected status",
-			"noPosts": "No posts yet",
-			"noLikedPosts": "No liked posts",
+			"noDishReviews": "No posts yet",
+			"noLikedDishMediaEntries": "No liked posts",
 			"noSavedItems": "No saved items"
 		},
 		"statusLabels": {

@@ -59,14 +59,14 @@ import { useAuth } from "@/contexts/AuthProvider";
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
 
-type TabType = "posts" | "saved" | "liked" | "wallet";
+type TabType = "reviews" | "saved" | "liked" | "wallet";
 
 // Interface for API data structures
 interface ProfileData {
-	userPosts: QueryUserDishReviewsResponse["data"] | null;
-	likedPosts: QueryMeLikedDishMediaResponse["data"] | null;
+	userDishMediaEntries: QueryUserDishReviewsResponse["data"] | null;
+	likedDishMediaEntries: QueryMeLikedDishMediaResponse["data"] | null;
 	savedTopics: QueryMeSavedDishCategoriesResponse["data"] | null;
-	savedPosts: QueryMeSavedDishMediaResponse["data"] | null;
+	savedDishMediaEntries: QueryMeSavedDishMediaResponse["data"] | null;
 }
 
 interface PaginationState {
@@ -333,7 +333,7 @@ function WalletTabs() {
 export default function ProfileScreen() {
 	const { user } = useAuth();
 	const { userId } = useLocalSearchParams<{ userId?: string }>();
-	const [selectedTab, setSelectedTab] = useState<TabType>("posts");
+	const [selectedTab, setSelectedTab] = useState<TabType>("reviews");
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const [editedBio, setEditedBio] = useState("");
 	const [isFollowing, setIsFollowing] = useState(false);
@@ -344,22 +344,22 @@ export default function ProfileScreen() {
 
 	// API Data State
 	const [profileData, setProfileData] = useState<ProfileData>({
-		userPosts: null,
-		likedPosts: null,
+		userDishMediaEntries: null,
+		likedDishMediaEntries: null,
 		savedTopics: null,
-		savedPosts: null,
+		savedDishMediaEntries: null,
 	});
 
 	// Pagination State for each tab
 	const [paginationState, setPaginationState] = useState<Record<TabType, PaginationState>>({
-		posts: { cursor: null, hasNextPage: true, isLoadingMore: false },
+		reviews: { cursor: null, hasNextPage: true, isLoadingMore: false },
 		saved: { cursor: null, hasNextPage: true, isLoadingMore: false },
 		liked: { cursor: null, hasNextPage: true, isLoadingMore: false },
 		wallet: { cursor: null, hasNextPage: false, isLoadingMore: false },
 	});
 
 	const [fetchErrors, setFetchErrors] = useState<Record<TabType, string | null>>({
-		posts: null,
+		reviews: null,
 		saved: null,
 		liked: null,
 		wallet: null,
@@ -372,7 +372,7 @@ export default function ProfileScreen() {
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
 
 	// Data fetching functions
-	const fetchUserPosts = useCallback(
+	const fetchUserDishMediaEntries = useCallback(
 		async (cursor?: string) => {
 			try {
 				if (!user?.id) {
@@ -392,7 +392,7 @@ export default function ProfileScreen() {
 				};
 			} catch (error) {
 				logFrontendEvent({
-					event_name: "fetch_user_posts_failed",
+					event_name: "fetch_user_dish_reviews_failed",
 					error_level: "log",
 					payload: {
 						error: error instanceof Error ? error.message : String(error),
@@ -406,7 +406,7 @@ export default function ProfileScreen() {
 		[callBackend, isOwnProfile, userId],
 	);
 
-	const fetchLikedPosts = useCallback(
+	const fetchLikedDishMediaEntries = useCallback(
 		async (cursor?: string) => {
 			try {
 				const response = await callBackend<QueryMeLikedDishMediaDto, QueryMeLikedDishMediaResponse>(
@@ -423,7 +423,7 @@ export default function ProfileScreen() {
 				};
 			} catch (error) {
 				logFrontendEvent({
-					event_name: "fetch_liked_posts_failed",
+					event_name: "fetch_liked_dish_media_failed",
 					error_level: "log",
 					payload: {
 						error: error instanceof Error ? error.message : String(error),
@@ -466,7 +466,7 @@ export default function ProfileScreen() {
 		[callBackend],
 	);
 
-	const fetchSavedPosts = useCallback(
+	const fetchSavedDishMediaEntries = useCallback(
 		async (cursor?: string) => {
 			try {
 				const response = await callBackend<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse>(
@@ -483,7 +483,7 @@ export default function ProfileScreen() {
 				};
 			} catch (error) {
 				logFrontendEvent({
-					event_name: "fetch_saved_posts_failed",
+					event_name: "fetch_saved_dish_media_entries_failed",
 					error_level: "log",
 					payload: {
 						error: error instanceof Error ? error.message : String(error),
@@ -506,28 +506,29 @@ export default function ProfileScreen() {
 			try {
 				let response;
 				switch (tab) {
-					case "posts":
-						const userPostsresponse = await fetchUserPosts();
-						setProfileData((prev) => ({ ...prev, userPosts: userPostsresponse.data }));
-						response = userPostsresponse;
+					case "reviews":
+						const userDishMediaEntriesResponse = await fetchUserDishMediaEntries();
+						setProfileData((prev) => ({ ...prev, userDishMediaEntries: userDishMediaEntriesResponse.data }));
+						response = userDishMediaEntriesResponse;
 						break;
 					case "liked":
 						if (!isOwnProfile) return;
-						const likedPostsResponse = await fetchLikedPosts();
-						setProfileData((prev) => ({ ...prev, likedPosts: likedPostsResponse.data }));
-						response = likedPostsResponse;
+						const likedDishMediaEntriesResponse = await fetchLikedDishMediaEntries();
+						setProfileData((prev) => ({ ...prev, likedDishMediaEntries: likedDishMediaEntriesResponse.data }));
+						response = likedDishMediaEntriesResponse;
 						break;
 					case "saved":
 						if (!isOwnProfile) return;
-						// For saved tab, we need both topics and posts
-						const [topicsResponse, postsResponse] = await Promise.all([fetchSavedTopics(), fetchSavedPosts()]);
+						const [topicsResponse, dishMediaEntriesResponse] = await Promise.all([
+							fetchSavedTopics(),
+							fetchSavedDishMediaEntries(),
+						]);
 						setProfileData((prev) => ({
 							...prev,
 							savedTopics: topicsResponse.data,
-							savedPosts: postsResponse.data,
+							savedDishMediaEntries: dishMediaEntriesResponse.data,
 						}));
-						// Use the posts response for pagination
-						response = postsResponse;
+						response = dishMediaEntriesResponse;
 						break;
 					default:
 						return;
@@ -550,7 +551,7 @@ export default function ProfileScreen() {
 				}));
 			}
 		},
-		[fetchUserPosts, fetchLikedPosts, fetchSavedTopics, fetchSavedPosts, isOwnProfile],
+		[fetchUserDishMediaEntries, fetchLikedDishMediaEntries, fetchSavedTopics, fetchSavedDishMediaEntries, isOwnProfile],
 	);
 
 	// Load more data for infinite scroll
@@ -567,21 +568,21 @@ export default function ProfileScreen() {
 			try {
 				let response;
 				switch (tab) {
-					case "posts":
-						const userPostsresponse = await fetchUserPosts(currentState.cursor || undefined);
+					case "reviews":
+						const userDishMediaEntriesresponse = await fetchUserDishMediaEntries(currentState.cursor || undefined);
 						setProfileData((prev) => ({
 							...prev,
-							userPosts: [...prev.userPosts!, ...userPostsresponse.data],
+							userDishMediaEntries: [...prev.userDishMediaEntries!, ...userDishMediaEntriesresponse.data],
 						}));
-						response = userPostsresponse;
+						response = userDishMediaEntriesresponse;
 						break;
 					case "liked":
-						const likedPostsResponse = await fetchLikedPosts(currentState.cursor || undefined);
+						const likedDishMediaEntriesResponse = await fetchLikedDishMediaEntries(currentState.cursor || undefined);
 						setProfileData((prev) => ({
 							...prev,
-							likedPosts: [...prev.likedPosts!, ...likedPostsResponse.data],
+							likedDishMediaEntries: [...prev.likedDishMediaEntries!, ...likedDishMediaEntriesResponse.data],
 						}));
-						response = likedPostsResponse;
+						response = likedDishMediaEntriesResponse;
 						break;
 					case "saved":
 						const topicsResponse = await fetchSavedTopics(currentState.cursor || undefined);
@@ -619,7 +620,7 @@ export default function ProfileScreen() {
 				}));
 			}
 		},
-		[paginationState, fetchUserPosts, fetchLikedPosts, fetchSavedPosts],
+		[paginationState, fetchUserDishMediaEntries, fetchLikedDishMediaEntries, fetchSavedDishMediaEntries],
 	);
 
 	// Refresh data
@@ -662,14 +663,14 @@ export default function ProfileScreen() {
 	// Load initial data when component mounts or tab changes
 	React.useEffect(() => {
 		// Load data for the new tab if it hasn't been loaded yet
-		const currentData = getCurrentPostsForTab(selectedTab);
+		const currentData = getCurrentDishMediaEntriesForTab(selectedTab);
 		if (currentData === null && selectedTab !== "wallet") {
 			withLoading(loadInitialData)(selectedTab);
 		}
 	}, [selectedTab]);
 
 	// Add wallet tab for own profile
-	const availableTabs: TabType[] = isOwnProfile ? ["posts", "saved", "liked", "wallet"] : ["posts"];
+	const availableTabs: TabType[] = isOwnProfile ? ["reviews", "saved", "liked", "wallet"] : ["reviews"];
 
 	const formatNumber = (num: number): string => {
 		if (num >= 1000000) {
@@ -681,18 +682,18 @@ export default function ProfileScreen() {
 		return num.toString();
 	};
 
-	const getCurrentPosts = (): any[] => {
+	const getCurrentDishMediaEntries = (): any[] => {
 		switch (selectedTab) {
-			case "posts":
-				return profileData.userPosts ?? [];
+			case "reviews":
+				return profileData.userDishMediaEntries ?? [];
 			case "saved":
-				return profileData.savedPosts ?? [];
+				return profileData.savedDishMediaEntries ?? [];
 			case "wallet":
 				return [];
 			case "liked":
-				return profileData.likedPosts ?? [];
+				return profileData.likedDishMediaEntries ?? [];
 			default:
-				return profileData.userPosts ?? [];
+				return profileData.userDishMediaEntries ?? [];
 		}
 	};
 
@@ -754,14 +755,14 @@ export default function ProfileScreen() {
 		});
 	};
 
-	const handlePostPress = (index: number) => {
+	const handleDishMediaEntryPress = (index: number) => {
 		lightImpact();
 		// router.push(`/(tabs)/profile/food?startIndex=${index}`);
 
 		logFrontendEvent({
-			event_name: "profile_post_clicked",
+			event_name: "dish_media_entry_selected",
 			error_level: "log",
-			payload: { postIndex: index, selectedTab },
+			payload: { index, selectedTab },
 		});
 	};
 
@@ -780,14 +781,14 @@ export default function ProfileScreen() {
 		});
 	};
 
-	const getCurrentPostsForTab = (tab: TabType): any[] | null => {
+	const getCurrentDishMediaEntriesForTab = (tab: TabType): any[] | null => {
 		switch (tab) {
-			case "posts":
-				return profileData.userPosts;
+			case "reviews":
+				return profileData.userDishMediaEntries;
 			case "saved":
-				return profileData.savedPosts;
+				return profileData.savedDishMediaEntries;
 			case "liked":
-				return profileData.likedPosts;
+				return profileData.likedDishMediaEntries;
 			default:
 				return [];
 		}
@@ -798,7 +799,7 @@ export default function ProfileScreen() {
 		const iconColor = isActive ? "#5EA2FF" : "#666";
 
 		switch (tab) {
-			case "posts":
+			case "reviews":
 				return <Grid3X3 size={20} color={iconColor} />;
 			case "saved":
 				return <Bookmark size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
@@ -814,7 +815,7 @@ export default function ProfileScreen() {
 		return (
 			<TouchableOpacity
 				style={styles.postItem}
-				onPress={() => handlePostPress(0)} // Index doesn't matter for logging
+				onPress={() => handleDishMediaEntryPress(0)} // Index doesn't matter for logging
 			>
 				<Image source={{ uri: item.dish_media.mediaUrl }} style={styles.postImage} />
 				<View style={styles.reviewCardOverlay}>
@@ -868,10 +869,10 @@ export default function ProfileScreen() {
 			<View style={styles.emptyStateContainer}>
 				<View style={styles.emptyStateCard}>
 					<Text style={styles.emptyStateText}>
-						{selectedTab === "posts"
-							? i18n.t("Profile.emptyState.noPosts")
+						{selectedTab === "reviews"
+							? i18n.t("Profile.emptyState.noDishReviews")
 							: selectedTab === "liked"
-								? i18n.t("Profile.emptyState.noLikedPosts")
+								? i18n.t("Profile.emptyState.noLikedDishMediaEntries")
 								: i18n.t("Profile.emptyState.noSavedItems")}
 					</Text>
 				</View>
@@ -881,8 +882,8 @@ export default function ProfileScreen() {
 
 	const shouldShowTab = (tab: TabType): boolean => {
 		if (isOwnProfile) return true;
-		// For other users, only show posts tab
-		return tab === "posts";
+		// For other users, only show reviews tab
+		return tab === "reviews";
 	};
 
 	return (
@@ -975,8 +976,8 @@ export default function ProfileScreen() {
 					))}
 				</View>
 
-				<View style={[styles.postsContainer, { marginTop: 0 }]}>
-					{/* Posts Content - FlatList for infinite scroll */}
+				<View style={[styles.dishMediaEntryContainer, { marginTop: 0 }]}>
+					{/* DishMediaEntries Content - FlatList for infinite scroll */}
 					{selectedTab === "wallet" ? (
 						<WalletTabs />
 					) : selectedTab === "saved" && !isOwnProfile ? (
@@ -988,7 +989,7 @@ export default function ProfileScreen() {
 						</View>
 					) : (
 						<FlatList
-							data={getCurrentPosts()}
+							data={getCurrentDishMediaEntries()}
 							renderItem={renderDishMediaEntryItem}
 							keyExtractor={(item, index) => {
 								return item.dish_media.id;
@@ -1186,7 +1187,7 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 2,
 		borderBottomColor: "#5EA2FF",
 	},
-	postsContainer: {
+	dishMediaEntryContainer: {
 		flex: 1,
 		minHeight: 400,
 		marginTop: 16,
