@@ -62,8 +62,8 @@ function _ImageCard<T extends ImageCardItem>({
 	paddingHorizontal = 16,
 	aspectRatio = 9 / 16,
 	onPress,
-	renderOverlay,
 	cardStyle,
+	children,
 }: {
 	item: T;
 	columns?: number;
@@ -71,8 +71,8 @@ function _ImageCard<T extends ImageCardItem>({
 	paddingHorizontal?: number;
 	aspectRatio?: number;
 	onPress?: (i: T) => void;
-	renderOverlay?: (i: T) => ReactNode;
 	cardStyle?: StyleProp<ViewStyle>;
+	children?: ReactNode;
 }) {
 	const { lightImpact } = useHaptics();
 	const { width: widthDimensions } = useWindowDimensions();
@@ -103,7 +103,7 @@ function _ImageCard<T extends ImageCardItem>({
 				colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.1)"]}
 				style={StyleSheet.absoluteFill}
 				pointerEvents="box-none">
-				{renderOverlay?.(item)}
+				{children}
 			</LinearGradient>
 		</Pressable>
 	);
@@ -128,14 +128,9 @@ function _ImageCardGrid<T extends ImageCardItem>({
 }: ImageCardGridProps<T>) {
 	const renderItem = useCallback(
 		(info: ListRenderItemInfo<T>) => (
-			<_ImageCard
-				item={info.item}
-				aspectRatio={aspectRatio}
-				gap={gap}
-				onPress={onPress}
-				renderOverlay={renderOverlay}
-				cardStyle={cardStyle}
-			/>
+			<_ImageCard item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
+				{renderOverlay?.(info.item)}
+			</_ImageCard>
 		),
 		[aspectRatio, gap, onPress, renderOverlay, cardStyle],
 	);

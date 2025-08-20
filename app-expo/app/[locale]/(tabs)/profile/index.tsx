@@ -33,7 +33,7 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { ImageCardGrid } from "@/components/ImageCardGrid";
+import { ImageCard, ImageCardGrid } from "@/components/ImageCardGrid";
 import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
@@ -755,14 +755,14 @@ export default function ProfileScreen() {
 		});
 	};
 
-	const handleDishMediaEntryPress = (index: number) => {
+	const handleDishMediaEntryPress = (item: DishMediaEntry) => {
 		lightImpact();
 		// router.push(`/(tabs)/profile/food?startIndex=${index}`);
 
 		logFrontendEvent({
 			event_name: "dish_media_entry_selected",
 			error_level: "log",
-			payload: { index, selectedTab },
+			payload: { item, selectedTab },
 		});
 	};
 
@@ -813,18 +813,16 @@ export default function ProfileScreen() {
 	// Render item for API data
 	const renderDishMediaEntryItem = ({ item }: { item: DishMediaEntry }) => {
 		return (
-			<TouchableOpacity
-				style={styles.postItem}
-				onPress={() => handleDishMediaEntryPress(0)} // Index doesn't matter for logging
-			>
-				<Image source={{ uri: item.dish_media.mediaUrl }} style={styles.postImage} />
+			<ImageCard
+				item={{ ...item, id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}
+				onPress={handleDishMediaEntryPress}>
 				<View style={styles.reviewCardOverlay}>
 					<View style={styles.reviewCardRating}>
 						<Stars rating={item.dish.averageRating} />
 						<Text style={styles.reviewCardRatingText}>({item.dish.reviewCount})</Text>
 					</View>
 				</View>
-			</TouchableOpacity>
+			</ImageCard>
 		);
 	};
 
@@ -1401,24 +1399,6 @@ const styles = StyleSheet.create({
 	flatListContent: {
 		paddingHorizontal: 16,
 		marginVertical: 16,
-	},
-	postItem: {
-		flex: 1,
-		aspectRatio: 9 / 16,
-		margin: 4,
-		borderRadius: 16,
-		overflow: "hidden",
-		position: "relative",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	postImage: {
-		width: "100%",
-		height: "100%",
-		resizeMode: "cover",
 	},
 	loadingFooter: {
 		paddingVertical: 20,
