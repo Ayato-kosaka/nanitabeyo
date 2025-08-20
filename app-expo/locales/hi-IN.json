@@ -1,9 +1,9 @@
 {
 	"ios": {
-		"CFBundleDisplayName": "CraveCatch"
+		"CFBundleDisplayName": "CraveCatch - Find your dish"
 	},
 	"android": {
-		"app_name": "CraveCatch"
+		"app_name": "CraveCatch - Find your dish"
 	},
 	"Common": {
 		"cancel": "रद्द करें",

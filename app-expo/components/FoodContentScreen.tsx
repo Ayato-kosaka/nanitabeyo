@@ -378,7 +378,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Background Image */}
-			<Image source={{ uri: item.dish_media.mediaImageUrl }} style={styles.backgroundImage} />
+			<Image source={{ uri: item.dish_media.mediaUrl }} style={styles.backgroundImage} />
 
 			{/* Top Header */}
 			<View style={styles.topHeader}>

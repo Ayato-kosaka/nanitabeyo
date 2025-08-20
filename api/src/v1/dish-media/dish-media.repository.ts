@@ -28,7 +28,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 /* -------------------------------------------------------------------------- */
 export interface DishMediaEntryEntity {
   restaurant: PrismaRestaurants;
-  dish: PrismaDishes;
+  dish: PrismaDishes & {
+    reviewCount: number;
+    averageRating: number;
+  };
   dish_media: PrismaDishMedia & {
     isSaved: boolean;
     isLiked: boolean;
@@ -48,7 +51,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -293,7 +296,7 @@ export class DishMediaRepository {
       where: { id: { in: dishMediaIds } },
       include: {
         dish_likes: { where: { user_id: userId } }, // User がいいねしているか
-        _count: { select: { dish_likes: true } }, // いいね数を取得
+        _count: { select: { dish_likes: true, dish_reviews: true } }, // いいね数を取得
         dishes: { include: { restaurants: true } },
         dish_reviews: {
           orderBy: { created_at: 'desc' },
@@ -302,6 +305,19 @@ export class DishMediaRepository {
         },
       },
     });
+
+    const avgByMedia = await this.prisma.prisma.dish_reviews.groupBy({
+      by: ['created_dish_media_id'],
+      where: { created_dish_media_id: { in: dishMediaIds } },
+      _avg: { rating: true },
+    });
+
+    const avgRatingMap = new Map<string, number>(
+      avgByMedia.map((row) => {
+        const avg = row._avg.rating ?? 0;
+        return [row.created_dish_media_id, Math.round(avg * 10) / 10]; // ROUND(AVG, 1)
+      }),
+    );
 
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
     const allReviewIds = dishMedias.flatMap((m) =>
@@ -320,8 +336,12 @@ export class DishMediaRepository {
         throw new Error(`Dish media not found for ID: ${dishMediaId}`);
       }
       return {
-        restaurant: dishMedia.dishes.restaurants!, // TODO migration して ! は外す。
-        dish: dishMedia.dishes,
+        restaurant: dishMedia.dishes.restaurants,
+        dish: {
+          ...dishMedia.dishes,
+          reviewCount: dishMedia._count.dish_reviews,
+          averageRating: avgRatingMap.get(dishMedia.id) ?? 0,
+        },
         dish_media: {
           ...(dishMedia as PrismaDishMedia),
           isSaved: reactionSet.has(
@@ -360,14 +380,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -383,12 +403,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>

@@ -45,6 +45,7 @@ export const mockDishItems: DishMediaEntry[] = [
 		restaurant: {
 			id: "feed_1",
 			name: "炙り味噌らーめん 麺匠真武咲弥 渋谷店",
+			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 			google_place_id: "place_feed_1",
@@ -61,6 +62,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			reviewCount: 3,
+			averageRating: 4,
 		},
 		dish_media: {
 			id: "media_feed_1",
@@ -77,7 +80,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			isSaved: false,
 			isLiked: false,
 			likeCount: 100,
-			mediaImageUrl:
+			mediaUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 			thumbnailImageUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
@@ -89,7 +92,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_1",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -107,7 +110,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_1",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -125,7 +128,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_1",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -143,6 +146,7 @@ export const mockDishItems: DishMediaEntry[] = [
 		restaurant: {
 			id: "feed_2",
 			name: "俺流塩らーめん 渋谷三丁目店",
+			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
 			google_place_id: "place_feed_2",
@@ -159,6 +163,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			reviewCount: 3,
+			averageRating: 4,
 		},
 		dish_media: {
 			id: "media_feed_2",
@@ -175,7 +181,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			isSaved: false,
 			isLiked: false,
 			likeCount: 100,
-			mediaImageUrl:
+			mediaUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
 			thumbnailImageUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
@@ -187,7 +193,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_2",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -205,7 +211,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_2",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -223,7 +229,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_2",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -241,6 +247,7 @@ export const mockDishItems: DishMediaEntry[] = [
 		restaurant: {
 			id: "feed_3",
 			name: "らーめん ぎょうざ 大穀",
+			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
 			google_place_id: "place_feed_3",
@@ -257,6 +264,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			reviewCount: 3,
+			averageRating: 4,
 		},
 		dish_media: {
 			id: "media_feed_3",
@@ -273,7 +282,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			isSaved: false,
 			isLiked: false,
 			likeCount: 100,
-			mediaImageUrl:
+			mediaUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
 			thumbnailImageUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
@@ -285,7 +294,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_3",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -303,7 +312,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_3",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -321,7 +330,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_3",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -339,6 +348,7 @@ export const mockDishItems: DishMediaEntry[] = [
 		restaurant: {
 			id: "feed_4",
 			name: "蒙古タンメン中本 渋谷",
+			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
 			google_place_id: "place_feed_4",
@@ -355,6 +365,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			reviewCount: 3,
+			averageRating: 4,
 		},
 		dish_media: {
 			id: "media_feed_4",
@@ -371,7 +383,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			isSaved: false,
 			isLiked: false,
 			likeCount: 100,
-			mediaImageUrl:
+			mediaUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
 			thumbnailImageUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
@@ -383,7 +395,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_4",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -401,7 +413,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_4",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -419,7 +431,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_4",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -437,6 +449,7 @@ export const mockDishItems: DishMediaEntry[] = [
 		restaurant: {
 			id: "feed_5",
 			name: "らーめん金伝丸 渋谷本店",
+			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
 			google_place_id: "place_feed_5",
@@ -453,6 +466,8 @@ export const mockDishItems: DishMediaEntry[] = [
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			lock_no: 1,
+			reviewCount: 3,
+			averageRating: 4,
 		},
 		dish_media: {
 			id: "media_feed_5",
@@ -469,7 +484,7 @@ export const mockDishItems: DishMediaEntry[] = [
 			isSaved: false,
 			isLiked: false,
 			likeCount: 100,
-			mediaImageUrl:
+			mediaUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
 			thumbnailImageUrl:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
@@ -481,7 +496,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_5",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -499,7 +514,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_5",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
@@ -517,7 +532,7 @@ export const mockDishItems: DishMediaEntry[] = [
 				comment_tsv: null,
 				original_language_code: "ja",
 				created_at: "2025-08-08T17:19:02.676Z",
-				created_dish_media_id: null,
+				created_dish_media_id: "media_feed_5",
 				currency_code: null,
 				price_cents: null,
 				rating: 4,
