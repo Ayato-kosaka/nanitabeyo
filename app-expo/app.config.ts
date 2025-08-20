@@ -23,6 +23,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		supportsTablet: false,
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
+			CFBundleAllowMixedLocalizations: true,
 		},
 		config: {
 			googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY,

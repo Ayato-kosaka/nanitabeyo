@@ -1,4 +1,10 @@
 {
+	"ios": {
+		"CFBundleDisplayName": "CraveCatch"
+	},
+	"android": {
+		"app_name": "CraveCatch"
+	},
 	"Common": {
 		"cancel": "Cancel",
 		"ok": "OK",
@@ -143,10 +149,14 @@
 		},
 		"actions": {
 			"share": "Share",
-			"seeMore": "see more"
+			"seeMore": "see more",
+			"openMap": "Open map"
 		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"
+		},
+		"errors": {
+			"mapOpenFailed": "Could not open map application"
 		},
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"

@@ -1,4 +1,10 @@
 {
+	"ios": {
+		"CFBundleDisplayName": "CraveCatch"
+	},
+	"android": {
+		"app_name": "CraveCatch"
+	},
 	"Common": {
 		"cancel": "रद्द करें",
 		"ok": "ओके",
@@ -143,13 +149,17 @@
 		},
 		"actions": {
 			"share": "साझा करें",
-			"seeMore": "और देखें"
+			"seeMore": "और देखें",
+			"openMap": "मानचित्र खोलें"
 		},
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
 		"info": {
 			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
+		},
+		"errors": {
+			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका"
 		}
 	},
 	"ImageCardGrid": {

@@ -1,4 +1,10 @@
 {
+	"ios": {
+		"CFBundleDisplayName": "CraveCatch"
+	},
+	"android": {
+		"app_name": "CraveCatch"
+	},
 	"Common": {
 		"cancel": "取消",
 		"ok": "确定",
@@ -143,10 +149,14 @@
 		},
 		"actions": {
 			"share": "分享",
-			"seeMore": "查看更多"
+			"seeMore": "查看更多",
+			"openMap": "打开地图"
 		},
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
+		},
+		"errors": {
+			"mapOpenFailed": "无法打开地图应用"
 		},
 		"info": {
 			"walkFromShibuya": "距离涩谷站步行13分钟"

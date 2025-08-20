@@ -27,6 +27,26 @@ const envSchema = z.object({
   GCS_DEV_SERVICE_ACCOUNT_BASE64: z.string().optional(),
   LOG_BATCH_MAX: z.string().transform(Number).default('200'),
   LOG_SPILL_THRESHOLD: z.string().transform(Number).default('500'),
+  PRISMA_OPEN_BASE_MS: z
+    .string()
+    .default('5000')
+    .transform((v) => Number(v)),
+  PRISMA_OPEN_CAP_MS: z
+    .string()
+    .default('120000')
+    .transform((v) => Number(v)),
+  PRISMA_MAX_RETRIES: z
+    .string()
+    .default('3')
+    .transform((v) => Number(v)),
+  PRISMA_TX_MAX_WAIT: z
+    .string()
+    .default('60000')
+    .transform((v) => Number(v)),
+  PRISMA_TX_TIMEOUT: z
+    .string()
+    .default('60000')
+    .transform((v) => Number(v)),
 });
 
 /**
