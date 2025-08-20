@@ -296,7 +296,7 @@ export class DishMediaRepository {
       where: { id: { in: dishMediaIds } },
       include: {
         dish_likes: { where: { user_id: userId } }, // User がいいねしているか
-        _count: { select: { dish_likes: true } }, // いいね数を取得
+        _count: { select: { dish_likes: true, dish_reviews: true } }, // いいね数を取得
         dishes: { include: { restaurants: true } },
         dish_reviews: {
           orderBy: { created_at: 'desc' },
@@ -305,6 +305,19 @@ export class DishMediaRepository {
         },
       },
     });
+
+    const avgByMedia = await this.prisma.prisma.dish_reviews.groupBy({
+      by: ['created_dish_media_id'],
+      where: { created_dish_media_id: { in: dishMediaIds } },
+      _avg: { rating: true },
+    });
+
+    const avgRatingMap = new Map<string, number>(
+      avgByMedia.map((row) => {
+        const avg = row._avg.rating ?? 0;
+        return [row.created_dish_media_id, Math.round(avg * 10) / 10]; // ROUND(AVG, 1)
+      }),
+    );
 
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
     const allReviewIds = dishMedias.flatMap((m) =>
@@ -324,7 +337,11 @@ export class DishMediaRepository {
       }
       return {
         restaurant: dishMedia.dishes.restaurants,
-        dish: dishMedia.dishes,
+        dish: {
+          ...dishMedia.dishes,
+          reviewCount: dishMedia._count.dish_reviews,
+          averageRating: avgRatingMap.get(dishMedia.id) ?? 0,
+        },
         dish_media: {
           ...(dishMedia as PrismaDishMedia),
           isSaved: reactionSet.has(
