@@ -44,12 +44,12 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) {}
+  ) { }
 
   /**
    * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
    */
-  private extractLocationCodes(addressComponents: any[]): {
+  private extractLocationCodes(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): {
     countryCode: string | null;
     subterritoryCode: string | null;
   } {
@@ -116,7 +116,7 @@ export class LocationsService {
   /**
    * addressComponents から最適な言語コードを解決
    */
-  private resolveLocalLanguageCode(addressComponents: any[]): string {
+  private resolveLocalLanguageCode(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): string {
     const { countryCode, subterritoryCode } = this.extractLocationCodes(
       addressComponents,
     );
