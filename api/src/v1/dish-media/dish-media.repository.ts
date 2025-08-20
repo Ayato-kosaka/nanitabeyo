@@ -49,16 +49,16 @@ export class DishMediaRepository {
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
   /* ------------------------------------------------------------------ */
-  async findDishMedias(
+  async findDishMediaIds(
     { location, radius, categoryId, limit = 42, cursor, sort = "-createdAt" }: QueryDishMediaDto,
     viewerId?: string,
-  ): Promise<DishMediaEntryEntity[]> {
+  ): Promise<string[]> {
     // Haversine 距離 (PostgreSQL + PostGIS) の簡易例
     // RAW を使うときはバインド変数で SQL Injection を防止
     const [lat, lng] = location.split(',').map(Number);
     const meters = radius; // already in metres
 
-    const dishMediaIds = await this.prisma.prisma.$queryRaw<string[]>(
+    return await this.prisma.prisma.$queryRaw<string[]>(
       Prisma.sql`
       SELECT
         dm.id
@@ -103,16 +103,12 @@ export class DishMediaRepository {
       LIMIT ${limit};
     `,
     );
-
-    const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, { userId: viewerId });
-
-    return dishMediaEntries;
   }
 
   /* ------------------------------------------------------------------ */
   /*   ユーザーがレビューした料理メディアエントリーを取得する           */
   /* ------------------------------------------------------------------ */
-  async findDishMediaEntryByReviewedUser(userId: string, cursor?: string, limit = 42): Promise<DishMediaEntryEntity[]> {
+  async findDishMediaEntryByReviewedUser(userId: string, cursor?: string, limit = 42): Promise<string[]> {
     this.logger.debug('FindDishMediaEntryByReviewedUser', 'findDishMediaEntryByReviewedUser', {
       userId,
       cursor,
@@ -137,11 +133,9 @@ export class DishMediaRepository {
         users: true,
       },
     });
-    const dishMediaIds = reviews.map(review => review.created_dish_media_id).filter(id => id !== null);// TODO migration して null は外す。
 
-    const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, { userId, limit: 0 });
-
-    return dishMediaEntries;
+    return reviews.map(review => review.created_dish_media_id).filter(id => id !== null);// TODO migration して null は外す。
+    // const dishMediaEntries = await this.getDishMediaEntriesByIds(dishMediaIds, { userId, limit: 0 });
   }
 
   /**
@@ -151,7 +145,7 @@ export class DishMediaRepository {
    *  - review の like 状態 & likeCount
    *  - 順序は入力 dishMediaIds の順を維持
    */
-  private async getDishMediaEntriesByIds(
+  async getDishMediaEntriesByIds(
     dishMediaIds: string[],
     option: {
       userId?: string,
