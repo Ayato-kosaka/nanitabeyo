@@ -104,10 +104,10 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 
 	// デバッグ用（開発環境でのみ表示）
 	useEffect(() => {
-		const { isChecking, hasCompleted, error } = state;
-		if (__DEV__) {
-			console.log("[HealthCheck] Status:", { isChecking, hasCompleted, error });
-		}
+		// const { isChecking, hasCompleted, error } = state;
+		// if (__DEV__) {
+		// 	console.log("[HealthCheck] Status:", { isChecking, hasCompleted, error });
+		// }
 	}, [state]);
 
 	// 画面描画は常に続行（ヘルスチェックは非同期）

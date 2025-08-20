@@ -39,7 +39,6 @@ export default function TopicsScreen() {
 	} = useHideTopic(topics, hideTopic, showSnackbar);
 
 	useEffect(() => {
-		console.log("TopicsScreen mounted, searchParams:");
 		if (searchParams) {
 			try {
 				const params: SearchParams = JSON.parse(searchParams);
