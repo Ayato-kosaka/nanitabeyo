@@ -181,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "読み込み中...",
+		"tabError": {
+			"failedToLoad": "データの読み込みに失敗しました: {{error}}",
+			"retry": "再試行"
+		},
 		"emptyState": {
 			"noDeposits": "選択したステータスの入札がありません",
-			"noEarnings": "選択したステータスの収益がありません"
+			"noEarnings": "選択したステータスの収益がありません",
+			"noPosts": "投稿はまだありません",
+			"noLikedPosts": "いいねした投稿はありません",
+			"noSavedItems": "保存されたアイテムはありません"
 		},
 		"statusLabels": {
 			"active": "アクティブ",

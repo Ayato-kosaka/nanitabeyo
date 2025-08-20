@@ -181,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "Chargement...",
+		"tabError": {
+			"failedToLoad": "Échec du chargement des données : {{error}}",
+			"retry": "Réessayer"
+		},
 		"emptyState": {
 			"noDeposits": "Aucun dépôt pour le statut sélectionné",
-			"noEarnings": "Aucun revenu pour le statut sélectionné"
+			"noEarnings": "Aucun revenu pour le statut sélectionné",
+			"noPosts": "Aucune publication pour l'instant",
+			"noLikedPosts": "Aucune publication aimée",
+			"noSavedItems": "Aucun élément enregistré"
 		},
 		"statusLabels": {
 			"active": "Actif",

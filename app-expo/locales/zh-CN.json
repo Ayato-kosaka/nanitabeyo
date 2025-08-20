@@ -181,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "加载中...",
+		"tabError": {
+			"failedToLoad": "加载数据失败：{{error}}",
+			"retry": "重试"
+		},
 		"emptyState": {
 			"noDeposits": "所选状态没有存款",
-			"noEarnings": "所选状态没有收益"
+			"noEarnings": "所选状态没有收益",
+			"noPosts": "暂无帖子",
+			"noLikedPosts": "暂无点赞的帖子",
+			"noSavedItems": "没有已保存的项目"
 		},
 		"statusLabels": {
 			"active": "活跃",

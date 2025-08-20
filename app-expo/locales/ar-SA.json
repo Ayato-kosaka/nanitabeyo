@@ -181,9 +181,17 @@
 			"million": "م",
 			"thousand": "ك"
 		},
+		"loading": "جارٍ التحميل...",
+		"tabError": {
+			"failedToLoad": "فشل تحميل البيانات: {{error}}",
+			"retry": "إعادة المحاولة"
+		},
 		"emptyState": {
 			"noDeposits": "لا توجد ودائع للحالة المحددة",
-			"noEarnings": "لا توجد أرباح للحالة المحددة"
+			"noEarnings": "لا توجد أرباح للحالة المحددة",
+			"noPosts": "لا توجد منشورات بعد",
+			"noLikedPosts": "لا توجد منشورات معجبة",
+			"noSavedItems": "لا توجد عناصر محفوظة"
 		},
 		"statusLabels": {
 			"active": "نشط",
