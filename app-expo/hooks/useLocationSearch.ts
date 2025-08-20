@@ -165,7 +165,7 @@ export const useLocationSearch = () => {
 	);
 
 	const getCurrentLocation = useCallback(async (): Promise<
-		Pick<SearchParams, "address" | "location" | "regionCode">
+		Omit<LocationDetailsResponse, "viewport">
 	> => {
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
@@ -206,7 +206,7 @@ export const useLocationSearch = () => {
 			return {
 				location: position.coords,
 				address,
-				regionCode: locale.split("-")[1],
+				localLanguageCode: locale.split("-")[0],
 			};
 		} catch (error) {
 			logFrontendEvent({
