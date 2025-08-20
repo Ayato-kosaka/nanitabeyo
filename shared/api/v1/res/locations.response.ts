@@ -30,6 +30,6 @@ export interface LocationDetailsResponse {
 	};
 	/** addressComponents より locality 以上の階層を抽出し、カンマ区切りで設定 */
 	address: string;
-	/** postalAddress.regionCode を設定 */
-	regionCode: string;
+	/** addressComponents から解決された現地言語コード (BCP47) */
+	localLanguageCode: string;
 }

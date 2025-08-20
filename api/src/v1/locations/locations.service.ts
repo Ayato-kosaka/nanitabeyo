@@ -19,12 +19,131 @@ import {
 import { ExternalApiService } from 'src/core/external-api/external-api.service';
 import { protos } from '@googlemaps/places';
 
+// Import language dictionaries
+import * as territoryLanguages from './territory_languages.json';
+import * as subterritoryOverrides from './subterritory_overrides.json';
+
+// Interface definitions for language dictionaries
+interface TerritoryLanguage {
+  territory: string;
+  lang: string;
+  weight: number;
+  script: string;
+  notes: string;
+}
+
+interface SubterritoryOverride {
+  sub: string;
+  primary_lang: string;
+  script: string;
+  fallback_list: string[];
+}
+
 @Injectable()
 export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
   ) { }
+
+  /**
+   * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
+   */
+  private extractLocationCodes(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): {
+    countryCode: string | null;
+    subterritoryCode: string | null;
+  } {
+    const countryComponent = addressComponents.find((component) =>
+      component.types?.includes('country'),
+    );
+    const adminLevel1Component = addressComponents.find((component) =>
+      component.types?.includes('administrative_area_level_1'),
+    );
+
+    const countryCode = countryComponent?.shortText || null;
+    let subterritoryCode: string | null = null;
+
+    if (countryCode && adminLevel1Component?.shortText) {
+      // ISO-3166-2 形式 (例: CH-GE, ES-CT) に変換
+      subterritoryCode = `${countryCode}-${adminLevel1Component.shortText}`;
+    }
+
+    return { countryCode, subterritoryCode };
+  }
+
+  /**
+   * 言語候補リストを生成（州上書き → 国レベル → 英語フォールバック）
+   */
+  private buildLanguageCandidates(
+    countryCode: string,
+    subterritoryCode: string | null,
+  ): string[] {
+    const candidates: string[] = [];
+
+    // 1. 州/県での上書きを最優先
+    if (subterritoryCode) {
+      const override = (subterritoryOverrides as SubterritoryOverride[]).find(
+        (item) => item.sub === subterritoryCode,
+      );
+      if (override) {
+        candidates.push(override.primary_lang);
+        if (override.fallback_list?.length > 0) {
+          candidates.push(...override.fallback_list);
+        }
+      }
+    }
+
+    // 2. 国の重み順を後ろに追加（重複排除）
+    const territoryLangs = (territoryLanguages as TerritoryLanguage[])
+      .filter((item) => item.territory === countryCode)
+      .sort((a, b) => b.weight - a.weight);
+
+    for (const item of territoryLangs) {
+      const langCode = item.script ? `${item.lang}-${item.script}` : item.lang;
+      if (!candidates.includes(langCode)) {
+        candidates.push(langCode);
+      }
+    }
+
+    // 3. 最後に英語フォールバック
+    if (!candidates.includes('en')) {
+      candidates.push('en');
+    }
+
+    return candidates;
+  }
+
+  /**
+   * addressComponents から最適な言語コードを解決
+   */
+  private resolveLocalLanguageCode(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): string {
+    const { countryCode, subterritoryCode } = this.extractLocationCodes(
+      addressComponents,
+    );
+
+    if (!countryCode) {
+      this.logger.warn(
+        'CountryCodeNotFound',
+        'resolveLocalLanguageCode',
+        { addressComponents },
+      );
+      return 'en'; // フォールバック
+    }
+
+    const candidates = this.buildLanguageCandidates(
+      countryCode,
+      subterritoryCode,
+    );
+
+    this.logger.debug('LanguageResolution', 'resolveLocalLanguageCode', {
+      countryCode,
+      subterritoryCode,
+      candidates,
+    });
+
+    // 最初の候補を採用
+    return candidates[0] || 'en';
+  }
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
@@ -217,7 +336,7 @@ export class LocationsService {
     query: QueryLocationDetailsDto,
   ): Promise<LocationDetailsResponse> {
     try {
-      const fieldMask = 'location,viewport,addressComponents,postalAddress';
+      const fieldMask = 'location,viewport,addressComponents';
 
       const response = await this.externalApiService.callPlaceDetails(
         fieldMask,
@@ -286,29 +405,22 @@ export class LocationsService {
         .filter(Boolean)
         .join(', ');
 
-      // regionCode from addressComponents - extract country short text
-      const countryComponent = addressComponents.find((component) =>
-        component.types?.includes('country'),
-      );
-      const regionCode = countryComponent?.shortText;
-      if (!regionCode)
-        throw new Error(
-          'Invalid response from Google Places API: Missing region code',
-        );
+      // Resolve local language code from addressComponents
+      const localLanguageCode = this.resolveLocalLanguageCode(addressComponents);
 
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,
         location,
         viewport,
         address,
-        regionCode,
+        localLanguageCode,
       });
 
       return {
         location,
         viewport,
         address,
-        regionCode,
+        localLanguageCode,
       };
     } catch (error) {
       this.logger.error('GooglePlacesDetailsCallError', 'getLocationDetails', {

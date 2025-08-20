@@ -43,7 +43,7 @@ export const useTopicSearch = () => {
 							categoryId: topic.categoryId,
 							categoryName: topic.category,
 							minRating: 3.0, // Fixed value as per requirement
-							languageCode: locale.split("-")[0], // First part of locale (e.g., "ja" from "ja-JP")
+							languageCode: params.localLanguageCode, // First part of locale (e.g., "ja" from "ja-JP")
 							priceLevels: params.priceLevels,
 						},
 					});
