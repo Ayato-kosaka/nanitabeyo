@@ -54,6 +54,7 @@ import type {
 	QueryMeSavedDishMediaDto,
 	QueryUserDishReviewsDto,
 } from "@shared/api/v1/dto";
+import { useAuth } from "@/contexts/AuthProvider";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -338,7 +339,7 @@ export default function ProfileScreen() {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
-	const { isLoading, withLoading } = useWithLoading();
+	const { isLoading: isInitialLoading, withLoading } = useWithLoading();
 
 	// API Data State
 	const [profileData, setProfileData] = useState<ProfileData>({
@@ -545,7 +546,7 @@ export default function ProfileScreen() {
 	const loadMoreData = useCallback(
 		async (tab: TabType) => {
 			const currentState = paginationState[tab];
-			if (!currentState.hasNextPage || currentState.isLoadingMore || tab === "wallet") return;
+			if (!currentState.cursor || !currentState.hasNextPage || currentState.isLoadingMore || tab === "wallet") return;
 
 			setPaginationState((prev) => ({
 				...prev,
@@ -649,13 +650,7 @@ export default function ProfileScreen() {
 
 	// Load initial data when component mounts or tab changes
 	React.useEffect(() => {
-		const loadData = async () => {
-			await withLoading(async () => {
-				await loadInitialData(selectedTab);
-			});
-		};
-
-		loadData();
+		withLoading(loadInitialData)(selectedTab);
 	}, [selectedTab, withLoading, loadInitialData]);
 
 	// Add wallet tab for own profile
@@ -859,7 +854,7 @@ export default function ProfileScreen() {
 
 	// Render empty state
 	const renderEmptyState = () => {
-		if (isLoading) {
+		if (isInitialLoading) {
 			return (
 				<View style={styles.loadingContainer}>
 					<ActivityIndicator size="large" color="#5EA2FF" />
