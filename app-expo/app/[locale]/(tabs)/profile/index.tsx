@@ -28,7 +28,6 @@ import {
 	DollarSign,
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { UserProfile, UserPost } from "@/types";
 import { userProfile, otherUserProfile } from "@/data/profileData";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { useBlurModal } from "@/hooks/useBlurModal";
@@ -47,6 +46,7 @@ import type {
 	QueryMeLikedDishMediaResponse,
 	QueryMeSavedDishCategoriesResponse,
 	QueryMeSavedDishMediaResponse,
+	DishMediaEntry,
 } from "@shared/api/v1/res";
 import type {
 	QueryMeLikedDishMediaDto,
@@ -810,37 +810,17 @@ export default function ProfileScreen() {
 	};
 
 	// Render item for API data
-	const renderApiPostItem = ({ item }: { item: any }) => {
-		// Handle different data structures based on API responses
-		let imageUrl, title, rating, reviewCount;
-
-		if (selectedTab === "posts") {
-			// QueryUserDishReviewsResponse structure
-			imageUrl = item.dish_media?.mediaImageUrl || item.signedUrls?.[0];
-			title = item.dish_media?.dishName || "Dish";
-			rating = item.dish_review?.rating || 0;
-			reviewCount = 1; // Single review
-		} else if (selectedTab === "liked" || selectedTab === "saved") {
-			// QueryMeLikedDishMediaResponse / QueryMeSavedDishMediaResponse structure
-			imageUrl = item.dish_media?.mediaImageUrl;
-			title = item.dish?.name || "Dish";
-			rating =
-				item.dish_reviews?.reduce((sum: number, review: any) => sum + review.rating, 0) /
-				(item.dish_reviews?.length || 1);
-			reviewCount = item.dish_reviews?.length || 0;
-		}
-
+	const renderDishMediaEntryItem = ({ item }: { item: DishMediaEntry }) => {
 		return (
 			<TouchableOpacity
 				style={styles.postItem}
 				onPress={() => handlePostPress(0)} // Index doesn't matter for logging
 			>
-				<Image source={{ uri: imageUrl }} style={styles.postImage} />
+				<Image source={{ uri: item.dish_media.mediaUrl }} style={styles.postImage} />
 				<View style={styles.reviewCardOverlay}>
-					<Text style={styles.reviewCardTitle}>{title}</Text>
 					<View style={styles.reviewCardRating}>
-						<Stars rating={rating} />
-						<Text style={styles.reviewCardRatingText}>({reviewCount})</Text>
+						<Stars rating={item.dish.averageRating} />
+						<Text style={styles.reviewCardRatingText}>({item.dish.reviewCount})</Text>
 					</View>
 				</View>
 			</TouchableOpacity>
@@ -925,8 +905,8 @@ export default function ProfileScreen() {
 				</View>
 			</View>
 
-			{/* Profile Info - Fixed Header */}
-			<View style={styles.profileSection}>
+			<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+				{/* Profile Info */}
 				<Card>
 					{/* Avatar and Stats */}
 					<View style={styles.profileHeader}>
@@ -994,43 +974,47 @@ export default function ProfileScreen() {
 						</TouchableOpacity>
 					))}
 				</View>
-			</View>
 
-			{/* Posts Content - FlatList for infinite scroll */}
-			{selectedTab === "wallet" ? (
-				<WalletTabs />
-			) : selectedTab === "saved" && !isOwnProfile ? (
-				<View style={styles.privateContainer}>
-					<View style={styles.privateCard}>
-						<Lock size={48} color="#6B7280" />
-						<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
-					</View>
-				</View>
-			) : (
-				<FlatList
-					data={getCurrentPosts()}
-					renderItem={renderApiPostItem}
-					keyExtractor={(item, index) => {
-						// Handle different ID structures from different APIs
-						return item.id || item.dish_media?.id || item.dish_review?.id || `${selectedTab}-${index}`;
-					}}
-					numColumns={2}
-					contentContainerStyle={styles.flatListContent}
-					showsVerticalScrollIndicator={false}
-					onEndReached={() => loadMoreData(selectedTab)}
-					onEndReachedThreshold={0.5}
-					refreshControl={
-						<RefreshControl
-							refreshing={isRefreshing}
-							onRefresh={() => refreshData(selectedTab)}
-							colors={["#5EA2FF"]}
-							tintColor="#5EA2FF"
+				<View style={[styles.postsContainer, { marginTop: 0 }]}>
+					{/* Posts Content - FlatList for infinite scroll */}
+					{selectedTab === "wallet" ? (
+						<WalletTabs />
+					) : selectedTab === "saved" && !isOwnProfile ? (
+						<View style={styles.privateContainer}>
+							<View style={styles.privateCard}>
+								<Lock size={48} color="#6B7280" />
+								<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
+							</View>
+						</View>
+					) : (
+						<FlatList
+							data={getCurrentPosts()}
+							renderItem={renderDishMediaEntryItem}
+							keyExtractor={(item, index) => {
+								return item.dish_media.id;
+							}}
+							numColumns={3}
+							contentContainerStyle={styles.flatListContent}
+							showsVerticalScrollIndicator={false}
+							scrollEnabled={false}
+							initialNumToRender={12}
+							removeClippedSubviews
+							onEndReached={() => loadMoreData(selectedTab)}
+							onEndReachedThreshold={0.5}
+							refreshControl={
+								<RefreshControl
+									refreshing={isRefreshing}
+									onRefresh={() => refreshData(selectedTab)}
+									colors={["#5EA2FF"]}
+									tintColor="#5EA2FF"
+								/>
+							}
+							ListEmptyComponent={renderEmptyState}
+							ListFooterComponent={renderLoadingFooter}
 						/>
-					}
-					ListEmptyComponent={renderEmptyState}
-					ListFooterComponent={renderLoadingFooter}
-				/>
-			)}
+					)}
+				</View>
+			</ScrollView>
 
 			{/* Edit Profile Modal */}
 			<BlurModal>
@@ -1238,12 +1222,6 @@ const styles = StyleSheet.create({
 		flexDirection: "column",
 		justifyContent: "space-between",
 	},
-	reviewCardTitle: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#FFF",
-		marginBottom: 4,
-	},
 	reviewCardRating: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -1419,11 +1397,9 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		fontWeight: "500",
 	},
-	profileSection: {
-		paddingHorizontal: 16,
-	},
 	flatListContent: {
-		padding: 8,
+		paddingHorizontal: 16,
+		marginVertical: 16,
 	},
 	postItem: {
 		flex: 1,
