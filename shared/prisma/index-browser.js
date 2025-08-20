@@ -311,23 +311,15 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   id: 'id',
   google_place_id: 'google_place_id',
   name: 'name',
+  name_language_code: 'name_language_code',
   latitude: 'latitude',
   longitude: 'longitude',
   image_url: 'image_url',
   created_at: 'created_at'
 };
 
-exports.Prisma.Spatial_ref_sysScalarFieldEnum = {
-  srid: 'srid',
-  auth_name: 'auth_name',
-  auth_srid: 'auth_srid',
-  srtext: 'srtext',
-  proj4text: 'proj4text'
-};
-
 exports.Prisma.UsersScalarFieldEnum = {
   id: 'id',
-  username: 'username',
   display_name: 'display_name',
   avatar: 'avatar',
   bio: 'bio',
@@ -416,7 +408,6 @@ exports.Prisma.ModelName = {
   reactions: 'reactions',
   restaurant_bids: 'restaurant_bids',
   restaurants: 'restaurants',
-  spatial_ref_sys: 'spatial_ref_sys',
   users: 'users'
 };
 

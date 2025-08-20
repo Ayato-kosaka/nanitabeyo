@@ -1,5 +1,5 @@
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-CREATE EXTENSION IF NOT EXISTS "citext";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS "citext" WITH SCHEMA extensions;
 
 CREATE TABLE users (
     id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

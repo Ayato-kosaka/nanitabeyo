@@ -1,8 +1,8 @@
-CREATE EXTENSION IF NOT EXISTS "postgis";
+CREATE EXTENSION IF NOT EXISTS "postgis" WITH SCHEMA extensions;
 
 CREATE TABLE restaurants (
     id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    google_place_id     TEXT UNIQUE,
+    google_place_id     TEXT UNIQUE NOT NULL,
     name                TEXT        NOT NULL,
     name_language_code  TEXT        NOT NULL,
     latitude            DOUBLE PRECISION NOT NULL,

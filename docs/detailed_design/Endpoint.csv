@@ -13,6 +13,7 @@
 "料理マスター作成 or 取得"
 "Google一括料理登録"
 "Google Places API Autocomplete のラッパー（地名のみ）"
+"Google Places API Details のラッパー（地名のみ）"
 "座標周辺レストラン、入札状況一覧"
 "Google Place ID でレストラン作成"
 "入札意図の登録（決済前）"

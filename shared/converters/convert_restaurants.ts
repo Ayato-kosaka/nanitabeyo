@@ -18,7 +18,7 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     id: supabase.id,
     google_place_id: supabase.google_place_id,
     name: supabase.name,
-    name_language_code: (supabase as any).name_language_code || 'en', // Fallback for existing data
+    name_language_code: supabase.name_language_code,
     latitude: supabase.latitude,
     longitude: supabase.longitude,
 
@@ -37,7 +37,7 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     id: prisma.id,
     google_place_id: prisma.google_place_id,
     name: prisma.name,
-    name_language_code: (prisma as any).name_language_code || 'en', // Include new field
+    name_language_code: prisma.name_language_code,
     latitude: prisma.latitude,
     longitude: prisma.longitude,
     location: null,
