@@ -331,7 +331,8 @@ function WalletTabs() {
 }
 
 export default function ProfileScreen() {
-	const { userId } = useLocalSearchParams();
+	const { user } = useAuth();
+	const { userId } = useLocalSearchParams<{ userId?: string }>();
 	const [selectedTab, setSelectedTab] = useState<TabType>("posts");
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const [editedBio, setEditedBio] = useState("");
@@ -368,8 +369,11 @@ export default function ProfileScreen() {
 	const fetchUserPosts = useCallback(
 		async (cursor?: string) => {
 			try {
+				if (!user?.id) {
+					throw new Error("User not authenticated");
+				}
 				const response = await callBackend<QueryUserDishReviewsDto, QueryUserDishReviewsResponse>(
-					`v1/users/${isOwnProfile ? "me" : userId}/dish-reviews`,
+					`v1/users/${isOwnProfile ? user?.id : userId}/dish-reviews`,
 					{
 						method: "GET",
 						requestPayload: cursor ? { cursor } : {},
