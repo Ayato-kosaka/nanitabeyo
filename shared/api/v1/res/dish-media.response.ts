@@ -11,7 +11,7 @@ export type DishMediaEntry = {
 		isSaved: boolean;
 		isLiked: boolean;
 		likeCount: number;
-		mediaImageUrl: string;
+		mediaUrl: string;
 		thumbnailImageUrl: string;
 	};
 	dish_reviews: (SupabaseDishReviews & {

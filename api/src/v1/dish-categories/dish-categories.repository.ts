@@ -52,4 +52,47 @@ export class DishCategoriesRepository {
     });
     return result;
   }
+
+  /**
+   * ユーザーが保存した料理カテゴリを取得 (moved from UsersRepository)
+   */
+  async findDishCategoriesBySavedUser(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ) {
+    this.logger.debug(
+      'findDishCategoriesBySavedUser',
+      'findDishCategoriesBySavedUser',
+      { userId, cursor, limit },
+    );
+
+    const whereClause: any = {
+      user_id: userId,
+      target_type: 'dish_categories',
+      action_type: 'save',
+    };
+    if (cursor) {
+      whereClause.created_at = { lt: new Date(cursor) };
+    }
+
+    const savedEntries = await this.prisma.prisma.reactions.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      take: limit,
+    });
+
+    const categoryIds = savedEntries.map((e) => e.target_id);
+    const result = await this.prisma.prisma.dish_categories.findMany({
+      where: { id: { in: categoryIds } },
+    });
+
+    this.logger.debug(
+      'UserSavedDishCategoriesFound',
+      'findDishCategoriesBySavedUser',
+      { count: result.length },
+    );
+
+    return result;
+  }
 }

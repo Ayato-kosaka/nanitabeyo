@@ -168,7 +168,7 @@ After making changes, always validate manually by:
 - **Database Schema**: `shared/prisma/schema.prisma`
 - **Database Scripts**: `scripts/` directory (apply-migration.sh, db-pull.sh, reset-schema.sh)
 - **Functional Tests**: `api/test/functional/v1/dish-categories/` (comprehensive API testing)
-- **GitHub Workflows**: `.github/workflows/` (api-deploy.yml, eas-build-*.yml, etc.)
+- **GitHub Workflows**: `.github/workflows/` (api-deploy.yml, eas-build-\*.yml, etc.)
 
 ## Common Commands Reference
 

@@ -51,7 +51,7 @@ for ((i=START_INDEX; i<${#FILES[@]}; i++)); do
   echo "📄 Applying: $FILE (schema: $DB_SCHEMA)"
 
   psql "$DATABASE_URL" --set ON_ERROR_STOP=on <<EOF
-SET search_path TO $DB_SCHEMA;
+SET search_path TO $DB_SCHEMA, extensions;
 \i $FILE
 EOF
 

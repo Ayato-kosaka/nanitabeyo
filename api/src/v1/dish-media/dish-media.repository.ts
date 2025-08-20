@@ -12,6 +12,7 @@ import { PrismaRestaurants } from '../../../../shared/converters/convert_restaur
 import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { AppLoggerService } from 'src/core/logger/logger.service';
 
 import {
   CreateDishMediaDto,
@@ -25,15 +26,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
 /* -------------------------------------------------------------------------- */
-export interface DishMediaFeedItem {
+export interface DishMediaEntryEntity {
   restaurant: PrismaRestaurants;
   dish: PrismaDishes;
   dish_media: PrismaDishMedia & {
     isSaved: boolean;
     isLiked: boolean;
     likeCount: number;
-    mediaImageUrl: string;
-    thumbnailImageUrl: string;
   };
   dish_reviews: (PrismaDishReviews & {
     username: string;
@@ -44,48 +43,46 @@ export interface DishMediaFeedItem {
 
 @Injectable()
 export class DishMediaRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly reactionKey = (type: string, id: string, action: string) =>
+    `${type}:${id}:${action}`;
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   /* ------------------------------------------------------------------ */
-  /*   1) 料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
+  /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
   /* ------------------------------------------------------------------ */
-  async findDishMedias(
-    { location, radius, categoryId }: QueryDishMediaDto,
+  async findDishMediaIds(
+    {
+      location,
+      radius,
+      categoryId,
+      limit = 42,
+      cursor,
+      sort = '-createdAt',
+    }: QueryDishMediaDto,
     viewerId?: string,
-  ): Promise<DishMediaFeedItem[]> {
+  ): Promise<string[]> {
     // Haversine 距離 (PostgreSQL + PostGIS) の簡易例
     // RAW を使うときはバインド変数で SQL Injection を防止
     const [lat, lng] = location.split(',').map(Number);
     const meters = radius; // already in metres
 
-    return this.prisma.prisma.$queryRaw<DishMediaFeedItem[]>(
+    return await this.prisma.prisma.$queryRaw<string[]>(
       Prisma.sql`
       SELECT
-        r.id AS restaurant_id,
-        r.name,
-        r.latitude,
-        r.longitude,
-        r.location,
-        d.id AS dish_id,
-        d.name AS dish_name,
-        d.category_id,
-        dm.id AS dish_media_id,
-        dm.media_path,
-        dm.media_type,
-        dm.created_at,
-        json_agg(
-          json_build_object(
-            'id', dr.id,
-            'user_id', dr.user_id,
-            'rating', dr.rating,
-            'comment', dr.comment,
-            'created_at', dr.created_at
-          ) ORDER BY dr.created_at DESC
-        ) AS dish_reviews
+        dm.id
       FROM restaurants r
         JOIN dishes d        ON d.restaurant_id = r.id
-        JOIN dish_media dm   ON dm.dish_id = d.id
-        LEFT JOIN dish_reviews dr ON dr.dish_id = d.id
+        -- ここで「各 dish の最新メディア 1件」に絞る（d:dm=1:1）
+        JOIN LATERAL (
+          SELECT dm.*
+          FROM dish_media dm
+          WHERE dm.dish_id = d.id
+          ORDER BY dm.created_at DESC, dm.id DESC
+          LIMIT 1
+        ) dm ON TRUE
       WHERE
         ( ST_DistanceSphere(r.location, ST_MakePoint(${lng}, ${lat})) <= ${meters} )
         AND (${categoryId} IS NULL OR d.category_id = ${categoryId})
@@ -95,15 +92,315 @@ export class DishMediaRepository {
             SELECT dish_media_id FROM user_seen_dish WHERE user_id = ${viewerId}
           )
         )
+        AND (
+          ${cursor} IS NULL
+          OR (
+            ${sort} = '-createdAt' AND dm.created_at < ${cursor}
+            OR ${sort} = 'createdAt' AND dm.created_at > ${cursor}
+            OR ${sort} = 'distance' AND ST_DistanceSphere(r.location, ST_MakePoint(${lng}, ${lat})) > ${cursor}
+          )
+        )
       GROUP BY r.id, d.id, dm.id
-      ORDER BY dm.created_at DESC
-      LIMIT 1;
+      ORDER BY
+        CASE
+          WHEN ${sort} = 'createdAt' THEN dm.created_at
+        END ASC,
+        CASE
+          WHEN ${sort} = '-createdAt' OR ${sort} IS NULL THEN dm.created_at
+        END DESC,
+        CASE
+          WHEN ${sort} = 'distance' THEN ST_DistanceSphere(r.location, ST_MakePoint(${lng}, ${lat}))
+        END ASC
+      LIMIT ${limit};
     `,
     );
   }
 
   /* ------------------------------------------------------------------ */
-  /*                     2) いいね / いいね解除                         */
+  /*   ユーザーがレビューした料理レビューを取得する                     */
+  /* ------------------------------------------------------------------ */
+  async findDishReviewsByUser(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<DishMediaEntryEntity['dish_reviews']> {
+    this.logger.debug(
+      'FindDishMediaEntryByReviewedUser',
+      'findDishMediaEntryByReviewedUser',
+      {
+        userId,
+        cursor,
+        limit,
+      },
+    );
+
+    const whereClause: any = {
+      user_id: userId,
+    };
+
+    if (cursor) {
+      whereClause.created_at = {
+        lt: new Date(cursor),
+      };
+    }
+
+    const reviews = await this.prisma.prisma.dish_reviews.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      take: limit,
+      include: {
+        users: true,
+      },
+    });
+
+    const { reactionSet, reviewLikeCountMap } =
+      await this.buildReactionAggregates(
+        reviews.map((review) => review.created_dish_media_id),
+        reviews.map((review) => review.id),
+        userId,
+      );
+
+    return reviews.map((review) => ({
+      ...review,
+      username:
+        review.imported_user_name ?? review.users?.display_name ?? 'unknown',
+      isLiked: reactionSet.has(
+        this.reactionKey('dish_reviews', review.id, 'like'),
+      ),
+      likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+    }));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        ユーザーが「いいね」した dish_media を取得                 */
+  /* ------------------------------------------------------------------ */
+  async findDishMediaByLikedUser(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<{ dish_media_id: string; created_at: Date }[]> {
+    this.logger.debug('findDishMediaByLikedUser', 'findDishMediaByLikedUser', {
+      userId,
+      cursor,
+      limit,
+    });
+
+    const whereClause: any = {
+      user_id: userId,
+      target_type: 'dish_media',
+      action_type: 'like',
+    };
+    if (cursor) {
+      whereClause.created_at = { lt: new Date(cursor) };
+    }
+
+    const likes = await this.prisma.prisma.reactions.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      take: limit,
+      select: { target_id: true, created_at: true },
+    });
+
+    const result = likes.map((r) => ({
+      dish_media_id: r.target_id,
+      created_at: r.created_at,
+    }));
+
+    // TODO: ログインユーザーの場合
+    // const whereClause: any = { user_id: userId };
+    // if (cursor) {
+    //   whereClause.created_at = { lt: new Date(cursor) };
+    // }
+
+    // const likes = await this.prisma.prisma.dish_likes.findMany({
+    //   where: whereClause,
+    //   orderBy: { created_at: 'desc' },
+    //   take: limit,
+    //   select: { dish_media_id: true, created_at: true },
+    // });
+
+    this.logger.debug(
+      'findDishMediaByLikedUserResult',
+      'findDishMediaByLikedUser',
+      { count: result.length },
+    );
+
+    return result;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        ユーザーが「保存」した dish_media を取得                  */
+  /* ------------------------------------------------------------------ */
+  async findDishMediaBySavedUser(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<{ dish_media_id: string; created_at: Date }[]> {
+    this.logger.debug('findDishMediaBySavedUser', 'findDishMediaBySavedUser', {
+      userId,
+      cursor,
+      limit,
+    });
+
+    const whereClause: any = {
+      user_id: userId,
+      target_type: 'dish_media',
+      action_type: 'save',
+    };
+    if (cursor) {
+      whereClause.created_at = { lt: new Date(cursor) };
+    }
+
+    const saves = await this.prisma.prisma.reactions.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      take: limit,
+      select: { target_id: true, created_at: true },
+    });
+
+    const result = saves.map((r) => ({
+      dish_media_id: r.target_id,
+      created_at: r.created_at,
+    }));
+
+    this.logger.debug(
+      'findDishMediaBySavedUserResult',
+      'findDishMediaBySavedUser',
+      { count: result.length },
+    );
+
+    return result;
+  }
+
+  /**
+   * dishMediaIds から DishMediaEntryEntity 配列を構築
+   *  - dish_media 本体 / dishes.restaurants
+   *  - user の like/save 状態 (dish_likes + reactions)
+   *  - review の like 状態 & likeCount
+   *  - 順序は入力 dishMediaIds の順を維持
+   */
+  async getDishMediaEntriesByIds(
+    dishMediaIds: string[],
+    option: {
+      userId?: string;
+      reviewLimit?: number;
+    },
+  ): Promise<DishMediaEntryEntity[]> {
+    const { userId, reviewLimit = 6 } = option;
+    if (dishMediaIds.length === 0) return [];
+
+    const dishMedias = await this.prisma.prisma.dish_media.findMany({
+      where: { id: { in: dishMediaIds } },
+      include: {
+        dish_likes: { where: { user_id: userId } }, // User がいいねしているか
+        _count: { select: { dish_likes: true } }, // いいね数を取得
+        dishes: { include: { restaurants: true } },
+        dish_reviews: {
+          orderBy: { created_at: 'desc' },
+          take: reviewLimit,
+          include: { users: true },
+        },
+      },
+    });
+
+    const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
+    const allReviewIds = dishMedias.flatMap((m) =>
+      m.dish_reviews.map((r) => r.id),
+    );
+
+    const { reactionSet, reviewLikeCountMap } =
+      await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
+
+    return dishMediaIds.map((dishMediaId) => {
+      const dishMedia = dishMediaMap.get(dishMediaId);
+      if (!dishMedia) {
+        this.logger.warn('DishMediaNotFound', 'getDishMediaEntriesByIds', {
+          dishMediaId,
+        });
+        throw new Error(`Dish media not found for ID: ${dishMediaId}`);
+      }
+      return {
+        restaurant: dishMedia.dishes.restaurants!, // TODO migration して ! は外す。
+        dish: dishMedia.dishes,
+        dish_media: {
+          ...(dishMedia as PrismaDishMedia),
+          isSaved: reactionSet.has(
+            this.reactionKey('dish_media', dishMedia.id, 'save'),
+          ),
+          isLiked:
+            dishMedia.dish_likes.length > 0 ||
+            reactionSet.has(
+              this.reactionKey('dish_media', dishMedia.id, 'like'),
+            ),
+          likeCount: dishMedia._count.dish_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
+        },
+        dish_reviews: dishMedia.dish_reviews.map((review) => ({
+          ...review,
+          username:
+            review.imported_user_name ??
+            review.users?.display_name ??
+            'unknown',
+          isLiked: reactionSet.has(
+            this.reactionKey('dish_reviews', review.id, 'like'),
+          ),
+          likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+        })),
+      };
+    });
+  }
+
+  // --- new helper ---
+  private async buildReactionAggregates(
+    dishMediaIds: string[],
+    reviewIds: string[],
+    userId?: string,
+  ): Promise<{
+    reactionSet: Set<string>;
+    reviewLikeCountMap: Map<string, number>;
+  }> {
+    const reviewLikeCounts = reviewIds.length
+      ? await this.prisma.prisma.reactions.groupBy({
+          by: ['target_id'],
+          where: {
+            target_type: 'dish_reviews',
+            target_id: { in: reviewIds },
+            action_type: 'like',
+          },
+          _count: { target_id: true },
+        })
+      : [];
+    const reviewLikeCountMap = new Map(
+      reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
+    );
+
+    if (!userId) {
+      return {
+        reactionSet: new Set<string>(),
+        reviewLikeCountMap,
+      };
+    }
+
+    const targetIds = [...dishMediaIds, ...reviewIds];
+    const userReactions = targetIds.length
+      ? await this.prisma.prisma.reactions.findMany({
+          where: {
+            user_id: userId,
+            target_id: { in: targetIds },
+          },
+          select: { target_type: true, target_id: true, action_type: true },
+        })
+      : [];
+    const reactionSet = new Set(
+      userReactions.map((r) =>
+        this.reactionKey(r.target_type, r.target_id, r.action_type),
+      ),
+    );
+
+    return { reactionSet, reviewLikeCountMap };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                     いいね / いいね解除                         */
   /* ------------------------------------------------------------------ */
   async likeDishMedia(id: string, userId: string): Promise<void> {
     await this.prisma.prisma.dish_likes.upsert({
@@ -123,7 +420,7 @@ export class DishMediaRepository {
   }
 
   /* ------------------------------------------------------------------ */
-  /*                     3) 保存（reactions テーブル想定）               */
+  /*                     保存（reactions テーブル想定）               */
   /* ------------------------------------------------------------------ */
   async saveDishMedia(id: string, userId: string): Promise<void> {
     // TODO: migration
@@ -135,7 +432,7 @@ export class DishMediaRepository {
   }
 
   /* ------------------------------------------------------------------ */
-  /*                            4) Dish 存在確認                        */
+  /*                            Dish 存在確認                        */
   /* ------------------------------------------------------------------ */
   async dishExists(dishId: string): Promise<boolean> {
     const cnt = await this.prisma.prisma.dishes.count({
@@ -145,7 +442,7 @@ export class DishMediaRepository {
   }
 
   /* ------------------------------------------------------------------ */
-  /*        5) dish_media 投稿 (トランザクション内で呼び出し)           */
+  /*        dish_media 投稿 (トランザクション内で呼び出し)           */
   /* ------------------------------------------------------------------ */
   async createDishMedia(
     tx: Prisma.TransactionClient,
