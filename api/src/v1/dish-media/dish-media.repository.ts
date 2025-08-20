@@ -109,7 +109,7 @@ export class DishMediaRepository {
   /* ------------------------------------------------------------------ */
   /*   ユーザーがレビューした料理レビューを取得する                     */
   /* ------------------------------------------------------------------ */
-  async findDisReviesByUser(userId: string, cursor?: string, limit = 42): Promise<DishMediaEntryEntity['dish_reviews']> {
+  async findDishReviewsByUser(userId: string, cursor?: string, limit = 42): Promise<DishMediaEntryEntity['dish_reviews']> {
     this.logger.debug('FindDishMediaEntryByReviewedUser', 'findDishMediaEntryByReviewedUser', {
       userId,
       cursor,
@@ -143,6 +143,41 @@ export class DishMediaRepository {
       isLiked: reactionSet.has(this.reactionKey('dish_reviews', review.id, 'like')),
       likeCount: reviewLikeCountMap.get(review.id) ?? 0,
     }));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        ユーザーが「いいね」した dish_media を取得                 */
+  /* ------------------------------------------------------------------ */
+  async findDishMediaByLikedUser(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<{ dish_media_id: string; created_at: Date }[]> {
+    this.logger.debug('findDishMediaByLikedUser', 'findDishMediaByLikedUser', {
+      userId,
+      cursor,
+      limit,
+    });
+
+    const whereClause: any = { user_id: userId };
+    if (cursor) {
+      whereClause.created_at = { lt: new Date(cursor) };
+    }
+
+    const likes = await this.prisma.prisma.dish_likes.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      take: limit,
+      select: { dish_media_id: true, created_at: true },
+    });
+
+    this.logger.debug(
+      'findDishMediaByLikedUserResult',
+      'findDishMediaByLikedUser',
+      { count: likes.length },
+    );
+
+    return likes;
   }
 
   /**

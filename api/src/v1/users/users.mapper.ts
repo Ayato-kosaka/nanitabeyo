@@ -48,9 +48,23 @@ export class UsersMapper {
   /**
    * GET /v1/users/me/liked-dish-media のレスポンス変換
    */
-  toMeLikedDishMediaResponse(result: any): QueryMeLikedDishMediaResponse {
+  toMeLikedDishMediaResponse(result: {
+    data: DishMediaEntryItem[],
+    nextCursor: string | null;
+  }): QueryMeLikedDishMediaResponse {
     return {
-      data: result.data,
+      data: result.data.map((src) => ({
+        restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
+        dish: convertPrismaToSupabase_Dishes(src.dish),
+        dish_media: {
+          ...src.dish_media,
+          ...convertPrismaToSupabase_DishMedia(src.dish_media),
+        },
+        dish_reviews: src.dish_reviews.map((r) => ({
+          ...r,
+          ...convertPrismaToSupabase_DishReviews(r),
+        })),
+      })),
       nextCursor: result.nextCursor,
     };
   }
@@ -90,9 +104,23 @@ export class UsersMapper {
   /**
    * GET /v1/users/me/saved-dish-media のレスポンス変換
    */
-  toMeSavedDishMediaResponse(result: any): QueryMeSavedDishMediaResponse {
+  toMeSavedDishMediaResponse(result: {
+    data: DishMediaEntryItem[],
+    nextCursor: string | null;
+  }): QueryMeSavedDishMediaResponse {
     return {
-      data: result.data,
+      data: result.data.map((src) => ({
+        restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
+        dish: convertPrismaToSupabase_Dishes(src.dish),
+        dish_media: {
+          ...src.dish_media,
+          ...convertPrismaToSupabase_DishMedia(src.dish_media),
+        },
+        dish_reviews: src.dish_reviews.map((r) => ({
+          ...r,
+          ...convertPrismaToSupabase_DishReviews(r),
+        })),
+      })),
       nextCursor: result.nextCursor,
     };
   }
