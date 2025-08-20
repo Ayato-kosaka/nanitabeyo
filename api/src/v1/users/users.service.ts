@@ -17,21 +17,19 @@ import {
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
-import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
-import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
+import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly repo: UsersRepository,
-    private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
+    private readonly dishCategoriesRepo: DishCategoriesRepository,
   ) { }
 
   /* ------------------------------------------------------------------ */
@@ -178,7 +176,7 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const records = await this.repo.findUserSavedDishCategories(
+    const records = await this.dishCategoriesRepo.findDishCategoriesBySavedUser(
       userId,
       dto.cursor,
     );
