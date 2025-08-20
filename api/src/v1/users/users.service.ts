@@ -30,7 +30,7 @@ export class UsersService {
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */
@@ -41,12 +41,16 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const reviews = await this.dishMediaRepo.findDishReviewsByUser(userId, dto.cursor);
-
-    const dishMediaEntries = await this.dishMediaService.fetchDishMediaEntryItems(
-      reviews.map(review => review.created_dish_media_id),
-      { userId, reviewLimit: 0 },
+    const reviews = await this.dishMediaRepo.findDishReviewsByUser(
+      userId,
+      dto.cursor,
     );
+
+    const dishMediaEntries =
+      await this.dishMediaService.fetchDishMediaEntryItems(
+        reviews.map((review) => review.created_dish_media_id),
+        { userId, reviewLimit: 0 },
+      );
 
     const nextCursor =
       reviews.length > 0
@@ -59,13 +63,15 @@ export class UsersService {
     });
 
     return {
-      data: dishMediaEntries.map(list => ({
+      data: dishMediaEntries.map((list) => ({
         ...list,
         dish_media: {
           ...list.dish_media,
-          isMe: list.dish_media.user_id === userId
+          isMe: list.dish_media.user_id === userId,
         },
-        dish_reviews: reviews.filter(review => review.created_dish_media_id === list.dish_media.id)
+        dish_reviews: reviews.filter(
+          (review) => review.created_dish_media_id === list.dish_media.id,
+        ),
       })),
       nextCursor,
     };
@@ -85,12 +91,12 @@ export class UsersService {
       dto.cursor,
     );
 
-    const dishMediaIds = likes.map(l => l.dish_media_id);
+    const dishMediaIds = likes.map((l) => l.dish_media_id);
 
-    const dishMediaEntries = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      { userId },
-    );
+    const dishMediaEntries =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
+        userId,
+      });
 
     const nextCursor =
       likes.length > 0
@@ -216,12 +222,12 @@ export class UsersService {
       dto.cursor,
     );
 
-    const dishMediaIds = saves.map(s => s.dish_media_id);
+    const dishMediaIds = saves.map((s) => s.dish_media_id);
 
-    const dishMediaEntries = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      { userId },
-    );
+    const dishMediaEntries =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
+        userId,
+      });
 
     const nextCursor =
       saves.length > 0

@@ -12,7 +12,7 @@ export class UsersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * ユーザーの収益一覧を取得

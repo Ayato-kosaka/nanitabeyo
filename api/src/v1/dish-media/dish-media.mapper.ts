@@ -18,8 +18,8 @@ export type DishMediaEntryItem = DishMediaEntryEntity & {
   dish_media: {
     mediaUrl: string;
     thumbnailImageUrl: string;
-  }
-}
+  };
+};
 
 @Injectable()
 export class DishMediaMapper {
@@ -27,7 +27,9 @@ export class DishMediaMapper {
    * Repository から取得した `DishMediaEntryEntity[]` を
    * Controller が返す `QueryDishMediaResponse` に整形する
    */
-  toQueryDishMediaResponse(items: DishMediaEntryItem[]): QueryDishMediaResponse {
+  toQueryDishMediaResponse(
+    items: DishMediaEntryItem[],
+  ): QueryDishMediaResponse {
     return items.map((src) => ({
       restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
       dish: convertPrismaToSupabase_Dishes(src.dish),

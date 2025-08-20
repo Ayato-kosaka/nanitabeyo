@@ -17,9 +17,18 @@ import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converte
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
-import { convertPrismaToSupabase_DishCategories, PrismaDishCategories } from '../../../../shared/converters/convert_dish_categories';
-import { convertPrismaToSupabase_Payouts, PrismaPayouts } from '../../../../shared/converters/convert_payouts';
-import { convertPrismaToSupabase_RestaurantBids, PrismaRestaurantBids } from '../../../../shared/converters/convert_restaurant_bids';
+import {
+  convertPrismaToSupabase_DishCategories,
+  PrismaDishCategories,
+} from '../../../../shared/converters/convert_dish_categories';
+import {
+  convertPrismaToSupabase_Payouts,
+  PrismaPayouts,
+} from '../../../../shared/converters/convert_payouts';
+import {
+  convertPrismaToSupabase_RestaurantBids,
+  PrismaRestaurantBids,
+} from '../../../../shared/converters/convert_restaurant_bids';
 
 @Injectable()
 export class UsersMapper {
@@ -27,10 +36,9 @@ export class UsersMapper {
    * GET /v1/users/:id/dish-reviews のレスポンス変換
    */
   toUserDishReviewsResponse(result: {
-    data: (DishMediaEntryItem & { dish_media: { isMe: boolean } })[],
+    data: (DishMediaEntryItem & { dish_media: { isMe: boolean } })[];
     nextCursor: string | null;
-  }
-  ): QueryUserDishReviewsResponse {
+  }): QueryUserDishReviewsResponse {
     return {
       data: result.data.map((src) => ({
         restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
@@ -52,7 +60,7 @@ export class UsersMapper {
    * GET /v1/users/me/liked-dish-media のレスポンス変換
    */
   toMeLikedDishMediaResponse(result: {
-    data: DishMediaEntryItem[],
+    data: DishMediaEntryItem[];
     nextCursor: string | null;
   }): QueryMeLikedDishMediaResponse {
     return {
@@ -76,7 +84,7 @@ export class UsersMapper {
    * GET /v1/users/me/payouts のレスポンス変換
    */
   toMePayoutsResponse(result: {
-    data: PrismaPayouts[],
+    data: PrismaPayouts[];
     nextCursor: string | null;
   }): QueryMePayoutsResponse {
     return {
@@ -89,7 +97,7 @@ export class UsersMapper {
    * GET /v1/users/me/restaurant-bids のレスポンス変換
    */
   toMeRestaurantBidsResponse(result: {
-    data: PrismaRestaurantBids[],
+    data: PrismaRestaurantBids[];
     nextCursor: string | null;
   }): QueryMeRestaurantBidsResponse {
     return {
@@ -102,11 +110,13 @@ export class UsersMapper {
    * GET /v1/users/me/saved-dish-categories のレスポンス変換
    */
   toMeSavedDishCategoriesResponse(result: {
-    data: PrismaDishCategories[],
+    data: PrismaDishCategories[];
     nextCursor: string | null;
   }): QueryMeSavedDishCategoriesResponse {
     return {
-      data: result.data.map((src) => convertPrismaToSupabase_DishCategories(src)),
+      data: result.data.map((src) =>
+        convertPrismaToSupabase_DishCategories(src),
+      ),
       nextCursor: result.nextCursor,
     };
   }
@@ -115,7 +125,7 @@ export class UsersMapper {
    * GET /v1/users/me/saved-dish-media のレスポンス変換
    */
   toMeSavedDishMediaResponse(result: {
-    data: DishMediaEntryItem[],
+    data: DishMediaEntryItem[];
     nextCursor: string | null;
   }): QueryMeSavedDishMediaResponse {
     return {

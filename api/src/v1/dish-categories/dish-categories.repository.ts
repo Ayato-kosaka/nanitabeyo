@@ -12,7 +12,7 @@ export class DishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * カテゴリ名リストから料理カテゴリを検索
@@ -82,7 +82,7 @@ export class DishCategoriesRepository {
       take: limit,
     });
 
-    const categoryIds = savedEntries.map(e => e.target_id);
+    const categoryIds = savedEntries.map((e) => e.target_id);
     const result = await this.prisma.prisma.dish_categories.findMany({
       where: { id: { in: categoryIds } },
     });

@@ -31,4 +31,4 @@ import { DishCategoriesRepository } from '../dish-categories/dish-categories.rep
   ],
   exports: [UsersService, UsersRepository],
 })
-export class UsersModule { }
+export class UsersModule {}

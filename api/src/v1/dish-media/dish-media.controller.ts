@@ -57,7 +57,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                             GET /v1/dish-media                     */

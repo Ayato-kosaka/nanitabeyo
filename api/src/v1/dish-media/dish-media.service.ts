@@ -31,7 +31,7 @@ export class DishMediaService {
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                         GET /v1/dish-media                         */
@@ -46,9 +46,12 @@ export class DishMediaService {
 
     const dishMediaIds = await this.repo.findDishMediaIds(dto, viewerId);
 
-    const dishMediaEntryItems = await this.fetchDishMediaEntryItems(dishMediaIds, {
-      userId: viewerId,
-    });
+    const dishMediaEntryItems = await this.fetchDishMediaEntryItems(
+      dishMediaIds,
+      {
+        userId: viewerId,
+      },
+    );
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
       count: dishMediaEntryItems.length,
@@ -62,18 +65,25 @@ export class DishMediaService {
   public async fetchDishMediaEntryItems(
     dishMediaIds: string[],
     option: {
-      userId?: string,
-      reviewLimit?: number,
-    }
+      userId?: string;
+      reviewLimit?: number;
+    },
   ): Promise<DishMediaEntryItem[]> {
     if (!dishMediaIds.length) return [];
 
-    const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(dishMediaIds, option);
+    const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(
+      dishMediaIds,
+      option,
+    );
 
     const dishMediaEntryItems = await Promise.all<DishMediaEntryItem>(
       dishMediaEntries.map(async (rec) => {
-        const mediaUrl = await this.storage.generateSignedUrl(rec.dish_media.media_path);
-        const thumbnailImageUrl = await this.storage.generateSignedUrl(rec.dish_media.thumbnail_path);
+        const mediaUrl = await this.storage.generateSignedUrl(
+          rec.dish_media.media_path,
+        );
+        const thumbnailImageUrl = await this.storage.generateSignedUrl(
+          rec.dish_media.thumbnail_path,
+        );
         return {
           ...rec,
           dish_media: {
@@ -83,7 +93,7 @@ export class DishMediaService {
           },
         };
       }),
-    ).then(list => list.filter((v): v is NonNullable<typeof v> => !!v));
+    ).then((list) => list.filter((v): v is NonNullable<typeof v> => !!v));
 
     return dishMediaEntryItems;
   }
