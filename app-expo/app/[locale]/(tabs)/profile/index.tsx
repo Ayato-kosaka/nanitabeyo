@@ -63,10 +63,10 @@ type TabType = "posts" | "saved" | "liked" | "wallet";
 
 // Interface for API data structures
 interface ProfileData {
-	userPosts: QueryUserDishReviewsResponse["data"];
-	likedPosts: QueryMeLikedDishMediaResponse["data"];
-	savedTopics: QueryMeSavedDishCategoriesResponse["data"];
-	savedPosts: QueryMeSavedDishMediaResponse["data"];
+	userPosts: QueryUserDishReviewsResponse["data"] | null;
+	likedPosts: QueryMeLikedDishMediaResponse["data"] | null;
+	savedTopics: QueryMeSavedDishCategoriesResponse["data"] | null;
+	savedPosts: QueryMeSavedDishMediaResponse["data"] | null;
 }
 
 interface PaginationState {
@@ -344,10 +344,10 @@ export default function ProfileScreen() {
 
 	// API Data State
 	const [profileData, setProfileData] = useState<ProfileData>({
-		userPosts: [],
-		likedPosts: [],
-		savedTopics: [],
-		savedPosts: [],
+		userPosts: null,
+		likedPosts: null,
+		savedTopics: null,
+		savedPosts: null,
 	});
 
 	// Pagination State for each tab
@@ -564,7 +564,7 @@ export default function ProfileScreen() {
 						const userPostsresponse = await fetchUserPosts(currentState.cursor || undefined);
 						setProfileData((prev) => ({
 							...prev,
-							userPosts: [...prev.userPosts, ...userPostsresponse.data],
+							userPosts: [...prev.userPosts!, ...userPostsresponse.data],
 						}));
 						response = userPostsresponse;
 						break;
@@ -572,7 +572,7 @@ export default function ProfileScreen() {
 						const likedPostsResponse = await fetchLikedPosts(currentState.cursor || undefined);
 						setProfileData((prev) => ({
 							...prev,
-							likedPosts: [...prev.likedPosts, ...likedPostsResponse.data],
+							likedPosts: [...prev.likedPosts!, ...likedPostsResponse.data],
 						}));
 						response = likedPostsResponse;
 						break;
@@ -654,8 +654,12 @@ export default function ProfileScreen() {
 
 	// Load initial data when component mounts or tab changes
 	React.useEffect(() => {
-		withLoading(loadInitialData)(selectedTab);
-	}, [selectedTab, withLoading, loadInitialData]);
+		// Load data for the new tab if it hasn't been loaded yet
+		const currentData = getCurrentPostsForTab(selectedTab);
+		if (currentData === null && selectedTab !== "wallet") {
+			withLoading(loadInitialData)(selectedTab);
+		}
+	}, [selectedTab]);
 
 	// Add wallet tab for own profile
 	const availableTabs: TabType[] = isOwnProfile ? ["posts", "saved", "liked", "wallet"] : ["posts"];
@@ -673,15 +677,15 @@ export default function ProfileScreen() {
 	const getCurrentPosts = (): any[] => {
 		switch (selectedTab) {
 			case "posts":
-				return profileData.userPosts;
+				return profileData.userPosts ?? [];
 			case "saved":
-				return profileData.savedPosts;
+				return profileData.savedPosts ?? [];
 			case "wallet":
 				return [];
 			case "liked":
-				return profileData.likedPosts;
+				return profileData.likedPosts ?? [];
 			default:
-				return profileData.userPosts;
+				return profileData.userPosts ?? [];
 		}
 	};
 
@@ -716,7 +720,6 @@ export default function ProfileScreen() {
 	const handleSaveProfile = () => {
 		mediumImpact();
 		// In a real app, this would update the profile via API
-		console.log("Saving profile with bio:", editedBio);
 		closeEditModal();
 
 		logFrontendEvent({
@@ -768,17 +771,9 @@ export default function ProfileScreen() {
 				isOwnProfile,
 			},
 		});
-
-		// Load data for the new tab if it hasn't been loaded yet
-		const currentData = getCurrentPostsForTab(tab);
-		if (currentData.length === 0 && tab !== "wallet") {
-			await withLoading(async () => {
-				await loadInitialData(tab);
-			});
-		}
 	};
 
-	const getCurrentPostsForTab = (tab: TabType): any[] => {
+	const getCurrentPostsForTab = (tab: TabType): any[] | null => {
 		switch (tab) {
 			case "posts":
 				return profileData.userPosts;
