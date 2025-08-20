@@ -159,25 +159,91 @@ export class DishMediaRepository {
       limit,
     });
 
-    const whereClause: any = { user_id: userId };
+    const whereClause: any = {
+      user_id: userId,
+      target_type: 'dish_media',
+      action_type: 'like',
+    };
     if (cursor) {
       whereClause.created_at = { lt: new Date(cursor) };
     }
 
-    const likes = await this.prisma.prisma.dish_likes.findMany({
+    const likes = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
       orderBy: { created_at: 'desc' },
       take: limit,
-      select: { dish_media_id: true, created_at: true },
+      select: { target_id: true, created_at: true },
     });
+
+    const result = likes.map(r => ({
+      dish_media_id: r.target_id,
+      created_at: r.created_at,
+    }));
+
+    // TODO: ログインユーザーの場合
+    // const whereClause: any = { user_id: userId };
+    // if (cursor) {
+    //   whereClause.created_at = { lt: new Date(cursor) };
+    // }
+
+    // const likes = await this.prisma.prisma.dish_likes.findMany({
+    //   where: whereClause,
+    //   orderBy: { created_at: 'desc' },
+    //   take: limit,
+    //   select: { dish_media_id: true, created_at: true },
+    // });
 
     this.logger.debug(
       'findDishMediaByLikedUserResult',
       'findDishMediaByLikedUser',
-      { count: likes.length },
+      { count: result.length },
     );
 
-    return likes;
+    return result;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        ユーザーが「保存」した dish_media を取得                  */
+  /* ------------------------------------------------------------------ */
+  async findDishMediaBySavedUser(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<{ dish_media_id: string; created_at: Date }[]> {
+    this.logger.debug('findDishMediaBySavedUser', 'findDishMediaBySavedUser', {
+      userId,
+      cursor,
+      limit,
+    });
+
+    const whereClause: any = {
+      user_id: userId,
+      target_type: 'dish_media',
+      action_type: 'save',
+    };
+    if (cursor) {
+      whereClause.created_at = { lt: new Date(cursor) };
+    }
+
+    const saves = await this.prisma.prisma.reactions.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+      take: limit,
+      select: { target_id: true, created_at: true },
+    });
+
+    const result = saves.map(r => ({
+      dish_media_id: r.target_id,
+      created_at: r.created_at,
+    }));
+
+    this.logger.debug(
+      'findDishMediaBySavedUserResult',
+      'findDishMediaBySavedUser',
+      { count: result.length },
+    );
+
+    return result;
   }
 
   /**

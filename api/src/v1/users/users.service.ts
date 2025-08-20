@@ -105,12 +105,7 @@ export class UsersService {
     });
 
     return {
-      data: dishMediaEntries.map(entry => ({
-        ...entry,
-        dish_media: {
-          ...entry.dish_media,
-        },
-      })),
+      data: dishMediaEntries,
       nextCursor,
     };
   }
@@ -218,42 +213,31 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const records = await this.repo.findUserSavedDishMedia(userId, dto.cursor);
-
-    // 署名 URL を付与
-    const withSignedUrls = await Promise.all(
-      records.map(async (rec) => {
-        let signedUrl = '';
-        if (rec.media_path) {
-          signedUrl = await this.storage.generateSignedUrl(rec.media_path);
-        }
-
-        return {
-          restaurant: rec.restaurants,
-          dish: rec.dishes,
-          dish_media: {
-            ...rec,
-            media_url: signedUrl,
-          },
-          dish_reviews: rec.dish_reviews,
-        };
-      }),
+    const saves = await this.dishMediaRepo.findDishMediaBySavedUser(
+      userId,
+      dto.cursor,
     );
 
+    const dishMediaIds = saves.map(s => s.dish_media_id);
+
+    const dishMediaEntries = await this.dishMediaService.fetchDishMediaEntryItems(
+      dishMediaIds,
+      { userId },
+    );
+
+    const nextCursor =
+      saves.length > 0
+        ? saves[saves.length - 1].created_at.toISOString()
+        : null;
+
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
-      count: withSignedUrls.length,
-      nextCursor:
-        records.length > 0
-          ? records[records.length - 1].created_at.toISOString()
-          : null,
+      count: dishMediaEntries.length,
+      nextCursor,
     });
 
     return {
-      data: withSignedUrls,
-      nextCursor:
-        records.length > 0
-          ? records[records.length - 1].created_at.toISOString()
-          : null,
+      data: dishMediaEntries,
+      nextCursor,
     };
   }
 }
