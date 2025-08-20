@@ -358,8 +358,14 @@ export default function ProfileScreen() {
 		wallet: { cursor: null, hasNextPage: false, isLoadingMore: false },
 	});
 
+	const [fetchErrors, setFetchErrors] = useState<Record<TabType, string | null>>({
+		posts: null,
+		saved: null,
+		liked: null,
+		wallet: null,
+	});
+
 	const [isRefreshing, setIsRefreshing] = useState(false);
-	const [fetchError, setFetchError] = useState<string | null>(null);
 
 	// Determine if this is the current user's profile or another user's
 	const isOwnProfile = !userId || userId === userProfile.id;
@@ -495,7 +501,7 @@ export default function ProfileScreen() {
 		async (tab: TabType) => {
 			if (tab === "wallet") return;
 
-			setFetchError(null);
+			setFetchErrors((prev) => ({ ...prev, [tab]: null }));
 
 			try {
 				let response;
@@ -536,7 +542,8 @@ export default function ProfileScreen() {
 					},
 				}));
 			} catch (error) {
-				setFetchError(error instanceof Error ? error.message : "Failed to load data");
+				const message = error instanceof Error ? error.message : "Failed to load data";
+				setFetchErrors((prev) => ({ ...prev, [tab]: message }));
 				setPaginationState((prev) => ({
 					...prev,
 					[tab]: { ...prev[tab], hasNextPage: false, isLoadingMore: false },
@@ -625,7 +632,7 @@ export default function ProfileScreen() {
 			}));
 
 			try {
-				await loadInitialData(tab);
+				withLoading(loadInitialData)(tab);
 			} finally {
 				setIsRefreshing(false);
 			}
@@ -853,6 +860,8 @@ export default function ProfileScreen() {
 
 	// Render empty state
 	const renderEmptyState = () => {
+		const tabError = fetchErrors[selectedTab];
+
 		if (isInitialLoading) {
 			return (
 				<View style={styles.loadingContainer}>
@@ -862,11 +871,11 @@ export default function ProfileScreen() {
 			);
 		}
 
-		if (fetchError) {
+		if (tabError) {
 			return (
 				<View style={styles.emptyStateContainer}>
 					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>Failed to load data: {fetchError}</Text>
+						<Text style={styles.emptyStateText}>Failed to load data: {tabError}</Text>
 						<TouchableOpacity style={styles.retryButton} onPress={() => refreshData(selectedTab)}>
 							<Text style={styles.retryButtonText}>Retry</Text>
 						</TouchableOpacity>
