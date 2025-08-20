@@ -327,46 +327,51 @@ export class DishMediaRepository {
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
 
-    return dishMediaIds.map((dishMediaId) => {
-      const dishMedia = dishMediaMap.get(dishMediaId);
-      if (!dishMedia) {
-        this.logger.warn('DishMediaNotFound', 'getDishMediaEntriesByIds', {
-          dishMediaId,
-        });
-        throw new Error(`Dish media not found for ID: ${dishMediaId}`);
-      }
-      return {
-        restaurant: dishMedia.dishes.restaurants,
-        dish: {
-          ...dishMedia.dishes,
-          reviewCount: dishMedia._count.dish_reviews,
-          averageRating: avgRatingMap.get(dishMedia.id) ?? 0,
-        },
-        dish_media: {
-          ...(dishMedia as PrismaDishMedia),
-          isSaved: reactionSet.has(
-            this.reactionKey('dish_media', dishMedia.id, 'save'),
-          ),
-          isLiked:
-            dishMedia.dish_likes.length > 0 ||
-            reactionSet.has(
-              this.reactionKey('dish_media', dishMedia.id, 'like'),
+    return dishMediaIds
+      .filter((dishMediaId) => {
+        const dishMedia = dishMediaMap.get(dishMediaId);
+        if (!dishMedia) {
+          this.logger.warn('DishMediaNotFound', 'getDishMediaEntriesByIds', {
+            dishMediaId
+          });
+          return false
+        }
+        return true
+      }) //
+      .map((dishMediaId) => {
+        const dishMedia = dishMediaMap.get(dishMediaId)!;
+        return {
+          restaurant: dishMedia.dishes.restaurants,
+          dish: {
+            ...dishMedia.dishes,
+            reviewCount: dishMedia._count.dish_reviews,
+            averageRating: avgRatingMap.get(dishMedia.id) ?? 0,
+          },
+          dish_media: {
+            ...(dishMedia as PrismaDishMedia),
+            isSaved: reactionSet.has(
+              this.reactionKey('dish_media', dishMedia.id, 'save'),
             ),
-          likeCount: dishMedia._count.dish_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
-        },
-        dish_reviews: dishMedia.dish_reviews.map((review) => ({
-          ...review,
-          username:
-            review.imported_user_name ??
-            review.users?.display_name ??
-            'unknown',
-          isLiked: reactionSet.has(
-            this.reactionKey('dish_reviews', review.id, 'like'),
-          ),
-          likeCount: reviewLikeCountMap.get(review.id) ?? 0,
-        })),
-      };
-    });
+            isLiked:
+              dishMedia.dish_likes.length > 0 ||
+              reactionSet.has(
+                this.reactionKey('dish_media', dishMedia.id, 'like'),
+              ),
+            likeCount: dishMedia._count.dish_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
+          },
+          dish_reviews: dishMedia.dish_reviews.map((review) => ({
+            ...review,
+            username:
+              review.imported_user_name ??
+              review.users?.display_name ??
+              'unknown',
+            isLiked: reactionSet.has(
+              this.reactionKey('dish_reviews', review.id, 'like'),
+            ),
+            likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+          })),
+        };
+      });
   }
 
   // --- new helper ---
