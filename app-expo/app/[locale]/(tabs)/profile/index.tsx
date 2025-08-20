@@ -866,7 +866,7 @@ export default function ProfileScreen() {
 			return (
 				<View style={styles.loadingContainer}>
 					<ActivityIndicator size="large" color="#5EA2FF" />
-					<Text style={styles.loadingText}>Loading...</Text>
+					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			);
 		}
@@ -875,9 +875,9 @@ export default function ProfileScreen() {
 			return (
 				<View style={styles.emptyStateContainer}>
 					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>Failed to load data: {tabError}</Text>
+						<Text style={styles.emptyStateText}>{i18n.t("Profile.tabError.failedToLoad", { error: tabError })}</Text>
 						<TouchableOpacity style={styles.retryButton} onPress={() => refreshData(selectedTab)}>
-							<Text style={styles.retryButtonText}>Retry</Text>
+							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
 						</TouchableOpacity>
 					</View>
 				</View>
@@ -888,7 +888,11 @@ export default function ProfileScreen() {
 			<View style={styles.emptyStateContainer}>
 				<View style={styles.emptyStateCard}>
 					<Text style={styles.emptyStateText}>
-						{selectedTab === "posts" ? "No posts yet" : selectedTab === "liked" ? "No liked posts" : "No saved items"}
+						{selectedTab === "posts"
+							? i18n.t("Profile.emptyState.noPosts")
+							: selectedTab === "liked"
+								? i18n.t("Profile.emptyState.noLikedPosts")
+								: i18n.t("Profile.emptyState.noSavedItems")}
 					</Text>
 				</View>
 			</View>

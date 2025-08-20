@@ -181,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "Cargando...",
+		"tabError": {
+			"failedToLoad": "Error al cargar los datos: {{error}}",
+			"retry": "Reintentar"
+		},
 		"emptyState": {
 			"noDeposits": "No hay depósitos para el estado seleccionado",
-			"noEarnings": "No hay ganancias para el estado seleccionado"
+			"noEarnings": "No hay ganancias para el estado seleccionado",
+			"noPosts": "Aún no hay publicaciones",
+			"noLikedPosts": "No hay publicaciones con me gusta",
+			"noSavedItems": "No hay elementos guardados"
 		},
 		"statusLabels": {
 			"active": "Activo",

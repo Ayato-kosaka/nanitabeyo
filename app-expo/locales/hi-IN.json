@@ -181,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "लोड हो रहा है...",
+		"tabError": {
+			"failedToLoad": "डेटा लोड करने में विफल: {{error}}",
+			"retry": "पुनः प्रयास करें"
+		},
 		"emptyState": {
 			"noDeposits": "चयनित स्थिति के लिए कोई जमा नहीं",
-			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं"
+			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं",
+			"noPosts": "अभी तक कोई पोस्ट नहीं",
+			"noLikedPosts": "कोई पसंद की गई पोस्ट नहीं",
+			"noSavedItems": "कोई सहेजे गए आइटम नहीं"
 		},
 		"statusLabels": {
 			"active": "सक्रिय",
