@@ -311,6 +311,7 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   id: 'id',
   google_place_id: 'google_place_id',
   name: 'name',
+  name_language_code: 'name_language_code',
   latitude: 'latitude',
   longitude: 'longitude',
   image_url: 'image_url',

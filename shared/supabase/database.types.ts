@@ -237,7 +237,7 @@ export type Database = {
           comment: string
           comment_tsv: unknown | null
           created_at: string
-          created_dish_media_id: string | null
+          created_dish_media_id: string
           currency_code: string | null
           dish_id: string
           id: string
@@ -252,7 +252,7 @@ export type Database = {
           comment: string
           comment_tsv?: unknown | null
           created_at?: string
-          created_dish_media_id?: string | null
+          created_dish_media_id: string
           currency_code?: string | null
           dish_id: string
           id?: string
@@ -267,7 +267,7 @@ export type Database = {
           comment?: string
           comment_tsv?: unknown | null
           created_at?: string
-          created_dish_media_id?: string | null
+          created_dish_media_id?: string
           currency_code?: string | null
           dish_id?: string
           id?: string
@@ -309,7 +309,7 @@ export type Database = {
           id: string
           lock_no: number
           name: string | null
-          restaurant_id: string | null
+          restaurant_id: string
           updated_at: string
         }
         Insert: {
@@ -318,7 +318,7 @@ export type Database = {
           id?: string
           lock_no?: number
           name?: string | null
-          restaurant_id?: string | null
+          restaurant_id: string
           updated_at?: string
         }
         Update: {
@@ -327,7 +327,7 @@ export type Database = {
           id?: string
           lock_no?: number
           name?: string | null
-          restaurant_id?: string | null
+          restaurant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -483,13 +483,6 @@ export type Database = {
             columns: ["bid_id"]
             isOneToOne: false
             referencedRelation: "restaurant_bids"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payouts_dish_media_id_fkey"
-            columns: ["dish_media_id"]
-            isOneToOne: false
-            referencedRelation: "dish_media"
             referencedColumns: ["id"]
           },
         ]
@@ -688,13 +681,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "restaurant_bids_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "restaurant_bids_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -706,30 +692,36 @@ export type Database = {
       restaurants: {
         Row: {
           created_at: string
-          google_place_id: string | null
+          google_place_id: string
           id: string
           image_url: string
           latitude: number
+          location: unknown | null
           longitude: number
           name: string
+          name_language_code: string
         }
         Insert: {
           created_at?: string
-          google_place_id?: string | null
+          google_place_id: string
           id?: string
           image_url: string
           latitude: number
+          location?: unknown | null
           longitude: number
           name: string
+          name_language_code: string
         }
         Update: {
           created_at?: string
-          google_place_id?: string | null
+          google_place_id?: string
           id?: string
           image_url?: string
           latitude?: number
+          location?: unknown | null
           longitude?: number
           name?: string
+          name_language_code?: string
         }
         Relationships: []
       }

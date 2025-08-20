@@ -2540,13 +2540,11 @@ export namespace Prisma {
   export type Dish_mediaCountOutputType = {
     dish_likes: number
     dish_reviews: number
-    payouts: number
   }
 
   export type Dish_mediaCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_likes?: boolean | Dish_mediaCountOutputTypeCountDish_likesArgs
     dish_reviews?: boolean | Dish_mediaCountOutputTypeCountDish_reviewsArgs
-    payouts?: boolean | Dish_mediaCountOutputTypeCountPayoutsArgs
   }
 
   // Custom InputTypes
@@ -2572,13 +2570,6 @@ export namespace Prisma {
    */
   export type Dish_mediaCountOutputTypeCountDish_reviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: dish_reviewsWhereInput
-  }
-
-  /**
-   * Dish_mediaCountOutputType without action
-   */
-  export type Dish_mediaCountOutputTypeCountPayoutsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: payoutsWhereInput
   }
 
 
@@ -2690,12 +2681,10 @@ export namespace Prisma {
 
   export type RestaurantsCountOutputType = {
     dishes: number
-    restaurant_bids: number
   }
 
   export type RestaurantsCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | RestaurantsCountOutputTypeCountDishesArgs
-    restaurant_bids?: boolean | RestaurantsCountOutputTypeCountRestaurant_bidsArgs
   }
 
   // Custom InputTypes
@@ -2714,13 +2703,6 @@ export namespace Prisma {
    */
   export type RestaurantsCountOutputTypeCountDishesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: dishesWhereInput
-  }
-
-  /**
-   * RestaurantsCountOutputType without action
-   */
-  export type RestaurantsCountOutputTypeCountRestaurant_bidsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: restaurant_bidsWhereInput
   }
 
 
@@ -8324,7 +8306,6 @@ export namespace Prisma {
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
     dish_reviews?: boolean | dish_media$dish_reviewsArgs<ExtArgs>
-    payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media"]>
 
@@ -8374,7 +8355,6 @@ export namespace Prisma {
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
     dish_reviews?: boolean | dish_media$dish_reviewsArgs<ExtArgs>
-    payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type dish_mediaIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8393,7 +8373,6 @@ export namespace Prisma {
       dishes: Prisma.$dishesPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs> | null
       dish_reviews: Prisma.$dish_reviewsPayload<ExtArgs>[]
-      payouts: Prisma.$payoutsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -8803,7 +8782,6 @@ export namespace Prisma {
     dishes<T extends dishesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dishesDefaultArgs<ExtArgs>>): Prisma__dishesClient<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends dish_media$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     dish_reviews<T extends dish_media$dish_reviewsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_reviewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    payouts<T extends dish_media$payoutsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$payoutsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -9305,30 +9283,6 @@ export namespace Prisma {
   }
 
   /**
-   * dish_media.payouts
-   */
-  export type dish_media$payoutsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the payouts
-     */
-    select?: payoutsSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the payouts
-     */
-    omit?: payoutsOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: payoutsInclude<ExtArgs> | null
-    where?: payoutsWhereInput
-    orderBy?: payoutsOrderByWithRelationInput | payoutsOrderByWithRelationInput[]
-    cursor?: payoutsWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: PayoutsScalarFieldEnum | PayoutsScalarFieldEnum[]
-  }
-
-  /**
    * dish_media without action
    */
   export type dish_mediaDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9567,7 +9521,7 @@ export namespace Prisma {
     rating: number
     price_cents: number | null
     currency_code: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date
@@ -9605,7 +9559,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
-    dish_media?: boolean | dish_reviews$dish_mediaArgs<ExtArgs>
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -9623,7 +9577,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
-    dish_media?: boolean | dish_reviews$dish_mediaArgs<ExtArgs>
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -9641,7 +9595,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
-    dish_media?: boolean | dish_reviews$dish_mediaArgs<ExtArgs>
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -9663,17 +9617,17 @@ export namespace Prisma {
 
   export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "original_language_code" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at", ExtArgs["result"]["dish_reviews"]>
   export type dish_reviewsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_media?: boolean | dish_reviews$dish_mediaArgs<ExtArgs>
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }
   export type dish_reviewsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_media?: boolean | dish_reviews$dish_mediaArgs<ExtArgs>
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }
   export type dish_reviewsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_media?: boolean | dish_reviews$dish_mediaArgs<ExtArgs>
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }
@@ -9681,7 +9635,7 @@ export namespace Prisma {
   export type $dish_reviewsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "dish_reviews"
     objects: {
-      dish_media: Prisma.$dish_mediaPayload<ExtArgs> | null
+      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
       dishes: Prisma.$dishesPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs> | null
     }
@@ -9694,7 +9648,7 @@ export namespace Prisma {
       rating: number
       price_cents: number | null
       currency_code: string | null
-      created_dish_media_id: string | null
+      created_dish_media_id: string
       imported_user_name: string | null
       imported_user_avatar: string | null
       created_at: Date
@@ -10092,7 +10046,7 @@ export namespace Prisma {
    */
   export interface Prisma__dish_reviewsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    dish_media<T extends dish_reviews$dish_mediaArgs<ExtArgs> = {}>(args?: Subset<T, dish_reviews$dish_mediaArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     dishes<T extends dishesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dishesDefaultArgs<ExtArgs>>): Prisma__dishesClient<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends dish_reviews$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_reviews$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
@@ -10532,25 +10486,6 @@ export namespace Prisma {
   }
 
   /**
-   * dish_reviews.dish_media
-   */
-  export type dish_reviews$dish_mediaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_media
-     */
-    select?: dish_mediaSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_media
-     */
-    omit?: dish_mediaOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_mediaInclude<ExtArgs> | null
-    where?: dish_mediaWhereInput
-  }
-
-  /**
    * dish_reviews.users
    */
   export type dish_reviews$usersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10767,7 +10702,7 @@ export namespace Prisma {
 
   export type DishesGroupByOutputType = {
     id: string
-    restaurant_id: string | null
+    restaurant_id: string
     category_id: string
     name: string | null
     created_at: Date
@@ -10805,7 +10740,7 @@ export namespace Prisma {
     dish_media?: boolean | dishes$dish_mediaArgs<ExtArgs>
     dish_reviews?: boolean | dishes$dish_reviewsArgs<ExtArgs>
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     _count?: boolean | DishesCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
 
@@ -10818,7 +10753,7 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
 
   export type dishesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -10830,7 +10765,7 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
 
   export type dishesSelectScalar = {
@@ -10848,16 +10783,16 @@ export namespace Prisma {
     dish_media?: boolean | dishes$dish_mediaArgs<ExtArgs>
     dish_reviews?: boolean | dishes$dish_reviewsArgs<ExtArgs>
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     _count?: boolean | DishesCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type dishesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }
   export type dishesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }
 
   export type $dishesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10866,11 +10801,11 @@ export namespace Prisma {
       dish_media: Prisma.$dish_mediaPayload<ExtArgs>[]
       dish_reviews: Prisma.$dish_reviewsPayload<ExtArgs>[]
       dish_categories: Prisma.$dish_categoriesPayload<ExtArgs>
-      restaurants: Prisma.$restaurantsPayload<ExtArgs> | null
+      restaurants: Prisma.$restaurantsPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      restaurant_id: string | null
+      restaurant_id: string
       category_id: string
       name: string | null
       created_at: Date
@@ -11273,7 +11208,7 @@ export namespace Prisma {
     dish_media<T extends dishes$dish_mediaArgs<ExtArgs> = {}>(args?: Subset<T, dishes$dish_mediaArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_reviews<T extends dishes$dish_reviewsArgs<ExtArgs> = {}>(args?: Subset<T, dishes$dish_reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_reviewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_categories<T extends dish_categoriesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_categoriesDefaultArgs<ExtArgs>>): Prisma__dish_categoriesClient<$Result.GetResult<Prisma.$dish_categoriesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    restaurants<T extends dishes$restaurantsArgs<ExtArgs> = {}>(args?: Subset<T, dishes$restaurantsArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    restaurants<T extends restaurantsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurantsDefaultArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -11751,25 +11686,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Dish_reviewsScalarFieldEnum | Dish_reviewsScalarFieldEnum[]
-  }
-
-  /**
-   * dishes.restaurants
-   */
-  export type dishes$restaurantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the restaurants
-     */
-    select?: restaurantsSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the restaurants
-     */
-    omit?: restaurantsOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: restaurantsInclude<ExtArgs> | null
-    where?: restaurantsWhereInput
   }
 
   /**
@@ -14223,7 +14139,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["payouts"]>
 
   export type payoutsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14238,7 +14153,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["payouts"]>
 
   export type payoutsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14253,7 +14167,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["payouts"]>
 
   export type payoutsSelectScalar = {
@@ -14272,22 +14185,18 @@ export namespace Prisma {
   export type payoutsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bid_id" | "transfer_id" | "dish_media_id" | "amount_cents" | "currency_code" | "status" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["payouts"]>
   export type payoutsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }
   export type payoutsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }
   export type payoutsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }
 
   export type $payoutsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "payouts"
     objects: {
       restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>
-      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14695,7 +14604,6 @@ export namespace Prisma {
   export interface Prisma__payoutsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     restaurant_bids<T extends restaurant_bidsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurant_bidsDefaultArgs<ExtArgs>>): Prisma__restaurant_bidsClient<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -19840,7 +19748,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     payouts?: boolean | restaurant_bids$payoutsArgs<ExtArgs>
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
     _count?: boolean | Restaurant_bidsCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurant_bids"]>
@@ -19859,7 +19766,6 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurant_bids"]>
 
@@ -19877,7 +19783,6 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurant_bids"]>
 
@@ -19900,16 +19805,13 @@ export namespace Prisma {
   export type restaurant_bidsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "restaurant_id" | "user_id" | "payment_intent_id" | "amount_cents" | "currency_code" | "start_date" | "end_date" | "status" | "refund_id" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["restaurant_bids"]>
   export type restaurant_bidsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     payouts?: boolean | restaurant_bids$payoutsArgs<ExtArgs>
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
     _count?: boolean | Restaurant_bidsCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type restaurant_bidsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }
   export type restaurant_bidsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }
 
@@ -19917,7 +19819,6 @@ export namespace Prisma {
     name: "restaurant_bids"
     objects: {
       payouts: Prisma.$payoutsPayload<ExtArgs>[]
-      restaurants: Prisma.$restaurantsPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -20329,7 +20230,6 @@ export namespace Prisma {
   export interface Prisma__restaurant_bidsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     payouts<T extends restaurant_bids$payoutsArgs<ExtArgs> = {}>(args?: Subset<T, restaurant_bids$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$payoutsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    restaurants<T extends restaurantsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurantsDefaultArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends usersDefaultArgs<ExtArgs> = {}>(args?: Subset<T, usersDefaultArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -20837,6 +20737,7 @@ export namespace Prisma {
     id: string | null
     google_place_id: string | null
     name: string | null
+    name_language_code: string | null
     latitude: number | null
     longitude: number | null
     image_url: string | null
@@ -20847,6 +20748,7 @@ export namespace Prisma {
     id: string | null
     google_place_id: string | null
     name: string | null
+    name_language_code: string | null
     latitude: number | null
     longitude: number | null
     image_url: string | null
@@ -20857,6 +20759,7 @@ export namespace Prisma {
     id: number
     google_place_id: number
     name: number
+    name_language_code: number
     latitude: number
     longitude: number
     image_url: number
@@ -20879,6 +20782,7 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    name_language_code?: true
     latitude?: true
     longitude?: true
     image_url?: true
@@ -20889,6 +20793,7 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    name_language_code?: true
     latitude?: true
     longitude?: true
     image_url?: true
@@ -20899,6 +20804,7 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    name_language_code?: true
     latitude?: true
     longitude?: true
     image_url?: true
@@ -20994,8 +20900,9 @@ export namespace Prisma {
 
   export type RestaurantsGroupByOutputType = {
     id: string
-    google_place_id: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
@@ -21025,12 +20932,12 @@ export namespace Prisma {
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
     created_at?: boolean
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
-    restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | RestaurantsCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurants"]>
 
@@ -21038,6 +20945,7 @@ export namespace Prisma {
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
@@ -21048,6 +20956,7 @@ export namespace Prisma {
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
@@ -21058,16 +20967,16 @@ export namespace Prisma {
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
     created_at?: boolean
   }
 
-  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "latitude" | "longitude" | "image_url" | "created_at", ExtArgs["result"]["restaurants"]>
+  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "created_at", ExtArgs["result"]["restaurants"]>
   export type restaurantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
-    restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | RestaurantsCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type restaurantsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -21077,12 +20986,12 @@ export namespace Prisma {
     name: "restaurants"
     objects: {
       dishes: Prisma.$dishesPayload<ExtArgs>[]
-      restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      google_place_id: string | null
+      google_place_id: string
       name: string
+      name_language_code: string
       latitude: number
       longitude: number
       image_url: string
@@ -21482,7 +21391,6 @@ export namespace Prisma {
   export interface Prisma__restaurantsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     dishes<T extends restaurants$dishesArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$dishesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    restaurant_bids<T extends restaurants$restaurant_bidsArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$restaurant_bidsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -21515,6 +21423,7 @@ export namespace Prisma {
     readonly id: FieldRef<"restaurants", 'String'>
     readonly google_place_id: FieldRef<"restaurants", 'String'>
     readonly name: FieldRef<"restaurants", 'String'>
+    readonly name_language_code: FieldRef<"restaurants", 'String'>
     readonly latitude: FieldRef<"restaurants", 'Float'>
     readonly longitude: FieldRef<"restaurants", 'Float'>
     readonly image_url: FieldRef<"restaurants", 'String'>
@@ -21928,30 +21837,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DishesScalarFieldEnum | DishesScalarFieldEnum[]
-  }
-
-  /**
-   * restaurants.restaurant_bids
-   */
-  export type restaurants$restaurant_bidsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the restaurant_bids
-     */
-    select?: restaurant_bidsSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the restaurant_bids
-     */
-    omit?: restaurant_bidsOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: restaurant_bidsInclude<ExtArgs> | null
-    where?: restaurant_bidsWhereInput
-    orderBy?: restaurant_bidsOrderByWithRelationInput | restaurant_bidsOrderByWithRelationInput[]
-    cursor?: restaurant_bidsWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: Restaurant_bidsScalarFieldEnum | Restaurant_bidsScalarFieldEnum[]
   }
 
   /**
@@ -23453,6 +23338,7 @@ export namespace Prisma {
     id: 'id',
     google_place_id: 'google_place_id',
     name: 'name',
+    name_language_code: 'name_language_code',
     latitude: 'latitude',
     longitude: 'longitude',
     image_url: 'image_url',
@@ -24025,7 +23911,6 @@ export namespace Prisma {
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
     dish_reviews?: Dish_reviewsListRelationFilter
-    payouts?: PayoutsListRelationFilter
   }
 
   export type dish_mediaOrderByWithRelationInput = {
@@ -24042,7 +23927,6 @@ export namespace Prisma {
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
-    payouts?: payoutsOrderByRelationAggregateInput
   }
 
   export type dish_mediaWhereUniqueInput = Prisma.AtLeast<{
@@ -24062,7 +23946,6 @@ export namespace Prisma {
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
     dish_reviews?: Dish_reviewsListRelationFilter
-    payouts?: PayoutsListRelationFilter
   }, "id">
 
   export type dish_mediaOrderByWithAggregationInput = {
@@ -24109,11 +23992,11 @@ export namespace Prisma {
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
     currency_code?: StringNullableFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidFilter<"dish_reviews"> | string
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
-    dish_media?: XOR<Dish_mediaNullableScalarRelationFilter, dish_mediaWhereInput> | null
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }
@@ -24127,7 +24010,7 @@ export namespace Prisma {
     rating?: SortOrder
     price_cents?: SortOrderInput | SortOrder
     currency_code?: SortOrderInput | SortOrder
-    created_dish_media_id?: SortOrderInput | SortOrder
+    created_dish_media_id?: SortOrder
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
@@ -24148,11 +24031,11 @@ export namespace Prisma {
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
     currency_code?: StringNullableFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidFilter<"dish_reviews"> | string
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
-    dish_media?: XOR<Dish_mediaNullableScalarRelationFilter, dish_mediaWhereInput> | null
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }, "id">
@@ -24166,7 +24049,7 @@ export namespace Prisma {
     rating?: SortOrder
     price_cents?: SortOrderInput | SortOrder
     currency_code?: SortOrderInput | SortOrder
-    created_dish_media_id?: SortOrderInput | SortOrder
+    created_dish_media_id?: SortOrder
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
@@ -24189,7 +24072,7 @@ export namespace Prisma {
     rating?: IntWithAggregatesFilter<"dish_reviews"> | number
     price_cents?: IntNullableWithAggregatesFilter<"dish_reviews"> | number | null
     currency_code?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableWithAggregatesFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidWithAggregatesFilter<"dish_reviews"> | string
     imported_user_name?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"dish_reviews"> | Date | string
@@ -24200,7 +24083,7 @@ export namespace Prisma {
     OR?: dishesWhereInput[]
     NOT?: dishesWhereInput | dishesWhereInput[]
     id?: UuidFilter<"dishes"> | string
-    restaurant_id?: UuidNullableFilter<"dishes"> | string | null
+    restaurant_id?: UuidFilter<"dishes"> | string
     category_id?: StringFilter<"dishes"> | string
     name?: StringNullableFilter<"dishes"> | string | null
     created_at?: DateTimeFilter<"dishes"> | Date | string
@@ -24209,12 +24092,12 @@ export namespace Prisma {
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
-    restaurants?: XOR<RestaurantsNullableScalarRelationFilter, restaurantsWhereInput> | null
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
   }
 
   export type dishesOrderByWithRelationInput = {
     id?: SortOrder
-    restaurant_id?: SortOrderInput | SortOrder
+    restaurant_id?: SortOrder
     category_id?: SortOrder
     name?: SortOrderInput | SortOrder
     created_at?: SortOrder
@@ -24231,7 +24114,7 @@ export namespace Prisma {
     AND?: dishesWhereInput | dishesWhereInput[]
     OR?: dishesWhereInput[]
     NOT?: dishesWhereInput | dishesWhereInput[]
-    restaurant_id?: UuidNullableFilter<"dishes"> | string | null
+    restaurant_id?: UuidFilter<"dishes"> | string
     category_id?: StringFilter<"dishes"> | string
     name?: StringNullableFilter<"dishes"> | string | null
     created_at?: DateTimeFilter<"dishes"> | Date | string
@@ -24240,12 +24123,12 @@ export namespace Prisma {
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
-    restaurants?: XOR<RestaurantsNullableScalarRelationFilter, restaurantsWhereInput> | null
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
   }, "id">
 
   export type dishesOrderByWithAggregationInput = {
     id?: SortOrder
-    restaurant_id?: SortOrderInput | SortOrder
+    restaurant_id?: SortOrder
     category_id?: SortOrder
     name?: SortOrderInput | SortOrder
     created_at?: SortOrder
@@ -24263,7 +24146,7 @@ export namespace Prisma {
     OR?: dishesScalarWhereWithAggregatesInput[]
     NOT?: dishesScalarWhereWithAggregatesInput | dishesScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"dishes"> | string
-    restaurant_id?: UuidNullableWithAggregatesFilter<"dishes"> | string | null
+    restaurant_id?: UuidWithAggregatesFilter<"dishes"> | string
     category_id?: StringWithAggregatesFilter<"dishes"> | string
     name?: StringNullableWithAggregatesFilter<"dishes"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"dishes"> | Date | string
@@ -24457,7 +24340,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"payouts"> | Date | string
     lock_no?: IntFilter<"payouts"> | number
     restaurant_bids?: XOR<Restaurant_bidsScalarRelationFilter, restaurant_bidsWhereInput>
-    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
   }
 
   export type payoutsOrderByWithRelationInput = {
@@ -24472,7 +24354,6 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     restaurant_bids?: restaurant_bidsOrderByWithRelationInput
-    dish_media?: dish_mediaOrderByWithRelationInput
   }
 
   export type payoutsWhereUniqueInput = Prisma.AtLeast<{
@@ -24491,7 +24372,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"payouts"> | Date | string
     lock_no?: IntFilter<"payouts"> | number
     restaurant_bids?: XOR<Restaurant_bidsScalarRelationFilter, restaurant_bidsWhereInput>
-    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
   }, "id" | "transfer_id" | "bid_id_dish_media_id">
 
   export type payoutsOrderByWithAggregationInput = {
@@ -24839,7 +24719,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
     lock_no?: IntFilter<"restaurant_bids"> | number
     payouts?: PayoutsListRelationFilter
-    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
     users?: XOR<UsersScalarRelationFilter, usersWhereInput>
   }
 
@@ -24858,7 +24737,6 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     payouts?: payoutsOrderByRelationAggregateInput
-    restaurants?: restaurantsOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
   }
 
@@ -24880,7 +24758,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
     lock_no?: IntFilter<"restaurant_bids"> | number
     payouts?: PayoutsListRelationFilter
-    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
     users?: XOR<UsersScalarRelationFilter, usersWhereInput>
   }, "id">
 
@@ -24929,26 +24806,26 @@ export namespace Prisma {
     OR?: restaurantsWhereInput[]
     NOT?: restaurantsWhereInput | restaurantsWhereInput[]
     id?: UuidFilter<"restaurants"> | string
-    google_place_id?: StringNullableFilter<"restaurants"> | string | null
+    google_place_id?: StringFilter<"restaurants"> | string
     name?: StringFilter<"restaurants"> | string
+    name_language_code?: StringFilter<"restaurants"> | string
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
-    restaurant_bids?: Restaurant_bidsListRelationFilter
   }
 
   export type restaurantsOrderByWithRelationInput = {
     id?: SortOrder
-    google_place_id?: SortOrderInput | SortOrder
+    google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
     created_at?: SortOrder
     dishes?: dishesOrderByRelationAggregateInput
-    restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
   }
 
   export type restaurantsWhereUniqueInput = Prisma.AtLeast<{
@@ -24958,18 +24835,19 @@ export namespace Prisma {
     OR?: restaurantsWhereInput[]
     NOT?: restaurantsWhereInput | restaurantsWhereInput[]
     name?: StringFilter<"restaurants"> | string
+    name_language_code?: StringFilter<"restaurants"> | string
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
-    restaurant_bids?: Restaurant_bidsListRelationFilter
   }, "id" | "google_place_id">
 
   export type restaurantsOrderByWithAggregationInput = {
     id?: SortOrder
-    google_place_id?: SortOrderInput | SortOrder
+    google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -24986,8 +24864,9 @@ export namespace Prisma {
     OR?: restaurantsScalarWhereWithAggregatesInput[]
     NOT?: restaurantsScalarWhereWithAggregatesInput | restaurantsScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"restaurants"> | string
-    google_place_id?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
+    google_place_id?: StringWithAggregatesFilter<"restaurants"> | string
     name?: StringWithAggregatesFilter<"restaurants"> | string
+    name_language_code?: StringWithAggregatesFilter<"restaurants"> | string
     latitude?: FloatWithAggregatesFilter<"restaurants"> | number
     longitude?: FloatWithAggregatesFilter<"restaurants"> | number
     image_url?: StringWithAggregatesFilter<"restaurants"> | string
@@ -25414,7 +25293,6 @@ export namespace Prisma {
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateInput = {
@@ -25429,7 +25307,6 @@ export namespace Prisma {
     lock_no?: number
     dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUpdateInput = {
@@ -25444,7 +25321,6 @@ export namespace Prisma {
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateInput = {
@@ -25459,7 +25335,6 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaCreateManyInput = {
@@ -25506,7 +25381,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
-    dish_media?: dish_mediaCreateNestedOneWithoutDish_reviewsInput
+    dish_media: dish_mediaCreateNestedOneWithoutDish_reviewsInput
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
@@ -25520,7 +25395,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -25536,7 +25411,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dish_media?: dish_mediaUpdateOneWithoutDish_reviewsNestedInput
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
@@ -25550,7 +25425,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25565,7 +25440,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -25592,7 +25467,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25607,12 +25482,12 @@ export namespace Prisma {
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -25631,12 +25506,12 @@ export namespace Prisma {
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25648,7 +25523,7 @@ export namespace Prisma {
 
   export type dishesCreateManyInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -25666,7 +25541,7 @@ export namespace Prisma {
 
   export type dishesUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25880,6 +25755,7 @@ export namespace Prisma {
   export type payoutsCreateInput = {
     id?: string
     transfer_id: string
+    dish_media_id: string
     amount_cents: bigint | number
     currency_code?: string | null
     status: $Enums.payout_status
@@ -25887,7 +25763,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     restaurant_bids: restaurant_bidsCreateNestedOneWithoutPayoutsInput
-    dish_media: dish_mediaCreateNestedOneWithoutPayoutsInput
   }
 
   export type payoutsUncheckedCreateInput = {
@@ -25906,6 +25781,7 @@ export namespace Prisma {
   export type payoutsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     transfer_id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
     status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
@@ -25913,7 +25789,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     restaurant_bids?: restaurant_bidsUpdateOneRequiredWithoutPayoutsNestedInput
-    dish_media?: dish_mediaUpdateOneRequiredWithoutPayoutsNestedInput
   }
 
   export type payoutsUncheckedUpdateInput = {
@@ -25945,6 +25820,7 @@ export namespace Prisma {
   export type payoutsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     transfer_id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
     status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
@@ -26293,6 +26169,7 @@ export namespace Prisma {
 
   export type restaurant_bidsCreateInput = {
     id?: string
+    restaurant_id: string
     payment_intent_id?: string | null
     amount_cents: bigint | number
     currency_code: string
@@ -26304,7 +26181,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     payouts?: payoutsCreateNestedManyWithoutRestaurant_bidsInput
-    restaurants: restaurantsCreateNestedOneWithoutRestaurant_bidsInput
     users: usersCreateNestedOneWithoutRestaurant_bidsInput
   }
 
@@ -26327,6 +26203,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -26338,7 +26215,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     payouts?: payoutsUpdateManyWithoutRestaurant_bidsNestedInput
-    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput
     users?: usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput
   }
 
@@ -26377,6 +26253,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -26407,56 +26284,57 @@ export namespace Prisma {
 
   export type restaurantsCreateInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
-    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
-    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
-    restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
-    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsCreateManyInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
@@ -26465,8 +26343,9 @@ export namespace Prisma {
 
   export type restaurantsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
@@ -26475,8 +26354,9 @@ export namespace Prisma {
 
   export type restaurantsUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
@@ -27074,21 +26954,11 @@ export namespace Prisma {
     none?: dish_reviewsWhereInput
   }
 
-  export type PayoutsListRelationFilter = {
-    every?: payoutsWhereInput
-    some?: payoutsWhereInput
-    none?: payoutsWhereInput
-  }
-
   export type dish_likesOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type dish_reviewsOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type payoutsOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -27145,11 +27015,6 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type Dish_mediaNullableScalarRelationFilter = {
-    is?: dish_mediaWhereInput | null
-    isNot?: dish_mediaWhereInput | null
   }
 
   export type dish_reviewsCountOrderByAggregateInput = {
@@ -27229,9 +27094,9 @@ export namespace Prisma {
     none?: dish_mediaWhereInput
   }
 
-  export type RestaurantsNullableScalarRelationFilter = {
-    is?: restaurantsWhereInput | null
-    isNot?: restaurantsWhereInput | null
+  export type RestaurantsScalarRelationFilter = {
+    is?: restaurantsWhereInput
+    isNot?: restaurantsWhereInput
   }
 
   export type dish_mediaOrderByRelationAggregateInput = {
@@ -27724,9 +27589,14 @@ export namespace Prisma {
     not?: NestedEnumrestaurant_bid_statusFilter<$PrismaModel> | $Enums.restaurant_bid_status
   }
 
-  export type RestaurantsScalarRelationFilter = {
-    is?: restaurantsWhereInput
-    isNot?: restaurantsWhereInput
+  export type PayoutsListRelationFilter = {
+    every?: payoutsWhereInput
+    some?: payoutsWhereInput
+    none?: payoutsWhereInput
+  }
+
+  export type payoutsOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type restaurant_bidsCountOrderByAggregateInput = {
@@ -27808,20 +27678,11 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
-  export type Restaurant_bidsListRelationFilter = {
-    every?: restaurant_bidsWhereInput
-    some?: restaurant_bidsWhereInput
-    none?: restaurant_bidsWhereInput
-  }
-
-  export type restaurant_bidsOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
   export type restaurantsCountOrderByAggregateInput = {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -27837,6 +27698,7 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -27847,6 +27709,7 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -27883,6 +27746,16 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type Restaurant_bidsListRelationFilter = {
+    every?: restaurant_bidsWhereInput
+    some?: restaurant_bidsWhereInput
+    none?: restaurant_bidsWhereInput
+  }
+
+  export type restaurant_bidsOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type usersCountOrderByAggregateInput = {
@@ -28143,13 +28016,6 @@ export namespace Prisma {
     connect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
   }
 
-  export type payoutsCreateNestedManyWithoutDish_mediaInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-  }
-
   export type dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput = {
     create?: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput> | dish_likesCreateWithoutDish_mediaInput[] | dish_likesUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: dish_likesCreateOrConnectWithoutDish_mediaInput | dish_likesCreateOrConnectWithoutDish_mediaInput[]
@@ -28162,13 +28028,6 @@ export namespace Prisma {
     connectOrCreate?: dish_reviewsCreateOrConnectWithoutDish_mediaInput | dish_reviewsCreateOrConnectWithoutDish_mediaInput[]
     createMany?: dish_reviewsCreateManyDish_mediaInputEnvelope
     connect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
-  }
-
-  export type payoutsUncheckedCreateNestedManyWithoutDish_mediaInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
   }
 
   export type dish_likesUpdateManyWithoutDish_mediaNestedInput = {
@@ -28217,20 +28076,6 @@ export namespace Prisma {
     deleteMany?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
   }
 
-  export type payoutsUpdateManyWithoutDish_mediaNestedInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    upsert?: payoutsUpsertWithWhereUniqueWithoutDish_mediaInput | payoutsUpsertWithWhereUniqueWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    set?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    disconnect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    delete?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    update?: payoutsUpdateWithWhereUniqueWithoutDish_mediaInput | payoutsUpdateWithWhereUniqueWithoutDish_mediaInput[]
-    updateMany?: payoutsUpdateManyWithWhereWithoutDish_mediaInput | payoutsUpdateManyWithWhereWithoutDish_mediaInput[]
-    deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
-  }
-
   export type dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput = {
     create?: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput> | dish_likesCreateWithoutDish_mediaInput[] | dish_likesUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: dish_likesCreateOrConnectWithoutDish_mediaInput | dish_likesCreateOrConnectWithoutDish_mediaInput[]
@@ -28259,20 +28104,6 @@ export namespace Prisma {
     deleteMany?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
   }
 
-  export type payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    upsert?: payoutsUpsertWithWhereUniqueWithoutDish_mediaInput | payoutsUpsertWithWhereUniqueWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    set?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    disconnect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    delete?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    update?: payoutsUpdateWithWhereUniqueWithoutDish_mediaInput | payoutsUpdateWithWhereUniqueWithoutDish_mediaInput[]
-    updateMany?: payoutsUpdateManyWithWhereWithoutDish_mediaInput | payoutsUpdateManyWithWhereWithoutDish_mediaInput[]
-    deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
-  }
-
   export type dish_mediaCreateNestedOneWithoutDish_reviewsInput = {
     create?: XOR<dish_mediaCreateWithoutDish_reviewsInput, dish_mediaUncheckedCreateWithoutDish_reviewsInput>
     connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_reviewsInput
@@ -28299,12 +28130,10 @@ export namespace Prisma {
     divide?: number
   }
 
-  export type dish_mediaUpdateOneWithoutDish_reviewsNestedInput = {
+  export type dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput = {
     create?: XOR<dish_mediaCreateWithoutDish_reviewsInput, dish_mediaUncheckedCreateWithoutDish_reviewsInput>
     connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_reviewsInput
     upsert?: dish_mediaUpsertWithoutDish_reviewsInput
-    disconnect?: dish_mediaWhereInput | boolean
-    delete?: dish_mediaWhereInput | boolean
     connect?: dish_mediaWhereUniqueInput
     update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutDish_reviewsInput, dish_mediaUpdateWithoutDish_reviewsInput>, dish_mediaUncheckedUpdateWithoutDish_reviewsInput>
   }
@@ -28403,12 +28232,10 @@ export namespace Prisma {
     update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDishesInput, dish_categoriesUpdateWithoutDishesInput>, dish_categoriesUncheckedUpdateWithoutDishesInput>
   }
 
-  export type restaurantsUpdateOneWithoutDishesNestedInput = {
+  export type restaurantsUpdateOneRequiredWithoutDishesNestedInput = {
     create?: XOR<restaurantsCreateWithoutDishesInput, restaurantsUncheckedCreateWithoutDishesInput>
     connectOrCreate?: restaurantsCreateOrConnectWithoutDishesInput
     upsert?: restaurantsUpsertWithoutDishesInput
-    disconnect?: restaurantsWhereInput | boolean
-    delete?: restaurantsWhereInput | boolean
     connect?: restaurantsWhereUniqueInput
     update?: XOR<XOR<restaurantsUpdateToOneWithWhereWithoutDishesInput, restaurantsUpdateWithoutDishesInput>, restaurantsUncheckedUpdateWithoutDishesInput>
   }
@@ -28451,12 +28278,6 @@ export namespace Prisma {
     connect?: restaurant_bidsWhereUniqueInput
   }
 
-  export type dish_mediaCreateNestedOneWithoutPayoutsInput = {
-    create?: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-    connectOrCreate?: dish_mediaCreateOrConnectWithoutPayoutsInput
-    connect?: dish_mediaWhereUniqueInput
-  }
-
   export type BigIntFieldUpdateOperationsInput = {
     set?: bigint | number
     increment?: bigint | number
@@ -28475,14 +28296,6 @@ export namespace Prisma {
     upsert?: restaurant_bidsUpsertWithoutPayoutsInput
     connect?: restaurant_bidsWhereUniqueInput
     update?: XOR<XOR<restaurant_bidsUpdateToOneWithWhereWithoutPayoutsInput, restaurant_bidsUpdateWithoutPayoutsInput>, restaurant_bidsUncheckedUpdateWithoutPayoutsInput>
-  }
-
-  export type dish_mediaUpdateOneRequiredWithoutPayoutsNestedInput = {
-    create?: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-    connectOrCreate?: dish_mediaCreateOrConnectWithoutPayoutsInput
-    upsert?: dish_mediaUpsertWithoutPayoutsInput
-    connect?: dish_mediaWhereUniqueInput
-    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutPayoutsInput, dish_mediaUpdateWithoutPayoutsInput>, dish_mediaUncheckedUpdateWithoutPayoutsInput>
   }
 
   export type prompt_variantsCreateNestedManyWithoutPrompt_familiesInput = {
@@ -28560,12 +28373,6 @@ export namespace Prisma {
     connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
   }
 
-  export type restaurantsCreateNestedOneWithoutRestaurant_bidsInput = {
-    create?: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
-    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_bidsInput
-    connect?: restaurantsWhereUniqueInput
-  }
-
   export type usersCreateNestedOneWithoutRestaurant_bidsInput = {
     create?: XOR<usersCreateWithoutRestaurant_bidsInput, usersUncheckedCreateWithoutRestaurant_bidsInput>
     connectOrCreate?: usersCreateOrConnectWithoutRestaurant_bidsInput
@@ -28597,14 +28404,6 @@ export namespace Prisma {
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
   }
 
-  export type restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput = {
-    create?: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
-    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_bidsInput
-    upsert?: restaurantsUpsertWithoutRestaurant_bidsInput
-    connect?: restaurantsWhereUniqueInput
-    update?: XOR<XOR<restaurantsUpdateToOneWithWhereWithoutRestaurant_bidsInput, restaurantsUpdateWithoutRestaurant_bidsInput>, restaurantsUncheckedUpdateWithoutRestaurant_bidsInput>
-  }
-
   export type usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput = {
     create?: XOR<usersCreateWithoutRestaurant_bidsInput, usersUncheckedCreateWithoutRestaurant_bidsInput>
     connectOrCreate?: usersCreateOrConnectWithoutRestaurant_bidsInput
@@ -28634,25 +28433,11 @@ export namespace Prisma {
     connect?: dishesWhereUniqueInput | dishesWhereUniqueInput[]
   }
 
-  export type restaurant_bidsCreateNestedManyWithoutRestaurantsInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-  }
-
   export type dishesUncheckedCreateNestedManyWithoutRestaurantsInput = {
     create?: XOR<dishesCreateWithoutRestaurantsInput, dishesUncheckedCreateWithoutRestaurantsInput> | dishesCreateWithoutRestaurantsInput[] | dishesUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: dishesCreateOrConnectWithoutRestaurantsInput | dishesCreateOrConnectWithoutRestaurantsInput[]
     createMany?: dishesCreateManyRestaurantsInputEnvelope
     connect?: dishesWhereUniqueInput | dishesWhereUniqueInput[]
-  }
-
-  export type restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
   }
 
   export type FloatFieldUpdateOperationsInput = {
@@ -28677,20 +28462,6 @@ export namespace Prisma {
     deleteMany?: dishesScalarWhereInput | dishesScalarWhereInput[]
   }
 
-  export type restaurant_bidsUpdateManyWithoutRestaurantsNestedInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    upsert?: restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    set?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    disconnect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    delete?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    update?: restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput[]
-    updateMany?: restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput | restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput[]
-    deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
-  }
-
   export type dishesUncheckedUpdateManyWithoutRestaurantsNestedInput = {
     create?: XOR<dishesCreateWithoutRestaurantsInput, dishesUncheckedCreateWithoutRestaurantsInput> | dishesCreateWithoutRestaurantsInput[] | dishesUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: dishesCreateOrConnectWithoutRestaurantsInput | dishesCreateOrConnectWithoutRestaurantsInput[]
@@ -28703,20 +28474,6 @@ export namespace Prisma {
     update?: dishesUpdateWithWhereUniqueWithoutRestaurantsInput | dishesUpdateWithWhereUniqueWithoutRestaurantsInput[]
     updateMany?: dishesUpdateManyWithWhereWithoutRestaurantsInput | dishesUpdateManyWithWhereWithoutRestaurantsInput[]
     deleteMany?: dishesScalarWhereInput | dishesScalarWhereInput[]
-  }
-
-  export type restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    upsert?: restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    set?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    disconnect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    delete?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    update?: restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput[]
-    updateMany?: restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput | restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput[]
-    deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
   }
 
   export type dish_likesCreateNestedManyWithoutUsersInput = {
@@ -29362,12 +29119,12 @@ export namespace Prisma {
     lock_no?: number
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateWithoutDish_categoriesInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     name?: string | null
     created_at?: Date | string
     updated_at?: Date | string
@@ -29434,7 +29191,7 @@ export namespace Prisma {
     OR?: dishesScalarWhereInput[]
     NOT?: dishesScalarWhereInput | dishesScalarWhereInput[]
     id?: UuidFilter<"dishes"> | string
-    restaurant_id?: UuidNullableFilter<"dishes"> | string | null
+    restaurant_id?: UuidFilter<"dishes"> | string
     category_id?: StringFilter<"dishes"> | string
     name?: StringNullableFilter<"dishes"> | string | null
     created_at?: DateTimeFilter<"dishes"> | Date | string
@@ -29525,7 +29282,6 @@ export namespace Prisma {
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutDish_likesInput = {
@@ -29539,7 +29295,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutDish_likesInput = {
@@ -29602,7 +29357,6 @@ export namespace Prisma {
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutDish_likesInput = {
@@ -29616,7 +29370,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type usersUpsertWithoutDish_likesInput = {
@@ -29688,12 +29441,12 @@ export namespace Prisma {
     lock_no?: number
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateWithoutDish_mediaInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -29778,40 +29531,6 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type payoutsCreateWithoutDish_mediaInput = {
-    id?: string
-    transfer_id: string
-    amount_cents: bigint | number
-    currency_code?: string | null
-    status: $Enums.payout_status
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    restaurant_bids: restaurant_bidsCreateNestedOneWithoutPayoutsInput
-  }
-
-  export type payoutsUncheckedCreateWithoutDish_mediaInput = {
-    id?: string
-    bid_id: string
-    transfer_id: string
-    amount_cents: bigint | number
-    currency_code?: string | null
-    status: $Enums.payout_status
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-  }
-
-  export type payoutsCreateOrConnectWithoutDish_mediaInput = {
-    where: payoutsWhereUniqueInput
-    create: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput>
-  }
-
-  export type payoutsCreateManyDish_mediaInputEnvelope = {
-    data: payoutsCreateManyDish_mediaInput | payoutsCreateManyDish_mediaInput[]
-    skipDuplicates?: boolean
-  }
-
   export type dish_likesUpsertWithWhereUniqueWithoutDish_mediaInput = {
     where: dish_likesWhereUniqueInput
     update: XOR<dish_likesUpdateWithoutDish_mediaInput, dish_likesUncheckedUpdateWithoutDish_mediaInput>
@@ -29857,12 +29576,12 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29938,42 +29657,10 @@ export namespace Prisma {
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
     currency_code?: StringNullableFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidFilter<"dish_reviews"> | string
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
-  }
-
-  export type payoutsUpsertWithWhereUniqueWithoutDish_mediaInput = {
-    where: payoutsWhereUniqueInput
-    update: XOR<payoutsUpdateWithoutDish_mediaInput, payoutsUncheckedUpdateWithoutDish_mediaInput>
-    create: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput>
-  }
-
-  export type payoutsUpdateWithWhereUniqueWithoutDish_mediaInput = {
-    where: payoutsWhereUniqueInput
-    data: XOR<payoutsUpdateWithoutDish_mediaInput, payoutsUncheckedUpdateWithoutDish_mediaInput>
-  }
-
-  export type payoutsUpdateManyWithWhereWithoutDish_mediaInput = {
-    where: payoutsScalarWhereInput
-    data: XOR<payoutsUpdateManyMutationInput, payoutsUncheckedUpdateManyWithoutDish_mediaInput>
-  }
-
-  export type payoutsScalarWhereInput = {
-    AND?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
-    OR?: payoutsScalarWhereInput[]
-    NOT?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
-    id?: UuidFilter<"payouts"> | string
-    bid_id?: UuidFilter<"payouts"> | string
-    transfer_id?: StringFilter<"payouts"> | string
-    dish_media_id?: UuidFilter<"payouts"> | string
-    amount_cents?: BigIntFilter<"payouts"> | bigint | number
-    currency_code?: StringNullableFilter<"payouts"> | string | null
-    status?: Enumpayout_statusFilter<"payouts"> | $Enums.payout_status
-    created_at?: DateTimeFilter<"payouts"> | Date | string
-    updated_at?: DateTimeFilter<"payouts"> | Date | string
-    lock_no?: IntFilter<"payouts"> | number
   }
 
   export type dish_mediaCreateWithoutDish_reviewsInput = {
@@ -29987,7 +29674,6 @@ export namespace Prisma {
     dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutDish_reviewsInput = {
@@ -30001,7 +29687,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutDish_reviewsInput = {
@@ -30017,12 +29702,12 @@ export namespace Prisma {
     lock_no?: number
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateWithoutDish_reviewsInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -30091,7 +29776,6 @@ export namespace Prisma {
     dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutDish_reviewsInput = {
@@ -30105,7 +29789,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dishesUpsertWithoutDish_reviewsInput = {
@@ -30127,12 +29810,12 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30191,7 +29874,6 @@ export namespace Prisma {
     dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutDishesInput = {
@@ -30205,7 +29887,6 @@ export namespace Prisma {
     lock_no?: number
     dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutDishesInput = {
@@ -30228,7 +29909,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
-    dish_media?: dish_mediaCreateNestedOneWithoutDish_reviewsInput
+    dish_media: dish_mediaCreateNestedOneWithoutDish_reviewsInput
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -30240,7 +29921,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -30291,24 +29972,24 @@ export namespace Prisma {
 
   export type restaurantsCreateWithoutDishesInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
-    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateWithoutDishesInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
-    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsCreateOrConnectWithoutDishesInput = {
@@ -30415,28 +30096,29 @@ export namespace Prisma {
 
   export type restaurantsUpdateWithoutDishesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateWithoutDishesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurant_bidsCreateWithoutPayoutsInput = {
     id?: string
+    restaurant_id: string
     payment_intent_id?: string | null
     amount_cents: bigint | number
     currency_code: string
@@ -30447,7 +30129,6 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    restaurants: restaurantsCreateNestedOneWithoutRestaurant_bidsInput
     users: usersCreateNestedOneWithoutRestaurant_bidsInput
   }
 
@@ -30472,39 +30153,6 @@ export namespace Prisma {
     create: XOR<restaurant_bidsCreateWithoutPayoutsInput, restaurant_bidsUncheckedCreateWithoutPayoutsInput>
   }
 
-  export type dish_mediaCreateWithoutPayoutsInput = {
-    id?: string
-    media_path: string
-    media_type: string
-    thumbnail_path: string
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
-    dishes: dishesCreateNestedOneWithoutDish_mediaInput
-    users?: usersCreateNestedOneWithoutDish_mediaInput
-    dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
-  }
-
-  export type dish_mediaUncheckedCreateWithoutPayoutsInput = {
-    id?: string
-    dish_id: string
-    user_id?: string | null
-    media_path: string
-    media_type: string
-    thumbnail_path: string
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
-    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
-  }
-
-  export type dish_mediaCreateOrConnectWithoutPayoutsInput = {
-    where: dish_mediaWhereUniqueInput
-    create: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-  }
-
   export type restaurant_bidsUpsertWithoutPayoutsInput = {
     update: XOR<restaurant_bidsUpdateWithoutPayoutsInput, restaurant_bidsUncheckedUpdateWithoutPayoutsInput>
     create: XOR<restaurant_bidsCreateWithoutPayoutsInput, restaurant_bidsUncheckedCreateWithoutPayoutsInput>
@@ -30518,6 +30166,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateWithoutPayoutsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -30528,7 +30177,6 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput
     users?: usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput
   }
 
@@ -30546,45 +30194,6 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-  }
-
-  export type dish_mediaUpsertWithoutPayoutsInput = {
-    update: XOR<dish_mediaUpdateWithoutPayoutsInput, dish_mediaUncheckedUpdateWithoutPayoutsInput>
-    create: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-    where?: dish_mediaWhereInput
-  }
-
-  export type dish_mediaUpdateToOneWithWhereWithoutPayoutsInput = {
-    where?: dish_mediaWhereInput
-    data: XOR<dish_mediaUpdateWithoutPayoutsInput, dish_mediaUncheckedUpdateWithoutPayoutsInput>
-  }
-
-  export type dish_mediaUpdateWithoutPayoutsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    media_path?: StringFieldUpdateOperationsInput | string
-    media_type?: StringFieldUpdateOperationsInput | string
-    thumbnail_path?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
-    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
-    users?: usersUpdateOneWithoutDish_mediaNestedInput
-    dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
-  }
-
-  export type dish_mediaUncheckedUpdateWithoutPayoutsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    dish_id?: StringFieldUpdateOperationsInput | string
-    user_id?: NullableStringFieldUpdateOperationsInput | string | null
-    media_path?: StringFieldUpdateOperationsInput | string
-    media_type?: StringFieldUpdateOperationsInput | string
-    thumbnail_path?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
-    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type prompt_variantsCreateWithoutPrompt_familiesInput = {
@@ -30695,13 +30304,13 @@ export namespace Prisma {
   export type payoutsCreateWithoutRestaurant_bidsInput = {
     id?: string
     transfer_id: string
+    dish_media_id: string
     amount_cents: bigint | number
     currency_code?: string | null
     status: $Enums.payout_status
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_media: dish_mediaCreateNestedOneWithoutPayoutsInput
   }
 
   export type payoutsUncheckedCreateWithoutRestaurant_bidsInput = {
@@ -30724,33 +30333,6 @@ export namespace Prisma {
   export type payoutsCreateManyRestaurant_bidsInputEnvelope = {
     data: payoutsCreateManyRestaurant_bidsInput | payoutsCreateManyRestaurant_bidsInput[]
     skipDuplicates?: boolean
-  }
-
-  export type restaurantsCreateWithoutRestaurant_bidsInput = {
-    id?: string
-    google_place_id?: string | null
-    name: string
-    latitude: number
-    longitude: number
-    image_url: string
-    created_at?: Date | string
-    dishes?: dishesCreateNestedManyWithoutRestaurantsInput
-  }
-
-  export type restaurantsUncheckedCreateWithoutRestaurant_bidsInput = {
-    id?: string
-    google_place_id?: string | null
-    name: string
-    latitude: number
-    longitude: number
-    image_url: string
-    created_at?: Date | string
-    dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
-  }
-
-  export type restaurantsCreateOrConnectWithoutRestaurant_bidsInput = {
-    where: restaurantsWhereUniqueInput
-    create: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
   }
 
   export type usersCreateWithoutRestaurant_bidsInput = {
@@ -30802,37 +30384,20 @@ export namespace Prisma {
     data: XOR<payoutsUpdateManyMutationInput, payoutsUncheckedUpdateManyWithoutRestaurant_bidsInput>
   }
 
-  export type restaurantsUpsertWithoutRestaurant_bidsInput = {
-    update: XOR<restaurantsUpdateWithoutRestaurant_bidsInput, restaurantsUncheckedUpdateWithoutRestaurant_bidsInput>
-    create: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
-    where?: restaurantsWhereInput
-  }
-
-  export type restaurantsUpdateToOneWithWhereWithoutRestaurant_bidsInput = {
-    where?: restaurantsWhereInput
-    data: XOR<restaurantsUpdateWithoutRestaurant_bidsInput, restaurantsUncheckedUpdateWithoutRestaurant_bidsInput>
-  }
-
-  export type restaurantsUpdateWithoutRestaurant_bidsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    image_url?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
-  }
-
-  export type restaurantsUncheckedUpdateWithoutRestaurant_bidsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    image_url?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
+  export type payoutsScalarWhereInput = {
+    AND?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+    OR?: payoutsScalarWhereInput[]
+    NOT?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+    id?: UuidFilter<"payouts"> | string
+    bid_id?: UuidFilter<"payouts"> | string
+    transfer_id?: StringFilter<"payouts"> | string
+    dish_media_id?: UuidFilter<"payouts"> | string
+    amount_cents?: BigIntFilter<"payouts"> | bigint | number
+    currency_code?: StringNullableFilter<"payouts"> | string | null
+    status?: Enumpayout_statusFilter<"payouts"> | $Enums.payout_status
+    created_at?: DateTimeFilter<"payouts"> | Date | string
+    updated_at?: DateTimeFilter<"payouts"> | Date | string
+    lock_no?: IntFilter<"payouts"> | number
   }
 
   export type usersUpsertWithoutRestaurant_bidsInput = {
@@ -30906,48 +30471,6 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type restaurant_bidsCreateWithoutRestaurantsInput = {
-    id?: string
-    payment_intent_id?: string | null
-    amount_cents: bigint | number
-    currency_code: string
-    start_date: Date | string
-    end_date: Date | string
-    status: $Enums.restaurant_bid_status
-    refund_id?: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    payouts?: payoutsCreateNestedManyWithoutRestaurant_bidsInput
-    users: usersCreateNestedOneWithoutRestaurant_bidsInput
-  }
-
-  export type restaurant_bidsUncheckedCreateWithoutRestaurantsInput = {
-    id?: string
-    user_id: string
-    payment_intent_id?: string | null
-    amount_cents: bigint | number
-    currency_code: string
-    start_date: Date | string
-    end_date: Date | string
-    status: $Enums.restaurant_bid_status
-    refund_id?: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    payouts?: payoutsUncheckedCreateNestedManyWithoutRestaurant_bidsInput
-  }
-
-  export type restaurant_bidsCreateOrConnectWithoutRestaurantsInput = {
-    where: restaurant_bidsWhereUniqueInput
-    create: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsCreateManyRestaurantsInputEnvelope = {
-    data: restaurant_bidsCreateManyRestaurantsInput | restaurant_bidsCreateManyRestaurantsInput[]
-    skipDuplicates?: boolean
-  }
-
   export type dishesUpsertWithWhereUniqueWithoutRestaurantsInput = {
     where: dishesWhereUniqueInput
     update: XOR<dishesUpdateWithoutRestaurantsInput, dishesUncheckedUpdateWithoutRestaurantsInput>
@@ -30962,41 +30485,6 @@ export namespace Prisma {
   export type dishesUpdateManyWithWhereWithoutRestaurantsInput = {
     where: dishesScalarWhereInput
     data: XOR<dishesUpdateManyMutationInput, dishesUncheckedUpdateManyWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput = {
-    where: restaurant_bidsWhereUniqueInput
-    update: XOR<restaurant_bidsUpdateWithoutRestaurantsInput, restaurant_bidsUncheckedUpdateWithoutRestaurantsInput>
-    create: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput = {
-    where: restaurant_bidsWhereUniqueInput
-    data: XOR<restaurant_bidsUpdateWithoutRestaurantsInput, restaurant_bidsUncheckedUpdateWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput = {
-    where: restaurant_bidsScalarWhereInput
-    data: XOR<restaurant_bidsUpdateManyMutationInput, restaurant_bidsUncheckedUpdateManyWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsScalarWhereInput = {
-    AND?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
-    OR?: restaurant_bidsScalarWhereInput[]
-    NOT?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
-    id?: UuidFilter<"restaurant_bids"> | string
-    restaurant_id?: UuidFilter<"restaurant_bids"> | string
-    user_id?: UuidFilter<"restaurant_bids"> | string
-    payment_intent_id?: StringNullableFilter<"restaurant_bids"> | string | null
-    amount_cents?: BigIntFilter<"restaurant_bids"> | bigint | number
-    currency_code?: StringFilter<"restaurant_bids"> | string
-    start_date?: DateTimeFilter<"restaurant_bids"> | Date | string
-    end_date?: DateTimeFilter<"restaurant_bids"> | Date | string
-    status?: Enumrestaurant_bid_statusFilter<"restaurant_bids"> | $Enums.restaurant_bid_status
-    refund_id?: StringNullableFilter<"restaurant_bids"> | string | null
-    created_at?: DateTimeFilter<"restaurant_bids"> | Date | string
-    updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
-    lock_no?: IntFilter<"restaurant_bids"> | number
   }
 
   export type dish_likesCreateWithoutUsersInput = {
@@ -31032,7 +30520,6 @@ export namespace Prisma {
     dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutUsersInput = {
@@ -31046,7 +30533,6 @@ export namespace Prisma {
     lock_no?: number
     dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutUsersInput = {
@@ -31069,7 +30555,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
-    dish_media?: dish_mediaCreateNestedOneWithoutDish_reviewsInput
+    dish_media: dish_mediaCreateNestedOneWithoutDish_reviewsInput
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -31081,7 +30567,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -31099,6 +30585,7 @@ export namespace Prisma {
 
   export type restaurant_bidsCreateWithoutUsersInput = {
     id?: string
+    restaurant_id: string
     payment_intent_id?: string | null
     amount_cents: bigint | number
     currency_code: string
@@ -31110,7 +30597,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     payouts?: payoutsCreateNestedManyWithoutRestaurant_bidsInput
-    restaurants: restaurantsCreateNestedOneWithoutRestaurant_bidsInput
   }
 
   export type restaurant_bidsUncheckedCreateWithoutUsersInput = {
@@ -31203,6 +30689,25 @@ export namespace Prisma {
     data: XOR<restaurant_bidsUpdateManyMutationInput, restaurant_bidsUncheckedUpdateManyWithoutUsersInput>
   }
 
+  export type restaurant_bidsScalarWhereInput = {
+    AND?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
+    OR?: restaurant_bidsScalarWhereInput[]
+    NOT?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
+    id?: UuidFilter<"restaurant_bids"> | string
+    restaurant_id?: UuidFilter<"restaurant_bids"> | string
+    user_id?: UuidFilter<"restaurant_bids"> | string
+    payment_intent_id?: StringNullableFilter<"restaurant_bids"> | string | null
+    amount_cents?: BigIntFilter<"restaurant_bids"> | bigint | number
+    currency_code?: StringFilter<"restaurant_bids"> | string
+    start_date?: DateTimeFilter<"restaurant_bids"> | Date | string
+    end_date?: DateTimeFilter<"restaurant_bids"> | Date | string
+    status?: Enumrestaurant_bid_statusFilter<"restaurant_bids"> | $Enums.restaurant_bid_status
+    refund_id?: StringNullableFilter<"restaurant_bids"> | string | null
+    created_at?: DateTimeFilter<"restaurant_bids"> | Date | string
+    updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
+    lock_no?: IntFilter<"restaurant_bids"> | number
+  }
+
   export type dish_category_variantsCreateManyDish_categoriesInput = {
     id?: string
     surface_form: string
@@ -31212,7 +30717,7 @@ export namespace Prisma {
 
   export type dishesCreateManyDish_categoriesInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     name?: string | null
     created_at?: Date | string
     updated_at?: Date | string
@@ -31248,12 +30753,12 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateWithoutDish_categoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31264,7 +30769,7 @@ export namespace Prisma {
 
   export type dishesUncheckedUpdateManyWithoutDish_categoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31289,18 +30794,6 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
-  }
-
-  export type payoutsCreateManyDish_mediaInput = {
-    id?: string
-    bid_id: string
-    transfer_id: string
-    amount_cents: bigint | number
-    currency_code?: string | null
-    status: $Enums.payout_status
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
   }
 
   export type dish_likesUpdateWithoutDish_mediaInput = {
@@ -31363,42 +30856,6 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type payoutsUpdateWithoutDish_mediaInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    transfer_id?: StringFieldUpdateOperationsInput | string
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    restaurant_bids?: restaurant_bidsUpdateOneRequiredWithoutPayoutsNestedInput
-  }
-
-  export type payoutsUncheckedUpdateWithoutDish_mediaInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    bid_id?: StringFieldUpdateOperationsInput | string
-    transfer_id?: StringFieldUpdateOperationsInput | string
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-  }
-
-  export type payoutsUncheckedUpdateManyWithoutDish_mediaInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    bid_id?: StringFieldUpdateOperationsInput | string
-    transfer_id?: StringFieldUpdateOperationsInput | string
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-  }
-
   export type dish_mediaCreateManyDishesInput = {
     id?: string
     user_id?: string | null
@@ -31418,7 +30875,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -31435,7 +30892,6 @@ export namespace Prisma {
     dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutDishesInput = {
@@ -31449,7 +30905,6 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateManyWithoutDishesInput = {
@@ -31473,7 +30928,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dish_media?: dish_mediaUpdateOneWithoutDish_reviewsNestedInput
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
 
@@ -31485,7 +30940,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31499,7 +30954,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31556,13 +31011,13 @@ export namespace Prisma {
   export type payoutsUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
     transfer_id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
     status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_media?: dish_mediaUpdateOneRequiredWithoutPayoutsNestedInput
   }
 
   export type payoutsUncheckedUpdateWithoutRestaurant_bidsInput = {
@@ -31593,21 +31048,6 @@ export namespace Prisma {
     id?: string
     category_id: string
     name?: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-  }
-
-  export type restaurant_bidsCreateManyRestaurantsInput = {
-    id?: string
-    user_id: string
-    payment_intent_id?: string | null
-    amount_cents: bigint | number
-    currency_code: string
-    start_date: Date | string
-    end_date: Date | string
-    status: $Enums.restaurant_bid_status
-    refund_id?: string | null
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
@@ -31644,53 +31084,6 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
-  export type restaurant_bidsUpdateWithoutRestaurantsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: StringFieldUpdateOperationsInput | string
-    start_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    end_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: Enumrestaurant_bid_statusFieldUpdateOperationsInput | $Enums.restaurant_bid_status
-    refund_id?: NullableStringFieldUpdateOperationsInput | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    payouts?: payoutsUpdateManyWithoutRestaurant_bidsNestedInput
-    users?: usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput
-  }
-
-  export type restaurant_bidsUncheckedUpdateWithoutRestaurantsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    user_id?: StringFieldUpdateOperationsInput | string
-    payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: StringFieldUpdateOperationsInput | string
-    start_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    end_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: Enumrestaurant_bid_statusFieldUpdateOperationsInput | $Enums.restaurant_bid_status
-    refund_id?: NullableStringFieldUpdateOperationsInput | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    payouts?: payoutsUncheckedUpdateManyWithoutRestaurant_bidsNestedInput
-  }
-
-  export type restaurant_bidsUncheckedUpdateManyWithoutRestaurantsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    user_id?: StringFieldUpdateOperationsInput | string
-    payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: StringFieldUpdateOperationsInput | string
-    start_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    end_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: Enumrestaurant_bid_statusFieldUpdateOperationsInput | $Enums.restaurant_bid_status
-    refund_id?: NullableStringFieldUpdateOperationsInput | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-  }
-
   export type dish_likesCreateManyUsersInput = {
     id?: string
     dish_media_id: string
@@ -31716,7 +31109,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -31766,7 +31159,6 @@ export namespace Prisma {
     dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutUsersInput = {
@@ -31780,7 +31172,6 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateManyWithoutUsersInput = {
@@ -31804,7 +31195,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dish_media?: dish_mediaUpdateOneWithoutDish_reviewsNestedInput
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
   }
 
@@ -31816,7 +31207,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31830,7 +31221,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31838,6 +31229,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateWithoutUsersInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -31849,7 +31241,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     payouts?: payoutsUpdateManyWithoutRestaurant_bidsNestedInput
-    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput
   }
 
   export type restaurant_bidsUncheckedUpdateWithoutUsersInput = {
