@@ -682,7 +682,7 @@ export default function ProfileScreen() {
 		return num.toString();
 	};
 
-	const getCurrentDishMediaEntries = (): any[] => {
+	const getCurrentDishMediaEntries = (): DishMediaEntry[] => {
 		switch (selectedTab) {
 			case "reviews":
 				return profileData.userDishMediaEntries ?? [];
@@ -781,7 +781,7 @@ export default function ProfileScreen() {
 		});
 	};
 
-	const getCurrentDishMediaEntriesForTab = (tab: TabType): any[] | null => {
+	const getCurrentDishMediaEntriesForTab = (tab: TabType): DishMediaEntry[] | null => {
 		switch (tab) {
 			case "reviews":
 				return profileData.userDishMediaEntries;
