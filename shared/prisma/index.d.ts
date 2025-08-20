@@ -33,6 +33,7 @@ export type config = $Result.DefaultSelection<Prisma.$configPayload>
 export type dish_categories = $Result.DefaultSelection<Prisma.$dish_categoriesPayload>
 /**
  * Model dish_category_variants
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
@@ -120,11 +121,6 @@ export type restaurant_bids = $Result.DefaultSelection<Prisma.$restaurant_bidsPa
  */
 export type restaurants = $Result.DefaultSelection<Prisma.$restaurantsPayload>
 /**
- * Model spatial_ref_sys
- * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
- */
-export type spatial_ref_sys = $Result.DefaultSelection<Prisma.$spatial_ref_sysPayload>
-/**
  * Model users
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -136,50 +132,50 @@ export type users = $Result.DefaultSelection<Prisma.$usersPayload>
  */
 export namespace $Enums {
   export const backend_event_logs_error_level: {
-    verbose: 'verbose',
-    debug: 'debug',
-    log: 'log',
-    warn: 'warn',
-    error: 'error'
-  };
+  verbose: 'verbose',
+  debug: 'debug',
+  log: 'log',
+  warn: 'warn',
+  error: 'error'
+};
 
-  export type backend_event_logs_error_level = (typeof backend_event_logs_error_level)[keyof typeof backend_event_logs_error_level]
-
-
-  export const frontend_event_logs_error_level: {
-    verbose: 'verbose',
-    debug: 'debug',
-    log: 'log',
-    warn: 'warn',
-    error: 'error'
-  };
-
-  export type frontend_event_logs_error_level = (typeof frontend_event_logs_error_level)[keyof typeof frontend_event_logs_error_level]
+export type backend_event_logs_error_level = (typeof backend_event_logs_error_level)[keyof typeof backend_event_logs_error_level]
 
 
-  export const payout_status: {
-    pending: 'pending',
-    paid: 'paid',
-    refunded: 'refunded'
-  };
+export const frontend_event_logs_error_level: {
+  verbose: 'verbose',
+  debug: 'debug',
+  log: 'log',
+  warn: 'warn',
+  error: 'error'
+};
 
-  export type payout_status = (typeof payout_status)[keyof typeof payout_status]
-
-
-  export const prompt_families_purpose: {
-    spot_guide_manuscript: 'spot_guide_manuscript'
-  };
-
-  export type prompt_families_purpose = (typeof prompt_families_purpose)[keyof typeof prompt_families_purpose]
+export type frontend_event_logs_error_level = (typeof frontend_event_logs_error_level)[keyof typeof frontend_event_logs_error_level]
 
 
-  export const restaurant_bid_status: {
-    pending: 'pending',
-    paid: 'paid',
-    refunded: 'refunded'
-  };
+export const payout_status: {
+  pending: 'pending',
+  paid: 'paid',
+  refunded: 'refunded'
+};
 
-  export type restaurant_bid_status = (typeof restaurant_bid_status)[keyof typeof restaurant_bid_status]
+export type payout_status = (typeof payout_status)[keyof typeof payout_status]
+
+
+export const prompt_families_purpose: {
+  spot_guide_manuscript: 'spot_guide_manuscript'
+};
+
+export type prompt_families_purpose = (typeof prompt_families_purpose)[keyof typeof prompt_families_purpose]
+
+
+export const restaurant_bid_status: {
+  pending: 'pending',
+  paid: 'paid',
+  refunded: 'refunded'
+};
+
+export type restaurant_bid_status = (typeof restaurant_bid_status)[keyof typeof restaurant_bid_status]
 
 }
 
@@ -224,22 +220,22 @@ export class PrismaClient<
 > {
   [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['other'] }
 
-  /**
- * ##  Prisma Client ʲˢ
- *
- * Type-safe database client for TypeScript & Node.js
- * @example
- * ```
- * const prisma = new PrismaClient()
- * // Fetch zero or more Backend_event_logs
- * const backend_event_logs = await prisma.backend_event_logs.findMany()
- * ```
- *
- *
- * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
- */
+    /**
+   * ##  Prisma Client ʲˢ
+   *
+   * Type-safe database client for TypeScript & Node.js
+   * @example
+   * ```
+   * const prisma = new PrismaClient()
+   * // Fetch zero or more Backend_event_logs
+   * const backend_event_logs = await prisma.backend_event_logs.findMany()
+   * ```
+   *
+   *
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
+   */
 
-  constructor(optionsArg?: Prisma.Subset<ClientOptions, Prisma.PrismaClientOptions>);
+  constructor(optionsArg ?: Prisma.Subset<ClientOptions, Prisma.PrismaClientOptions>);
   $on<V extends U>(eventType: V, callback: (event: V extends 'query' ? Prisma.QueryEvent : Prisma.LogEvent) => void): PrismaClient;
 
   /**
@@ -252,15 +248,15 @@ export class PrismaClient<
    */
   $disconnect(): $Utils.JsPromise<void>;
 
-  /**
-     * Executes a prepared raw query and returns the number of affected rows.
-     * @example
-     * ```
-     * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
-     * ```
-     *
-     * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
-     */
+/**
+   * Executes a prepared raw query and returns the number of affected rows.
+   * @example
+   * ```
+   * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
+   * ```
+   *
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   */
   $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
 
   /**
@@ -321,14 +317,14 @@ export class PrismaClient<
     extArgs: ExtArgs
   }>>
 
-  /**
-* `prisma.backend_event_logs`: Exposes CRUD operations for the **backend_event_logs** model.
-* Example usage:
-* ```ts
-* // Fetch zero or more Backend_event_logs
-* const backend_event_logs = await prisma.backend_event_logs.findMany()
-* ```
-*/
+      /**
+   * `prisma.backend_event_logs`: Exposes CRUD operations for the **backend_event_logs** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Backend_event_logs
+    * const backend_event_logs = await prisma.backend_event_logs.findMany()
+    * ```
+    */
   get backend_event_logs(): Prisma.backend_event_logsDelegate<ExtArgs, ClientOptions>;
 
   /**
@@ -490,16 +486,6 @@ export class PrismaClient<
     * ```
     */
   get restaurants(): Prisma.restaurantsDelegate<ExtArgs, ClientOptions>;
-
-  /**
-   * `prisma.spatial_ref_sys`: Exposes CRUD operations for the **spatial_ref_sys** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more Spatial_ref_sys
-    * const spatial_ref_sys = await prisma.spatial_ref_sys.findMany()
-    * ```
-    */
-  get spatial_ref_sys(): Prisma.spatial_ref_sysDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.users`: Exposes CRUD operations for the **users** model.
@@ -677,7 +663,7 @@ export namespace Prisma {
    * From T, pick a set of properties whose keys are in the union K
    */
   type Prisma__Pick<T, K extends keyof T> = {
-    [P in K]: T[P];
+      [P in K]: T[P];
   };
 
 
@@ -712,8 +698,8 @@ export namespace Prisma {
     (T extends SelectAndInclude
       ? 'Please either choose `select` or `include`.'
       : T extends SelectAndOmit
-      ? 'Please either choose `select` or `omit`.'
-      : {})
+        ? 'Please either choose `select` or `omit`.'
+        : {})
 
   /**
    * Subset + Intersection
@@ -733,7 +719,7 @@ export namespace Prisma {
   type XOR<T, U> =
     T extends object ?
     U extends object ?
-    (Without<T, U> & U) | (Without<U, T> & T)
+      (Without<T, U> & U) | (Without<U, T> & T)
     : U : T
 
 
@@ -741,16 +727,16 @@ export namespace Prisma {
    * Is T a Record?
    */
   type IsObject<T extends any> = T extends Array<any>
-    ? False
-    : T extends Date
-    ? False
-    : T extends Uint8Array
-    ? False
-    : T extends BigInt
-    ? False
-    : T extends object
-    ? True
-    : False
+  ? False
+  : T extends Date
+  ? False
+  : T extends Uint8Array
+  ? False
+  : T extends BigInt
+  ? False
+  : T extends object
+  ? True
+  : False
 
 
   /**
@@ -801,11 +787,11 @@ export namespace Prisma {
     : never
 
   export type Overwrite<O extends object, O1 extends object> = {
-    [K in keyof O]: K extends keyof O1 ? O1[K] : O[K];
+      [K in keyof O]: K extends keyof O1 ? O1[K] : O[K];
   } & {};
 
   type _Merge<U extends object> = IntersectOf<Overwrite<U, {
-    [K in keyof U]-?: At<U, K>;
+      [K in keyof U]-?: At<U, K>;
   }>>;
 
   type Key = string | number | symbol;
@@ -813,8 +799,8 @@ export namespace Prisma {
   type AtStrict<O extends object, K extends Key> = O[K & keyof O];
   type AtLoose<O extends object, K extends Key> = O extends unknown ? AtStrict<O, K> : never;
   export type At<O extends object, K extends Key, strict extends Boolean = 1> = {
-    1: AtStrict<O, K>;
-    0: AtLoose<O, K>;
+      1: AtStrict<O, K>;
+      0: AtLoose<O, K>;
   }[strict];
 
   export type ComputeRaw<A extends any> = A extends Function ? A : {
@@ -836,7 +822,7 @@ export namespace Prisma {
   type AtLeast<O extends object, K extends string> = NoExpand<
     O extends unknown
     ? | (K extends keyof O ? { [P in K]: O[P] } & O : O)
-    | { [P in keyof O as P extends K ? P : never]-?: O[P] } & O
+      | {[P in keyof O as P extends K ? P : never]-?: O[P]} & O
     : never>;
 
   type _Strict<U, _U = U> = U extends unknown ? U & OptionalFlat<_Record<Exclude<Keys<_U>, keyof U>, never>> : never;
@@ -901,8 +887,8 @@ export namespace Prisma {
 
   export type GetScalarType<T, O> = O extends object ? {
     [P in keyof T]: P extends keyof O
-    ? O[P]
-    : never
+      ? O[P]
+      : never
   } : never
 
   type FieldPaths<
@@ -915,15 +901,15 @@ export namespace Prisma {
       Or<Extends<'OR', K>, Extends<'AND', K>>,
       Extends<'NOT', K>
     > extends True
-    ? // infer is only needed to not hit TS limit
-    // based on the brilliant idea of Pierre-Antoine Mills
-    // https://github.com/microsoft/TypeScript/issues/30188#issuecomment-478938437
-    T[K] extends infer TK
-    ? GetHavingFields<UnEnumerate<TK> extends object ? Merge<UnEnumerate<TK>> : never>
-    : never
-    : {} extends FieldPaths<T[K]>
-    ? never
-    : K
+      ? // infer is only needed to not hit TS limit
+        // based on the brilliant idea of Pierre-Antoine Mills
+        // https://github.com/microsoft/TypeScript/issues/30188#issuecomment-478938437
+        T[K] extends infer TK
+        ? GetHavingFields<UnEnumerate<TK> extends object ? Merge<UnEnumerate<TK>> : never>
+        : never
+      : {} extends FieldPaths<T[K]>
+      ? never
+      : K
   }[keyof T]
 
   /**
@@ -967,7 +953,6 @@ export namespace Prisma {
     reactions: 'reactions',
     restaurant_bids: 'restaurant_bids',
     restaurants: 'restaurants',
-    spatial_ref_sys: 'spatial_ref_sys',
     users: 'users'
   };
 
@@ -978,7 +963,7 @@ export namespace Prisma {
     db?: Datasource
   }
 
-  interface TypeMapCb<ClientOptions = {}> extends $Utils.Fn<{ extArgs: $Extensions.InternalArgs }, $Utils.Record<string, any>> {
+  interface TypeMapCb<ClientOptions = {}> extends $Utils.Fn<{extArgs: $Extensions.InternalArgs }, $Utils.Record<string, any>> {
     returns: Prisma.TypeMap<this['params']['extArgs'], ClientOptions extends { omit: infer OmitOptions } ? OmitOptions : {}>
   }
 
@@ -987,7 +972,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_likes" | "dish_media" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "spatial_ref_sys" | "users"
+      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_likes" | "dish_media" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2249,80 +2234,6 @@ export namespace Prisma {
           }
         }
       }
-      spatial_ref_sys: {
-        payload: Prisma.$spatial_ref_sysPayload<ExtArgs>
-        fields: Prisma.spatial_ref_sysFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.spatial_ref_sysFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.spatial_ref_sysFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>
-          }
-          findFirst: {
-            args: Prisma.spatial_ref_sysFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.spatial_ref_sysFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>
-          }
-          findMany: {
-            args: Prisma.spatial_ref_sysFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>[]
-          }
-          create: {
-            args: Prisma.spatial_ref_sysCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>
-          }
-          createMany: {
-            args: Prisma.spatial_ref_sysCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.spatial_ref_sysCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>[]
-          }
-          delete: {
-            args: Prisma.spatial_ref_sysDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>
-          }
-          update: {
-            args: Prisma.spatial_ref_sysUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>
-          }
-          deleteMany: {
-            args: Prisma.spatial_ref_sysDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.spatial_ref_sysUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.spatial_ref_sysUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>[]
-          }
-          upsert: {
-            args: Prisma.spatial_ref_sysUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$spatial_ref_sysPayload>
-          }
-          aggregate: {
-            args: Prisma.Spatial_ref_sysAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateSpatial_ref_sys>
-          }
-          groupBy: {
-            args: Prisma.spatial_ref_sysGroupByArgs<ExtArgs>
-            result: $Utils.Optional<Spatial_ref_sysGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.spatial_ref_sysCountArgs<ExtArgs>
-            result: $Utils.Optional<Spatial_ref_sysCountAggregateOutputType> | number
-          }
-        }
-      }
       users: {
         payload: Prisma.$usersPayload<ExtArgs>
         fields: Prisma.usersFieldRefs
@@ -2506,7 +2417,6 @@ export namespace Prisma {
     reactions?: reactionsOmit
     restaurant_bids?: restaurant_bidsOmit
     restaurants?: restaurantsOmit
-    spatial_ref_sys?: spatial_ref_sysOmit
     users?: usersOmit
   }
 
@@ -2629,12 +2539,12 @@ export namespace Prisma {
 
   export type Dish_mediaCountOutputType = {
     dish_likes: number
-    payouts: number
+    dish_reviews: number
   }
 
   export type Dish_mediaCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_likes?: boolean | Dish_mediaCountOutputTypeCountDish_likesArgs
-    payouts?: boolean | Dish_mediaCountOutputTypeCountPayoutsArgs
+    dish_reviews?: boolean | Dish_mediaCountOutputTypeCountDish_reviewsArgs
   }
 
   // Custom InputTypes
@@ -2658,8 +2568,8 @@ export namespace Prisma {
   /**
    * Dish_mediaCountOutputType without action
    */
-  export type Dish_mediaCountOutputTypeCountPayoutsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: payoutsWhereInput
+  export type Dish_mediaCountOutputTypeCountDish_reviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_reviewsWhereInput
   }
 
 
@@ -2771,12 +2681,10 @@ export namespace Prisma {
 
   export type RestaurantsCountOutputType = {
     dishes: number
-    restaurant_bids: number
   }
 
   export type RestaurantsCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | RestaurantsCountOutputTypeCountDishesArgs
-    restaurant_bids?: boolean | RestaurantsCountOutputTypeCountRestaurant_bidsArgs
   }
 
   // Custom InputTypes
@@ -2795,13 +2703,6 @@ export namespace Prisma {
    */
   export type RestaurantsCountOutputTypeCountDishesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: dishesWhereInput
-  }
-
-  /**
-   * RestaurantsCountOutputType without action
-   */
-  export type RestaurantsCountOutputTypeCountRestaurant_bidsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: restaurant_bidsWhereInput
   }
 
 
@@ -2998,11 +2899,11 @@ export namespace Prisma {
   }
 
   export type GetBackend_event_logsAggregateType<T extends Backend_event_logsAggregateArgs> = {
-    [P in keyof T & keyof AggregateBackend_event_logs]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateBackend_event_logs[P]>
-    : GetScalarType<T[P], AggregateBackend_event_logs[P]>
+        [P in keyof T & keyof AggregateBackend_event_logs]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateBackend_event_logs[P]>
+      : GetScalarType<T[P], AggregateBackend_event_logs[P]>
   }
 
 
@@ -3038,15 +2939,15 @@ export namespace Prisma {
   type GetBackend_event_logsGroupByPayload<T extends backend_event_logsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Backend_event_logsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Backend_event_logsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Backend_event_logsGroupByOutputType[P]>
-        : GetScalarType<T[P], Backend_event_logsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Backend_event_logsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Backend_event_logsGroupByOutputType[P]>
+            : GetScalarType<T[P], Backend_event_logsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type backend_event_logsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -3384,10 +3285,10 @@ export namespace Prisma {
       args?: Subset<T, backend_event_logsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Backend_event_logsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Backend_event_logsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -3441,8 +3342,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: backend_event_logsGroupByArgs['orderBy'] }
-      : { orderBy?: backend_event_logsGroupByArgs['orderBy'] },
+        ? { orderBy: backend_event_logsGroupByArgs['orderBy'] }
+        : { orderBy?: backend_event_logsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -3453,49 +3354,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, backend_event_logsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetBackend_event_logsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the backend_event_logs model
-     */
-    readonly fields: backend_event_logsFieldRefs;
+  /**
+   * Fields of the backend_event_logs model
+   */
+  readonly fields: backend_event_logsFieldRefs;
   }
 
   /**
@@ -3545,7 +3446,7 @@ export namespace Prisma {
     readonly created_at: FieldRef<"backend_event_logs", 'DateTime'>
     readonly created_commit_id: FieldRef<"backend_event_logs", 'String'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -4009,11 +3910,11 @@ export namespace Prisma {
   }
 
   export type GetConfigAggregateType<T extends ConfigAggregateArgs> = {
-    [P in keyof T & keyof AggregateConfig]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateConfig[P]>
-    : GetScalarType<T[P], AggregateConfig[P]>
+        [P in keyof T & keyof AggregateConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateConfig[P]>
+      : GetScalarType<T[P], AggregateConfig[P]>
   }
 
 
@@ -4043,15 +3944,15 @@ export namespace Prisma {
   type GetConfigGroupByPayload<T extends configGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<ConfigGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof ConfigGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], ConfigGroupByOutputType[P]>
-        : GetScalarType<T[P], ConfigGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof ConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], ConfigGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type configSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -4359,10 +4260,10 @@ export namespace Prisma {
       args?: Subset<T, configCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], ConfigCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ConfigCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -4416,8 +4317,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: configGroupByArgs['orderBy'] }
-      : { orderBy?: configGroupByArgs['orderBy'] },
+        ? { orderBy: configGroupByArgs['orderBy'] }
+        : { orderBy?: configGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -4428,49 +4329,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, configGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the config model
-     */
-    readonly fields: configFieldRefs;
+  /**
+   * Fields of the config model
+   */
+  readonly fields: configFieldRefs;
   }
 
   /**
@@ -4514,7 +4415,7 @@ export namespace Prisma {
     readonly value: FieldRef<"config", 'String'>
     readonly description: FieldRef<"config", 'String'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -5034,11 +4935,11 @@ export namespace Prisma {
   }
 
   export type GetDish_categoriesAggregateType<T extends Dish_categoriesAggregateArgs> = {
-    [P in keyof T & keyof AggregateDish_categories]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateDish_categories[P]>
-    : GetScalarType<T[P], AggregateDish_categories[P]>
+        [P in keyof T & keyof AggregateDish_categories]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_categories[P]>
+      : GetScalarType<T[P], AggregateDish_categories[P]>
   }
 
 
@@ -5079,15 +4980,15 @@ export namespace Prisma {
   type GetDish_categoriesGroupByPayload<T extends dish_categoriesGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Dish_categoriesGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Dish_categoriesGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Dish_categoriesGroupByOutputType[P]>
-        : GetScalarType<T[P], Dish_categoriesGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Dish_categoriesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_categoriesGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_categoriesGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type dish_categoriesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -5443,10 +5344,10 @@ export namespace Prisma {
       args?: Subset<T, dish_categoriesCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Dish_categoriesCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_categoriesCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -5500,8 +5401,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: dish_categoriesGroupByArgs['orderBy'] }
-      : { orderBy?: dish_categoriesGroupByArgs['orderBy'] },
+        ? { orderBy: dish_categoriesGroupByArgs['orderBy'] }
+        : { orderBy?: dish_categoriesGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -5512,49 +5413,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, dish_categoriesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_categoriesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the dish_categories model
-     */
-    readonly fields: dish_categoriesFieldRefs;
+  /**
+   * Fields of the dish_categories model
+   */
+  readonly fields: dish_categoriesFieldRefs;
   }
 
   /**
@@ -5607,7 +5508,7 @@ export namespace Prisma {
     readonly updated_at: FieldRef<"dish_categories", 'DateTime'>
     readonly lock_no: FieldRef<"dish_categories", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -6171,11 +6072,11 @@ export namespace Prisma {
   }
 
   export type GetDish_category_variantsAggregateType<T extends Dish_category_variantsAggregateArgs> = {
-    [P in keyof T & keyof AggregateDish_category_variants]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateDish_category_variants[P]>
-    : GetScalarType<T[P], AggregateDish_category_variants[P]>
+        [P in keyof T & keyof AggregateDish_category_variants]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_category_variants[P]>
+      : GetScalarType<T[P], AggregateDish_category_variants[P]>
   }
 
 
@@ -6207,15 +6108,15 @@ export namespace Prisma {
   type GetDish_category_variantsGroupByPayload<T extends dish_category_variantsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Dish_category_variantsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Dish_category_variantsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Dish_category_variantsGroupByOutputType[P]>
-        : GetScalarType<T[P], Dish_category_variantsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Dish_category_variantsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_category_variantsGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_category_variantsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type dish_category_variantsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -6547,10 +6448,10 @@ export namespace Prisma {
       args?: Subset<T, dish_category_variantsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Dish_category_variantsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_category_variantsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -6604,8 +6505,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: dish_category_variantsGroupByArgs['orderBy'] }
-      : { orderBy?: dish_category_variantsGroupByArgs['orderBy'] },
+        ? { orderBy: dish_category_variantsGroupByArgs['orderBy'] }
+        : { orderBy?: dish_category_variantsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -6616,49 +6517,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, dish_category_variantsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_variantsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the dish_category_variants model
-     */
-    readonly fields: dish_category_variantsFieldRefs;
+  /**
+   * Fields of the dish_category_variants model
+   */
+  readonly fields: dish_category_variantsFieldRefs;
   }
 
   /**
@@ -6705,7 +6606,7 @@ export namespace Prisma {
     readonly source: FieldRef<"dish_category_variants", 'String'>
     readonly created_at: FieldRef<"dish_category_variants", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -7223,11 +7124,11 @@ export namespace Prisma {
   }
 
   export type GetDish_likesAggregateType<T extends Dish_likesAggregateArgs> = {
-    [P in keyof T & keyof AggregateDish_likes]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateDish_likes[P]>
-    : GetScalarType<T[P], AggregateDish_likes[P]>
+        [P in keyof T & keyof AggregateDish_likes]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_likes[P]>
+      : GetScalarType<T[P], AggregateDish_likes[P]>
   }
 
 
@@ -7258,15 +7159,15 @@ export namespace Prisma {
   type GetDish_likesGroupByPayload<T extends dish_likesGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Dish_likesGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Dish_likesGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Dish_likesGroupByOutputType[P]>
-        : GetScalarType<T[P], Dish_likesGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Dish_likesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_likesGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_likesGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type dish_likesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -7600,10 +7501,10 @@ export namespace Prisma {
       args?: Subset<T, dish_likesCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Dish_likesCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_likesCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -7657,8 +7558,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: dish_likesGroupByArgs['orderBy'] }
-      : { orderBy?: dish_likesGroupByArgs['orderBy'] },
+        ? { orderBy: dish_likesGroupByArgs['orderBy'] }
+        : { orderBy?: dish_likesGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -7669,49 +7570,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, dish_likesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_likesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the dish_likes model
-     */
-    readonly fields: dish_likesFieldRefs;
+  /**
+   * Fields of the dish_likes model
+   */
+  readonly fields: dish_likesFieldRefs;
   }
 
   /**
@@ -7758,7 +7659,7 @@ export namespace Prisma {
     readonly user_id: FieldRef<"dish_likes", 'String'>
     readonly created_at: FieldRef<"dish_likes", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -8336,11 +8237,11 @@ export namespace Prisma {
   }
 
   export type GetDish_mediaAggregateType<T extends Dish_mediaAggregateArgs> = {
-    [P in keyof T & keyof AggregateDish_media]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateDish_media[P]>
-    : GetScalarType<T[P], AggregateDish_media[P]>
+        [P in keyof T & keyof AggregateDish_media]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_media[P]>
+      : GetScalarType<T[P], AggregateDish_media[P]>
   }
 
 
@@ -8380,15 +8281,15 @@ export namespace Prisma {
   type GetDish_mediaGroupByPayload<T extends dish_mediaGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Dish_mediaGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Dish_mediaGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Dish_mediaGroupByOutputType[P]>
-        : GetScalarType<T[P], Dish_mediaGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Dish_mediaGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_mediaGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_mediaGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type dish_mediaSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -8404,7 +8305,7 @@ export namespace Prisma {
     dish_likes?: boolean | dish_media$dish_likesArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
-    payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
+    dish_reviews?: boolean | dish_media$dish_reviewsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media"]>
 
@@ -8453,7 +8354,7 @@ export namespace Prisma {
     dish_likes?: boolean | dish_media$dish_likesArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
-    payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
+    dish_reviews?: boolean | dish_media$dish_reviewsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type dish_mediaIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8471,7 +8372,7 @@ export namespace Prisma {
       dish_likes: Prisma.$dish_likesPayload<ExtArgs>[]
       dishes: Prisma.$dishesPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs> | null
-      payouts: Prisma.$payoutsPayload<ExtArgs>[]
+      dish_reviews: Prisma.$dish_reviewsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -8755,10 +8656,10 @@ export namespace Prisma {
       args?: Subset<T, dish_mediaCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Dish_mediaCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_mediaCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -8812,8 +8713,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: dish_mediaGroupByArgs['orderBy'] }
-      : { orderBy?: dish_mediaGroupByArgs['orderBy'] },
+        ? { orderBy: dish_mediaGroupByArgs['orderBy'] }
+        : { orderBy?: dish_mediaGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -8824,49 +8725,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, dish_mediaGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_mediaGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the dish_media model
-     */
-    readonly fields: dish_mediaFieldRefs;
+  /**
+   * Fields of the dish_media model
+   */
+  readonly fields: dish_mediaFieldRefs;
   }
 
   /**
@@ -8880,7 +8781,7 @@ export namespace Prisma {
     dish_likes<T extends dish_media$dish_likesArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dishes<T extends dishesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dishesDefaultArgs<ExtArgs>>): Prisma__dishesClient<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends dish_media$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    payouts<T extends dish_media$payoutsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$payoutsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_reviews<T extends dish_media$dish_reviewsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_reviewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8920,7 +8821,7 @@ export namespace Prisma {
     readonly updated_at: FieldRef<"dish_media", 'DateTime'>
     readonly lock_no: FieldRef<"dish_media", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -9358,27 +9259,27 @@ export namespace Prisma {
   }
 
   /**
-   * dish_media.payouts
+   * dish_media.dish_reviews
    */
-  export type dish_media$payoutsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_media$dish_reviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the payouts
+     * Select specific fields to fetch from the dish_reviews
      */
-    select?: payoutsSelect<ExtArgs> | null
+    select?: dish_reviewsSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the payouts
+     * Omit specific fields from the dish_reviews
      */
-    omit?: payoutsOmit<ExtArgs> | null
+    omit?: dish_reviewsOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: payoutsInclude<ExtArgs> | null
-    where?: payoutsWhereInput
-    orderBy?: payoutsOrderByWithRelationInput | payoutsOrderByWithRelationInput[]
-    cursor?: payoutsWhereUniqueInput
+    include?: dish_reviewsInclude<ExtArgs> | null
+    where?: dish_reviewsWhereInput
+    orderBy?: dish_reviewsOrderByWithRelationInput | dish_reviewsOrderByWithRelationInput[]
+    cursor?: dish_reviewsWhereUniqueInput
     take?: number
     skip?: number
-    distinct?: PayoutsScalarFieldEnum | PayoutsScalarFieldEnum[]
+    distinct?: Dish_reviewsScalarFieldEnum | Dish_reviewsScalarFieldEnum[]
   }
 
   /**
@@ -9587,11 +9488,11 @@ export namespace Prisma {
   }
 
   export type GetDish_reviewsAggregateType<T extends Dish_reviewsAggregateArgs> = {
-    [P in keyof T & keyof AggregateDish_reviews]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateDish_reviews[P]>
-    : GetScalarType<T[P], AggregateDish_reviews[P]>
+        [P in keyof T & keyof AggregateDish_reviews]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_reviews[P]>
+      : GetScalarType<T[P], AggregateDish_reviews[P]>
   }
 
 
@@ -9620,7 +9521,7 @@ export namespace Prisma {
     rating: number
     price_cents: number | null
     currency_code: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date
@@ -9634,15 +9535,15 @@ export namespace Prisma {
   type GetDish_reviewsGroupByPayload<T extends dish_reviewsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Dish_reviewsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Dish_reviewsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Dish_reviewsGroupByOutputType[P]>
-        : GetScalarType<T[P], Dish_reviewsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Dish_reviewsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_reviewsGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_reviewsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type dish_reviewsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -9658,6 +9559,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -9675,6 +9577,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -9692,6 +9595,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -9713,14 +9617,17 @@ export namespace Prisma {
 
   export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "original_language_code" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at", ExtArgs["result"]["dish_reviews"]>
   export type dish_reviewsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }
   export type dish_reviewsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }
   export type dish_reviewsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }
@@ -9728,6 +9635,7 @@ export namespace Prisma {
   export type $dish_reviewsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "dish_reviews"
     objects: {
+      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
       dishes: Prisma.$dishesPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs> | null
     }
@@ -9740,7 +9648,7 @@ export namespace Prisma {
       rating: number
       price_cents: number | null
       currency_code: string | null
-      created_dish_media_id: string | null
+      created_dish_media_id: string
       imported_user_name: string | null
       imported_user_avatar: string | null
       created_at: Date
@@ -10016,10 +9924,10 @@ export namespace Prisma {
       args?: Subset<T, dish_reviewsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Dish_reviewsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_reviewsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -10073,8 +9981,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: dish_reviewsGroupByArgs['orderBy'] }
-      : { orderBy?: dish_reviewsGroupByArgs['orderBy'] },
+        ? { orderBy: dish_reviewsGroupByArgs['orderBy'] }
+        : { orderBy?: dish_reviewsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -10085,49 +9993,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, dish_reviewsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_reviewsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the dish_reviews model
-     */
-    readonly fields: dish_reviewsFieldRefs;
+  /**
+   * Fields of the dish_reviews model
+   */
+  readonly fields: dish_reviewsFieldRefs;
   }
 
   /**
@@ -10138,6 +10046,7 @@ export namespace Prisma {
    */
   export interface Prisma__dish_reviewsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     dishes<T extends dishesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dishesDefaultArgs<ExtArgs>>): Prisma__dishesClient<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends dish_reviews$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_reviews$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
@@ -10182,7 +10091,7 @@ export namespace Prisma {
     readonly imported_user_avatar: FieldRef<"dish_reviews", 'String'>
     readonly created_at: FieldRef<"dish_reviews", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -10767,11 +10676,11 @@ export namespace Prisma {
   }
 
   export type GetDishesAggregateType<T extends DishesAggregateArgs> = {
-    [P in keyof T & keyof AggregateDishes]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateDishes[P]>
-    : GetScalarType<T[P], AggregateDishes[P]>
+        [P in keyof T & keyof AggregateDishes]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDishes[P]>
+      : GetScalarType<T[P], AggregateDishes[P]>
   }
 
 
@@ -10793,7 +10702,7 @@ export namespace Prisma {
 
   export type DishesGroupByOutputType = {
     id: string
-    restaurant_id: string | null
+    restaurant_id: string
     category_id: string
     name: string | null
     created_at: Date
@@ -10809,15 +10718,15 @@ export namespace Prisma {
   type GetDishesGroupByPayload<T extends dishesGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<DishesGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof DishesGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], DishesGroupByOutputType[P]>
-        : GetScalarType<T[P], DishesGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof DishesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DishesGroupByOutputType[P]>
+            : GetScalarType<T[P], DishesGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type dishesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -10831,7 +10740,7 @@ export namespace Prisma {
     dish_media?: boolean | dishes$dish_mediaArgs<ExtArgs>
     dish_reviews?: boolean | dishes$dish_reviewsArgs<ExtArgs>
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     _count?: boolean | DishesCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
 
@@ -10844,7 +10753,7 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
 
   export type dishesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -10856,7 +10765,7 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
 
   export type dishesSelectScalar = {
@@ -10874,16 +10783,16 @@ export namespace Prisma {
     dish_media?: boolean | dishes$dish_mediaArgs<ExtArgs>
     dish_reviews?: boolean | dishes$dish_reviewsArgs<ExtArgs>
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     _count?: boolean | DishesCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type dishesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }
   export type dishesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-    restaurants?: boolean | dishes$restaurantsArgs<ExtArgs>
+    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }
 
   export type $dishesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10892,11 +10801,11 @@ export namespace Prisma {
       dish_media: Prisma.$dish_mediaPayload<ExtArgs>[]
       dish_reviews: Prisma.$dish_reviewsPayload<ExtArgs>[]
       dish_categories: Prisma.$dish_categoriesPayload<ExtArgs>
-      restaurants: Prisma.$restaurantsPayload<ExtArgs> | null
+      restaurants: Prisma.$restaurantsPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      restaurant_id: string | null
+      restaurant_id: string
       category_id: string
       name: string | null
       created_at: Date
@@ -11174,10 +11083,10 @@ export namespace Prisma {
       args?: Subset<T, dishesCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], DishesCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DishesCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -11231,8 +11140,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: dishesGroupByArgs['orderBy'] }
-      : { orderBy?: dishesGroupByArgs['orderBy'] },
+        ? { orderBy: dishesGroupByArgs['orderBy'] }
+        : { orderBy?: dishesGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -11243,49 +11152,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, dishesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDishesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the dishes model
-     */
-    readonly fields: dishesFieldRefs;
+  /**
+   * Fields of the dishes model
+   */
+  readonly fields: dishesFieldRefs;
   }
 
   /**
@@ -11299,7 +11208,7 @@ export namespace Prisma {
     dish_media<T extends dishes$dish_mediaArgs<ExtArgs> = {}>(args?: Subset<T, dishes$dish_mediaArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_reviews<T extends dishes$dish_reviewsArgs<ExtArgs> = {}>(args?: Subset<T, dishes$dish_reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_reviewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_categories<T extends dish_categoriesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_categoriesDefaultArgs<ExtArgs>>): Prisma__dish_categoriesClient<$Result.GetResult<Prisma.$dish_categoriesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    restaurants<T extends dishes$restaurantsArgs<ExtArgs> = {}>(args?: Subset<T, dishes$restaurantsArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    restaurants<T extends restaurantsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurantsDefaultArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -11337,7 +11246,7 @@ export namespace Prisma {
     readonly updated_at: FieldRef<"dishes", 'DateTime'>
     readonly lock_no: FieldRef<"dishes", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -11780,25 +11689,6 @@ export namespace Prisma {
   }
 
   /**
-   * dishes.restaurants
-   */
-  export type dishes$restaurantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the restaurants
-     */
-    select?: restaurantsSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the restaurants
-     */
-    omit?: restaurantsOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: restaurantsInclude<ExtArgs> | null
-    where?: restaurantsWhereInput
-  }
-
-  /**
    * dishes without action
    */
   export type dishesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12008,11 +11898,11 @@ export namespace Prisma {
   }
 
   export type GetExternal_api_logsAggregateType<T extends External_api_logsAggregateArgs> = {
-    [P in keyof T & keyof AggregateExternal_api_logs]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateExternal_api_logs[P]>
-    : GetScalarType<T[P], AggregateExternal_api_logs[P]>
+        [P in keyof T & keyof AggregateExternal_api_logs]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateExternal_api_logs[P]>
+      : GetScalarType<T[P], AggregateExternal_api_logs[P]>
   }
 
 
@@ -12057,15 +11947,15 @@ export namespace Prisma {
   type GetExternal_api_logsGroupByPayload<T extends external_api_logsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<External_api_logsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof External_api_logsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], External_api_logsGroupByOutputType[P]>
-        : GetScalarType<T[P], External_api_logsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof External_api_logsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], External_api_logsGroupByOutputType[P]>
+            : GetScalarType<T[P], External_api_logsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type external_api_logsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -12428,10 +12318,10 @@ export namespace Prisma {
       args?: Subset<T, external_api_logsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], External_api_logsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], External_api_logsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -12485,8 +12375,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: external_api_logsGroupByArgs['orderBy'] }
-      : { orderBy?: external_api_logsGroupByArgs['orderBy'] },
+        ? { orderBy: external_api_logsGroupByArgs['orderBy'] }
+        : { orderBy?: external_api_logsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -12497,49 +12387,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, external_api_logsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetExternal_api_logsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the external_api_logs model
-     */
-    readonly fields: external_api_logsFieldRefs;
+  /**
+   * Fields of the external_api_logs model
+   */
+  readonly fields: external_api_logsFieldRefs;
   }
 
   /**
@@ -12594,7 +12484,7 @@ export namespace Prisma {
     readonly created_at: FieldRef<"external_api_logs", 'DateTime'>
     readonly created_commit_id: FieldRef<"external_api_logs", 'String'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -13094,11 +12984,11 @@ export namespace Prisma {
   }
 
   export type GetFrontend_event_logsAggregateType<T extends Frontend_event_logsAggregateArgs> = {
-    [P in keyof T & keyof AggregateFrontend_event_logs]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateFrontend_event_logs[P]>
-    : GetScalarType<T[P], AggregateFrontend_event_logs[P]>
+        [P in keyof T & keyof AggregateFrontend_event_logs]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFrontend_event_logs[P]>
+      : GetScalarType<T[P], AggregateFrontend_event_logs[P]>
   }
 
 
@@ -13134,15 +13024,15 @@ export namespace Prisma {
   type GetFrontend_event_logsGroupByPayload<T extends frontend_event_logsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Frontend_event_logsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Frontend_event_logsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Frontend_event_logsGroupByOutputType[P]>
-        : GetScalarType<T[P], Frontend_event_logsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Frontend_event_logsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Frontend_event_logsGroupByOutputType[P]>
+            : GetScalarType<T[P], Frontend_event_logsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type frontend_event_logsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -13480,10 +13370,10 @@ export namespace Prisma {
       args?: Subset<T, frontend_event_logsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Frontend_event_logsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Frontend_event_logsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -13537,8 +13427,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: frontend_event_logsGroupByArgs['orderBy'] }
-      : { orderBy?: frontend_event_logsGroupByArgs['orderBy'] },
+        ? { orderBy: frontend_event_logsGroupByArgs['orderBy'] }
+        : { orderBy?: frontend_event_logsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -13549,49 +13439,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, frontend_event_logsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFrontend_event_logsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the frontend_event_logs model
-     */
-    readonly fields: frontend_event_logsFieldRefs;
+  /**
+   * Fields of the frontend_event_logs model
+   */
+  readonly fields: frontend_event_logsFieldRefs;
   }
 
   /**
@@ -13641,7 +13531,7 @@ export namespace Prisma {
     readonly created_app_version: FieldRef<"frontend_event_logs", 'String'>
     readonly created_commit_id: FieldRef<"frontend_event_logs", 'String'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -14181,11 +14071,11 @@ export namespace Prisma {
   }
 
   export type GetPayoutsAggregateType<T extends PayoutsAggregateArgs> = {
-    [P in keyof T & keyof AggregatePayouts]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregatePayouts[P]>
-    : GetScalarType<T[P], AggregatePayouts[P]>
+        [P in keyof T & keyof AggregatePayouts]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePayouts[P]>
+      : GetScalarType<T[P], AggregatePayouts[P]>
   }
 
 
@@ -14226,15 +14116,15 @@ export namespace Prisma {
   type GetPayoutsGroupByPayload<T extends payoutsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<PayoutsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof PayoutsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], PayoutsGroupByOutputType[P]>
-        : GetScalarType<T[P], PayoutsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof PayoutsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PayoutsGroupByOutputType[P]>
+            : GetScalarType<T[P], PayoutsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type payoutsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14249,7 +14139,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["payouts"]>
 
   export type payoutsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14264,7 +14153,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["payouts"]>
 
   export type payoutsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14279,7 +14167,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["payouts"]>
 
   export type payoutsSelectScalar = {
@@ -14298,22 +14185,18 @@ export namespace Prisma {
   export type payoutsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bid_id" | "transfer_id" | "dish_media_id" | "amount_cents" | "currency_code" | "status" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["payouts"]>
   export type payoutsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }
   export type payoutsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }
   export type payoutsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     restaurant_bids?: boolean | restaurant_bidsDefaultArgs<ExtArgs>
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }
 
   export type $payoutsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "payouts"
     objects: {
       restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>
-      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14598,10 +14481,10 @@ export namespace Prisma {
       args?: Subset<T, payoutsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], PayoutsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PayoutsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -14655,8 +14538,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: payoutsGroupByArgs['orderBy'] }
-      : { orderBy?: payoutsGroupByArgs['orderBy'] },
+        ? { orderBy: payoutsGroupByArgs['orderBy'] }
+        : { orderBy?: payoutsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -14667,49 +14550,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, payoutsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPayoutsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the payouts model
-     */
-    readonly fields: payoutsFieldRefs;
+  /**
+   * Fields of the payouts model
+   */
+  readonly fields: payoutsFieldRefs;
   }
 
   /**
@@ -14721,7 +14604,6 @@ export namespace Prisma {
   export interface Prisma__payoutsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     restaurant_bids<T extends restaurant_bidsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurant_bidsDefaultArgs<ExtArgs>>): Prisma__restaurant_bidsClient<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -14762,7 +14644,7 @@ export namespace Prisma {
     readonly updated_at: FieldRef<"payouts", 'DateTime'>
     readonly lock_no: FieldRef<"payouts", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -15316,11 +15198,11 @@ export namespace Prisma {
   }
 
   export type GetPrompt_familiesAggregateType<T extends Prompt_familiesAggregateArgs> = {
-    [P in keyof T & keyof AggregatePrompt_families]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregatePrompt_families[P]>
-    : GetScalarType<T[P], AggregatePrompt_families[P]>
+        [P in keyof T & keyof AggregatePrompt_families]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePrompt_families[P]>
+      : GetScalarType<T[P], AggregatePrompt_families[P]>
   }
 
 
@@ -15356,15 +15238,15 @@ export namespace Prisma {
   type GetPrompt_familiesGroupByPayload<T extends prompt_familiesGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Prompt_familiesGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Prompt_familiesGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Prompt_familiesGroupByOutputType[P]>
-        : GetScalarType<T[P], Prompt_familiesGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Prompt_familiesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Prompt_familiesGroupByOutputType[P]>
+            : GetScalarType<T[P], Prompt_familiesGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type prompt_familiesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -15692,10 +15574,10 @@ export namespace Prisma {
       args?: Subset<T, prompt_familiesCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Prompt_familiesCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Prompt_familiesCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -15749,8 +15631,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: prompt_familiesGroupByArgs['orderBy'] }
-      : { orderBy?: prompt_familiesGroupByArgs['orderBy'] },
+        ? { orderBy: prompt_familiesGroupByArgs['orderBy'] }
+        : { orderBy?: prompt_familiesGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -15761,49 +15643,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, prompt_familiesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPrompt_familiesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the prompt_families model
-     */
-    readonly fields: prompt_familiesFieldRefs;
+  /**
+   * Fields of the prompt_families model
+   */
+  readonly fields: prompt_familiesFieldRefs;
   }
 
   /**
@@ -15850,7 +15732,7 @@ export namespace Prisma {
     readonly purpose: FieldRef<"prompt_families", 'prompt_families_purpose'>
     readonly weight: FieldRef<"prompt_families", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -16466,11 +16348,11 @@ export namespace Prisma {
   }
 
   export type GetPrompt_usagesAggregateType<T extends Prompt_usagesAggregateArgs> = {
-    [P in keyof T & keyof AggregatePrompt_usages]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregatePrompt_usages[P]>
-    : GetScalarType<T[P], AggregatePrompt_usages[P]>
+        [P in keyof T & keyof AggregatePrompt_usages]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePrompt_usages[P]>
+      : GetScalarType<T[P], AggregatePrompt_usages[P]>
   }
 
 
@@ -16515,15 +16397,15 @@ export namespace Prisma {
   type GetPrompt_usagesGroupByPayload<T extends prompt_usagesGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Prompt_usagesGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Prompt_usagesGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Prompt_usagesGroupByOutputType[P]>
-        : GetScalarType<T[P], Prompt_usagesGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Prompt_usagesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Prompt_usagesGroupByOutputType[P]>
+            : GetScalarType<T[P], Prompt_usagesGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type prompt_usagesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -16886,10 +16768,10 @@ export namespace Prisma {
       args?: Subset<T, prompt_usagesCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Prompt_usagesCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Prompt_usagesCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -16943,8 +16825,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: prompt_usagesGroupByArgs['orderBy'] }
-      : { orderBy?: prompt_usagesGroupByArgs['orderBy'] },
+        ? { orderBy: prompt_usagesGroupByArgs['orderBy'] }
+        : { orderBy?: prompt_usagesGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -16955,49 +16837,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, prompt_usagesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPrompt_usagesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the prompt_usages model
-     */
-    readonly fields: prompt_usagesFieldRefs;
+  /**
+   * Fields of the prompt_usages model
+   */
+  readonly fields: prompt_usagesFieldRefs;
   }
 
   /**
@@ -17052,7 +16934,7 @@ export namespace Prisma {
     readonly created_request_id: FieldRef<"prompt_usages", 'String'>
     readonly metadata: FieldRef<"prompt_usages", 'Json'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -17566,11 +17448,11 @@ export namespace Prisma {
   }
 
   export type GetPrompt_variantsAggregateType<T extends Prompt_variantsAggregateArgs> = {
-    [P in keyof T & keyof AggregatePrompt_variants]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregatePrompt_variants[P]>
-    : GetScalarType<T[P], AggregatePrompt_variants[P]>
+        [P in keyof T & keyof AggregatePrompt_variants]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePrompt_variants[P]>
+      : GetScalarType<T[P], AggregatePrompt_variants[P]>
   }
 
 
@@ -17608,15 +17490,15 @@ export namespace Prisma {
   type GetPrompt_variantsGroupByPayload<T extends prompt_variantsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Prompt_variantsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Prompt_variantsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Prompt_variantsGroupByOutputType[P]>
-        : GetScalarType<T[P], Prompt_variantsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Prompt_variantsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Prompt_variantsGroupByOutputType[P]>
+            : GetScalarType<T[P], Prompt_variantsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type prompt_variantsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -17958,10 +17840,10 @@ export namespace Prisma {
       args?: Subset<T, prompt_variantsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Prompt_variantsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Prompt_variantsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -18015,8 +17897,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: prompt_variantsGroupByArgs['orderBy'] }
-      : { orderBy?: prompt_variantsGroupByArgs['orderBy'] },
+        ? { orderBy: prompt_variantsGroupByArgs['orderBy'] }
+        : { orderBy?: prompt_variantsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -18027,49 +17909,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, prompt_variantsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPrompt_variantsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the prompt_variants model
-     */
-    readonly fields: prompt_variantsFieldRefs;
+  /**
+   * Fields of the prompt_variants model
+   */
+  readonly fields: prompt_variantsFieldRefs;
   }
 
   /**
@@ -18118,7 +18000,7 @@ export namespace Prisma {
     readonly created_by: FieldRef<"prompt_variants", 'String'>
     readonly metadata: FieldRef<"prompt_variants", 'Json'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -18690,11 +18572,11 @@ export namespace Prisma {
   }
 
   export type GetReactionsAggregateType<T extends ReactionsAggregateArgs> = {
-    [P in keyof T & keyof AggregateReactions]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateReactions[P]>
-    : GetScalarType<T[P], AggregateReactions[P]>
+        [P in keyof T & keyof AggregateReactions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReactions[P]>
+      : GetScalarType<T[P], AggregateReactions[P]>
   }
 
 
@@ -18733,15 +18615,15 @@ export namespace Prisma {
   type GetReactionsGroupByPayload<T extends reactionsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<ReactionsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof ReactionsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], ReactionsGroupByOutputType[P]>
-        : GetScalarType<T[P], ReactionsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof ReactionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReactionsGroupByOutputType[P]>
+            : GetScalarType<T[P], ReactionsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type reactionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -19074,10 +18956,10 @@ export namespace Prisma {
       args?: Subset<T, reactionsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], ReactionsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReactionsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -19131,8 +19013,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: reactionsGroupByArgs['orderBy'] }
-      : { orderBy?: reactionsGroupByArgs['orderBy'] },
+        ? { orderBy: reactionsGroupByArgs['orderBy'] }
+        : { orderBy?: reactionsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -19143,49 +19025,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, reactionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReactionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the reactions model
-     */
-    readonly fields: reactionsFieldRefs;
+  /**
+   * Fields of the reactions model
+   */
+  readonly fields: reactionsFieldRefs;
   }
 
   /**
@@ -19234,7 +19116,7 @@ export namespace Prisma {
     readonly created_version: FieldRef<"reactions", 'String'>
     readonly lock_no: FieldRef<"reactions", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -19792,11 +19674,11 @@ export namespace Prisma {
   }
 
   export type GetRestaurant_bidsAggregateType<T extends Restaurant_bidsAggregateArgs> = {
-    [P in keyof T & keyof AggregateRestaurant_bids]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateRestaurant_bids[P]>
-    : GetScalarType<T[P], AggregateRestaurant_bids[P]>
+        [P in keyof T & keyof AggregateRestaurant_bids]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRestaurant_bids[P]>
+      : GetScalarType<T[P], AggregateRestaurant_bids[P]>
   }
 
 
@@ -19840,15 +19722,15 @@ export namespace Prisma {
   type GetRestaurant_bidsGroupByPayload<T extends restaurant_bidsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<Restaurant_bidsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Restaurant_bidsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Restaurant_bidsGroupByOutputType[P]>
-        : GetScalarType<T[P], Restaurant_bidsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof Restaurant_bidsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Restaurant_bidsGroupByOutputType[P]>
+            : GetScalarType<T[P], Restaurant_bidsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type restaurant_bidsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -19866,7 +19748,6 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     payouts?: boolean | restaurant_bids$payoutsArgs<ExtArgs>
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
     _count?: boolean | Restaurant_bidsCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurant_bids"]>
@@ -19885,7 +19766,6 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurant_bids"]>
 
@@ -19903,7 +19783,6 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurant_bids"]>
 
@@ -19926,16 +19805,13 @@ export namespace Prisma {
   export type restaurant_bidsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "restaurant_id" | "user_id" | "payment_intent_id" | "amount_cents" | "currency_code" | "start_date" | "end_date" | "status" | "refund_id" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["restaurant_bids"]>
   export type restaurant_bidsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     payouts?: boolean | restaurant_bids$payoutsArgs<ExtArgs>
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
     _count?: boolean | Restaurant_bidsCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type restaurant_bidsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }
   export type restaurant_bidsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
     users?: boolean | usersDefaultArgs<ExtArgs>
   }
 
@@ -19943,7 +19819,6 @@ export namespace Prisma {
     name: "restaurant_bids"
     objects: {
       payouts: Prisma.$payoutsPayload<ExtArgs>[]
-      restaurants: Prisma.$restaurantsPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -20232,10 +20107,10 @@ export namespace Prisma {
       args?: Subset<T, restaurant_bidsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Restaurant_bidsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Restaurant_bidsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -20289,8 +20164,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: restaurant_bidsGroupByArgs['orderBy'] }
-      : { orderBy?: restaurant_bidsGroupByArgs['orderBy'] },
+        ? { orderBy: restaurant_bidsGroupByArgs['orderBy'] }
+        : { orderBy?: restaurant_bidsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -20301,49 +20176,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, restaurant_bidsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRestaurant_bidsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the restaurant_bids model
-     */
-    readonly fields: restaurant_bidsFieldRefs;
+  /**
+   * Fields of the restaurant_bids model
+   */
+  readonly fields: restaurant_bidsFieldRefs;
   }
 
   /**
@@ -20355,7 +20230,6 @@ export namespace Prisma {
   export interface Prisma__restaurant_bidsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     payouts<T extends restaurant_bids$payoutsArgs<ExtArgs> = {}>(args?: Subset<T, restaurant_bids$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$payoutsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    restaurants<T extends restaurantsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, restaurantsDefaultArgs<ExtArgs>>): Prisma__restaurantsClient<$Result.GetResult<Prisma.$restaurantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends usersDefaultArgs<ExtArgs> = {}>(args?: Subset<T, usersDefaultArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -20400,7 +20274,7 @@ export namespace Prisma {
     readonly updated_at: FieldRef<"restaurant_bids", 'DateTime'>
     readonly lock_no: FieldRef<"restaurant_bids", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -20863,6 +20737,7 @@ export namespace Prisma {
     id: string | null
     google_place_id: string | null
     name: string | null
+    name_language_code: string | null
     latitude: number | null
     longitude: number | null
     image_url: string | null
@@ -20873,6 +20748,7 @@ export namespace Prisma {
     id: string | null
     google_place_id: string | null
     name: string | null
+    name_language_code: string | null
     latitude: number | null
     longitude: number | null
     image_url: string | null
@@ -20883,6 +20759,7 @@ export namespace Prisma {
     id: number
     google_place_id: number
     name: number
+    name_language_code: number
     latitude: number
     longitude: number
     image_url: number
@@ -20905,6 +20782,7 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    name_language_code?: true
     latitude?: true
     longitude?: true
     image_url?: true
@@ -20915,6 +20793,7 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    name_language_code?: true
     latitude?: true
     longitude?: true
     image_url?: true
@@ -20925,6 +20804,7 @@ export namespace Prisma {
     id?: true
     google_place_id?: true
     name?: true
+    name_language_code?: true
     latitude?: true
     longitude?: true
     image_url?: true
@@ -20994,11 +20874,11 @@ export namespace Prisma {
   }
 
   export type GetRestaurantsAggregateType<T extends RestaurantsAggregateArgs> = {
-    [P in keyof T & keyof AggregateRestaurants]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateRestaurants[P]>
-    : GetScalarType<T[P], AggregateRestaurants[P]>
+        [P in keyof T & keyof AggregateRestaurants]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRestaurants[P]>
+      : GetScalarType<T[P], AggregateRestaurants[P]>
   }
 
 
@@ -21020,8 +20900,9 @@ export namespace Prisma {
 
   export type RestaurantsGroupByOutputType = {
     id: string
-    google_place_id: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
@@ -21036,27 +20917,27 @@ export namespace Prisma {
   type GetRestaurantsGroupByPayload<T extends restaurantsGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<RestaurantsGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof RestaurantsGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], RestaurantsGroupByOutputType[P]>
-        : GetScalarType<T[P], RestaurantsGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof RestaurantsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RestaurantsGroupByOutputType[P]>
+            : GetScalarType<T[P], RestaurantsGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type restaurantsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
     created_at?: boolean
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
-    restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | RestaurantsCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["restaurants"]>
 
@@ -21064,6 +20945,7 @@ export namespace Prisma {
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
@@ -21074,6 +20956,7 @@ export namespace Prisma {
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
@@ -21084,16 +20967,16 @@ export namespace Prisma {
     id?: boolean
     google_place_id?: boolean
     name?: boolean
+    name_language_code?: boolean
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
     created_at?: boolean
   }
 
-  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "latitude" | "longitude" | "image_url" | "created_at", ExtArgs["result"]["restaurants"]>
+  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "created_at", ExtArgs["result"]["restaurants"]>
   export type restaurantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
-    restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | RestaurantsCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type restaurantsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -21103,12 +20986,12 @@ export namespace Prisma {
     name: "restaurants"
     objects: {
       dishes: Prisma.$dishesPayload<ExtArgs>[]
-      restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      google_place_id: string | null
+      google_place_id: string
       name: string
+      name_language_code: string
       latitude: number
       longitude: number
       image_url: string
@@ -21385,10 +21268,10 @@ export namespace Prisma {
       args?: Subset<T, restaurantsCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], RestaurantsCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RestaurantsCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -21442,8 +21325,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: restaurantsGroupByArgs['orderBy'] }
-      : { orderBy?: restaurantsGroupByArgs['orderBy'] },
+        ? { orderBy: restaurantsGroupByArgs['orderBy'] }
+        : { orderBy?: restaurantsGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -21454,49 +21337,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, restaurantsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRestaurantsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the restaurants model
-     */
-    readonly fields: restaurantsFieldRefs;
+  /**
+   * Fields of the restaurants model
+   */
+  readonly fields: restaurantsFieldRefs;
   }
 
   /**
@@ -21508,7 +21391,6 @@ export namespace Prisma {
   export interface Prisma__restaurantsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     dishes<T extends restaurants$dishesArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$dishesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    restaurant_bids<T extends restaurants$restaurant_bidsArgs<ExtArgs> = {}>(args?: Subset<T, restaurants$restaurant_bidsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -21541,12 +21423,13 @@ export namespace Prisma {
     readonly id: FieldRef<"restaurants", 'String'>
     readonly google_place_id: FieldRef<"restaurants", 'String'>
     readonly name: FieldRef<"restaurants", 'String'>
+    readonly name_language_code: FieldRef<"restaurants", 'String'>
     readonly latitude: FieldRef<"restaurants", 'Float'>
     readonly longitude: FieldRef<"restaurants", 'Float'>
     readonly image_url: FieldRef<"restaurants", 'String'>
     readonly created_at: FieldRef<"restaurants", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -21957,30 +21840,6 @@ export namespace Prisma {
   }
 
   /**
-   * restaurants.restaurant_bids
-   */
-  export type restaurants$restaurant_bidsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the restaurant_bids
-     */
-    select?: restaurant_bidsSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the restaurant_bids
-     */
-    omit?: restaurant_bidsOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: restaurant_bidsInclude<ExtArgs> | null
-    where?: restaurant_bidsWhereInput
-    orderBy?: restaurant_bidsOrderByWithRelationInput | restaurant_bidsOrderByWithRelationInput[]
-    cursor?: restaurant_bidsWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: Restaurant_bidsScalarFieldEnum | Restaurant_bidsScalarFieldEnum[]
-  }
-
-  /**
    * restaurants without action
    */
   export type restaurantsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -21996,1039 +21855,6 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: restaurantsInclude<ExtArgs> | null
-  }
-
-
-  /**
-   * Model spatial_ref_sys
-   */
-
-  export type AggregateSpatial_ref_sys = {
-    _count: Spatial_ref_sysCountAggregateOutputType | null
-    _avg: Spatial_ref_sysAvgAggregateOutputType | null
-    _sum: Spatial_ref_sysSumAggregateOutputType | null
-    _min: Spatial_ref_sysMinAggregateOutputType | null
-    _max: Spatial_ref_sysMaxAggregateOutputType | null
-  }
-
-  export type Spatial_ref_sysAvgAggregateOutputType = {
-    srid: number | null
-    auth_srid: number | null
-  }
-
-  export type Spatial_ref_sysSumAggregateOutputType = {
-    srid: number | null
-    auth_srid: number | null
-  }
-
-  export type Spatial_ref_sysMinAggregateOutputType = {
-    srid: number | null
-    auth_name: string | null
-    auth_srid: number | null
-    srtext: string | null
-    proj4text: string | null
-  }
-
-  export type Spatial_ref_sysMaxAggregateOutputType = {
-    srid: number | null
-    auth_name: string | null
-    auth_srid: number | null
-    srtext: string | null
-    proj4text: string | null
-  }
-
-  export type Spatial_ref_sysCountAggregateOutputType = {
-    srid: number
-    auth_name: number
-    auth_srid: number
-    srtext: number
-    proj4text: number
-    _all: number
-  }
-
-
-  export type Spatial_ref_sysAvgAggregateInputType = {
-    srid?: true
-    auth_srid?: true
-  }
-
-  export type Spatial_ref_sysSumAggregateInputType = {
-    srid?: true
-    auth_srid?: true
-  }
-
-  export type Spatial_ref_sysMinAggregateInputType = {
-    srid?: true
-    auth_name?: true
-    auth_srid?: true
-    srtext?: true
-    proj4text?: true
-  }
-
-  export type Spatial_ref_sysMaxAggregateInputType = {
-    srid?: true
-    auth_name?: true
-    auth_srid?: true
-    srtext?: true
-    proj4text?: true
-  }
-
-  export type Spatial_ref_sysCountAggregateInputType = {
-    srid?: true
-    auth_name?: true
-    auth_srid?: true
-    srtext?: true
-    proj4text?: true
-    _all?: true
-  }
-
-  export type Spatial_ref_sysAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which spatial_ref_sys to aggregate.
-     */
-    where?: spatial_ref_sysWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of spatial_ref_sys to fetch.
-     */
-    orderBy?: spatial_ref_sysOrderByWithRelationInput | spatial_ref_sysOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: spatial_ref_sysWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` spatial_ref_sys from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` spatial_ref_sys.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned spatial_ref_sys
-    **/
-    _count?: true | Spatial_ref_sysCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: Spatial_ref_sysAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: Spatial_ref_sysSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: Spatial_ref_sysMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: Spatial_ref_sysMaxAggregateInputType
-  }
-
-  export type GetSpatial_ref_sysAggregateType<T extends Spatial_ref_sysAggregateArgs> = {
-    [P in keyof T & keyof AggregateSpatial_ref_sys]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateSpatial_ref_sys[P]>
-    : GetScalarType<T[P], AggregateSpatial_ref_sys[P]>
-  }
-
-
-
-
-  export type spatial_ref_sysGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: spatial_ref_sysWhereInput
-    orderBy?: spatial_ref_sysOrderByWithAggregationInput | spatial_ref_sysOrderByWithAggregationInput[]
-    by: Spatial_ref_sysScalarFieldEnum[] | Spatial_ref_sysScalarFieldEnum
-    having?: spatial_ref_sysScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: Spatial_ref_sysCountAggregateInputType | true
-    _avg?: Spatial_ref_sysAvgAggregateInputType
-    _sum?: Spatial_ref_sysSumAggregateInputType
-    _min?: Spatial_ref_sysMinAggregateInputType
-    _max?: Spatial_ref_sysMaxAggregateInputType
-  }
-
-  export type Spatial_ref_sysGroupByOutputType = {
-    srid: number
-    auth_name: string | null
-    auth_srid: number | null
-    srtext: string | null
-    proj4text: string | null
-    _count: Spatial_ref_sysCountAggregateOutputType | null
-    _avg: Spatial_ref_sysAvgAggregateOutputType | null
-    _sum: Spatial_ref_sysSumAggregateOutputType | null
-    _min: Spatial_ref_sysMinAggregateOutputType | null
-    _max: Spatial_ref_sysMaxAggregateOutputType | null
-  }
-
-  type GetSpatial_ref_sysGroupByPayload<T extends spatial_ref_sysGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<Spatial_ref_sysGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof Spatial_ref_sysGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], Spatial_ref_sysGroupByOutputType[P]>
-        : GetScalarType<T[P], Spatial_ref_sysGroupByOutputType[P]>
-      }
-    >
-  >
-
-
-  export type spatial_ref_sysSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    srid?: boolean
-    auth_name?: boolean
-    auth_srid?: boolean
-    srtext?: boolean
-    proj4text?: boolean
-  }, ExtArgs["result"]["spatial_ref_sys"]>
-
-  export type spatial_ref_sysSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    srid?: boolean
-    auth_name?: boolean
-    auth_srid?: boolean
-    srtext?: boolean
-    proj4text?: boolean
-  }, ExtArgs["result"]["spatial_ref_sys"]>
-
-  export type spatial_ref_sysSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    srid?: boolean
-    auth_name?: boolean
-    auth_srid?: boolean
-    srtext?: boolean
-    proj4text?: boolean
-  }, ExtArgs["result"]["spatial_ref_sys"]>
-
-  export type spatial_ref_sysSelectScalar = {
-    srid?: boolean
-    auth_name?: boolean
-    auth_srid?: boolean
-    srtext?: boolean
-    proj4text?: boolean
-  }
-
-  export type spatial_ref_sysOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"srid" | "auth_name" | "auth_srid" | "srtext" | "proj4text", ExtArgs["result"]["spatial_ref_sys"]>
-
-  export type $spatial_ref_sysPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "spatial_ref_sys"
-    objects: {}
-    scalars: $Extensions.GetPayloadResult<{
-      srid: number
-      auth_name: string | null
-      auth_srid: number | null
-      srtext: string | null
-      proj4text: string | null
-    }, ExtArgs["result"]["spatial_ref_sys"]>
-    composites: {}
-  }
-
-  type spatial_ref_sysGetPayload<S extends boolean | null | undefined | spatial_ref_sysDefaultArgs> = $Result.GetResult<Prisma.$spatial_ref_sysPayload, S>
-
-  type spatial_ref_sysCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<spatial_ref_sysFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: Spatial_ref_sysCountAggregateInputType | true
-    }
-
-  export interface spatial_ref_sysDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['spatial_ref_sys'], meta: { name: 'spatial_ref_sys' } }
-    /**
-     * Find zero or one Spatial_ref_sys that matches the filter.
-     * @param {spatial_ref_sysFindUniqueArgs} args - Arguments to find a Spatial_ref_sys
-     * @example
-     * // Get one Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends spatial_ref_sysFindUniqueArgs>(args: SelectSubset<T, spatial_ref_sysFindUniqueArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one Spatial_ref_sys that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {spatial_ref_sysFindUniqueOrThrowArgs} args - Arguments to find a Spatial_ref_sys
-     * @example
-     * // Get one Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends spatial_ref_sysFindUniqueOrThrowArgs>(args: SelectSubset<T, spatial_ref_sysFindUniqueOrThrowArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first Spatial_ref_sys that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {spatial_ref_sysFindFirstArgs} args - Arguments to find a Spatial_ref_sys
-     * @example
-     * // Get one Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends spatial_ref_sysFindFirstArgs>(args?: SelectSubset<T, spatial_ref_sysFindFirstArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first Spatial_ref_sys that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {spatial_ref_sysFindFirstOrThrowArgs} args - Arguments to find a Spatial_ref_sys
-     * @example
-     * // Get one Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends spatial_ref_sysFindFirstOrThrowArgs>(args?: SelectSubset<T, spatial_ref_sysFindFirstOrThrowArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more Spatial_ref_sys that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {spatial_ref_sysFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.findMany()
-     * 
-     * // Get first 10 Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.findMany({ take: 10 })
-     * 
-     * // Only select the `srid`
-     * const spatial_ref_sysWithSridOnly = await prisma.spatial_ref_sys.findMany({ select: { srid: true } })
-     * 
-     */
-    findMany<T extends spatial_ref_sysFindManyArgs>(args?: SelectSubset<T, spatial_ref_sysFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a Spatial_ref_sys.
-     * @param {spatial_ref_sysCreateArgs} args - Arguments to create a Spatial_ref_sys.
-     * @example
-     * // Create one Spatial_ref_sys
-     * const Spatial_ref_sys = await prisma.spatial_ref_sys.create({
-     *   data: {
-     *     // ... data to create a Spatial_ref_sys
-     *   }
-     * })
-     * 
-     */
-    create<T extends spatial_ref_sysCreateArgs>(args: SelectSubset<T, spatial_ref_sysCreateArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many Spatial_ref_sys.
-     * @param {spatial_ref_sysCreateManyArgs} args - Arguments to create many Spatial_ref_sys.
-     * @example
-     * // Create many Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends spatial_ref_sysCreateManyArgs>(args?: SelectSubset<T, spatial_ref_sysCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many Spatial_ref_sys and returns the data saved in the database.
-     * @param {spatial_ref_sysCreateManyAndReturnArgs} args - Arguments to create many Spatial_ref_sys.
-     * @example
-     * // Create many Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Spatial_ref_sys and only return the `srid`
-     * const spatial_ref_sysWithSridOnly = await prisma.spatial_ref_sys.createManyAndReturn({
-     *   select: { srid: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends spatial_ref_sysCreateManyAndReturnArgs>(args?: SelectSubset<T, spatial_ref_sysCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a Spatial_ref_sys.
-     * @param {spatial_ref_sysDeleteArgs} args - Arguments to delete one Spatial_ref_sys.
-     * @example
-     * // Delete one Spatial_ref_sys
-     * const Spatial_ref_sys = await prisma.spatial_ref_sys.delete({
-     *   where: {
-     *     // ... filter to delete one Spatial_ref_sys
-     *   }
-     * })
-     * 
-     */
-    delete<T extends spatial_ref_sysDeleteArgs>(args: SelectSubset<T, spatial_ref_sysDeleteArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one Spatial_ref_sys.
-     * @param {spatial_ref_sysUpdateArgs} args - Arguments to update one Spatial_ref_sys.
-     * @example
-     * // Update one Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends spatial_ref_sysUpdateArgs>(args: SelectSubset<T, spatial_ref_sysUpdateArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more Spatial_ref_sys.
-     * @param {spatial_ref_sysDeleteManyArgs} args - Arguments to filter Spatial_ref_sys to delete.
-     * @example
-     * // Delete a few Spatial_ref_sys
-     * const { count } = await prisma.spatial_ref_sys.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends spatial_ref_sysDeleteManyArgs>(args?: SelectSubset<T, spatial_ref_sysDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more Spatial_ref_sys.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {spatial_ref_sysUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends spatial_ref_sysUpdateManyArgs>(args: SelectSubset<T, spatial_ref_sysUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more Spatial_ref_sys and returns the data updated in the database.
-     * @param {spatial_ref_sysUpdateManyAndReturnArgs} args - Arguments to update many Spatial_ref_sys.
-     * @example
-     * // Update many Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more Spatial_ref_sys and only return the `srid`
-     * const spatial_ref_sysWithSridOnly = await prisma.spatial_ref_sys.updateManyAndReturn({
-     *   select: { srid: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends spatial_ref_sysUpdateManyAndReturnArgs>(args: SelectSubset<T, spatial_ref_sysUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one Spatial_ref_sys.
-     * @param {spatial_ref_sysUpsertArgs} args - Arguments to update or create a Spatial_ref_sys.
-     * @example
-     * // Update or create a Spatial_ref_sys
-     * const spatial_ref_sys = await prisma.spatial_ref_sys.upsert({
-     *   create: {
-     *     // ... data to create a Spatial_ref_sys
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the Spatial_ref_sys we want to update
-     *   }
-     * })
-     */
-    upsert<T extends spatial_ref_sysUpsertArgs>(args: SelectSubset<T, spatial_ref_sysUpsertArgs<ExtArgs>>): Prisma__spatial_ref_sysClient<$Result.GetResult<Prisma.$spatial_ref_sysPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of Spatial_ref_sys.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {spatial_ref_sysCountArgs} args - Arguments to filter Spatial_ref_sys to count.
-     * @example
-     * // Count the number of Spatial_ref_sys
-     * const count = await prisma.spatial_ref_sys.count({
-     *   where: {
-     *     // ... the filter for the Spatial_ref_sys we want to count
-     *   }
-     * })
-    **/
-    count<T extends spatial_ref_sysCountArgs>(
-      args?: Subset<T, spatial_ref_sysCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], Spatial_ref_sysCountAggregateOutputType>
-      : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a Spatial_ref_sys.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {Spatial_ref_sysAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends Spatial_ref_sysAggregateArgs>(args: Subset<T, Spatial_ref_sysAggregateArgs>): Prisma.PrismaPromise<GetSpatial_ref_sysAggregateType<T>>
-
-    /**
-     * Group by Spatial_ref_sys.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {spatial_ref_sysGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends spatial_ref_sysGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: spatial_ref_sysGroupByArgs['orderBy'] }
-      : { orderBy?: spatial_ref_sysGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-    >(args: SubsetIntersection<T, spatial_ref_sysGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSpatial_ref_sysGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the spatial_ref_sys model
-     */
-    readonly fields: spatial_ref_sysFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for spatial_ref_sys.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__spatial_ref_sysClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the spatial_ref_sys model
-   */
-  interface spatial_ref_sysFieldRefs {
-    readonly srid: FieldRef<"spatial_ref_sys", 'Int'>
-    readonly auth_name: FieldRef<"spatial_ref_sys", 'String'>
-    readonly auth_srid: FieldRef<"spatial_ref_sys", 'Int'>
-    readonly srtext: FieldRef<"spatial_ref_sys", 'String'>
-    readonly proj4text: FieldRef<"spatial_ref_sys", 'String'>
-  }
-
-
-  // Custom InputTypes
-  /**
-   * spatial_ref_sys findUnique
-   */
-  export type spatial_ref_sysFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * Filter, which spatial_ref_sys to fetch.
-     */
-    where: spatial_ref_sysWhereUniqueInput
-  }
-
-  /**
-   * spatial_ref_sys findUniqueOrThrow
-   */
-  export type spatial_ref_sysFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * Filter, which spatial_ref_sys to fetch.
-     */
-    where: spatial_ref_sysWhereUniqueInput
-  }
-
-  /**
-   * spatial_ref_sys findFirst
-   */
-  export type spatial_ref_sysFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * Filter, which spatial_ref_sys to fetch.
-     */
-    where?: spatial_ref_sysWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of spatial_ref_sys to fetch.
-     */
-    orderBy?: spatial_ref_sysOrderByWithRelationInput | spatial_ref_sysOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for spatial_ref_sys.
-     */
-    cursor?: spatial_ref_sysWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` spatial_ref_sys from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` spatial_ref_sys.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of spatial_ref_sys.
-     */
-    distinct?: Spatial_ref_sysScalarFieldEnum | Spatial_ref_sysScalarFieldEnum[]
-  }
-
-  /**
-   * spatial_ref_sys findFirstOrThrow
-   */
-  export type spatial_ref_sysFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * Filter, which spatial_ref_sys to fetch.
-     */
-    where?: spatial_ref_sysWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of spatial_ref_sys to fetch.
-     */
-    orderBy?: spatial_ref_sysOrderByWithRelationInput | spatial_ref_sysOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for spatial_ref_sys.
-     */
-    cursor?: spatial_ref_sysWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` spatial_ref_sys from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` spatial_ref_sys.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of spatial_ref_sys.
-     */
-    distinct?: Spatial_ref_sysScalarFieldEnum | Spatial_ref_sysScalarFieldEnum[]
-  }
-
-  /**
-   * spatial_ref_sys findMany
-   */
-  export type spatial_ref_sysFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * Filter, which spatial_ref_sys to fetch.
-     */
-    where?: spatial_ref_sysWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of spatial_ref_sys to fetch.
-     */
-    orderBy?: spatial_ref_sysOrderByWithRelationInput | spatial_ref_sysOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing spatial_ref_sys.
-     */
-    cursor?: spatial_ref_sysWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` spatial_ref_sys from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` spatial_ref_sys.
-     */
-    skip?: number
-    distinct?: Spatial_ref_sysScalarFieldEnum | Spatial_ref_sysScalarFieldEnum[]
-  }
-
-  /**
-   * spatial_ref_sys create
-   */
-  export type spatial_ref_sysCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * The data needed to create a spatial_ref_sys.
-     */
-    data: XOR<spatial_ref_sysCreateInput, spatial_ref_sysUncheckedCreateInput>
-  }
-
-  /**
-   * spatial_ref_sys createMany
-   */
-  export type spatial_ref_sysCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many spatial_ref_sys.
-     */
-    data: spatial_ref_sysCreateManyInput | spatial_ref_sysCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * spatial_ref_sys createManyAndReturn
-   */
-  export type spatial_ref_sysCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * The data used to create many spatial_ref_sys.
-     */
-    data: spatial_ref_sysCreateManyInput | spatial_ref_sysCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * spatial_ref_sys update
-   */
-  export type spatial_ref_sysUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * The data needed to update a spatial_ref_sys.
-     */
-    data: XOR<spatial_ref_sysUpdateInput, spatial_ref_sysUncheckedUpdateInput>
-    /**
-     * Choose, which spatial_ref_sys to update.
-     */
-    where: spatial_ref_sysWhereUniqueInput
-  }
-
-  /**
-   * spatial_ref_sys updateMany
-   */
-  export type spatial_ref_sysUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update spatial_ref_sys.
-     */
-    data: XOR<spatial_ref_sysUpdateManyMutationInput, spatial_ref_sysUncheckedUpdateManyInput>
-    /**
-     * Filter which spatial_ref_sys to update
-     */
-    where?: spatial_ref_sysWhereInput
-    /**
-     * Limit how many spatial_ref_sys to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * spatial_ref_sys updateManyAndReturn
-   */
-  export type spatial_ref_sysUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * The data used to update spatial_ref_sys.
-     */
-    data: XOR<spatial_ref_sysUpdateManyMutationInput, spatial_ref_sysUncheckedUpdateManyInput>
-    /**
-     * Filter which spatial_ref_sys to update
-     */
-    where?: spatial_ref_sysWhereInput
-    /**
-     * Limit how many spatial_ref_sys to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * spatial_ref_sys upsert
-   */
-  export type spatial_ref_sysUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * The filter to search for the spatial_ref_sys to update in case it exists.
-     */
-    where: spatial_ref_sysWhereUniqueInput
-    /**
-     * In case the spatial_ref_sys found by the `where` argument doesn't exist, create a new spatial_ref_sys with this data.
-     */
-    create: XOR<spatial_ref_sysCreateInput, spatial_ref_sysUncheckedCreateInput>
-    /**
-     * In case the spatial_ref_sys was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<spatial_ref_sysUpdateInput, spatial_ref_sysUncheckedUpdateInput>
-  }
-
-  /**
-   * spatial_ref_sys delete
-   */
-  export type spatial_ref_sysDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
-    /**
-     * Filter which spatial_ref_sys to delete.
-     */
-    where: spatial_ref_sysWhereUniqueInput
-  }
-
-  /**
-   * spatial_ref_sys deleteMany
-   */
-  export type spatial_ref_sysDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which spatial_ref_sys to delete
-     */
-    where?: spatial_ref_sysWhereInput
-    /**
-     * Limit how many spatial_ref_sys to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * spatial_ref_sys without action
-   */
-  export type spatial_ref_sysDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the spatial_ref_sys
-     */
-    select?: spatial_ref_sysSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the spatial_ref_sys
-     */
-    omit?: spatial_ref_sysOmit<ExtArgs> | null
   }
 
 
@@ -23054,7 +21880,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -23066,7 +21891,6 @@ export namespace Prisma {
 
   export type UsersMaxAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -23078,7 +21902,6 @@ export namespace Prisma {
 
   export type UsersCountAggregateOutputType = {
     id: number
-    username: number
     display_name: number
     avatar: number
     bio: number
@@ -23100,7 +21923,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -23112,7 +21934,6 @@ export namespace Prisma {
 
   export type UsersMaxAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -23124,7 +21945,6 @@ export namespace Prisma {
 
   export type UsersCountAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -23197,11 +22017,11 @@ export namespace Prisma {
   }
 
   export type GetUsersAggregateType<T extends UsersAggregateArgs> = {
-    [P in keyof T & keyof AggregateUsers]: P extends '_count' | 'count'
-    ? T[P] extends true
-    ? number
-    : GetScalarType<T[P], AggregateUsers[P]>
-    : GetScalarType<T[P], AggregateUsers[P]>
+        [P in keyof T & keyof AggregateUsers]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUsers[P]>
+      : GetScalarType<T[P], AggregateUsers[P]>
   }
 
 
@@ -23223,7 +22043,6 @@ export namespace Prisma {
 
   export type UsersGroupByOutputType = {
     id: string
-    username: string
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -23241,20 +22060,19 @@ export namespace Prisma {
   type GetUsersGroupByPayload<T extends usersGroupByArgs> = Prisma.PrismaPromise<
     Array<
       PickEnumerable<UsersGroupByOutputType, T['by']> &
-      {
-        [P in ((keyof T) & (keyof UsersGroupByOutputType))]: P extends '_count'
-        ? T[P] extends boolean
-        ? number
-        : GetScalarType<T[P], UsersGroupByOutputType[P]>
-        : GetScalarType<T[P], UsersGroupByOutputType[P]>
-      }
+        {
+          [P in ((keyof T) & (keyof UsersGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UsersGroupByOutputType[P]>
+            : GetScalarType<T[P], UsersGroupByOutputType[P]>
+        }
+      >
     >
-  >
 
 
   export type usersSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -23271,7 +22089,6 @@ export namespace Prisma {
 
   export type usersSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -23283,7 +22100,6 @@ export namespace Prisma {
 
   export type usersSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -23295,7 +22111,6 @@ export namespace Prisma {
 
   export type usersSelectScalar = {
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -23305,7 +22120,7 @@ export namespace Prisma {
     lock_no?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_likes?: boolean | users$dish_likesArgs<ExtArgs>
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
@@ -23326,7 +22141,6 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      username: string
       display_name: string | null
       avatar: string | null
       bio: string | null
@@ -23606,10 +22420,10 @@ export namespace Prisma {
       args?: Subset<T, usersCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
-      ? T['select'] extends true
-      ? number
-      : GetScalarType<T['select'], UsersCountAggregateOutputType>
-      : number
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UsersCountAggregateOutputType>
+        : number
     >
 
     /**
@@ -23663,8 +22477,8 @@ export namespace Prisma {
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-      ? { orderBy: usersGroupByArgs['orderBy'] }
-      : { orderBy?: usersGroupByArgs['orderBy'] },
+        ? { orderBy: usersGroupByArgs['orderBy'] }
+        : { orderBy?: usersGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -23675,49 +22489,49 @@ export namespace Prisma {
       ? `Error: "by" must not be empty.`
       : HavingValid extends False
       ? {
-        [P in HavingFields]: P extends ByFields
-        ? never
-        : P extends string
-        ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-        : [
-          Error,
-          'Field ',
-          P,
-          ` in "having" needs to be provided in "by"`,
-        ]
-      }[HavingFields]
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
       : 'take' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "take", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
       : 'skip' extends Keys<T>
       ? 'orderBy' extends Keys<T>
-      ? ByValid extends True
-      ? {}
-      : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
-      : 'Error: If you provide "skip", you also need to provide "orderBy"'
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
       : ByValid extends True
       ? {}
       : {
-        [P in OrderFields]: P extends ByFields
-        ? never
-        : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-      }[OrderFields]
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
     >(args: SubsetIntersection<T, usersGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUsersGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-    /**
-     * Fields of the users model
-     */
-    readonly fields: usersFieldRefs;
+  /**
+   * Fields of the users model
+   */
+  readonly fields: usersFieldRefs;
   }
 
   /**
@@ -23762,7 +22576,6 @@ export namespace Prisma {
    */
   interface usersFieldRefs {
     readonly id: FieldRef<"users", 'String'>
-    readonly username: FieldRef<"users", 'String'>
     readonly display_name: FieldRef<"users", 'String'>
     readonly avatar: FieldRef<"users", 'String'>
     readonly bio: FieldRef<"users", 'String'>
@@ -23771,7 +22584,7 @@ export namespace Prisma {
     readonly updated_at: FieldRef<"users", 'DateTime'>
     readonly lock_no: FieldRef<"users", 'Int'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -23988,7 +22801,7 @@ export namespace Prisma {
     /**
      * The data needed to create a users.
      */
-    data: XOR<usersCreateInput, usersUncheckedCreateInput>
+    data?: XOR<usersCreateInput, usersUncheckedCreateInput>
   }
 
   /**
@@ -24525,6 +23338,7 @@ export namespace Prisma {
     id: 'id',
     google_place_id: 'google_place_id',
     name: 'name',
+    name_language_code: 'name_language_code',
     latitude: 'latitude',
     longitude: 'longitude',
     image_url: 'image_url',
@@ -24534,20 +23348,8 @@ export namespace Prisma {
   export type RestaurantsScalarFieldEnum = (typeof RestaurantsScalarFieldEnum)[keyof typeof RestaurantsScalarFieldEnum]
 
 
-  export const Spatial_ref_sysScalarFieldEnum: {
-    srid: 'srid',
-    auth_name: 'auth_name',
-    auth_srid: 'auth_srid',
-    srtext: 'srtext',
-    proj4text: 'proj4text'
-  };
-
-  export type Spatial_ref_sysScalarFieldEnum = (typeof Spatial_ref_sysScalarFieldEnum)[keyof typeof Spatial_ref_sysScalarFieldEnum]
-
-
   export const UsersScalarFieldEnum: {
     id: 'id',
-    username: 'username',
     display_name: 'display_name',
     avatar: 'avatar',
     bio: 'bio',
@@ -24617,168 +23419,168 @@ export namespace Prisma {
    * Reference to a field of type 'String'
    */
   export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
-
+    
 
 
   /**
    * Reference to a field of type 'String[]'
    */
   export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'backend_event_logs_error_level'
    */
   export type Enumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'backend_event_logs_error_level'>
-
+    
 
 
   /**
    * Reference to a field of type 'backend_event_logs_error_level[]'
    */
   export type ListEnumbackend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'backend_event_logs_error_level[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-
+    
 
 
   /**
    * Reference to a field of type 'QueryMode'
    */
   export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-
+    
 
 
   /**
    * Reference to a field of type 'DateTime'
    */
   export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-
+    
 
 
   /**
    * Reference to a field of type 'DateTime[]'
    */
   export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-
+    
 
 
   /**
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'frontend_event_logs_error_level'
    */
   export type Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level'>
-
+    
 
 
   /**
    * Reference to a field of type 'frontend_event_logs_error_level[]'
    */
   export type ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'BigInt'
    */
   export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
-
+    
 
 
   /**
    * Reference to a field of type 'BigInt[]'
    */
   export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'payout_status'
    */
   export type Enumpayout_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'payout_status'>
-
+    
 
 
   /**
    * Reference to a field of type 'payout_status[]'
    */
   export type ListEnumpayout_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'payout_status[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'prompt_families_purpose'
    */
   export type Enumprompt_families_purposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'prompt_families_purpose'>
-
+    
 
 
   /**
    * Reference to a field of type 'prompt_families_purpose[]'
    */
   export type ListEnumprompt_families_purposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'prompt_families_purpose[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'Decimal'
    */
   export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
-
+    
 
 
   /**
    * Reference to a field of type 'Decimal[]'
    */
   export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'restaurant_bid_status'
    */
   export type Enumrestaurant_bid_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'restaurant_bid_status'>
-
+    
 
 
   /**
    * Reference to a field of type 'restaurant_bid_status[]'
    */
   export type ListEnumrestaurant_bid_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'restaurant_bid_status[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-
+    
 
 
   /**
    * Reference to a field of type 'Float[]'
    */
   export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-
+    
   /**
    * Deep Input Types
    */
@@ -25108,7 +23910,7 @@ export namespace Prisma {
     dish_likes?: Dish_likesListRelationFilter
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
-    payouts?: PayoutsListRelationFilter
+    dish_reviews?: Dish_reviewsListRelationFilter
   }
 
   export type dish_mediaOrderByWithRelationInput = {
@@ -25124,7 +23926,7 @@ export namespace Prisma {
     dish_likes?: dish_likesOrderByRelationAggregateInput
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
-    payouts?: payoutsOrderByRelationAggregateInput
+    dish_reviews?: dish_reviewsOrderByRelationAggregateInput
   }
 
   export type dish_mediaWhereUniqueInput = Prisma.AtLeast<{
@@ -25143,7 +23945,7 @@ export namespace Prisma {
     dish_likes?: Dish_likesListRelationFilter
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
-    payouts?: PayoutsListRelationFilter
+    dish_reviews?: Dish_reviewsListRelationFilter
   }, "id">
 
   export type dish_mediaOrderByWithAggregationInput = {
@@ -25190,10 +23992,11 @@ export namespace Prisma {
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
     currency_code?: StringNullableFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidFilter<"dish_reviews"> | string
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }
@@ -25207,10 +24010,11 @@ export namespace Prisma {
     rating?: SortOrder
     price_cents?: SortOrderInput | SortOrder
     currency_code?: SortOrderInput | SortOrder
-    created_dish_media_id?: SortOrderInput | SortOrder
+    created_dish_media_id?: SortOrder
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
+    dish_media?: dish_mediaOrderByWithRelationInput
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
   }
@@ -25227,10 +24031,11 @@ export namespace Prisma {
     rating?: IntFilter<"dish_reviews"> | number
     price_cents?: IntNullableFilter<"dish_reviews"> | number | null
     currency_code?: StringNullableFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidFilter<"dish_reviews"> | string
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }, "id">
@@ -25244,7 +24049,7 @@ export namespace Prisma {
     rating?: SortOrder
     price_cents?: SortOrderInput | SortOrder
     currency_code?: SortOrderInput | SortOrder
-    created_dish_media_id?: SortOrderInput | SortOrder
+    created_dish_media_id?: SortOrder
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
@@ -25267,7 +24072,7 @@ export namespace Prisma {
     rating?: IntWithAggregatesFilter<"dish_reviews"> | number
     price_cents?: IntNullableWithAggregatesFilter<"dish_reviews"> | number | null
     currency_code?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableWithAggregatesFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidWithAggregatesFilter<"dish_reviews"> | string
     imported_user_name?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"dish_reviews"> | Date | string
@@ -25278,7 +24083,7 @@ export namespace Prisma {
     OR?: dishesWhereInput[]
     NOT?: dishesWhereInput | dishesWhereInput[]
     id?: UuidFilter<"dishes"> | string
-    restaurant_id?: UuidNullableFilter<"dishes"> | string | null
+    restaurant_id?: UuidFilter<"dishes"> | string
     category_id?: StringFilter<"dishes"> | string
     name?: StringNullableFilter<"dishes"> | string | null
     created_at?: DateTimeFilter<"dishes"> | Date | string
@@ -25287,12 +24092,12 @@ export namespace Prisma {
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
-    restaurants?: XOR<RestaurantsNullableScalarRelationFilter, restaurantsWhereInput> | null
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
   }
 
   export type dishesOrderByWithRelationInput = {
     id?: SortOrder
-    restaurant_id?: SortOrderInput | SortOrder
+    restaurant_id?: SortOrder
     category_id?: SortOrder
     name?: SortOrderInput | SortOrder
     created_at?: SortOrder
@@ -25309,7 +24114,7 @@ export namespace Prisma {
     AND?: dishesWhereInput | dishesWhereInput[]
     OR?: dishesWhereInput[]
     NOT?: dishesWhereInput | dishesWhereInput[]
-    restaurant_id?: UuidNullableFilter<"dishes"> | string | null
+    restaurant_id?: UuidFilter<"dishes"> | string
     category_id?: StringFilter<"dishes"> | string
     name?: StringNullableFilter<"dishes"> | string | null
     created_at?: DateTimeFilter<"dishes"> | Date | string
@@ -25318,12 +24123,12 @@ export namespace Prisma {
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
-    restaurants?: XOR<RestaurantsNullableScalarRelationFilter, restaurantsWhereInput> | null
+    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
   }, "id">
 
   export type dishesOrderByWithAggregationInput = {
     id?: SortOrder
-    restaurant_id?: SortOrderInput | SortOrder
+    restaurant_id?: SortOrder
     category_id?: SortOrder
     name?: SortOrderInput | SortOrder
     created_at?: SortOrder
@@ -25341,7 +24146,7 @@ export namespace Prisma {
     OR?: dishesScalarWhereWithAggregatesInput[]
     NOT?: dishesScalarWhereWithAggregatesInput | dishesScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"dishes"> | string
-    restaurant_id?: UuidNullableWithAggregatesFilter<"dishes"> | string | null
+    restaurant_id?: UuidWithAggregatesFilter<"dishes"> | string
     category_id?: StringWithAggregatesFilter<"dishes"> | string
     name?: StringNullableWithAggregatesFilter<"dishes"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"dishes"> | Date | string
@@ -25535,7 +24340,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"payouts"> | Date | string
     lock_no?: IntFilter<"payouts"> | number
     restaurant_bids?: XOR<Restaurant_bidsScalarRelationFilter, restaurant_bidsWhereInput>
-    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
   }
 
   export type payoutsOrderByWithRelationInput = {
@@ -25550,7 +24354,6 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     restaurant_bids?: restaurant_bidsOrderByWithRelationInput
-    dish_media?: dish_mediaOrderByWithRelationInput
   }
 
   export type payoutsWhereUniqueInput = Prisma.AtLeast<{
@@ -25569,7 +24372,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"payouts"> | Date | string
     lock_no?: IntFilter<"payouts"> | number
     restaurant_bids?: XOR<Restaurant_bidsScalarRelationFilter, restaurant_bidsWhereInput>
-    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
   }, "id" | "transfer_id" | "bid_id_dish_media_id">
 
   export type payoutsOrderByWithAggregationInput = {
@@ -25917,7 +24719,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
     lock_no?: IntFilter<"restaurant_bids"> | number
     payouts?: PayoutsListRelationFilter
-    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
     users?: XOR<UsersScalarRelationFilter, usersWhereInput>
   }
 
@@ -25936,7 +24737,6 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     payouts?: payoutsOrderByRelationAggregateInput
-    restaurants?: restaurantsOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
   }
 
@@ -25958,7 +24758,6 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
     lock_no?: IntFilter<"restaurant_bids"> | number
     payouts?: PayoutsListRelationFilter
-    restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
     users?: XOR<UsersScalarRelationFilter, usersWhereInput>
   }, "id">
 
@@ -26007,26 +24806,26 @@ export namespace Prisma {
     OR?: restaurantsWhereInput[]
     NOT?: restaurantsWhereInput | restaurantsWhereInput[]
     id?: UuidFilter<"restaurants"> | string
-    google_place_id?: StringNullableFilter<"restaurants"> | string | null
+    google_place_id?: StringFilter<"restaurants"> | string
     name?: StringFilter<"restaurants"> | string
+    name_language_code?: StringFilter<"restaurants"> | string
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
-    restaurant_bids?: Restaurant_bidsListRelationFilter
   }
 
   export type restaurantsOrderByWithRelationInput = {
     id?: SortOrder
-    google_place_id?: SortOrderInput | SortOrder
+    google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
     created_at?: SortOrder
     dishes?: dishesOrderByRelationAggregateInput
-    restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
   }
 
   export type restaurantsWhereUniqueInput = Prisma.AtLeast<{
@@ -26036,18 +24835,19 @@ export namespace Prisma {
     OR?: restaurantsWhereInput[]
     NOT?: restaurantsWhereInput | restaurantsWhereInput[]
     name?: StringFilter<"restaurants"> | string
+    name_language_code?: StringFilter<"restaurants"> | string
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
-    restaurant_bids?: Restaurant_bidsListRelationFilter
   }, "id" | "google_place_id">
 
   export type restaurantsOrderByWithAggregationInput = {
     id?: SortOrder
-    google_place_id?: SortOrderInput | SortOrder
+    google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -26064,66 +24864,13 @@ export namespace Prisma {
     OR?: restaurantsScalarWhereWithAggregatesInput[]
     NOT?: restaurantsScalarWhereWithAggregatesInput | restaurantsScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"restaurants"> | string
-    google_place_id?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
+    google_place_id?: StringWithAggregatesFilter<"restaurants"> | string
     name?: StringWithAggregatesFilter<"restaurants"> | string
+    name_language_code?: StringWithAggregatesFilter<"restaurants"> | string
     latitude?: FloatWithAggregatesFilter<"restaurants"> | number
     longitude?: FloatWithAggregatesFilter<"restaurants"> | number
     image_url?: StringWithAggregatesFilter<"restaurants"> | string
     created_at?: DateTimeWithAggregatesFilter<"restaurants"> | Date | string
-  }
-
-  export type spatial_ref_sysWhereInput = {
-    AND?: spatial_ref_sysWhereInput | spatial_ref_sysWhereInput[]
-    OR?: spatial_ref_sysWhereInput[]
-    NOT?: spatial_ref_sysWhereInput | spatial_ref_sysWhereInput[]
-    srid?: IntFilter<"spatial_ref_sys"> | number
-    auth_name?: StringNullableFilter<"spatial_ref_sys"> | string | null
-    auth_srid?: IntNullableFilter<"spatial_ref_sys"> | number | null
-    srtext?: StringNullableFilter<"spatial_ref_sys"> | string | null
-    proj4text?: StringNullableFilter<"spatial_ref_sys"> | string | null
-  }
-
-  export type spatial_ref_sysOrderByWithRelationInput = {
-    srid?: SortOrder
-    auth_name?: SortOrderInput | SortOrder
-    auth_srid?: SortOrderInput | SortOrder
-    srtext?: SortOrderInput | SortOrder
-    proj4text?: SortOrderInput | SortOrder
-  }
-
-  export type spatial_ref_sysWhereUniqueInput = Prisma.AtLeast<{
-    srid?: number
-    AND?: spatial_ref_sysWhereInput | spatial_ref_sysWhereInput[]
-    OR?: spatial_ref_sysWhereInput[]
-    NOT?: spatial_ref_sysWhereInput | spatial_ref_sysWhereInput[]
-    auth_name?: StringNullableFilter<"spatial_ref_sys"> | string | null
-    auth_srid?: IntNullableFilter<"spatial_ref_sys"> | number | null
-    srtext?: StringNullableFilter<"spatial_ref_sys"> | string | null
-    proj4text?: StringNullableFilter<"spatial_ref_sys"> | string | null
-  }, "srid">
-
-  export type spatial_ref_sysOrderByWithAggregationInput = {
-    srid?: SortOrder
-    auth_name?: SortOrderInput | SortOrder
-    auth_srid?: SortOrderInput | SortOrder
-    srtext?: SortOrderInput | SortOrder
-    proj4text?: SortOrderInput | SortOrder
-    _count?: spatial_ref_sysCountOrderByAggregateInput
-    _avg?: spatial_ref_sysAvgOrderByAggregateInput
-    _max?: spatial_ref_sysMaxOrderByAggregateInput
-    _min?: spatial_ref_sysMinOrderByAggregateInput
-    _sum?: spatial_ref_sysSumOrderByAggregateInput
-  }
-
-  export type spatial_ref_sysScalarWhereWithAggregatesInput = {
-    AND?: spatial_ref_sysScalarWhereWithAggregatesInput | spatial_ref_sysScalarWhereWithAggregatesInput[]
-    OR?: spatial_ref_sysScalarWhereWithAggregatesInput[]
-    NOT?: spatial_ref_sysScalarWhereWithAggregatesInput | spatial_ref_sysScalarWhereWithAggregatesInput[]
-    srid?: IntWithAggregatesFilter<"spatial_ref_sys"> | number
-    auth_name?: StringNullableWithAggregatesFilter<"spatial_ref_sys"> | string | null
-    auth_srid?: IntNullableWithAggregatesFilter<"spatial_ref_sys"> | number | null
-    srtext?: StringNullableWithAggregatesFilter<"spatial_ref_sys"> | string | null
-    proj4text?: StringNullableWithAggregatesFilter<"spatial_ref_sys"> | string | null
   }
 
   export type usersWhereInput = {
@@ -26131,7 +24878,6 @@ export namespace Prisma {
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
     id?: UuidFilter<"users"> | string
-    username?: StringFilter<"users"> | string
     display_name?: StringNullableFilter<"users"> | string | null
     avatar?: StringNullableFilter<"users"> | string | null
     bio?: StringNullableFilter<"users"> | string | null
@@ -26147,7 +24893,6 @@ export namespace Prisma {
 
   export type usersOrderByWithRelationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -26163,7 +24908,6 @@ export namespace Prisma {
 
   export type usersWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    username?: string
     AND?: usersWhereInput | usersWhereInput[]
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
@@ -26178,11 +24922,10 @@ export namespace Prisma {
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
-  }, "id" | "username">
+  }, "id">
 
   export type usersOrderByWithAggregationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -26202,7 +24945,6 @@ export namespace Prisma {
     OR?: usersScalarWhereWithAggregatesInput[]
     NOT?: usersScalarWhereWithAggregatesInput | usersScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"users"> | string
-    username?: StringWithAggregatesFilter<"users"> | string
     display_name?: StringNullableWithAggregatesFilter<"users"> | string | null
     avatar?: StringNullableWithAggregatesFilter<"users"> | string | null
     bio?: StringNullableWithAggregatesFilter<"users"> | string | null
@@ -26550,7 +25292,7 @@ export namespace Prisma {
     dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateInput = {
@@ -26564,7 +25306,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUpdateInput = {
@@ -26578,7 +25320,7 @@ export namespace Prisma {
     dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateInput = {
@@ -26592,7 +25334,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaCreateManyInput = {
@@ -26636,10 +25378,10 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_reviewsInput
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
@@ -26653,7 +25395,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -26666,10 +25408,10 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
@@ -26683,7 +25425,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -26698,7 +25440,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -26711,7 +25453,6 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -26726,7 +25467,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -26741,12 +25482,12 @@ export namespace Prisma {
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -26765,12 +25506,12 @@ export namespace Prisma {
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -26782,7 +25523,7 @@ export namespace Prisma {
 
   export type dishesCreateManyInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -26800,7 +25541,7 @@ export namespace Prisma {
 
   export type dishesUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -27014,6 +25755,7 @@ export namespace Prisma {
   export type payoutsCreateInput = {
     id?: string
     transfer_id: string
+    dish_media_id: string
     amount_cents: bigint | number
     currency_code?: string | null
     status: $Enums.payout_status
@@ -27021,7 +25763,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     restaurant_bids: restaurant_bidsCreateNestedOneWithoutPayoutsInput
-    dish_media: dish_mediaCreateNestedOneWithoutPayoutsInput
   }
 
   export type payoutsUncheckedCreateInput = {
@@ -27040,6 +25781,7 @@ export namespace Prisma {
   export type payoutsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     transfer_id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
     status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
@@ -27047,7 +25789,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     restaurant_bids?: restaurant_bidsUpdateOneRequiredWithoutPayoutsNestedInput
-    dish_media?: dish_mediaUpdateOneRequiredWithoutPayoutsNestedInput
   }
 
   export type payoutsUncheckedUpdateInput = {
@@ -27079,6 +25820,7 @@ export namespace Prisma {
   export type payoutsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     transfer_id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
     status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
@@ -27427,6 +26169,7 @@ export namespace Prisma {
 
   export type restaurant_bidsCreateInput = {
     id?: string
+    restaurant_id: string
     payment_intent_id?: string | null
     amount_cents: bigint | number
     currency_code: string
@@ -27438,7 +26181,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     payouts?: payoutsCreateNestedManyWithoutRestaurant_bidsInput
-    restaurants: restaurantsCreateNestedOneWithoutRestaurant_bidsInput
     users: usersCreateNestedOneWithoutRestaurant_bidsInput
   }
 
@@ -27461,6 +26203,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -27472,7 +26215,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     payouts?: payoutsUpdateManyWithoutRestaurant_bidsNestedInput
-    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput
     users?: usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput
   }
 
@@ -27511,6 +26253,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -27541,56 +26284,57 @@ export namespace Prisma {
 
   export type restaurantsCreateInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
-    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
-    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
-    restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
-    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsCreateManyInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
@@ -27599,8 +26343,9 @@ export namespace Prisma {
 
   export type restaurantsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
@@ -27609,73 +26354,17 @@ export namespace Prisma {
 
   export type restaurantsUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type spatial_ref_sysCreateInput = {
-    srid: number
-    auth_name?: string | null
-    auth_srid?: number | null
-    srtext?: string | null
-    proj4text?: string | null
-  }
-
-  export type spatial_ref_sysUncheckedCreateInput = {
-    srid: number
-    auth_name?: string | null
-    auth_srid?: number | null
-    srtext?: string | null
-    proj4text?: string | null
-  }
-
-  export type spatial_ref_sysUpdateInput = {
-    srid?: IntFieldUpdateOperationsInput | number
-    auth_name?: NullableStringFieldUpdateOperationsInput | string | null
-    auth_srid?: NullableIntFieldUpdateOperationsInput | number | null
-    srtext?: NullableStringFieldUpdateOperationsInput | string | null
-    proj4text?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type spatial_ref_sysUncheckedUpdateInput = {
-    srid?: IntFieldUpdateOperationsInput | number
-    auth_name?: NullableStringFieldUpdateOperationsInput | string | null
-    auth_srid?: NullableIntFieldUpdateOperationsInput | number | null
-    srtext?: NullableStringFieldUpdateOperationsInput | string | null
-    proj4text?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type spatial_ref_sysCreateManyInput = {
-    srid: number
-    auth_name?: string | null
-    auth_srid?: number | null
-    srtext?: string | null
-    proj4text?: string | null
-  }
-
-  export type spatial_ref_sysUpdateManyMutationInput = {
-    srid?: IntFieldUpdateOperationsInput | number
-    auth_name?: NullableStringFieldUpdateOperationsInput | string | null
-    auth_srid?: NullableIntFieldUpdateOperationsInput | number | null
-    srtext?: NullableStringFieldUpdateOperationsInput | string | null
-    proj4text?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type spatial_ref_sysUncheckedUpdateManyInput = {
-    srid?: IntFieldUpdateOperationsInput | number
-    auth_name?: NullableStringFieldUpdateOperationsInput | string | null
-    auth_srid?: NullableIntFieldUpdateOperationsInput | number | null
-    srtext?: NullableStringFieldUpdateOperationsInput | string | null
-    proj4text?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
   export type usersCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -27691,7 +26380,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -27707,7 +26395,6 @@ export namespace Prisma {
 
   export type usersUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27723,7 +26410,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27739,7 +26425,6 @@ export namespace Prisma {
 
   export type usersCreateManyInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -27751,7 +26436,6 @@ export namespace Prisma {
 
   export type usersUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27763,7 +26447,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27823,9 +26506,9 @@ export namespace Prisma {
   }
   export type JsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
-      Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-      Required<JsonNullableFilterBase<$PrismaModel>>
-    >
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
     | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonNullableFilterBase<$PrismaModel = never> = {
@@ -27957,9 +26640,9 @@ export namespace Prisma {
   }
   export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
-      Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-      Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-    >
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
     | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
@@ -28015,9 +26698,9 @@ export namespace Prisma {
   }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
-      Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
-      Required<JsonFilterBase<$PrismaModel>>
-    >
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
     | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonFilterBase<$PrismaModel = never> = {
@@ -28116,9 +26799,9 @@ export namespace Prisma {
   }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
-      Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-      Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-    >
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
     | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
@@ -28265,17 +26948,17 @@ export namespace Prisma {
     isNot?: usersWhereInput | null
   }
 
-  export type PayoutsListRelationFilter = {
-    every?: payoutsWhereInput
-    some?: payoutsWhereInput
-    none?: payoutsWhereInput
+  export type Dish_reviewsListRelationFilter = {
+    every?: dish_reviewsWhereInput
+    some?: dish_reviewsWhereInput
+    none?: dish_reviewsWhereInput
   }
 
   export type dish_likesOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
-  export type payoutsOrderByRelationAggregateInput = {
+  export type dish_reviewsOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -28411,22 +27094,12 @@ export namespace Prisma {
     none?: dish_mediaWhereInput
   }
 
-  export type Dish_reviewsListRelationFilter = {
-    every?: dish_reviewsWhereInput
-    some?: dish_reviewsWhereInput
-    none?: dish_reviewsWhereInput
-  }
-
-  export type RestaurantsNullableScalarRelationFilter = {
-    is?: restaurantsWhereInput | null
-    isNot?: restaurantsWhereInput | null
+  export type RestaurantsScalarRelationFilter = {
+    is?: restaurantsWhereInput
+    isNot?: restaurantsWhereInput
   }
 
   export type dish_mediaOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type dish_reviewsOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -28916,9 +27589,14 @@ export namespace Prisma {
     not?: NestedEnumrestaurant_bid_statusFilter<$PrismaModel> | $Enums.restaurant_bid_status
   }
 
-  export type RestaurantsScalarRelationFilter = {
-    is?: restaurantsWhereInput
-    isNot?: restaurantsWhereInput
+  export type PayoutsListRelationFilter = {
+    every?: payoutsWhereInput
+    some?: payoutsWhereInput
+    none?: payoutsWhereInput
+  }
+
+  export type payoutsOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type restaurant_bidsCountOrderByAggregateInput = {
@@ -29000,20 +27678,11 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
-  export type Restaurant_bidsListRelationFilter = {
-    every?: restaurant_bidsWhereInput
-    some?: restaurant_bidsWhereInput
-    none?: restaurant_bidsWhereInput
-  }
-
-  export type restaurant_bidsOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
   export type restaurantsCountOrderByAggregateInput = {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -29029,6 +27698,7 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -29039,6 +27709,7 @@ export namespace Prisma {
     id?: SortOrder
     google_place_id?: SortOrder
     name?: SortOrder
+    name_language_code?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
@@ -29066,40 +27737,6 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
-  export type spatial_ref_sysCountOrderByAggregateInput = {
-    srid?: SortOrder
-    auth_name?: SortOrder
-    auth_srid?: SortOrder
-    srtext?: SortOrder
-    proj4text?: SortOrder
-  }
-
-  export type spatial_ref_sysAvgOrderByAggregateInput = {
-    srid?: SortOrder
-    auth_srid?: SortOrder
-  }
-
-  export type spatial_ref_sysMaxOrderByAggregateInput = {
-    srid?: SortOrder
-    auth_name?: SortOrder
-    auth_srid?: SortOrder
-    srtext?: SortOrder
-    proj4text?: SortOrder
-  }
-
-  export type spatial_ref_sysMinOrderByAggregateInput = {
-    srid?: SortOrder
-    auth_name?: SortOrder
-    auth_srid?: SortOrder
-    srtext?: SortOrder
-    proj4text?: SortOrder
-  }
-
-  export type spatial_ref_sysSumOrderByAggregateInput = {
-    srid?: SortOrder
-    auth_srid?: SortOrder
-  }
-
   export type DateTimeNullableFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -29111,9 +27748,18 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type Restaurant_bidsListRelationFilter = {
+    every?: restaurant_bidsWhereInput
+    some?: restaurant_bidsWhereInput
+    none?: restaurant_bidsWhereInput
+  }
+
+  export type restaurant_bidsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type usersCountOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -29129,7 +27775,6 @@ export namespace Prisma {
 
   export type usersMaxOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -29141,7 +27786,6 @@ export namespace Prisma {
 
   export type usersMinOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -29365,11 +28009,11 @@ export namespace Prisma {
     connect?: usersWhereUniqueInput
   }
 
-  export type payoutsCreateNestedManyWithoutDish_mediaInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
+  export type dish_reviewsCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_reviewsCreateWithoutDish_mediaInput, dish_reviewsUncheckedCreateWithoutDish_mediaInput> | dish_reviewsCreateWithoutDish_mediaInput[] | dish_reviewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_reviewsCreateOrConnectWithoutDish_mediaInput | dish_reviewsCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_reviewsCreateManyDish_mediaInputEnvelope
+    connect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
   }
 
   export type dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput = {
@@ -29379,11 +28023,11 @@ export namespace Prisma {
     connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
   }
 
-  export type payoutsUncheckedCreateNestedManyWithoutDish_mediaInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
+  export type dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_reviewsCreateWithoutDish_mediaInput, dish_reviewsUncheckedCreateWithoutDish_mediaInput> | dish_reviewsCreateWithoutDish_mediaInput[] | dish_reviewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_reviewsCreateOrConnectWithoutDish_mediaInput | dish_reviewsCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_reviewsCreateManyDish_mediaInputEnvelope
+    connect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
   }
 
   export type dish_likesUpdateManyWithoutDish_mediaNestedInput = {
@@ -29418,18 +28062,18 @@ export namespace Prisma {
     update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_mediaInput, usersUpdateWithoutDish_mediaInput>, usersUncheckedUpdateWithoutDish_mediaInput>
   }
 
-  export type payoutsUpdateManyWithoutDish_mediaNestedInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    upsert?: payoutsUpsertWithWhereUniqueWithoutDish_mediaInput | payoutsUpsertWithWhereUniqueWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    set?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    disconnect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    delete?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    update?: payoutsUpdateWithWhereUniqueWithoutDish_mediaInput | payoutsUpdateWithWhereUniqueWithoutDish_mediaInput[]
-    updateMany?: payoutsUpdateManyWithWhereWithoutDish_mediaInput | payoutsUpdateManyWithWhereWithoutDish_mediaInput[]
-    deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+  export type dish_reviewsUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_reviewsCreateWithoutDish_mediaInput, dish_reviewsUncheckedCreateWithoutDish_mediaInput> | dish_reviewsCreateWithoutDish_mediaInput[] | dish_reviewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_reviewsCreateOrConnectWithoutDish_mediaInput | dish_reviewsCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_reviewsUpsertWithWhereUniqueWithoutDish_mediaInput | dish_reviewsUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_reviewsCreateManyDish_mediaInputEnvelope
+    set?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    disconnect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    delete?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    connect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    update?: dish_reviewsUpdateWithWhereUniqueWithoutDish_mediaInput | dish_reviewsUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_reviewsUpdateManyWithWhereWithoutDish_mediaInput | dish_reviewsUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
   }
 
   export type dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput = {
@@ -29446,18 +28090,24 @@ export namespace Prisma {
     deleteMany?: dish_likesScalarWhereInput | dish_likesScalarWhereInput[]
   }
 
-  export type payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput = {
-    create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
-    upsert?: payoutsUpsertWithWhereUniqueWithoutDish_mediaInput | payoutsUpsertWithWhereUniqueWithoutDish_mediaInput[]
-    createMany?: payoutsCreateManyDish_mediaInputEnvelope
-    set?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    disconnect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    delete?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-    update?: payoutsUpdateWithWhereUniqueWithoutDish_mediaInput | payoutsUpdateWithWhereUniqueWithoutDish_mediaInput[]
-    updateMany?: payoutsUpdateManyWithWhereWithoutDish_mediaInput | payoutsUpdateManyWithWhereWithoutDish_mediaInput[]
-    deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+  export type dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_reviewsCreateWithoutDish_mediaInput, dish_reviewsUncheckedCreateWithoutDish_mediaInput> | dish_reviewsCreateWithoutDish_mediaInput[] | dish_reviewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_reviewsCreateOrConnectWithoutDish_mediaInput | dish_reviewsCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_reviewsUpsertWithWhereUniqueWithoutDish_mediaInput | dish_reviewsUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_reviewsCreateManyDish_mediaInputEnvelope
+    set?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    disconnect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    delete?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    connect?: dish_reviewsWhereUniqueInput | dish_reviewsWhereUniqueInput[]
+    update?: dish_reviewsUpdateWithWhereUniqueWithoutDish_mediaInput | dish_reviewsUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_reviewsUpdateManyWithWhereWithoutDish_mediaInput | dish_reviewsUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
+  }
+
+  export type dish_mediaCreateNestedOneWithoutDish_reviewsInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_reviewsInput, dish_mediaUncheckedCreateWithoutDish_reviewsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_reviewsInput
+    connect?: dish_mediaWhereUniqueInput
   }
 
   export type dishesCreateNestedOneWithoutDish_reviewsInput = {
@@ -29478,6 +28128,14 @@ export namespace Prisma {
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_reviewsInput, dish_mediaUncheckedCreateWithoutDish_reviewsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_reviewsInput
+    upsert?: dish_mediaUpsertWithoutDish_reviewsInput
+    connect?: dish_mediaWhereUniqueInput
+    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutDish_reviewsInput, dish_mediaUpdateWithoutDish_reviewsInput>, dish_mediaUncheckedUpdateWithoutDish_reviewsInput>
   }
 
   export type dishesUpdateOneRequiredWithoutDish_reviewsNestedInput = {
@@ -29574,12 +28232,10 @@ export namespace Prisma {
     update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDishesInput, dish_categoriesUpdateWithoutDishesInput>, dish_categoriesUncheckedUpdateWithoutDishesInput>
   }
 
-  export type restaurantsUpdateOneWithoutDishesNestedInput = {
+  export type restaurantsUpdateOneRequiredWithoutDishesNestedInput = {
     create?: XOR<restaurantsCreateWithoutDishesInput, restaurantsUncheckedCreateWithoutDishesInput>
     connectOrCreate?: restaurantsCreateOrConnectWithoutDishesInput
     upsert?: restaurantsUpsertWithoutDishesInput
-    disconnect?: restaurantsWhereInput | boolean
-    delete?: restaurantsWhereInput | boolean
     connect?: restaurantsWhereUniqueInput
     update?: XOR<XOR<restaurantsUpdateToOneWithWhereWithoutDishesInput, restaurantsUpdateWithoutDishesInput>, restaurantsUncheckedUpdateWithoutDishesInput>
   }
@@ -29622,12 +28278,6 @@ export namespace Prisma {
     connect?: restaurant_bidsWhereUniqueInput
   }
 
-  export type dish_mediaCreateNestedOneWithoutPayoutsInput = {
-    create?: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-    connectOrCreate?: dish_mediaCreateOrConnectWithoutPayoutsInput
-    connect?: dish_mediaWhereUniqueInput
-  }
-
   export type BigIntFieldUpdateOperationsInput = {
     set?: bigint | number
     increment?: bigint | number
@@ -29646,14 +28296,6 @@ export namespace Prisma {
     upsert?: restaurant_bidsUpsertWithoutPayoutsInput
     connect?: restaurant_bidsWhereUniqueInput
     update?: XOR<XOR<restaurant_bidsUpdateToOneWithWhereWithoutPayoutsInput, restaurant_bidsUpdateWithoutPayoutsInput>, restaurant_bidsUncheckedUpdateWithoutPayoutsInput>
-  }
-
-  export type dish_mediaUpdateOneRequiredWithoutPayoutsNestedInput = {
-    create?: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-    connectOrCreate?: dish_mediaCreateOrConnectWithoutPayoutsInput
-    upsert?: dish_mediaUpsertWithoutPayoutsInput
-    connect?: dish_mediaWhereUniqueInput
-    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutPayoutsInput, dish_mediaUpdateWithoutPayoutsInput>, dish_mediaUncheckedUpdateWithoutPayoutsInput>
   }
 
   export type prompt_variantsCreateNestedManyWithoutPrompt_familiesInput = {
@@ -29731,12 +28373,6 @@ export namespace Prisma {
     connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
   }
 
-  export type restaurantsCreateNestedOneWithoutRestaurant_bidsInput = {
-    create?: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
-    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_bidsInput
-    connect?: restaurantsWhereUniqueInput
-  }
-
   export type usersCreateNestedOneWithoutRestaurant_bidsInput = {
     create?: XOR<usersCreateWithoutRestaurant_bidsInput, usersUncheckedCreateWithoutRestaurant_bidsInput>
     connectOrCreate?: usersCreateOrConnectWithoutRestaurant_bidsInput
@@ -29768,14 +28404,6 @@ export namespace Prisma {
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
   }
 
-  export type restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput = {
-    create?: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
-    connectOrCreate?: restaurantsCreateOrConnectWithoutRestaurant_bidsInput
-    upsert?: restaurantsUpsertWithoutRestaurant_bidsInput
-    connect?: restaurantsWhereUniqueInput
-    update?: XOR<XOR<restaurantsUpdateToOneWithWhereWithoutRestaurant_bidsInput, restaurantsUpdateWithoutRestaurant_bidsInput>, restaurantsUncheckedUpdateWithoutRestaurant_bidsInput>
-  }
-
   export type usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput = {
     create?: XOR<usersCreateWithoutRestaurant_bidsInput, usersUncheckedCreateWithoutRestaurant_bidsInput>
     connectOrCreate?: usersCreateOrConnectWithoutRestaurant_bidsInput
@@ -29805,25 +28433,11 @@ export namespace Prisma {
     connect?: dishesWhereUniqueInput | dishesWhereUniqueInput[]
   }
 
-  export type restaurant_bidsCreateNestedManyWithoutRestaurantsInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-  }
-
   export type dishesUncheckedCreateNestedManyWithoutRestaurantsInput = {
     create?: XOR<dishesCreateWithoutRestaurantsInput, dishesUncheckedCreateWithoutRestaurantsInput> | dishesCreateWithoutRestaurantsInput[] | dishesUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: dishesCreateOrConnectWithoutRestaurantsInput | dishesCreateOrConnectWithoutRestaurantsInput[]
     createMany?: dishesCreateManyRestaurantsInputEnvelope
     connect?: dishesWhereUniqueInput | dishesWhereUniqueInput[]
-  }
-
-  export type restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
   }
 
   export type FloatFieldUpdateOperationsInput = {
@@ -29848,20 +28462,6 @@ export namespace Prisma {
     deleteMany?: dishesScalarWhereInput | dishesScalarWhereInput[]
   }
 
-  export type restaurant_bidsUpdateManyWithoutRestaurantsNestedInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    upsert?: restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    set?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    disconnect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    delete?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    update?: restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput[]
-    updateMany?: restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput | restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput[]
-    deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
-  }
-
   export type dishesUncheckedUpdateManyWithoutRestaurantsNestedInput = {
     create?: XOR<dishesCreateWithoutRestaurantsInput, dishesUncheckedCreateWithoutRestaurantsInput> | dishesCreateWithoutRestaurantsInput[] | dishesUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: dishesCreateOrConnectWithoutRestaurantsInput | dishesCreateOrConnectWithoutRestaurantsInput[]
@@ -29874,20 +28474,6 @@ export namespace Prisma {
     update?: dishesUpdateWithWhereUniqueWithoutRestaurantsInput | dishesUpdateWithWhereUniqueWithoutRestaurantsInput[]
     updateMany?: dishesUpdateManyWithWhereWithoutRestaurantsInput | dishesUpdateManyWithWhereWithoutRestaurantsInput[]
     deleteMany?: dishesScalarWhereInput | dishesScalarWhereInput[]
-  }
-
-  export type restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput = {
-    create?: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput> | restaurant_bidsCreateWithoutRestaurantsInput[] | restaurant_bidsUncheckedCreateWithoutRestaurantsInput[]
-    connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
-    upsert?: restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput[]
-    createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
-    set?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    disconnect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    delete?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-    update?: restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput[]
-    updateMany?: restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput | restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput[]
-    deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
   }
 
   export type dish_likesCreateNestedManyWithoutUsersInput = {
@@ -30200,9 +28786,9 @@ export namespace Prisma {
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
-      Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-      Required<NestedJsonNullableFilterBase<$PrismaModel>>
-    >
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
     | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
 
   export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
@@ -30237,9 +28823,9 @@ export namespace Prisma {
   }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
-      Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
-      Required<NestedJsonFilterBase<$PrismaModel>>
-    >
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
     | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
 
   export type NestedJsonFilterBase<$PrismaModel = never> = {
@@ -30533,12 +29119,12 @@ export namespace Prisma {
     lock_no?: number
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateWithoutDish_categoriesInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     name?: string | null
     created_at?: Date | string
     updated_at?: Date | string
@@ -30605,7 +29191,7 @@ export namespace Prisma {
     OR?: dishesScalarWhereInput[]
     NOT?: dishesScalarWhereInput | dishesScalarWhereInput[]
     id?: UuidFilter<"dishes"> | string
-    restaurant_id?: UuidNullableFilter<"dishes"> | string | null
+    restaurant_id?: UuidFilter<"dishes"> | string
     category_id?: StringFilter<"dishes"> | string
     name?: StringNullableFilter<"dishes"> | string | null
     created_at?: DateTimeFilter<"dishes"> | Date | string
@@ -30695,7 +29281,7 @@ export namespace Prisma {
     lock_no?: number
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutDish_likesInput = {
@@ -30708,7 +29294,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutDish_likesInput = {
@@ -30718,7 +29304,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_likesInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30733,7 +29318,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_likesInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30772,7 +29356,7 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutDish_likesInput = {
@@ -30785,7 +29369,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type usersUpsertWithoutDish_likesInput = {
@@ -30801,7 +29385,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_likesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30816,7 +29399,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_likesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30859,12 +29441,12 @@ export namespace Prisma {
     lock_no?: number
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateWithoutDish_mediaInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -30880,7 +29462,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30895,7 +29476,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30913,37 +29493,41 @@ export namespace Prisma {
     create: XOR<usersCreateWithoutDish_mediaInput, usersUncheckedCreateWithoutDish_mediaInput>
   }
 
-  export type payoutsCreateWithoutDish_mediaInput = {
+  export type dish_reviewsCreateWithoutDish_mediaInput = {
     id?: string
-    transfer_id: string
-    amount_cents: bigint | number
+    comment: string
+    original_language_code: string
+    rating: number
+    price_cents?: number | null
     currency_code?: string | null
-    status: $Enums.payout_status
+    imported_user_name?: string | null
+    imported_user_avatar?: string | null
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    restaurant_bids: restaurant_bidsCreateNestedOneWithoutPayoutsInput
+    dishes: dishesCreateNestedOneWithoutDish_reviewsInput
+    users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
 
-  export type payoutsUncheckedCreateWithoutDish_mediaInput = {
+  export type dish_reviewsUncheckedCreateWithoutDish_mediaInput = {
     id?: string
-    bid_id: string
-    transfer_id: string
-    amount_cents: bigint | number
+    dish_id: string
+    comment: string
+    original_language_code: string
+    user_id?: string | null
+    rating: number
+    price_cents?: number | null
     currency_code?: string | null
-    status: $Enums.payout_status
+    imported_user_name?: string | null
+    imported_user_avatar?: string | null
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
   }
 
-  export type payoutsCreateOrConnectWithoutDish_mediaInput = {
-    where: payoutsWhereUniqueInput
-    create: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput>
+  export type dish_reviewsCreateOrConnectWithoutDish_mediaInput = {
+    where: dish_reviewsWhereUniqueInput
+    create: XOR<dish_reviewsCreateWithoutDish_mediaInput, dish_reviewsUncheckedCreateWithoutDish_mediaInput>
   }
 
-  export type payoutsCreateManyDish_mediaInputEnvelope = {
-    data: payoutsCreateManyDish_mediaInput | payoutsCreateManyDish_mediaInput[]
+  export type dish_reviewsCreateManyDish_mediaInputEnvelope = {
+    data: dish_reviewsCreateManyDish_mediaInput | dish_reviewsCreateManyDish_mediaInput[]
     skipDuplicates?: boolean
   }
 
@@ -30992,12 +29576,12 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31019,7 +29603,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31034,7 +29617,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31047,36 +29629,69 @@ export namespace Prisma {
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
-  export type payoutsUpsertWithWhereUniqueWithoutDish_mediaInput = {
-    where: payoutsWhereUniqueInput
-    update: XOR<payoutsUpdateWithoutDish_mediaInput, payoutsUncheckedUpdateWithoutDish_mediaInput>
-    create: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput>
+  export type dish_reviewsUpsertWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_reviewsWhereUniqueInput
+    update: XOR<dish_reviewsUpdateWithoutDish_mediaInput, dish_reviewsUncheckedUpdateWithoutDish_mediaInput>
+    create: XOR<dish_reviewsCreateWithoutDish_mediaInput, dish_reviewsUncheckedCreateWithoutDish_mediaInput>
   }
 
-  export type payoutsUpdateWithWhereUniqueWithoutDish_mediaInput = {
-    where: payoutsWhereUniqueInput
-    data: XOR<payoutsUpdateWithoutDish_mediaInput, payoutsUncheckedUpdateWithoutDish_mediaInput>
+  export type dish_reviewsUpdateWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_reviewsWhereUniqueInput
+    data: XOR<dish_reviewsUpdateWithoutDish_mediaInput, dish_reviewsUncheckedUpdateWithoutDish_mediaInput>
   }
 
-  export type payoutsUpdateManyWithWhereWithoutDish_mediaInput = {
-    where: payoutsScalarWhereInput
-    data: XOR<payoutsUpdateManyMutationInput, payoutsUncheckedUpdateManyWithoutDish_mediaInput>
+  export type dish_reviewsUpdateManyWithWhereWithoutDish_mediaInput = {
+    where: dish_reviewsScalarWhereInput
+    data: XOR<dish_reviewsUpdateManyMutationInput, dish_reviewsUncheckedUpdateManyWithoutDish_mediaInput>
   }
 
-  export type payoutsScalarWhereInput = {
-    AND?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
-    OR?: payoutsScalarWhereInput[]
-    NOT?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
-    id?: UuidFilter<"payouts"> | string
-    bid_id?: UuidFilter<"payouts"> | string
-    transfer_id?: StringFilter<"payouts"> | string
-    dish_media_id?: UuidFilter<"payouts"> | string
-    amount_cents?: BigIntFilter<"payouts"> | bigint | number
-    currency_code?: StringNullableFilter<"payouts"> | string | null
-    status?: Enumpayout_statusFilter<"payouts"> | $Enums.payout_status
-    created_at?: DateTimeFilter<"payouts"> | Date | string
-    updated_at?: DateTimeFilter<"payouts"> | Date | string
-    lock_no?: IntFilter<"payouts"> | number
+  export type dish_reviewsScalarWhereInput = {
+    AND?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
+    OR?: dish_reviewsScalarWhereInput[]
+    NOT?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
+    id?: UuidFilter<"dish_reviews"> | string
+    dish_id?: UuidFilter<"dish_reviews"> | string
+    comment?: StringFilter<"dish_reviews"> | string
+    original_language_code?: StringFilter<"dish_reviews"> | string
+    user_id?: UuidNullableFilter<"dish_reviews"> | string | null
+    rating?: IntFilter<"dish_reviews"> | number
+    price_cents?: IntNullableFilter<"dish_reviews"> | number | null
+    currency_code?: StringNullableFilter<"dish_reviews"> | string | null
+    created_dish_media_id?: UuidFilter<"dish_reviews"> | string
+    imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
+    imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
+    created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+  }
+
+  export type dish_mediaCreateWithoutDish_reviewsInput = {
+    id?: string
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
+    dishes: dishesCreateNestedOneWithoutDish_mediaInput
+    users?: usersCreateNestedOneWithoutDish_mediaInput
+  }
+
+  export type dish_mediaUncheckedCreateWithoutDish_reviewsInput = {
+    id?: string
+    dish_id: string
+    user_id?: string | null
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaCreateOrConnectWithoutDish_reviewsInput = {
+    where: dish_mediaWhereUniqueInput
+    create: XOR<dish_mediaCreateWithoutDish_reviewsInput, dish_mediaUncheckedCreateWithoutDish_reviewsInput>
   }
 
   export type dishesCreateWithoutDish_reviewsInput = {
@@ -31087,12 +29702,12 @@ export namespace Prisma {
     lock_no?: number
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
-    restaurants?: restaurantsCreateNestedOneWithoutDishesInput
+    restaurants: restaurantsCreateNestedOneWithoutDishesInput
   }
 
   export type dishesUncheckedCreateWithoutDish_reviewsInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     category_id: string
     name?: string | null
     created_at?: Date | string
@@ -31108,7 +29723,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -31123,7 +29737,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -31139,6 +29752,43 @@ export namespace Prisma {
   export type usersCreateOrConnectWithoutDish_reviewsInput = {
     where: usersWhereUniqueInput
     create: XOR<usersCreateWithoutDish_reviewsInput, usersUncheckedCreateWithoutDish_reviewsInput>
+  }
+
+  export type dish_mediaUpsertWithoutDish_reviewsInput = {
+    update: XOR<dish_mediaUpdateWithoutDish_reviewsInput, dish_mediaUncheckedUpdateWithoutDish_reviewsInput>
+    create: XOR<dish_mediaCreateWithoutDish_reviewsInput, dish_mediaUncheckedCreateWithoutDish_reviewsInput>
+    where?: dish_mediaWhereInput
+  }
+
+  export type dish_mediaUpdateToOneWithWhereWithoutDish_reviewsInput = {
+    where?: dish_mediaWhereInput
+    data: XOR<dish_mediaUpdateWithoutDish_reviewsInput, dish_mediaUncheckedUpdateWithoutDish_reviewsInput>
+  }
+
+  export type dish_mediaUpdateWithoutDish_reviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
+    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
+    users?: usersUpdateOneWithoutDish_mediaNestedInput
+  }
+
+  export type dish_mediaUncheckedUpdateWithoutDish_reviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dishesUpsertWithoutDish_reviewsInput = {
@@ -31160,12 +29810,12 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     category_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31187,7 +29837,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31202,7 +29851,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31225,7 +29873,7 @@ export namespace Prisma {
     lock_no?: number
     dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutDishesInput = {
@@ -31238,7 +29886,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutDishesInput = {
@@ -31258,10 +29906,10 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_reviewsInput
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -31273,7 +29921,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -31324,24 +29972,24 @@ export namespace Prisma {
 
   export type restaurantsCreateWithoutDishesInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
-    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsUncheckedCreateWithoutDishesInput = {
     id?: string
-    google_place_id?: string | null
+    google_place_id: string
     name: string
+    name_language_code: string
     latitude: number
     longitude: number
     image_url: string
     created_at?: Date | string
-    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
   export type restaurantsCreateOrConnectWithoutDishesInput = {
@@ -31396,24 +30044,6 @@ export namespace Prisma {
     data: XOR<dish_reviewsUpdateManyMutationInput, dish_reviewsUncheckedUpdateManyWithoutDishesInput>
   }
 
-  export type dish_reviewsScalarWhereInput = {
-    AND?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
-    OR?: dish_reviewsScalarWhereInput[]
-    NOT?: dish_reviewsScalarWhereInput | dish_reviewsScalarWhereInput[]
-    id?: UuidFilter<"dish_reviews"> | string
-    dish_id?: UuidFilter<"dish_reviews"> | string
-    comment?: StringFilter<"dish_reviews"> | string
-    original_language_code?: StringFilter<"dish_reviews"> | string
-    user_id?: UuidNullableFilter<"dish_reviews"> | string | null
-    rating?: IntFilter<"dish_reviews"> | number
-    price_cents?: IntNullableFilter<"dish_reviews"> | number | null
-    currency_code?: StringNullableFilter<"dish_reviews"> | string | null
-    created_dish_media_id?: UuidNullableFilter<"dish_reviews"> | string | null
-    imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
-    imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
-    created_at?: DateTimeFilter<"dish_reviews"> | Date | string
-  }
-
   export type dish_categoriesUpsertWithoutDishesInput = {
     update: XOR<dish_categoriesUpdateWithoutDishesInput, dish_categoriesUncheckedUpdateWithoutDishesInput>
     create: XOR<dish_categoriesCreateWithoutDishesInput, dish_categoriesUncheckedCreateWithoutDishesInput>
@@ -31466,28 +30096,29 @@ export namespace Prisma {
 
   export type restaurantsUpdateWithoutDishesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurantsUncheckedUpdateWithoutDishesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
+    google_place_id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    name_language_code?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
   export type restaurant_bidsCreateWithoutPayoutsInput = {
     id?: string
+    restaurant_id: string
     payment_intent_id?: string | null
     amount_cents: bigint | number
     currency_code: string
@@ -31498,7 +30129,6 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    restaurants: restaurantsCreateNestedOneWithoutRestaurant_bidsInput
     users: usersCreateNestedOneWithoutRestaurant_bidsInput
   }
 
@@ -31523,37 +30153,6 @@ export namespace Prisma {
     create: XOR<restaurant_bidsCreateWithoutPayoutsInput, restaurant_bidsUncheckedCreateWithoutPayoutsInput>
   }
 
-  export type dish_mediaCreateWithoutPayoutsInput = {
-    id?: string
-    media_path: string
-    media_type: string
-    thumbnail_path: string
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
-    dishes: dishesCreateNestedOneWithoutDish_mediaInput
-    users?: usersCreateNestedOneWithoutDish_mediaInput
-  }
-
-  export type dish_mediaUncheckedCreateWithoutPayoutsInput = {
-    id?: string
-    dish_id: string
-    user_id?: string | null
-    media_path: string
-    media_type: string
-    thumbnail_path: string
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
-  }
-
-  export type dish_mediaCreateOrConnectWithoutPayoutsInput = {
-    where: dish_mediaWhereUniqueInput
-    create: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-  }
-
   export type restaurant_bidsUpsertWithoutPayoutsInput = {
     update: XOR<restaurant_bidsUpdateWithoutPayoutsInput, restaurant_bidsUncheckedUpdateWithoutPayoutsInput>
     create: XOR<restaurant_bidsCreateWithoutPayoutsInput, restaurant_bidsUncheckedCreateWithoutPayoutsInput>
@@ -31567,6 +30166,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateWithoutPayoutsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -31577,7 +30177,6 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput
     users?: usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput
   }
 
@@ -31595,43 +30194,6 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-  }
-
-  export type dish_mediaUpsertWithoutPayoutsInput = {
-    update: XOR<dish_mediaUpdateWithoutPayoutsInput, dish_mediaUncheckedUpdateWithoutPayoutsInput>
-    create: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
-    where?: dish_mediaWhereInput
-  }
-
-  export type dish_mediaUpdateToOneWithWhereWithoutPayoutsInput = {
-    where?: dish_mediaWhereInput
-    data: XOR<dish_mediaUpdateWithoutPayoutsInput, dish_mediaUncheckedUpdateWithoutPayoutsInput>
-  }
-
-  export type dish_mediaUpdateWithoutPayoutsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    media_path?: StringFieldUpdateOperationsInput | string
-    media_type?: StringFieldUpdateOperationsInput | string
-    thumbnail_path?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
-    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
-    users?: usersUpdateOneWithoutDish_mediaNestedInput
-  }
-
-  export type dish_mediaUncheckedUpdateWithoutPayoutsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    dish_id?: StringFieldUpdateOperationsInput | string
-    user_id?: NullableStringFieldUpdateOperationsInput | string | null
-    media_path?: StringFieldUpdateOperationsInput | string
-    media_type?: StringFieldUpdateOperationsInput | string
-    thumbnail_path?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type prompt_variantsCreateWithoutPrompt_familiesInput = {
@@ -31742,13 +30304,13 @@ export namespace Prisma {
   export type payoutsCreateWithoutRestaurant_bidsInput = {
     id?: string
     transfer_id: string
+    dish_media_id: string
     amount_cents: bigint | number
     currency_code?: string | null
     status: $Enums.payout_status
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_media: dish_mediaCreateNestedOneWithoutPayoutsInput
   }
 
   export type payoutsUncheckedCreateWithoutRestaurant_bidsInput = {
@@ -31773,36 +30335,8 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type restaurantsCreateWithoutRestaurant_bidsInput = {
-    id?: string
-    google_place_id?: string | null
-    name: string
-    latitude: number
-    longitude: number
-    image_url: string
-    created_at?: Date | string
-    dishes?: dishesCreateNestedManyWithoutRestaurantsInput
-  }
-
-  export type restaurantsUncheckedCreateWithoutRestaurant_bidsInput = {
-    id?: string
-    google_place_id?: string | null
-    name: string
-    latitude: number
-    longitude: number
-    image_url: string
-    created_at?: Date | string
-    dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
-  }
-
-  export type restaurantsCreateOrConnectWithoutRestaurant_bidsInput = {
-    where: restaurantsWhereUniqueInput
-    create: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
-  }
-
   export type usersCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -31817,7 +30351,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -31851,37 +30384,20 @@ export namespace Prisma {
     data: XOR<payoutsUpdateManyMutationInput, payoutsUncheckedUpdateManyWithoutRestaurant_bidsInput>
   }
 
-  export type restaurantsUpsertWithoutRestaurant_bidsInput = {
-    update: XOR<restaurantsUpdateWithoutRestaurant_bidsInput, restaurantsUncheckedUpdateWithoutRestaurant_bidsInput>
-    create: XOR<restaurantsCreateWithoutRestaurant_bidsInput, restaurantsUncheckedCreateWithoutRestaurant_bidsInput>
-    where?: restaurantsWhereInput
-  }
-
-  export type restaurantsUpdateToOneWithWhereWithoutRestaurant_bidsInput = {
-    where?: restaurantsWhereInput
-    data: XOR<restaurantsUpdateWithoutRestaurant_bidsInput, restaurantsUncheckedUpdateWithoutRestaurant_bidsInput>
-  }
-
-  export type restaurantsUpdateWithoutRestaurant_bidsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    image_url?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
-  }
-
-  export type restaurantsUncheckedUpdateWithoutRestaurant_bidsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    google_place_id?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    image_url?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
+  export type payoutsScalarWhereInput = {
+    AND?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+    OR?: payoutsScalarWhereInput[]
+    NOT?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+    id?: UuidFilter<"payouts"> | string
+    bid_id?: UuidFilter<"payouts"> | string
+    transfer_id?: StringFilter<"payouts"> | string
+    dish_media_id?: UuidFilter<"payouts"> | string
+    amount_cents?: BigIntFilter<"payouts"> | bigint | number
+    currency_code?: StringNullableFilter<"payouts"> | string | null
+    status?: Enumpayout_statusFilter<"payouts"> | $Enums.payout_status
+    created_at?: DateTimeFilter<"payouts"> | Date | string
+    updated_at?: DateTimeFilter<"payouts"> | Date | string
+    lock_no?: IntFilter<"payouts"> | number
   }
 
   export type usersUpsertWithoutRestaurant_bidsInput = {
@@ -31897,7 +30413,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31912,7 +30427,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -31957,48 +30471,6 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type restaurant_bidsCreateWithoutRestaurantsInput = {
-    id?: string
-    payment_intent_id?: string | null
-    amount_cents: bigint | number
-    currency_code: string
-    start_date: Date | string
-    end_date: Date | string
-    status: $Enums.restaurant_bid_status
-    refund_id?: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    payouts?: payoutsCreateNestedManyWithoutRestaurant_bidsInput
-    users: usersCreateNestedOneWithoutRestaurant_bidsInput
-  }
-
-  export type restaurant_bidsUncheckedCreateWithoutRestaurantsInput = {
-    id?: string
-    user_id: string
-    payment_intent_id?: string | null
-    amount_cents: bigint | number
-    currency_code: string
-    start_date: Date | string
-    end_date: Date | string
-    status: $Enums.restaurant_bid_status
-    refund_id?: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    payouts?: payoutsUncheckedCreateNestedManyWithoutRestaurant_bidsInput
-  }
-
-  export type restaurant_bidsCreateOrConnectWithoutRestaurantsInput = {
-    where: restaurant_bidsWhereUniqueInput
-    create: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsCreateManyRestaurantsInputEnvelope = {
-    data: restaurant_bidsCreateManyRestaurantsInput | restaurant_bidsCreateManyRestaurantsInput[]
-    skipDuplicates?: boolean
-  }
-
   export type dishesUpsertWithWhereUniqueWithoutRestaurantsInput = {
     where: dishesWhereUniqueInput
     update: XOR<dishesUpdateWithoutRestaurantsInput, dishesUncheckedUpdateWithoutRestaurantsInput>
@@ -32013,41 +30485,6 @@ export namespace Prisma {
   export type dishesUpdateManyWithWhereWithoutRestaurantsInput = {
     where: dishesScalarWhereInput
     data: XOR<dishesUpdateManyMutationInput, dishesUncheckedUpdateManyWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsUpsertWithWhereUniqueWithoutRestaurantsInput = {
-    where: restaurant_bidsWhereUniqueInput
-    update: XOR<restaurant_bidsUpdateWithoutRestaurantsInput, restaurant_bidsUncheckedUpdateWithoutRestaurantsInput>
-    create: XOR<restaurant_bidsCreateWithoutRestaurantsInput, restaurant_bidsUncheckedCreateWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput = {
-    where: restaurant_bidsWhereUniqueInput
-    data: XOR<restaurant_bidsUpdateWithoutRestaurantsInput, restaurant_bidsUncheckedUpdateWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput = {
-    where: restaurant_bidsScalarWhereInput
-    data: XOR<restaurant_bidsUpdateManyMutationInput, restaurant_bidsUncheckedUpdateManyWithoutRestaurantsInput>
-  }
-
-  export type restaurant_bidsScalarWhereInput = {
-    AND?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
-    OR?: restaurant_bidsScalarWhereInput[]
-    NOT?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
-    id?: UuidFilter<"restaurant_bids"> | string
-    restaurant_id?: UuidFilter<"restaurant_bids"> | string
-    user_id?: UuidFilter<"restaurant_bids"> | string
-    payment_intent_id?: StringNullableFilter<"restaurant_bids"> | string | null
-    amount_cents?: BigIntFilter<"restaurant_bids"> | bigint | number
-    currency_code?: StringFilter<"restaurant_bids"> | string
-    start_date?: DateTimeFilter<"restaurant_bids"> | Date | string
-    end_date?: DateTimeFilter<"restaurant_bids"> | Date | string
-    status?: Enumrestaurant_bid_statusFilter<"restaurant_bids"> | $Enums.restaurant_bid_status
-    refund_id?: StringNullableFilter<"restaurant_bids"> | string | null
-    created_at?: DateTimeFilter<"restaurant_bids"> | Date | string
-    updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
-    lock_no?: IntFilter<"restaurant_bids"> | number
   }
 
   export type dish_likesCreateWithoutUsersInput = {
@@ -32082,7 +30519,7 @@ export namespace Prisma {
     lock_no?: number
     dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutUsersInput = {
@@ -32095,7 +30532,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutUsersInput = {
@@ -32115,10 +30552,10 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_reviewsInput
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -32130,7 +30567,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -32148,6 +30585,7 @@ export namespace Prisma {
 
   export type restaurant_bidsCreateWithoutUsersInput = {
     id?: string
+    restaurant_id: string
     payment_intent_id?: string | null
     amount_cents: bigint | number
     currency_code: string
@@ -32159,7 +30597,6 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     payouts?: payoutsCreateNestedManyWithoutRestaurant_bidsInput
-    restaurants: restaurantsCreateNestedOneWithoutRestaurant_bidsInput
   }
 
   export type restaurant_bidsUncheckedCreateWithoutUsersInput = {
@@ -32252,6 +30689,25 @@ export namespace Prisma {
     data: XOR<restaurant_bidsUpdateManyMutationInput, restaurant_bidsUncheckedUpdateManyWithoutUsersInput>
   }
 
+  export type restaurant_bidsScalarWhereInput = {
+    AND?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
+    OR?: restaurant_bidsScalarWhereInput[]
+    NOT?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
+    id?: UuidFilter<"restaurant_bids"> | string
+    restaurant_id?: UuidFilter<"restaurant_bids"> | string
+    user_id?: UuidFilter<"restaurant_bids"> | string
+    payment_intent_id?: StringNullableFilter<"restaurant_bids"> | string | null
+    amount_cents?: BigIntFilter<"restaurant_bids"> | bigint | number
+    currency_code?: StringFilter<"restaurant_bids"> | string
+    start_date?: DateTimeFilter<"restaurant_bids"> | Date | string
+    end_date?: DateTimeFilter<"restaurant_bids"> | Date | string
+    status?: Enumrestaurant_bid_statusFilter<"restaurant_bids"> | $Enums.restaurant_bid_status
+    refund_id?: StringNullableFilter<"restaurant_bids"> | string | null
+    created_at?: DateTimeFilter<"restaurant_bids"> | Date | string
+    updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
+    lock_no?: IntFilter<"restaurant_bids"> | number
+  }
+
   export type dish_category_variantsCreateManyDish_categoriesInput = {
     id?: string
     surface_form: string
@@ -32261,7 +30717,7 @@ export namespace Prisma {
 
   export type dishesCreateManyDish_categoriesInput = {
     id?: string
-    restaurant_id?: string | null
+    restaurant_id: string
     name?: string | null
     created_at?: Date | string
     updated_at?: Date | string
@@ -32297,12 +30753,12 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
-    restaurants?: restaurantsUpdateOneWithoutDishesNestedInput
+    restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
   }
 
   export type dishesUncheckedUpdateWithoutDish_categoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32313,7 +30769,7 @@ export namespace Prisma {
 
   export type dishesUncheckedUpdateManyWithoutDish_categoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    restaurant_id?: NullableStringFieldUpdateOperationsInput | string | null
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32326,16 +30782,18 @@ export namespace Prisma {
     created_at?: Date | string
   }
 
-  export type payoutsCreateManyDish_mediaInput = {
+  export type dish_reviewsCreateManyDish_mediaInput = {
     id?: string
-    bid_id: string
-    transfer_id: string
-    amount_cents: bigint | number
+    dish_id: string
+    comment: string
+    original_language_code: string
+    user_id?: string | null
+    rating: number
+    price_cents?: number | null
     currency_code?: string | null
-    status: $Enums.payout_status
+    imported_user_name?: string | null
+    imported_user_avatar?: string | null
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
   }
 
   export type dish_likesUpdateWithoutDish_mediaInput = {
@@ -32356,40 +30814,46 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type payoutsUpdateWithoutDish_mediaInput = {
+  export type dish_reviewsUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    transfer_id?: StringFieldUpdateOperationsInput | string
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
+    comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
+    imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
+    imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    restaurant_bids?: restaurant_bidsUpdateOneRequiredWithoutPayoutsNestedInput
+    dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
+    users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
 
-  export type payoutsUncheckedUpdateWithoutDish_mediaInput = {
+  export type dish_reviewsUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    bid_id?: StringFieldUpdateOperationsInput | string
-    transfer_id?: StringFieldUpdateOperationsInput | string
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
+    dish_id?: StringFieldUpdateOperationsInput | string
+    comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    rating?: IntFieldUpdateOperationsInput | number
+    price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
+    imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
+    imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
   }
 
-  export type payoutsUncheckedUpdateManyWithoutDish_mediaInput = {
+  export type dish_reviewsUncheckedUpdateManyWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    bid_id?: StringFieldUpdateOperationsInput | string
-    transfer_id?: StringFieldUpdateOperationsInput | string
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
+    dish_id?: StringFieldUpdateOperationsInput | string
+    comment?: StringFieldUpdateOperationsInput | string
+    original_language_code?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    rating?: IntFieldUpdateOperationsInput | number
+    price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
+    imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
+    imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
   }
 
   export type dish_mediaCreateManyDishesInput = {
@@ -32411,7 +30875,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -32427,7 +30891,7 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutDishesInput = {
@@ -32440,7 +30904,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateManyWithoutDishesInput = {
@@ -32461,10 +30925,10 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
 
@@ -32476,7 +30940,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32490,7 +30954,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32547,13 +31011,13 @@ export namespace Prisma {
   export type payoutsUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
     transfer_id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
     status?: Enumpayout_statusFieldUpdateOperationsInput | $Enums.payout_status
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_media?: dish_mediaUpdateOneRequiredWithoutPayoutsNestedInput
   }
 
   export type payoutsUncheckedUpdateWithoutRestaurant_bidsInput = {
@@ -32584,21 +31048,6 @@ export namespace Prisma {
     id?: string
     category_id: string
     name?: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-  }
-
-  export type restaurant_bidsCreateManyRestaurantsInput = {
-    id?: string
-    user_id: string
-    payment_intent_id?: string | null
-    amount_cents: bigint | number
-    currency_code: string
-    start_date: Date | string
-    end_date: Date | string
-    status: $Enums.restaurant_bid_status
-    refund_id?: string | null
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
@@ -32635,53 +31084,6 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
-  export type restaurant_bidsUpdateWithoutRestaurantsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: StringFieldUpdateOperationsInput | string
-    start_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    end_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: Enumrestaurant_bid_statusFieldUpdateOperationsInput | $Enums.restaurant_bid_status
-    refund_id?: NullableStringFieldUpdateOperationsInput | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    payouts?: payoutsUpdateManyWithoutRestaurant_bidsNestedInput
-    users?: usersUpdateOneRequiredWithoutRestaurant_bidsNestedInput
-  }
-
-  export type restaurant_bidsUncheckedUpdateWithoutRestaurantsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    user_id?: StringFieldUpdateOperationsInput | string
-    payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: StringFieldUpdateOperationsInput | string
-    start_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    end_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: Enumrestaurant_bid_statusFieldUpdateOperationsInput | $Enums.restaurant_bid_status
-    refund_id?: NullableStringFieldUpdateOperationsInput | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    payouts?: payoutsUncheckedUpdateManyWithoutRestaurant_bidsNestedInput
-  }
-
-  export type restaurant_bidsUncheckedUpdateManyWithoutRestaurantsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    user_id?: StringFieldUpdateOperationsInput | string
-    payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
-    amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
-    currency_code?: StringFieldUpdateOperationsInput | string
-    start_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    end_date?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: Enumrestaurant_bid_statusFieldUpdateOperationsInput | $Enums.restaurant_bid_status
-    refund_id?: NullableStringFieldUpdateOperationsInput | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-  }
-
   export type dish_likesCreateManyUsersInput = {
     id?: string
     dish_media_id: string
@@ -32707,7 +31109,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id?: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -32756,7 +31158,7 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutUsersInput = {
@@ -32769,7 +31171,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateManyWithoutUsersInput = {
@@ -32790,10 +31192,10 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_reviewsNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
   }
 
@@ -32805,7 +31207,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32819,7 +31221,7 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     price_cents?: NullableIntFieldUpdateOperationsInput | number | null
     currency_code?: NullableStringFieldUpdateOperationsInput | string | null
-    created_dish_media_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_dish_media_id?: StringFieldUpdateOperationsInput | string
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32827,6 +31229,7 @@ export namespace Prisma {
 
   export type restaurant_bidsUpdateWithoutUsersInput = {
     id?: StringFieldUpdateOperationsInput | string
+    restaurant_id?: StringFieldUpdateOperationsInput | string
     payment_intent_id?: NullableStringFieldUpdateOperationsInput | string | null
     amount_cents?: BigIntFieldUpdateOperationsInput | bigint | number
     currency_code?: StringFieldUpdateOperationsInput | string
@@ -32838,7 +31241,6 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     payouts?: payoutsUpdateManyWithoutRestaurant_bidsNestedInput
-    restaurants?: restaurantsUpdateOneRequiredWithoutRestaurant_bidsNestedInput
   }
 
   export type restaurant_bidsUncheckedUpdateWithoutUsersInput = {

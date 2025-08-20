@@ -6,6 +6,7 @@ import { DishCategoryVariantsModule } from './dish-category-variants/dish-catego
 import { DishReviewsModule } from './dish-reviews/dish-reviews.module';
 import { DishesModule } from './dishes/dishes.module';
 import { LocationsModule } from './locations/locations.module';
+import { UsersModule } from './users/users.module';
 import { NotifierModule } from 'src/core/notifier/notifier.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { NotifierModule } from 'src/core/notifier/notifier.module';
     DishReviewsModule,
     DishesModule,
     LocationsModule,
+    UsersModule,
     NotifierModule,
   ],
 })
