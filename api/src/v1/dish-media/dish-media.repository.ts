@@ -296,33 +296,55 @@ export class DishMediaRepository {
       where: { id: { in: dishMediaIds } },
       include: {
         dish_likes: { where: { user_id: userId } }, // User がいいねしているか
-        _count: { select: { dish_likes: true, dish_reviews: true } }, // いいね数を取得
+        _count: { select: { dish_likes: true } }, // いいね数を取得
         dishes: { include: { restaurants: true } },
-        dish_reviews: {
-          orderBy: { created_at: 'desc' },
-          take: reviewLimit,
-          include: { users: true },
-        },
       },
     });
 
-    const avgByMedia = await this.prisma.prisma.dish_reviews.groupBy({
-      by: ['created_dish_media_id'],
-      where: { created_dish_media_id: { in: dishMediaIds } },
-      _avg: { rating: true },
+    // Get all dish IDs to fetch reviews for dishes
+    const dishIds = dishMedias.map((m) => m.dish_id);
+
+    // Get all reviews for the dishes (not just reviews created from these dish_media)
+    const dishReviewsData = await this.prisma.prisma.dish_reviews.findMany({
+      where: { dish_id: { in: dishIds } },
+      orderBy: { created_at: 'desc' },
+      include: { users: true },
     });
 
-    const avgRatingMap = new Map<string, number>(
-      avgByMedia.map((row) => {
+    // Group reviews by dish_id and limit to reviewLimit per dish
+    const reviewsByDishId = new Map<string, typeof dishReviewsData>();
+    dishReviewsData.forEach((review) => {
+      if (!reviewsByDishId.has(review.dish_id)) {
+        reviewsByDishId.set(review.dish_id, []);
+      }
+      const dishReviews = reviewsByDishId.get(review.dish_id)!;
+      if (dishReviews.length < reviewLimit) {
+        dishReviews.push(review);
+      }
+    });
+
+    // Calculate review count and average rating per dish
+    const avgByDish = await this.prisma.prisma.dish_reviews.groupBy({
+      by: ['dish_id'],
+      where: { dish_id: { in: dishIds } },
+      _avg: { rating: true },
+      _count: { dish_id: true },
+    });
+
+    const dishStatsMap = new Map<string, { averageRating: number; reviewCount: number }>(
+      avgByDish.map((row) => {
         const avg = row._avg.rating ?? 0;
-        return [row.created_dish_media_id, Math.round(avg * 10) / 10]; // ROUND(AVG, 1)
+        return [row.dish_id, {
+          averageRating: Math.round(avg * 10) / 10, // ROUND(AVG, 1)
+          reviewCount: row._count.dish_id,
+        }];
       }),
     );
 
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
-    const allReviewIds = dishMedias.flatMap((m) =>
-      m.dish_reviews.map((r) => r.id),
-    );
+    const allReviewIds = Array.from(reviewsByDishId.values())
+      .flat()
+      .map((r) => r.id);
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
@@ -340,12 +362,15 @@ export class DishMediaRepository {
       }) //
       .map((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId)!;
+        const dishStats = dishStatsMap.get(dishMedia.dish_id) ?? { averageRating: 0, reviewCount: 0 };
+        const dishReviews = reviewsByDishId.get(dishMedia.dish_id) ?? [];
+        
         return {
           restaurant: dishMedia.dishes.restaurants,
           dish: {
             ...dishMedia.dishes,
-            reviewCount: dishMedia._count.dish_reviews,
-            averageRating: avgRatingMap.get(dishMedia.id) ?? 0,
+            reviewCount: dishStats.reviewCount,
+            averageRating: dishStats.averageRating,
           },
           dish_media: {
             ...(dishMedia as PrismaDishMedia),
@@ -359,7 +384,7 @@ export class DishMediaRepository {
               ),
             likeCount: dishMedia._count.dish_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
           },
-          dish_reviews: dishMedia.dish_reviews.map((review) => ({
+          dish_reviews: dishReviews.map((review) => ({
             ...review,
             username:
               review.imported_user_name ??
