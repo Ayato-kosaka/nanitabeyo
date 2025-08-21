@@ -1,54 +1,314 @@
 [
-  {"sub": "CH-TI", "primary_lang": "it", "script": "", "fallback_list": ["de", "fr"]},
-  {"sub": "CH-GE", "primary_lang": "fr", "script": "", "fallback_list": ["de", "it"]},
-  {"sub": "CH-VD", "primary_lang": "fr", "script": "", "fallback_list": ["de", "it"]},
-  {"sub": "CH-VS", "primary_lang": "fr", "script": "", "fallback_list": ["de", "it"]},
-  {"sub": "CH-NE", "primary_lang": "fr", "script": "", "fallback_list": ["de", "it"]},
-  {"sub": "CH-JU", "primary_lang": "fr", "script": "", "fallback_list": ["de", "it"]},
-  {"sub": "CH-FR", "primary_lang": "fr", "script": "", "fallback_list": ["de", "it"]},
-  {"sub": "CH-ZH", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-BE", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-LU", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-UR", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-SZ", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-OW", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-NW", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-GL", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-ZG", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-SO", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-BS", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-BL", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-SH", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-AR", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-AI", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-SG", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-GR", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-AG", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "CH-TG", "primary_lang": "de", "script": "", "fallback_list": ["fr", "it"]},
-  {"sub": "BE-BRU", "primary_lang": "fr", "script": "", "fallback_list": ["nl"]},
-  {"sub": "BE-WAL", "primary_lang": "fr", "script": "", "fallback_list": ["nl"]},
-  {"sub": "BE-VLG", "primary_lang": "nl", "script": "", "fallback_list": ["fr"]},
-  {"sub": "CA-QC", "primary_lang": "fr", "script": "", "fallback_list": ["en"]},
-  {"sub": "CA-NB", "primary_lang": "en", "script": "", "fallback_list": ["fr"]},
-  {"sub": "ES-CT", "primary_lang": "ca", "script": "", "fallback_list": ["es"]},
-  {"sub": "ES-GA", "primary_lang": "gl", "script": "", "fallback_list": ["es"]},
-  {"sub": "ES-PV", "primary_lang": "eu", "script": "", "fallback_list": ["es"]},
-  {"sub": "ES-VC", "primary_lang": "ca", "script": "", "fallback_list": ["es"]},
-  {"sub": "ES-IB", "primary_lang": "ca", "script": "", "fallback_list": ["es"]},
-  {"sub": "GB-WLS", "primary_lang": "cy", "script": "", "fallback_list": ["en"]},
-  {"sub": "GB-SCT", "primary_lang": "en", "script": "", "fallback_list": ["gd"]},
-  {"sub": "GB-NIR", "primary_lang": "en", "script": "", "fallback_list": ["ga"]},
-  {"sub": "IN-GJ", "primary_lang": "gu", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-MH", "primary_lang": "mr", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-TN", "primary_lang": "ta", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-KA", "primary_lang": "kn", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-KL", "primary_lang": "ml", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-TE", "primary_lang": "te", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-OR", "primary_lang": "or", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-AS", "primary_lang": "as", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-WB", "primary_lang": "bn", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "IN-PB", "primary_lang": "pa", "script": "", "fallback_list": ["hi", "en"]},
-  {"sub": "ZA-WC", "primary_lang": "af", "script": "", "fallback_list": ["en"]},
-  {"sub": "ZA-NC", "primary_lang": "af", "script": "", "fallback_list": ["en"]},
-  {"sub": "ZA-FS", "primary_lang": "af", "script": "", "fallback_list": ["en"]}
+  {
+    "sub": "CH-TI",
+    "primary_lang": "it",
+    "script": "",
+    "fallback_list": ["de", "fr"]
+  },
+  {
+    "sub": "CH-GE",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["de", "it"]
+  },
+  {
+    "sub": "CH-VD",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["de", "it"]
+  },
+  {
+    "sub": "CH-VS",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["de", "it"]
+  },
+  {
+    "sub": "CH-NE",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["de", "it"]
+  },
+  {
+    "sub": "CH-JU",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["de", "it"]
+  },
+  {
+    "sub": "CH-FR",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["de", "it"]
+  },
+  {
+    "sub": "CH-ZH",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-BE",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-LU",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-UR",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-SZ",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-OW",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-NW",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-GL",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-ZG",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-SO",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-BS",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-BL",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-SH",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-AR",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-AI",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-SG",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-GR",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-AG",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "CH-TG",
+    "primary_lang": "de",
+    "script": "",
+    "fallback_list": ["fr", "it"]
+  },
+  {
+    "sub": "BE-BRU",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["nl"]
+  },
+  {
+    "sub": "BE-WAL",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["nl"]
+  },
+  {
+    "sub": "BE-VLG",
+    "primary_lang": "nl",
+    "script": "",
+    "fallback_list": ["fr"]
+  },
+  {
+    "sub": "CA-QC",
+    "primary_lang": "fr",
+    "script": "",
+    "fallback_list": ["en"]
+  },
+  {
+    "sub": "CA-NB",
+    "primary_lang": "en",
+    "script": "",
+    "fallback_list": ["fr"]
+  },
+  {
+    "sub": "ES-CT",
+    "primary_lang": "ca",
+    "script": "",
+    "fallback_list": ["es"]
+  },
+  {
+    "sub": "ES-GA",
+    "primary_lang": "gl",
+    "script": "",
+    "fallback_list": ["es"]
+  },
+  {
+    "sub": "ES-PV",
+    "primary_lang": "eu",
+    "script": "",
+    "fallback_list": ["es"]
+  },
+  {
+    "sub": "ES-VC",
+    "primary_lang": "ca",
+    "script": "",
+    "fallback_list": ["es"]
+  },
+  {
+    "sub": "ES-IB",
+    "primary_lang": "ca",
+    "script": "",
+    "fallback_list": ["es"]
+  },
+  {
+    "sub": "GB-WLS",
+    "primary_lang": "cy",
+    "script": "",
+    "fallback_list": ["en"]
+  },
+  {
+    "sub": "GB-SCT",
+    "primary_lang": "en",
+    "script": "",
+    "fallback_list": ["gd"]
+  },
+  {
+    "sub": "GB-NIR",
+    "primary_lang": "en",
+    "script": "",
+    "fallback_list": ["ga"]
+  },
+  {
+    "sub": "IN-GJ",
+    "primary_lang": "gu",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-MH",
+    "primary_lang": "mr",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-TN",
+    "primary_lang": "ta",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-KA",
+    "primary_lang": "kn",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-KL",
+    "primary_lang": "ml",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-TE",
+    "primary_lang": "te",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-OR",
+    "primary_lang": "or",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-AS",
+    "primary_lang": "as",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-WB",
+    "primary_lang": "bn",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "IN-PB",
+    "primary_lang": "pa",
+    "script": "",
+    "fallback_list": ["hi", "en"]
+  },
+  {
+    "sub": "ZA-WC",
+    "primary_lang": "af",
+    "script": "",
+    "fallback_list": ["en"]
+  },
+  {
+    "sub": "ZA-NC",
+    "primary_lang": "af",
+    "script": "",
+    "fallback_list": ["en"]
+  },
+  {
+    "sub": "ZA-FS",
+    "primary_lang": "af",
+    "script": "",
+    "fallback_list": ["en"]
+  }
 ]

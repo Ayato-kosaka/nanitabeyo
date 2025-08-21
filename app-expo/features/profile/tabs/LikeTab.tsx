@@ -21,11 +21,11 @@ export function LikeTab() {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { BlurModal, open: openEditModal } = useBlurModal({ intensity: 100 });
-	
+
 	// Determine if this is the current user's profile or another user's
 	const isOwnProfile = !userId || userId === userProfile.id;
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
-	
+
 	// Add wallet tab for own profile
 	const availableTabs = isOwnProfile ? ["reviews", "saved", "liked", "wallet"] : ["reviews"];
 
@@ -83,7 +83,7 @@ export function LikeTab() {
 	const currentData = getCurrentDishMediaEntriesForTab("liked") || [];
 
 	// Convert DishMediaEntry to ImageCardItem format
-	const convertedData = currentData.map(item => ({
+	const convertedData = currentData.map((item) => ({
 		id: item.dish_media.id,
 		imageUrl: item.dish_media.thumbnailImageUrl,
 		originalItem: item, // Store original item for access in render
@@ -93,9 +93,7 @@ export function LikeTab() {
 	const renderDishMediaEntryItem = ({ item }: { item: any }) => {
 		const originalItem = item.originalItem;
 		return (
-			<ImageCard
-				item={item}
-				onPress={() => handleDishMediaEntryPress(originalItem)}>
+			<ImageCard item={item} onPress={() => handleDishMediaEntryPress(originalItem)}>
 				<View style={styles.reviewCardOverlay}>
 					<View style={styles.reviewCardRating}>
 						<Stars rating={originalItem.dish.averageRating} />
@@ -127,10 +125,7 @@ export function LikeTab() {
 						onEditProfile={handleEditProfile}
 						onFollow={handleFollow}
 					/>
-					<ProfileTabsBar
-						availableTabs={availableTabs as any}
-						isOwnProfile={isOwnProfile}
-					/>
+					<ProfileTabsBar availableTabs={availableTabs as any} isOwnProfile={isOwnProfile} />
 				</>
 			}
 		/>

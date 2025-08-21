@@ -19,11 +19,11 @@ export function DepositsTab() {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { BlurModal, open: openEditModal } = useBlurModal({ intensity: 100 });
-	
+
 	// Determine if this is the current user's profile or another user's
 	const isOwnProfile = !userId || userId === userProfile.id;
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
-	
+
 	// Add wallet tab for own profile
 	const availableTabs = isOwnProfile ? ["reviews", "saved", "liked", "wallet"] : ["reviews"];
 
@@ -139,10 +139,7 @@ export function DepositsTab() {
 					onEditProfile={handleEditProfile}
 					onFollow={handleFollow}
 				/>
-				<ProfileTabsBar
-					availableTabs={availableTabs as any}
-					isOwnProfile={isOwnProfile}
-				/>
+				<ProfileTabsBar availableTabs={availableTabs as any} isOwnProfile={isOwnProfile} />
 				<WalletTabsBar />
 				{/* Status Filter Chips */}
 				<ScrollView

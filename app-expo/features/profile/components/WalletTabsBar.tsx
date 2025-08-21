@@ -10,19 +10,19 @@ type WalletTabType = "deposits" | "earnings";
 export function WalletTabsBar() {
 	const navigation = useNavigation();
 	const { lightImpact } = useHaptics();
-	
-	// Get current route index from navigation state  
-	const currentIndex = useNavigationState(state => state.index);
+
+	// Get current route index from navigation state
+	const currentIndex = useNavigationState((state) => state.index);
 
 	const handleTabPress = (tab: WalletTabType, index: number) => {
 		lightImpact();
-		
+
 		// Convert tab name to screen name for navigation
 		const screenNames = {
 			deposits: "Deposits",
-			earnings: "Earnings"
+			earnings: "Earnings",
 		};
-		
+
 		const screenName = screenNames[tab];
 		if (screenName) {
 			navigation.navigate(screenName as never);
@@ -45,9 +45,7 @@ export function WalletTabsBar() {
 						style={[styles.tab, isActive && styles.activeTab]}
 						onPress={() => handleTabPress(tab.id, index)}>
 						<IconComponent size={20} color={isActive ? "#5EA2FF" : "#666"} />
-						<Text style={[styles.tabText, isActive && styles.activeTabText]}>
-							{tab.label}
-						</Text>
+						<Text style={[styles.tabText, isActive && styles.activeTabText]}>{tab.label}</Text>
 					</TouchableOpacity>
 				);
 			})}

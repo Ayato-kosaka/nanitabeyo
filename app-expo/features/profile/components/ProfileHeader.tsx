@@ -32,13 +32,7 @@ const formatNumber = (num: number): string => {
 	return num.toString();
 };
 
-export function ProfileHeader({
-	profile,
-	isOwnProfile,
-	isFollowing,
-	onEditProfile,
-	onFollow,
-}: ProfileHeaderProps) {
+export function ProfileHeader({ profile, isOwnProfile, isFollowing, onEditProfile, onFollow }: ProfileHeaderProps) {
 	return (
 		<Card>
 			{/* Avatar and Stats */}
@@ -80,9 +74,7 @@ export function ProfileHeader({
 					</>
 				) : (
 					<>
-						<TouchableOpacity
-							style={[styles.followButton, isFollowing && styles.followingButton]}
-							onPress={onFollow}>
+						<TouchableOpacity style={[styles.followButton, isFollowing && styles.followingButton]} onPress={onFollow}>
 							<Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
 								{isFollowing ? i18n.t("Profile.buttons.following") : i18n.t("Profile.buttons.follow")}
 							</Text>

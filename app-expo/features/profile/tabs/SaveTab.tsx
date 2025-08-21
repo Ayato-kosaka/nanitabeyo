@@ -11,7 +11,7 @@ export function SaveTab() {
 			screenOptions={{
 				swipeEnabled: true,
 				lazy: true,
-				tabBarStyle: { display: 'none' }, // Hide default TabBar
+				tabBarStyle: { display: "none" }, // Hide default TabBar
 			}}>
 			<Tab.Screen name="SaveTopic" component={SaveTopicTab} />
 			<Tab.Screen name="SavePost" component={SavePostTab} />

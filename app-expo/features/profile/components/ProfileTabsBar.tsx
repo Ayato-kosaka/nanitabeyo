@@ -16,21 +16,21 @@ export function ProfileTabsBar({ availableTabs, isOwnProfile }: ProfileTabsBarPr
 	const navigation = useNavigation();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	
+
 	// Get current route index from navigation state
-	const currentIndex = useNavigationState(state => state.index);
+	const currentIndex = useNavigationState((state) => state.index);
 
 	const handleTabPress = (tab: TabType, index: number) => {
 		lightImpact();
-		
+
 		// Convert tab name to screen name for navigation
 		const screenNames = {
 			reviews: "Review",
-			saved: "Save", 
+			saved: "Save",
 			liked: "Like",
-			wallet: "Wallet"
+			wallet: "Wallet",
 		};
-		
+
 		const screenName = screenNames[tab];
 		if (screenName) {
 			navigation.navigate(screenName as never);

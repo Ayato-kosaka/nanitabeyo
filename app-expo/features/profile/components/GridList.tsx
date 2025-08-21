@@ -56,20 +56,14 @@ export function GridList<T = any>({
 }: GridListProps<T>) {
 	const defaultRefreshControl = useCallback(() => {
 		if (!onRefresh) return undefined;
-		return (
-			<RefreshControl
-				refreshing={isRefreshing}
-				onRefresh={onRefresh}
-				colors={["#5EA2FF"]}
-				tintColor="#5EA2FF"
-			/>
-		);
+		return <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={["#5EA2FF"]} tintColor="#5EA2FF" />;
 	}, [isRefreshing, onRefresh]);
 
 	const getItemLayout = useCallback(
 		(data: any, index: number) => {
 			if (!data || index < 0) return { length: 0, offset: 0, index };
-			const itemHeight = ((global.screen?.width || 375) - paddingHorizontal * 2 - gap * (numColumns - 1)) / numColumns * (16 / 9);
+			const itemHeight =
+				(((global.screen?.width || 375) - paddingHorizontal * 2 - gap * (numColumns - 1)) / numColumns) * (16 / 9);
 			const headerHeight = ListHeaderComponent ? 400 : 0; // Approximate header height
 			return {
 				length: itemHeight + gap,
@@ -77,7 +71,7 @@ export function GridList<T = any>({
 				index,
 			};
 		},
-		[numColumns, gap, paddingHorizontal, ListHeaderComponent]
+		[numColumns, gap, paddingHorizontal, ListHeaderComponent],
 	);
 
 	const renderLoadingFooter = useCallback(() => {

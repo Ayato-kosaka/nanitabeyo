@@ -11,7 +11,7 @@ export function WalletTab() {
 			screenOptions={{
 				swipeEnabled: true,
 				lazy: true,
-				tabBarStyle: { display: 'none' }, // Hide default TabBar
+				tabBarStyle: { display: "none" }, // Hide default TabBar
 			}}>
 			<Tab.Screen name="Deposits" component={DepositsTab} />
 			<Tab.Screen name="Earnings" component={EarningsTab} />

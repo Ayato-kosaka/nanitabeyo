@@ -1,17 +1,7 @@
 import React, { useState } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	TouchableOpacity,
-	TextInput,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-	ArrowLeft,
-	Settings,
-	Share,
-} from "lucide-react-native";
+import { ArrowLeft, Settings, Share } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { userProfile, otherUserProfile } from "@/data/profileData";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -94,7 +84,7 @@ export default function ProfileScreen() {
 				screenOptions={{
 					swipeEnabled: true,
 					lazy: true,
-					tabBarStyle: { display: 'none' }, // Hide default TabBar
+					tabBarStyle: { display: "none" }, // Hide default TabBar
 				}}>
 				<TopTab.Screen name="Review" component={ReviewTab} />
 				{isOwnProfile && (

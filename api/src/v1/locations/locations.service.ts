@@ -44,12 +44,14 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) { }
+  ) {}
 
   /**
    * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
    */
-  private extractLocationCodes(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): {
+  private extractLocationCodes(
+    addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+  ): {
     countryCode: string | null;
     subterritoryCode: string | null;
   } {
@@ -116,17 +118,16 @@ export class LocationsService {
   /**
    * addressComponents から最適な言語コードを解決
    */
-  private resolveLocalLanguageCode(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): string {
-    const { countryCode, subterritoryCode } = this.extractLocationCodes(
-      addressComponents,
-    );
+  private resolveLocalLanguageCode(
+    addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+  ): string {
+    const { countryCode, subterritoryCode } =
+      this.extractLocationCodes(addressComponents);
 
     if (!countryCode) {
-      this.logger.warn(
-        'CountryCodeNotFound',
-        'resolveLocalLanguageCode',
-        { addressComponents },
-      );
+      this.logger.warn('CountryCodeNotFound', 'resolveLocalLanguageCode', {
+        addressComponents,
+      });
       return 'en'; // フォールバック
     }
 
@@ -176,7 +177,12 @@ export class LocationsService {
       ...(params.minRating && { minRating: params.minRating }),
       ...(params.languageCode && { languageCode: params.languageCode }),
       // priceLevels は string 配列なので、型チェックを回避するためにキャスト
-      ...(params.priceLevels && { priceLevels: params.priceLevels.map(level => level as unknown as protos.google.maps.places.v1.PriceLevel) }),
+      ...(params.priceLevels && {
+        priceLevels: params.priceLevels.map(
+          (level) =>
+            level as unknown as protos.google.maps.places.v1.PriceLevel,
+        ),
+      }),
       rankPreference: 'DISTANCE',
     };
 
@@ -406,7 +412,8 @@ export class LocationsService {
         .join(', ');
 
       // Resolve local language code from addressComponents
-      const localLanguageCode = this.resolveLocalLanguageCode(addressComponents);
+      const localLanguageCode =
+        this.resolveLocalLanguageCode(addressComponents);
 
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,

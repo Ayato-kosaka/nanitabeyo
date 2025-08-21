@@ -154,9 +154,7 @@ export const useLocationSearch = () => {
 		[callBackend, logFrontendEvent, clearSessionToken],
 	);
 
-	const getCurrentLocation = useCallback(async (): Promise<
-		Omit<LocationDetailsResponse, "viewport">
-	> => {
+	const getCurrentLocation = useCallback(async (): Promise<Omit<LocationDetailsResponse, "viewport">> => {
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
 			if (status !== "granted") {

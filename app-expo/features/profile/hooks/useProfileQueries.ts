@@ -36,7 +36,7 @@ export function useProfileQueries(userId?: string) {
 	const { user } = useAuth();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
-	
+
 	const isOwnProfile = !userId || userId === user?.id;
 
 	// API Data State
@@ -303,18 +303,21 @@ export function useProfileQueries(userId?: string) {
 	);
 
 	// Get current data for a tab
-	const getCurrentDishMediaEntriesForTab = useCallback((tab: TabType): DishMediaEntry[] | null => {
-		switch (tab) {
-			case "reviews":
-				return profileData.userDishMediaEntries;
-			case "saved":
-				return profileData.savedDishMediaEntries;
-			case "liked":
-				return profileData.likedDishMediaEntries;
-			default:
-				return [];
-		}
-	}, [profileData]);
+	const getCurrentDishMediaEntriesForTab = useCallback(
+		(tab: TabType): DishMediaEntry[] | null => {
+			switch (tab) {
+				case "reviews":
+					return profileData.userDishMediaEntries;
+				case "saved":
+					return profileData.savedDishMediaEntries;
+				case "liked":
+					return profileData.likedDishMediaEntries;
+				default:
+					return [];
+			}
+		},
+		[profileData],
+	);
 
 	return {
 		profileData,

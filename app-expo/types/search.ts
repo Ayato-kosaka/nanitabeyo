@@ -6,7 +6,7 @@ export type SearchParams = Omit<LocationDetailsResponse, "viewport"> & {
 	mood?: "hearty" | "light" | "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
 	restrictions: string[];
 	distance: number; // meters
-	priceLevels: string[]; // price levels 
+	priceLevels: string[]; // price levels
 };
 
 export interface Topic {
