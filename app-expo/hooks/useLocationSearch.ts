@@ -6,8 +6,17 @@ import { useLogger } from "@/hooks/useLogger";
 import * as Location from "expo-location";
 import { getRandomBytesAsync } from "expo-crypto";
 import { encode as b64encode } from "base-64";
-import type { QueryAutocompleteLocationsDto, QueryLocationDetailsDto, QueryReverseGeocodingDto } from "@shared/api/v1/dto";
-import type { AutocompleteLocationsResponse, AutocompleteLocation, LocationDetailsResponse, LocationReverseGeocodingResponse } from "@shared/api/v1/res";
+import type {
+	QueryAutocompleteLocationsDto,
+	QueryLocationDetailsDto,
+	QueryReverseGeocodingDto,
+} from "@shared/api/v1/dto";
+import type {
+	AutocompleteLocationsResponse,
+	AutocompleteLocation,
+	LocationDetailsResponse,
+	LocationReverseGeocodingResponse,
+} from "@shared/api/v1/res";
 import { SearchParams } from "@/types/search";
 import i18n from "@/lib/i18n";
 
@@ -162,15 +171,13 @@ export const useLocationSearch = () => {
 		[callBackend, logFrontendEvent, clearSessionToken],
 	);
 
-	const getCurrentLocation = useCallback(async (): Promise<
-		Omit<LocationDetailsResponse, "viewport">
-	> => {
+	const getCurrentLocation = useCallback(async (): Promise<Omit<LocationDetailsResponse, "viewport">> => {
 		// Cache TTL: 5 minutes (300000 ms)
 		const CACHE_TTL = 300000;
 		const now = Date.now();
 
 		// Check cache first
-		if (currentLocationCache && (now - currentLocationCache.timestamp) < CACHE_TTL) {
+		if (currentLocationCache && now - currentLocationCache.timestamp < CACHE_TTL) {
 			logFrontendEvent({
 				event_name: "current_location_cache_hit",
 				error_level: "log",
@@ -211,16 +218,16 @@ export const useLocationSearch = () => {
 
 				// Call the new reverse geocoding API
 				try {
-					const reverseGeocodingResponse = await callBackend<QueryReverseGeocodingDto, LocationReverseGeocodingResponse>(
-						"v1/locations/reverse-geocoding",
-						{
-							method: "GET",
-							requestPayload: {
-								lat: latitude,
-								lng: longitude,
-							},
+					const reverseGeocodingResponse = await callBackend<
+						QueryReverseGeocodingDto,
+						LocationReverseGeocodingResponse
+					>("v1/locations/reverse-geocoding", {
+						method: "GET",
+						requestPayload: {
+							lat: latitude,
+							lng: longitude,
 						},
-					);
+					});
 
 					logFrontendEvent({
 						event_name: "current_location_reverse_geocoding_success",
@@ -246,7 +253,6 @@ export const useLocationSearch = () => {
 					});
 
 					return result;
-
 				} catch (apiError) {
 					// Fallback to Expo's reverse geocoding if backend fails
 					logFrontendEvent({
