@@ -331,13 +331,19 @@ export class DishMediaRepository {
       _count: { dish_id: true },
     });
 
-    const dishStatsMap = new Map<string, { averageRating: number; reviewCount: number }>(
+    const dishStatsMap = new Map<
+      string,
+      { averageRating: number; reviewCount: number }
+    >(
       avgByDish.map((row) => {
         const avg = row._avg.rating ?? 0;
-        return [row.dish_id, {
-          averageRating: Math.round(avg * 10) / 10, // ROUND(AVG, 1)
-          reviewCount: row._count.dish_id,
-        }];
+        return [
+          row.dish_id,
+          {
+            averageRating: Math.round(avg * 10) / 10, // ROUND(AVG, 1)
+            reviewCount: row._count.dish_id,
+          },
+        ];
       }),
     );
 
@@ -362,9 +368,12 @@ export class DishMediaRepository {
       }) //
       .map((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId)!;
-        const dishStats = dishStatsMap.get(dishMedia.dish_id) ?? { averageRating: 0, reviewCount: 0 };
+        const dishStats = dishStatsMap.get(dishMedia.dish_id) ?? {
+          averageRating: 0,
+          reviewCount: 0,
+        };
         const dishReviews = reviewsByDishId.get(dishMedia.dish_id) ?? [];
-        
+
         return {
           restaurant: dishMedia.dishes.restaurants,
           dish: {
