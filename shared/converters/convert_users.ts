@@ -14,7 +14,6 @@ export type SupabaseUsers = TableRow<'users'>;
 export function convertSupabaseToPrisma_Users(supabase: SupabaseUsers): PrismaUsers {
   return {
     id: supabase.id,
-    username: supabase.username,
     display_name: supabase.display_name,
     avatar: supabase.avatar,
     bio: supabase.bio,
@@ -33,7 +32,6 @@ export function convertSupabaseToPrisma_Users(supabase: SupabaseUsers): PrismaUs
 export function convertPrismaToSupabase_Users(prisma: PrismaUsers): SupabaseUsers {
   return {
     id: prisma.id,
-    username: prisma.username,
     display_name: prisma.display_name,
     avatar: prisma.avatar,
     bio: prisma.bio,

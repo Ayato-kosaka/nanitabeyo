@@ -46,7 +46,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
@@ -404,6 +404,92 @@ export class ExternalApiService {
         languageCode,
         sessionToken,
         fieldMask,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Google Geocoding API: Reverse Geocoding
+   */
+  async callReverseGeocoding(
+    lat: number,
+    lng: number,
+    languageCode: string,
+  ): Promise<{
+    results: {
+      address_components?: {
+        long_name?: string;
+        short_name?: string;
+        types?: string[];
+      }[];
+      formatted_address?: string;
+      geometry?: {
+        location?: {
+          lat?: number;
+          lng?: number;
+        };
+        location_type?: string;
+        viewport?: {
+          northeast?: {
+            lat?: number;
+            lng?: number;
+          };
+          southwest?: {
+            lat?: number;
+            lng?: number;
+          };
+        };
+      };
+      place_id?: string;
+      plus_code?: {
+        compound_code?: string;
+        global_code?: string;
+      };
+      types?: string[];
+    }[];
+    status: string;
+  }> {
+    const apiKey = env.GOOGLE_PLACE_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_PLACE_API_KEY is not configured');
+    }
+
+    const endpoint = 'https://maps.googleapis.com/maps/api/geocode/json';
+
+    try {
+      const url = new URL(endpoint);
+      url.searchParams.append('latlng', `${lat},${lng}`);
+      url.searchParams.append('key', apiKey);
+      url.searchParams.append('language', languageCode);
+      url.searchParams.append(
+        'result_type',
+        'street_address|locality|administrative_area_level_1|country',
+      );
+
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Geocoding API',
+        endpoint: url.toString(),
+        method: 'GET',
+        request_payload: {},
+        function_name: 'callReverseGeocoding',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Google Geocoding API request failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.logger.error('GoogleGeocodingAPICallError', 'callReverseGeocoding', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        lat,
+        lng,
+        languageCode,
       });
       throw error;
     }
