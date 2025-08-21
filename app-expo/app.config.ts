@@ -25,6 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleAllowMixedLocalizations: true,
 			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],
+			CFBundleDisplayName: "$(CFBundleDisplayName)",
 		},
 		config: {
 			googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY,
