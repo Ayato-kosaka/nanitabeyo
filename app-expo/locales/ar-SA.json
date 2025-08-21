@@ -132,7 +132,8 @@
 		},
 		"empty": "لا توجد أطباق متاحة",
 		"retry": "العودة إلى البحث",
-		"chooseThis": "اختر هذا!"
+		"chooseThis": "اختر هذا!",
+		"hiddenMessage": "تم إخفاء {{title}}"
 	},
 	"Notifications": {
 		"title": "الإشعارات",

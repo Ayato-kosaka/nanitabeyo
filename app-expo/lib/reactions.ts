@@ -5,10 +5,15 @@ import type { DeepNonNullable } from "@shared/utils/types";
 import type { SupabaseReactions } from "@shared/converters/convert_reactions";
 
 export type ReactionInput = DeepNonNullable<
-	Omit<SupabaseReactions, "id" | "user_id" | "created_at" | "created_version" | "lock_no">
+	Omit<SupabaseReactions, "id" | "user_id" | "created_at" | "created_version" | "lock_no" | "meta">
 >;
 
-export const insertReaction = async ({ target_type, target_id, action_type }: ReactionInput) => {
+export const insertReaction = async ({
+	target_type,
+	target_id,
+	action_type,
+	meta,
+}: ReactionInput & { meta?: object }) => {
 	const { data } = await supabase.auth.getSession();
 	const userId = data.session?.user.id;
 	if (!userId) throw new Error("No authenticated user");
@@ -19,6 +24,7 @@ export const insertReaction = async ({ target_type, target_id, action_type }: Re
 		target_type,
 		target_id,
 		action_type,
+		meta,
 		created_at: new Date().toISOString(),
 		created_version: Env.APP_VERSION,
 		lock_no: 0,
@@ -43,9 +49,13 @@ export const deleteReaction = async ({ target_type, target_id, action_type }: Re
 	if (error) throw new Error(error.message);
 };
 
-export const toggleReaction = async ({ willReact, ...input }: ReactionInput & { willReact: boolean }) => {
+export const toggleReaction = async ({
+	willReact,
+	meta,
+	...input
+}: ReactionInput & { willReact: boolean; meta?: object }) => {
 	if (willReact) {
-		await insertReaction(input);
+		await insertReaction({ ...input, meta });
 	} else {
 		await deleteReaction(input);
 	}

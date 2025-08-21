@@ -132,7 +132,8 @@
 		},
 		"empty": "没有可显示的菜品",
 		"retry": "返回搜索",
-		"chooseThis": "就选这个！"
+		"chooseThis": "就选这个！",
+		"hiddenMessage": "{{title}}已被隐藏"
 	},
 	"Notifications": {
 		"title": "通知",

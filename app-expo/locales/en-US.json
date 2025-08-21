@@ -132,7 +132,8 @@
 		},
 		"empty": "No dishes available",
 		"retry": "Back to search",
-		"chooseThis": "Choose this!"
+		"chooseThis": "Choose this!",
+		"hiddenMessage": "{{title}} has been hidden"
 	},
 	"Notifications": {
 		"title": "Notifications",

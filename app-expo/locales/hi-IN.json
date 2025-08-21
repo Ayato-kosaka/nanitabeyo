@@ -132,7 +132,8 @@
 		},
 		"empty": "कोई व्यंजन उपलब्ध नहीं",
 		"retry": "खोज पर लौटें",
-		"chooseThis": "इसे चुनें!"
+		"chooseThis": "इसे चुनें!",
+		"hiddenMessage": "{{title}} को छिपा दिया गया है"
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",

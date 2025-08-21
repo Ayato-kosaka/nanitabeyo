@@ -44,25 +44,6 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	const handleHide = async () => {
 		errorNotification();
 		onHide(item.categoryId);
-
-		try {
-			await toggleReaction({
-				target_type: "dish_categories",
-				target_id: item.categoryId,
-				action_type: "hide",
-				willReact: true,
-			});
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "topic_hide_reaction_failed",
-				error_level: "log",
-				payload: {
-					error: error instanceof Error ? error.message : String(error),
-					target_id: item.categoryId,
-					action_type: "hide",
-				},
-			});
-		}
 	};
 
 	return (

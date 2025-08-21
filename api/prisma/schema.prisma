@@ -288,6 +288,7 @@ model reactions {
   target_type     String
   target_id       String
   action_type     String
+  meta            Json?
   created_at      DateTime @db.Timestamptz(6)
   created_version String
   lock_no         Int

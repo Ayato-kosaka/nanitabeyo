@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Topic } from "@/types/search";
 import { useBlurModal } from "@/hooks/useBlurModal";
+import { insertReaction } from "@/lib/reactions";
+import i18n from "@/lib/i18n";
 
 // Manage hide topic modal state and actions
 export const useHideTopic = (
@@ -25,12 +27,28 @@ export const useHideTopic = (
 	};
 
 	// Confirm hiding the selected card
-	const confirmHideCard = () => {
+	const confirmHideCard = async () => {
 		const selectedTopic = topics.find((topic) => topic.categoryId === selectedCardId);
 		if (selectedCardId && selectedTopic) {
-			hideTopic(selectedCardId, hideReason);
-			showSnackbar(`${selectedTopic?.topicTitle}を非表示にしました`);
-			close();
+			try {
+				// Insert reaction with hideReason in meta
+				await insertReaction({
+					target_type: "dish_categories",
+					target_id: selectedCardId,
+					action_type: "hide",
+					meta: { hideReason },
+				});
+
+				hideTopic(selectedCardId, hideReason);
+				showSnackbar(i18n.t("Topics.hiddenMessage", { title: selectedTopic?.topicTitle }));
+				close();
+			} catch (error) {
+				// If reaction insertion fails, still proceed with hiding locally
+				console.error("Failed to insert hide reaction:", error);
+				hideTopic(selectedCardId, hideReason);
+				showSnackbar(i18n.t("Topics.hiddenMessage", { title: selectedTopic?.topicTitle }));
+				close();
+			}
 		}
 	};
 
