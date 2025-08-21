@@ -760,7 +760,7 @@ export default function ProfileScreen() {
 	const handleDishMediaEntryPress = (index: number) => (item: DishMediaEntry) => {
 		lightImpact();
 		setDishes(selectedTab, Promise.resolve(getCurrentDishMediaEntries()));
-		// router.push(`/(tabs)/profile/food?startIndex=${index}`);
+		router.push(`/profile/food?startIndex=${index}&tabName=${selectedTab}`);
 
 		logFrontendEvent({
 			event_name: "dish_media_entry_selected",
