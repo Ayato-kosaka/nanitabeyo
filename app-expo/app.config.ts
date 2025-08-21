@@ -21,7 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
-		associatedDomains: process.env.EXPO_PUBLIC_LINK_HOST ? [`applinks:${process.env.EXPO_PUBLIC_LINK_HOST}`] : [],
+		associatedDomains: [`applinks:${process.env.EXPO_PUBLIC_LINK_HOST}`],
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleAllowMixedLocalizations: true,
@@ -37,22 +37,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},
-		intentFilters: process.env.EXPO_PUBLIC_LINK_HOST
-			? [
+		intentFilters: [
+			{
+				action: "VIEW",
+				autoVerify: true,
+				data: [
 					{
-						action: "VIEW",
-						autoVerify: true,
-						data: [
-							{
-								scheme: "https",
-								host: process.env.EXPO_PUBLIC_LINK_HOST,
-								pathPrefix: "/",
-							},
-						],
-						category: ["BROWSABLE", "DEFAULT"],
+						scheme: "https",
+						host: process.env.EXPO_PUBLIC_LINK_HOST,
+						pathPrefix: "/",
 					},
-				]
-			: [],
+				],
+				category: ["BROWSABLE", "DEFAULT"],
+			},
+		],
 		config: {
 			googleMaps: {
 				apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY,

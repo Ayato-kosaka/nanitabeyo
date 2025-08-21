@@ -152,6 +152,9 @@
 			"seeMore": "더 보기",
 			"openMap": "지도 열기"
 		},
+		"share": {
+			"title": "{{dishName}} 확인해 보세요"
+		},
 		"buttons": {
 			"viewRestaurant": "가게 보기"
 		},

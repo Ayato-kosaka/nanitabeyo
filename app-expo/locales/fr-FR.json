@@ -152,6 +152,9 @@
 			"seeMore": "voir plus",
 			"openMap": "Ouvrir la carte"
 		},
+		"share": {
+			"title": "Découvrez {{dishName}}"
+		},
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},

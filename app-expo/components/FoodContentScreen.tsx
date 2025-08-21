@@ -383,7 +383,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 			await handleShare(
 				shareUrl,
-				i18n.t("FoodContentScreen.share.title", { dishName: item.dish_media.name || "this dish" }),
+				i18n.t("FoodContentScreen.share.title", { dishName: item.restaurant.name }),
 				() => {
 					// Success callback
 					logFrontendEvent({

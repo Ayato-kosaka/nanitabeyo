@@ -1,17 +1,21 @@
 {
-  "applinks": {
-    "apps": [],
-    "details": [
-      {
-        "appID": "TEAMID.com.nanitabeyo",
-        "paths": [
-          "/*/spot/*",
-          "/*/restaurant/*",
-          "/*/profile/*",
-          "/*/topic/*",
-          "/"
-        ]
-      }
-    ]
-  }
+	"applinks": {
+		"apps": [],
+		"details": [
+			{
+				"appID": "JC3HSJZJH5.com.nanitabeyo",
+				"paths": [
+					"/*/restaurant/*",
+					"/*/profile/*",
+					"/*/topic/*",
+					"/*/food/*",
+					"/*/home/*",
+					"/*/map/*",
+					"/*/notifications/*",
+					"/*/search/*",
+					"/*"
+				]
+			}
+		]
+	}
 }

@@ -152,6 +152,9 @@
 			"seeMore": "عرض المزيد",
 			"openMap": "افتح الخريطة"
 		},
+		"share": {
+			"title": "اطّلع على {{dishName}}"
+		},
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
