@@ -153,6 +153,9 @@
 			"seeMore": "查看更多",
 			"openMap": "打开地图"
 		},
+		"share": {
+			"title": "看看{{dishName}}"
+		},
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
 		},

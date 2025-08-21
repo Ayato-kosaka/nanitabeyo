@@ -153,6 +153,9 @@
 			"seeMore": "ver más",
 			"openMap": "Abrir mapa"
 		},
+		"share": {
+			"title": "Mira {{dishName}}"
+		},
 		"buttons": {
 			"viewRestaurant": "Ver restaurante"
 		},

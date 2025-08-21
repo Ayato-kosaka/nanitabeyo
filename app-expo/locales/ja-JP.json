@@ -153,6 +153,9 @@
 			"seeMore": "もっと見る",
 			"openMap": "地図を開く"
 		},
+		"share": {
+			"title": "{{dishName}}をチェック"
+		},
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},

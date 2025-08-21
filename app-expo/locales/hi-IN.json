@@ -153,6 +153,9 @@
 			"seeMore": "और देखें",
 			"openMap": "मानचित्र खोलें"
 		},
+		"share": {
+			"title": "{{dishName}} देखें"
+		},
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},

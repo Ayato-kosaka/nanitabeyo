@@ -153,6 +153,9 @@
 			"seeMore": "see more",
 			"openMap": "Open map"
 		},
+		"share": {
+			"title": "Check out {{dishName}}"
+		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
