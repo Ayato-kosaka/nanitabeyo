@@ -1,59 +1,1633 @@
 [
-  {"territory": "CH", "lang": "de", "weight": 100, "script": "", "notes": "majority"},
-  {"territory": "CH", "lang": "fr", "weight": 80, "script": "", "notes": ""},
-  {"territory": "CH", "lang": "it", "weight": 60, "script": "", "notes": ""},
-  {"territory": "CH", "lang": "rm", "weight": 20, "script": "", "notes": ""},
-  {"territory": "BE", "lang": "nl", "weight": 100, "script": "", "notes": "majority"},
-  {"territory": "BE", "lang": "fr", "weight": 90, "script": "", "notes": ""},
-  {"territory": "BE", "lang": "de", "weight": 30, "script": "", "notes": ""},
-  {"territory": "CA", "lang": "en", "weight": 100, "script": "", "notes": "majority"},
-  {"territory": "CA", "lang": "fr", "weight": 95, "script": "", "notes": ""},
-  {"territory": "CN", "lang": "zh", "weight": 100, "script": "Hans", "notes": ""},
-  {"territory": "TW", "lang": "zh", "weight": 100, "script": "Hant", "notes": ""},
-  {"territory": "HK", "lang": "zh", "weight": 100, "script": "Hant", "notes": ""},
-  {"territory": "MO", "lang": "zh", "weight": 100, "script": "Hant", "notes": ""},
-  {"territory": "ES", "lang": "es", "weight": 100, "script": "", "notes": "majority"},
-  {"territory": "GB", "lang": "en", "weight": 100, "script": "", "notes": "majority"},
-  {"territory": "IN", "lang": "hi", "weight": 100, "script": "", "notes": "official"},
-  {"territory": "IN", "lang": "en", "weight": 90, "script": "", "notes": "official"},
-  {"territory": "ZA", "lang": "en", "weight": 100, "script": "", "notes": "majority"},
-  {"territory": "ZA", "lang": "af", "weight": 80, "script": "", "notes": ""},
-  {"territory": "US", "lang": "en", "weight": 100, "script": "", "notes": "majority"},
-  {"territory": "JP", "lang": "ja", "weight": 100, "script": "", "notes": ""},
-  {"territory": "KR", "lang": "ko", "weight": 100, "script": "", "notes": ""},
-  {"territory": "FR", "lang": "fr", "weight": 100, "script": "", "notes": ""},
-  {"territory": "DE", "lang": "de", "weight": 100, "script": "", "notes": ""},
-  {"territory": "IT", "lang": "it", "weight": 100, "script": "", "notes": ""},
-  {"territory": "NL", "lang": "nl", "weight": 100, "script": "", "notes": ""},
-  {"territory": "AT", "lang": "de", "weight": 100, "script": "", "notes": ""},
-  {"territory": "LU", "lang": "lb", "weight": 100, "script": "", "notes": ""},
-  {"territory": "LU", "lang": "fr", "weight": 90, "script": "", "notes": ""},
-  {"territory": "LU", "lang": "de", "weight": 80, "script": "", "notes": ""},
-  {"territory": "SG", "lang": "en", "weight": 100, "script": "", "notes": "official"},
-  {"territory": "SG", "lang": "zh", "weight": 90, "script": "Hans", "notes": ""},
-  {"territory": "MY", "lang": "ms", "weight": 100, "script": "", "notes": "official"},
-  {"territory": "MY", "lang": "en", "weight": 90, "script": "", "notes": ""},
-  {"territory": "ID", "lang": "id", "weight": 100, "script": "", "notes": ""},
-  {"territory": "TH", "lang": "th", "weight": 100, "script": "", "notes": ""},
-  {"territory": "VN", "lang": "vi", "weight": 100, "script": "", "notes": ""},
-  {"territory": "PH", "lang": "en", "weight": 100, "script": "", "notes": "official"},
-  {"territory": "PH", "lang": "tl", "weight": 90, "script": "", "notes": ""},
-  {"territory": "AU", "lang": "en", "weight": 100, "script": "", "notes": ""},
-  {"territory": "NZ", "lang": "en", "weight": 100, "script": "", "notes": ""},
-  {"territory": "BR", "lang": "pt", "weight": 100, "script": "", "notes": ""},
-  {"territory": "MX", "lang": "es", "weight": 100, "script": "", "notes": ""},
-  {"territory": "AR", "lang": "es", "weight": 100, "script": "", "notes": ""},
-  {"territory": "RU", "lang": "ru", "weight": 100, "script": "", "notes": ""},
-  {"territory": "UA", "lang": "uk", "weight": 100, "script": "", "notes": ""},
-  {"territory": "PL", "lang": "pl", "weight": 100, "script": "", "notes": ""},
-  {"territory": "CZ", "lang": "cs", "weight": 100, "script": "", "notes": ""},
-  {"territory": "SK", "lang": "sk", "weight": 100, "script": "", "notes": ""},
-  {"territory": "HU", "lang": "hu", "weight": 100, "script": "", "notes": ""},
-  {"territory": "RO", "lang": "ro", "weight": 100, "script": "", "notes": ""},
-  {"territory": "GR", "lang": "el", "weight": 100, "script": "", "notes": ""},
-  {"territory": "TR", "lang": "tr", "weight": 100, "script": "", "notes": ""},
-  {"territory": "IL", "lang": "he", "weight": 100, "script": "", "notes": ""},
-  {"territory": "SA", "lang": "ar", "weight": 100, "script": "", "notes": ""},
-  {"territory": "AE", "lang": "ar", "weight": 100, "script": "", "notes": ""},
-  {"territory": "EG", "lang": "ar", "weight": 100, "script": "", "notes": ""}
+  {
+    "territory": "AF",
+    "lang": "fa",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AL",
+    "lang": "sq",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "DZ",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AS",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AD",
+    "lang": "ca",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AO",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AI",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AQ",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AG",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AR",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AM",
+    "lang": "hy",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AW",
+    "lang": "nl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AU",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AT",
+    "lang": "de",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AZ",
+    "lang": "az",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BS",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BH",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BD",
+    "lang": "bn",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BB",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BY",
+    "lang": "be",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BE",
+    "lang": "nl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BZ",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BJ",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BM",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BT",
+    "lang": "dz",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BO",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BA",
+    "lang": "bs",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BW",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BR",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IO",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BN",
+    "lang": "ms",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BG",
+    "lang": "bg",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BF",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "BI",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CV",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KH",
+    "lang": "km",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CM",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CA",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KY",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CF",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TD",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CL",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CN",
+    "lang": "zh",
+    "weight": 100,
+    "script": "Hans",
+    "notes": ""
+  },
+  {
+    "territory": "CX",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CC",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CO",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KM",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CG",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CD",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CK",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CR",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CI",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "HR",
+    "lang": "hr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CU",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CY",
+    "lang": "el",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CZ",
+    "lang": "cs",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "DK",
+    "lang": "da",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "DJ",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "DM",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "DO",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "EC",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "EG",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SV",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GQ",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ER",
+    "lang": "ti",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "EE",
+    "lang": "et",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ET",
+    "lang": "am",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "FK",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "FO",
+    "lang": "fo",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "FJ",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "FI",
+    "lang": "fi",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "FR",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GF",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PF",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GA",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GM",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GE",
+    "lang": "ka",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "DE",
+    "lang": "de",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GH",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GI",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GR",
+    "lang": "el",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GL",
+    "lang": "kl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GD",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GP",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GU",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GT",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GG",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GN",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GW",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GY",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "HT",
+    "lang": "ht",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "HN",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "HK",
+    "lang": "zh",
+    "weight": 100,
+    "script": "Hant",
+    "notes": ""
+  },
+  {
+    "territory": "HU",
+    "lang": "hu",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IS",
+    "lang": "is",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IN",
+    "lang": "hi",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ID",
+    "lang": "id",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IR",
+    "lang": "fa",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IQ",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IE",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IM",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IL",
+    "lang": "he",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "IT",
+    "lang": "it",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "JM",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "JP",
+    "lang": "ja",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "JE",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "JO",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KZ",
+    "lang": "kk",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KE",
+    "lang": "sw",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KI",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KP",
+    "lang": "ko",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KR",
+    "lang": "ko",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KW",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KG",
+    "lang": "ky",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LA",
+    "lang": "lo",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LV",
+    "lang": "lv",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LB",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LS",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LR",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LY",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LI",
+    "lang": "de",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LT",
+    "lang": "lt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LU",
+    "lang": "lb",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MO",
+    "lang": "zh",
+    "weight": 100,
+    "script": "Hant",
+    "notes": ""
+  },
+  {
+    "territory": "MG",
+    "lang": "mg",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MW",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MY",
+    "lang": "ms",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MV",
+    "lang": "dv",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ML",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MT",
+    "lang": "mt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MH",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MQ",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MR",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MU",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "YT",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MX",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "FM",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MD",
+    "lang": "ro",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MC",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MN",
+    "lang": "mn",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ME",
+    "lang": "sr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MS",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MA",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MZ",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MM",
+    "lang": "my",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NA",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NR",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NP",
+    "lang": "ne",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NL",
+    "lang": "nl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NC",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NZ",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NI",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NE",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NG",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NU",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NF",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MK",
+    "lang": "mk",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "MP",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "NO",
+    "lang": "no",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "OM",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PK",
+    "lang": "ur",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PW",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PS",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PA",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PG",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PY",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PE",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PH",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PL",
+    "lang": "pl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PT",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "PR",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "QA",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "RE",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "RO",
+    "lang": "ro",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "RU",
+    "lang": "ru",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "RW",
+    "lang": "rw",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "KN",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LC",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "VC",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "WS",
+    "lang": "sm",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SM",
+    "lang": "it",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ST",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SA",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SN",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "RS",
+    "lang": "sr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SC",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SL",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SG",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SX",
+    "lang": "nl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SK",
+    "lang": "sk",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SI",
+    "lang": "sl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SB",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SO",
+    "lang": "so",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ZA",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SS",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ES",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "LK",
+    "lang": "si",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SD",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SR",
+    "lang": "nl",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SZ",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SE",
+    "lang": "sv",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "CH",
+    "lang": "de",
+    "weight": 100,
+    "script": "",
+    "notes": "majority"
+  },
+  {
+    "territory": "CH",
+    "lang": "fr",
+    "weight": 80,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "SY",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TW",
+    "lang": "zh",
+    "weight": 100,
+    "script": "Hant",
+    "notes": ""
+  },
+  {
+    "territory": "TJ",
+    "lang": "tg",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TZ",
+    "lang": "sw",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TH",
+    "lang": "th",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TL",
+    "lang": "pt",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TG",
+    "lang": "fr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TO",
+    "lang": "to",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TT",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TN",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TR",
+    "lang": "tr",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TM",
+    "lang": "tk",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "TC",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "UG",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "UA",
+    "lang": "uk",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "AE",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "GB",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "US",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "UY",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "UZ",
+    "lang": "uz",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "VU",
+    "lang": "bi",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "VA",
+    "lang": "it",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "VE",
+    "lang": "es",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "VN",
+    "lang": "vi",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "VG",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "VI",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "EH",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "YE",
+    "lang": "ar",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ZM",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  },
+  {
+    "territory": "ZW",
+    "lang": "en",
+    "weight": 100,
+    "script": "",
+    "notes": ""
+  }
 ]
