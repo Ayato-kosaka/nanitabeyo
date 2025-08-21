@@ -56,6 +56,7 @@ import type {
 } from "@shared/api/v1/dto";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useLocale } from "@/hooks/useLocale";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -343,6 +344,7 @@ export default function ProfileScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { isLoading: isInitialLoading, withLoading } = useWithLoading();
+	const locale = useLocale();
 
 	// API Data State
 	const [profileData, setProfileData] = useState<ProfileData>({
@@ -760,7 +762,14 @@ export default function ProfileScreen() {
 	const handleDishMediaEntryPress = (index: number) => (item: DishMediaEntry) => {
 		lightImpact();
 		setDishes(selectedTab, Promise.resolve(getCurrentDishMediaEntries()));
-		// router.push(`/(tabs)/profile/food?startIndex=${index}`);
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/food",
+			params: {
+				locale,
+				startIndex: index,
+				tabName: selectedTab,
+			},
+		});
 
 		logFrontendEvent({
 			event_name: "dish_media_entry_selected",
