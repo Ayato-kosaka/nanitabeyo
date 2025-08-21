@@ -50,7 +50,7 @@ export default function TopicsScreen() {
 				router.back();
 			}
 		}
-	}, [searchParams, searchTopics, showSnackbar]);
+	}, [searchParams]);
 
 	const handleViewDetails = (topic: Topic) => {
 		setDishes(topic.categoryId, topic.dishItemsPromise);

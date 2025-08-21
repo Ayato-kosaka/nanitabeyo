@@ -55,25 +55,34 @@ export interface ImageCardGridProps<T extends ImageCardItem = ImageCardItem> {
 /*                              Card 内部実装                                 */
 /* -------------------------------------------------------------------------- */
 
-function ImageCard<T extends ImageCardItem>({
+function _ImageCard<T extends ImageCardItem>({
 	item,
-	size,
-	aspectRatio,
-	gap,
+	columns = 3,
+	gap = 1,
+	paddingHorizontal = 16,
+	aspectRatio = 9 / 16,
 	onPress,
-	renderOverlay,
 	cardStyle,
+	children,
 }: {
 	item: T;
-	size: number;
-	aspectRatio: number;
-	gap: number;
+	columns?: number;
+	gap?: number;
+	paddingHorizontal?: number;
+	aspectRatio?: number;
 	onPress?: (i: T) => void;
-	renderOverlay?: (i: T) => ReactNode;
 	cardStyle?: StyleProp<ViewStyle>;
+	children?: ReactNode;
 }) {
-	const height = size / aspectRatio;
 	const { lightImpact } = useHaptics();
+	const { width: widthDimensions } = useWindowDimensions();
+
+	/** 列数・ギャップ・左右 padding からカード幅を計算 */
+	const width = useMemo(
+		() => (widthDimensions - paddingHorizontal * 2 - gap * (columns - 1)) / columns,
+		[widthDimensions, paddingHorizontal, gap, columns],
+	);
+	const height = width / aspectRatio;
 
 	const handlePress = useCallback(() => {
 		if (onPress) {
@@ -84,18 +93,17 @@ function ImageCard<T extends ImageCardItem>({
 
 	return (
 		<Pressable
-			style={[styles.card, { width: size, height, marginBottom: gap }, cardStyle]}
+			style={[styles.card, { width, height, marginBottom: gap }, cardStyle]}
 			onPress={handlePress}
 			disabled={!onPress}
 			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("ImageCardGrid.openItemDetails")}>
-			<Image source={{ uri: item.imageUrl }} resizeMode="cover" style={StyleSheet.absoluteFillObject} />
 			<LinearGradient
 				colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.1)"]}
 				style={StyleSheet.absoluteFill}
 				pointerEvents="box-none">
-				{renderOverlay?.(item)}
+				{children}
 			</LinearGradient>
 		</Pressable>
 	);
@@ -118,27 +126,13 @@ function _ImageCardGrid<T extends ImageCardItem>({
 	scrollEnabled = false,
 	testID,
 }: ImageCardGridProps<T>) {
-	const { width } = useWindowDimensions();
-
-	/** 列数・ギャップ・左右 padding からカード幅を計算 */
-	const itemSize = useMemo(
-		() => (width - paddingHorizontal * 2 - gap * (columns - 1)) / columns,
-		[width, paddingHorizontal, gap, columns],
-	);
-
 	const renderItem = useCallback(
 		(info: ListRenderItemInfo<T>) => (
-			<ImageCard
-				item={info.item}
-				size={itemSize}
-				aspectRatio={aspectRatio}
-				gap={gap}
-				onPress={onPress}
-				renderOverlay={renderOverlay}
-				cardStyle={cardStyle}
-			/>
+			<_ImageCard item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
+				{renderOverlay?.(info.item)}
+			</_ImageCard>
 		),
-		[itemSize, aspectRatio, gap, onPress, renderOverlay, cardStyle],
+		[aspectRatio, gap, onPress, renderOverlay, cardStyle],
 	);
 
 	const keyExtractor = useCallback((item: T) => item.id.toString(), []);
@@ -155,13 +149,13 @@ function _ImageCardGrid<T extends ImageCardItem>({
 			scrollEnabled={scrollEnabled}
 			testID={testID}
 			initialNumToRender={12}
-			windowSize={9}
 			removeClippedSubviews
 		/>
 	);
 }
 
 export const ImageCardGrid = memo(_ImageCardGrid) as typeof _ImageCardGrid;
+export const ImageCard = memo(_ImageCard) as typeof _ImageCard;
 
 /* -------------------------------------------------------------------------- */
 /*                               スタイル定義                                 */

@@ -80,16 +80,6 @@ export const useLocationSearch = () => {
 				// Use API response directly
 				setSuggestions(placesResponse);
 
-				logFrontendEvent({
-					event_name: "location_search_success",
-					error_level: "log",
-					payload: {
-						query,
-						resultCount: placesResponse.length,
-						hasResults: placesResponse.length > 0,
-					},
-				});
-
 				// Keep mock implementation as fallback (commented out as requested)
 				// // Simulate API delay
 				// await new Promise((resolve) => setTimeout(resolve, 300));
@@ -182,7 +172,7 @@ export const useLocationSearch = () => {
 			});
 			const { latitude, longitude } = position.coords;
 
-			let address = `${i18n.t("Map.currentLocation")} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+			let address = `${i18n.t("Search.currentLocation")} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
 			try {
 				const results = await Location.reverseGeocodeAsync({ latitude, longitude });
 				if (results && results.length > 0) {

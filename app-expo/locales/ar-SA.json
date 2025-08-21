@@ -31,6 +31,7 @@
 		"unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."
 	},
 	"Search": {
+		"currentLocation": "الموقع الحالي",
 		"DistanceSlider": {
 			"near": "قريب",
 			"far": "بعيد"
@@ -148,6 +149,7 @@
 		},
 		"actions": {
 			"share": "مشاركة",
+			"seeMore": "عرض المزيد",
 			"openMap": "افتح الخريطة"
 		},
 		"buttons": {
@@ -179,9 +181,17 @@
 			"million": "م",
 			"thousand": "ك"
 		},
+		"loading": "جارٍ التحميل...",
+		"tabError": {
+			"failedToLoad": "فشل تحميل البيانات: {{error}}",
+			"retry": "إعادة المحاولة"
+		},
 		"emptyState": {
 			"noDeposits": "لا توجد ودائع للحالة المحددة",
-			"noEarnings": "لا توجد أرباح للحالة المحددة"
+			"noEarnings": "لا توجد أرباح للحالة المحددة",
+			"noDishReviews": "لا توجد منشورات بعد",
+			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
+			"noSavedItems": "لا توجد عناصر محفوظة"
 		},
 		"statusLabels": {
 			"active": "نشط",

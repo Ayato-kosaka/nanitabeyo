@@ -31,6 +31,7 @@
 		"unsupportedVersion": "이 버전은 더 이상 지원되지 않습니다."
 	},
 	"Search": {
+		"currentLocation": "현재 위치",
 		"DistanceSlider": {
 			"near": "가까움",
 			"far": "멀리"
@@ -148,6 +149,7 @@
 		},
 		"actions": {
 			"share": "공유하기",
+			"seeMore": "더 보기",
 			"openMap": "지도 열기"
 		},
 		"buttons": {
@@ -179,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "로딩 중...",
+		"tabError": {
+			"failedToLoad": "데이터를 불러오지 못했습니다: {{error}}",
+			"retry": "재시도"
+		},
 		"emptyState": {
 			"noDeposits": "선택한 상태에 대한 예치금이 없습니다",
-			"noEarnings": "선택한 상태에 대한 수익이 없습니다"
+			"noEarnings": "선택한 상태에 대한 수익이 없습니다",
+			"noDishReviews": "게시물이 아직 없습니다",
+			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
+			"noSavedItems": "저장된 항목이 없습니다"
 		},
 		"statusLabels": {
 			"active": "활성",

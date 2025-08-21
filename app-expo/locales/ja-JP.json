@@ -31,6 +31,7 @@
 		"unsupportedVersion": "古いバージョンのため利用できません。"
 	},
 	"Search": {
+		"currentLocation": "現在地",
 		"DistanceSlider": {
 			"near": "近い",
 			"far": "遠い"
@@ -148,6 +149,7 @@
 		},
 		"actions": {
 			"share": "シェア",
+			"seeMore": "もっと見る",
 			"openMap": "地図を開く"
 		},
 		"buttons": {
@@ -179,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "読み込み中...",
+		"tabError": {
+			"failedToLoad": "データの読み込みに失敗しました: {{error}}",
+			"retry": "再試行"
+		},
 		"emptyState": {
 			"noDeposits": "選択したステータスの入札がありません",
-			"noEarnings": "選択したステータスの収益がありません"
+			"noEarnings": "選択したステータスの収益がありません",
+			"noDishReviews": "投稿はまだありません",
+			"noLikedDishMediaEntries": "いいねした投稿はありません",
+			"noSavedItems": "保存されたアイテムはありません"
 		},
 		"statusLabels": {
 			"active": "アクティブ",

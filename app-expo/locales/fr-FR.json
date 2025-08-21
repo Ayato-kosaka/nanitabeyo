@@ -31,6 +31,7 @@
 		"unsupportedVersion": "Cette version n'est plus prise en charge."
 	},
 	"Search": {
+		"currentLocation": "Localisation actuelle",
 		"DistanceSlider": {
 			"near": "Proche",
 			"far": "Loin"
@@ -148,6 +149,7 @@
 		},
 		"actions": {
 			"share": "Partager",
+			"seeMore": "voir plus",
 			"openMap": "Ouvrir la carte"
 		},
 		"buttons": {
@@ -179,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "Chargement...",
+		"tabError": {
+			"failedToLoad": "Échec du chargement des données : {{error}}",
+			"retry": "Réessayer"
+		},
 		"emptyState": {
 			"noDeposits": "Aucun dépôt pour le statut sélectionné",
-			"noEarnings": "Aucun revenu pour le statut sélectionné"
+			"noEarnings": "Aucun revenu pour le statut sélectionné",
+			"noDishReviews": "Aucune publication pour l'instant",
+			"noLikedDishMediaEntries": "Aucune publication aimée",
+			"noSavedItems": "Aucun élément enregistré"
 		},
 		"statusLabels": {
 			"active": "Actif",

@@ -31,6 +31,7 @@
 		"unsupportedVersion": "This version is no longer supported."
 	},
 	"Search": {
+		"currentLocation": "Current location",
 		"DistanceSlider": {
 			"near": "Near",
 			"far": "Far"
@@ -148,6 +149,7 @@
 		},
 		"actions": {
 			"share": "Share",
+			"seeMore": "see more",
 			"openMap": "Open map"
 		},
 		"buttons": {
@@ -179,9 +181,17 @@
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "Loading...",
+		"tabError": {
+			"failedToLoad": "Failed to load data: {{error}}",
+			"retry": "Retry"
+		},
 		"emptyState": {
 			"noDeposits": "No deposits for the selected status",
-			"noEarnings": "No earnings for the selected status"
+			"noEarnings": "No earnings for the selected status",
+			"noDishReviews": "No posts yet",
+			"noLikedDishMediaEntries": "No liked posts",
+			"noSavedItems": "No saved items"
 		},
 		"statusLabels": {
 			"active": "Active",
