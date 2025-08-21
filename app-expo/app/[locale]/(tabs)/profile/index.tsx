@@ -55,6 +55,7 @@ import type {
 	QueryUserDishReviewsDto,
 } from "@shared/api/v1/dto";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 const { width } = Dimensions.get("window");
 const Tab = createMaterialTopTabNavigator();
@@ -333,6 +334,7 @@ function WalletTabs() {
 export default function ProfileScreen() {
 	const { user } = useAuth();
 	const { userId } = useLocalSearchParams<{ userId?: string }>();
+	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
 	const [selectedTab, setSelectedTab] = useState<TabType>("reviews");
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const [editedBio, setEditedBio] = useState("");
@@ -755,8 +757,9 @@ export default function ProfileScreen() {
 		});
 	};
 
-	const handleDishMediaEntryPress = (item: DishMediaEntry) => {
+	const handleDishMediaEntryPress = (index: number) => (item: DishMediaEntry) => {
 		lightImpact();
+		setDishes(selectedTab, Promise.resolve(getCurrentDishMediaEntries()));
 		// router.push(`/(tabs)/profile/food?startIndex=${index}`);
 
 		logFrontendEvent({
@@ -811,11 +814,11 @@ export default function ProfileScreen() {
 	};
 
 	// Render item for API data
-	const renderDishMediaEntryItem = ({ item }: { item: DishMediaEntry }) => {
+	const renderDishMediaEntryItem = ({ item, index }: { item: DishMediaEntry; index: number }) => {
 		return (
 			<ImageCard
 				item={{ ...item, id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}
-				onPress={handleDishMediaEntryPress}>
+				onPress={handleDishMediaEntryPress(index)}>
 				<View style={styles.reviewCardOverlay}>
 					<View style={styles.reviewCardRating}>
 						<Stars rating={item.dish.averageRating} />

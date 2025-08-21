@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { router } from "expo-router";
-import { useSearchStore } from "@/stores/useSearchStore";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLogger } from "@/hooks/useLogger";
 
 // Encapsulates state and handlers for the search result screen
@@ -8,7 +8,7 @@ export function useSearchResult(topicId: string) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [showCompletionModal, setShowCompletionModal] = useState(false);
 	const { logFrontendEvent } = useLogger();
-	const dishesPromise = useSearchStore((state) => state.dishPromisesMap[topicId] || []);
+	const dishesPromise = useDishMediaEntriesStore((state) => state.dishPromisesMap[topicId] || []);
 
 	useEffect(() => {
 		// Log search result initialization
