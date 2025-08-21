@@ -2,7 +2,17 @@ import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
 
-export type PrismaReactions = Omit<Prisma.ReactionsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
+export type PrismaReactions = {
+  id: string;
+  user_id: string;
+  target_type: string;
+  target_id: string;
+  action_type: string;
+  meta: any;
+  created_at: Date;
+  created_version: string;
+  lock_no: number;
+};
 
 export type SupabaseReactions = TableRow<'reactions'>;
 
@@ -18,6 +28,7 @@ export function convertSupabaseToPrisma_Reactions(supabase: SupabaseReactions): 
     target_type: supabase.target_type,
     target_id: supabase.target_id,
     action_type: supabase.action_type,
+    meta: supabase.meta,
     created_at: new Date(supabase.created_at),
     created_version: supabase.created_version,
     lock_no: supabase.lock_no,
@@ -36,6 +47,7 @@ export function convertPrismaToSupabase_Reactions(prisma: PrismaReactions): Supa
     target_type: prisma.target_type,
     target_id: prisma.target_id,
     action_type: prisma.action_type,
+    meta: prisma.meta,
     created_at: prisma.created_at?.toISOString() ?? null,
     created_version: prisma.created_version,
     lock_no: prisma.lock_no,

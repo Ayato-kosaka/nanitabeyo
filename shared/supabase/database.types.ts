@@ -589,6 +589,7 @@ export type Database = {
 					created_version: string;
 					id: string;
 					lock_no: number;
+					meta: Json | null;
 					target_id: string;
 					target_type: string;
 					user_id: string;
@@ -599,6 +600,7 @@ export type Database = {
 					created_version: string;
 					id: string;
 					lock_no: number;
+					meta?: Json | null;
 					target_id: string;
 					target_type: string;
 					user_id: string;
@@ -609,6 +611,7 @@ export type Database = {
 					created_version?: string;
 					id?: string;
 					lock_no?: number;
+					meta?: Json | null;
 					target_id?: string;
 					target_type?: string;
 					user_id?: string;
