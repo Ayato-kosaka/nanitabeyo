@@ -53,14 +53,14 @@ export const useTopicSearch = () => {
 						dishItems.map(async (dishItem) => {
 							if (dishItem.dish_media.media_type === "image") {
 								try {
-									await Image.prefetch(dishItem.dish_media.mediaImageUrl);
+									await Image.prefetch(dishItem.dish_media.mediaUrl);
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
 										error_level: "warn",
 										payload: {
 											imageType: "dish_media",
-											imageUrl: dishItem.dish_media.mediaImageUrl,
+											imageUrl: dishItem.dish_media.mediaUrl,
 											error: error instanceof Error ? error.message : String(error)
 										}
 									});
