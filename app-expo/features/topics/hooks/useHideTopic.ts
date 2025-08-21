@@ -37,7 +37,7 @@ export const useHideTopic = (
 					action_type: "hide",
 					meta: { hideReason },
 				});
-				
+
 				hideTopic(selectedCardId, hideReason);
 				showSnackbar(`${selectedTopic?.topicTitle}を非表示にしました`);
 				close();

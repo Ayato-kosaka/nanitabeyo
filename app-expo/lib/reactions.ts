@@ -8,7 +8,12 @@ export type ReactionInput = DeepNonNullable<
 	Omit<SupabaseReactions, "id" | "user_id" | "created_at" | "created_version" | "lock_no" | "meta">
 >;
 
-export const insertReaction = async ({ target_type, target_id, action_type, meta }: ReactionInput & { meta?: object }) => {
+export const insertReaction = async ({
+	target_type,
+	target_id,
+	action_type,
+	meta,
+}: ReactionInput & { meta?: object }) => {
 	const { data } = await supabase.auth.getSession();
 	const userId = data.session?.user.id;
 	if (!userId) throw new Error("No authenticated user");
@@ -44,7 +49,11 @@ export const deleteReaction = async ({ target_type, target_id, action_type }: Re
 	if (error) throw new Error(error.message);
 };
 
-export const toggleReaction = async ({ willReact, meta, ...input }: ReactionInput & { willReact: boolean; meta?: object }) => {
+export const toggleReaction = async ({
+	willReact,
+	meta,
+	...input
+}: ReactionInput & { willReact: boolean; meta?: object }) => {
 	if (willReact) {
 		await insertReaction({ ...input, meta });
 	} else {
