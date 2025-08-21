@@ -25,7 +25,7 @@ export class ClaudeService {
     private readonly externalApiService: ExternalApiService,
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 料理カテゴリ提案を生成する
@@ -60,8 +60,8 @@ export class ClaudeService {
 HARD RULES: Use the following JSON format exactly:
 [
   {
-    "category": "string (dish category name)",
-    "topicTitle": "string (attractive topic title)",
+    "category": "string (dish category name, MUST match Wikidata label exactly)",
+    "topicTitle": "string (catchy topic title)",
     "reason": "string (brief reason why this is recommended)"
   }
 ]
@@ -69,14 +69,12 @@ HARD RULES: All text content (category, topicTitle, reason) MUST be in the langu
 
     const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
 
-    const variablePromptPart = `Generate dish category recommendations based on:
+    const variablePromptPart = `Generate 10 diverse and appealing dish category recommendations based on:  
 ${`Address: ${params.address}`}
 ${params.timeSlot ? `Time slot: ${params.timeSlot}` : ''}
 ${params.scene ? `Scene: ${params.scene}` : ''}
 ${params.mood ? `Mood: ${params.mood}` : ''}
-${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}
-
-Generate 10 diverse and appealing dish category recommendations.`;
+${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
 
     const fullPrompt = `${systemPrompt}\n\n${variablePromptPart}`;
 

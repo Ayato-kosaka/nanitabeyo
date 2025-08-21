@@ -19,10 +19,10 @@ export const TEST_PARAMETERS = {
   timeSlots: ['morning', 'lunch', 'dinner', 'late_night'],
 
   // Scene options from frontend constants
-  scenes: ['solo', 'date', 'group', 'large_group', 'tourism'],
+  scenes: ['solo', 'date', 'group', 'large_group', 'tourism', undefined],
 
   // Mood options from frontend constants
-  moods: ['hearty', 'light', 'sweet', 'spicy', 'healthy', 'junk', 'alcohol'],
+  moods: ['hearty', 'light', 'sweet', 'spicy', 'healthy', 'junk', 'alcohol', undefined],
 
   // Dietary restrictions from frontend constants
   restrictions: [
@@ -171,21 +171,12 @@ function generateRandomCombinations(
       languageTag: getRandomElement(TEST_PARAMETERS.languageTags),
     };
 
-    // Randomly include optional parameters (50% chance each)
-    if (Math.random() > 0.5) {
-      params.timeSlot = getRandomElement(TEST_PARAMETERS.timeSlots);
-    }
-    if (Math.random() > 0.5) {
-      params.scene = getRandomElement(TEST_PARAMETERS.scenes);
-    }
-    if (Math.random() > 0.5) {
-      params.mood = getRandomElement(TEST_PARAMETERS.moods);
-    }
-    if (Math.random() > 0.5) {
-      const restrictionsArray = getRandomElement(TEST_PARAMETERS.restrictions);
-      if (restrictionsArray.length > 0) {
-        params.restrictions = [...restrictionsArray];
-      }
+    params.timeSlot = getRandomElement(TEST_PARAMETERS.timeSlots);
+    params.scene = getRandomElement(TEST_PARAMETERS.scenes);
+    params.mood = getRandomElement(TEST_PARAMETERS.moods);
+    const restrictionsArray = getRandomElement(TEST_PARAMETERS.restrictions);
+    if (restrictionsArray.length > 0) {
+      params.restrictions = [...restrictionsArray];
     }
 
     combinations.push(params);
@@ -238,7 +229,7 @@ function generateStratifiedCombinations(
         if (variation & 8) {
           const restrictionsArray =
             TEST_PARAMETERS.restrictions[
-              i % TEST_PARAMETERS.restrictions.length
+            i % TEST_PARAMETERS.restrictions.length
             ];
           if (restrictionsArray.length > 0) {
             params.restrictions = [...restrictionsArray];
