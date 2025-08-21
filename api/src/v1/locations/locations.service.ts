@@ -10,11 +10,13 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import {
   AutocompleteLocationsResponse,
   LocationDetailsResponse,
+  LocationReverseGeocodingResponse,
 } from '@shared/v1/res';
 import { google } from '@googlemaps/places/build/protos/protos';
 import {
   QueryAutocompleteLocationsDto,
   QueryLocationDetailsDto,
+  QueryReverseGeocodingDto,
 } from '@shared/v1/dto';
 import { ExternalApiService } from 'src/core/external-api/external-api.service';
 import { protos } from '@googlemaps/places';
@@ -49,7 +51,9 @@ export class LocationsService {
   /**
    * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
    */
-  private extractLocationCodes(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): {
+  private extractLocationCodes(
+    addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+  ): {
     countryCode: string | null;
     subterritoryCode: string | null;
   } {
@@ -116,17 +120,16 @@ export class LocationsService {
   /**
    * addressComponents から最適な言語コードを解決
    */
-  private resolveLocalLanguageCode(addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[]): string {
-    const { countryCode, subterritoryCode } = this.extractLocationCodes(
-      addressComponents,
-    );
+  private resolveLocalLanguageCode(
+    addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+  ): string {
+    const { countryCode, subterritoryCode } =
+      this.extractLocationCodes(addressComponents);
 
     if (!countryCode) {
-      this.logger.warn(
-        'CountryCodeNotFound',
-        'resolveLocalLanguageCode',
-        { addressComponents },
-      );
+      this.logger.warn('CountryCodeNotFound', 'resolveLocalLanguageCode', {
+        addressComponents,
+      });
       return 'en'; // フォールバック
     }
 
@@ -176,7 +179,12 @@ export class LocationsService {
       ...(params.minRating && { minRating: params.minRating }),
       ...(params.languageCode && { languageCode: params.languageCode }),
       // priceLevels は string 配列なので、型チェックを回避するためにキャスト
-      ...(params.priceLevels && { priceLevels: params.priceLevels.map(level => level as unknown as protos.google.maps.places.v1.PriceLevel) }),
+      ...(params.priceLevels && {
+        priceLevels: params.priceLevels.map(
+          (level) =>
+            level as unknown as protos.google.maps.places.v1.PriceLevel,
+        ),
+      }),
       rankPreference: 'DISTANCE',
     };
 
@@ -385,28 +393,11 @@ export class LocationsService {
 
       // Extract address from addressComponents
       const addressComponents = response.addressComponents;
-      const relevantTypes = [
-        'locality',
-        'administrative_area_level_7',
-        'administrative_area_level_6',
-        'administrative_area_level_5',
-        'administrative_area_level_4',
-        'administrative_area_level_3',
-        'administrative_area_level_2',
-        'administrative_area_level_1',
-        'country',
-      ];
-
-      const address = addressComponents
-        .filter((component) =>
-          component.types!.some((type) => relevantTypes.includes(type)),
-        )
-        .map((component) => component.longText)
-        .filter(Boolean)
-        .join(', ');
+      const address = this.buildAddressFromComponents(addressComponents);
 
       // Resolve local language code from addressComponents
-      const localLanguageCode = this.resolveLocalLanguageCode(addressComponents);
+      const localLanguageCode =
+        this.resolveLocalLanguageCode(addressComponents);
 
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,
@@ -434,18 +425,9 @@ export class LocationsService {
   /**
    * Google Geocoding API を使用した逆ジオコーディング
    */
-  async getReverseGeocoding(query: {
-    lat: number;
-    lng: number;
-  }): Promise<{
-    location: { latitude: number; longitude: number };
-    viewport: {
-      low: { latitude: number; longitude: number };
-      high: { latitude: number; longitude: number };
-    };
-    address: string;
-    localLanguageCode: string;
-  }> {
+  async getReverseGeocoding(
+    query: QueryReverseGeocodingDto,
+  ): Promise<LocationReverseGeocodingResponse> {
     try {
       const response = await this.externalApiService.callReverseGeocoding(
         query.lat,
@@ -458,28 +440,27 @@ export class LocationsService {
       }
 
       const result = response.results[0];
-      
-      // Extract address components to determine local language and build address
-      const addressComponents = result.address_components || [];
-      const localLanguageCode = this.resolveLocalLanguageCode(
-        addressComponents.map(comp => ({
-          shortText: comp.short_name,
-          longText: comp.long_name,
-          types: comp.types,
-        }))
-      );
 
-      // Build address from components (locality and above)
-      const address = this.buildAddressFromComponents(
-        addressComponents.map(comp => ({
-          shortText: comp.short_name,
-          longText: comp.long_name,
-          types: comp.types,
-        }))
-      );
+      if (
+        !result.geometry?.location?.lat ||
+        !result.geometry?.location?.lng ||
+        !result.geometry?.viewport?.southwest?.lat ||
+        !result.geometry?.viewport?.southwest?.lng ||
+        !result.geometry?.viewport?.northeast?.lat ||
+        !result.geometry?.viewport?.northeast?.lng ||
+        !result.address_components
+      )
+        throw new Error(
+          'Invalid geocoding result: Missing location coordinates',
+        );
 
-      // Create viewport from geometry bounds or default around the location
-      const viewport = result.geometry?.viewport ? {
+      const location = {
+        latitude: result.geometry.location.lat,
+        longitude: result.geometry.location.lng,
+      };
+
+      // viewport field from response
+      const viewport = {
         low: {
           latitude: result.geometry.viewport.southwest.lat,
           longitude: result.geometry.viewport.southwest.lng,
@@ -488,25 +469,24 @@ export class LocationsService {
           latitude: result.geometry.viewport.northeast.lat,
           longitude: result.geometry.viewport.northeast.lng,
         },
-      } : {
-        // Default viewport of ~1km around the point
-        low: {
-          latitude: query.lat - 0.01,
-          longitude: query.lng - 0.01,
-        },
-        high: {
-          latitude: query.lat + 0.01,
-          longitude: query.lng + 0.01,
-        },
       };
 
+      // Extract address from addressComponents
+      const addressComponents = result.address_components.map((component) => ({
+        shortText: component.short_name,
+        longText: component.long_name,
+        types: component.types || [],
+      }));
+      const address = this.buildAddressFromComponents(addressComponents);
+
+      // Resolve local language code from addressComponents
+      const localLanguageCode =
+        this.resolveLocalLanguageCode(addressComponents);
+
       return {
-        location: {
-          latitude: result.geometry?.location?.lat || query.lat,
-          longitude: result.geometry?.location?.lng || query.lng,
-        },
+        location,
         viewport,
-        address: address || result.formatted_address || `${query.lat}, ${query.lng}`,
+        address,
         localLanguageCode,
       };
     } catch (error) {
@@ -522,31 +502,27 @@ export class LocationsService {
    * Build address from address components (locality and above)
    */
   private buildAddressFromComponents(
-    addressComponents: Array<{
-      shortText: string;
-      longText: string;
-      types: string[];
-    }>
+    addressComponents: google.maps.places.v1.Place.IAddressComponent[],
   ): string {
-    const relevantComponents: string[] = [];
-    
-    // Look for locality, administrative_area_level_1, country
-    const locality = addressComponents.find(comp => 
-      comp.types.includes('locality')
-    );
-    const adminArea = addressComponents.find(comp => 
-      comp.types.includes('administrative_area_level_1')
-    );
-    const country = addressComponents.find(comp => 
-      comp.types.includes('country')
-    );
+    const relevantTypes = [
+      'locality',
+      'administrative_area_level_7',
+      'administrative_area_level_6',
+      'administrative_area_level_5',
+      'administrative_area_level_4',
+      'administrative_area_level_3',
+      'administrative_area_level_2',
+      'administrative_area_level_1',
+      'country',
+    ];
+    const address = addressComponents
+      .filter((component) =>
+        component.types!.some((type) => relevantTypes.includes(type)),
+      )
+      .map((component) => component.longText)
+      .filter(Boolean)
+      .join(', ');
 
-    if (locality) relevantComponents.push(locality.longText);
-    if (adminArea && adminArea.longText !== locality?.longText) {
-      relevantComponents.push(adminArea.longText);
-    }
-    if (country) relevantComponents.push(country.longText);
-
-    return relevantComponents.join(', ');
+    return address;
   }
 }
