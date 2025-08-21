@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.nanitabeyo",
+        "paths": [
+          "/*/spot/*",
+          "/*/restaurant/*",
+          "/*/profile/*",
+          "/*/topic/*",
+          "/"
+        ]
+      }
+    ]
+  }
+}

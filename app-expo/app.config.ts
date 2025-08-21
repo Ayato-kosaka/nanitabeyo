@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	version,
 	orientation: "portrait",
 	icon: "./assets/images/icon.png",
-	scheme: "myapp",
+	scheme: "nanitabeyo",
 	updates: {
 		url: "https://u.expo.dev/e01a92f1-0341-4eb5-84cc-61b8cef1a8f1",
 	},
@@ -21,6 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
+		associatedDomains: process.env.EXPO_PUBLIC_LINK_HOST ? [`applinks:${process.env.EXPO_PUBLIC_LINK_HOST}`] : [],
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleAllowMixedLocalizations: true,
@@ -36,6 +37,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},
+		intentFilters: process.env.EXPO_PUBLIC_LINK_HOST ? [
+			{
+				action: "VIEW",
+				autoVerify: true,
+				data: [
+					{
+						scheme: "https",
+						host: process.env.EXPO_PUBLIC_LINK_HOST,
+						pathPrefix: "/",
+					},
+				],
+				category: ["BROWSABLE", "DEFAULT"],
+			},
+		] : [],
 		config: {
 			googleMaps: {
 				apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY,
@@ -186,5 +201,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_UNIT_ID,
 		EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID,
 		EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID,
+		EXPO_PUBLIC_WEB_BASE_URL: process.env.EXPO_PUBLIC_WEB_BASE_URL,
+		EXPO_PUBLIC_LINK_HOST: process.env.EXPO_PUBLIC_LINK_HOST,
 	},
 });

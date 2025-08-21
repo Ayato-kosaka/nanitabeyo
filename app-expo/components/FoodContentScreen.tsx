@@ -11,7 +11,7 @@ import {
 	Alert,
 } from "react-native";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { useBlurModal } from "@/hooks/useBlurModal";
@@ -23,6 +23,7 @@ import type { DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { toggleReaction } from "@/lib/reactions";
+import { generateShareUrl, handleShare } from "@/lib/share";
 
 const { width, height } = Dimensions.get("window");
 
@@ -362,6 +363,66 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 		});
 	};
 
+	const pathname = usePathname();
+
+	const handleSharePress = async () => {
+		lightImpact();
+		
+		try {
+			const shareUrl = generateShareUrl(pathname);
+			
+			logFrontendEvent({
+				event_name: "dish_share_attempted",
+				error_level: "log",
+				payload: {
+					dishId: item.dish_media.id,
+					restaurantId: item.restaurant.id,
+					shareUrl,
+				},
+			});
+
+			await handleShare(
+				shareUrl,
+				i18n.t("FoodContentScreen.share.title", { dishName: item.dish_media.name || "this dish" }),
+				() => {
+					// Success callback
+					logFrontendEvent({
+						event_name: "dish_share_success",
+						error_level: "log",
+						payload: {
+							dishId: item.dish_media.id,
+							restaurantId: item.restaurant.id,
+							shareUrl,
+						},
+					});
+				},
+				(error) => {
+					// Error callback
+					logFrontendEvent({
+						event_name: "dish_share_failed",
+						error_level: "error",
+						payload: {
+							dishId: item.dish_media.id,
+							restaurantId: item.restaurant.id,
+							shareUrl,
+							error,
+						},
+					});
+				}
+			);
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_share_error",
+				error_level: "error",
+				payload: {
+					dishId: item.dish_media.id,
+					restaurantId: item.restaurant.id,
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			});
+		}
+	};
+
 	const menuOptions = [
 		{
 			icon: User,
@@ -474,7 +535,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 						</TouchableOpacity>
 
 						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={() => {}}>
+							<TouchableOpacity style={styles.actionButton} onPress={handleSharePress}>
 								<Share size={28} color="#FFFFFF" />
 							</TouchableOpacity>
 							<Text style={styles.actionText}>{i18n.t("FoodContentScreen.actions.share")}</Text>
