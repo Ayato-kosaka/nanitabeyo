@@ -430,4 +430,123 @@ export class LocationsService {
       throw error;
     }
   }
+
+  /**
+   * Google Geocoding API を使用した逆ジオコーディング
+   */
+  async getReverseGeocoding(query: {
+    lat: number;
+    lng: number;
+  }): Promise<{
+    location: { latitude: number; longitude: number };
+    viewport: {
+      low: { latitude: number; longitude: number };
+      high: { latitude: number; longitude: number };
+    };
+    address: string;
+    localLanguageCode: string;
+  }> {
+    try {
+      const response = await this.externalApiService.callReverseGeocoding(
+        query.lat,
+        query.lng,
+        'en', // Fixed to 'en' as per requirements
+      );
+
+      if (!response.results || response.results.length === 0) {
+        throw new Error('No geocoding results found');
+      }
+
+      const result = response.results[0];
+      
+      // Extract address components to determine local language and build address
+      const addressComponents = result.address_components || [];
+      const localLanguageCode = this.resolveLocalLanguageCode(
+        addressComponents.map(comp => ({
+          shortText: comp.short_name,
+          longText: comp.long_name,
+          types: comp.types,
+        }))
+      );
+
+      // Build address from components (locality and above)
+      const address = this.buildAddressFromComponents(
+        addressComponents.map(comp => ({
+          shortText: comp.short_name,
+          longText: comp.long_name,
+          types: comp.types,
+        }))
+      );
+
+      // Create viewport from geometry bounds or default around the location
+      const viewport = result.geometry?.viewport ? {
+        low: {
+          latitude: result.geometry.viewport.southwest.lat,
+          longitude: result.geometry.viewport.southwest.lng,
+        },
+        high: {
+          latitude: result.geometry.viewport.northeast.lat,
+          longitude: result.geometry.viewport.northeast.lng,
+        },
+      } : {
+        // Default viewport of ~1km around the point
+        low: {
+          latitude: query.lat - 0.01,
+          longitude: query.lng - 0.01,
+        },
+        high: {
+          latitude: query.lat + 0.01,
+          longitude: query.lng + 0.01,
+        },
+      };
+
+      return {
+        location: {
+          latitude: result.geometry?.location?.lat || query.lat,
+          longitude: result.geometry?.location?.lng || query.lng,
+        },
+        viewport,
+        address: address || result.formatted_address || `${query.lat}, ${query.lng}`,
+        localLanguageCode,
+      };
+    } catch (error) {
+      this.logger.error('GoogleGeocodingReverseError', 'getReverseGeocoding', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        query,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Build address from address components (locality and above)
+   */
+  private buildAddressFromComponents(
+    addressComponents: Array<{
+      shortText: string;
+      longText: string;
+      types: string[];
+    }>
+  ): string {
+    const relevantComponents: string[] = [];
+    
+    // Look for locality, administrative_area_level_1, country
+    const locality = addressComponents.find(comp => 
+      comp.types.includes('locality')
+    );
+    const adminArea = addressComponents.find(comp => 
+      comp.types.includes('administrative_area_level_1')
+    );
+    const country = addressComponents.find(comp => 
+      comp.types.includes('country')
+    );
+
+    if (locality) relevantComponents.push(locality.longText);
+    if (adminArea && adminArea.longText !== locality?.longText) {
+      relevantComponents.push(adminArea.longText);
+    }
+    if (country) relevantComponents.push(country.longText);
+
+    return relevantComponents.join(', ');
+  }
 }

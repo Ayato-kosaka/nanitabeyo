@@ -33,3 +33,27 @@ export interface LocationDetailsResponse {
 	/** addressComponents から解決された現地言語コード (BCP47) */
 	localLanguageCode: string;
 }
+
+/** GET /v1/locations/reverse-geocoding のレスポンス型 */
+export interface LocationReverseGeocodingResponse {
+	/** 逆ジオコーディング結果の座標 */
+	location: {
+		latitude: number;
+		longitude: number;
+	};
+	/** レスポンスの viewport 情報 */
+	viewport: {
+		low: {
+			latitude: number;
+			longitude: number;
+		};
+		high: {
+			latitude: number;
+			longitude: number;
+		};
+	};
+	/** 逆ジオコーディングで取得された住所 */
+	address: string;
+	/** 解決された現地言語コード (BCP47) */
+	localLanguageCode: string;
+}

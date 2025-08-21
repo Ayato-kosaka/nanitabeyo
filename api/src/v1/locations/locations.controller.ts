@@ -19,10 +19,12 @@ import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   QueryAutocompleteLocationsDto,
   QueryLocationDetailsDto,
+  QueryReverseGeocodingDto,
 } from '@shared/v1/dto';
 import {
   AutocompleteLocationsResponse,
   LocationDetailsResponse,
+  LocationReverseGeocodingResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -90,5 +92,23 @@ export class LocationsController {
     @Query() query: QueryLocationDetailsDto,
   ): Promise<LocationDetailsResponse> {
     return this.locationsService.getLocationDetails(query);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*           GET /v1/locations/reverse-geocoding (任意認証)           */
+  /* ------------------------------------------------------------------ */
+  @Get('reverse-geocoding')
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Google Geocoding API (Reverse Geocoding) のラッパー',
+  })
+  @ApiQuery({ name: 'lat', type: Number, description: '緯度 (-90 ~ 90)' })
+  @ApiQuery({ name: 'lng', type: Number, description: '経度 (-180 ~ 180)' })
+  @ApiResponse({ status: 200, description: '逆ジオコーディング成功' })
+  async getReverseGeocoding(
+    @Query() query: QueryReverseGeocodingDto,
+  ): Promise<LocationReverseGeocodingResponse> {
+    return this.locationsService.getReverseGeocoding(query);
   }
 }
