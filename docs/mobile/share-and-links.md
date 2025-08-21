@@ -5,6 +5,7 @@ This document describes the implementation of the Share functionality with Unive
 ## Overview
 
 The share functionality allows users to share content from the app with URLs that:
+
 - Open in web browsers as a fallback
 - Open in the app when it's installed on the device (via Universal Links/App Links)
 - Support all platforms: iOS, Android, and Web
@@ -30,6 +31,7 @@ EXPO_PUBLIC_LINK_HOST=your-domain.com
 ```
 
 **Files updated**:
+
 - `app-expo/app.config.ts`: Added environment variables to `extra` section
 - `app-expo/constants/Env.ts`: Added `WEB_BASE_URL` and `LINK_HOST` constants
 
@@ -38,6 +40,7 @@ EXPO_PUBLIC_LINK_HOST=your-domain.com
 **File**: `app-expo/app.config.ts`
 
 **Changes**:
+
 - `scheme`: Changed from "myapp" to "nanitabeyo"
 - `ios.associatedDomains`: Added for Universal Links
 - `android.intentFilters`: Added for App Links
@@ -45,12 +48,14 @@ EXPO_PUBLIC_LINK_HOST=your-domain.com
 ### 4. Universal Links / App Links Files
 
 **iOS Universal Links**:
+
 - **File**: `app-expo/public/apple-app-site-association`
 - **Deployment**: Must be served at `https://your-domain.com/apple-app-site-association`
 - **Content-Type**: `application/json`
 - **Note**: Replace `TEAMID.com.nanitabeyo` with your actual Team ID + Bundle ID
 
 **Android App Links**:
+
 - **File**: `app-expo/public/.well-known/assetlinks.json`
 - **Deployment**: Must be served at `https://your-domain.com/.well-known/assetlinks.json`
 - **Note**: Replace the SHA256 fingerprint with your app's actual certificate fingerprint
@@ -60,6 +65,7 @@ EXPO_PUBLIC_LINK_HOST=your-domain.com
 **File**: `app-expo/components/FoodContentScreen.tsx`
 
 **Changes**:
+
 - Added imports for share functionality
 - Added `handleSharePress()` function with comprehensive logging
 - Connected Share button to the new handler
@@ -95,6 +101,7 @@ Deploy the following files to your web server:
 - `assetlinks.json` → `https://your-domain.com/.well-known/assetlinks.json`
 
 **Important**:
+
 - Serve `apple-app-site-association` with `Content-Type: application/json`
 - No file extension for the AASA file
 - Update the Team ID and SHA256 fingerprints with your actual values
@@ -120,7 +127,7 @@ keytool -list -v -keystore /path/to/your/release.keystore -alias your-alias
 ### iOS Universal Links
 
 1. **AASA Validator**: Use Apple's validator (search for "Apple App Site Association validator")
-2. **Device Testing**: 
+2. **Device Testing**:
    - Install the app on a physical device
    - Open Safari and navigate to `https://your-domain.com/en/spot/123`
    - Should show an app banner or automatically open the app
@@ -175,8 +182,9 @@ keytool -list -v -keystore /path/to/your/release.keystore -alias your-alias
 ## Supported URL Patterns
 
 The current implementation supports these URL patterns:
+
 - `/[locale]/spot/[id]` - Individual dish/spot pages
-- `/[locale]/restaurant/[id]` - Restaurant pages  
+- `/[locale]/restaurant/[id]` - Restaurant pages
 - `/[locale]/profile/[id]` - User profile pages
 - `/[locale]/topic/[id]` - Topic pages
 - `/` - Root page

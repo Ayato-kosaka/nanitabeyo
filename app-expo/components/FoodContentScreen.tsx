@@ -367,10 +367,10 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 	const handleSharePress = async () => {
 		lightImpact();
-		
+
 		try {
 			const shareUrl = generateShareUrl(pathname);
-			
+
 			logFrontendEvent({
 				event_name: "dish_share_attempted",
 				error_level: "log",
@@ -408,7 +408,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 							error,
 						},
 					});
-				}
+				},
 			);
 		} catch (error) {
 			logFrontendEvent({

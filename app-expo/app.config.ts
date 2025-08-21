@@ -37,20 +37,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},
-		intentFilters: process.env.EXPO_PUBLIC_LINK_HOST ? [
-			{
-				action: "VIEW",
-				autoVerify: true,
-				data: [
+		intentFilters: process.env.EXPO_PUBLIC_LINK_HOST
+			? [
 					{
-						scheme: "https",
-						host: process.env.EXPO_PUBLIC_LINK_HOST,
-						pathPrefix: "/",
+						action: "VIEW",
+						autoVerify: true,
+						data: [
+							{
+								scheme: "https",
+								host: process.env.EXPO_PUBLIC_LINK_HOST,
+								pathPrefix: "/",
+							},
+						],
+						category: ["BROWSABLE", "DEFAULT"],
 					},
-				],
-				category: ["BROWSABLE", "DEFAULT"],
-			},
-		] : [],
+				]
+			: [],
 		config: {
 			googleMaps: {
 				apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY,
