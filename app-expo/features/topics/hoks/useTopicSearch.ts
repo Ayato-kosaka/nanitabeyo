@@ -28,7 +28,11 @@ export const useTopicSearch = () => {
 
 	// Helper function to create dishItemsPromise with image preloading (DRY principle)
 	const createDishItemsPromise = useCallback(
-		(topic: QueryDishCategoryRecommendationsResponse[number], params: SearchParams, searchResultRestaurantsNumber: number): Promise<DishMediaEntry[]> => {
+		(
+			topic: QueryDishCategoryRecommendationsResponse[number],
+			params: SearchParams,
+			searchResultRestaurantsNumber: number,
+		): Promise<DishMediaEntry[]> => {
 			return (async (): Promise<DishMediaEntry[]> => {
 				let dishItems: DishMediaEntry[] = [];
 
@@ -61,8 +65,8 @@ export const useTopicSearch = () => {
 										payload: {
 											imageType: "dish_media",
 											imageUrl: dishItem.dish_media.mediaUrl,
-											error: error instanceof Error ? error.message : String(error)
-										}
+											error: error instanceof Error ? error.message : String(error),
+										},
 									});
 								}
 							}
@@ -105,7 +109,9 @@ export const useTopicSearch = () => {
 					.slice(0, searchResultTopicsNumber);
 
 				// Early display: Create topics from initial response and set them immediately
-				const createTopicWithImagePreload = async (topic: QueryDishCategoryRecommendationsResponse[number]): Promise<Topic> => {
+				const createTopicWithImagePreload = async (
+					topic: QueryDishCategoryRecommendationsResponse[number],
+				): Promise<Topic> => {
 					// Preload topic image
 					if (topic.imageUrl) {
 						try {
@@ -117,8 +123,8 @@ export const useTopicSearch = () => {
 								payload: {
 									imageType: "topic",
 									imageUrl: topic.imageUrl,
-									error: error instanceof Error ? error.message : String(error)
-								}
+									error: error instanceof Error ? error.message : String(error),
+								},
 							});
 						}
 					}
@@ -144,8 +150,9 @@ export const useTopicSearch = () => {
 				if (topicsResponseWithCategoryIds.length < searchResultTopicsNumber) {
 					const createDishCategoryVariantResponse = await Promise.all(
 						topicsResponse
-							.filter((topic) =>
-								!topicsResponseWithCategoryIds.find((existing) => existing.categoryId === topic.categoryId))
+							.filter(
+								(topic) => !topicsResponseWithCategoryIds.find((existing) => existing.categoryId === topic.categoryId),
+							)
 							.map(async (topic, index) => {
 								try {
 									const createDishCategoryVariantResponse = await callBackend<
@@ -194,7 +201,6 @@ export const useTopicSearch = () => {
 				// 		id: `${topic.categoryId}_${Date.now()}_${Math.random()}`,
 				// 		isHidden: false,
 				// 	}));
-
 			} catch (err) {
 				const errorMessage = err instanceof Error ? err.message : "おすすめ検索に失敗しました";
 				setError(errorMessage);

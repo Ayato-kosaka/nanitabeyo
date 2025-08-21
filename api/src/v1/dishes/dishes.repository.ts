@@ -21,7 +21,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -117,7 +117,7 @@ export class DishesRepository {
     reviews: PrismaDishReviews[],
   ) {
     return await tx.dish_reviews.createMany({
-      data: reviews
+      data: reviews,
     });
   }
 }
