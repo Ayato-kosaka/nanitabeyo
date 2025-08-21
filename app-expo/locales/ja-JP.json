@@ -132,7 +132,8 @@
 		},
 		"empty": "表示できる料理がありません",
 		"retry": "検索に戻る",
-		"chooseThis": "これにする！"
+		"chooseThis": "これにする！",
+		"hiddenMessage": "{{title}}を非表示にしました"
 	},
 	"Notifications": {
 		"title": "通知",

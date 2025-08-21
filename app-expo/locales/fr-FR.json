@@ -132,7 +132,8 @@
 		},
 		"empty": "Aucun plat disponible",
 		"retry": "Retour à la recherche",
-		"chooseThis": "Je choisis celui-ci !"
+		"chooseThis": "Je choisis celui-ci !",
+		"hiddenMessage": "{{title}} a été masqué"
 	},
 	"Notifications": {
 		"title": "Notifications",

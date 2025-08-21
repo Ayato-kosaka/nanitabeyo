@@ -132,7 +132,8 @@
 		},
 		"empty": "No hay platos disponibles",
 		"retry": "Volver a la búsqueda",
-		"chooseThis": "¡Este!"
+		"chooseThis": "¡Este!",
+		"hiddenMessage": "{{title}} se ha ocultado"
 	},
 	"Notifications": {
 		"title": "Notificaciones",
