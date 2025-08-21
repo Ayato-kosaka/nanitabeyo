@@ -23,7 +23,7 @@ export const useLocationSearch = () => {
 
 	// Cache for current location to avoid multiple requests
 	const [currentLocationCache, setCurrentLocationCache] = useState<
-		(Omit<LocationDetailsResponse, "viewport"> & { timestamp: number}) | null
+		(Omit<LocationDetailsResponse, "viewport"> & { timestamp: number }) | null
 	>(null);
 
 	// In-flight request tracking
@@ -176,7 +176,7 @@ export const useLocationSearch = () => {
 				error_level: "log",
 				payload: { cached_timestamp: currentLocationCache.timestamp },
 			});
-			
+
 			// Return cached result without timestamp
 			const { timestamp, ...cachedResult } = currentLocationCache;
 			return cachedResult;
@@ -225,8 +225,8 @@ export const useLocationSearch = () => {
 					logFrontendEvent({
 						event_name: "current_location_reverse_geocoding_success",
 						error_level: "log",
-						payload: { 
-							latitude, 
+						payload: {
+							latitude,
 							longitude,
 							address: reverseGeocodingResponse.address,
 							localLanguageCode: reverseGeocodingResponse.localLanguageCode,
@@ -252,9 +252,9 @@ export const useLocationSearch = () => {
 					logFrontendEvent({
 						event_name: "current_location_backend_failed_fallback",
 						error_level: "warn",
-						payload: { 
-							latitude, 
-							longitude, 
+						payload: {
+							latitude,
+							longitude,
 							error: String(apiError),
 						},
 					});

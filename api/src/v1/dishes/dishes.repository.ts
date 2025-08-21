@@ -104,9 +104,8 @@ export class DishesRepository {
     tx: Prisma.TransactionClient,
     dishMedia: PrismaDishMedia,
   ) {
-    const { id: _omitId, ...createData } = dishMedia;
     return tx.dish_media.create({
-      data: createData,
+      data: dishMedia,
     });
   }
 
@@ -118,10 +117,7 @@ export class DishesRepository {
     reviews: PrismaDishReviews[],
   ) {
     return await tx.dish_reviews.createMany({
-      data: reviews.map((review) => {
-        const { id: _omitId, ...createDta } = review;
-        return createDta;
-      }),
+      data: reviews,
     });
   }
 }

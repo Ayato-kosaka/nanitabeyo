@@ -50,7 +50,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */

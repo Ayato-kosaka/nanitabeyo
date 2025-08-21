@@ -35,6 +35,8 @@ export class BulkImportDishesDto {
 	/** 価格レベル配列 */
 	@IsArray()
 	@IsString({ each: true })
-	@IsIn(["PRICE_LEVEL_INEXPENSIVE", "PRICE_LEVEL_MODERATE", "PRICE_LEVEL_EXPENSIVE", "PRICE_LEVEL_VERY_EXPENSIVE"], { each: true })
+	@IsIn(["PRICE_LEVEL_INEXPENSIVE", "PRICE_LEVEL_MODERATE", "PRICE_LEVEL_EXPENSIVE", "PRICE_LEVEL_VERY_EXPENSIVE"], {
+		each: true,
+	})
 	priceLevels!: string[];
 }

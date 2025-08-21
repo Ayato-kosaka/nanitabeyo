@@ -46,7 +46,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) { }
+  ) {}
 
   /**
    * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出

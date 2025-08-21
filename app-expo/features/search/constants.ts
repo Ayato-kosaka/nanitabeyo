@@ -43,10 +43,10 @@ export const distanceOptions = [
 
 // Price level options (Google Maps PriceLevel enum compliant, excluding FREE)
 export const priceLevelOptions = [
-	{ value: 'PRICE_LEVEL_INEXPENSIVE', label: "Search.priceLevels.inexpensive", icon: "💰" },
-	{ value: 'PRICE_LEVEL_MODERATE', label: "Search.priceLevels.moderate", icon: "💰💰" },
-	{ value: 'PRICE_LEVEL_EXPENSIVE', label: "Search.priceLevels.expensive", icon: "💰💰💰" },
-	{ value: 'PRICE_LEVEL_VERY_EXPENSIVE', label: "Search.priceLevels.veryExpensive", icon: "💰💰💰💰" },
+	{ value: "PRICE_LEVEL_INEXPENSIVE", label: "Search.priceLevels.inexpensive", icon: "💰" },
+	{ value: "PRICE_LEVEL_MODERATE", label: "Search.priceLevels.moderate", icon: "💰💰" },
+	{ value: "PRICE_LEVEL_EXPENSIVE", label: "Search.priceLevels.expensive", icon: "💰💰💰" },
+	{ value: "PRICE_LEVEL_VERY_EXPENSIVE", label: "Search.priceLevels.veryExpensive", icon: "💰💰💰💰" },
 ] as const;
 
 export const restrictionOptions = [
