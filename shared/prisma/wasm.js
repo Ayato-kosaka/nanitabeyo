@@ -286,6 +286,7 @@ exports.Prisma.ReactionsScalarFieldEnum = {
   target_type: 'target_type',
   target_id: 'target_id',
   action_type: 'action_type',
+  meta: 'meta',
   created_at: 'created_at',
   created_version: 'created_version',
   lock_no: 'lock_no'

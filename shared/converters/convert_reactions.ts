@@ -2,17 +2,7 @@ import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
 
-export type PrismaReactions = {
-  id: string;
-  user_id: string;
-  target_type: string;
-  target_id: string;
-  action_type: string;
-  meta: any;
-  created_at: Date;
-  created_version: string;
-  lock_no: number;
-};
+export type PrismaReactions = Omit<Prisma.ReactionsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
 
 export type SupabaseReactions = TableRow<'reactions'>;
 

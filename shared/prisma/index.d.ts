@@ -18461,6 +18461,7 @@ export namespace Prisma {
     target_type: number
     target_id: number
     action_type: number
+    meta: number
     created_at: number
     created_version: number
     lock_no: number
@@ -18504,6 +18505,7 @@ export namespace Prisma {
     target_type?: true
     target_id?: true
     action_type?: true
+    meta?: true
     created_at?: true
     created_version?: true
     lock_no?: true
@@ -18602,6 +18604,7 @@ export namespace Prisma {
     target_type: string
     target_id: string
     action_type: string
+    meta: JsonValue | null
     created_at: Date
     created_version: string
     lock_no: number
@@ -18632,6 +18635,7 @@ export namespace Prisma {
     target_type?: boolean
     target_id?: boolean
     action_type?: boolean
+    meta?: boolean
     created_at?: boolean
     created_version?: boolean
     lock_no?: boolean
@@ -18643,6 +18647,7 @@ export namespace Prisma {
     target_type?: boolean
     target_id?: boolean
     action_type?: boolean
+    meta?: boolean
     created_at?: boolean
     created_version?: boolean
     lock_no?: boolean
@@ -18654,6 +18659,7 @@ export namespace Prisma {
     target_type?: boolean
     target_id?: boolean
     action_type?: boolean
+    meta?: boolean
     created_at?: boolean
     created_version?: boolean
     lock_no?: boolean
@@ -18665,12 +18671,13 @@ export namespace Prisma {
     target_type?: boolean
     target_id?: boolean
     action_type?: boolean
+    meta?: boolean
     created_at?: boolean
     created_version?: boolean
     lock_no?: boolean
   }
 
-  export type reactionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "target_type" | "target_id" | "action_type" | "created_at" | "created_version" | "lock_no", ExtArgs["result"]["reactions"]>
+  export type reactionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "target_type" | "target_id" | "action_type" | "meta" | "created_at" | "created_version" | "lock_no", ExtArgs["result"]["reactions"]>
 
   export type $reactionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "reactions"
@@ -18681,6 +18688,7 @@ export namespace Prisma {
       target_type: string
       target_id: string
       action_type: string
+      meta: Prisma.JsonValue | null
       created_at: Date
       created_version: string
       lock_no: number
@@ -19112,6 +19120,7 @@ export namespace Prisma {
     readonly target_type: FieldRef<"reactions", 'String'>
     readonly target_id: FieldRef<"reactions", 'String'>
     readonly action_type: FieldRef<"reactions", 'String'>
+    readonly meta: FieldRef<"reactions", 'Json'>
     readonly created_at: FieldRef<"reactions", 'DateTime'>
     readonly created_version: FieldRef<"reactions", 'String'>
     readonly lock_no: FieldRef<"reactions", 'Int'>
@@ -23307,6 +23316,7 @@ export namespace Prisma {
     target_type: 'target_type',
     target_id: 'target_id',
     action_type: 'action_type',
+    meta: 'meta',
     created_at: 'created_at',
     created_version: 'created_version',
     lock_no: 'lock_no'
@@ -24641,6 +24651,7 @@ export namespace Prisma {
     target_type?: StringFilter<"reactions"> | string
     target_id?: StringFilter<"reactions"> | string
     action_type?: StringFilter<"reactions"> | string
+    meta?: JsonNullableFilter<"reactions">
     created_at?: DateTimeFilter<"reactions"> | Date | string
     created_version?: StringFilter<"reactions"> | string
     lock_no?: IntFilter<"reactions"> | number
@@ -24652,6 +24663,7 @@ export namespace Prisma {
     target_type?: SortOrder
     target_id?: SortOrder
     action_type?: SortOrder
+    meta?: SortOrderInput | SortOrder
     created_at?: SortOrder
     created_version?: SortOrder
     lock_no?: SortOrder
@@ -24666,6 +24678,7 @@ export namespace Prisma {
     target_type?: StringFilter<"reactions"> | string
     target_id?: StringFilter<"reactions"> | string
     action_type?: StringFilter<"reactions"> | string
+    meta?: JsonNullableFilter<"reactions">
     created_at?: DateTimeFilter<"reactions"> | Date | string
     created_version?: StringFilter<"reactions"> | string
     lock_no?: IntFilter<"reactions"> | number
@@ -24677,6 +24690,7 @@ export namespace Prisma {
     target_type?: SortOrder
     target_id?: SortOrder
     action_type?: SortOrder
+    meta?: SortOrderInput | SortOrder
     created_at?: SortOrder
     created_version?: SortOrder
     lock_no?: SortOrder
@@ -24696,6 +24710,7 @@ export namespace Prisma {
     target_type?: StringWithAggregatesFilter<"reactions"> | string
     target_id?: StringWithAggregatesFilter<"reactions"> | string
     action_type?: StringWithAggregatesFilter<"reactions"> | string
+    meta?: JsonNullableWithAggregatesFilter<"reactions">
     created_at?: DateTimeWithAggregatesFilter<"reactions"> | Date | string
     created_version?: StringWithAggregatesFilter<"reactions"> | string
     lock_no?: IntWithAggregatesFilter<"reactions"> | number
@@ -26096,6 +26111,7 @@ export namespace Prisma {
     target_type: string
     target_id: string
     action_type: string
+    meta?: NullableJsonNullValueInput | InputJsonValue
     created_at: Date | string
     created_version: string
     lock_no: number
@@ -26107,6 +26123,7 @@ export namespace Prisma {
     target_type: string
     target_id: string
     action_type: string
+    meta?: NullableJsonNullValueInput | InputJsonValue
     created_at: Date | string
     created_version: string
     lock_no: number
@@ -26118,6 +26135,7 @@ export namespace Prisma {
     target_type?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
     action_type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_version?: StringFieldUpdateOperationsInput | string
     lock_no?: IntFieldUpdateOperationsInput | number
@@ -26129,6 +26147,7 @@ export namespace Prisma {
     target_type?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
     action_type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_version?: StringFieldUpdateOperationsInput | string
     lock_no?: IntFieldUpdateOperationsInput | number
@@ -26140,6 +26159,7 @@ export namespace Prisma {
     target_type: string
     target_id: string
     action_type: string
+    meta?: NullableJsonNullValueInput | InputJsonValue
     created_at: Date | string
     created_version: string
     lock_no: number
@@ -26151,6 +26171,7 @@ export namespace Prisma {
     target_type?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
     action_type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_version?: StringFieldUpdateOperationsInput | string
     lock_no?: IntFieldUpdateOperationsInput | number
@@ -26162,6 +26183,7 @@ export namespace Prisma {
     target_type?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
     action_type?: StringFieldUpdateOperationsInput | string
+    meta?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_version?: StringFieldUpdateOperationsInput | string
     lock_no?: IntFieldUpdateOperationsInput | number
@@ -27547,6 +27569,7 @@ export namespace Prisma {
     target_type?: SortOrder
     target_id?: SortOrder
     action_type?: SortOrder
+    meta?: SortOrder
     created_at?: SortOrder
     created_version?: SortOrder
     lock_no?: SortOrder
