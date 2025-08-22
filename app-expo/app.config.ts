@@ -21,7 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
-		associatedDomains: [`applinks:${process.env.EXPO_PUBLIC_LINK_HOST}`],
+		associatedDomains: [`applinks:food-scroll.web.app`],
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleAllowMixedLocalizations: true,
@@ -44,7 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				data: [
 					{
 						scheme: "https",
-						host: process.env.EXPO_PUBLIC_LINK_HOST,
+						host: "food-scroll.web.app",
 						pathPrefix: "/",
 					},
 				],
@@ -194,6 +194,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID,
 		EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID,
 		EXPO_PUBLIC_WEB_BASE_URL: process.env.EXPO_PUBLIC_WEB_BASE_URL,
-		EXPO_PUBLIC_LINK_HOST: process.env.EXPO_PUBLIC_LINK_HOST,
 	},
 });
