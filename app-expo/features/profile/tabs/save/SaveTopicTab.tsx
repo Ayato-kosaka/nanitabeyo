@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { GridList } from '../components/GridList';
+import { GridList } from '../../components/GridList';
 import { ImageCard } from '@/components/ImageCardGrid';
 import i18n from '@/lib/i18n';
 

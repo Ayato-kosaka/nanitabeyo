@@ -149,7 +149,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
         renderHeader={renderHeader}
         renderTabBar={renderTabBar}
         onIndexChange={handleTabChange}
-        swipeEnabled={true}
+        pagerProps={{ scrollEnabled: true }}
       >
         <Tabs.Tab name="reviews">
           <ReviewTab
@@ -160,45 +160,41 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
           />
         </Tabs.Tab>
 
-        {isOwnProfile && (
-          <>
-            <Tabs.Tab name="saved">
-              <SaveTab
-                savedTopics={profileData.savedTopics || []}
-                savedPosts={profileData.savedDishMediaEntries || []}
-                isOwnProfile={isOwnProfile}
-                onTopicPress={(item, index) => {
-                  // TODO: Handle topic press
-                }}
-                onPostPress={(item, index) => {
-                  // TODO: Handle post press
-                }}
-              />
-            </Tabs.Tab>
+        <Tabs.Tab name="saved">
+          <SaveTab
+            savedTopics={profileData.savedTopics || []}
+            savedPosts={profileData.savedDishMediaEntries || []}
+            isOwnProfile={isOwnProfile}
+            onTopicPress={(item, index) => {
+              // TODO: Handle topic press
+            }}
+            onPostPress={(item, index) => {
+              // TODO: Handle post press
+            }}
+          />
+        </Tabs.Tab>
 
-            <Tabs.Tab name="liked">
-              <LikeTab
-                data={profileData.likedDishMediaEntries || []}
-                onItemPress={(item, index) => {
-                  // TODO: Handle liked item press
-                }}
-              />
-            </Tabs.Tab>
+        <Tabs.Tab name="liked">
+          <LikeTab
+            data={profileData.likedDishMediaEntries || []}
+            onItemPress={(item, index) => {
+              // TODO: Handle liked item press
+            }}
+          />
+        </Tabs.Tab>
 
-            <Tabs.Tab name="wallet">
-              <WalletTab
-                deposits={mockBids}
-                earnings={mockEarnings}
-                onDepositPress={(item, index) => {
-                  // TODO: Handle deposit press
-                }}
-                onEarningPress={(item, index) => {
-                  // TODO: Handle earning press
-                }}
-              />
-            </Tabs.Tab>
-          </>
-        )}
+        <Tabs.Tab name="wallet">
+          <WalletTab
+            deposits={mockBids}
+            earnings={mockEarnings}
+            onDepositPress={(item, index) => {
+              // TODO: Handle deposit press
+            }}
+            onEarningPress={(item, index) => {
+              // TODO: Handle earning press
+            }}
+          />
+        </Tabs.Tab>
       </Tabs.Container>
     </View>
   );

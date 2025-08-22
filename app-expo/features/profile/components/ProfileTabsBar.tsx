@@ -6,19 +6,27 @@ import {
   Wallet,
   Heart,
 } from 'lucide-react-native';
+import type { TabBarProps } from 'react-native-collapsible-tab-view';
 
 type TabType = 'reviews' | 'saved' | 'liked' | 'wallet';
 
-interface ProfileTabsBarProps {
-  state: {
-    index: number;
-    routes: Array<{ key: string; name?: string }>;
-  };
-  jumpTo: (key: string) => void;
+interface ProfileTabsBarProps extends TabBarProps {
   availableTabs: TabType[];
 }
 
-export function ProfileTabsBar({ state, jumpTo, availableTabs }: ProfileTabsBarProps) {
+export function ProfileTabsBar(props: ProfileTabsBarProps) {
+  const { tabNames, index, onTabPress, availableTabs } = props;
+  
+  // Convert collapsible tab view props to our expected format
+  const state = {
+    index: index.value || 0,
+    routes: tabNames.map(name => ({ key: name })),
+  };
+  
+  const jumpTo = (key: string) => {
+    onTabPress(key);
+  };
+
   const renderTabIcon = (tab: TabType) => {
     const isActive = state.routes[state.index]?.key === tab;
     const iconColor = isActive ? '#5EA2FF' : '#666';

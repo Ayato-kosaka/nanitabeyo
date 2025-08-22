@@ -16,9 +16,9 @@ import {
 import { TabView, TabBar, Route } from 'react-native-tab-view';
 
 // Types that match react-native-collapsible-tab-view API
-interface TabRoute extends Route {
+interface TabRoute {
   key: string;
-  title: string;
+  title?: string;
 }
 
 interface TabViewState {
@@ -30,8 +30,7 @@ interface TabsContainerProps {
   children: React.ReactNode;
   headerHeight?: number;
   renderHeader?: () => React.ReactNode;
-  TabBarComponent?: React.ComponentType<any>;
-  renderTabBar?: (props: any) => React.ReactNode;
+  renderTabBar?: React.ComponentType<any>;
   initialTabName?: string;
   swipeEnabled?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -74,7 +73,6 @@ function Container({
   children,
   headerHeight = 0,
   renderHeader,
-  TabBarComponent,
   renderTabBar,
   initialTabName,
   swipeEnabled = true,
@@ -89,10 +87,13 @@ function Container({
   const routes = useMemo(() => {
     const tabs: TabRoute[] = [];
     React.Children.forEach(children, (child) => {
-      if (React.isValidElement(child) && child.props.name) {
+      if (React.isValidElement(child) && 
+          child.props && 
+          typeof child.props === 'object' && 
+          'name' in child.props) {
         tabs.push({
-          key: child.props.name,
-          title: child.props.name,
+          key: child.props.name as string,
+          title: child.props.name as string,
         });
       }
     });
@@ -127,7 +128,11 @@ function Container({
   // Render scene for each tab
   const renderScene = useCallback(({ route }: { route: TabRoute }) => {
     const tabChild = React.Children.toArray(children).find(
-      (child) => React.isValidElement(child) && child.props.name === route.key
+      (child) => React.isValidElement(child) && 
+                 child.props && 
+                 typeof child.props === 'object' && 
+                 'name' in child.props && 
+                 child.props.name === route.key
     );
     
     if (!React.isValidElement(tabChild)) return null;
@@ -136,18 +141,16 @@ function Container({
     return React.cloneElement(tabChild, {
       onScroll,
       contentContainerStyle: { paddingTop: actualHeaderHeight },
-    });
+    } as any);
   }, [children, onScroll, actualHeaderHeight]);
 
   const customRenderTabBar = useCallback((props: any) => {
     if (renderTabBar) {
-      return renderTabBar(props);
-    }
-    if (TabBarComponent) {
+      const TabBarComponent = renderTabBar;
       return <TabBarComponent {...props} />;
     }
     return <TabBar {...props} />;
-  }, [renderTabBar, TabBarComponent]);
+  }, [renderTabBar]);
 
   return (
     <View style={[{ flex: 1 }, style]}>

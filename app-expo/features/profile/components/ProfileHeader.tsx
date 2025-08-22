@@ -68,16 +68,16 @@ export function ProfileHeader({
       {/* Header Navigation */}
       <View style={styles.header}>
         {!isOwnProfile && (
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <TouchableOpacity onPress={onBack || (() => {})} style={styles.backButton}>
             <ArrowLeft size={24} color="#1A1A1A" />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>{profile.username}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+          <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
             <Share size={24} color="#666" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.settingButton} onPress={onSettings}>
+          <TouchableOpacity style={styles.settingButton} onPress={onSettings || (() => {})}>
             <Settings size={24} color="#666" />
           </TouchableOpacity>
         </View>
@@ -129,7 +129,7 @@ export function ProfileHeader({
             {isOwnProfile ? (
               <PrimaryButton
                 style={{ flex: 1 }}
-                onPress={onEditProfile}
+                onPress={onEditProfile || (() => {})}
                 label={i18n.t('Profile.buttons.editProfile')}
                 icon={<Edit3 size={16} color="#FFFFFF" />}
               />
@@ -140,7 +140,7 @@ export function ProfileHeader({
                     styles.followButton,
                     isFollowing && styles.followingButton,
                   ]}
-                  onPress={onFollow}
+                  onPress={onFollow || (() => {})}
                 >
                   <Text
                     style={[
@@ -153,7 +153,7 @@ export function ProfileHeader({
                       : i18n.t('Profile.buttons.follow')}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.messageButton} onPress={onMessage}>
+                <TouchableOpacity style={styles.messageButton} onPress={onMessage || (() => {})}>
                   <MessageCircle size={16} color="#FFFFFF" />
                   <Text style={styles.messageButtonText}>
                     {i18n.t('Profile.buttons.message')}

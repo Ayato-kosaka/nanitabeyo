@@ -80,7 +80,7 @@ export function DepositsTab({
         <View style={styles.depositCardContent}>
           <Text style={styles.depositCardTitle}>{item.restaurantName}</Text>
           <Text style={styles.depositCardAmount}>
-            {i18n.t('Search.currencySuffix')}{item.amount.toLocaleString()}
+            {i18n.t('Search.currencySuffix')}{item.bidAmount.toLocaleString()}
           </Text>
           <View
             style={[

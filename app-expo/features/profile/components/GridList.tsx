@@ -15,6 +15,17 @@ interface GridItem {
   [key: string]: any;
 }
 
+interface DishMediaEntryForGrid extends GridItem {
+  dish_media: {
+    id: string;
+    thumbnailImageUrl: string;
+  };
+  dish: {
+    averageRating: number;
+    reviewCount: number;
+  };
+}
+
 interface GridListProps<T extends GridItem> {
   data: T[];
   renderItem: ({ item, index }: ListRenderItemInfo<T>) => React.ReactElement;

@@ -27,13 +27,15 @@ export function SavePostTab({
 }: SavePostTabProps) {
   const renderPostItem = useCallback(
     ({ item, index }: { item: DishMediaEntry; index: number }) => {
+      const gridItem = {
+        ...item,
+        id: item.dish_media.id,
+        imageUrl: item.dish_media.thumbnailImageUrl,
+      };
+      
       return (
         <ImageCard
-          item={{
-            ...item,
-            id: item.dish_media.id,
-            imageUrl: item.dish_media.thumbnailImageUrl,
-          }}
+          item={gridItem}
           onPress={() => onItemPress?.(item, index)}
         >
           <View style={styles.postCardOverlay}>
@@ -64,8 +66,8 @@ export function SavePostTab({
 
   return (
     <GridList
-      data={data}
-      renderItem={renderPostItem}
+      data={data.map(item => ({ ...item, id: item.dish_media.id }))}
+      renderItem={({ item, index }) => renderPostItem({ item: item as DishMediaEntry, index })}
       numColumns={3}
       contentContainerStyle={styles.gridContent}
       columnWrapperStyle={styles.gridRow}

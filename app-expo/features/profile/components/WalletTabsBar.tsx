@@ -1,19 +1,24 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import type { TabBarProps } from 'react-native-collapsible-tab-view';
 
-interface WalletTabsBarProps {
-  state: {
-    index: number;
-    routes: Array<{ key: string; title: string }>;
+export function WalletTabsBar(props: TabBarProps) {
+  const { tabNames, index, onTabPress } = props;
+  
+  // Convert collapsible tab view props to our expected format
+  const state = {
+    index: index.value || 0,
+    routes: tabNames.map(name => ({ key: name, title: name })),
   };
-  jumpTo: (key: string) => void;
-}
+  
+  const jumpTo = (key: string) => {
+    onTabPress(key);
+  };
 
-export function WalletTabsBar({ state, jumpTo }: WalletTabsBarProps) {
   return (
     <View style={styles.walletTabsContainer}>
-      {state.routes.map((route, index) => {
-        const isActive = state.index === index;
+      {state.routes.map((route, routeIndex) => {
+        const isActive = state.index === routeIndex;
         return (
           <TouchableOpacity
             key={route.key}

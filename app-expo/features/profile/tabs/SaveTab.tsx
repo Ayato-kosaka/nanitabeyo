@@ -1,6 +1,7 @@
 import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Tabs } from '@/components/collapsible-tabs';
-import { SaveSubTabsBar } from '../../components/SaveSubTabsBar';
+import { SaveSubTabsBar } from '../components/SaveSubTabsBar';
 import { SaveTopicTab } from './save/SaveTopicTab';
 import { SavePostTab } from './save/SavePostTab';
 import i18n from '@/lib/i18n';
@@ -43,14 +44,20 @@ export function SaveTab({
   // For non-own profiles, show private content message
   if (!isOwnProfile) {
     return (
-      <div>Private content - implementation needed for non-own profiles</div>
+      <View style={styles.privateContainer}>
+        <View style={styles.privateCard}>
+          <Text style={styles.privateText}>
+            {i18n.t('Profile.privateContent')}
+          </Text>
+        </View>
+      </View>
     );
   }
 
   return (
     <Tabs.Container
       headerHeight={0}
-      TabBarComponent={SaveSubTabsBar}
+      renderTabBar={SaveSubTabsBar}
       initialTabName="topics"
     >
       <Tabs.Tab name="topics">
@@ -79,3 +86,29 @@ export function SaveTab({
     </Tabs.Container>
   );
 }
+
+const styles = StyleSheet.create({
+  privateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  privateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    margin: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  privateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+});

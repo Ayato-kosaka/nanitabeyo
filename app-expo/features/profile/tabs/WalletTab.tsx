@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from '@/components/collapsible-tabs';
-import { WalletTabsBar } from '../../components/WalletTabsBar';
+import { WalletTabsBar } from '../components/WalletTabsBar';
 import { DepositsTab } from './wallet/DepositsTab';
 import { EarningsTab } from './wallet/EarningsTab';
 import i18n from '@/lib/i18n';
@@ -42,7 +42,7 @@ export function WalletTab({
   return (
     <Tabs.Container
       headerHeight={0}
-      TabBarComponent={WalletTabsBar}
+      renderTabBar={WalletTabsBar}
       initialTabName="deposits"
     >
       <Tabs.Tab name="deposits">
