@@ -162,7 +162,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				},
 			},
 		],
-		"./plugins/withAndroidAppLocalization",
 		"expo-font",
 		"expo-web-browser",
 		"expo-localization",
