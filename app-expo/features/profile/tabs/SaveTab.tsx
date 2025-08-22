@@ -7,7 +7,7 @@ import i18n from '@/lib/i18n';
 import type { DishMediaEntry } from '@shared/api/v1/res';
 
 interface SaveTabProps {
-  savedTopics: DishMediaEntry[];
+  savedTopics: any[];
   savedPosts: DishMediaEntry[];
   onItemPress: (item: DishMediaEntry, index: number) => void;
   onEndReached: (tabType: 'topics' | 'posts') => void;

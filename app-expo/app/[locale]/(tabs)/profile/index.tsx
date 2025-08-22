@@ -3,38 +3,23 @@ import {
 	View,
 	Text,
 	StyleSheet,
-	ScrollView,
 	TouchableOpacity,
-	Image,
-	Dimensions,
-	FlatList,
 	TextInput,
 	ActivityIndicator,
-	RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
 	ArrowLeft,
 	Settings,
 	Share,
-	Pencil as Edit3,
-	Heart,
-	MessageCircle,
 	Lock,
-	Grid3x3 as Grid3X3,
-	Bookmark,
-	X,
-	Wallet,
-	DollarSign,
 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { userProfile, otherUserProfile } from "@/data/profileData";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { ImageCard, ImageCardGrid } from "@/components/ImageCardGrid";
-import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
+import { ProfileTabsLayout } from "@/features/profile/containers/ProfileTabsLayout";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -58,9 +43,6 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 
-const { width } = Dimensions.get("window");
-const Tab = createMaterialTopTabNavigator();
-
 type TabType = "reviews" | "saved" | "liked" | "wallet";
 
 // Interface for API data structures
@@ -75,261 +57,6 @@ interface PaginationState {
 	cursor: string | null;
 	hasNextPage: boolean;
 	isLoadingMore: boolean;
-}
-
-function DepositsScreen() {
-	const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["active", "completed", "refunded"]);
-	const { lightImpact } = useHaptics();
-
-	const depositStatuses = [
-		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
-		{ id: "completed", label: i18n.t("Profile.statusLabels.completed"), color: "#2196F3" },
-		{ id: "refunded", label: i18n.t("Profile.statusLabels.refunded"), color: "#FF9800" },
-	];
-
-	const toggleStatus = (statusId: string) => {
-		lightImpact();
-		setSelectedStatuses((prev) =>
-			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
-		);
-	};
-
-	const filteredBids = mockBids.filter((bid) => selectedStatuses.includes(bid.status));
-
-	const renderBidItem = ({ item }: { item: BidItem }) => (
-		<View style={styles.depositCard}>
-			<View style={styles.depositHeader}>
-				<Image
-					source={{ uri: item.restaurantImageUrl }}
-					style={styles.depositAvatar}
-					onError={() => console.log("Failed to load restaurant image")}
-				/>
-				<View style={styles.depositInfo}>
-					<Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
-					<Text style={styles.depositAmount}>
-						{i18n.t("Search.currencySuffix")}
-						{item.bidAmount.toLocaleString()}
-					</Text>
-				</View>
-				<View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
-					<Text style={styles.statusText}>{getStatusText(item.status)}</Text>
-				</View>
-			</View>
-			<Text style={styles.depositDays}>{i18n.t("Common.daysRemaining", { count: item.remainingDays })}</Text>
-		</View>
-	);
-
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case "active":
-				return "#4CAF50";
-			case "completed":
-				return "#2196F3";
-			case "refunded":
-				return "#FF9800";
-			default:
-				return "#666";
-		}
-	};
-
-	const getStatusText = (status: string) => {
-		switch (status) {
-			case "active":
-				return i18n.t("Profile.statusLabels.active");
-			case "completed":
-				return i18n.t("Profile.statusLabels.completed");
-			case "refunded":
-				return i18n.t("Profile.statusLabels.refunded");
-			default:
-				return status;
-		}
-	};
-
-	return (
-		<View style={styles.tabContent}>
-			{/* Status Filter Chips */}
-			<ScrollView
-				horizontal
-				showsHorizontalScrollIndicator={false}
-				style={styles.statusFilterContainer}
-				contentContainerStyle={styles.statusFilterContent}>
-				{depositStatuses.map((status) => (
-					<TouchableOpacity
-						key={status.id}
-						style={[
-							styles.statusFilterChip,
-							selectedStatuses.includes(status.id) && {
-								backgroundColor: status.color,
-							},
-						]}
-						onPress={() => toggleStatus(status.id)}>
-						<Text
-							style={[
-								styles.statusFilterChipText,
-								selectedStatuses.includes(status.id) && styles.statusFilterChipTextActive,
-							]}>
-							{status.label}
-						</Text>
-					</TouchableOpacity>
-				))}
-			</ScrollView>
-
-			{/* Filtered Results */}
-			{filteredBids.length > 0 ? (
-				<FlatList
-					data={filteredBids}
-					renderItem={renderBidItem}
-					keyExtractor={(item) => item.id}
-					contentContainerStyle={styles.depositsList}
-					showsVerticalScrollIndicator={false}
-					scrollEnabled={false}
-				/>
-			) : (
-				<View style={styles.emptyStateContainer}>
-					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noDeposits")}</Text>
-					</View>
-				</View>
-			)}
-		</View>
-	);
-}
-
-function EarningsScreen() {
-	const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(["paid", "pending"]);
-	const { lightImpact } = useHaptics();
-
-	const earningStatuses = [
-		{ id: "paid", label: i18n.t("Profile.statusLabels.paid"), color: "#4CAF50" },
-		{ id: "pending", label: i18n.t("Profile.statusLabels.pending"), color: "#FF9800" },
-	];
-
-	const toggleEarningStatus = (statusId: string) => {
-		lightImpact();
-		setSelectedEarningStatuses((prev) =>
-			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
-		);
-	};
-
-	const filteredEarnings = mockEarnings.filter((earning) => selectedEarningStatuses.includes(earning.status));
-
-	return (
-		<View style={styles.tabContent}>
-			{/* Status Filter Chips */}
-			<ScrollView
-				horizontal
-				showsHorizontalScrollIndicator={false}
-				style={styles.statusFilterContainer}
-				contentContainerStyle={styles.statusFilterContent}>
-				{earningStatuses.map((status) => (
-					<TouchableOpacity
-						key={status.id}
-						style={[
-							styles.statusFilterChip,
-							selectedEarningStatuses.includes(status.id) && {
-								backgroundColor: status.color,
-							},
-						]}
-						onPress={() => toggleEarningStatus(status.id)}>
-						<Text
-							style={[
-								styles.statusFilterChipText,
-								selectedEarningStatuses.includes(status.id) && styles.statusFilterChipTextActive,
-							]}>
-							{status.label}
-						</Text>
-					</TouchableOpacity>
-				))}
-			</ScrollView>
-
-			{/* Filtered Results */}
-			{filteredEarnings.length > 0 ? (
-				<ImageCardGrid
-					data={filteredEarnings}
-					containerStyle={{ marginVertical: 16 }}
-					renderOverlay={(item) => (
-						<View style={styles.earningCardOverlay}>
-							<Text style={styles.earningCardAmount}>
-								{i18n.t("Search.currencySuffix")}
-								{item.earnings.toLocaleString()}
-							</Text>
-							<View
-								style={[
-									styles.statusChip,
-									{
-										backgroundColor: item.status === "paid" ? "#4CAF50" : "#FF9800",
-									},
-								]}>
-								<Text style={styles.statusText}>
-									{item.status === "paid"
-										? i18n.t("Profile.statusLabels.paid")
-										: i18n.t("Profile.statusLabels.pending")}
-								</Text>
-							</View>
-						</View>
-					)}
-				/>
-			) : (
-				<View style={styles.emptyStateContainer}>
-					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noEarnings")}</Text>
-					</View>
-				</View>
-			)}
-		</View>
-	);
-}
-
-function WalletTabs() {
-	return (
-		<Tab.Navigator
-			screenOptions={{
-				tabBarActiveTintColor: "#5EA2FF",
-				tabBarInactiveTintColor: "#666",
-				tabBarStyle: {
-					marginHorizontal: 16,
-					marginTop: 16,
-					backgroundColor: "transparent",
-					shadowColor: "transparent",
-					elevation: 0,
-				},
-				tabBarIndicatorStyle: {
-					height: "100%",
-					backgroundColor: "white",
-					borderRadius: 32,
-					shadowColor: "#000",
-					shadowOffset: { width: 0, height: 0 },
-					shadowOpacity: 0.1,
-					shadowRadius: 16,
-					elevation: 4,
-				},
-				tabBarItemStyle: {
-					flexDirection: "row",
-					paddingHorizontal: 16,
-				},
-				sceneStyle: {
-					backgroundColor: "transparent",
-				},
-				// tabBarPressColor: 'transparent',
-			}}>
-			<Tab.Screen
-				name="Deposits"
-				component={DepositsScreen}
-				options={{
-					tabBarLabel: i18n.t("Profile.tabs.deposits"),
-					tabBarIcon: ({ color }) => <Wallet size={20} color={color} />,
-				}}
-			/>
-			<Tab.Screen
-				name="Earnings"
-				component={EarningsScreen}
-				options={{
-					tabBarLabel: i18n.t("Profile.tabs.earnings"),
-					tabBarIcon: ({ color }) => <DollarSign size={20} color={color} />,
-				}}
-			/>
-		</Tab.Navigator>
-	);
 }
 
 export default function ProfileScreen() {
@@ -778,6 +505,19 @@ export default function ProfileScreen() {
 		});
 	};
 
+	const getCurrentDishMediaEntriesForTab = (tab: TabType): DishMediaEntry[] | null => {
+		switch (tab) {
+			case "reviews":
+				return profileData.userDishMediaEntries;
+			case "saved":
+				return profileData.savedDishMediaEntries;
+			case "liked":
+				return profileData.likedDishMediaEntries;
+			default:
+				return [];
+		}
+	};
+
 	const handleTabSelect = async (tab: TabType) => {
 		lightImpact();
 		setSelectedTab(tab);
@@ -793,65 +533,9 @@ export default function ProfileScreen() {
 		});
 	};
 
-	const getCurrentDishMediaEntriesForTab = (tab: TabType): DishMediaEntry[] | null => {
-		switch (tab) {
-			case "reviews":
-				return profileData.userDishMediaEntries;
-			case "saved":
-				return profileData.savedDishMediaEntries;
-			case "liked":
-				return profileData.likedDishMediaEntries;
-			default:
-				return [];
-		}
-	};
-
-	const renderTabIcon = (tab: TabType) => {
-		const isActive = selectedTab === tab;
-		const iconColor = isActive ? "#5EA2FF" : "#666";
-
-		switch (tab) {
-			case "reviews":
-				return <Grid3X3 size={20} color={iconColor} />;
-			case "saved":
-				return <Bookmark size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
-			case "wallet":
-				return <Wallet size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
-			case "liked":
-				return <Heart size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
-		}
-	};
-
-	// Render item for API data
-	const renderDishMediaEntryItem = ({ item, index }: { item: DishMediaEntry; index: number }) => {
-		return (
-			<ImageCard
-				item={{ ...item, id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}
-				onPress={handleDishMediaEntryPress(index)}>
-				<View style={styles.reviewCardOverlay}>
-					<View style={styles.reviewCardRating}>
-						<Stars rating={item.dish.averageRating} />
-						<Text style={styles.reviewCardRatingText}>({item.dish.reviewCount})</Text>
-					</View>
-				</View>
-			</ImageCard>
-		);
-	};
-
-	// Render loading footer
-	const renderLoadingFooter = () => {
-		if (!paginationState[selectedTab]?.isLoadingMore) return null;
-
-		return (
-			<View style={styles.loadingFooter}>
-				<ActivityIndicator size="small" color="#5EA2FF" />
-			</View>
-		);
-	};
-
-	// Render empty state
-	const renderEmptyState = () => {
-		const tabError = fetchErrors[selectedTab];
+	// Create render functions for the new layout
+	const renderEmptyComponent = (tab: TabType) => {
+		const tabError = fetchErrors[tab];
 
 		if (isInitialLoading) {
 			return (
@@ -867,7 +551,7 @@ export default function ProfileScreen() {
 				<View style={styles.emptyStateContainer}>
 					<View style={styles.emptyStateCard}>
 						<Text style={styles.emptyStateText}>{i18n.t("Profile.tabError.failedToLoad", { error: tabError })}</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={() => refreshData(selectedTab)}>
+						<TouchableOpacity style={styles.retryButton} onPress={() => refreshData(tab)}>
 							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
 						</TouchableOpacity>
 					</View>
@@ -879,9 +563,9 @@ export default function ProfileScreen() {
 			<View style={styles.emptyStateContainer}>
 				<View style={styles.emptyStateCard}>
 					<Text style={styles.emptyStateText}>
-						{selectedTab === "reviews"
+						{tab === "reviews"
 							? i18n.t("Profile.emptyState.noDishReviews")
-							: selectedTab === "liked"
+							: tab === "liked"
 								? i18n.t("Profile.emptyState.noLikedDishMediaEntries")
 								: i18n.t("Profile.emptyState.noSavedItems")}
 					</Text>
@@ -890,10 +574,23 @@ export default function ProfileScreen() {
 		);
 	};
 
-	const shouldShowTab = (tab: TabType): boolean => {
-		if (isOwnProfile) return true;
-		// For other users, only show reviews tab
-		return tab === "reviews";
+	const handleItemPress = (item: DishMediaEntry, index: number) => {
+		lightImpact();
+		setDishes(selectedTab, Promise.resolve(getCurrentDishMediaEntries()));
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/food",
+			params: {
+				locale,
+				startIndex: index,
+				tabName: selectedTab,
+			},
+		});
+
+		logFrontendEvent({
+			event_name: "dish_media_entry_selected",
+			error_level: "log",
+			payload: { item, selectedTab },
+		});
 	};
 
 	return (
@@ -916,116 +613,26 @@ export default function ProfileScreen() {
 				</View>
 			</View>
 
-			<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-				{/* Profile Info */}
-				<Card>
-					{/* Avatar and Stats */}
-					<View style={styles.profileHeader}>
-						<Image source={{ uri: profile.avatar }} style={styles.avatar} />
-
-						<View style={styles.statsContainer}>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.following")}</Text>
-							</View>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.followersCount)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.followers")}</Text>
-							</View>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.totalLikes)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
-							</View>
-						</View>
-					</View>
-
-					{/* Display Name */}
-					<Text style={styles.displayName}>{profile.displayName}</Text>
-
-					{/* Bio */}
-					<Text style={styles.bio}>{profile.bio}</Text>
-
-					{/* Action Buttons */}
-					<View style={styles.actionButtons}>
-						{isOwnProfile ? (
-							<>
-								<PrimaryButton
-									style={{ flex: 1 }}
-									onPress={handleEditProfile}
-									label={i18n.t("Profile.buttons.editProfile")}
-									icon={<Edit3 size={16} color="#FFFFFF" />}
-								/>
-							</>
-						) : (
-							<>
-								<TouchableOpacity
-									style={[styles.followButton, isFollowing && styles.followingButton]}
-									onPress={handleFollow}>
-									<Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
-										{isFollowing ? i18n.t("Profile.buttons.following") : i18n.t("Profile.buttons.follow")}
-									</Text>
-								</TouchableOpacity>
-								<TouchableOpacity style={styles.messageButton}>
-									<MessageCircle size={16} color="#FFFFFF" />
-									<Text style={styles.messageButtonText}>{i18n.t("Profile.buttons.message")}</Text>
-								</TouchableOpacity>
-							</>
-						)}
-					</View>
-				</Card>
-
-				{/* Content Tabs */}
-				<View style={styles.tabsContainer}>
-					{availableTabs.map((tab) => (
-						<TouchableOpacity
-							key={tab}
-							style={[styles.tab, selectedTab === tab && styles.activeTab]}
-							onPress={() => handleTabSelect(tab)}>
-							{renderTabIcon(tab)}
-						</TouchableOpacity>
-					))}
-				</View>
-
-				<View style={[styles.dishMediaEntryContainer, { marginTop: 0 }]}>
-					{/* DishMediaEntries Content - FlatList for infinite scroll */}
-					{selectedTab === "wallet" ? (
-						<WalletTabs />
-					) : selectedTab === "saved" && !isOwnProfile ? (
-						<View style={styles.privateContainer}>
-							<View style={styles.privateCard}>
-								<Lock size={48} color="#6B7280" />
-								<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
-							</View>
-						</View>
-					) : (
-						<FlatList
-							data={getCurrentDishMediaEntries()}
-							renderItem={renderDishMediaEntryItem}
-							keyExtractor={(item, index) => {
-								return item.dish_media.id;
-							}}
-							numColumns={3}
-							contentContainerStyle={styles.flatListContent}
-							showsVerticalScrollIndicator={false}
-							scrollEnabled={false}
-							initialNumToRender={12}
-							removeClippedSubviews
-							onEndReached={() => loadMoreData(selectedTab)}
-							onEndReachedThreshold={0.5}
-							refreshControl={
-								<RefreshControl
-									refreshing={isRefreshing}
-									onRefresh={() => refreshData(selectedTab)}
-									colors={["#5EA2FF"]}
-									tintColor="#5EA2FF"
-								/>
-							}
-							ListEmptyComponent={renderEmptyState}
-							ListFooterComponent={renderLoadingFooter}
-						/>
-					)}
-				</View>
-			</ScrollView>
+			{/* New Profile Tabs Layout */}
+			<ProfileTabsLayout
+				profile={profile}
+				isOwnProfile={isOwnProfile}
+				isFollowing={isFollowing}
+				profileData={profileData}
+				onEditProfile={handleEditProfile}
+				onFollow={handleFollow}
+				onItemPress={handleItemPress}
+				onEndReached={loadMoreData}
+				onRefresh={refreshData}
+				refreshing={isRefreshing}
+				isLoadingMore={{
+					reviews: paginationState.reviews.isLoadingMore,
+					saved: paginationState.saved.isLoadingMore,
+					liked: paginationState.liked.isLoadingMore,
+					wallet: paginationState.wallet.isLoadingMore,
+				}}
+				renderEmptyComponent={renderEmptyComponent}
+			/>
 
 			{/* Edit Profile Modal */}
 			<BlurModal>

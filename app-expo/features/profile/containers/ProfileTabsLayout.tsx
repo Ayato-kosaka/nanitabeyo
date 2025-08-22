@@ -27,7 +27,7 @@ interface ProfileTabsLayoutProps {
   profileData: {
     userDishMediaEntries: DishMediaEntry[] | null;
     likedDishMediaEntries: DishMediaEntry[] | null;
-    savedTopics: DishMediaEntry[] | null;
+    savedTopics: any[] | null; // Use any for now since it's different data structure
     savedDishMediaEntries: DishMediaEntry[] | null;
   };
   onEditProfile: () => void;

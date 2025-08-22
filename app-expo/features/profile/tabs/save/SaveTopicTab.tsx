@@ -3,8 +3,8 @@ import { GridList } from '@/features/profile/components/GridList';
 import type { DishMediaEntry } from '@shared/api/v1/res';
 
 interface SaveTopicTabProps {
-  data: DishMediaEntry[];
-  onItemPress: (item: DishMediaEntry, index: number) => void;
+  data: any[];
+  onItemPress: (item: any, index: number) => void;
   onEndReached: () => void;
   onRefresh: () => void;
   refreshing: boolean;
