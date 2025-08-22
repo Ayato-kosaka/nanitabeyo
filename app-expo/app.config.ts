@@ -21,10 +21,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
-		associatedDomains: [`applinks:${process.env.EXPO_PUBLIC_LINK_HOST}`],
+		associatedDomains: [`applinks:food-scroll.web.app`],
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleAllowMixedLocalizations: true,
+			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],
+			CFBundleDisplayName: "$(CFBundleDisplayName)",
 		},
 		config: {
 			googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY,
@@ -44,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				data: [
 					{
 						scheme: "https",
-						host: process.env.EXPO_PUBLIC_LINK_HOST,
+						host: "food-scroll.web.app",
 						pathPrefix: "/",
 					},
 				],
@@ -63,22 +65,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		favicon: "./assets/images/favicon.png",
 	},
 	locales: {
-		ar: "./locales/ar-SA.json",
-		"ar-SA": "./locales/ar-SA.json",
-		en: "./locales/en-US.json",
-		"en-US": "./locales/en-US.json",
-		es: "./locales/es-ES.json",
-		"es-ES": "./locales/es-ES.json",
-		fr: "./locales/fr-FR.json",
-		"fr-FR": "./locales/fr-FR.json",
-		hi: "./locales/hi-IN.json",
-		"hi-IN": "./locales/hi-IN.json",
-		ja: "./locales/ja-JP.json",
-		"ja-JP": "./locales/ja-JP.json",
-		ko: "./locales/ko-KR.json",
-		"ko-KR": "./locales/ko-KR.json",
-		zh: "./locales/zh-CN.json",
-		"zh-CN": "./locales/zh-CN.json",
+		ar: "./languages/ar-SA.json",
+		en: "./languages/en-US.json",
+		es: "./languages/es-ES.json",
+		fr: "./languages/fr-FR.json",
+		hi: "./languages/hi-IN.json",
+		ja: "./languages/ja-JP.json",
+		ko: "./languages/ko-KR.json",
+		zh: "./languages/zh-CN.json",
 	},
 	plugins: [
 		"expo-router",
@@ -119,8 +113,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		[
 			"react-native-google-mobile-ads",
 			{
-				androidAppId: "ca-app-pub-8992436220024710~4233642482",
-				iosAppId: "ca-app-pub-8992436220024710~2925264393",
+				androidAppId: "ca-app-pub-8992436220024710~7855939059",
+				iosAppId: "ca-app-pub-8992436220024710~3141802451",
 				skAdNetworkItems: [
 					"cstr6suwn9.skadnetwork",
 					"4fzdc2evr5.skadnetwork",
@@ -202,6 +196,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID,
 		EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID,
 		EXPO_PUBLIC_WEB_BASE_URL: process.env.EXPO_PUBLIC_WEB_BASE_URL,
-		EXPO_PUBLIC_LINK_HOST: process.env.EXPO_PUBLIC_LINK_HOST,
 	},
 });

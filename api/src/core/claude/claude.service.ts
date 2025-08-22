@@ -25,7 +25,7 @@ export class ClaudeService {
     private readonly externalApiService: ExternalApiService,
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * 料理カテゴリ提案を生成する

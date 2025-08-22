@@ -52,7 +52,7 @@
 "dish_reviews","rating","smallint",false,false,false,true,"N/A",false,"評価（★）","","","",""
 "dish_reviews","price_cents","int",false,false,false,false,"N/A",false,"価格（センチ単位）","","","",""
 "dish_reviews","currency_code","char(3)",false,false,false,false,"N/A",false,"通貨コード","","","",""
-"dish_reviews","created_dish_media_id","UUID",false,"dish_media.id",false,true,"N/A",false,"どのメディア IDに対するレビューか","","","",""
+"dish_reviews","created_dish_media_id","UUID",false,false,false,true,"N/A",false,"どのメディア IDに対するレビューか","","","",""
 "dish_reviews","imported_user_name","text",false,false,false,false,"N/A",false,"インポート元ユーザ名","","","",""
 "dish_reviews","imported_user_avatar","text",false,false,false,false,"N/A",false,"インポート元ユーザアバター","","","",""
 "dish_reviews","created_at","timestamptz",false,false,false,true,"N/A",true,"作成日時","","","",""

@@ -70,6 +70,7 @@ model dish_category_variants {
   created_at       DateTime        @default(now()) @db.Timestamptz(6)
   dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([surface_form(ops: raw("gin_trgm_ops"))], map: "idx_dcv_surface_form_trgm", type: Gin)
   @@index([dish_category_id], map: "idx_dish_category_variants_dish_category_id")
   @@schema("dev")
 }
@@ -94,19 +95,19 @@ model dish_likes {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_media {
-  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  dish_id        String         @db.Uuid
-  user_id        String?        @db.Uuid
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id        String       @db.Uuid
+  user_id        String?      @db.Uuid
   media_path     String
   media_type     String
   thumbnail_path String
-  created_at     DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime       @default(now()) @db.Timestamptz(6)
-  lock_no        Int            @default(0)
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  lock_no        Int          @default(0)
   dish_likes     dish_likes[]
-  dishes         dishes         @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users?         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  dish_reviews   dish_reviews[]
+  dishes         dishes       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payouts        payouts[]
 
   @@index([dish_id], map: "idx_dish_media_dish")
   @@schema("dev")
@@ -129,7 +130,6 @@ model dish_reviews {
   imported_user_name     String?
   imported_user_avatar   String?
   created_at             DateTime                 @default(now()) @db.Timestamptz(6)
-  dish_media             dish_media               @relation(fields: [created_dish_media_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   dishes                 dishes                   @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                  users?                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -216,6 +216,7 @@ model payouts {
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
   lock_no         Int             @default(0)
   restaurant_bids restaurant_bids @relation(fields: [bid_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_media      dish_media      @relation(fields: [dish_media_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([bid_id, dish_media_id])
   @@index([created_at], map: "idx_payouts_created_at")
@@ -315,6 +316,7 @@ model restaurant_bids {
   updated_at        DateTime              @default(now()) @db.Timestamptz(6)
   lock_no           Int                   @default(0)
   payouts           payouts[]
+  restaurants       restaurants           @relation(fields: [restaurant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users             users                 @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([restaurant_id], map: "idx_restaurant_bids_restaurant")
@@ -334,6 +336,7 @@ model restaurants {
   image_url          String
   created_at         DateTime                  @default(now()) @db.Timestamptz(6)
   dishes             dishes[]
+  restaurant_bids    restaurant_bids[]
 
   @@index([location], map: "idx_restaurants_location", type: Gist)
   @@schema("dev")
@@ -343,6 +346,7 @@ model restaurants {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
   id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username        String            @unique(map: "uq_users_username") @db.Citext
   display_name    String?
   avatar          String?
   bio             String?

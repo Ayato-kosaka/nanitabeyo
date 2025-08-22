@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"CFBundleDisplayName": "CraveCatch - Find your dish"
+	},
+	"android": {
+		"app_name": "CraveCatch - Find your dish"
+	}
+}

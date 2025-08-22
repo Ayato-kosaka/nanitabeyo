@@ -27,7 +27,6 @@ Add these environment variables to your deployment:
 
 ```bash
 EXPO_PUBLIC_WEB_BASE_URL=https://your-domain.com
-EXPO_PUBLIC_LINK_HOST=your-domain.com
 ```
 
 **Files updated**:
@@ -86,11 +85,9 @@ Set these in your deployment environment:
 ```bash
 # Example for production
 EXPO_PUBLIC_WEB_BASE_URL=https://nanitabeyo.com
-EXPO_PUBLIC_LINK_HOST=nanitabeyo.com
 
 # Example for staging
 EXPO_PUBLIC_WEB_BASE_URL=https://staging.nanitabeyo.com
-EXPO_PUBLIC_LINK_HOST=staging.nanitabeyo.com
 ```
 
 ### 2. Deploy Universal Links / App Links Files

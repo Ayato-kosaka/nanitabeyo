@@ -22,7 +22,16 @@ export const TEST_PARAMETERS = {
   scenes: ['solo', 'date', 'group', 'large_group', 'tourism', undefined],
 
   // Mood options from frontend constants
-  moods: ['hearty', 'light', 'sweet', 'spicy', 'healthy', 'junk', 'alcohol', undefined],
+  moods: [
+    'hearty',
+    'light',
+    'sweet',
+    'spicy',
+    'healthy',
+    'junk',
+    'alcohol',
+    undefined,
+  ],
 
   // Dietary restrictions from frontend constants
   restrictions: [
@@ -229,7 +238,7 @@ function generateStratifiedCombinations(
         if (variation & 8) {
           const restrictionsArray =
             TEST_PARAMETERS.restrictions[
-            i % TEST_PARAMETERS.restrictions.length
+              i % TEST_PARAMETERS.restrictions.length
             ];
           if (restrictionsArray.length > 0) {
             params.restrictions = [...restrictionsArray];
