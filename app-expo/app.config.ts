@@ -119,8 +119,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		[
 			"react-native-google-mobile-ads",
 			{
-				androidAppId: "ca-app-pub-8992436220024710~4233642482",
-				iosAppId: "ca-app-pub-8992436220024710~2925264393",
+				androidAppId: "ca-app-pub-8992436220024710~7855939059",
+				iosAppId: "ca-app-pub-8992436220024710~3141802451",
 				skAdNetworkItems: [
 					"cstr6suwn9.skadnetwork",
 					"4fzdc2evr5.skadnetwork",
