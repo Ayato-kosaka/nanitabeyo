@@ -478,6 +478,13 @@ export type Database = {
             referencedRelation: "restaurant_bids"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payouts_dish_media_id_fkey"
+            columns: ["dish_media_id"]
+            isOneToOne: false
+            referencedRelation: "dish_media"
+            referencedColumns: ["id"]
+          },
         ]
       }
       prompt_families: {
@@ -677,6 +684,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "restaurant_bids_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "restaurant_bids_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -731,6 +745,7 @@ export type Database = {
           last_login_at: string | null
           lock_no: number
           updated_at: string
+          username: string
         }
         Insert: {
           avatar?: string | null
@@ -741,6 +756,7 @@ export type Database = {
           last_login_at?: string | null
           lock_no?: number
           updated_at?: string
+          username: string
         }
         Update: {
           avatar?: string | null
@@ -751,6 +767,7 @@ export type Database = {
           last_login_at?: string | null
           lock_no?: number
           updated_at?: string
+          username?: string
         }
         Relationships: []
       }

@@ -321,6 +321,7 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
 
 exports.Prisma.UsersScalarFieldEnum = {
   id: 'id',
+  username: 'username',
   display_name: 'display_name',
   avatar: 'avatar',
   bio: 'bio',
