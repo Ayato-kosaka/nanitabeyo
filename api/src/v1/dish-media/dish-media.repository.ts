@@ -297,31 +297,21 @@ export class DishMediaRepository {
       include: {
         dish_likes: { where: { user_id: userId } }, // User がいいねしているか
         _count: { select: { dish_likes: true } }, // いいね数を取得
-        dishes: { include: { restaurants: true } },
+        dishes: { 
+          include: { 
+            restaurants: true,
+            dish_reviews: {
+              orderBy: { created_at: 'desc' },
+              take: reviewLimit,
+              include: { users: true },
+            },
+          } 
+        },
       },
     });
 
-    // Get all dish IDs to fetch reviews for dishes
+    // Get all dish IDs to calculate aggregates
     const dishIds = dishMedias.map((m) => m.dish_id);
-
-    // Get all reviews for the dishes (not just reviews created from these dish_media)
-    const dishReviewsData = await this.prisma.prisma.dish_reviews.findMany({
-      where: { dish_id: { in: dishIds } },
-      orderBy: { created_at: 'desc' },
-      include: { users: true },
-    });
-
-    // Group reviews by dish_id and limit to reviewLimit per dish
-    const reviewsByDishId = new Map<string, typeof dishReviewsData>();
-    dishReviewsData.forEach((review) => {
-      if (!reviewsByDishId.has(review.dish_id)) {
-        reviewsByDishId.set(review.dish_id, []);
-      }
-      const dishReviews = reviewsByDishId.get(review.dish_id)!;
-      if (dishReviews.length < reviewLimit) {
-        dishReviews.push(review);
-      }
-    });
 
     // Calculate review count and average rating per dish
     const avgByDish = await this.prisma.prisma.dish_reviews.groupBy({
@@ -348,9 +338,9 @@ export class DishMediaRepository {
     );
 
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
-    const allReviewIds = Array.from(reviewsByDishId.values())
-      .flat()
-      .map((r) => r.id);
+    const allReviewIds = dishMedias.flatMap((m) =>
+      m.dishes.dish_reviews.map((r) => r.id),
+    );
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
@@ -372,7 +362,7 @@ export class DishMediaRepository {
           averageRating: 0,
           reviewCount: 0,
         };
-        const dishReviews = reviewsByDishId.get(dishMedia.dish_id) ?? [];
+        const dishReviews = dishMedia.dishes.dish_reviews ?? [];
 
         return {
           restaurant: dishMedia.dishes.restaurants,
