@@ -1,0 +1,133 @@
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { GridList } from '../components/GridList';
+import { ImageCard } from '@/components/ImageCardGrid';
+import Stars from '@/components/Stars';
+import i18n from '@/lib/i18n';
+import type { DishMediaEntry } from '@shared/api/v1/res';
+
+interface LikeTabProps {
+  data: DishMediaEntry[];
+  isLoading?: boolean;
+  isLoadingMore?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  onEndReached?: () => void;
+  onItemPress?: (item: DishMediaEntry, index: number) => void;
+}
+
+export function LikeTab({
+  data,
+  isLoading = false,
+  isLoadingMore = false,
+  refreshing = false,
+  onRefresh,
+  onEndReached,
+  onItemPress,
+}: LikeTabProps) {
+  const renderLikeItem = useCallback(
+    ({ item, index }: { item: DishMediaEntry; index: number }) => {
+      return (
+        <ImageCard
+          item={{
+            ...item,
+            id: item.dish_media.id,
+            imageUrl: item.dish_media.thumbnailImageUrl,
+          }}
+          onPress={() => onItemPress?.(item, index)}
+        >
+          <View style={styles.likeCardOverlay}>
+            <View style={styles.likeCardRating}>
+              <Stars rating={item.dish.averageRating} />
+              <Text style={styles.likeCardRatingText}>
+                ({item.dish.reviewCount})
+              </Text>
+            </View>
+          </View>
+        </ImageCard>
+      );
+    },
+    [onItemPress]
+  );
+
+  const renderEmptyState = useCallback(() => {
+    return (
+      <View style={styles.emptyStateContainer}>
+        <View style={styles.emptyStateCard}>
+          <Text style={styles.emptyStateText}>
+            {i18n.t('Profile.emptyState.noLikedDishMediaEntries')}
+          </Text>
+        </View>
+      </View>
+    );
+  }, []);
+
+  return (
+    <GridList
+      data={data}
+      renderItem={renderLikeItem}
+      numColumns={3}
+      contentContainerStyle={styles.gridContent}
+      columnWrapperStyle={styles.gridRow}
+      isLoading={isLoading}
+      isLoadingMore={isLoadingMore}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      onEndReached={onEndReached}
+      ListEmptyComponent={renderEmptyState}
+      testID="like-tab-grid"
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  gridContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  gridRow: {
+    gap: 1,
+  },
+  likeCardOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+  },
+  likeCardRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  likeCardRatingText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    margin: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+});
