@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { GridList } from "../../components/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
@@ -22,6 +22,8 @@ interface SaveTopicTabProps {
 	onItemPress?: (item: SavedTopic, index: number) => void;
 	onScroll?: any;
 	contentContainerStyle?: any;
+	error?: string | null;
+	onRetry?: () => void;
 }
 
 export function SaveTopicTab({
@@ -34,6 +36,8 @@ export function SaveTopicTab({
 	onItemPress,
 	onScroll,
 	contentContainerStyle,
+	error,
+	onRetry,
 }: SaveTopicTabProps) {
 	const renderTopicItem = useCallback(
 		({ item, index }: { item: SavedTopic; index: number }) => {
@@ -55,6 +59,19 @@ export function SaveTopicTab({
 	);
 
 	const renderEmptyState = useCallback(() => {
+		if (error) {
+			return (
+				<View style={styles.emptyStateContainer}>
+					<View style={styles.emptyStateCard}>
+						<Text style={styles.emptyStateText}>{i18n.t("Profile.tabError.failedToLoad", { error })}</Text>
+						<TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+			);
+		}
+
 		return (
 			<View style={styles.emptyStateContainer}>
 				<View style={styles.emptyStateCard}>
@@ -62,7 +79,7 @@ export function SaveTopicTab({
 				</View>
 			</View>
 		);
-	}, []);
+	}, [error, onRetry]);
 
 	return (
 		<GridList
@@ -134,5 +151,16 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#6B7280",
 		textAlign: "center",
+	},
+	retryButton: {
+		marginTop: 16,
+		backgroundColor: "#5EA2FF",
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 20,
+	},
+	retryButtonText: {
+		color: "#FFFFFF",
+		fontWeight: "600",
 	},
 });

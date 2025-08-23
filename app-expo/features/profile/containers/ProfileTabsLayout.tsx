@@ -380,6 +380,24 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 		}
 	}, [selectedTab, profileData]);
 
+	// Refresh data for a specific tab (retry functionality)
+	const refreshData = useCallback(
+		async (tab: TabType) => {
+			setFetchErrors((prev) => ({ ...prev, [tab]: null }));
+			setPaginationState((prev) => ({
+				...prev,
+				[tab]: { cursor: null, hasNextPage: true, isLoadingMore: false },
+			}));
+
+			try {
+				await withLoading(() => loadInitialData(tab));
+			} catch (error) {
+				// Error is already handled in loadInitialData
+			}
+		},
+		[loadInitialData, withLoading],
+	);
+
 	// Load initial data when component mounts
 	useEffect(() => {
 		withLoading(() => loadInitialData("reviews"));
@@ -548,6 +566,8 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						onRefresh={() => withLoading(() => loadInitialData("reviews"))}
 						onEndReached={() => loadMoreData("reviews")}
 						onItemPress={(item, index) => handleDishMediaEntryPress(index)(item)}
+						error={fetchErrors.reviews}
+						onRetry={() => refreshData("reviews")}
 					/>
 				</Tabs.Tab>
 
@@ -570,6 +590,8 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 							});
 						}}
 						onPostPress={(item, index) => handleDishMediaEntryPress(index)(item)}
+						error={fetchErrors.saved}
+						onRetry={() => refreshData("saved")}
 					/>
 				</Tabs.Tab>
 
@@ -582,6 +604,8 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						onRefresh={() => withLoading(() => loadInitialData("liked"))}
 						onEndReached={() => loadMoreData("liked")}
 						onItemPress={(item, index) => handleDishMediaEntryPress(index)(item)}
+						error={fetchErrors.liked}
+						onRetry={() => refreshData("liked")}
 					/>
 				</Tabs.Tab>
 
@@ -607,6 +631,8 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 							});
 							// TODO: Handle earning press - implement earning detail navigation
 						}}
+						error={fetchErrors.wallet}
+						onRetry={() => refreshData("wallet")}
 					/>
 				</Tabs.Tab>
 			</Tabs.Container>
