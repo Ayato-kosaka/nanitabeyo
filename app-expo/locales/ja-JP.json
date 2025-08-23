@@ -171,12 +171,14 @@
 		"profile": "プロフィール"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "入札",
-			"earnings": "収益",
-			"topics": "トピック",
-			"posts": "投稿"
-		},
+                "tabs": {
+                        "deposits": "入札",
+                        "earnings": "収益",
+                        "topics": "トピック",
+                        "posts": "投稿",
+                        "saved-posts": "投稿",
+                        "saved-topics": "トピック"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"

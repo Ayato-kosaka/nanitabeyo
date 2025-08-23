@@ -3,11 +3,13 @@ import { View, StyleSheet, LayoutChangeEvent, Text, TextInput } from "react-nati
 import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
-import { ProfileTabsBar } from "../components/ProfileTabsBar";
+import { GroupedTabBar } from "../components/GroupedTabBar";
 import { ReviewTab } from "../tabs/ReviewTab";
 import { LikeTab } from "../tabs/LikeTab";
-import { SaveTab } from "../tabs/SaveTab";
-import { WalletTab } from "../tabs/WalletTab";
+import { SavePostsTab } from "../tabs/SavePostsTab";
+import { SaveTopicsTab } from "../tabs/SaveTopicsTab";
+import { DepositsTab } from "../tabs/wallet/DepositsTab";
+import { EarningsTab } from "../tabs/wallet/EarningsTab";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/hooks/useBlurModal";
@@ -18,6 +20,16 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 
+const PROFILE_ROUTES = {
+        reviews: "reviews",
+        savedPosts: "saved-posts",
+        savedTopics: "saved-topics",
+        liked: "liked",
+        walletDeposit: "wallet-deposit",
+        walletEarning: "wallet-earning",
+} as const;
+
+type RouteName = (typeof PROFILE_ROUTES)[keyof typeof PROFILE_ROUTES];
 type TabType = "reviews" | "saved" | "liked" | "wallet";
 
 export function ProfileTabsLayout() {
@@ -33,13 +45,75 @@ export function ProfileTabsLayout() {
 	const isOwnProfile = !userId || userId === "me";
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
 
-	const availableTabs: TabType[] = useMemo(() => {
-		const tabs: TabType[] = ["reviews"];
-		if (isOwnProfile) {
-			tabs.push("saved", "liked", "wallet");
-		}
-		return tabs;
-	}, [isOwnProfile]);
+        const availableTabs: TabType[] = useMemo(() => {
+                const tabs: TabType[] = ["reviews"];
+                if (isOwnProfile) {
+                        tabs.push("saved", "liked", "wallet");
+                }
+                return tabs;
+        }, [isOwnProfile]);
+
+        const routeConfigs = useMemo(() => {
+                const routes: { name: RouteName; element: React.ReactNode }[] = [
+                        { name: PROFILE_ROUTES.reviews, element: <ReviewTab /> },
+                ];
+
+                if (availableTabs.includes("saved")) {
+                        routes.push(
+                                {
+                                        name: PROFILE_ROUTES.savedPosts,
+                                        element: <SavePostsTab isOwnProfile={isOwnProfile} />,
+                                },
+                                {
+                                        name: PROFILE_ROUTES.savedTopics,
+                                        element: <SaveTopicsTab isOwnProfile={isOwnProfile} />,
+                                },
+                        );
+                }
+
+                if (availableTabs.includes("liked")) {
+                        routes.push({ name: PROFILE_ROUTES.liked, element: <LikeTab /> });
+                }
+
+                if (availableTabs.includes("wallet")) {
+                        routes.push(
+                                {
+                                        name: PROFILE_ROUTES.walletDeposit,
+                                        element: (
+                                                <DepositsTab
+                                                        data={mockBids}
+                                                        onItemPress={(item, index) => {
+                                                                lightImpact();
+                                                                logFrontendEvent({
+                                                                        event_name: "deposit_item_selected",
+                                                                        error_level: "log",
+                                                                        payload: { depositId: item.id, index },
+                                                                });
+                                                        }}
+                                                />
+                                        ),
+                                },
+                                {
+                                        name: PROFILE_ROUTES.walletEarning,
+                                        element: (
+                                                <EarningsTab
+                                                        data={mockEarnings}
+                                                        onItemPress={(item, index) => {
+                                                                lightImpact();
+                                                                logFrontendEvent({
+                                                                        event_name: "earning_item_selected",
+                                                                        error_level: "log",
+                                                                        payload: { earningId: item.id, index },
+                                                                });
+                                                        }}
+                                                />
+                                        ),
+                                },
+                        );
+                }
+
+                return routes;
+        }, [availableTabs, isOwnProfile, lightImpact, logFrontendEvent]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
@@ -95,17 +169,24 @@ export function ProfileTabsLayout() {
 		});
 	}, [mediumImpact, closeEditModal, logFrontendEvent, profile.bio.length, editedBio.length]);
 
-	const handleTabChange = useCallback(
-		(index: number) => {
-			const tabName = availableTabs[index];
-			logFrontendEvent({
-				event_name: "profile_tab_changed",
-				error_level: "log",
-				payload: { tabName, userId: profile.id },
-			});
-		},
-		[availableTabs, logFrontendEvent, profile.id],
-	);
+        const routeNames = useMemo(() => routeConfigs.map((r) => r.name), [routeConfigs]);
+
+        const handleTabChange = useCallback(
+                (index: number) => {
+                        const route = routeNames[index];
+                        const group: TabType = route.startsWith("saved")
+                                ? "saved"
+                                : route.startsWith("wallet")
+                                ? "wallet"
+                                : (route as TabType);
+                        logFrontendEvent({
+                                event_name: "profile_tab_changed",
+                                error_level: "log",
+                                payload: { tabName: group, userId: profile.id },
+                        });
+                },
+                [routeNames, logFrontendEvent, profile.id],
+        );
 
 	const renderHeader = useCallback(() => {
 		return (
@@ -133,54 +214,28 @@ export function ProfileTabsLayout() {
 		handleFollow,
 	]);
 
-	const renderTabBar = useCallback(
-		(props: TabBarProps<string>) => {
-			return <ProfileTabsBar {...props} availableTabs={availableTabs} />;
-		},
-		[availableTabs],
-	);
+        const renderTabBar = useCallback(
+                (props: TabBarProps<string>) => {
+                        return <GroupedTabBar {...props} availableTabs={availableTabs} />;
+                },
+                [availableTabs],
+        );
 
 	return (
 		<View style={styles.container}>
-			<Tabs.Container
-				headerHeight={headerHeight}
-				renderHeader={renderHeader}
-				renderTabBar={renderTabBar}
-				onIndexChange={handleTabChange}
-				pagerProps={{ scrollEnabled: true }}
-				containerStyle={{ backgroundColor: "white" }}>
-				<Tabs.Tab name="reviews">
-					<ReviewTab />
-				</Tabs.Tab>
-				<Tabs.Tab name="saved">
-					<SaveTab isOwnProfile={isOwnProfile} />
-				</Tabs.Tab>
-				<Tabs.Tab name="liked">
-					<LikeTab />
-				</Tabs.Tab>
-				<Tabs.Tab name="wallet">
-					<WalletTab
-						deposits={mockBids}
-						earnings={mockEarnings}
-						onDepositPress={(item, index) => {
-							lightImpact();
-							logFrontendEvent({
-								event_name: "deposit_item_selected",
-								error_level: "log",
-								payload: { depositId: item.id, index },
-							});
-						}}
-						onEarningPress={(item, index) => {
-							lightImpact();
-							logFrontendEvent({
-								event_name: "earning_item_selected",
-								error_level: "log",
-								payload: { earningId: item.id, index },
-							});
-						}}
-					/>
-				</Tabs.Tab>
-			</Tabs.Container>
+                        <Tabs.Container
+                                headerHeight={headerHeight}
+                                renderHeader={renderHeader}
+                                renderTabBar={renderTabBar}
+                                onIndexChange={handleTabChange}
+                                pagerProps={{ scrollEnabled: true }}
+                                containerStyle={{ backgroundColor: "white" }}>
+                                {routeConfigs.map((route) => (
+                                        <Tabs.Tab key={route.name} name={route.name}>
+                                                {route.element}
+                                        </Tabs.Tab>
+                                ))}
+                        </Tabs.Container>
 
 			<BlurModal>
 				<Card>

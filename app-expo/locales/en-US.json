@@ -171,12 +171,14 @@
 		"profile": "Profile"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "Deposits",
-			"earnings": "Earnings",
-			"topics": "Topics",
-			"posts": "Posts"
-		},
+                "tabs": {
+                        "deposits": "Deposits",
+                        "earnings": "Earnings",
+                        "topics": "Topics",
+                        "posts": "Posts",
+                        "saved-posts": "Posts",
+                        "saved-topics": "Topics"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"

@@ -171,12 +171,14 @@
 		"profile": "Profil"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "Dépôts",
-			"earnings": "Revenus",
-			"topics": "Sujets",
-			"posts": "Publications"
-		},
+                "tabs": {
+                        "deposits": "Dépôts",
+                        "earnings": "Revenus",
+                        "topics": "Sujets",
+                        "posts": "Publications",
+                        "saved-posts": "Publications",
+                        "saved-topics": "Sujets"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"

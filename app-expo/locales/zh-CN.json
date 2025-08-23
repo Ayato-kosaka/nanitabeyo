@@ -171,10 +171,14 @@
 		"profile": "个人资料"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "存款",
-			"earnings": "收益"
-		},
+                "tabs": {
+                        "deposits": "存款",
+                        "earnings": "收益",
+                        "topics": "主题",
+                        "posts": "帖子",
+                        "saved-posts": "帖子",
+                        "saved-topics": "主题"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"

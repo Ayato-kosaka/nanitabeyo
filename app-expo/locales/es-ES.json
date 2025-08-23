@@ -171,12 +171,14 @@
 		"profile": "Perfil"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "Depósitos",
-			"earnings": "Ganancias",
-			"topics": "Temas",
-			"posts": "Publicaciones"
-		},
+                "tabs": {
+                        "deposits": "Depósitos",
+                        "earnings": "Ganancias",
+                        "topics": "Temas",
+                        "posts": "Publicaciones",
+                        "saved-posts": "Publicaciones",
+                        "saved-topics": "Temas"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
