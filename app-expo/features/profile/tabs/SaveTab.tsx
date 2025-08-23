@@ -10,6 +10,11 @@ interface SaveTabProps {
   savedTopics: any[];
   savedPosts: any[];
   isOwnProfile: boolean;
+  isLoading?: boolean;
+  isLoadingMore?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  onEndReached?: () => void;
   isLoadingTopics?: boolean;
   isLoadingPosts?: boolean;
   isLoadingMoreTopics?: boolean;
@@ -30,12 +35,17 @@ export function SaveTab({
   savedTopics,
   savedPosts,
   isOwnProfile,
-  isLoadingTopics = false,
-  isLoadingPosts = false,
-  isLoadingMoreTopics = false,
-  isLoadingMorePosts = false,
-  refreshingTopics = false,
-  refreshingPosts = false,
+  isLoading = false,
+  isLoadingMore = false,
+  refreshing = false,
+  onRefresh,
+  onEndReached,
+  isLoadingTopics,
+  isLoadingPosts,
+  isLoadingMoreTopics,
+  isLoadingMorePosts,
+  refreshingTopics,
+  refreshingPosts,
   onRefreshTopics,
   onRefreshPosts,
   onEndReachedTopics,
@@ -67,11 +77,11 @@ export function SaveTab({
       <Tabs.Tab name="topics">
         <SaveTopicTab
           data={savedTopics}
-          isLoading={isLoadingTopics}
-          isLoadingMore={isLoadingMoreTopics}
-          refreshing={refreshingTopics}
-          onRefresh={onRefreshTopics}
-          onEndReached={onEndReachedTopics}
+          isLoading={isLoadingTopics ?? isLoading}
+          isLoadingMore={isLoadingMoreTopics ?? isLoadingMore}
+          refreshing={refreshingTopics ?? refreshing}
+          onRefresh={onRefreshTopics ?? onRefresh}
+          onEndReached={onEndReachedTopics ?? onEndReached}
           onItemPress={onTopicPress}
         />
       </Tabs.Tab>
@@ -79,11 +89,11 @@ export function SaveTab({
       <Tabs.Tab name="posts">
         <SavePostTab
           data={savedPosts}
-          isLoading={isLoadingPosts}
-          isLoadingMore={isLoadingMorePosts}
-          refreshing={refreshingPosts}
-          onRefresh={onRefreshPosts}
-          onEndReached={onEndReachedPosts}
+          isLoading={isLoadingPosts ?? isLoading}
+          isLoadingMore={isLoadingMorePosts ?? isLoadingMore}
+          refreshing={refreshingPosts ?? refreshing}
+          onRefresh={onRefreshPosts ?? onRefresh}
+          onEndReached={onEndReachedPosts ?? onEndReached}
           onItemPress={onPostPress}
         />
       </Tabs.Tab>

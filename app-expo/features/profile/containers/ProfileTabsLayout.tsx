@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { View, StyleSheet, LayoutChangeEvent } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
@@ -10,11 +10,43 @@ import { SaveTab } from "../tabs/SaveTab";
 import { WalletTab } from "../tabs/WalletTab";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useAPICall } from "@/hooks/useAPICall";
+import { useWithLoading } from "@/hooks/useWithLoading";
+import { useAuth } from "@/contexts/AuthProvider";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useLocale } from "@/hooks/useLocale";
 import { userProfile, otherUserProfile } from "@/data/profileData";
 import { mockBids, mockEarnings } from "../constants";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
+import type {
+	QueryUserDishReviewsResponse,
+	QueryMeLikedDishMediaResponse,
+	QueryMeSavedDishCategoriesResponse,
+	QueryMeSavedDishMediaResponse,
+	DishMediaEntry,
+} from "@shared/api/v1/res";
+import type {
+	QueryMeLikedDishMediaDto,
+	QueryMeSavedDishCategoriesDto,
+	QueryMeSavedDishMediaDto,
+	QueryUserDishReviewsDto,
+} from "@shared/api/v1/dto";
 
 type TabType = "reviews" | "saved" | "liked" | "wallet";
+
+// Interface for API data structures
+interface ProfileData {
+	userDishMediaEntries: QueryUserDishReviewsResponse["data"] | null;
+	likedDishMediaEntries: QueryMeLikedDishMediaResponse["data"] | null;
+	savedTopics: QueryMeSavedDishCategoriesResponse["data"] | null;
+	savedDishMediaEntries: QueryMeSavedDishMediaResponse["data"] | null;
+}
+
+interface PaginationState {
+	cursor: string | null;
+	hasNextPage: boolean;
+	isLoadingMore: boolean;
+}
 
 interface ProfileTabsLayoutProps {
 	// Add props as needed for data fetching and state management
@@ -24,22 +56,43 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 	const { userId } = useLocalSearchParams();
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
+	const { isLoading: isInitialLoading, withLoading } = useWithLoading();
+	const { user } = useAuth();
+	const { setDishePromises } = useDishMediaEntriesStore();
+	const locale = useLocale();
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [editedBio, setEditedBio] = useState("");
+	const [selectedTab, setSelectedTab] = useState<TabType>("reviews");
 
 	// Determine if this is own profile
 	const isOwnProfile = !userId || userId === "me";
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
 
-	// Mock data - in real implementation, this would come from props or hooks
-	const profileData = {
-		userDishMediaEntries: [],
-		likedDishMediaEntries: [],
-		savedTopics: [],
-		savedDishMediaEntries: [],
-	};
+	// API Data State
+	const [profileData, setProfileData] = useState<ProfileData>({
+		userDishMediaEntries: null,
+		likedDishMediaEntries: null,
+		savedTopics: null,
+		savedDishMediaEntries: null,
+	});
+
+	// Pagination State for each tab
+	const [paginationState, setPaginationState] = useState<Record<TabType, PaginationState>>({
+		reviews: { cursor: null, hasNextPage: true, isLoadingMore: false },
+		saved: { cursor: null, hasNextPage: true, isLoadingMore: false },
+		liked: { cursor: null, hasNextPage: true, isLoadingMore: false },
+		wallet: { cursor: null, hasNextPage: false, isLoadingMore: false },
+	});
+
+	const [fetchErrors, setFetchErrors] = useState<Record<TabType, string | null>>({
+		reviews: null,
+		saved: null,
+		liked: null,
+		wallet: null,
+	});
 
 	// Available tabs based on profile ownership
 	const availableTabs: TabType[] = useMemo(() => {
@@ -50,7 +103,293 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 		return tabs;
 	}, [isOwnProfile]);
 
+	// API Functions
+	const fetchUserDishMediaEntries = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<QueryUserDishReviewsDto, QueryUserDishReviewsResponse>(
+					`v1/users/${isOwnProfile ? user?.id : userId}/dish-reviews`,
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_user_dish_reviews_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						userId: isOwnProfile ? "me" : userId,
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend, isOwnProfile, userId, user?.id, logFrontendEvent],
+	);
+
+	const fetchLikedDishMediaEntries = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<QueryMeLikedDishMediaDto, QueryMeLikedDishMediaResponse>(
+					"v1/users/me/liked-dish-media",
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_liked_dish_media_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend, logFrontendEvent],
+	);
+
+	const fetchSavedTopics = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse>(
+					"v1/users/me/saved-dish-categories",
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_saved_topics_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend, logFrontendEvent],
+	);
+
+	const fetchSavedDishMediaEntries = useCallback(
+		async (cursor?: string) => {
+			try {
+				const response = await callBackend<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse>(
+					"v1/users/me/saved-dish-media",
+					{
+						method: "GET",
+						requestPayload: cursor ? { cursor } : {},
+					},
+				);
+
+				return {
+					data: response.data || [],
+					nextCursor: response.nextCursor,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "fetch_saved_dish_media_entries_failed",
+					error_level: "log",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						cursor: cursor || "initial",
+					},
+				});
+				throw error;
+			}
+		},
+		[callBackend, logFrontendEvent],
+	);
+
+	// Load initial data for a specific tab
+	const loadInitialData = useCallback(
+		async (tab: TabType) => {
+			if (tab === "wallet") return;
+
+			setFetchErrors((prev) => ({ ...prev, [tab]: null }));
+
+			try {
+				let response;
+				switch (tab) {
+					case "reviews":
+						const userDishMediaEntriesResponse = await fetchUserDishMediaEntries();
+						setProfileData((prev) => ({ ...prev, userDishMediaEntries: userDishMediaEntriesResponse.data }));
+						response = userDishMediaEntriesResponse;
+						break;
+					case "liked":
+						if (!isOwnProfile) return;
+						const likedDishMediaEntriesResponse = await fetchLikedDishMediaEntries();
+						setProfileData((prev) => ({ ...prev, likedDishMediaEntries: likedDishMediaEntriesResponse.data }));
+						response = likedDishMediaEntriesResponse;
+						break;
+					case "saved":
+						if (!isOwnProfile) return;
+						const [savedTopicsResponse, savedDishMediaEntriesResponse] = await Promise.all([
+							fetchSavedTopics(),
+							fetchSavedDishMediaEntries(),
+						]);
+						setProfileData((prev) => ({
+							...prev,
+							savedTopics: savedTopicsResponse.data,
+							savedDishMediaEntries: savedDishMediaEntriesResponse.data,
+						}));
+						response = savedTopicsResponse; // Use topics response for pagination
+						break;
+					default:
+						return;
+				}
+
+				setPaginationState((prev) => ({
+					...prev,
+					[tab]: {
+						cursor: response.nextCursor,
+						hasNextPage: !!response.nextCursor,
+						isLoadingMore: false,
+					},
+				}));
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				setFetchErrors((prev) => ({ ...prev, [tab]: errorMessage }));
+			}
+		},
+		[fetchUserDishMediaEntries, fetchLikedDishMediaEntries, fetchSavedTopics, fetchSavedDishMediaEntries, isOwnProfile],
+	);
+
+	// Load more data for pagination
+	const loadMoreData = useCallback(
+		async (tab: TabType) => {
+			if (tab === "wallet" || !paginationState[tab].hasNextPage || paginationState[tab].isLoadingMore) return;
+
+			setPaginationState((prev) => ({
+				...prev,
+				[tab]: { ...prev[tab], isLoadingMore: true },
+			}));
+
+			try {
+				let response;
+				switch (tab) {
+					case "reviews":
+						response = await fetchUserDishMediaEntries(paginationState[tab].cursor || undefined);
+						setProfileData((prev) => ({
+							...prev,
+							userDishMediaEntries: [...(prev.userDishMediaEntries || []), ...response.data],
+						}));
+						break;
+					case "liked":
+						if (!isOwnProfile) return;
+						response = await fetchLikedDishMediaEntries(paginationState[tab].cursor || undefined);
+						setProfileData((prev) => ({
+							...prev,
+							likedDishMediaEntries: [...(prev.likedDishMediaEntries || []), ...response.data],
+						}));
+						break;
+					case "saved":
+						if (!isOwnProfile) return;
+						const [savedTopicsResponse, savedDishMediaEntriesResponse] = await Promise.all([
+							fetchSavedTopics(paginationState[tab].cursor || undefined),
+							fetchSavedDishMediaEntries(paginationState[tab].cursor || undefined),
+						]);
+						setProfileData((prev) => ({
+							...prev,
+							savedTopics: [...(prev.savedTopics || []), ...savedTopicsResponse.data],
+							savedDishMediaEntries: [...(prev.savedDishMediaEntries || []), ...savedDishMediaEntriesResponse.data],
+						}));
+						response = savedTopicsResponse; // Use topics response for pagination
+						break;
+					default:
+						return;
+				}
+
+				setPaginationState((prev) => ({
+					...prev,
+					[tab]: {
+						cursor: response.nextCursor,
+						hasNextPage: !!response.nextCursor,
+						isLoadingMore: false,
+					},
+				}));
+			} catch (error) {
+				setPaginationState((prev) => ({
+					...prev,
+					[tab]: { ...prev[tab], isLoadingMore: false },
+				}));
+			}
+		},
+		[
+			paginationState,
+			fetchUserDishMediaEntries,
+			fetchLikedDishMediaEntries,
+			fetchSavedTopics,
+			fetchSavedDishMediaEntries,
+			isOwnProfile,
+		],
+	);
+
+	// Get current dish media entries for store
+	const getCurrentDishMediaEntries = useCallback(() => {
+		switch (selectedTab) {
+			case "reviews":
+				return profileData.userDishMediaEntries || [];
+			case "liked":
+				return profileData.likedDishMediaEntries || [];
+			case "saved":
+				return profileData.savedDishMediaEntries || [];
+			default:
+				return [];
+		}
+	}, [selectedTab, profileData]);
+
+	// Load initial data when component mounts
+	useEffect(() => {
+		withLoading(() => loadInitialData("reviews"));
+	}, [loadInitialData, withLoading]);
 	// Event handlers
+	const handleDishMediaEntryPress = useCallback(
+		(index: number) => (item: DishMediaEntry) => {
+			lightImpact();
+			setDishePromises(selectedTab, Promise.resolve(getCurrentDishMediaEntries()));
+			router.push({
+				pathname: "/[locale]/(tabs)/profile/food",
+				params: {
+					locale,
+					startIndex: index,
+					tabName: selectedTab,
+				},
+			});
+
+			logFrontendEvent({
+				event_name: "dish_media_entry_selected",
+				error_level: "log",
+				payload: { item, selectedTab },
+			});
+		},
+		[lightImpact, setDishePromises, selectedTab, getCurrentDishMediaEntries, router, locale, logFrontendEvent],
+	);
+
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
 		setHeaderHeight(height);
@@ -102,6 +441,13 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 	const handleTabChange = useCallback(
 		(index: number) => {
 			const tabName = availableTabs[index];
+			setSelectedTab(tabName);
+			
+			// Load data for the newly selected tab if not already loaded
+			if (tabName !== "reviews" && !profileData[tabName === "saved" ? "savedTopics" : `${tabName}DishMediaEntries` as keyof ProfileData]) {
+				withLoading(() => loadInitialData(tabName));
+			}
+			
 			logFrontendEvent({
 				event_name: "profile_tab_changed",
 				error_level: "log",
@@ -111,7 +457,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 				},
 			});
 		},
-		[availableTabs, logFrontendEvent, profile.id],
+		[availableTabs, profileData, loadInitialData, withLoading, logFrontendEvent, profile.id],
 	);
 
 	// Render header component
@@ -160,9 +506,12 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 				<Tabs.Tab name="reviews">
 					<ReviewTab
 						data={profileData.userDishMediaEntries || []}
-						onItemPress={(item, index) => {
-							// TODO: Handle review item press
-						}}
+						isLoading={isInitialLoading && selectedTab === "reviews"}
+						isLoadingMore={paginationState.reviews.isLoadingMore}
+						refreshing={false}
+						onRefresh={() => withLoading(() => loadInitialData("reviews"))}
+						onEndReached={() => loadMoreData("reviews")}
+						onItemPress={(item, index) => handleDishMediaEntryPress(index)(item)}
 					/>
 				</Tabs.Tab>
 
@@ -171,21 +520,32 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						savedTopics={profileData.savedTopics || []}
 						savedPosts={profileData.savedDishMediaEntries || []}
 						isOwnProfile={isOwnProfile}
+						isLoading={isInitialLoading && selectedTab === "saved"}
+						isLoadingMore={paginationState.saved.isLoadingMore}
+						refreshing={false}
+						onRefresh={() => withLoading(() => loadInitialData("saved"))}
+						onEndReached={() => loadMoreData("saved")}
 						onTopicPress={(item, index) => {
-							// TODO: Handle topic press
+							// TODO: Handle topic press - implement topic navigation
+							logFrontendEvent({
+								event_name: "saved_topic_selected",
+								error_level: "log",
+								payload: { topicId: item.id, index },
+							});
 						}}
-						onPostPress={(item, index) => {
-							// TODO: Handle post press
-						}}
+						onPostPress={(item, index) => handleDishMediaEntryPress(index)(item)}
 					/>
 				</Tabs.Tab>
 
 				<Tabs.Tab name="liked">
 					<LikeTab
 						data={profileData.likedDishMediaEntries || []}
-						onItemPress={(item, index) => {
-							// TODO: Handle liked item press
-						}}
+						isLoading={isInitialLoading && selectedTab === "liked"}
+						isLoadingMore={paginationState.liked.isLoadingMore}
+						refreshing={false}
+						onRefresh={() => withLoading(() => loadInitialData("liked"))}
+						onEndReached={() => loadMoreData("liked")}
+						onItemPress={(item, index) => handleDishMediaEntryPress(index)(item)}
 					/>
 				</Tabs.Tab>
 
@@ -194,10 +554,22 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						deposits={mockBids}
 						earnings={mockEarnings}
 						onDepositPress={(item, index) => {
-							// TODO: Handle deposit press
+							lightImpact();
+							logFrontendEvent({
+								event_name: "deposit_item_selected",
+								error_level: "log",
+								payload: { depositId: item.id, index },
+							});
+							// TODO: Handle deposit press - implement deposit detail navigation
 						}}
 						onEarningPress={(item, index) => {
-							// TODO: Handle earning press
+							lightImpact();
+							logFrontendEvent({
+								event_name: "earning_item_selected",
+								error_level: "log",
+								payload: { earningId: item.id, index },
+							});
+							// TODO: Handle earning press - implement earning detail navigation
 						}}
 					/>
 				</Tabs.Tab>
