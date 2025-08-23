@@ -46,7 +46,7 @@ interface ClaudeMessageResponse {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
@@ -249,7 +249,7 @@ export class ExternalApiService {
   }
 
   /**
-   * Google Places API: Get Photo Media (handles HTTP redirect to get photoUri)
+   * Google Places API: Get Photo Media (JSON with photoUri)
    */
   async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
     const apiKey = env.GOOGLE_PLACE_API_KEY;
@@ -260,7 +260,7 @@ export class ExternalApiService {
     const photoName = photoRef.endsWith('/media')
       ? photoRef
       : `${photoRef}/media`;
-    const endpoint = `https://places.googleapis.com/v1/${photoName}?maxWidthPx=800`;
+    const endpoint = `https://places.googleapis.com/v1/${photoName}?maxWidthPx=800&skipHttpRedirect=true`;
 
     try {
       const response = await this.makeExternalApiCall({
@@ -274,15 +274,6 @@ export class ExternalApiService {
         },
       });
 
-      // Without skipHttpRedirect=true, the API returns a redirect to the photo URL
-      if (response.status === 302 || response.status === 301) {
-        const photoUri = response.headers.get('location');
-        if (photoUri) {
-          return { photoUri };
-        }
-        throw new Error('Redirect response did not contain location header');
-      }
-
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
         throw new Error(
@@ -290,15 +281,11 @@ export class ExternalApiService {
         );
       }
 
-      // Fallback: if for some reason we get a JSON response (shouldn't happen without skipHttpRedirect=true)
       const data = await response.json().catch(() => null);
       if (data?.photoUri) {
         return { photoUri: data.photoUri };
       }
-
-      throw new Error(
-        'Unexpected response format from Google Places Photos API',
-      );
+      return null;
     } catch (error) {
       this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
