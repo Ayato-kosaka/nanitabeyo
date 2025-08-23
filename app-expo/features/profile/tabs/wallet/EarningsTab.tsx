@@ -147,7 +147,6 @@ const styles = StyleSheet.create({
 		marginVertical: 16,
 	},
 	statusFilterContent: {
-		paddingHorizontal: 16,
 		gap: 8,
 	},
 	statusFilterChip: {
@@ -189,8 +188,8 @@ const styles = StyleSheet.create({
 	},
 	statusChip: {
 		alignSelf: "flex-start",
-		paddingHorizontal: 8,
-		paddingVertical: 2,
+		paddingVertical: 4,
+		paddingHorizontal: 4,
 		borderRadius: 8,
 	},
 	statusText: {
@@ -207,6 +206,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 		borderRadius: 20,
 		padding: 32,
+		width: "100%",
 		alignItems: "center",
 		justifyContent: "center",
 		shadowColor: "#000",

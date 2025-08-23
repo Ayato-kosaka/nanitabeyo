@@ -287,7 +287,13 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 	// Load more data for pagination
 	const loadMoreData = useCallback(
 		async (tab: TabType) => {
-			if (tab === "wallet" || !paginationState[tab].hasNextPage || paginationState[tab].isLoadingMore) return;
+			if (
+				!paginationState[tab].cursor ||
+				tab === "wallet" ||
+				!paginationState[tab].hasNextPage ||
+				paginationState[tab].isLoadingMore
+			)
+				return;
 
 			setPaginationState((prev) => ({
 				...prev,
@@ -298,19 +304,25 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 				let response;
 				switch (tab) {
 					case "reviews":
-						response = await fetchUserDishMediaEntries(paginationState[tab].cursor || undefined);
+						const userDishMediaEntriesresponse = await fetchUserDishMediaEntries(
+							paginationState[tab].cursor || undefined,
+						);
 						setProfileData((prev) => ({
 							...prev,
-							userDishMediaEntries: [...(prev.userDishMediaEntries || []), ...response.data],
+							userDishMediaEntries: [...prev.userDishMediaEntries!, ...userDishMediaEntriesresponse.data],
 						}));
+						response = userDishMediaEntriesresponse;
 						break;
 					case "liked":
 						if (!isOwnProfile) return;
-						response = await fetchLikedDishMediaEntries(paginationState[tab].cursor || undefined);
+						const likedDishMediaEntriesResponse = await fetchLikedDishMediaEntries(
+							paginationState[tab].cursor || undefined,
+						);
 						setProfileData((prev) => ({
 							...prev,
-							likedDishMediaEntries: [...(prev.likedDishMediaEntries || []), ...response.data],
+							likedDishMediaEntries: [...prev.likedDishMediaEntries!, ...likedDishMediaEntriesResponse.data],
 						}));
+						response = likedDishMediaEntriesResponse;
 						break;
 					case "saved":
 						if (!isOwnProfile) return;
@@ -463,12 +475,15 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 		(index: number) => {
 			const tabName = availableTabs[index];
 			setSelectedTab(tabName);
-			
+
 			// Load data for the newly selected tab if not already loaded
-			if (tabName !== "reviews" && !profileData[tabName === "saved" ? "savedTopics" : `${tabName}DishMediaEntries` as keyof ProfileData]) {
+			if (
+				tabName !== "reviews" &&
+				!profileData[tabName === "saved" ? "savedTopics" : (`${tabName}DishMediaEntries` as keyof ProfileData)]
+			) {
 				withLoading(() => loadInitialData(tabName));
 			}
-			
+
 			logFrontendEvent({
 				event_name: "profile_tab_changed",
 				error_level: "log",
@@ -610,11 +625,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						placeholderTextColor="#666"
 					/>
 				</Card>
-				<PrimaryButton 
-					style={{ marginHorizontal: 16 }} 
-					onPress={handleSaveProfile} 
-					label={i18n.t("Common.save")} 
-				/>
+				<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSaveProfile} label={i18n.t("Common.save")} />
 			</BlurModal>
 		</View>
 	);
