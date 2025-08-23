@@ -556,7 +556,8 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 				renderHeader={renderHeader}
 				renderTabBar={renderTabBar}
 				onIndexChange={handleTabChange}
-				pagerProps={{ scrollEnabled: true }}>
+				pagerProps={{ scrollEnabled: true }}
+				containerStyle={{ backgroundColor: "white" }}>
 				<Tabs.Tab name="reviews">
 					<ReviewTab
 						data={profileData.userDishMediaEntries || []}
