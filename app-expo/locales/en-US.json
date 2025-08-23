@@ -189,7 +189,9 @@
 			"noEarnings": "No earnings for the selected status",
 			"noDishReviews": "No posts yet",
 			"noLikedDishMediaEntries": "No liked posts",
-			"noSavedItems": "No saved items"
+			"noSavedItems": "No saved items",
+			"noSavedPosts": "No saved posts",
+			"noSavedTopics": "No saved topics"
 		},
 		"statusLabels": {
 			"active": "Active",

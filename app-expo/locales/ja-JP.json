@@ -189,7 +189,9 @@
 			"noEarnings": "選択したステータスの収益がありません",
 			"noDishReviews": "投稿はまだありません",
 			"noLikedDishMediaEntries": "いいねした投稿はありません",
-			"noSavedItems": "保存されたアイテムはありません"
+			"noSavedItems": "保存されたアイテムはありません",
+			"noSavedPosts": "保存した投稿はありません",
+			"noSavedTopics": "保存したトピックはありません"
 		},
 		"statusLabels": {
 			"active": "アクティブ",

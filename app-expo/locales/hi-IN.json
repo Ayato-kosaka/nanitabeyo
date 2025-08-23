@@ -189,7 +189,9 @@
 			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं",
 			"noDishReviews": "अभी तक कोई पोस्ट नहीं",
 			"noLikedDishMediaEntries": "कोई पसंद की गई पोस्ट नहीं",
-			"noSavedItems": "कोई सहेजे गए आइटम नहीं"
+			"noSavedItems": "कोई सहेजे गए आइटम नहीं",
+			"noSavedPosts": "कोई सहेजी गई पोस्ट नहीं",
+			"noSavedTopics": "कोई सहेजे गए विषय नहीं"
 		},
 		"statusLabels": {
 			"active": "सक्रिय",

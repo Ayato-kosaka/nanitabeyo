@@ -189,7 +189,9 @@
 			"noEarnings": "Aucun revenu pour le statut sélectionné",
 			"noDishReviews": "Aucune publication pour l'instant",
 			"noLikedDishMediaEntries": "Aucune publication aimée",
-			"noSavedItems": "Aucun élément enregistré"
+			"noSavedItems": "Aucun élément enregistré",
+			"noSavedPosts": "Aucune publication enregistrée",
+			"noSavedTopics": "Aucun sujet enregistré"
 		},
 		"statusLabels": {
 			"active": "Actif",

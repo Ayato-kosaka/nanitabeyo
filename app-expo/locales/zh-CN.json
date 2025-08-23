@@ -189,7 +189,9 @@
 			"noEarnings": "所选状态没有收益",
 			"noDishReviews": "暂无帖子",
 			"noLikedDishMediaEntries": "暂无点赞的帖子",
-			"noSavedItems": "没有已保存的项目"
+			"noSavedItems": "没有已保存的项目",
+			"noSavedPosts": "没有已保存的帖子",
+			"noSavedTopics": "没有已保存的主题"
 		},
 		"statusLabels": {
 			"active": "活跃",

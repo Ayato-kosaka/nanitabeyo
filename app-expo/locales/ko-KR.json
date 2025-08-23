@@ -189,7 +189,9 @@
 			"noEarnings": "선택한 상태에 대한 수익이 없습니다",
 			"noDishReviews": "게시물이 아직 없습니다",
 			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
-			"noSavedItems": "저장된 항목이 없습니다"
+			"noSavedItems": "저장된 항목이 없습니다",
+			"noSavedPosts": "저장된 게시물이 없습니다",
+			"noSavedTopics": "저장된 주제가 없습니다"
 		},
 		"statusLabels": {
 			"active": "활성",

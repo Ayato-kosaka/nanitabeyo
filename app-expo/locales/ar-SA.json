@@ -189,7 +189,9 @@
 			"noEarnings": "لا توجد أرباح للحالة المحددة",
 			"noDishReviews": "لا توجد منشورات بعد",
 			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
-			"noSavedItems": "لا توجد عناصر محفوظة"
+			"noSavedItems": "لا توجد عناصر محفوظة",
+			"noSavedPosts": "لا توجد منشورات محفوظة",
+			"noSavedTopics": "لا توجد مواضيع محفوظة"
 		},
 		"statusLabels": {
 			"active": "نشط",
