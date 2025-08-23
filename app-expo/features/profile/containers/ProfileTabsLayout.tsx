@@ -147,7 +147,8 @@ export function ProfileTabsLayout() {
 				renderHeader={renderHeader}
 				renderTabBar={renderTabBar}
 				onIndexChange={handleTabChange}
-				pagerProps={{ scrollEnabled: true }}>
+				pagerProps={{ scrollEnabled: true }}
+				containerStyle={{ backgroundColor: "white" }}>
 				<Tabs.Tab name="reviews">
 					<ReviewTab />
 				</Tabs.Tab>
