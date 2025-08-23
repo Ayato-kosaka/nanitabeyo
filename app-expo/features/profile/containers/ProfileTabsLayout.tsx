@@ -31,24 +31,24 @@ export function ProfileTabsLayout() {
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [editedBio, setEditedBio] = useState("");
 
-        const isOwnProfile = !userId || userId === "me";
-        const profile = isOwnProfile ? userProfile : otherUserProfile;
+	const isOwnProfile = !userId || userId === "me";
+	const profile = isOwnProfile ? userProfile : otherUserProfile;
 
-        const availableTabs: GroupName[] = useMemo(() => {
-                const tabs: GroupName[] = ["reviews"];
-                if (isOwnProfile) {
-                        tabs.push("saved", "liked", "wallet");
-                }
-                return tabs;
-        }, [isOwnProfile]);
+	const availableTabs: GroupName[] = useMemo(() => {
+		const tabs: GroupName[] = ["reviews"];
+		if (isOwnProfile) {
+			tabs.push("saved", "liked", "wallet");
+		}
+		return tabs;
+	}, [isOwnProfile]);
 
-        const tabRoutes: RouteName[] = useMemo(() => {
-                const routes: RouteName[] = ["reviews"];
-                if (isOwnProfile) {
-                        routes.push("saved-posts", "saved-topics", "liked", "wallet-deposit", "wallet-earning");
-                }
-                return routes;
-        }, [isOwnProfile]);
+	const tabRoutes: RouteName[] = useMemo(() => {
+		const routes: RouteName[] = ["reviews"];
+		if (isOwnProfile) {
+			routes.push("saved-posts", "saved-topics", "liked", "wallet-deposit", "wallet-earning");
+		}
+		return routes;
+	}, [isOwnProfile]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
@@ -104,17 +104,17 @@ export function ProfileTabsLayout() {
 		});
 	}, [mediumImpact, closeEditModal, logFrontendEvent, profile.bio.length, editedBio.length]);
 
-        const handleTabChange = useCallback(
-                (index: number) => {
-                        const tabName = tabRoutes[index];
-                        logFrontendEvent({
-                                event_name: "profile_tab_changed",
-                                error_level: "log",
-                                payload: { tabName, userId: profile.id },
-                        });
-                },
-                [tabRoutes, logFrontendEvent, profile.id],
-        );
+	const handleTabChange = useCallback(
+		(index: number) => {
+			const tabName = tabRoutes[index];
+			logFrontendEvent({
+				event_name: "profile_tab_changed",
+				error_level: "log",
+				payload: { tabName, userId: profile.id },
+			});
+		},
+		[tabRoutes, logFrontendEvent, profile.id],
+	);
 
 	const renderHeader = useCallback(() => {
 		return (
@@ -151,56 +151,52 @@ export function ProfileTabsLayout() {
 
 	return (
 		<View style={styles.container}>
-                        <Tabs.Container
-                                headerHeight={headerHeight}
-                                renderHeader={renderHeader}
-                                renderTabBar={renderTabBar}
-                                onIndexChange={handleTabChange}
-                                pagerProps={{ scrollEnabled: true }}
-                                containerStyle={{ backgroundColor: "white" }}>
-                                <Tabs.Tab name="reviews">
-                                        <ReviewTab />
-                                </Tabs.Tab>
-                                {isOwnProfile && (
-                                        <>
-                                                <Tabs.Tab name="saved-posts">
-                                                        <SavedPostsTab isOwnProfile={isOwnProfile} />
-                                                </Tabs.Tab>
-                                                <Tabs.Tab name="saved-topics">
-                                                        <SavedTopicsTab isOwnProfile={isOwnProfile} />
-                                                </Tabs.Tab>
-                                                <Tabs.Tab name="liked">
-                                                        <LikeTab />
-                                                </Tabs.Tab>
-                                                <Tabs.Tab name="wallet-deposit">
-                                                        <DepositsTab
-                                                                data={mockBids}
-                                                                onItemPress={(item, index) => {
-                                                                        lightImpact();
-                                                                        logFrontendEvent({
-                                                                                event_name: "deposit_item_selected",
-                                                                                error_level: "log",
-                                                                                payload: { depositId: item.id, index },
-                                                                        });
-                                                                }}
-                                                        />
-                                                </Tabs.Tab>
-                                                <Tabs.Tab name="wallet-earning">
-                                                        <EarningsTab
-                                                                data={mockEarnings}
-                                                                onItemPress={(item, index) => {
-                                                                        lightImpact();
-                                                                        logFrontendEvent({
-                                                                                event_name: "earning_item_selected",
-                                                                                error_level: "log",
-                                                                                payload: { earningId: item.id, index },
-                                                                        });
-                                                                }}
-                                                        />
-                                                </Tabs.Tab>
-                                        </>
-                                )}
-                        </Tabs.Container>
+			<Tabs.Container
+				headerHeight={headerHeight}
+				renderHeader={renderHeader}
+				renderTabBar={renderTabBar}
+				onIndexChange={handleTabChange}
+				pagerProps={{ scrollEnabled: true }}
+				containerStyle={{ backgroundColor: "white" }}>
+				<Tabs.Tab name="reviews">
+					<ReviewTab />
+				</Tabs.Tab>
+				<Tabs.Tab name="saved-posts">
+					<SavedPostsTab isOwnProfile={isOwnProfile} />
+				</Tabs.Tab>
+				<Tabs.Tab name="saved-topics">
+					<SavedTopicsTab isOwnProfile={isOwnProfile} />
+				</Tabs.Tab>
+				<Tabs.Tab name="liked">
+					<LikeTab />
+				</Tabs.Tab>
+				<Tabs.Tab name="wallet-deposit">
+					<DepositsTab
+						data={mockBids}
+						onItemPress={(item, index) => {
+							lightImpact();
+							logFrontendEvent({
+								event_name: "deposit_item_selected",
+								error_level: "log",
+								payload: { depositId: item.id, index },
+							});
+						}}
+					/>
+				</Tabs.Tab>
+				<Tabs.Tab name="wallet-earning">
+					<EarningsTab
+						data={mockEarnings}
+						onItemPress={(item, index) => {
+							lightImpact();
+							logFrontendEvent({
+								event_name: "earning_item_selected",
+								error_level: "log",
+								payload: { earningId: item.id, index },
+							});
+						}}
+					/>
+				</Tabs.Tab>
+			</Tabs.Container>
 
 			<BlurModal>
 				<Card>
