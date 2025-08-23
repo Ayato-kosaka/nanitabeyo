@@ -157,45 +157,56 @@ export function ProfileTabsLayout() {
 				renderTabBar={renderTabBar}
 				onIndexChange={handleTabChange}
 				pagerProps={{ scrollEnabled: true }}
+				headerContainerStyle={{ shadowColor: "transparent" }}
 				containerStyle={{ backgroundColor: "white" }}>
 				<Tabs.Tab name="reviews">
 					<ReviewTab />
 				</Tabs.Tab>
-				<Tabs.Tab name="saved-posts">
-					<SavedPostsTab isOwnProfile={isOwnProfile} />
-				</Tabs.Tab>
-				<Tabs.Tab name="saved-topics">
-					<SavedTopicsTab isOwnProfile={isOwnProfile} />
-				</Tabs.Tab>
-				<Tabs.Tab name="liked">
-					<LikeTab />
-				</Tabs.Tab>
-				<Tabs.Tab name="wallet-deposit">
-					<DepositsTab
-						data={mockBids}
-						onItemPress={(item, index) => {
-							lightImpact();
-							logFrontendEvent({
-								event_name: "deposit_item_selected",
-								error_level: "log",
-								payload: { depositId: item.id, index },
-							});
-						}}
-					/>
-				</Tabs.Tab>
-				<Tabs.Tab name="wallet-earning">
-					<EarningsTab
-						data={mockEarnings}
-						onItemPress={(item, index) => {
-							lightImpact();
-							logFrontendEvent({
-								event_name: "earning_item_selected",
-								error_level: "log",
-								payload: { earningId: item.id, index },
-							});
-						}}
-					/>
-				</Tabs.Tab>
+				{isOwnProfile ? (
+					<Tabs.Tab name="saved-posts">
+						<SavedPostsTab isOwnProfile={isOwnProfile} />
+					</Tabs.Tab>
+				) : null}
+				{isOwnProfile ? (
+					<Tabs.Tab name="saved-topics">
+						<SavedTopicsTab isOwnProfile={isOwnProfile} />
+					</Tabs.Tab>
+				) : null}
+				{isOwnProfile ? (
+					<Tabs.Tab name="liked">
+						<LikeTab />
+					</Tabs.Tab>
+				) : null}
+				{isOwnProfile ? (
+					<Tabs.Tab name="wallet-deposit">
+						<DepositsTab
+							data={mockBids}
+							onItemPress={(item, index) => {
+								lightImpact();
+								logFrontendEvent({
+									event_name: "deposit_item_selected",
+									error_level: "log",
+									payload: { depositId: item.id, index },
+								});
+							}}
+						/>
+					</Tabs.Tab>
+				) : null}
+				{isOwnProfile ? (
+					<Tabs.Tab name="wallet-earning">
+						<EarningsTab
+							data={mockEarnings}
+							onItemPress={(item, index) => {
+								lightImpact();
+								logFrontendEvent({
+									event_name: "earning_item_selected",
+									error_level: "log",
+									payload: { earningId: item.id, index },
+								});
+							}}
+						/>
+					</Tabs.Tab>
+				) : null}
 			</Tabs.Container>
 
 			<BlurModal>
