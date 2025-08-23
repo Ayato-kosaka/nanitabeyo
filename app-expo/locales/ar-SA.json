@@ -171,12 +171,16 @@
 		"profile": "الملف الشخصي"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "الودائع",
-			"earnings": "الأرباح",
-			"topics": "المواضيع",
-			"posts": "المنشورات"
-		},
+                "tabs": {
+                        "deposits": "الودائع",
+                        "earnings": "الأرباح",
+                        "topics": "المواضيع",
+                        "posts": "المنشورات",
+                        "saved-posts": "المنشورات",
+                        "saved-topics": "المواضيع",
+                        "wallet-deposit": "الودائع",
+                        "wallet-earning": "الأرباح"
+                },
 		"numberSuffix": {
 			"million": "م",
 			"thousand": "ك"

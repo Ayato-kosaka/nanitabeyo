@@ -6,8 +6,10 @@ import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileTabsBar } from "../components/ProfileTabsBar";
 import { ReviewTab } from "../tabs/ReviewTab";
 import { LikeTab } from "../tabs/LikeTab";
-import { SaveTab } from "../tabs/SaveTab";
-import { WalletTab } from "../tabs/WalletTab";
+import { SavedPostsTab } from "../tabs/SavedPostsTab";
+import { SavedTopicsTab } from "../tabs/SavedTopicsTab";
+import { DepositsTab } from "../tabs/wallet/DepositsTab";
+import { EarningsTab } from "../tabs/wallet/EarningsTab";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/hooks/useBlurModal";
@@ -17,8 +19,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
-
-type TabType = "reviews" | "saved" | "liked" | "wallet";
+import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 
 export function ProfileTabsLayout() {
 	const { userId } = useLocalSearchParams();
@@ -33,12 +34,20 @@ export function ProfileTabsLayout() {
 	const isOwnProfile = !userId || userId === "me";
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
 
-	const availableTabs: TabType[] = useMemo(() => {
-		const tabs: TabType[] = ["reviews"];
+	const availableTabs: GroupName[] = useMemo(() => {
+		const tabs: GroupName[] = ["reviews"];
 		if (isOwnProfile) {
 			tabs.push("saved", "liked", "wallet");
 		}
 		return tabs;
+	}, [isOwnProfile]);
+
+	const tabRoutes: RouteName[] = useMemo(() => {
+		const routes: RouteName[] = ["reviews"];
+		if (isOwnProfile) {
+			routes.push("saved-posts", "saved-topics", "liked", "wallet-deposit", "wallet-earning");
+		}
+		return routes;
 	}, [isOwnProfile]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
@@ -97,14 +106,14 @@ export function ProfileTabsLayout() {
 
 	const handleTabChange = useCallback(
 		(index: number) => {
-			const tabName = availableTabs[index];
+			const tabName = tabRoutes[index];
 			logFrontendEvent({
 				event_name: "profile_tab_changed",
 				error_level: "log",
 				payload: { tabName, userId: profile.id },
 			});
 		},
-		[availableTabs, logFrontendEvent, profile.id],
+		[tabRoutes, logFrontendEvent, profile.id],
 	);
 
 	const renderHeader = useCallback(() => {
@@ -152,17 +161,19 @@ export function ProfileTabsLayout() {
 				<Tabs.Tab name="reviews">
 					<ReviewTab />
 				</Tabs.Tab>
-				<Tabs.Tab name="saved">
-					<SaveTab isOwnProfile={isOwnProfile} />
+				<Tabs.Tab name="saved-posts">
+					<SavedPostsTab isOwnProfile={isOwnProfile} />
+				</Tabs.Tab>
+				<Tabs.Tab name="saved-topics">
+					<SavedTopicsTab isOwnProfile={isOwnProfile} />
 				</Tabs.Tab>
 				<Tabs.Tab name="liked">
 					<LikeTab />
 				</Tabs.Tab>
-				<Tabs.Tab name="wallet">
-					<WalletTab
-						deposits={mockBids}
-						earnings={mockEarnings}
-						onDepositPress={(item, index) => {
+				<Tabs.Tab name="wallet-deposit">
+					<DepositsTab
+						data={mockBids}
+						onItemPress={(item, index) => {
 							lightImpact();
 							logFrontendEvent({
 								event_name: "deposit_item_selected",
@@ -170,7 +181,12 @@ export function ProfileTabsLayout() {
 								payload: { depositId: item.id, index },
 							});
 						}}
-						onEarningPress={(item, index) => {
+					/>
+				</Tabs.Tab>
+				<Tabs.Tab name="wallet-earning">
+					<EarningsTab
+						data={mockEarnings}
+						onItemPress={(item, index) => {
 							lightImpact();
 							logFrontendEvent({
 								event_name: "earning_item_selected",
