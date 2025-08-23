@@ -219,7 +219,8 @@
 		"privateContent": "Este contenido es privado",
 		"placeholders": {
 			"enterBio": "Ingresa tu biografía..."
-		}
+		},
+		"savedCount": "{{count}} guardados"
 	},
 	"NotFound": {
 		"title": "¡Vaya!",

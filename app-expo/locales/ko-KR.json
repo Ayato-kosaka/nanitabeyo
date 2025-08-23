@@ -219,7 +219,8 @@
 		"privateContent": "이 내용은 비공개입니다",
 		"placeholders": {
 			"enterBio": "자기소개를 입력하세요..."
-		}
+		},
+		"savedCount": "{{count}}회 저장"
 	},
 	"NotFound": {
 		"title": "이런!",

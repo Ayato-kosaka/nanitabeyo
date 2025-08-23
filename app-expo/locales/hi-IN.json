@@ -219,7 +219,8 @@
 		"privateContent": "यह सामग्री निजी है",
 		"placeholders": {
 			"enterBio": "अपना परिचय दर्ज करें..."
-		}
+		},
+		"savedCount": "{{count}} बार सहेजा गया"
 	},
 	"NotFound": {
 		"title": "ओह!",

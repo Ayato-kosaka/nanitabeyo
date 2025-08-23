@@ -219,7 +219,8 @@
 		"privateContent": "هذا المحتوى خاص",
 		"placeholders": {
 			"enterBio": "أدخل نبذة عنك..."
-		}
+		},
+		"savedCount": "{{count}} حفظ"
 	},
 	"NotFound": {
 		"title": "عذرًا!",
