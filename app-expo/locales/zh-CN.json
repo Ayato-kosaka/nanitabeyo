@@ -1,304 +1,306 @@
 {
-	"Common": {
-		"cancel": "取消",
-		"ok": "确定",
-		"goStore": "打开应用商店",
-		"back": "返回",
-		"close": "关闭",
-		"save": "保存",
-		"post": "发布",
-		"processing": "处理中...",
-		"error": "错误",
-		"success": "成功",
-		"daysRemaining": "剩余{{count}}天",
-		"timeAgo": {
-			"seconds": "{{count}}秒前",
-			"minutes": "{{count}}分钟前",
-			"hours": "{{count}}小时前",
-			"days": "{{count}}天前",
-			"months": "{{count}}个月前",
-			"years": "{{count}}年前"
-		}
-	},
-	"Error": {
-		"maintenanceMessage": "当前正在维护中。",
-		"unsupportedVersion": "此版本已不再受支持."
-	},
-	"Search": {
-		"currentLocation": "当前位置",
-		"DistanceSlider": {
-			"near": "近",
-			"far": "远"
-		},
-		"BudgetSlider": {
-			"cheap": "便宜",
-			"expensive": "昂贵"
-		},
-		"headerTitle": "你想找什么样的美食？🍽",
-		"errors": {
-			"fetchLocation": "获取位置失败",
-			"getCurrentLocation": "获取当前位置失败",
-			"noLocationSelected": "请选择位置",
-			"searchFailed": "搜索失败"
-		},
-		"sections": {
-			"location": "在哪里搜索？",
-			"time": "什么时间？",
-			"scene": "什么场合？",
-			"mood": "你的心情如何？",
-			"distance": "距离？",
-			"budget": "预算？",
-			"restrictions": "限制条件"
-		},
-		"required": "必填",
-		"placeholders": {
-			"enterLocation": "请输入地点"
-		},
-		"loading": "搜索中...",
-		"advancedToggle": {
-			"open": "高级搜索",
-			"close": "关闭高级搜索"
-		},
-		"labels": {
-			"noMinBudget": "无下限",
-			"noMaxBudget": "无上限"
-		},
-		"distanceLabels": {
-			"100m": "100米",
-			"300m": "300米",
-			"500m": "500米",
-			"800m": "800米",
-			"1km": "1公里",
-			"2km": "2公里",
-			"3km": "3公里",
-			"5km": "5公里",
-			"10km": "10公里",
-			"15km": "15公里",
-			"20km": "20公里"
-		},
-		"currencySuffix": "¥",
-		"searchButton": "查找！",
-		"timeSlots": {
-			"morning": "早餐",
-			"lunch": "午餐",
-			"dinner": "晚餐",
-			"lateNight": "夜宵"
-		},
-		"sceneOptions": {
-			"solo": "一个人",
-			"date": "约会",
-			"group": "多人",
-			"largeGroup": "大团体",
-			"tourism": "观光"
-		},
-		"moodOptions": {
-			"hearty": "丰盛",
-			"light": "清淡",
-			"sweet": "甜食",
-			"spicy": "辣的",
-			"healthy": "健康",
-			"junk": "垃圾食品",
-			"alcohol": "以酒为主"
-		},
-		"restrictionOptions": {
-			"vegetarian": "素食",
-			"glutenFree": "无麸质",
-			"dairyFree": "无乳制品",
-			"nutAllergy": "坚果过敏",
-			"seafoodAllergy": "海鲜过敏",
-			"halal": "清真"
-		}
-	},
-	"Topics": {
-		"HideTopicModal": {
-			"title": "隐藏",
-			"description": "请告诉我们隐藏的理由（可选）",
-			"placeholder": "请输入理由...",
-			"confirm": "隐藏"
-		},
-		"Loading": {
-			"title": "正在为你寻找合适的菜品",
-			"subtitle": "请稍候..."
-		},
-		"errors": {
-			"fetchFailed": "获取菜品失败",
-			"invalidSearchParams": "搜索参数无效"
-		},
-		"empty": "没有可显示的菜品",
-		"retry": "返回搜索",
-		"chooseThis": "就选这个！",
-		"hiddenMessage": "{{title}}已被隐藏"
-	},
-	"Notifications": {
-		"title": "通知",
-		"timeAgo": "{{time}}前"
-	},
-	"FoodContentScreen": {
-		"numberSuffix": {
-			"million": "M",
-			"thousand": "K"
-		},
-		"menuOptions": {
-			"viewCreatorProfile": "查看创作者资料",
-			"reservation": "预订"
-		},
-		"actions": {
-			"share": "分享",
-			"seeMore": "查看更多",
-			"openMap": "打开地图"
-		},
-		"share": {
-			"title": "看看{{dishName}}"
-		},
-		"buttons": {
-			"viewRestaurant": "查看餐厅"
-		},
-		"errors": {
-			"mapOpenFailed": "无法打开地图应用"
-		},
-		"info": {
-			"walkFromShibuya": "距离涩谷站步行13分钟"
-		}
-	},
-	"ImageCardGrid": {
-		"openItemDetails": "打开项目详情"
-	},
-	"Tabs": {
-		"home": "首页",
-		"search": "搜索",
-		"map": "地图",
-		"notifications": "通知",
-		"profile": "个人资料"
-	},
-	"Profile": {
-		"tabs": {
-			"deposits": "存款",
-			"earnings": "收益"
-		},
-		"numberSuffix": {
-			"million": "M",
-			"thousand": "K"
-		},
-		"loading": "加载中...",
-		"tabError": {
-			"failedToLoad": "加载数据失败：{{error}}",
-			"retry": "重试"
-		},
-		"emptyState": {
-			"noDeposits": "所选状态没有存款",
-			"noEarnings": "所选状态没有收益",
-			"noDishReviews": "暂无帖子",
-			"noLikedDishMediaEntries": "暂无点赞的帖子",
-			"noSavedItems": "没有已保存的项目",
-			"noSavedPosts": "没有已保存的帖子",
-			"noSavedTopics": "没有已保存的主题"
-		},
-		"statusLabels": {
-			"active": "活跃",
-			"completed": "已完成",
-			"refunded": "已退款",
-			"paid": "已支付",
-			"pending": "待定"
-		},
-		"buttons": {
-			"editProfile": "编辑个人资料",
-			"follow": "关注",
-			"following": "已关注",
-			"message": "消息"
-		},
-		"stats": {
-			"following": "关注中",
-			"followers": "粉丝",
-			"likes": "点赞"
-		},
-		"labels": {
-			"bio": "简介"
-		},
-		"privateContent": "此内容为私密",
-		"placeholders": {
-			"enterBio": "请输入您的个人简介..."
-		},
-		"savedCount": "{{count}} 次收藏"
-	},
-	"NotFound": {
-		"title": "哎呀！",
-		"message": "此屏幕不存在。",
-		"goHome": "返回首页！"
-	},
-	"Map": {
-		"buttons": {
-			"postReview": "发布评论",
-			"placeBid": "出价",
-			"bid": "出价"
-		},
-		"inputs": {
-			"price": "价格",
-			"rating": "评分",
-			"comment": "评论",
-			"bidAmount": "出价金额"
-		},
-		"placeholders": {
-			"searchRestaurants": "搜索餐厅",
-			"enterPrice": "输入价格",
-			"enterReview": "输入评论",
-			"enterBidAmount": "输入出价金额"
-		},
-		"labels": {
-			"endDate": "结束日期:",
-			"paymentProcessing": "付款处理中...",
-			"currentBidAmount": "当前出价金额"
-		},
-		"tabs": {
-			"reviews": "评论",
-			"bids": "出价"
-		},
-		"emptyState": {
-			"noBidsForStatus": "所选状态没有出价"
-		},
-		"alerts": {
-			"locationError": "获取位置信息失败",
-			"currentLocationError": "获取当前位置失败",
-			"bidSuccess": "成功为{{place}}出价¥{{amount}}",
-			"bidError": "出价失败",
-			"reviewSuccess": "评论发布成功",
-			"reviewError": "评论发布失败"
-		},
-		"currentLocation": "当前位置"
-	},
-	"Restaurant": {
-		"placeholders": {
-			"searchLocation": "搜索地点/区域"
-		},
-		"buttons": {
-			"reserve": "预订",
-			"postMedia": "发布媒体"
-		},
-		"tabs": {
-			"posts": "帖子 {{count}}",
-			"info": "信息"
-		},
-		"filter": {
-			"title": "筛选",
-			"reset": "重置",
-			"apply": "应用",
-			"sections": {
-				"priceRange": "价格范围",
-				"category": "菜系"
-			},
-			"priceRanges": {
-				"under1000": "{{currency}}1,000 以下",
-				"range1000to3000": "{{currency}}1,000-3,000",
-				"range3000to5000": "{{currency}}3,000-5,000",
-				"over5000": "{{currency}}5,000 以上"
-			},
-			"categories": {
-				"japanese": "日本菜",
-				"italian": "意大利菜",
-				"french": "法餐",
-				"chinese": "中餐",
-				"asian": "亚洲菜",
-				"other": "其他"
-			}
-		}
-	}
+  "Common": {
+    "cancel": "取消",
+    "ok": "确定",
+    "goStore": "打开应用商店",
+    "back": "返回",
+    "close": "关闭",
+    "save": "保存",
+    "post": "发布",
+    "processing": "处理中...",
+    "error": "错误",
+    "success": "成功",
+    "daysRemaining": "剩余{{count}}天",
+    "timeAgo": {
+      "seconds": "{{count}}秒前",
+      "minutes": "{{count}}分钟前",
+      "hours": "{{count}}小时前",
+      "days": "{{count}}天前",
+      "months": "{{count}}个月前",
+      "years": "{{count}}年前"
+    }
+  },
+  "Error": {
+    "maintenanceMessage": "当前正在维护中。",
+    "unsupportedVersion": "此版本已不再受支持."
+  },
+  "Search": {
+    "currentLocation": "当前位置",
+    "DistanceSlider": {
+      "near": "近",
+      "far": "远"
+    },
+    "BudgetSlider": {
+      "cheap": "便宜",
+      "expensive": "昂贵"
+    },
+    "headerTitle": "你想找什么样的美食？🍽",
+    "errors": {
+      "fetchLocation": "获取位置失败",
+      "getCurrentLocation": "获取当前位置失败",
+      "noLocationSelected": "请选择位置",
+      "searchFailed": "搜索失败"
+    },
+    "sections": {
+      "location": "在哪里搜索？",
+      "time": "什么时间？",
+      "scene": "什么场合？",
+      "mood": "你的心情如何？",
+      "distance": "距离？",
+      "budget": "预算？",
+      "restrictions": "限制条件"
+    },
+    "required": "必填",
+    "placeholders": {
+      "enterLocation": "请输入地点"
+    },
+    "loading": "搜索中...",
+    "advancedToggle": {
+      "open": "高级搜索",
+      "close": "关闭高级搜索"
+    },
+    "labels": {
+      "noMinBudget": "无下限",
+      "noMaxBudget": "无上限"
+    },
+    "distanceLabels": {
+      "100m": "100米",
+      "300m": "300米",
+      "500m": "500米",
+      "800m": "800米",
+      "1km": "1公里",
+      "2km": "2公里",
+      "3km": "3公里",
+      "5km": "5公里",
+      "10km": "10公里",
+      "15km": "15公里",
+      "20km": "20公里"
+    },
+    "currencySuffix": "¥",
+    "searchButton": "查找！",
+    "timeSlots": {
+      "morning": "早餐",
+      "lunch": "午餐",
+      "dinner": "晚餐",
+      "lateNight": "夜宵"
+    },
+    "sceneOptions": {
+      "solo": "一个人",
+      "date": "约会",
+      "group": "多人",
+      "largeGroup": "大团体",
+      "tourism": "观光"
+    },
+    "moodOptions": {
+      "hearty": "丰盛",
+      "light": "清淡",
+      "sweet": "甜食",
+      "spicy": "辣的",
+      "healthy": "健康",
+      "junk": "垃圾食品",
+      "alcohol": "以酒为主"
+    },
+    "restrictionOptions": {
+      "vegetarian": "素食",
+      "glutenFree": "无麸质",
+      "dairyFree": "无乳制品",
+      "nutAllergy": "坚果过敏",
+      "seafoodAllergy": "海鲜过敏",
+      "halal": "清真"
+    }
+  },
+  "Topics": {
+    "HideTopicModal": {
+      "title": "隐藏",
+      "description": "请告诉我们隐藏的理由（可选）",
+      "placeholder": "请输入理由...",
+      "confirm": "隐藏"
+    },
+    "Loading": {
+      "title": "正在为你寻找合适的菜品",
+      "subtitle": "请稍候..."
+    },
+    "errors": {
+      "fetchFailed": "获取菜品失败",
+      "invalidSearchParams": "搜索参数无效"
+    },
+    "empty": "没有可显示的菜品",
+    "retry": "返回搜索",
+    "chooseThis": "就选这个！",
+    "hiddenMessage": "{{title}}已被隐藏"
+  },
+  "Notifications": {
+    "title": "通知",
+    "timeAgo": "{{time}}前"
+  },
+  "FoodContentScreen": {
+    "numberSuffix": {
+      "million": "M",
+      "thousand": "K"
+    },
+    "menuOptions": {
+      "viewCreatorProfile": "查看创作者资料",
+      "reservation": "预订"
+    },
+    "actions": {
+      "share": "分享",
+      "seeMore": "查看更多",
+      "openMap": "打开地图"
+    },
+    "share": {
+      "title": "看看{{dishName}}"
+    },
+    "buttons": {
+      "viewRestaurant": "查看餐厅"
+    },
+    "errors": {
+      "mapOpenFailed": "无法打开地图应用"
+    },
+    "info": {
+      "walkFromShibuya": "距离涩谷站步行13分钟"
+    }
+  },
+  "ImageCardGrid": {
+    "openItemDetails": "打开项目详情"
+  },
+  "Tabs": {
+    "home": "首页",
+    "search": "搜索",
+    "map": "地图",
+    "notifications": "通知",
+    "profile": "个人资料"
+  },
+  "Profile": {
+    "tabs": {
+      "deposits": "存款",
+      "earnings": "收益",
+      "saved-posts": "null",
+      "saved-topics": "null"
+    },
+    "numberSuffix": {
+      "million": "M",
+      "thousand": "K"
+    },
+    "loading": "加载中...",
+    "tabError": {
+      "failedToLoad": "加载数据失败：{{error}}",
+      "retry": "重试"
+    },
+    "emptyState": {
+      "noDeposits": "所选状态没有存款",
+      "noEarnings": "所选状态没有收益",
+      "noDishReviews": "暂无帖子",
+      "noLikedDishMediaEntries": "暂无点赞的帖子",
+      "noSavedItems": "没有已保存的项目",
+      "noSavedPosts": "没有已保存的帖子",
+      "noSavedTopics": "没有已保存的主题"
+    },
+    "statusLabels": {
+      "active": "活跃",
+      "completed": "已完成",
+      "refunded": "已退款",
+      "paid": "已支付",
+      "pending": "待定"
+    },
+    "buttons": {
+      "editProfile": "编辑个人资料",
+      "follow": "关注",
+      "following": "已关注",
+      "message": "消息"
+    },
+    "stats": {
+      "following": "关注中",
+      "followers": "粉丝",
+      "likes": "点赞"
+    },
+    "labels": {
+      "bio": "简介"
+    },
+    "privateContent": "此内容为私密",
+    "placeholders": {
+      "enterBio": "请输入您的个人简介..."
+    },
+    "savedCount": "{{count}} 次收藏"
+  },
+  "NotFound": {
+    "title": "哎呀！",
+    "message": "此屏幕不存在。",
+    "goHome": "返回首页！"
+  },
+  "Map": {
+    "buttons": {
+      "postReview": "发布评论",
+      "placeBid": "出价",
+      "bid": "出价"
+    },
+    "inputs": {
+      "price": "价格",
+      "rating": "评分",
+      "comment": "评论",
+      "bidAmount": "出价金额"
+    },
+    "placeholders": {
+      "searchRestaurants": "搜索餐厅",
+      "enterPrice": "输入价格",
+      "enterReview": "输入评论",
+      "enterBidAmount": "输入出价金额"
+    },
+    "labels": {
+      "endDate": "结束日期:",
+      "paymentProcessing": "付款处理中...",
+      "currentBidAmount": "当前出价金额"
+    },
+    "tabs": {
+      "reviews": "评论",
+      "bids": "出价"
+    },
+    "emptyState": {
+      "noBidsForStatus": "所选状态没有出价"
+    },
+    "alerts": {
+      "locationError": "获取位置信息失败",
+      "currentLocationError": "获取当前位置失败",
+      "bidSuccess": "成功为{{place}}出价¥{{amount}}",
+      "bidError": "出价失败",
+      "reviewSuccess": "评论发布成功",
+      "reviewError": "评论发布失败"
+    },
+    "currentLocation": "当前位置"
+  },
+  "Restaurant": {
+    "placeholders": {
+      "searchLocation": "搜索地点/区域"
+    },
+    "buttons": {
+      "reserve": "预订",
+      "postMedia": "发布媒体"
+    },
+    "tabs": {
+      "posts": "帖子 {{count}}",
+      "info": "信息"
+    },
+    "filter": {
+      "title": "筛选",
+      "reset": "重置",
+      "apply": "应用",
+      "sections": {
+        "priceRange": "价格范围",
+        "category": "菜系"
+      },
+      "priceRanges": {
+        "under1000": "{{currency}}1,000 以下",
+        "range1000to3000": "{{currency}}1,000-3,000",
+        "range3000to5000": "{{currency}}3,000-5,000",
+        "over5000": "{{currency}}5,000 以上"
+      },
+      "categories": {
+        "japanese": "日本菜",
+        "italian": "意大利菜",
+        "french": "法餐",
+        "chinese": "中餐",
+        "asian": "亚洲菜",
+        "other": "其他"
+      }
+    }
+  }
 }
