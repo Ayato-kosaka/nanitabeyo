@@ -1,80 +1,171 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Grid3x3 as Grid3X3, Bookmark, Wallet, Heart } from "lucide-react-native";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
-import { useAnimatedReaction, runOnJS } from "react-native-reanimated";
+import i18n from "@/lib/i18n";
+import { useSharedValueState } from "@/hooks/useSharedValueState";
 
-type TabType = "reviews" | "saved" | "liked" | "wallet";
+export type RouteName =
+  | "reviews"
+  | "saved-posts"
+  | "saved-topics"
+  | "liked"
+  | "wallet-deposit"
+  | "wallet-earning";
 
-export interface ProfileTabsBarProps extends TabBarProps<string> {
-	availableTabs: TabType[];
+export type GroupName = "reviews" | "saved" | "liked" | "wallet";
+
+const GROUP_ROUTES: Record<GroupName, RouteName[]> = {
+  reviews: ["reviews"],
+  saved: ["saved-posts", "saved-topics"],
+  liked: ["liked"],
+  wallet: ["wallet-deposit", "wallet-earning"],
+};
+
+export interface ProfileTabsBarProps extends TabBarProps<RouteName> {
+  availableTabs: GroupName[];
 }
 
-export function ProfileTabsBar(props: ProfileTabsBarProps) {
-	const { tabNames, index, onTabPress, availableTabs } = props;
-	const [currentIndex, setCurrentIndex] = React.useState(0);
+export function ProfileTabsBar({
+  tabNames,
+  index,
+  onTabPress,
+  availableTabs,
+}: ProfileTabsBarProps) {
+  const currentIndex = useSharedValueState(index);
+  const activeRoute = tabNames[currentIndex] ?? tabNames[0];
 
-	useAnimatedReaction(
-		() => Math.round(index.value),
-		(i) => {
-			// 同じ値での無駄な setState を抑止
-			runOnJS(setCurrentIndex)(i);
-		},
-		[],
-	);
+  const [lastRouteByGroup] = React.useState<Record<GroupName, RouteName>>({
+    reviews: "reviews",
+    saved: "saved-posts",
+    liked: "liked",
+    wallet: "wallet-deposit",
+  });
 
-	const activeKey = tabNames[currentIndex] ?? tabNames[0];
+  React.useEffect(() => {
+    const entry = (Object.entries(GROUP_ROUTES) as [GroupName, RouteName[]][]).find(([, routes]) =>
+      routes.includes(activeRoute as RouteName)
+    );
+    if (entry) {
+      lastRouteByGroup[entry[0]] = activeRoute as RouteName;
+    }
+  }, [activeRoute, lastRouteByGroup]);
 
-	const jumpTo = (key: string) => {
-		onTabPress(key);
-	};
+  const activeGroup = (Object.entries(GROUP_ROUTES) as [GroupName, RouteName[]][]).find(([, routes]) =>
+    routes.includes(activeRoute as RouteName)
+  )?.[0] as GroupName;
 
-	const renderTabIcon = (tab: TabType) => {
-		const isActive = activeKey === tab;
-		const iconColor = isActive ? "#5EA2FF" : "#666";
+  const handleGroupPress = (group: GroupName) => {
+    const target = lastRouteByGroup[group];
+    onTabPress(target);
+  };
 
-		switch (tab) {
-			case "reviews":
-				return <Grid3X3 size={20} color={iconColor} />;
-			case "saved":
-				return <Bookmark size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
-			case "wallet":
-				return <Wallet size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
-			case "liked":
-				return <Heart size={20} color={iconColor} fill={isActive ? iconColor : "transparent"} />;
-		}
-	};
+  const renderIcon = (group: GroupName, isActive: boolean) => {
+    const color = isActive ? "#5EA2FF" : "#666";
+    switch (group) {
+      case "reviews":
+        return <Grid3X3 size={20} color={color} />;
+      case "saved":
+        return <Bookmark size={20} color={color} fill={isActive ? color : "transparent"} />;
+      case "wallet":
+        return <Wallet size={20} color={color} fill={isActive ? color : "transparent"} />;
+      case "liked":
+        return <Heart size={20} color={color} fill={isActive ? color : "transparent"} />;
+    }
+  };
 
-	return (
-		<View style={styles.tabsContainer}>
-			{availableTabs.map((tab) => (
-				<TouchableOpacity
-					key={tab}
-					style={[styles.tab, activeKey === tab && styles.activeTab]}
-					onPress={() => jumpTo(tab)}>
-					{renderTabIcon(tab)}
-				</TouchableOpacity>
-			))}
-		</View>
-	);
+  const renderSubTabs = () => {
+    if (activeGroup === "saved" || activeGroup === "wallet") {
+      const routes = GROUP_ROUTES[activeGroup];
+      return (
+        <View style={styles.subTabsContainer}>
+          {routes.map((route) => {
+            const isActive = activeRoute === route;
+            return (
+              <TouchableOpacity
+                key={route}
+                style={[styles.subTab, isActive && styles.activeSubTab]}
+                onPress={() => onTabPress(route)}
+              >
+                <Text style={[styles.subTabText, isActive && styles.activeSubTabText]}>
+                  {i18n.t(`Profile.tabs.${route}`)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <View>
+      <View style={styles.tabsContainer}>
+        {availableTabs.map((group) => {
+          const isActive = activeGroup === group;
+          return (
+            <TouchableOpacity
+              key={group}
+              style={[styles.tab, isActive && styles.activeTab]}
+              onPress={() => handleGroupPress(group)}
+            >
+              {renderIcon(group, isActive)}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      {renderSubTabs()}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-	tabsContainer: {
-		flexDirection: "row",
-		marginHorizontal: 16,
-		marginTop: 16,
-	},
-	tab: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 8,
-		gap: 6,
-	},
-	activeTab: {
-		borderBottomWidth: 2,
-		borderBottomColor: "#5EA2FF",
-	},
+  tabsContainer: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#5EA2FF",
+  },
+  subTabsContainer: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: "transparent",
+  },
+  subTab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    marginHorizontal: 4,
+    borderRadius: 32,
+  },
+  activeSubTab: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  subTabText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6B7280",
+  },
+  activeSubTabText: {
+    color: "#5EA2FF",
+    fontWeight: "600",
+  },
 });
