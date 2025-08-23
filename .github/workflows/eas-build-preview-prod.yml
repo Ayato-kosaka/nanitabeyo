@@ -2,6 +2,16 @@ name: EAS Build Preview Prod
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build for'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ios
+          - android
 
 jobs:
   build-preview-prod:
@@ -40,4 +50,4 @@ jobs:
         run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
 
       - name: 🚀 Build app (production preview)
-        run: pnpx eas-cli build --profile preview --platform all --non-interactive --no-wait --clear-cache
+        run: pnpx eas-cli build --profile preview --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait --clear-cache
