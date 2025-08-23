@@ -41,6 +41,7 @@ import {
 } from 'src/core/storage/storage.utils';
 import { env } from 'src/core/config/env';
 import { randomUUID } from 'node:crypto';
+import { log } from 'node:console';
 
 @Injectable()
 export class DishesService {
@@ -50,7 +51,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -123,17 +124,22 @@ export class DishesService {
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
         const contextualContent = contextualContents[index];
-        const photoName = contextualContent.photos?.[0]?.name;
         if (
           !place.id ||
           !place.displayName?.text ||
           !place.location?.latitude ||
-          !place.location?.longitude ||
-          !contextualContent.reviews ||
-          !photoName
+          !place.location?.longitude
         )
           throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
 
+        const reviews = contextualContent.reviews || [];
+        const photoName = contextualContent.photos?.[0]?.name;
+        if (!photoName) {
+          this.logger.warn('NoPhotoForPlace', 'bulkImportFromGoogle', {
+            placeId: place.id,
+          });
+          return null; // 写真がない場合はスキップ
+        }
         // PhotoMediaUri のみ取得（バイナリ取得は行わない）
         const photoMedia = await this.locationsService.getPhotoMedia(photoName);
         if (!photoMedia)
@@ -181,7 +187,7 @@ export class DishesService {
           lock_no: 0,
         };
 
-        const dishReviews: PrismaDishReviews[] = contextualContent.reviews.map(
+        const dishReviews: PrismaDishReviews[] = reviews.map(
           (review) => ({
             id: randomUUID(),
             dish_id: dish.id,

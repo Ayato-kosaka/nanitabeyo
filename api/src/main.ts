@@ -32,7 +32,11 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(
-    new ResponseWrapInterceptor(app.get(ClsService), app.get(Reflector)),
+    new ResponseWrapInterceptor(
+      app.get(ClsService),
+      app.get(Reflector),
+      app.get(AppLoggerService),
+    ),
   );
 
   app.useGlobalFilters(

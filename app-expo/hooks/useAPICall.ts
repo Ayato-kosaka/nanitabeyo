@@ -110,8 +110,8 @@ export const useAPICall = () => {
 						method,
 						status: response.status,
 						requestId,
-						errorCode: errorPayload.error,
-						errorMessage: errorPayload.message || errorMessage,
+						requestPayload: isMultipart ? "[multipart/form-data]" : requestPayload,
+						errorPayload,
 					},
 				});
 
@@ -208,7 +208,7 @@ export const useAPICall = () => {
 					requestId,
 					duration,
 					status: response.status,
-					hasData: !!json.data,
+					responsePayload: json,
 				},
 			});
 
