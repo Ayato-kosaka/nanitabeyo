@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import type { TabBarProps } from 'react-native-collapsible-tab-view';
+import i18n from '@/lib/i18n';
 
 export function SaveSubTabsBar(props: TabBarProps) {
   const { tabNames, index, onTabPress } = props;
@@ -8,7 +9,10 @@ export function SaveSubTabsBar(props: TabBarProps) {
   // Convert collapsible tab view props to our expected format
   const state = {
     index: index.value || 0,
-    routes: tabNames.map(name => ({ key: name, title: name })),
+    routes: tabNames.map(name => ({ 
+      key: name, 
+      title: i18n.t(`Profile.tabs.${name}`) 
+    })),
   };
   
   const jumpTo = (key: string) => {

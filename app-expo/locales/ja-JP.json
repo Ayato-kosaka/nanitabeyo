@@ -173,7 +173,9 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "入札",
-			"earnings": "収益"
+			"earnings": "収益",
+			"topics": "トピック",
+			"posts": "投稿"
 		},
 		"numberSuffix": {
 			"million": "M",

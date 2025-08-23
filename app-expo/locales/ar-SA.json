@@ -173,7 +173,9 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "الودائع",
-			"earnings": "الأرباح"
+			"earnings": "الأرباح",
+			"topics": "المواضيع",
+			"posts": "المنشورات"
 		},
 		"numberSuffix": {
 			"million": "م",

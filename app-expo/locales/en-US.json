@@ -173,7 +173,9 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Deposits",
-			"earnings": "Earnings"
+			"earnings": "Earnings",
+			"topics": "Topics",
+			"posts": "Posts"
 		},
 		"numberSuffix": {
 			"million": "M",

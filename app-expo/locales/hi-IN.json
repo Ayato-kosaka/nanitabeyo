@@ -173,7 +173,9 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "जमा",
-			"earnings": "आय"
+			"earnings": "आय",
+			"topics": "विषय",
+			"posts": "पोस्ट"
 		},
 		"numberSuffix": {
 			"million": "M",

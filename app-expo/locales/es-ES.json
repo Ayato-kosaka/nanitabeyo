@@ -173,7 +173,9 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Depósitos",
-			"earnings": "Ganancias"
+			"earnings": "Ganancias",
+			"topics": "Temas",
+			"posts": "Publicaciones"
 		},
 		"numberSuffix": {
 			"million": "M",

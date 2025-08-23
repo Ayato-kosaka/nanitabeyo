@@ -173,7 +173,9 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "예치금",
-			"earnings": "수익"
+			"earnings": "수익",
+			"topics": "주제",
+			"posts": "게시물"
 		},
 		"numberSuffix": {
 			"million": "M",

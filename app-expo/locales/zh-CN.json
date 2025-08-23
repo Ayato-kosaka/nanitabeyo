@@ -173,7 +173,9 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "存款",
-			"earnings": "收益"
+			"earnings": "收益",
+			"topics": "主题",
+			"posts": "帖子"
 		},
 		"numberSuffix": {
 			"million": "M",
