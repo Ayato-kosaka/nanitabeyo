@@ -2,13 +2,47 @@ name: EAS Build Submit Prod
 
 on:
   workflow_dispatch:
+    inputs:
+      profile:
+        description: "Build profile to use"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: "Platform to build for"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      wait:
+        description: "Wait for build completion"
+        required: false
+        default: false
+        type: boolean
+      auto_submit:
+        description: "Automatically submit to app stores"
+        required: false
+        default: true
+        type: boolean
+      update_commit_id:
+        description: "Update EXPO_PUBLIC_COMMIT_ID environment variable"
+        required: false
+        default: true
+        type: boolean
   # push:
   # branches:
   #   - "release/**"
 
 jobs:
   build-submit-prod:
-    name: EAS Build and Submit (Prod)
+    name: EAS Build and Submit (${{ github.event.inputs.profile }})
     runs-on: ubuntu-latest
 
     defaults:
@@ -40,7 +74,31 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: ✨ Update environment variable
-        run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
+        if: ${{ github.event.inputs.update_commit_id == 'true' }}
+        run: |
+          pnpx eas-cli env:update \
+            --variable-name EXPO_PUBLIC_COMMIT_ID \
+            --value ${{ github.sha }} \
+            --non-interactive
 
-      - name: 🚀 Build and Submit App (production)
-        run: pnpx eas-cli build --profile production --platform all --non-interactive --no-wait --auto-submit
+      - name: 🚀 Build and Submit App
+        run: |
+          WAIT_FLAG=""
+          SUBMIT_FLAG=""
+
+          if [ "${{ github.event.inputs.wait }}" = "true" ]; then
+            WAIT_FLAG=""
+          else
+            WAIT_FLAG="--no-wait"
+          fi
+
+          if [ "${{ github.event.inputs.auto_submit }}" = "true" ]; then
+            SUBMIT_FLAG="--auto-submit"
+          fi
+
+          pnpx eas-cli build \
+            --profile ${{ github.event.inputs.profile }} \
+            --platform ${{ github.event.inputs.platform }} \
+            --non-interactive \
+            $WAIT_FLAG \
+            $SUBMIT_FLAG

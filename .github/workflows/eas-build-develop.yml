@@ -2,10 +2,39 @@ name: EAS Build Develop
 
 on:
   workflow_dispatch:
+    inputs:
+      profile:
+        description: "Build profile to use"
+        required: true
+        default: "development"
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: "Platform to build for"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      wait:
+        description: "Wait for build completion"
+        required: false
+        default: false
+        type: boolean
+      clear_cache:
+        description: "Clear build cache"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   eas-build:
-    name: Build with EAS CLI
+    name: EAS Build (${{ github.event.inputs.profile }})
     runs-on: ubuntu-latest
 
     defaults:
@@ -46,5 +75,24 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🚀 Run EAS build (development profile)
-        run: pnpx eas-cli build --profile development --platform all --non-interactive --no-wait
+      - name: 🚀 Run EAS build
+        run: |
+          WAIT_FLAG=""
+          CACHE_FLAG=""
+
+          if [ "${{ github.event.inputs.wait }}" = "true" ]; then
+            WAIT_FLAG=""
+          else
+            WAIT_FLAG="--no-wait"
+          fi
+
+          if [ "${{ github.event.inputs.clear_cache }}" = "true" ]; then
+            CACHE_FLAG="--clear-cache"
+          fi
+
+          pnpx eas-cli build \
+            --profile ${{ github.event.inputs.profile }} \
+            --platform ${{ github.event.inputs.platform }} \
+            --non-interactive \
+            $WAIT_FLAG \
+            $CACHE_FLAG

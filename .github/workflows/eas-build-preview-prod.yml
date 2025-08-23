@@ -2,10 +2,44 @@ name: EAS Build Preview Prod
 
 on:
   workflow_dispatch:
+    inputs:
+      profile:
+        description: "Build profile to use"
+        required: true
+        default: "preview"
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: "Platform to build for"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      wait:
+        description: "Wait for build completion"
+        required: false
+        default: false
+        type: boolean
+      clear_cache:
+        description: "Clear build cache"
+        required: false
+        default: true
+        type: boolean
+      update_commit_id:
+        description: "Update EXPO_PUBLIC_COMMIT_ID environment variable"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build-preview-prod:
-    name: EAS Build (Preview Prod)
+    name: EAS Build (${{ github.event.inputs.profile }})
     runs-on: ubuntu-latest
 
     defaults:
@@ -37,7 +71,31 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: ✨ Update environment variable
-        run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
+        if: ${{ github.event.inputs.update_commit_id == 'true' }}
+        run: |
+          pnpx eas-cli env:update \
+            --variable-name EXPO_PUBLIC_COMMIT_ID \
+            --value ${{ github.sha }} \
+            --non-interactive
 
-      - name: 🚀 Build app (production preview)
-        run: pnpx eas-cli build --profile preview --platform all --non-interactive --no-wait --clear-cache
+      - name: 🚀 Build app
+        run: |
+          WAIT_FLAG=""
+          CACHE_FLAG=""
+
+          if [ "${{ github.event.inputs.wait }}" = "true" ]; then
+            WAIT_FLAG=""
+          else
+            WAIT_FLAG="--no-wait"
+          fi
+
+          if [ "${{ github.event.inputs.clear_cache }}" = "true" ]; then
+            CACHE_FLAG="--clear-cache"
+          fi
+
+          pnpx eas-cli build \
+            --profile ${{ github.event.inputs.profile }} \
+            --platform ${{ github.event.inputs.platform }} \
+            --non-interactive \
+            $WAIT_FLAG \
+            $CACHE_FLAG
