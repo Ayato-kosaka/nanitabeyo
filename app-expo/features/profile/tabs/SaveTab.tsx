@@ -29,6 +29,12 @@ interface SaveTabProps {
   onPostPress?: (item: any, index: number) => void;
   onScroll?: any;
   contentContainerStyle?: any;
+  error?: string | null;
+  topicsError?: string | null;
+  postsError?: string | null;
+  onRetry?: () => void;
+  onRetryTopics?: () => void;
+  onRetryPosts?: () => void;
 }
 
 export function SaveTab({
@@ -54,6 +60,12 @@ export function SaveTab({
   onPostPress,
   onScroll,
   contentContainerStyle,
+  error,
+  topicsError,
+  postsError,
+  onRetry,
+  onRetryTopics,
+  onRetryPosts,
 }: SaveTabProps) {
   // For non-own profiles, show private content message
   if (!isOwnProfile) {
@@ -83,6 +95,8 @@ export function SaveTab({
           onRefresh={onRefreshTopics ?? onRefresh}
           onEndReached={onEndReachedTopics ?? onEndReached}
           onItemPress={onTopicPress}
+          error={topicsError ?? error}
+          onRetry={onRetryTopics ?? onRetry}
         />
       </Tabs.Tab>
 
@@ -95,6 +109,8 @@ export function SaveTab({
           onRefresh={onRefreshPosts ?? onRefresh}
           onEndReached={onEndReachedPosts ?? onEndReached}
           onItemPress={onPostPress}
+          error={postsError ?? error}
+          onRetry={onRetryPosts ?? onRetry}
         />
       </Tabs.Tab>
     </Tabs.Container>

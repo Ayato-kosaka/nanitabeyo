@@ -23,6 +23,12 @@ interface WalletTabProps {
   onEarningPress?: (item: EarningItem, index: number) => void;
   onScroll?: any;
   contentContainerStyle?: any;
+  error?: string | null;
+  depositsError?: string | null;
+  earningsError?: string | null;
+  onRetry?: () => void;
+  onRetryDeposits?: () => void;
+  onRetryEarnings?: () => void;
 }
 
 export function WalletTab({
@@ -42,6 +48,12 @@ export function WalletTab({
   onEarningPress,
   onScroll,
   contentContainerStyle,
+  error,
+  depositsError,
+  earningsError,
+  onRetry,
+  onRetryDeposits,
+  onRetryEarnings,
 }: WalletTabProps) {
   return (
     <Tabs.Container
@@ -58,6 +70,8 @@ export function WalletTab({
           onRefresh={onRefreshDeposits}
           onEndReached={onEndReachedDeposits}
           onItemPress={onDepositPress}
+          error={depositsError ?? error}
+          onRetry={onRetryDeposits ?? onRetry}
         />
       </Tabs.Tab>
 
@@ -70,6 +84,8 @@ export function WalletTab({
           onRefresh={onRefreshEarnings}
           onEndReached={onEndReachedEarnings}
           onItemPress={onEarningPress}
+          error={earningsError ?? error}
+          onRetry={onRetryEarnings ?? onRetry}
         />
       </Tabs.Tab>
     </Tabs.Container>

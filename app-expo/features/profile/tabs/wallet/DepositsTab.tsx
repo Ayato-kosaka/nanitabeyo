@@ -14,6 +14,8 @@ interface DepositsTabProps {
 	onItemPress?: (item: BidItem, index: number) => void;
 	onScroll?: any;
 	contentContainerStyle?: any;
+	error?: string | null;
+	onRetry?: () => void;
 }
 
 export function DepositsTab({
@@ -26,6 +28,8 @@ export function DepositsTab({
 	onItemPress,
 	onScroll,
 	contentContainerStyle,
+	error,
+	onRetry,
 }: DepositsTabProps) {
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["active", "completed", "refunded"]);
 
@@ -126,6 +130,19 @@ export function DepositsTab({
 	};
 
 	const renderEmptyState = useCallback(() => {
+		if (error) {
+			return (
+				<View style={styles.emptyStateContainer}>
+					<View style={styles.emptyStateCard}>
+						<Text style={styles.emptyStateText}>{i18n.t("Profile.tabError.failedToLoad", { error })}</Text>
+						<TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+			);
+		}
+
 		return (
 			<View style={styles.emptyStateContainer}>
 				<View style={styles.emptyStateCard}>
@@ -133,7 +150,7 @@ export function DepositsTab({
 				</View>
 			</View>
 		);
-	}, []);
+	}, [error, onRetry]);
 
 	return (
 		<Tabs.FlatList
@@ -262,5 +279,16 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#6B7280",
 		textAlign: "center",
+	},
+	retryButton: {
+		marginTop: 16,
+		backgroundColor: "#5EA2FF",
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 20,
+	},
+	retryButtonText: {
+		color: "#FFFFFF",
+		fontWeight: "600",
 	},
 });
