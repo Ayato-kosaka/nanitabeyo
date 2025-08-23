@@ -2,258 +2,255 @@
  * Web implementation using react-native-tab-view
  * Provides compatibility adapter that mimics react-native-collapsible-tab-view API
  */
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  createContext,
+  useContext,
+} from 'react';
 import {
-	View,
-	ScrollView,
-	FlatList,
-	Animated,
-	LayoutChangeEvent,
-	FlatListProps,
-	ViewStyle,
-	StyleProp,
-} from "react-native";
-import type { TabBarProps } from "react-native-collapsible-tab-view";
-import type { TabName } from "react-native-collapsible-tab-view/lib/typescript/src/types";
-import { TabView, TabBar, Route, SceneRendererProps, NavigationState, TabDescriptor } from "react-native-tab-view";
+  View,
+  ScrollView,
+  FlatList,
+  FlatListProps,
+  ViewStyle,
+  StyleProp,
+} from 'react-native';
+import type { TabBarProps } from 'react-native-collapsible-tab-view';
+import type { TabName } from 'react-native-collapsible-tab-view/lib/typescript/src/types';
+import { TabView } from 'react-native-tab-view';
 
-// Types that match react-native-collapsible-tab-view API
+// -----------------------------------------------------------------------------
+// Types and context
+
 interface TabRoute {
-	key: string;
-	title?: string;
-}
-
-interface TabViewState {
-	index: number;
-	routes: TabRoute[];
+  key: string;
+  title?: string;
 }
 
 interface TabsContainerProps {
-	children: React.ReactNode;
-	headerHeight?: number;
-	renderHeader?: () => React.ReactNode;
-	renderTabBar?: (props: TabBarProps<TabName>) => React.ReactElement;
-	initialTabName?: string;
-	swipeEnabled?: boolean;
-	style?: StyleProp<ViewStyle>;
-	onIndexChange?: (index: number) => void;
-	// Map collapsible-tab-view pagerProps.scrollEnabled -> TabView.swipeEnabled
-	pagerProps?: { scrollEnabled?: boolean };
+  children: React.ReactNode;
+  headerHeight?: number;
+  renderHeader?: () => React.ReactNode;
+  renderTabBar?: (props: TabBarProps<TabName>) => React.ReactElement;
+  initialTabName?: string;
+  swipeEnabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+  onIndexChange?: (index: number) => void;
+  // Map collapsible-tab-view pagerProps.scrollEnabled -> TabView.swipeEnabled
+  pagerProps?: { scrollEnabled?: boolean };
 }
 
 interface TabProps {
-	name: string;
-	children: React.ReactNode;
+  name: string;
+  children: React.ReactNode;
 }
 
-interface TabsFlatListProps<T> extends Omit<FlatListProps<T>, "data"> {
-	data: T[];
-	scrollEventThrottle?: number;
+interface TabsFlatListProps<T> extends Omit<FlatListProps<T>, 'data'> {
+  data: T[];
+  scrollEventThrottle?: number;
 }
 
-// Header collapse management
-const useHeaderCollapse = (headerHeight: number = 0) => {
-	const scrollY = useRef(new Animated.Value(0)).current;
-	const [headerTranslateY, setHeaderTranslateY] = useState(0);
+interface SceneContextValue {
+  onScroll: (e: any) => void;
+  headerHeight: number;
+}
 
-	const updateHeaderPosition = useCallback((offsetY: number) => {
-		const clampedValue = Math.max(-headerHeight, -offsetY);
-		setHeaderTranslateY(clampedValue);
-		scrollY.setValue(offsetY);
-	}, [headerHeight, scrollY]);
+const SceneContext = createContext<SceneContextValue | null>(null);
 
-	// Web-compatible scroll handler
-	const onScroll = useCallback((event: any) => {
-		const offsetY = event.nativeEvent.contentOffset.y;
-		updateHeaderPosition(offsetY);
-	}, [updateHeaderPosition]);
-
-	return {
-		headerTranslateY: { transform: [{ translateY: headerTranslateY }] },
-		onScroll,
-		scrollY,
-	};
-};
-
+// -----------------------------------------------------------------------------
 // Container component
+
 function Container({
-	children,
-	headerHeight = 0,
-	renderHeader,
-	renderTabBar,
-	initialTabName,
-	swipeEnabled = true,
-	style,
-	onIndexChange,
-	pagerProps,
+  children,
+  headerHeight = 0,
+  renderHeader,
+  renderTabBar,
+  initialTabName,
+  swipeEnabled = true,
+  style,
+  onIndexChange,
+  pagerProps,
 }: TabsContainerProps) {
-	const [index, setIndex] = useState(0);
-	const [actualHeaderHeight, setActualHeaderHeight] = useState(headerHeight);
-	const { headerTranslateY, onScroll } = useHeaderCollapse(actualHeaderHeight);
+  const [index, setIndex] = useState(0);
+  const routes = useMemo<TabRoute[]>(() => {
+    const tabs: TabRoute[] = [];
+    React.Children.forEach(children, (child) => {
+      if (
+        React.isValidElement(child) &&
+        child.props &&
+        typeof child.props === 'object' &&
+        'name' in child.props
+      ) {
+        tabs.push({ key: child.props.name as string, title: child.props.name });
+      }
+    });
+    return tabs;
+  }, [children]);
 
-	// Extract routes from children
-	const routes = useMemo(() => {
-		const tabs: TabRoute[] = [];
-		React.Children.forEach(children, (child) => {
-			if (React.isValidElement(child) && child.props && typeof child.props === "object" && "name" in child.props) {
-				tabs.push({
-					key: child.props.name as string,
-					title: child.props.name as string,
-				});
-			}
-		});
-		return tabs;
-	}, [children]);
+  // Set initial index based on initialTabName
+  useMemo(() => {
+    if (initialTabName) {
+      const found = routes.findIndex((r) => r.key === initialTabName);
+      if (found >= 0) setIndex(found);
+    }
+  }, [initialTabName, routes]);
 
-	// Find initial index
-	const initialIndex = useMemo(() => {
-		if (initialTabName) {
-			const found = routes.findIndex((route) => route.key === initialTabName);
-			return found >= 0 ? found : 0;
-		}
-		return 0;
-	}, [routes, initialTabName]);
+  const headerOffsetRef = useRef(0);
+  const offsetsRef = useRef<Record<string, number>>({});
+  const [tabBarHeight, setTabBarHeight] = useState(0);
+  const [, setTick] = useState(0); // force update
 
-	React.useEffect(() => {
-		if (index !== initialIndex) {
-			setIndex(initialIndex);
-		}
-	}, [initialIndex]);
+  const onScrollFor = useCallback(
+    (key: string) => (e: any) => {
+      const y = e.nativeEvent.contentOffset?.y ?? 0;
+      offsetsRef.current[key] = y;
+      headerOffsetRef.current = Math.min(Math.max(y, 0), headerHeight);
+      setTick((t) => t + 1);
+    },
+    [headerHeight],
+  );
 
-	const handleIndexChange = useCallback(
-		(newIndex: number) => {
-			setIndex(newIndex);
-			onIndexChange?.(newIndex);
-		},
-		[onIndexChange],
-	);
+  const handleIndexChange = useCallback(
+    (i: number) => {
+      setIndex(i);
+      onIndexChange?.(i);
+      const key = routes[i]?.key;
+      headerOffsetRef.current = Math.min(
+        offsetsRef.current[key] ?? 0,
+        headerHeight,
+      );
+      setTick((t) => t + 1);
+    },
+    [onIndexChange, routes, headerHeight],
+  );
 
-	const onHeaderLayout = useCallback((event: LayoutChangeEvent) => {
-		const { height } = event.nativeEvent.layout;
-		setActualHeaderHeight(height);
-	}, []);
+  const renderScene = useCallback(
+    ({ route }: { route: TabRoute }) => {
+      const child = React.Children.toArray(children).find(
+        (c) =>
+          React.isValidElement(c) &&
+          c.props &&
+          typeof c.props === 'object' &&
+          'name' in c.props &&
+          c.props.name === route.key,
+      );
 
-	// Render scene for each tab
-	const renderScene = useCallback(
-		({ route }: { route: TabRoute }) => {
-			const tabChild = React.Children.toArray(children).find(
-				(child) =>
-					React.isValidElement(child) &&
-					child.props &&
-					typeof child.props === "object" &&
-					"name" in child.props &&
-					child.props.name === route.key,
-			);
+      if (!React.isValidElement(child)) return null;
 
-			if (!React.isValidElement(tabChild)) return null;
+      return (
+        <SceneContext.Provider
+          value={{
+            onScroll: onScrollFor(route.key),
+            headerHeight: headerHeight + tabBarHeight,
+          }}
+        >
+          {child}
+        </SceneContext.Provider>
+      );
+    },
+    [children, headerHeight, tabBarHeight, onScrollFor],
+  );
 
-			// Clone the child and inject scroll handling
-			return React.cloneElement(tabChild, {
-				onScroll,
-				contentContainerStyle: { paddingTop: actualHeaderHeight },
-			} as any);
-		},
-		[children, onScroll, actualHeaderHeight],
-	);
+  const tabNames = routes.map((r) => r.key);
 
-	const customRenderTabBar = useCallback(
-		(
-			props: SceneRendererProps & {
-				navigationState: NavigationState<TabRoute>;
-				options: Record<string, TabDescriptor<TabRoute>> | undefined;
-			},
-		): React.ReactNode => {
-			if (renderTabBar) {
-				// Adapt react-native-tab-view props to react-native-collapsible-tab-view TabBarProps
-				const tabNames = props.navigationState.routes.map((r) => r.key as string);
-				const currentIndex = props.navigationState.index;
-				const adapterProps: TabBarProps<string> = {
-					indexDecimal: { value: currentIndex } as any,
-					focusedTab: { value: tabNames[currentIndex] as string } as any,
-					tabNames,
-					index: { value: currentIndex } as any,
-					containerRef: { current: null } as any,
-					onTabPress: (name: string) => {
-						const idx = tabNames.indexOf(name);
-						if (idx !== -1) {
-							props.jumpTo(props.navigationState.routes[idx].key);
-						}
-					},
-					tabProps: new Map() as any,
-					width: undefined,
-				};
-				return renderTabBar(adapterProps);
-			}
-			return <TabBar {...props} />;
-		},
-		[renderTabBar],
-	);
+  const tabBar = renderTabBar
+    ? renderTabBar({
+        indexDecimal: { value: index } as any,
+        focusedTab: { value: tabNames[index] } as any,
+        tabNames,
+        index: { value: index } as any,
+        containerRef: { current: null } as any,
+        onTabPress: (name: string) => {
+          const idx = tabNames.indexOf(name);
+          if (idx !== -1) handleIndexChange(idx);
+        },
+        tabProps: new Map() as any,
+        width: undefined,
+      })
+    : null;
 
-	return (
-		<View style={[{ flex: 1 }, style]}>
-			{/* Fixed Header */}
-			{renderHeader && (
-				<Animated.View
-					style={[
-						{
-							position: "absolute",
-							top: 0,
-							left: 0,
-							right: 0,
-							zIndex: 1000,
-						},
-						headerTranslateY,
-					]}
-					onLayout={onHeaderLayout}>
-					{renderHeader()}
-				</Animated.View>
-			)}
+  const headerTranslateY = -Math.min(headerOffsetRef.current, headerHeight);
 
-			{/* Tab View */}
-			<TabView
-				navigationState={{ index, routes }}
-				renderScene={renderScene}
-				onIndexChange={handleIndexChange}
-				renderTabBar={customRenderTabBar}
-				swipeEnabled={pagerProps?.scrollEnabled ?? swipeEnabled}
-				style={{ marginTop: actualHeaderHeight }}
-			/>
-		</View>
-	);
+  return (
+    <View style={[{ flex: 1 }, style]}>
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          transform: [{ translateY: headerTranslateY }],
+        }}
+      >
+        {renderHeader?.()}
+        {tabBar && (
+          <View onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height)}>
+            {tabBar}
+          </View>
+        )}
+      </View>
+      <TabView
+        navigationState={{ index, routes }}
+        renderScene={renderScene}
+        onIndexChange={handleIndexChange}
+        swipeEnabled={pagerProps?.scrollEnabled ?? swipeEnabled}
+      />
+    </View>
+  );
 }
 
+// -----------------------------------------------------------------------------
 // Tab component
+
 function Tab({ name, children }: TabProps) {
-	return <>{children}</>;
+  return <>{children}</>;
 }
 
-// FlatList component with scroll sync
-function TabsFlatList<T>({ data, onScroll: externalOnScroll, contentContainerStyle, scrollEventThrottle = 16, ...props }: TabsFlatListProps<T>) {
-	const handleScroll = useCallback(
-		(event: any) => {
-			// Allow parent scroll handler (for header collapse)
-			if (externalOnScroll) {
-				externalOnScroll(event);
-			}
-		},
-		[externalOnScroll],
-	);
+// -----------------------------------------------------------------------------
+// FlatList component with scroll synchronisation
 
-	return (
-		<FlatList
-			data={data}
-			onScroll={handleScroll}
-			scrollEventThrottle={scrollEventThrottle}
-			contentContainerStyle={contentContainerStyle}
-			{...props}
-		/>
-	);
+function TabsFlatList<T>({
+  data,
+  onScroll: externalOnScroll,
+  contentContainerStyle,
+  scrollEventThrottle = 16,
+  ...props
+}: TabsFlatListProps<T>) {
+  const ctx = useContext(SceneContext);
+
+  const handleScroll = useCallback(
+    (e: any) => {
+      ctx?.onScroll(e);
+      externalOnScroll?.(e);
+    },
+    [ctx, externalOnScroll],
+  );
+
+  const paddingTop = ctx ? ctx.headerHeight : 0;
+
+  return (
+    <FlatList
+      data={data}
+      onScroll={handleScroll}
+      scrollEventThrottle={scrollEventThrottle}
+      contentContainerStyle={[{ paddingTop }, contentContainerStyle]}
+      {...props}
+    />
+  );
 }
 
-// Export the API that matches react-native-collapsible-tab-view
+// -----------------------------------------------------------------------------
+// Exported API
+
 export const Tabs = {
-	Container,
-	Tab,
-	FlatList: TabsFlatList,
-	ScrollView: ScrollView, // For compatibility, though we'll primarily use FlatList
+  Container,
+  Tab,
+  FlatList: TabsFlatList,
+  ScrollView: ScrollView, // For compatibility, though FlatList is primary
 };
+
