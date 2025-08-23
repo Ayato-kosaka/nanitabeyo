@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, ScrollView, TouchableOpacity, Text, FlatList, StyleSheet } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, FlatList, StyleSheet, Image } from 'react-native';
 import { Tabs } from '@/components/collapsible-tabs';
 import i18n from '@/lib/i18n';
 import { BidItem } from '../../constants';
@@ -82,33 +82,54 @@ export function DepositsTab({
         style={styles.depositCard}
         onPress={() => onItemPress?.(item, index)}
       >
-        <View style={styles.depositCardContent}>
-          <Text style={styles.depositCardTitle}>{item.restaurantName}</Text>
-          <Text style={styles.depositCardAmount}>
-            {i18n.t('Search.currencySuffix')}{item.bidAmount.toLocaleString()}
-          </Text>
-          <View
-            style={[
-              styles.statusChip,
-              {
-                backgroundColor:
-                  item.status === 'active'
-                    ? '#4CAF50'
-                    : item.status === 'completed'
-                    ? '#2196F3'
-                    : '#FF9800',
-              },
-            ]}
-          >
-            <Text style={styles.statusText}>
-              {depositStatuses.find((s) => s.id === item.status)?.label || item.status}
+        <View style={styles.depositHeader}>
+          <Image
+            source={{ uri: item.restaurantImageUrl }}
+            style={styles.depositAvatar}
+            onError={() => console.log("Failed to load restaurant image")}
+          />
+          <View style={styles.depositInfo}>
+            <Text style={styles.depositRestaurantName}>{item.restaurantName}</Text>
+            <Text style={styles.depositAmount}>
+              {i18n.t("Search.currencySuffix")}
+              {item.bidAmount.toLocaleString()}
             </Text>
           </View>
+          <View style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}>
+            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+          </View>
         </View>
+        <Text style={styles.depositDays}>{i18n.t("Common.daysRemaining", { count: item.remainingDays })}</Text>
       </TouchableOpacity>
     ),
-    [onItemPress, depositStatuses]
+    [onItemPress]
   );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "#4CAF50";
+      case "completed":
+        return "#2196F3";
+      case "refunded":
+        return "#FF9800";
+      default:
+        return "#666";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "active":
+        return i18n.t("Profile.statusLabels.active");
+      case "completed":
+        return i18n.t("Profile.statusLabels.completed");
+      case "refunded":
+        return i18n.t("Profile.statusLabels.refunded");
+      default:
+        return status;
+    }
+  };
 
   const renderEmptyState = useCallback(() => {
     return (
@@ -178,20 +199,39 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 4,
   },
-  depositCardContent: {
-    padding: 16,
+  depositHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  depositCardTitle: {
+  depositAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  depositInfo: {
+    flex: 1,
+  },
+  depositRestaurantName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    marginBottom: 2,
+    letterSpacing: -0.3,
+  },
+  depositAmount: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
+    fontWeight: "700",
+    color: "#5EA2FF",
+    letterSpacing: -0.3,
   },
-  depositCardAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#5EA2FF',
-    marginBottom: 8,
+  depositDays: {
+    fontSize: 15,
+    color: "#6B7280",
+    fontWeight: "500",
   },
   statusChip: {
     paddingHorizontal: 8,

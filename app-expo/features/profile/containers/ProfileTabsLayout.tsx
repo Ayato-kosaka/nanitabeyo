@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { View, StyleSheet, LayoutChangeEvent } from "react-native";
+import { View, StyleSheet, LayoutChangeEvent, Text, TextInput } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
@@ -15,8 +15,12 @@ import { useWithLoading } from "@/hooks/useWithLoading";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
+import { useBlurModal } from "@/hooks/useBlurModal";
 import { userProfile, otherUserProfile } from "@/data/profileData";
 import { mockBids, mockEarnings } from "../constants";
+import { Card } from "@/components/Card";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import i18n from "@/lib/i18n";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type {
 	QueryUserDishReviewsResponse,
@@ -61,6 +65,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 	const { user } = useAuth();
 	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
+	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
@@ -430,13 +435,29 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 	const handleEditProfile = useCallback(() => {
 		lightImpact();
 		setEditedBio(profile.bio);
+		openEditModal();
 
 		logFrontendEvent({
 			event_name: "profile_edit_started",
 			error_level: "log",
 			payload: { currentBioLength: profile.bio.length },
 		});
-	}, [lightImpact, profile.bio, logFrontendEvent]);
+	}, [lightImpact, profile.bio, openEditModal, logFrontendEvent]);
+
+	const handleSaveProfile = useCallback(() => {
+		mediumImpact();
+		// In a real app, this would update the profile via API
+		closeEditModal();
+
+		logFrontendEvent({
+			event_name: "profile_edit_saved",
+			error_level: "log",
+			payload: {
+				oldBioLength: profile.bio.length,
+				newBioLength: editedBio.length,
+			},
+		});
+	}, [mediumImpact, closeEditModal, logFrontendEvent, profile.bio.length, editedBio.length]);
 
 	const handleTabChange = useCallback(
 		(index: number) => {
@@ -574,6 +595,27 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 					/>
 				</Tabs.Tab>
 			</Tabs.Container>
+
+			{/* Edit Profile Modal */}
+			<BlurModal>
+				<Card>
+					<Text style={styles.editLabel}>{i18n.t("Profile.labels.bio")}</Text>
+					<TextInput
+						style={styles.editInput}
+						value={editedBio}
+						onChangeText={setEditedBio}
+						multiline
+						numberOfLines={4}
+						placeholder={i18n.t("Profile.placeholders.enterBio")}
+						placeholderTextColor="#666"
+					/>
+				</Card>
+				<PrimaryButton 
+					style={{ marginHorizontal: 16 }} 
+					onPress={handleSaveProfile} 
+					label={i18n.t("Common.save")} 
+				/>
+			</BlurModal>
 		</View>
 	);
 }
@@ -581,5 +623,27 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+	},
+	editLabel: {
+		fontSize: 17,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		marginBottom: 8,
+		letterSpacing: -0.3,
+	},
+	editInput: {
+		backgroundColor: "#F8F9FA",
+		borderRadius: 12,
+		paddingHorizontal: 12,
+		paddingVertical: 12,
+		fontSize: 15,
+		color: "#1A1A1A",
+		textAlignVertical: "top",
+		minHeight: 100,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.05,
+		shadowRadius: 2,
+		elevation: 1,
 	},
 });
