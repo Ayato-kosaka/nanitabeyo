@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Grid3x3 as Grid3X3, Bookmark, Wallet, Heart } from "lucide-react-native";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
+import { useAnimatedReaction, runOnJS } from "react-native-reanimated";
 
 type TabType = "reviews" | "saved" | "liked" | "wallet";
 
@@ -11,19 +12,25 @@ export interface ProfileTabsBarProps extends TabBarProps<string> {
 
 export function ProfileTabsBar(props: ProfileTabsBarProps) {
 	const { tabNames, index, onTabPress, availableTabs } = props;
+	const [currentIndex, setCurrentIndex] = React.useState(0);
 
-	// Convert collapsible tab view props to our expected format
-	const state = {
-		index: index.value || 0,
-		routes: tabNames.map((name) => ({ key: name })),
-	};
+	useAnimatedReaction(
+		() => Math.round(index.value),
+		(i) => {
+			// 同じ値での無駄な setState を抑止
+			runOnJS(setCurrentIndex)(i);
+		},
+		[],
+	);
+
+	const activeKey = tabNames[currentIndex] ?? tabNames[0];
 
 	const jumpTo = (key: string) => {
 		onTabPress(key);
 	};
 
 	const renderTabIcon = (tab: TabType) => {
-		const isActive = state.routes[state.index]?.key === tab;
+		const isActive = activeKey === tab;
 		const iconColor = isActive ? "#5EA2FF" : "#666";
 
 		switch (tab) {
@@ -43,7 +50,7 @@ export function ProfileTabsBar(props: ProfileTabsBarProps) {
 			{availableTabs.map((tab) => (
 				<TouchableOpacity
 					key={tab}
-					style={[styles.tab, state.routes[state.index]?.key === tab && styles.activeTab]}
+					style={[styles.tab, activeKey === tab && styles.activeTab]}
 					onPress={() => jumpTo(tab)}>
 					{renderTabIcon(tab)}
 				</TouchableOpacity>
@@ -57,7 +64,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		marginHorizontal: 16,
 		marginTop: 16,
-		backgroundColor: "#FFFFFF",
 	},
 	tab: {
 		flex: 1,
