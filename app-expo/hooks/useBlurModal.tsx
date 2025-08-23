@@ -1,5 +1,5 @@
 import React, { ReactNode, memo, useCallback, useEffect, useState } from "react";
-import { BackHandler, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { BackHandler, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
 import { ScrollView } from "react-native";
 import { X } from "lucide-react-native";
@@ -79,17 +79,30 @@ export function useBlurModal({
 								android_ripple={{ color: "rgba(255,255,255,0.05)" }}>
 								{/* Blur background */}
 								<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
+								{/* Content (non-blocking layout wrapper) */}
+								{Platform.OS !== "web" && (
+									<ScrollView
+										pointerEvents="box-none"
+										keyboardShouldPersistTaps="handled"
+										contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+										<View pointerEvents="auto" style={contentContainerStyle}>
+											{children}
+										</View>
+									</ScrollView>
+								)}
 							</Pressable>
 
 							{/* Content (non-blocking layout wrapper) */}
-							<ScrollView
-								pointerEvents="box-none"
-								keyboardShouldPersistTaps="handled"
-								contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
-								<View pointerEvents="auto" style={contentContainerStyle}>
-									{children}
-								</View>
-							</ScrollView>
+							{Platform.OS === "web" && (
+								<ScrollView
+									pointerEvents="box-none"
+									keyboardShouldPersistTaps="handled"
+									contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+									<View pointerEvents="auto" style={contentContainerStyle}>
+										{children}
+									</View>
+								</ScrollView>
+							)}
 
 							{/* Close button */}
 							{showCloseButton && (
