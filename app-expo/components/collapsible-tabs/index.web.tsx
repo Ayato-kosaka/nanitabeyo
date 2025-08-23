@@ -54,21 +54,22 @@ interface TabsFlatListProps<T> extends Omit<FlatListProps<T>, "data"> {
 // Header collapse management
 const useHeaderCollapse = (headerHeight: number = 0) => {
 	const scrollY = useRef(new Animated.Value(0)).current;
+	const [headerTranslateY, setHeaderTranslateY] = useState(0);
 
-	const headerTranslateY = scrollY.interpolate({
-		inputRange: [0, headerHeight],
-		outputRange: [0, -headerHeight],
-		extrapolate: "clamp",
-	});
+	const updateHeaderPosition = useCallback((offsetY: number) => {
+		const clampedValue = Math.max(-headerHeight, -offsetY);
+		setHeaderTranslateY(clampedValue);
+		scrollY.setValue(offsetY);
+	}, [headerHeight, scrollY]);
 
 	// Web-compatible scroll handler
 	const onScroll = useCallback((event: any) => {
 		const offsetY = event.nativeEvent.contentOffset.y;
-		scrollY.setValue(offsetY);
-	}, [scrollY]);
+		updateHeaderPosition(offsetY);
+	}, [updateHeaderPosition]);
 
 	return {
-		headerTranslateY,
+		headerTranslateY: { transform: [{ translateY: headerTranslateY }] },
 		onScroll,
 		scrollY,
 	};
@@ -193,14 +194,16 @@ function Container({
 			{/* Fixed Header */}
 			{renderHeader && (
 				<Animated.View
-					style={{
-						position: "absolute",
-						top: 0,
-						left: 0,
-						right: 0,
-						zIndex: 1000,
-						transform: [{ translateY: headerTranslateY }],
-					}}
+					style={[
+						{
+							position: "absolute",
+							top: 0,
+							left: 0,
+							right: 0,
+							zIndex: 1000,
+						},
+						headerTranslateY,
+					]}
 					onLayout={onHeaderLayout}>
 					{renderHeader()}
 				</Animated.View>
