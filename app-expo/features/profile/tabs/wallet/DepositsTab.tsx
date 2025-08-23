@@ -134,7 +134,7 @@ export function DepositsTab({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    padding: 16,
   },
   statusFilterContainer: {
     marginVertical: 16,
@@ -161,15 +161,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   depositCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   depositCardContent: {
     padding: 16,
@@ -187,15 +187,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusChip: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 13,
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   emptyStateContainer: {
     flex: 1,

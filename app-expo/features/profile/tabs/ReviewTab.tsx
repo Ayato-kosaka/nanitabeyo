@@ -102,18 +102,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   reviewCardRatingText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '500',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontSize: 10,
+    color: "#FFF",
+    marginLeft: 4,
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
+    padding: 16,
   },
   emptyStateCard: {
     backgroundColor: "#FFFFFF",

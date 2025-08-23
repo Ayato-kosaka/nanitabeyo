@@ -111,9 +111,7 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
+    padding: 16,
   },
   emptyStateCard: {
     backgroundColor: "#FFFFFF",
