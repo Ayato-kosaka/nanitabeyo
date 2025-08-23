@@ -79,17 +79,17 @@ export function useBlurModal({
 								android_ripple={{ color: "rgba(255,255,255,0.05)" }}>
 								{/* Blur background */}
 								<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
-
-								{/* Content (non-blocking layout wrapper) */}
-								<ScrollView
-									pointerEvents="box-none"
-									keyboardShouldPersistTaps="handled"
-									contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
-									<View pointerEvents="box-none" style={contentContainerStyle}>
-										{children}
-									</View>
-								</ScrollView>
 							</Pressable>
+
+							{/* Content (non-blocking layout wrapper) */}
+							<ScrollView
+								pointerEvents="box-none"
+								keyboardShouldPersistTaps="handled"
+								contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+								<View pointerEvents="auto" style={contentContainerStyle}>
+									{children}
+								</View>
+							</ScrollView>
 
 							{/* Close button */}
 							{showCloseButton && (
