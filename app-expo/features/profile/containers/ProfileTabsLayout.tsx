@@ -382,7 +382,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 
 	// Load initial data when component mounts
 	useEffect(() => {
-		withLoading(() => loadInitialData("reviews"));
+		withLoading(loadInitialData)("reviews");
 	}, [loadInitialData, withLoading]);
 	// Event handlers
 	const handleDishMediaEntryPress = useCallback(
@@ -481,7 +481,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 				tabName !== "reviews" &&
 				!profileData[tabName === "saved" ? "savedTopics" : (`${tabName}DishMediaEntries` as keyof ProfileData)]
 			) {
-				withLoading(() => loadInitialData(tabName));
+				withLoading(loadInitialData)(tabName);
 			}
 
 			logFrontendEvent({
@@ -545,7 +545,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						isLoading={isInitialLoading && selectedTab === "reviews"}
 						isLoadingMore={paginationState.reviews.isLoadingMore}
 						refreshing={false}
-						onRefresh={() => withLoading(() => loadInitialData("reviews"))}
+						onRefresh={withLoading(() => loadInitialData("reviews"))}
 						onEndReached={() => loadMoreData("reviews")}
 						onItemPress={(item, index) => handleDishMediaEntryPress(index)(item)}
 					/>
@@ -559,7 +559,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						isLoading={isInitialLoading && selectedTab === "saved"}
 						isLoadingMore={paginationState.saved.isLoadingMore}
 						refreshing={false}
-						onRefresh={() => withLoading(() => loadInitialData("saved"))}
+						onRefresh={withLoading(() => loadInitialData("saved"))}
 						onEndReached={() => loadMoreData("saved")}
 						onTopicPress={(item, index) => {
 							// TODO: Handle topic press - implement topic navigation
@@ -579,7 +579,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						isLoading={isInitialLoading && selectedTab === "liked"}
 						isLoadingMore={paginationState.liked.isLoadingMore}
 						refreshing={false}
-						onRefresh={() => withLoading(() => loadInitialData("liked"))}
+						onRefresh={withLoading(() => loadInitialData("liked"))}
 						onEndReached={() => loadMoreData("liked")}
 						onItemPress={(item, index) => handleDishMediaEntryPress(index)(item)}
 					/>
