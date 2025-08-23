@@ -171,10 +171,16 @@
 		"profile": "프로필"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "예치금",
-			"earnings": "수익"
-		},
+                "tabs": {
+                        "deposits": "예치금",
+                        "earnings": "수익",
+                        "topics": "주제",
+                        "posts": "게시물",
+                        "saved-posts": "게시물",
+                        "saved-topics": "주제",
+                        "wallet-deposit": "예치금",
+                        "wallet-earning": "수익"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -189,7 +195,9 @@
 			"noEarnings": "선택한 상태에 대한 수익이 없습니다",
 			"noDishReviews": "게시물이 아직 없습니다",
 			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
-			"noSavedItems": "저장된 항목이 없습니다"
+			"noSavedItems": "저장된 항목이 없습니다",
+			"noSavedPosts": "저장된 게시물이 없습니다",
+			"noSavedTopics": "저장된 주제가 없습니다"
 		},
 		"statusLabels": {
 			"active": "활성",
@@ -215,7 +223,8 @@
 		"privateContent": "이 내용은 비공개입니다",
 		"placeholders": {
 			"enterBio": "자기소개를 입력하세요..."
-		}
+		},
+		"savedCount": "{{count}}회 저장"
 	},
 	"NotFound": {
 		"title": "이런!",

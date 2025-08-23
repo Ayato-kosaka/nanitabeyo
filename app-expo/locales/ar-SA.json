@@ -171,10 +171,16 @@
 		"profile": "الملف الشخصي"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "الودائع",
-			"earnings": "الأرباح"
-		},
+                "tabs": {
+                        "deposits": "الودائع",
+                        "earnings": "الأرباح",
+                        "topics": "المواضيع",
+                        "posts": "المنشورات",
+                        "saved-posts": "المنشورات",
+                        "saved-topics": "المواضيع",
+                        "wallet-deposit": "الودائع",
+                        "wallet-earning": "الأرباح"
+                },
 		"numberSuffix": {
 			"million": "م",
 			"thousand": "ك"
@@ -189,7 +195,9 @@
 			"noEarnings": "لا توجد أرباح للحالة المحددة",
 			"noDishReviews": "لا توجد منشورات بعد",
 			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
-			"noSavedItems": "لا توجد عناصر محفوظة"
+			"noSavedItems": "لا توجد عناصر محفوظة",
+			"noSavedPosts": "لا توجد منشورات محفوظة",
+			"noSavedTopics": "لا توجد مواضيع محفوظة"
 		},
 		"statusLabels": {
 			"active": "نشط",
@@ -215,7 +223,8 @@
 		"privateContent": "هذا المحتوى خاص",
 		"placeholders": {
 			"enterBio": "أدخل نبذة عنك..."
-		}
+		},
+		"savedCount": "{{count}} حفظ"
 	},
 	"NotFound": {
 		"title": "عذرًا!",

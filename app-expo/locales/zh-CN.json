@@ -171,10 +171,16 @@
 		"profile": "个人资料"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "存款",
-			"earnings": "收益"
-		},
+                "tabs": {
+                        "deposits": "存款",
+                        "earnings": "收益",
+                        "topics": "主题",
+                        "posts": "帖子",
+                        "saved-posts": "帖子",
+                        "saved-topics": "主题",
+                        "wallet-deposit": "存款",
+                        "wallet-earning": "收益"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -189,7 +195,9 @@
 			"noEarnings": "所选状态没有收益",
 			"noDishReviews": "暂无帖子",
 			"noLikedDishMediaEntries": "暂无点赞的帖子",
-			"noSavedItems": "没有已保存的项目"
+			"noSavedItems": "没有已保存的项目",
+			"noSavedPosts": "没有已保存的帖子",
+			"noSavedTopics": "没有已保存的主题"
 		},
 		"statusLabels": {
 			"active": "活跃",
@@ -215,7 +223,8 @@
 		"privateContent": "此内容为私密",
 		"placeholders": {
 			"enterBio": "请输入您的个人简介..."
-		}
+		},
+		"savedCount": "{{count}} 次收藏"
 	},
 	"NotFound": {
 		"title": "哎呀！",

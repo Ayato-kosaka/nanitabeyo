@@ -171,10 +171,16 @@
 		"profile": "プロフィール"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "入札",
-			"earnings": "収益"
-		},
+                "tabs": {
+                        "deposits": "入札",
+                        "earnings": "収益",
+                        "topics": "トピック",
+                        "posts": "投稿",
+                        "saved-posts": "投稿",
+                        "saved-topics": "トピック",
+                        "wallet-deposit": "入札",
+                        "wallet-earning": "収益"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -189,7 +195,9 @@
 			"noEarnings": "選択したステータスの収益がありません",
 			"noDishReviews": "投稿はまだありません",
 			"noLikedDishMediaEntries": "いいねした投稿はありません",
-			"noSavedItems": "保存されたアイテムはありません"
+			"noSavedItems": "保存されたアイテムはありません",
+			"noSavedPosts": "保存した投稿はありません",
+			"noSavedTopics": "保存したトピックはありません"
 		},
 		"statusLabels": {
 			"active": "アクティブ",
@@ -215,7 +223,8 @@
 		"privateContent": "この内容は非公開です",
 		"placeholders": {
 			"enterBio": "自己紹介を入力してください..."
-		}
+		},
+		"savedCount": "{{count}}件保存"
 	},
 	"NotFound": {
 		"title": "おっと！",

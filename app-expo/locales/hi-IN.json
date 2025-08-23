@@ -171,10 +171,16 @@
 		"profile": "प्रोफ़ाइल"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "जमा",
-			"earnings": "आय"
-		},
+                "tabs": {
+                        "deposits": "जमा",
+                        "earnings": "आय",
+                        "topics": "विषय",
+                        "posts": "पोस्ट",
+                        "saved-posts": "पोस्ट",
+                        "saved-topics": "विषय",
+                        "wallet-deposit": "जमा",
+                        "wallet-earning": "आय"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -189,7 +195,9 @@
 			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं",
 			"noDishReviews": "अभी तक कोई पोस्ट नहीं",
 			"noLikedDishMediaEntries": "कोई पसंद की गई पोस्ट नहीं",
-			"noSavedItems": "कोई सहेजे गए आइटम नहीं"
+			"noSavedItems": "कोई सहेजे गए आइटम नहीं",
+			"noSavedPosts": "कोई सहेजी गई पोस्ट नहीं",
+			"noSavedTopics": "कोई सहेजे गए विषय नहीं"
 		},
 		"statusLabels": {
 			"active": "सक्रिय",
@@ -215,7 +223,8 @@
 		"privateContent": "यह सामग्री निजी है",
 		"placeholders": {
 			"enterBio": "अपना परिचय दर्ज करें..."
-		}
+		},
+		"savedCount": "{{count}} बार सहेजा गया"
 	},
 	"NotFound": {
 		"title": "ओह!",

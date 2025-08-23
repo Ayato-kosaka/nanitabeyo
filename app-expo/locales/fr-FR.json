@@ -171,10 +171,16 @@
 		"profile": "Profil"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "Dépôts",
-			"earnings": "Revenus"
-		},
+                "tabs": {
+                        "deposits": "Dépôts",
+                        "earnings": "Revenus",
+                        "topics": "Sujets",
+                        "posts": "Publications",
+                        "saved-posts": "Publications",
+                        "saved-topics": "Sujets",
+                        "wallet-deposit": "Dépôts",
+                        "wallet-earning": "Revenus"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -189,7 +195,9 @@
 			"noEarnings": "Aucun revenu pour le statut sélectionné",
 			"noDishReviews": "Aucune publication pour l'instant",
 			"noLikedDishMediaEntries": "Aucune publication aimée",
-			"noSavedItems": "Aucun élément enregistré"
+			"noSavedItems": "Aucun élément enregistré",
+			"noSavedPosts": "Aucune publication enregistrée",
+			"noSavedTopics": "Aucun sujet enregistré"
 		},
 		"statusLabels": {
 			"active": "Actif",
@@ -215,7 +223,8 @@
 		"privateContent": "Ce contenu est privé",
 		"placeholders": {
 			"enterBio": "Entrez votre biographie..."
-		}
+		},
+		"savedCount": "{{count}} enregistrements"
 	},
 	"NotFound": {
 		"title": "Oups !",

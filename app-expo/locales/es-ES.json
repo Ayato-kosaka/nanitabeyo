@@ -171,10 +171,16 @@
 		"profile": "Perfil"
 	},
 	"Profile": {
-		"tabs": {
-			"deposits": "Depósitos",
-			"earnings": "Ganancias"
-		},
+                "tabs": {
+                        "deposits": "Depósitos",
+                        "earnings": "Ganancias",
+                        "topics": "Temas",
+                        "posts": "Publicaciones",
+                        "saved-posts": "Publicaciones",
+                        "saved-topics": "Temas",
+                        "wallet-deposit": "Depósitos",
+                        "wallet-earning": "Ganancias"
+                },
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -189,7 +195,9 @@
 			"noEarnings": "No hay ganancias para el estado seleccionado",
 			"noDishReviews": "Aún no hay publicaciones",
 			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
-			"noSavedItems": "No hay elementos guardados"
+			"noSavedItems": "No hay elementos guardados",
+			"noSavedPosts": "No hay publicaciones guardadas",
+			"noSavedTopics": "No hay temas guardados"
 		},
 		"statusLabels": {
 			"active": "Activo",
@@ -215,7 +223,8 @@
 		"privateContent": "Este contenido es privado",
 		"placeholders": {
 			"enterBio": "Ingresa tu biografía..."
-		}
+		},
+		"savedCount": "{{count}} guardados"
 	},
 	"NotFound": {
 		"title": "¡Vaya!",
