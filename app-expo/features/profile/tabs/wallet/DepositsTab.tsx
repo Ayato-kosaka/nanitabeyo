@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, FlatList, StyleSheet } from 'react-native';
+import { Tabs } from '@/components/collapsible-tabs';
 import i18n from '@/lib/i18n';
 import { BidItem } from '../../constants';
 
@@ -11,6 +12,8 @@ interface DepositsTabProps {
   onRefresh?: () => void;
   onEndReached?: () => void;
   onItemPress?: (item: BidItem, index: number) => void;
+  onScroll?: any;
+  contentContainerStyle?: any;
 }
 
 export function DepositsTab({
@@ -21,6 +24,8 @@ export function DepositsTab({
   onRefresh,
   onEndReached,
   onItemPress,
+  onScroll,
+  contentContainerStyle,
 }: DepositsTabProps) {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'completed', 'refunded']);
 
@@ -118,16 +123,18 @@ export function DepositsTab({
   }, []);
 
   return (
-    <FlatList
+    <Tabs.FlatList
       data={filteredData}
       renderItem={renderBidItem}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={renderHeaderComponent}
       ListEmptyComponent={renderEmptyState}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, contentContainerStyle]}
       showsVerticalScrollIndicator={false}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     />
   );
 }

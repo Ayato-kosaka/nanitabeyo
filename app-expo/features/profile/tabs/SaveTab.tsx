@@ -22,6 +22,8 @@ interface SaveTabProps {
   onEndReachedPosts?: () => void;
   onTopicPress?: (item: any, index: number) => void;
   onPostPress?: (item: any, index: number) => void;
+  onScroll?: any;
+  contentContainerStyle?: any;
 }
 
 export function SaveTab({
@@ -40,6 +42,8 @@ export function SaveTab({
   onEndReachedPosts,
   onTopicPress,
   onPostPress,
+  onScroll,
+  contentContainerStyle,
 }: SaveTabProps) {
   // For non-own profiles, show private content message
   if (!isOwnProfile) {

@@ -14,6 +14,8 @@ interface SavePostTabProps {
   onRefresh?: () => void;
   onEndReached?: () => void;
   onItemPress?: (item: DishMediaEntry, index: number) => void;
+  onScroll?: any;
+  contentContainerStyle?: any;
 }
 
 export function SavePostTab({
@@ -24,6 +26,8 @@ export function SavePostTab({
   onRefresh,
   onEndReached,
   onItemPress,
+  onScroll,
+  contentContainerStyle,
 }: SavePostTabProps) {
   const renderPostItem = useCallback(
     ({ item, index }: { item: DishMediaEntry; index: number }) => {
@@ -69,7 +73,7 @@ export function SavePostTab({
       data={data.map(item => ({ ...item, id: item.dish_media.id }))}
       renderItem={({ item, index }) => renderPostItem({ item: item as DishMediaEntry, index })}
       numColumns={3}
-      contentContainerStyle={styles.gridContent}
+      contentContainerStyle={[styles.gridContent, contentContainerStyle]}
       columnWrapperStyle={styles.gridRow}
       isLoading={isLoading}
       isLoadingMore={isLoadingMore}
@@ -77,6 +81,7 @@ export function SavePostTab({
       onRefresh={onRefresh}
       onEndReached={onEndReached}
       ListEmptyComponent={renderEmptyState}
+      onScroll={onScroll}
       testID="save-post-tab-grid"
     />
   );

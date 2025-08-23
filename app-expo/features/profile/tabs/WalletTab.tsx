@@ -21,6 +21,8 @@ interface WalletTabProps {
   onEndReachedEarnings?: () => void;
   onDepositPress?: (item: BidItem, index: number) => void;
   onEarningPress?: (item: EarningItem, index: number) => void;
+  onScroll?: any;
+  contentContainerStyle?: any;
 }
 
 export function WalletTab({
@@ -38,6 +40,8 @@ export function WalletTab({
   onEndReachedEarnings,
   onDepositPress,
   onEarningPress,
+  onScroll,
+  contentContainerStyle,
 }: WalletTabProps) {
   return (
     <Tabs.Container

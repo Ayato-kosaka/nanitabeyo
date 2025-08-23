@@ -13,6 +13,8 @@ interface EarningsTabProps {
   onRefresh?: () => void;
   onEndReached?: () => void;
   onItemPress?: (item: EarningItem, index: number) => void;
+  onScroll?: any;
+  contentContainerStyle?: any;
 }
 
 export function EarningsTab({
@@ -23,6 +25,8 @@ export function EarningsTab({
   onRefresh,
   onEndReached,
   onItemPress,
+  onScroll,
+  contentContainerStyle,
 }: EarningsTabProps) {
   const [selectedEarningStatuses, setSelectedEarningStatuses] = useState<string[]>(['paid', 'pending']);
 
@@ -125,7 +129,7 @@ export function EarningsTab({
       data={filteredData}
       renderItem={renderEarningItem}
       numColumns={3}
-      contentContainerStyle={styles.gridContent}
+      contentContainerStyle={[styles.gridContent, contentContainerStyle]}
       columnWrapperStyle={styles.gridRow}
       isLoading={isLoading}
       isLoadingMore={isLoadingMore}
@@ -134,6 +138,7 @@ export function EarningsTab({
       onEndReached={onEndReached}
       ListHeaderComponent={renderHeaderComponent}
       ListEmptyComponent={renderEmptyState}
+      onScroll={onScroll}
       testID="earnings-tab-grid"
     />
   );

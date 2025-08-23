@@ -20,6 +20,8 @@ interface SaveTopicTabProps {
   onRefresh?: () => void;
   onEndReached?: () => void;
   onItemPress?: (item: SavedTopic, index: number) => void;
+  onScroll?: any;
+  contentContainerStyle?: any;
 }
 
 export function SaveTopicTab({
@@ -30,6 +32,8 @@ export function SaveTopicTab({
   onRefresh,
   onEndReached,
   onItemPress,
+  onScroll,
+  contentContainerStyle,
 }: SaveTopicTabProps) {
   const renderTopicItem = useCallback(
     ({ item, index }: { item: SavedTopic; index: number }) => {
@@ -70,7 +74,7 @@ export function SaveTopicTab({
       data={data}
       renderItem={renderTopicItem}
       numColumns={2}
-      contentContainerStyle={styles.gridContent}
+      contentContainerStyle={[styles.gridContent, contentContainerStyle]}
       columnWrapperStyle={styles.gridRow}
       isLoading={isLoading}
       isLoadingMore={isLoadingMore}
@@ -78,6 +82,7 @@ export function SaveTopicTab({
       onRefresh={onRefresh}
       onEndReached={onEndReached}
       ListEmptyComponent={renderEmptyState}
+      onScroll={onScroll}
       testID="save-topic-tab-grid"
     />
   );

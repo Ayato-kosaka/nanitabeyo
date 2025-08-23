@@ -48,6 +48,7 @@ interface TabProps {
 
 interface TabsFlatListProps<T> extends Omit<FlatListProps<T>, "data"> {
 	data: T[];
+	scrollEventThrottle?: number;
 }
 
 // Header collapse management
@@ -60,7 +61,11 @@ const useHeaderCollapse = (headerHeight: number = 0) => {
 		extrapolate: "clamp",
 	});
 
-	const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true });
+	// Web-compatible scroll handler
+	const onScroll = useCallback((event: any) => {
+		const offsetY = event.nativeEvent.contentOffset.y;
+		scrollY.setValue(offsetY);
+	}, [scrollY]);
 
 	return {
 		headerTranslateY,
@@ -220,7 +225,7 @@ function Tab({ name, children }: TabProps) {
 }
 
 // FlatList component with scroll sync
-function TabsFlatList<T>({ data, onScroll: externalOnScroll, contentContainerStyle, ...props }: TabsFlatListProps<T>) {
+function TabsFlatList<T>({ data, onScroll: externalOnScroll, contentContainerStyle, scrollEventThrottle = 16, ...props }: TabsFlatListProps<T>) {
 	const handleScroll = useCallback(
 		(event: any) => {
 			// Allow parent scroll handler (for header collapse)
@@ -235,7 +240,7 @@ function TabsFlatList<T>({ data, onScroll: externalOnScroll, contentContainerSty
 		<FlatList
 			data={data}
 			onScroll={handleScroll}
-			scrollEventThrottle={16}
+			scrollEventThrottle={scrollEventThrottle}
 			contentContainerStyle={contentContainerStyle}
 			{...props}
 		/>

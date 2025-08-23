@@ -44,6 +44,7 @@ interface GridListProps<T extends GridItem> {
   testID?: string;
   isLoading?: boolean;
   isLoadingMore?: boolean;
+  onScroll?: FlatListProps<T>['onScroll'];
 }
 
 export function GridList<T extends GridItem>({
@@ -64,6 +65,7 @@ export function GridList<T extends GridItem>({
   testID,
   isLoading = false,
   isLoadingMore = false,
+  onScroll,
 }: GridListProps<T>) {
   const defaultKeyExtractor = useCallback(
     (item: T, index: number) => {
@@ -117,6 +119,8 @@ export function GridList<T extends GridItem>({
       ListFooterComponent={ListFooterComponent || renderLoadingFooter}
       ListHeaderComponent={ListHeaderComponent}
       testID={testID}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       // Performance optimizations from original ImageCardGrid
       windowSize={10}
       maxToRenderPerBatch={6}
