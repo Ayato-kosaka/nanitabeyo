@@ -51,9 +51,9 @@ export function ProfileHeader({
 	onMessage,
 }: ProfileHeaderProps) {
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout}>
+		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}
-			<View style={styles.header}>
+			<View style={styles.header} pointerEvents="box-none">
 				{!isOwnProfile && (
 					<TouchableOpacity onPress={onBack || (() => {})} style={styles.backButton}>
 						<ArrowLeft size={24} color="#1A1A1A" />
@@ -71,10 +71,10 @@ export function ProfileHeader({
 			</View>
 
 			{/* Profile Info Card */}
-			<View style={styles.cardContainer}>
-				<Card>
+			<View style={styles.cardContainer} pointerEvents="box-none">
+				<Card pointerEvents="box-none">
 					{/* Avatar and Stats */}
-					<View style={styles.profileHeader}>
+					<View style={styles.profileHeader} pointerEvents="none">
 						<Image source={{ uri: profile.avatar }} style={styles.avatar} />
 
 						<View style={styles.statsContainer}>
@@ -94,10 +94,14 @@ export function ProfileHeader({
 					</View>
 
 					{/* Display Name */}
-					<Text style={styles.displayName}>{profile.displayName}</Text>
+					<Text style={styles.displayName} pointerEvents="none">
+						{profile.displayName}
+					</Text>
 
 					{/* Bio */}
-					<Text style={styles.bio}>{profile.bio}</Text>
+					<Text style={styles.bio} pointerEvents="none">
+						{profile.bio}
+					</Text>
 
 					{/* Action Buttons */}
 					<View style={styles.actionButtons}>
@@ -211,6 +215,7 @@ const styles = StyleSheet.create({
 	actionButtons: {
 		flexDirection: "row",
 		gap: 8,
+		zIndex: 100000000,
 	},
 	followButton: {
 		flex: 1,

@@ -88,8 +88,8 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 	};
 
 	return (
-		<View>
-			<View style={styles.tabsContainer}>
+		<View pointerEvents="box-none">
+			<View style={styles.tabsContainer} pointerEvents="box-none">
 				{availableTabs.map((group) => {
 					const isActive = activeGroup === group;
 					return (
