@@ -368,7 +368,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 		}
 	}, [selectedTab, profileData]);
 
-	// Load initial data when component mounts
+	// Load initial data when component mounts - only load reviews initially
 	useEffect(() => {
 		withLoading(() => loadInitialData("reviews"));
 	}, [loadInitialData, withLoading]);
@@ -464,11 +464,6 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 			const tabName = availableTabs[index];
 			setSelectedTab(tabName);
 			
-			// Load data for the newly selected tab if not already loaded
-			if (tabName !== "reviews" && !profileData[tabName === "saved" ? "savedTopics" : `${tabName}DishMediaEntries` as keyof ProfileData]) {
-				withLoading(() => loadInitialData(tabName));
-			}
-			
 			logFrontendEvent({
 				event_name: "profile_tab_changed",
 				error_level: "log",
@@ -478,7 +473,7 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 				},
 			});
 		},
-		[availableTabs, profileData, loadInitialData, withLoading, logFrontendEvent, profile.id],
+		[availableTabs, logFrontendEvent, profile.id],
 	);
 
 	// Render header component
@@ -541,11 +536,17 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 						savedTopics={profileData.savedTopics || []}
 						savedPosts={profileData.savedDishMediaEntries || []}
 						isOwnProfile={isOwnProfile}
-						isLoading={isInitialLoading && selectedTab === "saved"}
-						isLoadingMore={paginationState.saved.isLoadingMore}
+						isLoading={false}
+						isLoadingMore={false}
 						refreshing={false}
-						onRefresh={() => withLoading(() => loadInitialData("saved"))}
-						onEndReached={() => loadMoreData("saved")}
+						onRefresh={() => {
+							// Only load data when user explicitly refreshes
+							withLoading(() => loadInitialData("saved"));
+						}}
+						onEndReached={() => {
+							// Only load more when user scrolls to end
+							loadMoreData("saved");
+						}}
 						onTopicPress={(item, index) => {
 							// TODO: Handle topic press - implement topic navigation
 							logFrontendEvent({
@@ -561,11 +562,17 @@ export function ProfileTabsLayout({}: ProfileTabsLayoutProps) {
 				<Tabs.Tab name="liked">
 					<LikeTab
 						data={profileData.likedDishMediaEntries || []}
-						isLoading={isInitialLoading && selectedTab === "liked"}
-						isLoadingMore={paginationState.liked.isLoadingMore}
+						isLoading={false}
+						isLoadingMore={false}
 						refreshing={false}
-						onRefresh={() => withLoading(() => loadInitialData("liked"))}
-						onEndReached={() => loadMoreData("liked")}
+						onRefresh={() => {
+							// Only load data when user explicitly refreshes
+							withLoading(() => loadInitialData("liked"));
+						}}
+						onEndReached={() => {
+							// Only load more when user scrolls to end
+							loadMoreData("liked");
+						}}
 						onItemPress={(item, index) => handleDishMediaEntryPress(index)(item)}
 					/>
 				</Tabs.Tab>
