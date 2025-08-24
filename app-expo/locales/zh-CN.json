@@ -214,7 +214,8 @@
 			"follow": "关注",
 			"following": "已关注",
 			"message": "消息",
-			"searchByMood": "根据今天的心情寻找你会\"喜欢\"的菜品"
+			"searchByMood": "根据今天的心情寻找你会\"喜欢\"的菜品",
+			"sendFeedback": "发送反馈/错误报告"
 		},
 		"stats": {
 			"following": "关注中",
@@ -309,6 +310,25 @@
 				"asian": "亚洲菜",
 				"other": "其他"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "发送反馈/错误报告",
+		"labels": {
+			"type": "类型",
+			"title": "标题",
+			"message": "消息"
+		},
+		"types": {
+			"request": "功能请求",
+			"bug": "错误报告"
+		},
+		"placeholders": {
+			"title": "请输入标题（5-80个字符）",
+			"message": "请描述您的反馈或问题（10-2000个字符）"
+		},
+		"buttons": {
+			"submit": "提交"
 		}
 	}
 }

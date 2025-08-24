@@ -214,7 +214,8 @@
 			"follow": "フォロー",
 			"following": "フォロー中",
 			"message": "メッセージ",
-			"searchByMood": "\"いいね\"と思う料理を今日の気分で探す"
+			"searchByMood": "\"いいね\"と思う料理を今日の気分で探す",
+			"sendFeedback": "ご意見・不具合を送る"
 		},
 		"stats": {
 			"following": "フォロー中",
@@ -309,6 +310,25 @@
 				"asian": "アジア料理",
 				"other": "その他"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "ご意見・不具合を送る",
+		"labels": {
+			"type": "種類",
+			"title": "タイトル",
+			"message": "メッセージ"
+		},
+		"types": {
+			"request": "ご意見",
+			"bug": "不具合"
+		},
+		"placeholders": {
+			"title": "タイトルを入力してください（5-80文字）",
+			"message": "ご意見や不具合の詳細を教えてください（10-2000文字）"
+		},
+		"buttons": {
+			"submit": "送信"
 		}
 	}
 }

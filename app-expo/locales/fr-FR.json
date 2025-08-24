@@ -214,7 +214,8 @@
 			"follow": "Suivre",
 			"following": "Suivi",
 			"message": "Message",
-			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour"
+			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour",
+			"sendFeedback": "Envoyer Commentaires/Rapport de Bug"
 		},
 		"stats": {
 			"following": "Abonnements",
@@ -309,6 +310,25 @@
 				"asian": "Asiatique",
 				"other": "Autre"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "Envoyer Commentaires/Rapport de Bug",
+		"labels": {
+			"type": "Type",
+			"title": "Titre",
+			"message": "Message"
+		},
+		"types": {
+			"request": "Demande de Fonctionnalité",
+			"bug": "Rapport de Bug"
+		},
+		"placeholders": {
+			"title": "Entrez un titre (5-80 caractères)",
+			"message": "Décrivez vos commentaires ou problème (10-2000 caractères)"
+		},
+		"buttons": {
+			"submit": "Envoyer"
 		}
 	}
 }

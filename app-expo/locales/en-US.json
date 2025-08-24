@@ -214,7 +214,8 @@
 			"follow": "Follow",
 			"following": "Following",
 			"message": "Message",
-			"searchByMood": "Find dishes you'll \"like\" based on today's mood"
+			"searchByMood": "Find dishes you'll \"like\" based on today's mood",
+			"sendFeedback": "Send Feedback/Bug Report"
 		},
 		"stats": {
 			"following": "Following",
@@ -309,6 +310,25 @@
 				"asian": "Asian",
 				"other": "Other"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "Send Feedback/Bug Report",
+		"labels": {
+			"type": "Type",
+			"title": "Title",
+			"message": "Message"
+		},
+		"types": {
+			"request": "Feature Request",
+			"bug": "Bug Report"
+		},
+		"placeholders": {
+			"title": "Enter a title (5-80 characters)",
+			"message": "Describe your feedback or issue (10-2000 characters)"
+		},
+		"buttons": {
+			"submit": "Submit"
 		}
 	}
 }

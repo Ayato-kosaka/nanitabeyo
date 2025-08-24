@@ -214,7 +214,8 @@
 			"follow": "Seguir",
 			"following": "Siguiendo",
 			"message": "Mensaje",
-			"searchByMood": "Encuentra platos que te \"gustarán\" según tu estado de ánimo de hoy"
+			"searchByMood": "Encuentra platos que te \"gustarán\" según tu estado de ánimo de hoy",
+			"sendFeedback": "Enviar Comentarios/Reporte de Errores"
 		},
 		"stats": {
 			"following": "Siguiendo",
@@ -309,6 +310,25 @@
 				"asian": "Asiática",
 				"other": "Otra"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "Enviar Comentarios/Reporte de Errores",
+		"labels": {
+			"type": "Tipo",
+			"title": "Título",
+			"message": "Mensaje"
+		},
+		"types": {
+			"request": "Solicitud de Función",
+			"bug": "Reporte de Error"
+		},
+		"placeholders": {
+			"title": "Ingrese un título (5-80 caracteres)",
+			"message": "Describa sus comentarios o problema (10-2000 caracteres)"
+		},
+		"buttons": {
+			"submit": "Enviar"
 		}
 	}
 }

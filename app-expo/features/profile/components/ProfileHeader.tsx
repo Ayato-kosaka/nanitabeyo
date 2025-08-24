@@ -18,6 +18,7 @@ interface ProfileHeaderProps {
 		totalLikes: number;
 	};
 	isOwnProfile: boolean;
+	isGuest?: boolean;
 	isFollowing?: boolean;
 	onLayout?: (event: LayoutChangeEvent) => void;
 	onBack?: () => void;
@@ -26,6 +27,7 @@ interface ProfileHeaderProps {
 	onEditProfile?: () => void;
 	onFollow?: () => void;
 	onMessage?: () => void;
+	onFeedback?: () => void;
 }
 
 const formatNumber = (num: number): string => {
@@ -41,6 +43,7 @@ const formatNumber = (num: number): string => {
 export function ProfileHeader({
 	profile,
 	isOwnProfile,
+	isGuest = false,
 	isFollowing = false,
 	onLayout,
 	onBack,
@@ -49,6 +52,7 @@ export function ProfileHeader({
 	onEditProfile,
 	onFollow,
 	onMessage,
+	onFeedback,
 }: ProfileHeaderProps) {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
@@ -72,45 +76,53 @@ export function ProfileHeader({
 
 			{/* Profile Info Card */}
 			<View style={styles.cardContainer} pointerEvents="box-none">
-				<Card pointerEvents="box-none">
+				<Card pointerEvents="box-none" style={isGuest ? styles.guestCard : undefined}>
 					{/* Avatar and Stats */}
-					<View style={styles.profileHeader} pointerEvents="none">
+					<View style={[styles.profileHeader, isGuest && styles.guestProfileHeader]} pointerEvents="none">
 						<Image source={{ uri: profile.avatar }} style={styles.avatar} />
 
-						<View style={styles.statsContainer}>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.following")}</Text>
+						{!isGuest && (
+							<View style={styles.statsContainer}>
+								<View style={styles.statColumn}>
+									<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
+									<Text style={styles.statLabel}>{i18n.t("Profile.stats.following")}</Text>
+								</View>
+								<View style={styles.statColumn}>
+									<Text style={styles.statNumber}>{formatNumber(profile.followersCount)}</Text>
+									<Text style={styles.statLabel}>{i18n.t("Profile.stats.followers")}</Text>
+								</View>
+								<View style={styles.statColumn}>
+									<Text style={styles.statNumber}>{formatNumber(profile.totalLikes)}</Text>
+									<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
+								</View>
 							</View>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.followersCount)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.followers")}</Text>
-							</View>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.totalLikes)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
-							</View>
-						</View>
+						)}
 					</View>
 
 					{/* Display Name */}
-					<Text style={styles.displayName} pointerEvents="none">
+					<Text style={[styles.displayName, isGuest && styles.guestDisplayName]} pointerEvents="none">
 						{profile.displayName}
 					</Text>
 
 					{/* Bio */}
-					<Text style={styles.bio} pointerEvents="none">
+					<Text style={[styles.bio, isGuest && styles.guestBio]} pointerEvents="none">
 						{profile.bio}
 					</Text>
 
 					{/* Action Buttons */}
 					<View style={styles.actionButtons}>
-						{isOwnProfile ? (
+						{isOwnProfile && !isGuest ? (
 							<PrimaryButton
 								style={{ flex: 1 }}
 								onPress={onEditProfile || (() => {})}
 								label={i18n.t("Profile.buttons.editProfile")}
 								icon={<Edit3 size={16} color="#FFFFFF" />}
+							/>
+						) : isGuest ? (
+							<PrimaryButton
+								style={{ flex: 1 }}
+								onPress={onFeedback || (() => {})}
+								label={i18n.t("Profile.buttons.sendFeedback")}
 							/>
 						) : (
 							<>
@@ -262,5 +274,19 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		color: "#FFFFFF",
 		letterSpacing: 0.2,
+	},
+	guestCard: {
+		alignItems: "center",
+	},
+	guestProfileHeader: {
+		flexDirection: "column",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	guestDisplayName: {
+		textAlign: "center",
+	},
+	guestBio: {
+		textAlign: "center",
 	},
 });
