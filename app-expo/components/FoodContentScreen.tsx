@@ -25,6 +25,7 @@ import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { toggleReaction } from "@/lib/reactions";
 import { generateShareUrl, handleShare } from "@/lib/share";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get("window");
 
@@ -98,6 +99,8 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
+	const insets = useSafeAreaInsets();
+	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
 	useEffect(() => {
 		scrollViewRef.current?.scrollToEnd({ animated: false });
@@ -475,7 +478,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
 				<ScrollView
 					ref={scrollViewRef}
-					style={styles.commentsContainer}
+					style={[styles.commentsContainer, { paddingRight: Math.max(16, rightActionsWidth + insets.right + 8) }]}
 					showsVerticalScrollIndicator={false}
 					simultaneousHandlers={carouselRef}>
 					{item.dish_reviews.map((review) => {
@@ -524,7 +527,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
 					{/* Action Buttons */}
-					<View style={styles.rightActions}>
+					<View style={styles.rightActions} onLayout={(e) => setRightActionsWidth(e.nativeEvent.layout.width)}>
 						<TouchableOpacity style={styles.actionButton} onPress={() => handleViewRestaurant()}>
 							<Image
 								source={{
@@ -704,7 +707,6 @@ const styles = StyleSheet.create({
 	commentsContainer: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
-		marginRight: 48,
 	},
 	commentItem: {
 		marginBottom: 12,

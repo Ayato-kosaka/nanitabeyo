@@ -22,6 +22,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
+import type { CreateFeedbackDto } from "@shared/api/v1/dto";
 
 export function ProfileTabsLayout() {
 	const { userId } = useLocalSearchParams();
@@ -161,19 +162,24 @@ export function ProfileTabsLayout() {
 			const osInfo =
 				Platform.OS === "ios"
 					? `iOS ${Constants.platform?.ios?.systemVersion || "Unknown"}`
-					: `Android ${Platform.Version}`;
+					: Platform.OS === "android"
+						? `Android ${Platform.Version}`
+						: Platform.OS;
 
 			// Call API to submit feedback
-			const response = await callBackend<any, { issueNumber: number; issueUrl: string }>("/v1/feedback/issue", {
-				method: "POST",
-				requestPayload: {
-					type: feedbackType,
-					title: feedbackTitle,
-					message: feedbackMessage,
-					os: osInfo,
-					device: deviceInfo,
+			const response = await callBackend<CreateFeedbackDto, { issueNumber: number; issueUrl: string }>(
+				"v1/feedback/issue",
+				{
+					method: "POST",
+					requestPayload: {
+						type: feedbackType,
+						title: feedbackTitle,
+						message: feedbackMessage,
+						os: osInfo,
+						device: deviceInfo,
+					},
 				},
-			});
+			);
 
 			closeFeedbackModal();
 

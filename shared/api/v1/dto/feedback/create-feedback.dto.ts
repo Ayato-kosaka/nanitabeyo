@@ -1,15 +1,10 @@
-import { IsEnum, IsString, Length } from "@nestjs/class-validator";
-
-export enum FeedbackType {
-	REQUEST = "request",
-	BUG = "bug",
-}
+import { IsIn, IsString, Length } from "@nestjs/class-validator";
 
 /** POST /v1/feedback/issue のボディ */
 export class CreateFeedbackDto {
 	/** フィードバックの種類 */
-	@IsEnum(FeedbackType)
-	type!: FeedbackType;
+	@IsIn(['request', 'bug'])
+	type!: 'request' | 'bug';
 
 	/** タイトル (5-80文字) */
 	@IsString()

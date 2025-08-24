@@ -22,7 +22,7 @@ export function ReviewTab() {
 	const { callBackend } = useAPICall();
 	const { items, loadInitial, loadMore, refresh, error, isLoadingInitial, isLoadingMore } = useCursorPagination<
 		QueryUserDishReviewsDto,
-		DishMediaEntry
+		QueryUserDishReviewsResponse["data"][number]
 	>(
 		useCallback(
 			async ({ cursor }) => {
@@ -69,7 +69,7 @@ export function ReviewTab() {
 	);
 
 	const renderReviewItem = useCallback(
-		({ item, index }: { item: DishMediaEntry; index: number }) => {
+		({ item, index }: { item: QueryUserDishReviewsResponse["data"][number]; index: number }) => {
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
@@ -120,7 +120,7 @@ export function ReviewTab() {
 	return (
 		<GridList
 			data={items.map((item) => ({ ...item, id: item.dish_media.id }))}
-			renderItem={({ item, index }) => renderReviewItem({ item: item as DishMediaEntry, index })}
+			renderItem={({ item, index }) => renderReviewItem({ item, index })}
 			numColumns={3}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}

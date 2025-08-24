@@ -6,7 +6,7 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { CreateFeedbackDto, FeedbackType } from '@shared/v1/dto';
+import { CreateFeedbackDto } from '@shared/v1/dto';
 import { CreateFeedbackResponseDto } from '@shared/v1/res';
 import { env } from '../../core/config/env';
 import { AppLoggerService } from '../../core/logger/logger.service';
@@ -38,7 +38,7 @@ export class FeedbackService {
 
     // Create GitHub issue body with additional information
     const issueBody = `
-## ${type === FeedbackType.REQUEST ? 'Feature Request' : 'Bug Report'}
+## ${type === 'request' ? 'Feature Request' : 'Bug Report'}
 
 **Description:**
 ${message}
@@ -55,7 +55,7 @@ ${message}
     `.trim();
 
     // Determine labels based on type
-    const labels = type === FeedbackType.REQUEST ? ['request'] : ['bug'];
+    const labels = [type];
 
     try {
       const response = await fetch(
