@@ -60,7 +60,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) { }
+  ) {}
 
   /**
    * 写真候補を選択する優先順位ロジック

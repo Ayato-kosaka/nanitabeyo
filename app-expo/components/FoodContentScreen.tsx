@@ -472,7 +472,11 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 			{/* Comments Section */}
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
-				<ScrollView ref={scrollViewRef} style={styles.commentsContainer} showsVerticalScrollIndicator={false}>
+				<ScrollView
+					ref={scrollViewRef}
+					style={styles.commentsContainer}
+					showsVerticalScrollIndicator={false}
+					nestedScrollEnabled={Platform.OS === "android"}>
 					{item.dish_reviews.map((review) => {
 						const unitLimit = commentExpandedChars[review.id]!;
 						const { substring, isTruncated } = sliceByUnitLimit(review.comment, unitLimit);
