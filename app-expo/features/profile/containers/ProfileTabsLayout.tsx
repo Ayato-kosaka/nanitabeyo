@@ -162,7 +162,9 @@ export function ProfileTabsLayout() {
 			const osInfo =
 				Platform.OS === "ios"
 					? `iOS ${Constants.platform?.ios?.systemVersion || "Unknown"}`
-					: `Android ${Platform.Version}`;
+					: Platform.OS === "android"
+						? `Android ${Platform.Version}`
+						: Platform.OS;
 
 			// Call API to submit feedback
 			const response = await callBackend<CreateFeedbackDto, { issueNumber: number; issueUrl: string }>(
