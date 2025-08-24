@@ -171,16 +171,16 @@
 		"profile": "Profile"
 	},
 	"Profile": {
-                "tabs": {
-                        "deposits": "Deposits",
-                        "earnings": "Earnings",
-                        "topics": "Topics",
-                        "posts": "Posts",
-                        "saved-posts": "Posts",
-                        "saved-topics": "Topics",
-                        "wallet-deposit": "Deposits",
-                        "wallet-earning": "Earnings"
-                },
+		"tabs": {
+			"deposits": "Deposits",
+			"earnings": "Earnings",
+			"topics": "Topics",
+			"posts": "Posts",
+			"saved-posts": "Posts",
+			"saved-topics": "Topics",
+			"wallet-deposit": "Deposits",
+			"wallet-earning": "Earnings"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"

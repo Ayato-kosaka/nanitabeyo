@@ -171,16 +171,16 @@
 		"profile": "प्रोफ़ाइल"
 	},
 	"Profile": {
-                "tabs": {
-                        "deposits": "जमा",
-                        "earnings": "आय",
-                        "topics": "विषय",
-                        "posts": "पोस्ट",
-                        "saved-posts": "पोस्ट",
-                        "saved-topics": "विषय",
-                        "wallet-deposit": "जमा",
-                        "wallet-earning": "आय"
-                },
+		"tabs": {
+			"deposits": "जमा",
+			"earnings": "आय",
+			"topics": "विषय",
+			"posts": "पोस्ट",
+			"saved-posts": "पोस्ट",
+			"saved-topics": "विषय",
+			"wallet-deposit": "जमा",
+			"wallet-earning": "आय"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"

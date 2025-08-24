@@ -171,16 +171,16 @@
 		"profile": "Perfil"
 	},
 	"Profile": {
-                "tabs": {
-                        "deposits": "Depósitos",
-                        "earnings": "Ganancias",
-                        "topics": "Temas",
-                        "posts": "Publicaciones",
-                        "saved-posts": "Publicaciones",
-                        "saved-topics": "Temas",
-                        "wallet-deposit": "Depósitos",
-                        "wallet-earning": "Ganancias"
-                },
+		"tabs": {
+			"deposits": "Depósitos",
+			"earnings": "Ganancias",
+			"topics": "Temas",
+			"posts": "Publicaciones",
+			"saved-posts": "Publicaciones",
+			"saved-topics": "Temas",
+			"wallet-deposit": "Depósitos",
+			"wallet-earning": "Ganancias"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"

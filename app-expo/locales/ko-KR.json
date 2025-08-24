@@ -171,16 +171,16 @@
 		"profile": "프로필"
 	},
 	"Profile": {
-                "tabs": {
-                        "deposits": "예치금",
-                        "earnings": "수익",
-                        "topics": "주제",
-                        "posts": "게시물",
-                        "saved-posts": "게시물",
-                        "saved-topics": "주제",
-                        "wallet-deposit": "예치금",
-                        "wallet-earning": "수익"
-                },
+		"tabs": {
+			"deposits": "예치금",
+			"earnings": "수익",
+			"topics": "주제",
+			"posts": "게시물",
+			"saved-posts": "게시물",
+			"saved-topics": "주제",
+			"wallet-deposit": "예치금",
+			"wallet-earning": "수익"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
