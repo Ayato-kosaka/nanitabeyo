@@ -330,6 +330,11 @@
 		},
 		"buttons": {
 			"submit": "提交"
+		},
+		"errors": {
+			"titleLength": "标题必须在5到80个字符之间",
+			"messageLength": "消息必须在10到2000个字符之间",
+			"submitFailed": "提交反馈失败。请重试。"
 		}
 	}
 }

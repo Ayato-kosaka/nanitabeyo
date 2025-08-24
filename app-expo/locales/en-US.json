@@ -330,6 +330,11 @@
 		},
 		"buttons": {
 			"submit": "Submit"
+		},
+		"errors": {
+			"titleLength": "Title must be between 5 and 80 characters",
+			"messageLength": "Message must be between 10 and 2000 characters",
+			"submitFailed": "Failed to submit feedback. Please try again."
 		}
 	}
 }

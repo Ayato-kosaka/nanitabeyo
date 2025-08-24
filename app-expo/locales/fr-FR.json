@@ -330,6 +330,11 @@
 		},
 		"buttons": {
 			"submit": "Envoyer"
+		},
+		"errors": {
+			"titleLength": "Le titre doit contenir entre 5 et 80 caractères",
+			"messageLength": "Le message doit contenir entre 10 et 2000 caractères",
+			"submitFailed": "Échec de l'envoi des commentaires. Veuillez réessayer."
 		}
 	}
 }

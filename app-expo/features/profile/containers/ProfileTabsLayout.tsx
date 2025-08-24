@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { View, StyleSheet, LayoutChangeEvent, Text, TextInput, TouchableOpacity, Platform, Alert } from "react-native";
+import { View, StyleSheet, LayoutChangeEvent, Text, TextInput, TouchableOpacity, Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import { Tabs } from "@/components/collapsible-tabs";
@@ -41,6 +41,9 @@ export function ProfileTabsLayout() {
 	const [feedbackType, setFeedbackType] = useState<"request" | "bug">("request");
 	const [feedbackTitle, setFeedbackTitle] = useState("");
 	const [feedbackMessage, setFeedbackMessage] = useState("");
+	const [titleError, setTitleError] = useState("");
+	const [messageError, setMessageError] = useState("");
+	const [submitError, setSubmitError] = useState("");
 
 	const isOwnProfile = !userId || userId === "me";
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
@@ -121,6 +124,9 @@ export function ProfileTabsLayout() {
 		setFeedbackType("request");
 		setFeedbackTitle("");
 		setFeedbackMessage("");
+		setTitleError("");
+		setMessageError("");
+		setSubmitError("");
 		openFeedbackModal();
 		logFrontendEvent({
 			event_name: "feedback_modal_opened",
@@ -130,12 +136,20 @@ export function ProfileTabsLayout() {
 	}, [lightImpact, openFeedbackModal, logFrontendEvent, profile.id]);
 
 	const handleSubmitFeedback = useCallback(async () => {
+		// Clear previous errors
+		setTitleError("");
+		setMessageError("");
+		setSubmitError("");
+
+		// Validate title
 		if (feedbackTitle.length < 5 || feedbackTitle.length > 80) {
-			Alert.alert(i18n.t("Common.error"), "Title must be between 5 and 80 characters");
+			setTitleError(i18n.t("Feedback.errors.titleLength"));
 			return;
 		}
+
+		// Validate message
 		if (feedbackMessage.length < 10 || feedbackMessage.length > 2000) {
-			Alert.alert(i18n.t("Common.error"), "Message must be between 10 and 2000 characters");
+			setMessageError(i18n.t("Feedback.errors.messageLength"));
 			return;
 		}
 
@@ -184,9 +198,29 @@ export function ProfileTabsLayout() {
 					error: (error as Error).message,
 				},
 			});
-			Alert.alert(i18n.t("Common.error"), "Failed to submit feedback. Please try again.");
+			setSubmitError(i18n.t("Feedback.errors.submitFailed"));
 		}
 	}, [feedbackType, feedbackTitle, feedbackMessage, mediumImpact, closeFeedbackModal, logFrontendEvent, callBackend]);
+
+	const handleTitleChange = useCallback(
+		(text: string) => {
+			setFeedbackTitle(text);
+			if (titleError) {
+				setTitleError("");
+			}
+		},
+		[titleError],
+	);
+
+	const handleMessageChange = useCallback(
+		(text: string) => {
+			setFeedbackMessage(text);
+			if (messageError) {
+				setMessageError("");
+			}
+		},
+		[messageError],
+	);
 
 	const handleTabChange = useCallback(
 		(index: number) => {
@@ -317,6 +351,13 @@ export function ProfileTabsLayout() {
 				<Card style={{ gap: 16 }}>
 					<Text style={styles.feedbackTitle}>{i18n.t("Feedback.title")}</Text>
 
+					{/* Submit Error Display */}
+					{submitError ? (
+						<View style={styles.errorContainer}>
+							<Text style={styles.errorText}>{submitError}</Text>
+						</View>
+					) : null}
+
 					{/* Type Selection */}
 					<View>
 						<Text style={styles.feedbackLabel}>{i18n.t("Feedback.labels.type")}</Text>
@@ -336,23 +377,24 @@ export function ProfileTabsLayout() {
 					<View>
 						<Text style={styles.feedbackLabel}>{i18n.t("Feedback.labels.title")}</Text>
 						<TextInput
-							style={styles.feedbackInput}
+							style={[styles.feedbackInput, titleError && styles.feedbackInputError]}
 							value={feedbackTitle}
-							onChangeText={setFeedbackTitle}
+							onChangeText={handleTitleChange}
 							placeholder={i18n.t("Feedback.placeholders.title")}
 							placeholderTextColor="#666"
 							maxLength={80}
 						/>
 						<Text style={styles.characterCount}>{feedbackTitle.length}/80</Text>
+						{titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
 					</View>
 
 					{/* Message Input */}
 					<View>
 						<Text style={styles.feedbackLabel}>{i18n.t("Feedback.labels.message")}</Text>
 						<TextInput
-							style={[styles.feedbackInput, styles.feedbackTextArea]}
+							style={[styles.feedbackInput, styles.feedbackTextArea, messageError && styles.feedbackInputError]}
 							value={feedbackMessage}
-							onChangeText={setFeedbackMessage}
+							onChangeText={handleMessageChange}
 							placeholder={i18n.t("Feedback.placeholders.message")}
 							placeholderTextColor="#666"
 							multiline
@@ -361,6 +403,7 @@ export function ProfileTabsLayout() {
 							textAlignVertical="top"
 						/>
 						<Text style={styles.characterCount}>{feedbackMessage.length}/2000</Text>
+						{messageError ? <Text style={styles.errorText}>{messageError}</Text> : null}
 					</View>
 				</Card>
 				<PrimaryButton
@@ -458,5 +501,23 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 		textAlign: "right",
 		marginTop: 4,
+	},
+	errorContainer: {
+		backgroundColor: "#FEF2F2",
+		borderRadius: 8,
+		padding: 12,
+		borderLeftWidth: 4,
+		borderLeftColor: "#DC2626",
+	},
+	errorText: {
+		fontSize: 14,
+		color: "#DC2626",
+		fontWeight: "500",
+		marginTop: 4,
+	},
+	feedbackInputError: {
+		borderWidth: 1,
+		borderColor: "#DC2626",
+		backgroundColor: "#FEF2F2",
 	},
 });
