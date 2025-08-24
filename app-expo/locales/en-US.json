@@ -50,6 +50,9 @@
 			"budget": "Price range?",
 			"restrictions": "Restrictions"
 		},
+		"locationModal": {
+			"title": "Enter search location"
+		},
 		"required": "Required",
 		"placeholders": {
 			"enterLocation": "Enter a location"

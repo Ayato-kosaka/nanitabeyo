@@ -50,6 +50,9 @@
 			"budget": "बजट?",
 			"restrictions": "प्रतिबंध"
 		},
+		"locationModal": {
+			"title": "खोज स्थान दर्ज करें"
+		},
 		"required": "अनिवार्य",
 		"placeholders": {
 			"enterLocation": "स्थान दर्ज करें"

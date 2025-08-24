@@ -50,6 +50,9 @@
 			"budget": "¿Presupuesto?",
 			"restrictions": "Restricciones"
 		},
+		"locationModal": {
+			"title": "Ingresa ubicación de búsqueda"
+		},
 		"required": "Obligatorio",
 		"placeholders": {
 			"enterLocation": "Ingrese un lugar"

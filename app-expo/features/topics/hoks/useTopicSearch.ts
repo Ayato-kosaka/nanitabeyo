@@ -30,10 +30,22 @@ export const useTopicSearch = () => {
 	const createDishItemsPromise = useCallback(
 		(
 			topic: QueryDishCategoryRecommendationsResponse[number],
-			params: SearchParams,
-			searchResultRestaurantsNumber: number,
+			latitude: number,
+			longitude: number,
+			languageCode: string,
+			radius: number = 500, // Default 500m
+			priceLevels: string[] = [
+				"PRICE_LEVEL_INEXPENSIVE",
+				"PRICE_LEVEL_MODERATE",
+				"PRICE_LEVEL_EXPENSIVE",
+				"PRICE_LEVEL_VERY_EXPENSIVE",
+			],
 		): Promise<DishMediaEntry[]> => {
 			return (async (): Promise<DishMediaEntry[]> => {
+				// Get restaurant number from remote config
+				const remoteConfig = getRemoteConfig();
+				const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
+
 				let dishItems: DishMediaEntry[] = [];
 
 				// TODO: GET /v1/dish-media
@@ -42,13 +54,13 @@ export const useTopicSearch = () => {
 					dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dishes/bulk-import", {
 						method: "POST",
 						requestPayload: {
-							location: `${params.location.latitude},${params.location.longitude}`,
-							radius: params.distance,
+							location: `${latitude},${longitude}`,
+							radius: radius,
 							categoryId: topic.categoryId,
 							categoryName: topic.category,
 							minRating: 3.0, // Fixed value as per requirement
-							languageCode: params.localLanguageCode, // First part of locale (e.g., "ja" from "ja-JP")
-							priceLevels: params.priceLevels,
+							languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
+							priceLevels: priceLevels,
 						},
 					});
 
@@ -132,7 +144,12 @@ export const useTopicSearch = () => {
 					return {
 						...topic,
 						isHidden: false,
-						dishItemsPromise: createDishItemsPromise(topic, params, searchResultRestaurantsNumber),
+						dishItemsPromise: createDishItemsPromise(
+							topic,
+							params.location.latitude,
+							params.location.longitude,
+							params.localLanguageCode,
+						),
 					};
 				};
 
@@ -239,5 +256,6 @@ export const useTopicSearch = () => {
 		searchTopics,
 		hideTopic,
 		resetTopics,
+		createDishItemsPromise, // Export the helper function for reuse
 	};
 };

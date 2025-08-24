@@ -127,7 +127,7 @@ export function LikeTab() {
 				</View>
 			</View>
 		);
-	}, [errorMessage, refresh]);
+	}, [errorMessage, refresh, handleSearchByMood]);
 
 	return (
 		<GridList

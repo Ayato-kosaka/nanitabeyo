@@ -50,6 +50,9 @@
 			"budget": "価格帯は？",
 			"restrictions": "制約条件"
 		},
+		"locationModal": {
+			"title": "検索地点を入力"
+		},
 		"required": "必須",
 		"placeholders": {
 			"enterLocation": "場所を入力してください"

@@ -50,6 +50,9 @@
 			"budget": "الميزانية؟",
 			"restrictions": "القيود"
 		},
+		"locationModal": {
+			"title": "أدخل موقع البحث"
+		},
 		"required": "مطلوب",
 		"placeholders": {
 			"enterLocation": "أدخل موقعًا"
