@@ -30,7 +30,6 @@ const { width, height } = Dimensions.get("window");
 
 interface FoodContentScreenProps {
 	item: DishMediaEntry;
-	scrollViewRef?: React.RefObject<ScrollView>;
 }
 
 // Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
@@ -66,7 +65,7 @@ const formatLikeCount = (count: number): string => {
 	return count.toString();
 };
 
-export default function FoodContentScreen({ item, scrollViewRef: externalScrollViewRef }: FoodContentScreenProps) {
+export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -94,15 +93,14 @@ export default function FoodContentScreen({ item, scrollViewRef: externalScrollV
 		),
 	);
 	const scrollViewRef = useRef<ScrollView>(null);
-	const commentsScrollViewRef = externalScrollViewRef || scrollViewRef;
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
 
 	useEffect(() => {
-		commentsScrollViewRef.current?.scrollToEnd({ animated: false });
-	}, [item.dish_reviews.length, commentsScrollViewRef]);
+		scrollViewRef.current?.scrollToEnd({ animated: false });
+	}, [item.dish_reviews.length]);
 
 	const handleCommentLike = async (commentId: string) => {
 		lightImpact();
@@ -475,7 +473,7 @@ export default function FoodContentScreen({ item, scrollViewRef: externalScrollV
 			{/* Comments Section */}
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
 				<ScrollView
-					ref={commentsScrollViewRef}
+					ref={scrollViewRef}
 					style={styles.commentsContainer}
 					showsVerticalScrollIndicator={false}
 					nestedScrollEnabled={Platform.OS === "android"}>
