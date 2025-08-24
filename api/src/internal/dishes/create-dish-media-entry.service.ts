@@ -87,18 +87,18 @@ export class CreateDishMediaEntryService {
 
         const buffer = Buffer.from(await response.arrayBuffer());
 
-        // ストレージに保存
-        const uploadResult = await this.storage.uploadFile({
+        // ストレージに保存（事前に生成されたmedia_pathを使用）
+        const uploadResult = await this.storage.uploadFileAtPath({
           buffer,
           mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
-          resourceType: 'google-maps',
-          usageType: 'photo',
-          identifier: payload.restaurants.google_place_id!,
+          fullPath: payload.dish_media.media_path,
+          overwriteIfExists: false, // 冪等性のため既存ファイルは上書きしない
         });
 
         this.logger.debug('PhotoDownloaded', 'downloadAndStorePhotos', {
           originalUri: photoUri,
           uploadedPath: uploadResult.signedUrl,
+          mediaPath: payload.dish_media.media_path,
         });
 
         return uploadResult.signedUrl;
