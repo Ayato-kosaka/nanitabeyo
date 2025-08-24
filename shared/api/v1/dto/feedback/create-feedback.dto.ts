@@ -3,8 +3,8 @@ import { IsIn, IsString, Length } from "@nestjs/class-validator";
 /** POST /v1/feedback/issue のボディ */
 export class CreateFeedbackDto {
 	/** フィードバックの種類 */
-	@IsIn(['request', 'bug'])
-	type!: 'request' | 'bug';
+	@IsIn(["request", "bug"])
+	type!: "request" | "bug";
 
 	/** タイトル (5-80文字) */
 	@IsString()

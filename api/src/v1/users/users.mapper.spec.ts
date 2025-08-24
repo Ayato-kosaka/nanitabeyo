@@ -86,7 +86,7 @@ describe('UsersMapper', () => {
 
       expect(result.nextCursor).toBe('next-cursor');
       expect(result.data).toHaveLength(1);
-      
+
       const entry = result.data[0];
 
       // Verify no unwanted fields leak through
@@ -163,7 +163,7 @@ describe('UsersMapper', () => {
 
       expect(result.nextCursor).toBeNull();
       expect(result.data).toHaveLength(1);
-      
+
       const entry = result.data[0];
 
       // Verify no unwanted fields leak through
@@ -255,7 +255,7 @@ describe('UsersMapper', () => {
 
       expect(result.nextCursor).toBe('user-reviews-cursor');
       expect(result.data).toHaveLength(1);
-      
+
       const entry = result.data[0];
 
       // Verify no unwanted fields leak through

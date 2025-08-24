@@ -47,7 +47,7 @@ describe('DishMediaMapper', () => {
           created_at: new Date('2023-01-01T00:00:00Z'),
           updated_at: new Date('2023-01-01T00:00:00Z'),
           lock_no: 1,
-          // Required additional fields  
+          // Required additional fields
           isSaved: true,
           isLiked: false,
           likeCount: 10,

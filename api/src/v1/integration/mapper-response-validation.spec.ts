@@ -1,5 +1,8 @@
 import { Test } from '@nestjs/testing';
-import { DishMediaMapper, DishMediaEntryItem } from '../dish-media/dish-media.mapper';
+import {
+  DishMediaMapper,
+  DishMediaEntryItem,
+} from '../dish-media/dish-media.mapper';
 import { UsersMapper } from '../users/users.mapper';
 
 describe('Mapper Integration - Response Size Validation', () => {
@@ -83,7 +86,10 @@ describe('Mapper Integration - Response Size Validation', () => {
     (baseItem.dish as any).debug_info = { verbose: 'data' };
     (baseItem.dish as any).temp_cache = 'cache data';
     (baseItem.dish_media as any).processing_status = 'completed';
-    (baseItem.dish_media as any).metadata = { camera: 'iPhone', location: 'Tokyo' };
+    (baseItem.dish_media as any).metadata = {
+      camera: 'iPhone',
+      location: 'Tokyo',
+    };
     (baseItem.dish_media as any).storage_info = 'internal data';
     (baseItem.dish_reviews[0] as any).moderation_status = 'approved';
     (baseItem.dish_reviews[0] as any).sentiment_score = 0.85;
@@ -95,38 +101,75 @@ describe('Mapper Integration - Response Size Validation', () => {
     // Verify ONLY the expected fields are present (no extras)
     const restaurantKeys = Object.keys(entry.restaurant);
     const expectedRestaurantKeys = [
-      'id', 'google_place_id', 'name', 'name_language_code', 
-      'latitude', 'longitude', 'location', 'image_url', 'created_at'
+      'id',
+      'google_place_id',
+      'name',
+      'name_language_code',
+      'latitude',
+      'longitude',
+      'location',
+      'image_url',
+      'created_at',
     ];
     expect(restaurantKeys.sort()).toEqual(expectedRestaurantKeys.sort());
 
     const dishKeys = Object.keys(entry.dish);
     const expectedDishKeys = [
-      'id', 'restaurant_id', 'category_id', 'name', 'created_at', 
-      'updated_at', 'lock_no', 'reviewCount', 'averageRating'
+      'id',
+      'restaurant_id',
+      'category_id',
+      'name',
+      'created_at',
+      'updated_at',
+      'lock_no',
+      'reviewCount',
+      'averageRating',
     ];
     expect(dishKeys.sort()).toEqual(expectedDishKeys.sort());
 
     const dishMediaKeys = Object.keys(entry.dish_media);
     const expectedDishMediaKeys = [
-      'id', 'dish_id', 'user_id', 'media_path', 'media_type', 'thumbnail_path',
-      'created_at', 'updated_at', 'lock_no', 'isSaved', 'isLiked', 'likeCount',
-      'mediaUrl', 'thumbnailImageUrl'
+      'id',
+      'dish_id',
+      'user_id',
+      'media_path',
+      'media_type',
+      'thumbnail_path',
+      'created_at',
+      'updated_at',
+      'lock_no',
+      'isSaved',
+      'isLiked',
+      'likeCount',
+      'mediaUrl',
+      'thumbnailImageUrl',
     ];
     expect(dishMediaKeys.sort()).toEqual(expectedDishMediaKeys.sort());
 
     const reviewKeys = Object.keys(entry.dish_reviews[0]);
     const expectedReviewKeys = [
-      'id', 'dish_id', 'comment', 'comment_tsv', 'original_language_code',
-      'user_id', 'rating', 'price_cents', 'currency_code', 'created_dish_media_id',
-      'imported_user_name', 'imported_user_avatar', 'created_at',
-      'username', 'isLiked', 'likeCount'
+      'id',
+      'dish_id',
+      'comment',
+      'comment_tsv',
+      'original_language_code',
+      'user_id',
+      'rating',
+      'price_cents',
+      'currency_code',
+      'created_dish_media_id',
+      'imported_user_name',
+      'imported_user_avatar',
+      'created_at',
+      'username',
+      'isLiked',
+      'likeCount',
     ];
     expect(reviewKeys.sort()).toEqual(expectedReviewKeys.sort());
 
     // Verify unwanted fields are NOT present
     expect(entry.restaurant).not.toHaveProperty('extra_field_1');
-    expect(entry.restaurant).not.toHaveProperty('extra_field_2'); 
+    expect(entry.restaurant).not.toHaveProperty('extra_field_2');
     expect(entry.restaurant).not.toHaveProperty('extra_field_3');
     expect(entry.dish).not.toHaveProperty('internal_notes');
     expect(entry.dish).not.toHaveProperty('debug_info');
