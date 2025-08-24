@@ -6,15 +6,15 @@ import { useAnimatedReaction, runOnJS, type SharedValue } from "react-native-rea
  * This avoids reading `.value` directly during render.
  */
 export function useSharedValueState<T>(sharedValue: SharedValue<T>): T {
-  const [state, setState] = useState(sharedValue.value);
+	const [state, setState] = useState(sharedValue.value);
 
-  useAnimatedReaction(
-    () => sharedValue.value,
-    value => {
-      runOnJS(setState)(value as T);
-    },
-    [sharedValue]
-  );
+	useAnimatedReaction(
+		() => sharedValue.value,
+		(value) => {
+			runOnJS(setState)(value as T);
+		},
+		[sharedValue],
+	);
 
-  return state;
+	return state;
 }
