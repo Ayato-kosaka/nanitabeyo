@@ -33,7 +33,6 @@ export const useTopicSearch = () => {
 			latitude: number,
 			longitude: number,
 			languageCode: string,
-			searchResultRestaurantsNumber: number,
 			radius: number = 500, // Default 500m
 			priceLevels: string[] = [
 				"PRICE_LEVEL_INEXPENSIVE",
@@ -43,6 +42,10 @@ export const useTopicSearch = () => {
 			],
 		): Promise<DishMediaEntry[]> => {
 			return (async (): Promise<DishMediaEntry[]> => {
+				// Get restaurant number from remote config
+				const remoteConfig = getRemoteConfig();
+				const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
+
 				let dishItems: DishMediaEntry[] = [];
 
 				// TODO: GET /v1/dish-media
@@ -146,7 +149,6 @@ export const useTopicSearch = () => {
 							params.location.latitude,
 							params.location.longitude,
 							params.localLanguageCode,
-							searchResultRestaurantsNumber,
 						),
 					};
 				};

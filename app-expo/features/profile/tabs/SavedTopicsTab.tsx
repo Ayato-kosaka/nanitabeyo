@@ -9,15 +9,14 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useCursorPagination } from "@/features/profile/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { useTopicSearch } from "@/features/topics/hoks/useTopicSearch";
 import { useLocale } from "@/hooks/useLocale";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { getRemoteConfig } from "@/lib/remoteConfig";
 import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
-import type { SearchParams } from "@/types/search";
 
 interface SavedTopicsTabProps {
 	isOwnProfile: boolean;
@@ -31,6 +30,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { callBackend } = useAPICall();
 	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
 	const { createDishItemsPromise } = useTopicSearch();
+	const { getLocationDetails } = useLocationSearch();
 
 	// Location search modal state
 	const [locationText, setLocationText] = useState("");
@@ -102,11 +102,10 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				// Close modal first
 				closeLocationModal();
 
-				// Get location details for the search
-				const remoteConfig = getRemoteConfig();
-				const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
+				// Get location details including coordinates and language code
+				const locationDetails = await getLocationDetails(location);
 
-				// Create dishItemsPromise using the exported helper with minimal parameters
+				// Create dishItemsPromise using the exported helper with location details
 				const topicForSearch = {
 					category: selectedTopic.dish_category?.name || selectedTopic.name,
 					topicTitle: selectedTopic.dish_category?.name || selectedTopic.name,
@@ -117,10 +116,9 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 
 				const dishItemsPromise = createDishItemsPromise(
 					topicForSearch,
-					35.6762, // Default to Tokyo coordinates for now
-					139.6503,
-					locale.split("-")[0],
-					searchResultRestaurantsNumber,
+					locationDetails.location.latitude,
+					locationDetails.location.longitude,
+					locationDetails.localLanguageCode,
 				);
 
 				// Set to store
@@ -157,7 +155,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				});
 			}
 		},
-		[selectedTopic, closeLocationModal, createDishItemsPromise, setDishes, locale, logFrontendEvent],
+		[selectedTopic, closeLocationModal, createDishItemsPromise, setDishes, locale, logFrontendEvent, getLocationDetails],
 	);
 
 	const error = topics.error ? (topics.error instanceof Error ? topics.error.message : String(topics.error)) : null;
