@@ -40,21 +40,43 @@ export class UsersMapper {
     nextCursor: string | null;
   }): QueryUserDishReviewsResponse {
     return {
-      data: result.data.map((src) => ({
-        restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
-        dish: {
-          ...src.dish,
-          ...convertPrismaToSupabase_Dishes(src.dish),
-        },
-        dish_media: {
-          ...src.dish_media,
-          ...convertPrismaToSupabase_DishMedia(src.dish_media),
-        },
-        dish_reviews: src.dish_reviews.map((r) => ({
-          ...r,
-          ...convertPrismaToSupabase_DishReviews(r),
-        })),
-      })),
+      data: result.data.map((src) => {
+        const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);
+
+        const dishBase = convertPrismaToSupabase_Dishes(src.dish);
+        const dish = {
+          ...dishBase,
+          // Explicitly add only the required additional fields
+          reviewCount: src.dish.reviewCount,
+          averageRating: src.dish.averageRating,
+        };
+
+        const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
+        const dish_media = {
+          ...dishMediaBase,
+          // Explicitly add only the required additional fields
+          isSaved: src.dish_media.isSaved,
+          isLiked: src.dish_media.isLiked,
+          likeCount: src.dish_media.likeCount,
+          mediaUrl: src.dish_media.mediaUrl,
+          thumbnailImageUrl: src.dish_media.thumbnailImageUrl,
+          // This specific endpoint includes isMe field
+          isMe: src.dish_media.isMe,
+        };
+
+        const dish_reviews = src.dish_reviews.map((r) => {
+          const reviewBase = convertPrismaToSupabase_DishReviews(r);
+          return {
+            ...reviewBase,
+            // Explicitly add only the required additional fields
+            username: r.username,
+            isLiked: r.isLiked,
+            likeCount: r.likeCount,
+          };
+        });
+
+        return { restaurant, dish, dish_media, dish_reviews };
+      }),
       nextCursor: result.nextCursor,
     };
   }
@@ -67,21 +89,41 @@ export class UsersMapper {
     nextCursor: string | null;
   }): QueryMeLikedDishMediaResponse {
     return {
-      data: result.data.map((src) => ({
-        restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
-        dish: {
-          ...src.dish,
-          ...convertPrismaToSupabase_Dishes(src.dish),
-        },
-        dish_media: {
-          ...src.dish_media,
-          ...convertPrismaToSupabase_DishMedia(src.dish_media),
-        },
-        dish_reviews: src.dish_reviews.map((r) => ({
-          ...r,
-          ...convertPrismaToSupabase_DishReviews(r),
-        })),
-      })),
+      data: result.data.map((src) => {
+        const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);
+
+        const dishBase = convertPrismaToSupabase_Dishes(src.dish);
+        const dish = {
+          ...dishBase,
+          // Explicitly add only the required additional fields
+          reviewCount: src.dish.reviewCount,
+          averageRating: src.dish.averageRating,
+        };
+
+        const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
+        const dish_media = {
+          ...dishMediaBase,
+          // Explicitly add only the required additional fields
+          isSaved: src.dish_media.isSaved,
+          isLiked: src.dish_media.isLiked,
+          likeCount: src.dish_media.likeCount,
+          mediaUrl: src.dish_media.mediaUrl,
+          thumbnailImageUrl: src.dish_media.thumbnailImageUrl,
+        };
+
+        const dish_reviews = src.dish_reviews.map((r) => {
+          const reviewBase = convertPrismaToSupabase_DishReviews(r);
+          return {
+            ...reviewBase,
+            // Explicitly add only the required additional fields
+            username: r.username,
+            isLiked: r.isLiked,
+            likeCount: r.likeCount,
+          };
+        });
+
+        return { restaurant, dish, dish_media, dish_reviews };
+      }),
       nextCursor: result.nextCursor,
     };
   }
@@ -135,21 +177,41 @@ export class UsersMapper {
     nextCursor: string | null;
   }): QueryMeSavedDishMediaResponse {
     return {
-      data: result.data.map((src) => ({
-        restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
-        dish: {
-          ...src.dish,
-          ...convertPrismaToSupabase_Dishes(src.dish),
-        },
-        dish_media: {
-          ...src.dish_media,
-          ...convertPrismaToSupabase_DishMedia(src.dish_media),
-        },
-        dish_reviews: src.dish_reviews.map((r) => ({
-          ...r,
-          ...convertPrismaToSupabase_DishReviews(r),
-        })),
-      })),
+      data: result.data.map((src) => {
+        const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);
+
+        const dishBase = convertPrismaToSupabase_Dishes(src.dish);
+        const dish = {
+          ...dishBase,
+          // Explicitly add only the required additional fields
+          reviewCount: src.dish.reviewCount,
+          averageRating: src.dish.averageRating,
+        };
+
+        const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
+        const dish_media = {
+          ...dishMediaBase,
+          // Explicitly add only the required additional fields
+          isSaved: src.dish_media.isSaved,
+          isLiked: src.dish_media.isLiked,
+          likeCount: src.dish_media.likeCount,
+          mediaUrl: src.dish_media.mediaUrl,
+          thumbnailImageUrl: src.dish_media.thumbnailImageUrl,
+        };
+
+        const dish_reviews = src.dish_reviews.map((r) => {
+          const reviewBase = convertPrismaToSupabase_DishReviews(r);
+          return {
+            ...reviewBase,
+            // Explicitly add only the required additional fields
+            username: r.username,
+            isLiked: r.isLiked,
+            likeCount: r.likeCount,
+          };
+        });
+
+        return { restaurant, dish, dish_media, dish_reviews };
+      }),
       nextCursor: result.nextCursor,
     };
   }
