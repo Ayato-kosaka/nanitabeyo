@@ -50,6 +50,9 @@
 			"budget": "预算？",
 			"restrictions": "限制条件"
 		},
+		"locationModal": {
+			"title": "输入搜索地点"
+		},
 		"required": "必填",
 		"placeholders": {
 			"enterLocation": "请输入地点"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "存款",
-			"earnings": "收益"
+			"earnings": "收益",
+			"topics": "主题",
+			"posts": "帖子",
+			"saved-posts": "帖子",
+			"saved-topics": "主题",
+			"wallet-deposit": "存款",
+			"wallet-earning": "收益"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -189,7 +198,9 @@
 			"noEarnings": "所选状态没有收益",
 			"noDishReviews": "暂无帖子",
 			"noLikedDishMediaEntries": "暂无点赞的帖子",
-			"noSavedItems": "没有已保存的项目"
+			"noSavedItems": "没有已保存的项目",
+			"noSavedPosts": "发现感兴趣的帖子时，使用\"保存\"功能可以重新查看",
+			"noSavedTopics": "发现感兴趣的菜品时，使用\"保存\"功能可以探索附近的餐厅"
 		},
 		"statusLabels": {
 			"active": "活跃",
@@ -202,7 +213,8 @@
 			"editProfile": "编辑个人资料",
 			"follow": "关注",
 			"following": "已关注",
-			"message": "消息"
+			"message": "消息",
+			"searchByMood": "根据今天的心情寻找你会\"喜欢\"的菜品"
 		},
 		"stats": {
 			"following": "关注中",
@@ -215,7 +227,8 @@
 		"privateContent": "此内容为私密",
 		"placeholders": {
 			"enterBio": "请输入您的个人简介..."
-		}
+		},
+		"savedCount": "{{count}} 次收藏"
 	},
 	"NotFound": {
 		"title": "哎呀！",

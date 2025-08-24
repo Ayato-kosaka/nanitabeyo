@@ -50,6 +50,9 @@
 			"budget": "価格帯は？",
 			"restrictions": "制約条件"
 		},
+		"locationModal": {
+			"title": "検索地点を入力"
+		},
 		"required": "必須",
 		"placeholders": {
 			"enterLocation": "場所を入力してください"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "入札",
-			"earnings": "収益"
+			"earnings": "収益",
+			"topics": "トピック",
+			"posts": "投稿",
+			"saved-posts": "投稿",
+			"saved-topics": "トピック",
+			"wallet-deposit": "入札",
+			"wallet-earning": "収益"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -189,7 +198,9 @@
 			"noEarnings": "選択したステータスの収益がありません",
 			"noDishReviews": "投稿はまだありません",
 			"noLikedDishMediaEntries": "いいねした投稿はありません",
-			"noSavedItems": "保存されたアイテムはありません"
+			"noSavedItems": "保存されたアイテムはありません",
+			"noSavedPosts": "気になる投稿を見つけたら\"保存\"で見返せます",
+			"noSavedTopics": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます"
 		},
 		"statusLabels": {
 			"active": "アクティブ",
@@ -202,7 +213,8 @@
 			"editProfile": "プロフィールを編集",
 			"follow": "フォロー",
 			"following": "フォロー中",
-			"message": "メッセージ"
+			"message": "メッセージ",
+			"searchByMood": "\"いいね\"と思う料理を今日の気分で探す"
 		},
 		"stats": {
 			"following": "フォロー中",
@@ -215,7 +227,8 @@
 		"privateContent": "この内容は非公開です",
 		"placeholders": {
 			"enterBio": "自己紹介を入力してください..."
-		}
+		},
+		"savedCount": "{{count}}件保存"
 	},
 	"NotFound": {
 		"title": "おっと！",

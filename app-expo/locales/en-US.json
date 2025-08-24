@@ -50,6 +50,9 @@
 			"budget": "Price range?",
 			"restrictions": "Restrictions"
 		},
+		"locationModal": {
+			"title": "Enter search location"
+		},
 		"required": "Required",
 		"placeholders": {
 			"enterLocation": "Enter a location"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Deposits",
-			"earnings": "Earnings"
+			"earnings": "Earnings",
+			"topics": "Topics",
+			"posts": "Posts",
+			"saved-posts": "Posts",
+			"saved-topics": "Topics",
+			"wallet-deposit": "Deposits",
+			"wallet-earning": "Earnings"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -189,7 +198,9 @@
 			"noEarnings": "No earnings for the selected status",
 			"noDishReviews": "No posts yet",
 			"noLikedDishMediaEntries": "No liked posts",
-			"noSavedItems": "No saved items"
+			"noSavedItems": "No saved items",
+			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
+			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
 		"statusLabels": {
 			"active": "Active",
@@ -202,7 +213,8 @@
 			"editProfile": "Edit Profile",
 			"follow": "Follow",
 			"following": "Following",
-			"message": "Message"
+			"message": "Message",
+			"searchByMood": "Find dishes you'll \"like\" based on today's mood"
 		},
 		"stats": {
 			"following": "Following",
@@ -215,7 +227,8 @@
 		"privateContent": "This content is private",
 		"placeholders": {
 			"enterBio": "Enter your bio..."
-		}
+		},
+		"savedCount": "{{count}} saves"
 	},
 	"NotFound": {
 		"title": "Oops!",

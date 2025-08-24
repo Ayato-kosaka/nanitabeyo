@@ -42,7 +42,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     /* ――― 除外判定 ――― */

@@ -50,6 +50,9 @@
 			"budget": "예산?",
 			"restrictions": "제한 조건"
 		},
+		"locationModal": {
+			"title": "검색 위치 입력"
+		},
 		"required": "필수",
 		"placeholders": {
 			"enterLocation": "위치를 입력하세요"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "예치금",
-			"earnings": "수익"
+			"earnings": "수익",
+			"topics": "주제",
+			"posts": "게시물",
+			"saved-posts": "게시물",
+			"saved-topics": "주제",
+			"wallet-deposit": "예치금",
+			"wallet-earning": "수익"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -189,7 +198,9 @@
 			"noEarnings": "선택한 상태에 대한 수익이 없습니다",
 			"noDishReviews": "게시물이 아직 없습니다",
 			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
-			"noSavedItems": "저장된 항목이 없습니다"
+			"noSavedItems": "저장된 항목이 없습니다",
+			"noSavedPosts": "흥미로운 게시물을 찾으면 \"저장\"으로 다시 볼 수 있습니다",
+			"noSavedTopics": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
 		},
 		"statusLabels": {
 			"active": "활성",
@@ -202,7 +213,8 @@
 			"editProfile": "프로필 편집",
 			"follow": "팔로우",
 			"following": "팔로잉",
-			"message": "메시지"
+			"message": "메시지",
+			"searchByMood": "오늘의 기분으로 \"좋아할\" 요리 찾기"
 		},
 		"stats": {
 			"following": "팔로잉",
@@ -215,7 +227,8 @@
 		"privateContent": "이 내용은 비공개입니다",
 		"placeholders": {
 			"enterBio": "자기소개를 입력하세요..."
-		}
+		},
+		"savedCount": "{{count}}회 저장"
 	},
 	"NotFound": {
 		"title": "이런!",

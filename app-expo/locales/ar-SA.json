@@ -50,6 +50,9 @@
 			"budget": "الميزانية؟",
 			"restrictions": "القيود"
 		},
+		"locationModal": {
+			"title": "أدخل موقع البحث"
+		},
 		"required": "مطلوب",
 		"placeholders": {
 			"enterLocation": "أدخل موقعًا"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "الودائع",
-			"earnings": "الأرباح"
+			"earnings": "الأرباح",
+			"topics": "المواضيع",
+			"posts": "المنشورات",
+			"saved-posts": "المنشورات",
+			"saved-topics": "المواضيع",
+			"wallet-deposit": "الودائع",
+			"wallet-earning": "الأرباح"
 		},
 		"numberSuffix": {
 			"million": "م",
@@ -189,7 +198,9 @@
 			"noEarnings": "لا توجد أرباح للحالة المحددة",
 			"noDishReviews": "لا توجد منشورات بعد",
 			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
-			"noSavedItems": "لا توجد عناصر محفوظة"
+			"noSavedItems": "لا توجد عناصر محفوظة",
+			"noSavedPosts": "عندما تجد منشورات مثيرة للاهتمام، استخدم \"حفظ\" لمراجعتها",
+			"noSavedTopics": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
 		},
 		"statusLabels": {
 			"active": "نشط",
@@ -202,7 +213,8 @@
 			"editProfile": "تعديل الملف الشخصي",
 			"follow": "متابعة",
 			"following": "متابَع",
-			"message": "رسالة"
+			"message": "رسالة",
+			"searchByMood": "ابحث عن الأطباق التي ستنال \"إعجابك\" حسب مزاجك اليوم"
 		},
 		"stats": {
 			"following": "يتابع",
@@ -215,7 +227,8 @@
 		"privateContent": "هذا المحتوى خاص",
 		"placeholders": {
 			"enterBio": "أدخل نبذة عنك..."
-		}
+		},
+		"savedCount": "{{count}} حفظ"
 	},
 	"NotFound": {
 		"title": "عذرًا!",

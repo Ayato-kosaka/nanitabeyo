@@ -50,6 +50,9 @@
 			"budget": "Budget ?",
 			"restrictions": "Restrictions"
 		},
+		"locationModal": {
+			"title": "Saisir lieu de recherche"
+		},
 		"required": "Obligatoire",
 		"placeholders": {
 			"enterLocation": "Saisissez un lieu"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Dépôts",
-			"earnings": "Revenus"
+			"earnings": "Revenus",
+			"topics": "Sujets",
+			"posts": "Publications",
+			"saved-posts": "Publications",
+			"saved-topics": "Sujets",
+			"wallet-deposit": "Dépôts",
+			"wallet-earning": "Revenus"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -189,7 +198,9 @@
 			"noEarnings": "Aucun revenu pour le statut sélectionné",
 			"noDishReviews": "Aucune publication pour l'instant",
 			"noLikedDishMediaEntries": "Aucune publication aimée",
-			"noSavedItems": "Aucun élément enregistré"
+			"noSavedItems": "Aucun élément enregistré",
+			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
+			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
 		"statusLabels": {
 			"active": "Actif",
@@ -202,7 +213,8 @@
 			"editProfile": "Modifier le profil",
 			"follow": "Suivre",
 			"following": "Suivi",
-			"message": "Message"
+			"message": "Message",
+			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour"
 		},
 		"stats": {
 			"following": "Abonnements",
@@ -215,7 +227,8 @@
 		"privateContent": "Ce contenu est privé",
 		"placeholders": {
 			"enterBio": "Entrez votre biographie..."
-		}
+		},
+		"savedCount": "{{count}} enregistrements"
 	},
 	"NotFound": {
 		"title": "Oups !",

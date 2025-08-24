@@ -50,6 +50,9 @@
 			"budget": "¿Presupuesto?",
 			"restrictions": "Restricciones"
 		},
+		"locationModal": {
+			"title": "Ingresa ubicación de búsqueda"
+		},
 		"required": "Obligatorio",
 		"placeholders": {
 			"enterLocation": "Ingrese un lugar"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Depósitos",
-			"earnings": "Ganancias"
+			"earnings": "Ganancias",
+			"topics": "Temas",
+			"posts": "Publicaciones",
+			"saved-posts": "Publicaciones",
+			"saved-topics": "Temas",
+			"wallet-deposit": "Depósitos",
+			"wallet-earning": "Ganancias"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -189,7 +198,9 @@
 			"noEarnings": "No hay ganancias para el estado seleccionado",
 			"noDishReviews": "Aún no hay publicaciones",
 			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
-			"noSavedItems": "No hay elementos guardados"
+			"noSavedItems": "No hay elementos guardados",
+			"noSavedPosts": "Cuando encuentres publicaciones interesantes, usa \"Guardar\" para revisarlas",
+			"noSavedTopics": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
 		},
 		"statusLabels": {
 			"active": "Activo",
@@ -202,7 +213,8 @@
 			"editProfile": "Editar Perfil",
 			"follow": "Seguir",
 			"following": "Siguiendo",
-			"message": "Mensaje"
+			"message": "Mensaje",
+			"searchByMood": "Encuentra platos que te \"gustarán\" según tu estado de ánimo de hoy"
 		},
 		"stats": {
 			"following": "Siguiendo",
@@ -215,7 +227,8 @@
 		"privateContent": "Este contenido es privado",
 		"placeholders": {
 			"enterBio": "Ingresa tu biografía..."
-		}
+		},
+		"savedCount": "{{count}} guardados"
 	},
 	"NotFound": {
 		"title": "¡Vaya!",

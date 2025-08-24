@@ -50,6 +50,9 @@
 			"budget": "बजट?",
 			"restrictions": "प्रतिबंध"
 		},
+		"locationModal": {
+			"title": "खोज स्थान दर्ज करें"
+		},
 		"required": "अनिवार्य",
 		"placeholders": {
 			"enterLocation": "स्थान दर्ज करें"
@@ -173,7 +176,13 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "जमा",
-			"earnings": "आय"
+			"earnings": "आय",
+			"topics": "विषय",
+			"posts": "पोस्ट",
+			"saved-posts": "पोस्ट",
+			"saved-topics": "विषय",
+			"wallet-deposit": "जमा",
+			"wallet-earning": "आय"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -189,7 +198,9 @@
 			"noEarnings": "चयनित स्थिति के लिए कोई आय नहीं",
 			"noDishReviews": "अभी तक कोई पोस्ट नहीं",
 			"noLikedDishMediaEntries": "कोई पसंद की गई पोस्ट नहीं",
-			"noSavedItems": "कोई सहेजे गए आइटम नहीं"
+			"noSavedItems": "कोई सहेजे गए आइटम नहीं",
+			"noSavedPosts": "जब आपको दिलचस्प पोस्ट मिलें, तो उन्हें दोबारा देखने के लिए \"सहेजें\" का उपयोग करें",
+			"noSavedTopics": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें"
 		},
 		"statusLabels": {
 			"active": "सक्रिय",
@@ -202,7 +213,8 @@
 			"editProfile": "प्रोफ़ाइल संपादित करें",
 			"follow": "फ़ॉलो",
 			"following": "फ़ॉलो कर रहे हैं",
-			"message": "संदेश"
+			"message": "संदेश",
+			"searchByMood": "आज के मूड के अनुसार \"पसंदीदा\" व्यंजन खोजें"
 		},
 		"stats": {
 			"following": "अनुसरण",
@@ -215,7 +227,8 @@
 		"privateContent": "यह सामग्री निजी है",
 		"placeholders": {
 			"enterBio": "अपना परिचय दर्ज करें..."
-		}
+		},
+		"savedCount": "{{count}} बार सहेजा गया"
 	},
 	"NotFound": {
 		"title": "ओह!",

@@ -51,7 +51,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -187,22 +187,20 @@ export class DishesService {
           lock_no: 0,
         };
 
-        const dishReviews: PrismaDishReviews[] = reviews.map(
-          (review) => ({
-            id: randomUUID(),
-            dish_id: dish.id,
-            user_id: null, // Google からのインポートなので null
-            comment: review.originalText?.text || '',
-            original_language_code: review.originalText?.languageCode || '',
-            rating: review.rating || 0,
-            price_cents: null,
-            currency_code: null,
-            created_dish_media_id: dishMedia.id,
-            imported_user_name: review.authorAttribution?.displayName || null,
-            imported_user_avatar: review.authorAttribution?.photoUri || null,
-            created_at: new Date(),
-          }),
-        );
+        const dishReviews: PrismaDishReviews[] = reviews.map((review) => ({
+          id: randomUUID(),
+          dish_id: dish.id,
+          user_id: null, // Google からのインポートなので null
+          comment: review.originalText?.text || '',
+          original_language_code: review.originalText?.languageCode || '',
+          rating: review.rating || 0,
+          price_cents: null,
+          currency_code: null,
+          created_dish_media_id: dishMedia.id,
+          imported_user_name: review.authorAttribution?.displayName || null,
+          imported_user_avatar: review.authorAttribution?.photoUri || null,
+          created_at: new Date(),
+        }));
 
         // 非同期ジョブ用のペイロード作成
         const jobId = `dish-create-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
