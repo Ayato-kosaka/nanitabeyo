@@ -57,12 +57,12 @@ jobs:
             --value ${{ github.sha }} \
             --non-interactive
 
-      - name: 📤 EAS Update to selected channel (iOS & Android only)
+      - name: 📤 EAS Update to selected channel
         run: |
           echo "Starting EAS update to channel: ${{ github.event.inputs.channel }}"
           pnpx eas-cli update \
             --channel ${{ github.event.inputs.channel }} \
-            --platform ios,android \
+            --platform all \
             --message "Update from GitHub Actions: ${{ github.sha }}" \
             --environment ${{ github.event.inputs.channel }}
         env:
