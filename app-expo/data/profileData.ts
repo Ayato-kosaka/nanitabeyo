@@ -1,17 +1,20 @@
 import { UserProfile, UserPost } from "@/types";
+import i18n from "@/lib/i18n";
 
-export const userProfile: UserProfile = {
-	id: "user_123",
-	username: "foodie_explorer",
-	displayName: "Food Explorer",
-	avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200",
-	bio: "🍜 Food enthusiast sharing culinary adventures\n📍 Tokyo, Japan\n✨ Discovering hidden gems one bite at a time",
-	totalLikes: 1250000,
-	followersCount: 45600,
-	followingCount: 892,
-	postsCount: 127,
+const getGuestProfile = (): UserProfile => ({
+	id: "guest",
+	username: "guest",
+	displayName: "Guest",
+	avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200", // Fixed logo will be updated later
+	bio: i18n.t("Profile.guestBio"),
+	totalLikes: 0,
+	followersCount: 0,
+	followingCount: 0,
+	postsCount: 0,
 	isOwnProfile: true,
-};
+});
+
+export const userProfile: UserProfile = getGuestProfile();
 
 export const otherUserProfile: UserProfile = {
 	id: "user_456",

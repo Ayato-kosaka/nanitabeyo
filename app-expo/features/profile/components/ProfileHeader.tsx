@@ -18,6 +18,7 @@ interface ProfileHeaderProps {
 		totalLikes: number;
 	};
 	isOwnProfile: boolean;
+	isGuest?: boolean;
 	isFollowing?: boolean;
 	onLayout?: (event: LayoutChangeEvent) => void;
 	onBack?: () => void;
@@ -26,6 +27,7 @@ interface ProfileHeaderProps {
 	onEditProfile?: () => void;
 	onFollow?: () => void;
 	onMessage?: () => void;
+	onFeedback?: () => void;
 }
 
 const formatNumber = (num: number): string => {
@@ -41,6 +43,7 @@ const formatNumber = (num: number): string => {
 export function ProfileHeader({
 	profile,
 	isOwnProfile,
+	isGuest = false,
 	isFollowing = false,
 	onLayout,
 	onBack,
@@ -49,6 +52,7 @@ export function ProfileHeader({
 	onEditProfile,
 	onFollow,
 	onMessage,
+	onFeedback,
 }: ProfileHeaderProps) {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
@@ -72,45 +76,53 @@ export function ProfileHeader({
 
 			{/* Profile Info Card */}
 			<View style={styles.cardContainer} pointerEvents="box-none">
-				<Card pointerEvents="box-none">
+				<Card style={styles.card} pointerEvents="box-none">
 					{/* Avatar and Stats */}
-					<View style={styles.profileHeader} pointerEvents="none">
+					<View style={[styles.profileHeader]} pointerEvents="none">
 						<Image source={{ uri: profile.avatar }} style={styles.avatar} />
 
-						<View style={styles.statsContainer}>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.following")}</Text>
+						{!isGuest && (
+							<View style={styles.statsContainer}>
+								<View style={styles.statColumn}>
+									<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
+									<Text style={styles.statLabel}>{i18n.t("Profile.stats.following")}</Text>
+								</View>
+								<View style={styles.statColumn}>
+									<Text style={styles.statNumber}>{formatNumber(profile.followersCount)}</Text>
+									<Text style={styles.statLabel}>{i18n.t("Profile.stats.followers")}</Text>
+								</View>
+								<View style={styles.statColumn}>
+									<Text style={styles.statNumber}>{formatNumber(profile.totalLikes)}</Text>
+									<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
+								</View>
 							</View>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.followersCount)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.followers")}</Text>
-							</View>
-							<View style={styles.statColumn}>
-								<Text style={styles.statNumber}>{formatNumber(profile.totalLikes)}</Text>
-								<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
-							</View>
-						</View>
+						)}
 					</View>
 
 					{/* Display Name */}
-					<Text style={styles.displayName} pointerEvents="none">
+					<Text style={[styles.displayName]} pointerEvents="none">
 						{profile.displayName}
 					</Text>
 
 					{/* Bio */}
-					<Text style={styles.bio} pointerEvents="none">
+					<Text style={[styles.bio]} pointerEvents="none">
 						{profile.bio}
 					</Text>
 
 					{/* Action Buttons */}
 					<View style={styles.actionButtons}>
-						{isOwnProfile ? (
+						{isOwnProfile && !isGuest ? (
 							<PrimaryButton
 								style={{ flex: 1 }}
 								onPress={onEditProfile || (() => {})}
 								label={i18n.t("Profile.buttons.editProfile")}
 								icon={<Edit3 size={16} color="#FFFFFF" />}
+							/>
+						) : isGuest ? (
+							<PrimaryButton
+								style={{ flex: 1 }}
+								onPress={onFeedback || (() => {})}
+								label={i18n.t("Profile.buttons.sendFeedback")}
 							/>
 						) : (
 							<>
@@ -160,6 +172,9 @@ const styles = StyleSheet.create({
 		padding: 4,
 	},
 	cardContainer: {},
+	card: {
+		alignItems: "center",
+	},
 	profileHeader: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -202,20 +217,22 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "700",
 		color: "#1A1A1A",
+		textAlign: "center",
 		marginBottom: 8,
 		letterSpacing: -0.3,
 	},
 	bio: {
 		fontSize: 15,
 		color: "#6B7280",
+		textAlign: "center",
 		lineHeight: 20,
 		marginBottom: 16,
 		fontWeight: "400",
 	},
 	actionButtons: {
+		width: "100%",
 		flexDirection: "row",
 		gap: 8,
-		zIndex: 100000000,
 	},
 	followButton: {
 		flex: 1,

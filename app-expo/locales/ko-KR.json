@@ -214,7 +214,8 @@
 			"follow": "팔로우",
 			"following": "팔로잉",
 			"message": "메시지",
-			"searchByMood": "오늘의 기분으로 \"좋아할\" 요리 찾기"
+			"searchByMood": "오늘의 기분으로 \"좋아할\" 요리 찾기",
+			"sendFeedback": "피드백 보내기"
 		},
 		"stats": {
 			"following": "팔로잉",
@@ -228,7 +229,8 @@
 		"placeholders": {
 			"enterBio": "자기소개를 입력하세요..."
 		},
-		"savedCount": "{{count}}회 저장"
+		"savedCount": "{{count}}회 저장",
+		"guestBio": "환영합니다, 게스트님 👋\n새로운 미식 앱 '뭐 먹지'를 사용해 주셔서 감사합니다😊\n계정 기능을 포함한 업데이트가 곧 진행됩니다!"
 	},
 	"NotFound": {
 		"title": "이런!",
@@ -309,6 +311,30 @@
 				"asian": "아시아 요리",
 				"other": "기타"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "피드백/버그 신고 보내기",
+		"labels": {
+			"type": "유형",
+			"title": "제목",
+			"message": "메시지"
+		},
+		"types": {
+			"request": "기능 요청",
+			"bug": "버그 신고"
+		},
+		"placeholders": {
+			"title": "제목을 입력하세요 (5-80자)",
+			"message": "피드백이나 문제를 설명해주세요 (10-2000자)"
+		},
+		"buttons": {
+			"submit": "제출"
+		},
+		"errors": {
+			"titleLength": "제목은 5자 이상 80자 이하여야 합니다",
+			"messageLength": "메시지는 10자 이상 2000자 이하여야 합니다",
+			"submitFailed": "피드백 제출에 실패했습니다. 다시 시도해주세요."
 		}
 	}
 }
