@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, LayoutChangeEvent } from "react-native";
+import AppLogo from "@/assets/images/icon.png";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "lucide-react-native";
 import { Card } from "@/components/Card";
@@ -79,7 +80,7 @@ export function ProfileHeader({
 				<Card style={styles.card} pointerEvents="box-none">
 					{/* Avatar and Stats */}
 					<View style={[styles.profileHeader]} pointerEvents="none">
-						<Image source={{ uri: profile.avatar }} style={styles.avatar} />
+						<Image source={isGuest ? AppLogo : { uri: profile.avatar }} style={styles.avatar} />
 
 						{!isGuest && (
 							<View style={styles.statsContainer}>
