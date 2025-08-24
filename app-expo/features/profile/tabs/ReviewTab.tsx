@@ -44,7 +44,7 @@ export function ReviewTab() {
 
 	useEffect(() => {
 		loadInitial();
-	}, [loadInitial]);
+	}, []);
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();

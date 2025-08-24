@@ -50,7 +50,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	useEffect(() => {
 		posts.loadInitial();
-	}, [posts.loadInitial]);
+	}, []);
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();

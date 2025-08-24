@@ -40,7 +40,7 @@ export function LikeTab() {
 
 	useEffect(() => {
 		loadInitial();
-	}, [loadInitial]);
+	}, []);
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
