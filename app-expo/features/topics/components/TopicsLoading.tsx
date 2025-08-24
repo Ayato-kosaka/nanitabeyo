@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import AppLogo from "@/assets/images/icon.png";
 import i18n from "@/lib/i18n";
 
 // Loading indicator while topics are being fetched
@@ -10,7 +9,7 @@ export const TopicsLoading = () => (
 		<SafeAreaView style={styles.loadingContent}>
 			<View style={styles.loadingCard}>
 				<View style={styles.loadingIconContainer}>
-					<Image source={AppLogo} style={styles.loadingIcon} />
+					<Image source={require("@/assets/images/icon.png")} style={styles.loadingIcon} />
 				</View>
 				<ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
 				<Text style={styles.loadingTitle}>{i18n.t("Topics.Loading.title")}</Text>

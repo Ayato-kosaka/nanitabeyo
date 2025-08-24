@@ -84,7 +84,6 @@ export function LikeTab() {
 				id: item.dish_media.id,
 				imageUrl: item.dish_media.thumbnailImageUrl,
 			};
-			console.log("Rendering liked item:", gridItem);
 
 			return (
 				<ImageCard item={gridItem} onPress={() => handleItemPress(item, index)}>
