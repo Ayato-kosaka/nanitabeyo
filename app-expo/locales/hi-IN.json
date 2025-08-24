@@ -171,16 +171,16 @@
 		"profile": "प्रोफ़ाइल"
 	},
 	"Profile": {
-                "tabs": {
-                        "deposits": "जमा",
-                        "earnings": "आय",
-                        "topics": "विषय",
-                        "posts": "पोस्ट",
-                        "saved-posts": "पोस्ट",
-                        "saved-topics": "विषय",
-                        "wallet-deposit": "जमा",
-                        "wallet-earning": "आय"
-                },
+		"tabs": {
+			"deposits": "जमा",
+			"earnings": "आय",
+			"topics": "विषय",
+			"posts": "पोस्ट",
+			"saved-posts": "पोस्ट",
+			"saved-topics": "विषय",
+			"wallet-deposit": "जमा",
+			"wallet-earning": "आय"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -196,8 +196,8 @@
 			"noDishReviews": "अभी तक कोई पोस्ट नहीं",
 			"noLikedDishMediaEntries": "कोई पसंद की गई पोस्ट नहीं",
 			"noSavedItems": "कोई सहेजे गए आइटम नहीं",
-			"noSavedPosts": "कोई सहेजी गई पोस्ट नहीं",
-			"noSavedTopics": "कोई सहेजे गए विषय नहीं"
+			"noSavedPosts": "जब आपको दिलचस्प पोस्ट मिलें, तो उन्हें दोबारा देखने के लिए \"सहेजें\" का उपयोग करें",
+			"noSavedTopics": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें"
 		},
 		"statusLabels": {
 			"active": "सक्रिय",
@@ -210,7 +210,8 @@
 			"editProfile": "प्रोफ़ाइल संपादित करें",
 			"follow": "फ़ॉलो",
 			"following": "फ़ॉलो कर रहे हैं",
-			"message": "संदेश"
+			"message": "संदेश",
+			"searchByMood": "आज के मूड के अनुसार \"पसंदीदा\" व्यंजन खोजें"
 		},
 		"stats": {
 			"following": "अनुसरण",
