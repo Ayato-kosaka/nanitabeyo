@@ -34,4 +34,4 @@ export { QueryMeRestaurantBidsDto } from "./users/query-me-restaurant-bids.dto";
 export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categories.dto";
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
 
-export { CreateFeedbackDto, FeedbackType } from "./feedback/create-feedback.dto";
+export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
