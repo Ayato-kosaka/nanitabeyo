@@ -63,8 +63,15 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 						requestPayload: cursor ? { cursor } : {},
 					},
 				);
+				// Transform API response to match SaveTopicTab component expectations
+				const transformedData = (response.data || []).map((item) => ({
+					...item, // Keep all original data
+					name: item.label_en || 'Unknown',
+					imageUrl: item.image_url,
+					savedCount: 0, // This field is not provided by the API yet
+				}));
 				return {
-					data: response.data || [],
+					data: transformedData,
 					nextCursor: response.nextCursor,
 				};
 			},
@@ -107,11 +114,11 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 
 				// Create dishItemsPromise using the exported helper with location details
 				const topicForSearch = {
-					category: selectedTopic.dish_category?.name || selectedTopic.name,
-					topicTitle: selectedTopic.dish_category?.name || selectedTopic.name,
+					category: selectedTopic.name,
+					topicTitle: selectedTopic.name,
 					reason: "Selected from saved topics",
-					categoryId: selectedTopic.dish_category_id || selectedTopic.id,
-					imageUrl: selectedTopic.dish_category?.image_url || selectedTopic.imageUrl,
+					categoryId: selectedTopic.id,
+					imageUrl: selectedTopic.imageUrl,
 				};
 
 				const dishItemsPromise = createDishItemsPromise(
