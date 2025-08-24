@@ -155,7 +155,15 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				});
 			}
 		},
-		[selectedTopic, closeLocationModal, createDishItemsPromise, setDishes, locale, logFrontendEvent, getLocationDetails],
+		[
+			selectedTopic,
+			closeLocationModal,
+			createDishItemsPromise,
+			setDishes,
+			locale,
+			logFrontendEvent,
+			getLocationDetails,
+		],
 	);
 
 	const error = topics.error ? (topics.error instanceof Error ? topics.error.message : String(topics.error)) : null;
