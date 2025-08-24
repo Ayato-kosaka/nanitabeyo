@@ -742,6 +742,7 @@ export type Database = {
           last_login_at: string | null
           lock_no: number
           updated_at: string
+          username: string
         }
         Insert: {
           avatar?: string | null
@@ -752,6 +753,7 @@ export type Database = {
           last_login_at?: string | null
           lock_no?: number
           updated_at?: string
+          username: string
         }
         Update: {
           avatar?: string | null
@@ -762,6 +764,7 @@ export type Database = {
           last_login_at?: string | null
           lock_no?: number
           updated_at?: string
+          username?: string
         }
         Relationships: []
       }
