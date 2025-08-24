@@ -480,6 +480,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 					ref={scrollViewRef}
 					style={[styles.commentsContainer, { paddingRight: Math.max(16, rightActionsWidth + insets.right + 8) }]}
 					showsVerticalScrollIndicator={false}
+					nestedScrollEnabled={Platform.OS === "android"}
 					simultaneousHandlers={carouselRef}>
 					{item.dish_reviews.map((review) => {
 						const unitLimit = commentExpandedChars[review.id]!;
