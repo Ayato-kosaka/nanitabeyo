@@ -686,7 +686,12 @@ export default function ProfileScreen() {
 		return num.toString();
 	};
 
-	const getCurrentDishMediaEntries = (): DishMediaEntry[] => {
+	const getCurrentDishMediaEntries = (): (DishMediaEntry & {
+		dish: {
+			reviewCount: number;
+			averageRating: number;
+		};
+	})[] => {
 		switch (selectedTab) {
 			case "reviews":
 				return profileData.userDishMediaEntries ?? [];
@@ -823,7 +828,18 @@ export default function ProfileScreen() {
 	};
 
 	// Render item for API data
-	const renderDishMediaEntryItem = ({ item, index }: { item: DishMediaEntry; index: number }) => {
+	const renderDishMediaEntryItem = ({
+		item,
+		index,
+	}: {
+		item: DishMediaEntry & {
+			dish: {
+				reviewCount: number;
+				averageRating: number;
+			};
+		};
+		index: number;
+	}) => {
 		return (
 			<ImageCard
 				item={{ ...item, id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}

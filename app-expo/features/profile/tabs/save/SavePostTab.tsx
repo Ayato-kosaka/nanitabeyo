@@ -4,16 +4,16 @@ import { GridList } from "../../components/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
-import type { DishMediaEntry } from "@shared/api/v1/res";
+import type { DishMediaEntry, QueryMeSavedDishMediaResponse } from "@shared/api/v1/res";
 
 interface SavePostTabProps {
-	data: DishMediaEntry[];
+	data: QueryMeSavedDishMediaResponse["data"][number][];
 	isLoading?: boolean;
 	isLoadingMore?: boolean;
 	refreshing?: boolean;
 	onRefresh?: () => void;
 	onEndReached?: () => void;
-	onItemPress?: (item: DishMediaEntry, index: number) => void;
+	onItemPress?: (item: QueryMeSavedDishMediaResponse["data"][number], index: number) => void;
 	onScroll?: any;
 	contentContainerStyle?: any;
 	error?: string | null;
@@ -34,7 +34,7 @@ export function SavePostTab({
 	onRetry,
 }: SavePostTabProps) {
 	const renderPostItem = useCallback(
-		({ item, index }: { item: DishMediaEntry; index: number }) => {
+		({ item, index }: { item: QueryMeSavedDishMediaResponse["data"][number]; index: number }) => {
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
@@ -81,7 +81,7 @@ export function SavePostTab({
 	return (
 		<GridList
 			data={data.map((item) => ({ ...item, id: item.dish_media.id }))}
-			renderItem={({ item, index }) => renderPostItem({ item: item as DishMediaEntry, index })}
+			renderItem={({ item, index }) => renderPostItem({ item, index })}
 			numColumns={3}
 			contentContainerStyle={[styles.gridContent, contentContainerStyle]}
 			columnWrapperStyle={styles.gridRow}

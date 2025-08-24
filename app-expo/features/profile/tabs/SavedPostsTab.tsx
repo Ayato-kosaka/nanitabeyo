@@ -29,7 +29,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	const { callBackend } = useAPICall();
 
-	const posts = useCursorPagination<QueryMeSavedDishMediaDto, DishMediaEntry>(
+	const posts = useCursorPagination<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse["data"][number]>(
 		useCallback(
 			async ({ cursor }) => {
 				const response = await callBackend<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse>(
@@ -58,7 +58,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	const locale = useLocale();
 
 	const handlePostPress = useCallback(
-		(item: DishMediaEntry, index: number) => {
+		(item: QueryMeSavedDishMediaResponse["data"][number], index: number) => {
 			lightImpact();
 			setDishePromises("saved", Promise.resolve(posts.items));
 			router.push({
