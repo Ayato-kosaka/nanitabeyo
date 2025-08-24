@@ -190,7 +190,7 @@ export class LocationsService {
 
     try {
       const response = await this.externalApiService.callPlaceSearchText(
-        'places.id,places.displayName,places.location,contextualContents.photos.name,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
+        'places.id,places.displayName,places.location,contextualContents.photos.name,contextualContents.photos.widthPx,contextualContents.photos.heightPx,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
         requestPayload,
       );
 
@@ -225,13 +225,23 @@ export class LocationsService {
   /**
    * 写真の参照を使用して、Google Places API から写真の URI を取得
    */
-  async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
+  async getPhotoMedia(
+    photoRef: string,
+    widthPx?: number,
+    heightPx?: number,
+  ): Promise<{ photoUri: string } | null> {
     try {
-      const result = await this.externalApiService.getPhotoMedia(photoRef);
+      const result = await this.externalApiService.getPhotoMedia(
+        photoRef,
+        widthPx,
+        heightPx,
+      );
 
       if (result?.photoUri) {
         this.logger.debug('PhotoMediaDownloaded', 'getPhotoMedia', {
           photoUri: result.photoUri,
+          widthPx,
+          heightPx,
         });
         return result;
       }
@@ -240,6 +250,8 @@ export class LocationsService {
     } catch (error) {
       this.logger.warn('PhotoMediaError', 'getPhotoMedia', {
         photoRef,
+        widthPx,
+        heightPx,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;

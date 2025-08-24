@@ -251,7 +251,11 @@ export class ExternalApiService {
   /**
    * Google Places API: Get Photo Media (JSON with photoUri)
    */
-  async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
+  async getPhotoMedia(
+    photoRef: string,
+    widthPx?: number,
+    heightPx?: number,
+  ): Promise<{ photoUri: string } | null> {
     const apiKey = env.GOOGLE_PLACE_API_KEY;
     if (!apiKey) {
       throw new Error('GOOGLE_PLACE_API_KEY is not configured');
@@ -260,7 +264,21 @@ export class ExternalApiService {
     const photoName = photoRef.endsWith('/media')
       ? photoRef
       : `${photoRef}/media`;
-    const endpoint = `https://places.googleapis.com/v1/${photoName}?maxWidthPx=800&skipHttpRedirect=true`;
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    queryParams.append('skipHttpRedirect', 'true');
+
+    // Use provided dimensions if available, otherwise fall back to 800px
+    if (widthPx) {
+      queryParams.append('maxWidthPx', widthPx.toString());
+    } else if (heightPx) {
+      queryParams.append('maxHeightPx', heightPx.toString());
+    } else {
+      queryParams.append('maxWidthPx', '800');
+    }
+
+    const endpoint = `https://places.googleapis.com/v1/${photoName}?${queryParams.toString()}`;
 
     try {
       const response = await this.makeExternalApiCall({
@@ -290,6 +308,8 @@ export class ExternalApiService {
       this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         photoRef,
+        widthPx,
+        heightPx,
       });
       throw error;
     }
