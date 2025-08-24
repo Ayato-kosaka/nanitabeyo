@@ -30,20 +30,41 @@ export class DishMediaMapper {
   toQueryDishMediaResponse(
     items: DishMediaEntryItem[],
   ): QueryDishMediaResponse {
-    return items.map((src) => ({
-      restaurant: convertPrismaToSupabase_Restaurants(src.restaurant),
-      dish: {
-        ...src.dish,
-        ...convertPrismaToSupabase_Dishes(src.dish),
-      },
-      dish_media: {
-        ...src.dish_media,
-        ...convertPrismaToSupabase_DishMedia(src.dish_media),
-      },
-      dish_reviews: src.dish_reviews.map((r) => ({
-        ...r,
-        ...convertPrismaToSupabase_DishReviews(r),
-      })),
-    }));
+    return items.map((src) => {
+      // Use convertPrismaToSupabase as base, then add only required additional fields
+      const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);
+
+      const dishBase = convertPrismaToSupabase_Dishes(src.dish);
+      const dish = {
+        ...dishBase,
+        // Explicitly add only the required additional fields for DishMediaEntry.dish
+        reviewCount: src.dish.reviewCount,
+        averageRating: src.dish.averageRating,
+      };
+
+      const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
+      const dish_media = {
+        ...dishMediaBase,
+        // Explicitly add only the required additional fields for DishMediaEntry.dish_media
+        isSaved: src.dish_media.isSaved,
+        isLiked: src.dish_media.isLiked,
+        likeCount: src.dish_media.likeCount,
+        mediaUrl: src.dish_media.mediaUrl,
+        thumbnailImageUrl: src.dish_media.thumbnailImageUrl,
+      };
+
+      const dish_reviews = src.dish_reviews.map((r) => {
+        const reviewBase = convertPrismaToSupabase_DishReviews(r);
+        return {
+          ...reviewBase,
+          // Explicitly add only the required additional fields for DishMediaEntry.dish_reviews
+          username: r.username,
+          isLiked: r.isLiked,
+          likeCount: r.likeCount,
+        };
+      });
+
+      return { restaurant, dish, dish_media, dish_reviews };
+    });
   }
 }
