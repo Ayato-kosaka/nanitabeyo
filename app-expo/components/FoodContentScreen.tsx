@@ -5,12 +5,12 @@ import {
 	StyleSheet,
 	Image,
 	TouchableOpacity,
-	ScrollView,
 	Dimensions,
 	SafeAreaView,
 	Alert,
 	Platform,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter, usePathname } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -30,6 +30,7 @@ const { width, height } = Dimensions.get("window");
 
 interface FoodContentScreenProps {
 	item: DishMediaEntry;
+	carouselRef?: React.RefObject<any>;
 }
 
 // Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
@@ -65,7 +66,7 @@ const formatLikeCount = (count: number): string => {
 	return count.toString();
 };
 
-export default function FoodContentScreen({ item }: FoodContentScreenProps) {
+export default function FoodContentScreen({ item, carouselRef }: FoodContentScreenProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -476,7 +477,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 					ref={scrollViewRef}
 					style={styles.commentsContainer}
 					showsVerticalScrollIndicator={false}
-					nestedScrollEnabled={Platform.OS === "android"}>
+					simultaneousHandlers={carouselRef}>
 					{item.dish_reviews.map((review) => {
 						const unitLimit = commentExpandedChars[review.id]!;
 						const { substring, isTruncated } = sliceByUnitLimit(review.comment, unitLimit);
