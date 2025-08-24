@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import * as Crypto from "expo-crypto";
 import { supabase } from "./supabase";
 import { Env } from "@/constants/Env";
 import type { DeepNonNullable } from "@shared/utils/types";
@@ -19,7 +19,7 @@ export const insertReaction = async ({
 	if (!userId) throw new Error("No authenticated user");
 
 	const { error } = await supabase.from("reactions").insert({
-		id: uuidv4(),
+		id: Crypto.randomUUID(),
 		user_id: userId,
 		target_type,
 		target_id,
