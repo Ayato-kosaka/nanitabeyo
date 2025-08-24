@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { StyleSheet, View, Dimensions } from "react-native";
+import { StyleSheet, View, Dimensions, ScrollView } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Marker, Region } from "@/components/MapView";
 import FoodContentScreen from "./FoodContentScreen";
@@ -24,6 +24,7 @@ export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndex
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
+	const commentsScrollViewRef = useRef<ScrollView>(null);
 	const { selectionChanged } = useHaptics();
 	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
 	const coordinates = useMemo(
@@ -98,13 +99,20 @@ export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndex
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
+	const configurePanGesture = useCallback((panGesture: any) => {
+		// Configure simultaneous handlers to allow both carousel and comments scrolling
+		if (commentsScrollViewRef.current) {
+			panGesture.simultaneousWithExternalGesture(commentsScrollViewRef.current);
+		}
+	}, []);
+
 	const renderCarouselItem = useCallback(
 		({ item }: { item: DishMediaEntry }) => (
 			<View style={styles.carouselItem}>
-				<FoodContentScreen item={item} />
+				<FoodContentScreen item={item} scrollViewRef={commentsScrollViewRef} />
 			</View>
 		),
-		[],
+		[commentsScrollViewRef],
 	);
 
 	return (
@@ -143,6 +151,7 @@ export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndex
 					}}
 					style={styles.carousel}
 					containerStyle={styles.carouselContainer}
+					onConfigurePanGesture={configurePanGesture}
 				/>
 			)}
 		</View>
