@@ -74,7 +74,7 @@ export function LocationAutocomplete({
 
 			// Debounce the API call
 			if (text.length > 2) {
-					debounceRef.current = setTimeout(() => {
+				debounceRef.current = setTimeout(() => {
 					searchLocations(text).catch((error) => {
 						console.warn("Location search failed:", error);
 					});

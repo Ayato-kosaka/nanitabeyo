@@ -35,7 +35,11 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	// Location search modal state
 	const [locationText, setLocationText] = useState("");
 	const [selectedTopic, setSelectedTopic] = useState<any>(null);
-	const { BlurModal: LocationModal, open: openLocationModal, close: closeLocationModal } = useBlurModal({
+	const {
+		BlurModal: LocationModal,
+		open: openLocationModal,
+		close: closeLocationModal,
+	} = useBlurModal({
 		intensity: 100,
 	});
 
