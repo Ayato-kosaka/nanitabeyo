@@ -239,5 +239,6 @@ export const useTopicSearch = () => {
 		searchTopics,
 		hideTopic,
 		resetTopics,
+		createDishItemsPromise, // Export the helper function for reuse
 	};
 };

@@ -50,6 +50,9 @@
 			"budget": "Budget ?",
 			"restrictions": "Restrictions"
 		},
+		"locationModal": {
+			"title": "Saisir lieu de recherche"
+		},
 		"required": "Obligatoire",
 		"placeholders": {
 			"enterLocation": "Saisissez un lieu"

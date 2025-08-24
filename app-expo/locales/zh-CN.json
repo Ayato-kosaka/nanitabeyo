@@ -50,6 +50,9 @@
 			"budget": "预算？",
 			"restrictions": "限制条件"
 		},
+		"locationModal": {
+			"title": "输入搜索地点"
+		},
 		"required": "必填",
 		"placeholders": {
 			"enterLocation": "请输入地点"

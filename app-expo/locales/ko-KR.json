@@ -50,6 +50,9 @@
 			"budget": "예산?",
 			"restrictions": "제한 조건"
 		},
+		"locationModal": {
+			"title": "검색 위치 입력"
+		},
 		"required": "필수",
 		"placeholders": {
 			"enterLocation": "위치를 입력하세요"
