@@ -215,7 +215,7 @@
 			"following": "Siguiendo",
 			"message": "Mensaje",
 			"searchByMood": "Encuentra platos que te \"gustarán\" según tu estado de ánimo de hoy",
-			"sendFeedback": "Enviar Comentarios/Reporte de Errores"
+			"sendFeedback": "Enviar Comentarios"
 		},
 		"stats": {
 			"following": "Siguiendo",
@@ -229,7 +229,8 @@
 		"placeholders": {
 			"enterBio": "Ingresa tu biografía..."
 		},
-		"savedCount": "{{count}} guardados"
+		"savedCount": "{{count}} guardados",
+		"guestBio": "Bienvenido, Invitado 👋\nGracias por usar la nueva app gourmet '¿Qué Comer?'😊\n¡Funciones de cuenta y más actualizaciones próximamente!"
 	},
 	"NotFound": {
 		"title": "¡Vaya!",

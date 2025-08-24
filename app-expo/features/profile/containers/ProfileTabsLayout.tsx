@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { View, StyleSheet, LayoutChangeEvent, Text, TextInput, TouchableOpacity, Platform } from "react-native";
+import { View, StyleSheet, LayoutChangeEvent, Text, TextInput, TouchableOpacity, Platform, Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import { Tabs } from "@/components/collapsible-tabs";
@@ -131,11 +131,11 @@ export function ProfileTabsLayout() {
 
 	const handleSubmitFeedback = useCallback(async () => {
 		if (feedbackTitle.length < 5 || feedbackTitle.length > 80) {
-			// TODO: Show validation error
+			Alert.alert(i18n.t("Common.error"), "Title must be between 5 and 80 characters");
 			return;
 		}
 		if (feedbackMessage.length < 10 || feedbackMessage.length > 2000) {
-			// TODO: Show validation error
+			Alert.alert(i18n.t("Common.error"), "Message must be between 10 and 2000 characters");
 			return;
 		}
 
@@ -173,8 +173,6 @@ export function ProfileTabsLayout() {
 					issueNumber: response.issueNumber,
 				},
 			});
-
-			// TODO: Show success toast with issue number
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "feedback_submitted_error",
@@ -186,7 +184,7 @@ export function ProfileTabsLayout() {
 					error: (error as Error).message,
 				},
 			});
-			// TODO: Show error toast
+			Alert.alert(i18n.t("Common.error"), "Failed to submit feedback. Please try again.");
 		}
 	}, [feedbackType, feedbackTitle, feedbackMessage, mediumImpact, closeFeedbackModal, logFrontendEvent, callBackend]);
 

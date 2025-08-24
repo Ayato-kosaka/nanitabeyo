@@ -1,17 +1,20 @@
 import { UserProfile, UserPost } from "@/types";
+import i18n from "@/lib/i18n";
 
-export const userProfile: UserProfile = {
+const getGuestProfile = (): UserProfile => ({
 	id: "guest",
 	username: "guest",
 	displayName: "Guest",
 	avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200", // Fixed logo will be updated later
-	bio: "ようこそ、ゲストさん 👋\n新感覚グルメアプリ「なに食べよ」を使ってくれてありがとうございます😊\nアカウント機能含め、近日アップデートしていきます！",
+	bio: i18n.t("Profile.guestBio"),
 	totalLikes: 0,
 	followersCount: 0,
 	followingCount: 0,
 	postsCount: 0,
 	isOwnProfile: true,
-};
+});
+
+export const userProfile: UserProfile = getGuestProfile();
 
 export const otherUserProfile: UserProfile = {
 	id: "user_456",

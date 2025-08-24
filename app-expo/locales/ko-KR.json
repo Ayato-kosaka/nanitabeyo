@@ -215,7 +215,7 @@
 			"following": "팔로잉",
 			"message": "메시지",
 			"searchByMood": "오늘의 기분으로 \"좋아할\" 요리 찾기",
-			"sendFeedback": "피드백/버그 신고 보내기"
+			"sendFeedback": "피드백 보내기"
 		},
 		"stats": {
 			"following": "팔로잉",
@@ -229,7 +229,8 @@
 		"placeholders": {
 			"enterBio": "자기소개를 입력하세요..."
 		},
-		"savedCount": "{{count}}회 저장"
+		"savedCount": "{{count}}회 저장",
+		"guestBio": "환영합니다, 게스트님 👋\n새로운 미식 앱 '뭐 먹지'를 사용해 주셔서 감사합니다😊\n계정 기능을 포함한 업데이트가 곧 진행됩니다!"
 	},
 	"NotFound": {
 		"title": "이런!",

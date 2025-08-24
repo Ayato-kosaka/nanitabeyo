@@ -215,7 +215,7 @@
 			"following": "フォロー中",
 			"message": "メッセージ",
 			"searchByMood": "\"いいね\"と思う料理を今日の気分で探す",
-			"sendFeedback": "ご意見・不具合を送る"
+			"sendFeedback": "ご意見・不具合"
 		},
 		"stats": {
 			"following": "フォロー中",
@@ -229,7 +229,8 @@
 		"placeholders": {
 			"enterBio": "自己紹介を入力してください..."
 		},
-		"savedCount": "{{count}}件保存"
+		"savedCount": "{{count}}件保存",
+		"guestBio": "ようこそ、ゲストさん 👋\n新感覚グルメアプリ「なに食べよ」を使ってくれてありがとうございます😊\nアカウント機能含め、近日アップデートしていきます！"
 	},
 	"NotFound": {
 		"title": "おっと！",

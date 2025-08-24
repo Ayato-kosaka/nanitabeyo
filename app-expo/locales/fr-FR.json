@@ -215,7 +215,7 @@
 			"following": "Suivi",
 			"message": "Message",
 			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour",
-			"sendFeedback": "Envoyer Commentaires/Rapport de Bug"
+			"sendFeedback": "Envoyer Commentaires"
 		},
 		"stats": {
 			"following": "Abonnements",
@@ -229,7 +229,8 @@
 		"placeholders": {
 			"enterBio": "Entrez votre biographie..."
 		},
-		"savedCount": "{{count}} enregistrements"
+		"savedCount": "{{count}} enregistrements",
+		"guestBio": "Bienvenue, Invité 👋\nMerci d'utiliser la nouvelle app gastronomique 'Que Manger'😊\nFonctions de compte et plus de mises à jour bientôt disponibles !"
 	},
 	"NotFound": {
 		"title": "Oups !",

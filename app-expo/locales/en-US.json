@@ -215,7 +215,7 @@
 			"following": "Following",
 			"message": "Message",
 			"searchByMood": "Find dishes you'll \"like\" based on today's mood",
-			"sendFeedback": "Send Feedback/Bug Report"
+			"sendFeedback": "Send Feedback"
 		},
 		"stats": {
 			"following": "Following",
@@ -229,7 +229,8 @@
 		"placeholders": {
 			"enterBio": "Enter your bio..."
 		},
-		"savedCount": "{{count}} saves"
+		"savedCount": "{{count}} saves",
+		"guestBio": "Welcome, Guest 👋\nThank you for using the new gourmet app 'What to Eat'😊\nAccount features and more updates coming soon!"
 	},
 	"NotFound": {
 		"title": "Oops!",
