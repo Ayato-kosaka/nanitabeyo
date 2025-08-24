@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	loadingIcon: {
-		width: 32,
-		height: 32,
+		width: 64,
+		height: 64,
 	},
 	loadingSpinner: {
 		marginBottom: 24,
