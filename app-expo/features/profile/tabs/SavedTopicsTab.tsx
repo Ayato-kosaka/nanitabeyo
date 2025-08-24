@@ -102,10 +102,11 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				// Close modal first
 				closeLocationModal();
 
-				// Create search params similar to topics.tsx
+				// Get location details for the search
 				const remoteConfig = getRemoteConfig();
 				const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
 
+				// Create search params with defaults (TODO: move defaults to hook level)
 				const searchParams: SearchParams = {
 					location: {
 						latitude: 35.6762, // Default to Tokyo coordinates for now
@@ -113,12 +114,16 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					},
 					address: location.text,
 					localLanguageCode: locale.split("-")[0],
-					distance: 2000, // Default distance in meters
-					timeSlot: "lunch", // Default values
-					scene: "solo",
-					mood: "hearty",
+					// Default values - only distance and priceLevels are used by createDishItemsPromise
+					distance: 500, // Default 500m (from search/index.tsx)
+					priceLevels: [
+						"PRICE_LEVEL_INEXPENSIVE",
+						"PRICE_LEVEL_MODERATE", 
+						"PRICE_LEVEL_EXPENSIVE",
+						"PRICE_LEVEL_VERY_EXPENSIVE",
+					],
 					restrictions: [],
-					priceLevels: ["1", "2", "3", "4"],
+					timeSlot: "lunch", // Required by type but not used by createDishItemsPromise
 				};
 
 				// Create dishItemsPromise using the exported helper
