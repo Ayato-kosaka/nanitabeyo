@@ -106,27 +106,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				const remoteConfig = getRemoteConfig();
 				const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
 
-				// Create search params with defaults (TODO: move defaults to hook level)
-				const searchParams: SearchParams = {
-					location: {
-						latitude: 35.6762, // Default to Tokyo coordinates for now
-						longitude: 139.6503,
-					},
-					address: location.text,
-					localLanguageCode: locale.split("-")[0],
-					// Default values - only distance and priceLevels are used by createDishItemsPromise
-					distance: 500, // Default 500m (from search/index.tsx)
-					priceLevels: [
-						"PRICE_LEVEL_INEXPENSIVE",
-						"PRICE_LEVEL_MODERATE",
-						"PRICE_LEVEL_EXPENSIVE",
-						"PRICE_LEVEL_VERY_EXPENSIVE",
-					],
-					restrictions: [],
-					timeSlot: "lunch", // Required by type but not used by createDishItemsPromise
-				};
-
-				// Create dishItemsPromise using the exported helper
+				// Create dishItemsPromise using the exported helper with minimal parameters
 				const topicForSearch = {
 					category: selectedTopic.dish_category?.name || selectedTopic.name,
 					topicTitle: selectedTopic.dish_category?.name || selectedTopic.name,
@@ -135,7 +115,13 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					imageUrl: selectedTopic.dish_category?.image_url || selectedTopic.imageUrl,
 				};
 
-				const dishItemsPromise = createDishItemsPromise(topicForSearch, searchParams, searchResultRestaurantsNumber);
+				const dishItemsPromise = createDishItemsPromise(
+					topicForSearch,
+					35.6762, // Default to Tokyo coordinates for now
+					139.6503,
+					locale.split("-")[0],
+					searchResultRestaurantsNumber,
+				);
 
 				// Set to store
 				setDishes(topicForSearch.categoryId, dishItemsPromise);
@@ -205,7 +191,6 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				</Card>
 			</LocationModal>
 		</>
-	);
 	);
 }
 
