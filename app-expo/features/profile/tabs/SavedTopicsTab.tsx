@@ -118,7 +118,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					distance: 500, // Default 500m (from search/index.tsx)
 					priceLevels: [
 						"PRICE_LEVEL_INEXPENSIVE",
-						"PRICE_LEVEL_MODERATE", 
+						"PRICE_LEVEL_MODERATE",
 						"PRICE_LEVEL_EXPENSIVE",
 						"PRICE_LEVEL_VERY_EXPENSIVE",
 					],
