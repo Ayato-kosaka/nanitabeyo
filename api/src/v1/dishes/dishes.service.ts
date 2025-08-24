@@ -60,7 +60,7 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /**
    * 写真候補を選択する優先順位ロジック
@@ -347,12 +347,12 @@ export class DishesService {
           // エンキューエラーでも同期レスポンスは継続
         }
 
-        return {
+        const BulkImportDishesResponseEntry: BulkImportDishesResponse[0] = {
           restaurant: convertPrismaToSupabase_Restaurants(restaurant),
           dish: convertPrismaToSupabase_Dishes(dish),
           dish_media: {
             ...convertPrismaToSupabase_DishMedia(dishMedia),
-            mediaImageUrl: photoMedia.photoUri,
+            mediaUrl: photoMedia.photoUri,
             thumbnailImageUrl: photoMedia.photoUri,
             isSaved: false, // 初期状態では保存されていない
             isLiked: false, // 初期状態ではいいねされていない
@@ -365,6 +365,7 @@ export class DishesService {
             likeCount: 0, // 初期状態ではいいね数は 0
           })),
         };
+        return BulkImportDishesResponseEntry;
       } catch (error) {
         this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
           placeId: place.id,
