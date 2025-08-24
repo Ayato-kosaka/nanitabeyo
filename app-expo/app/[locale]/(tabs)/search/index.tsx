@@ -229,11 +229,13 @@ export default function SearchScreen() {
 							onChangeText={setLocationQuery}
 							onSelectSuggestion={handleLocationSelect}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
+							renderInputRight={
+								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
+									<Navigation size={20} color="#5EA2FF" />
+								</TouchableOpacity>
+							}
 							testID="search-location-autocomplete"
 						/>
-						<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
-							<Navigation size={20} color="#5EA2FF" />
-						</TouchableOpacity>
 					</View>
 				</Card>
 
@@ -449,11 +451,8 @@ const styles = StyleSheet.create({
 	},
 	currentLocationButton: {
 		padding: 16,
-		borderRadius: 12,
-		backgroundColor: "#F8F9FA",
-		borderWidth: 1,
-		borderColor: "#E5E5E5",
-		marginTop: 0,
+		borderLeftWidth: 0.5,
+		borderLeftColor: "#E5E7EB",
 	},
 	chipGrid: {
 		flexDirection: "row",

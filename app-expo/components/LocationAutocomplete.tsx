@@ -8,11 +8,13 @@ import {
 	ScrollView,
 	Platform,
 	AccessibilityInfo,
+	ActivityIndicator,
 } from "react-native";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
+import { MapPin } from "lucide-react-native";
 
 interface LocationAutocompleteProps {
 	/** Current value of the input */
@@ -23,6 +25,8 @@ interface LocationAutocompleteProps {
 	onSelectSuggestion: (location: AutocompleteLocation) => void;
 	/** Placeholder text for the input */
 	placeholder?: string;
+	/** Optional right-side icon or element */
+	renderInputRight?: React.ReactNode;
 	/** Whether to auto focus the input when mounted */
 	autofocus?: boolean;
 	/** Test ID for testing */
@@ -39,6 +43,7 @@ export function LocationAutocomplete({
 	onSelectSuggestion,
 	placeholder = i18n.t("Search.currentLocation"),
 	autofocus = false,
+	renderInputRight,
 	testID = "location-autocomplete",
 }: LocationAutocompleteProps) {
 	const [showSuggestions, setShowSuggestions] = useState(false);
@@ -121,29 +126,33 @@ export function LocationAutocomplete({
 
 	return (
 		<View style={styles.container}>
-			{/* Text Input */}
-			<TextInput
-				ref={inputRef}
-				style={[styles.input, isFocused && styles.inputFocused]}
-				value={value}
-				onChangeText={handleTextChange}
-				onFocus={handleFocus}
-				onBlur={handleBlur}
-				placeholder={placeholder}
-				placeholderTextColor="#666"
-				autoComplete="off"
-				autoCorrect={false}
-				autoCapitalize="words"
-				keyboardType="default"
-				returnKeyType="search"
-				accessibilityLabel={i18n.t("Search.sections.location")}
-				accessibilityHint="Enter a location to search for restaurants"
-				testID={`${testID}-input`}
-			/>
+			<View style={styles.locationInputContainer}>
+				{/* Text Input */}
+				<TextInput
+					ref={inputRef}
+					style={[styles.input, isFocused && styles.inputFocused]}
+					value={value}
+					onChangeText={handleTextChange}
+					onFocus={handleFocus}
+					onBlur={handleBlur}
+					placeholder={placeholder}
+					placeholderTextColor="#6B7280"
+					autoComplete="off"
+					autoCorrect={false}
+					autoCapitalize="words"
+					keyboardType="default"
+					returnKeyType="search"
+					accessibilityLabel={i18n.t("Search.sections.location")}
+					accessibilityHint="Enter a location to search for restaurants"
+					testID={`${testID}-input`}
+				/>
+				{renderInputRight && renderInputRight}
+			</View>
 
 			{/* Loading indicator */}
 			{isSearching && (
 				<View style={styles.loadingContainer}>
+					<ActivityIndicator size="small" color="#5EA2FF" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}
@@ -165,10 +174,13 @@ export function LocationAutocomplete({
 								accessibilityLabel={suggestion.text}
 								accessibilityHint="Select this location"
 								testID={`${testID}-suggestion-${index}`}>
-								<Text style={styles.suggestionMainText}>{suggestion.mainText}</Text>
-								{suggestion.secondaryText && (
-									<Text style={styles.suggestionSecondaryText}>{suggestion.secondaryText}</Text>
-								)}
+								<MapPin size={16} color="#6B7280" />
+								<View style={styles.suggestionText}>
+									<Text style={styles.suggestionMainText}>{suggestion.mainText}</Text>
+									{suggestion.secondaryText && (
+										<Text style={styles.suggestionSecondaryText}>{suggestion.secondaryText}</Text>
+									)}
+								</View>
 							</TouchableOpacity>
 						))}
 					</ScrollView>
@@ -186,112 +198,97 @@ export function LocationAutocomplete({
 }
 
 const styles = StyleSheet.create({
-	container: {
-		position: "relative",
+	container: { flex: 1 },
+	locationInputContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		borderRadius: 16,
+		backgroundColor: "#F8F9FA",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.05,
+		shadowRadius: 2,
+		elevation: 1,
 	},
 	input: {
-		backgroundColor: "#F8F9FA",
-		borderRadius: 12,
-		paddingHorizontal: 16,
-		paddingVertical: 12,
+		flex: 1,
+		paddingHorizontal: 20,
+		paddingVertical: 16,
 		fontSize: 16,
 		color: "#1A1A1A",
-		borderWidth: 1,
-		borderColor: "#E5E5E5",
-		...Platform.select({
-			ios: {
-				shadowColor: "#000",
-				shadowOffset: { width: 0, height: 1 },
-				shadowOpacity: 0.05,
-				shadowRadius: 2,
-			},
-			android: {
-				elevation: 1,
-			},
-		}),
 	},
-	inputFocused: {
-		borderColor: "#5EA2FF",
-		borderWidth: 2,
-	},
+	inputFocused: {},
 	loadingContainer: {
-		paddingVertical: 8,
+		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
+		paddingVertical: 20,
+		marginTop: 12,
+		backgroundColor: "#FFF",
+		borderRadius: 16,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.1,
+		shadowRadius: 24,
+		elevation: 4,
 	},
 	loadingText: {
+		marginLeft: 8,
 		fontSize: 14,
-		color: "#666",
-		fontStyle: "italic",
+		color: "#6B7280",
 	},
 	suggestionsContainer: {
-		position: "absolute",
-		top: "100%",
-		left: 0,
-		right: 0,
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		marginTop: 4,
-		maxHeight: 200,
-		zIndex: 1000,
-		...Platform.select({
-			ios: {
-				shadowColor: "#000",
-				shadowOffset: { width: 0, height: 4 },
-				shadowOpacity: 0.1,
-				shadowRadius: 8,
-			},
-			android: {
-				elevation: 8,
-			},
-		}),
+		marginTop: 12,
+		backgroundColor: "#FFF",
+		borderRadius: 16,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.1,
+		shadowRadius: 24,
+		elevation: 4,
 	},
-	suggestionsList: {
-		flex: 1,
-	},
+	suggestionsList: {},
 	suggestionItem: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#F0F0F0",
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 20,
+		paddingVertical: 16,
+		borderBottomWidth: 0.5,
+		borderBottomColor: "#F3F4F6",
 	},
 	lastSuggestionItem: {
 		borderBottomWidth: 0,
 	},
+	suggestionText: {
+		marginLeft: 16,
+		flex: 1,
+	},
 	suggestionMainText: {
 		fontSize: 16,
 		color: "#1A1A1A",
-		fontWeight: "500",
-		marginBottom: 2,
+		fontWeight: "600",
 	},
 	suggestionSecondaryText: {
 		fontSize: 14,
-		color: "#666",
+		color: "#6B7280",
+		marginTop: 4,
 	},
 	noResultsContainer: {
-		position: "absolute",
-		top: "100%",
-		left: 0,
-		right: 0,
+		minHeight: 60,
+		alignItems: "center",
+		justifyContent: "center",
 		backgroundColor: "#FFFFFF",
 		borderRadius: 12,
-		marginTop: 4,
-		paddingVertical: 16,
-		alignItems: "center",
-		...Platform.select({
-			ios: {
-				shadowColor: "#000",
-				shadowOffset: { width: 0, height: 4 },
-				shadowOpacity: 0.1,
-				shadowRadius: 8,
-			},
-			android: {
-				elevation: 8,
-			},
-		}),
+		marginTop: 12,
+		paddingVertical: 20,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.1,
+		shadowRadius: 24,
+		elevation: 4,
 	},
 	noResultsText: {
 		fontSize: 14,
-		color: "#666",
-		fontStyle: "italic",
+		color: "#6B7280",
 	},
 });
