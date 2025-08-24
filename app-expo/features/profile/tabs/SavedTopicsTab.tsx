@@ -68,26 +68,28 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					// Use the original image URL - React Native should handle redirects properly
 					// We'll rely on the error handling in ImageCard to detect any loading issues
 					const processedImageUrl = item.image_url;
-					
+
 					return {
 						...item, // Keep all original data
-						name: item.label_en || 'Unknown',
+						name: item.label_en || "Unknown",
 						imageUrl: processedImageUrl,
 						savedCount: 0, // This field is not provided by the API yet
 					};
 				});
-				
+
 				// Debug logging for image URLs
 				if (transformedData.length > 0) {
-					console.log('Saved topics data transformation:', {
+					console.log("Saved topics data transformation:", {
 						originalCount: response.data?.length || 0,
 						transformedCount: transformedData.length,
-						sampleItem: transformedData[0] ? {
-							id: transformedData[0].id,
-							name: transformedData[0].name,
-							imageUrl: transformedData[0].imageUrl,
-							original_image_url: response.data?.[0]?.image_url,
-						} : null,
+						sampleItem: transformedData[0]
+							? {
+									id: transformedData[0].id,
+									name: transformedData[0].name,
+									imageUrl: transformedData[0].imageUrl,
+									original_image_url: response.data?.[0]?.image_url,
+								}
+							: null,
 					});
 				}
 				return {

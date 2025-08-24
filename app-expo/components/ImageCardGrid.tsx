@@ -99,15 +99,15 @@ function _ImageCard<T extends ImageCardItem>({
 			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("ImageCardGrid.openItemDetails")}>
-			<Image 
-				source={{ uri: item.imageUrl }} 
-				style={StyleSheet.absoluteFill} 
+			<Image
+				source={{ uri: item.imageUrl }}
+				style={StyleSheet.absoluteFill}
 				resizeMode="cover"
 				onError={(error) => {
-					console.log('Image loading failed for URL:', item.imageUrl, 'Error:', error);
+					console.log("Image loading failed for URL:", item.imageUrl, "Error:", error);
 				}}
 				onLoad={() => {
-					console.log('Image loaded successfully for URL:', item.imageUrl);
+					console.log("Image loaded successfully for URL:", item.imageUrl);
 				}}
 			/>
 			<LinearGradient
