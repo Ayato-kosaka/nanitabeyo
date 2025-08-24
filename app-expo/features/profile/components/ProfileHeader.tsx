@@ -76,9 +76,9 @@ export function ProfileHeader({
 
 			{/* Profile Info Card */}
 			<View style={styles.cardContainer} pointerEvents="box-none">
-				<Card pointerEvents="box-none" style={isGuest ? styles.guestCard : undefined}>
+				<Card style={styles.card} pointerEvents="box-none">
 					{/* Avatar and Stats */}
-					<View style={[styles.profileHeader, isGuest && styles.guestProfileHeader]} pointerEvents="none">
+					<View style={[styles.profileHeader]} pointerEvents="none">
 						<Image source={{ uri: profile.avatar }} style={styles.avatar} />
 
 						{!isGuest && (
@@ -100,12 +100,12 @@ export function ProfileHeader({
 					</View>
 
 					{/* Display Name */}
-					<Text style={[styles.displayName, isGuest && styles.guestDisplayName]} pointerEvents="none">
+					<Text style={[styles.displayName]} pointerEvents="none">
 						{profile.displayName}
 					</Text>
 
 					{/* Bio */}
-					<Text style={[styles.bio, isGuest && styles.guestBio]} pointerEvents="none">
+					<Text style={[styles.bio]} pointerEvents="none">
 						{profile.bio}
 					</Text>
 
@@ -172,6 +172,9 @@ const styles = StyleSheet.create({
 		padding: 4,
 	},
 	cardContainer: {},
+	card: {
+		alignItems: "center",
+	},
 	profileHeader: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -214,20 +217,22 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "700",
 		color: "#1A1A1A",
+		textAlign: "center",
 		marginBottom: 8,
 		letterSpacing: -0.3,
 	},
 	bio: {
 		fontSize: 15,
 		color: "#6B7280",
+		textAlign: "center",
 		lineHeight: 20,
 		marginBottom: 16,
 		fontWeight: "400",
 	},
 	actionButtons: {
+		width: "100%",
 		flexDirection: "row",
 		gap: 8,
-		zIndex: 100000000,
 	},
 	followButton: {
 		flex: 1,
@@ -274,19 +279,5 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		color: "#FFFFFF",
 		letterSpacing: 0.2,
-	},
-	guestCard: {
-		alignItems: "center",
-	},
-	guestProfileHeader: {
-		flexDirection: "column",
-		alignItems: "center",
-		marginBottom: 16,
-	},
-	guestDisplayName: {
-		textAlign: "center",
-	},
-	guestBio: {
-		textAlign: "center",
 	},
 });

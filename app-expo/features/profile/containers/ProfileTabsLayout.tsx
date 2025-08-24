@@ -29,7 +29,11 @@ export function ProfileTabsLayout() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
-	const { BlurModal: FeedbackModal, open: openFeedbackModal, close: closeFeedbackModal } = useBlurModal({ intensity: 100 });
+	const {
+		BlurModal: FeedbackModal,
+		open: openFeedbackModal,
+		close: closeFeedbackModal,
+	} = useBlurModal({ intensity: 100 });
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
@@ -139,34 +143,32 @@ export function ProfileTabsLayout() {
 			mediumImpact();
 
 			// Get device information
-			const deviceInfo = Constants.deviceName || 'Unknown Device';
-			const osInfo = Platform.OS === 'ios' 
-				? `iOS ${Constants.platform?.ios?.systemVersion || 'Unknown'}` 
-				: `Android ${Platform.Version}`;
+			const deviceInfo = Constants.deviceName || "Unknown Device";
+			const osInfo =
+				Platform.OS === "ios"
+					? `iOS ${Constants.platform?.ios?.systemVersion || "Unknown"}`
+					: `Android ${Platform.Version}`;
 
 			// Call API to submit feedback
-			const response = await callBackend<any, { issueNumber: number; issueUrl: string }>(
-				'/v1/feedback/issue',
-				{
-					method: 'POST',
-					requestPayload: {
-						type: feedbackType,
-						title: feedbackTitle,
-						message: feedbackMessage,
-						os: osInfo,
-						device: deviceInfo,
-					},
-				}
-			);
+			const response = await callBackend<any, { issueNumber: number; issueUrl: string }>("/v1/feedback/issue", {
+				method: "POST",
+				requestPayload: {
+					type: feedbackType,
+					title: feedbackTitle,
+					message: feedbackMessage,
+					os: osInfo,
+					device: deviceInfo,
+				},
+			});
 
 			closeFeedbackModal();
-			
+
 			logFrontendEvent({
 				event_name: "feedback_submitted_success",
 				error_level: "log",
-				payload: { 
-					type: feedbackType, 
-					titleLength: feedbackTitle.length, 
+				payload: {
+					type: feedbackType,
+					titleLength: feedbackTitle.length,
 					messageLength: feedbackMessage.length,
 					issueNumber: response.issueNumber,
 				},
@@ -177,11 +179,11 @@ export function ProfileTabsLayout() {
 			logFrontendEvent({
 				event_name: "feedback_submitted_error",
 				error_level: "error",
-				payload: { 
-					type: feedbackType, 
-					titleLength: feedbackTitle.length, 
+				payload: {
+					type: feedbackType,
+					titleLength: feedbackTitle.length,
 					messageLength: feedbackMessage.length,
-					error: error.message,
+					error: (error as Error).message,
 				},
 			});
 			// TODO: Show error toast
@@ -321,15 +323,11 @@ export function ProfileTabsLayout() {
 					<View>
 						<Text style={styles.feedbackLabel}>{i18n.t("Feedback.labels.type")}</Text>
 						<View style={styles.radioGroup}>
-							<TouchableOpacity
-								style={styles.radioOption}
-								onPress={() => setFeedbackType("request")}>
+							<TouchableOpacity style={styles.radioOption} onPress={() => setFeedbackType("request")}>
 								<View style={[styles.radioCircle, feedbackType === "request" && styles.radioSelected]} />
 								<Text style={styles.radioLabel}>{i18n.t("Feedback.types.request")}</Text>
 							</TouchableOpacity>
-							<TouchableOpacity
-								style={styles.radioOption}
-								onPress={() => setFeedbackType("bug")}>
+							<TouchableOpacity style={styles.radioOption} onPress={() => setFeedbackType("bug")}>
 								<View style={[styles.radioCircle, feedbackType === "bug" && styles.radioSelected]} />
 								<Text style={styles.radioLabel}>{i18n.t("Feedback.types.bug")}</Text>
 							</TouchableOpacity>
@@ -347,9 +345,7 @@ export function ProfileTabsLayout() {
 							placeholderTextColor="#666"
 							maxLength={80}
 						/>
-						<Text style={styles.characterCount}>
-							{feedbackTitle.length}/80
-						</Text>
+						<Text style={styles.characterCount}>{feedbackTitle.length}/80</Text>
 					</View>
 
 					{/* Message Input */}
@@ -366,9 +362,7 @@ export function ProfileTabsLayout() {
 							maxLength={2000}
 							textAlignVertical="top"
 						/>
-						<Text style={styles.characterCount}>
-							{feedbackMessage.length}/2000
-						</Text>
+						<Text style={styles.characterCount}>{feedbackMessage.length}/2000</Text>
 					</View>
 				</Card>
 				<PrimaryButton
