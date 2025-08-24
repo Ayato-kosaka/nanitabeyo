@@ -47,6 +47,9 @@ const envSchema = z.object({
     .string()
     .default('60000')
     .transform((v) => Number(v)),
+  GITHUB_TOKEN: z.string().optional(),
+  GITHUB_REPO_OWNER: z.string().default('Ayato-kosaka'),
+  GITHUB_REPO_NAME: z.string().default('nanitabeyo'),
 });
 
 /**
