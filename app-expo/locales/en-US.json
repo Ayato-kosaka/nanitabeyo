@@ -230,7 +230,7 @@
 			"enterBio": "Enter your bio..."
 		},
 		"savedCount": "{{count}} saves",
-		"guestBio": "Welcome, Guest 👋\nThank you for using the new gourmet app 'What to Eat'😊\nAccount features and more updates coming soon!"
+		"guestBio": "Welcome, Guest 👋\nThank you for using the new gourmet app 'CraveCatch'😊\nAccount features and more updates coming soon!"
 	},
 	"NotFound": {
 		"title": "Oops!",
