@@ -21934,7 +21934,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -21946,7 +21945,6 @@ export namespace Prisma {
 
   export type UsersMaxAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -21958,7 +21956,6 @@ export namespace Prisma {
 
   export type UsersCountAggregateOutputType = {
     id: number
-    username: number
     display_name: number
     avatar: number
     bio: number
@@ -21980,7 +21977,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -21992,7 +21988,6 @@ export namespace Prisma {
 
   export type UsersMaxAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -22004,7 +21999,6 @@ export namespace Prisma {
 
   export type UsersCountAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -22103,7 +22097,6 @@ export namespace Prisma {
 
   export type UsersGroupByOutputType = {
     id: string
-    username: string
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -22134,7 +22127,6 @@ export namespace Prisma {
 
   export type usersSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22151,7 +22143,6 @@ export namespace Prisma {
 
   export type usersSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22163,7 +22154,6 @@ export namespace Prisma {
 
   export type usersSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22175,7 +22165,6 @@ export namespace Prisma {
 
   export type usersSelectScalar = {
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22185,7 +22174,7 @@ export namespace Prisma {
     lock_no?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_likes?: boolean | users$dish_likesArgs<ExtArgs>
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
@@ -22206,7 +22195,6 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      username: string
       display_name: string | null
       avatar: string | null
       bio: string | null
@@ -22642,7 +22630,6 @@ export namespace Prisma {
    */
   interface usersFieldRefs {
     readonly id: FieldRef<"users", 'String'>
-    readonly username: FieldRef<"users", 'String'>
     readonly display_name: FieldRef<"users", 'String'>
     readonly avatar: FieldRef<"users", 'String'>
     readonly bio: FieldRef<"users", 'String'>
@@ -22868,7 +22855,7 @@ export namespace Prisma {
     /**
      * The data needed to create a users.
      */
-    data: XOR<usersCreateInput, usersUncheckedCreateInput>
+    data?: XOR<usersCreateInput, usersUncheckedCreateInput>
   }
 
   /**
@@ -23418,7 +23405,6 @@ export namespace Prisma {
 
   export const UsersScalarFieldEnum: {
     id: 'id',
-    username: 'username',
     display_name: 'display_name',
     avatar: 'avatar',
     bio: 'bio',
@@ -24958,7 +24944,6 @@ export namespace Prisma {
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
     id?: UuidFilter<"users"> | string
-    username?: StringFilter<"users"> | string
     display_name?: StringNullableFilter<"users"> | string | null
     avatar?: StringNullableFilter<"users"> | string | null
     bio?: StringNullableFilter<"users"> | string | null
@@ -24974,7 +24959,6 @@ export namespace Prisma {
 
   export type usersOrderByWithRelationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -24990,7 +24974,6 @@ export namespace Prisma {
 
   export type usersWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    username?: string
     AND?: usersWhereInput | usersWhereInput[]
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
@@ -25005,11 +24988,10 @@ export namespace Prisma {
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
-  }, "id" | "username">
+  }, "id">
 
   export type usersOrderByWithAggregationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -25029,7 +25011,6 @@ export namespace Prisma {
     OR?: usersScalarWhereWithAggregatesInput[]
     NOT?: usersScalarWhereWithAggregatesInput | usersScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"users"> | string
-    username?: StringWithAggregatesFilter<"users"> | string
     display_name?: StringNullableWithAggregatesFilter<"users"> | string | null
     avatar?: StringNullableWithAggregatesFilter<"users"> | string | null
     bio?: StringNullableWithAggregatesFilter<"users"> | string | null
@@ -26460,7 +26441,6 @@ export namespace Prisma {
 
   export type usersCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26476,7 +26456,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26492,7 +26471,6 @@ export namespace Prisma {
 
   export type usersUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26508,7 +26486,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26524,7 +26501,6 @@ export namespace Prisma {
 
   export type usersCreateManyInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26536,7 +26512,6 @@ export namespace Prisma {
 
   export type usersUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26548,7 +26523,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27863,7 +27837,6 @@ export namespace Prisma {
 
   export type usersCountOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27879,7 +27852,6 @@ export namespace Prisma {
 
   export type usersMaxOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27891,7 +27863,6 @@ export namespace Prisma {
 
   export type usersMinOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -29466,7 +29437,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_likesInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29481,7 +29451,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_likesInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29549,7 +29518,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_likesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29564,7 +29532,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_likesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29628,7 +29595,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29643,7 +29609,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29767,7 +29732,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29782,7 +29746,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29856,7 +29819,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29871,7 +29833,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29935,7 +29896,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29950,7 +29910,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30556,7 +30515,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30571,7 +30529,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30653,7 +30610,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30668,7 +30624,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null

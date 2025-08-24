@@ -3,7 +3,7 @@ CREATE TABLE dish_reviews (
     dish_id     UUID        NOT NULL REFERENCES dishes(id),
     comment     TEXT        NOT NULL,
     comment_tsv TSVECTOR    GENERATED ALWAYS AS (to_tsvector('simple', coalesce(comment,''))) STORED,
-    original_language_code CHAR(2) NOT NULL,
+    original_language_code TEXT NOT NULL,
     user_id     UUID        REFERENCES users(id),
     rating      SMALLINT    NOT NULL CHECK (rating BETWEEN 1 AND 5),
     price_cents INTEGER     CHECK (price_cents > 0),
