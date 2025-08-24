@@ -199,8 +199,8 @@
 			"noDishReviews": "Aún no hay publicaciones",
 			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
 			"noSavedItems": "No hay elementos guardados",
-			"noSavedPosts": "No hay publicaciones guardadas",
-			"noSavedTopics": "No hay temas guardados"
+			"noSavedPosts": "Cuando encuentres publicaciones interesantes, usa \"Guardar\" para revisarlas",
+			"noSavedTopics": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
 		},
 		"statusLabels": {
 			"active": "Activo",
@@ -213,7 +213,8 @@
 			"editProfile": "Editar Perfil",
 			"follow": "Seguir",
 			"following": "Siguiendo",
-			"message": "Mensaje"
+			"message": "Mensaje",
+			"searchByMood": "Encuentra platos que te \"gustarán\" según tu estado de ánimo de hoy"
 		},
 		"stats": {
 			"following": "Siguiendo",

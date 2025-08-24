@@ -199,8 +199,8 @@
 			"noDishReviews": "Aucune publication pour l'instant",
 			"noLikedDishMediaEntries": "Aucune publication aimée",
 			"noSavedItems": "Aucun élément enregistré",
-			"noSavedPosts": "Aucune publication enregistrée",
-			"noSavedTopics": "Aucun sujet enregistré"
+			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
+			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
 		"statusLabels": {
 			"active": "Actif",
@@ -213,7 +213,8 @@
 			"editProfile": "Modifier le profil",
 			"follow": "Suivre",
 			"following": "Suivi",
-			"message": "Message"
+			"message": "Message",
+			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour"
 		},
 		"stats": {
 			"following": "Abonnements",

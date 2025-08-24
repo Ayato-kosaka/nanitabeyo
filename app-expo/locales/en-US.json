@@ -199,8 +199,8 @@
 			"noDishReviews": "No posts yet",
 			"noLikedDishMediaEntries": "No liked posts",
 			"noSavedItems": "No saved items",
-			"noSavedPosts": "No saved posts",
-			"noSavedTopics": "No saved topics"
+			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
+			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
 		"statusLabels": {
 			"active": "Active",
@@ -213,7 +213,8 @@
 			"editProfile": "Edit Profile",
 			"follow": "Follow",
 			"following": "Following",
-			"message": "Message"
+			"message": "Message",
+			"searchByMood": "Find dishes you'll \"like\" based on today's mood"
 		},
 		"stats": {
 			"following": "Following",

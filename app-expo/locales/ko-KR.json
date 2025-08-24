@@ -199,8 +199,8 @@
 			"noDishReviews": "게시물이 아직 없습니다",
 			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
 			"noSavedItems": "저장된 항목이 없습니다",
-			"noSavedPosts": "저장된 게시물이 없습니다",
-			"noSavedTopics": "저장된 주제가 없습니다"
+			"noSavedPosts": "흥미로운 게시물을 찾으면 \"저장\"으로 다시 볼 수 있습니다",
+			"noSavedTopics": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
 		},
 		"statusLabels": {
 			"active": "활성",
@@ -213,7 +213,8 @@
 			"editProfile": "프로필 편집",
 			"follow": "팔로우",
 			"following": "팔로잉",
-			"message": "메시지"
+			"message": "메시지",
+			"searchByMood": "오늘의 기분으로 \"좋아할\" 요리 찾기"
 		},
 		"stats": {
 			"following": "팔로잉",

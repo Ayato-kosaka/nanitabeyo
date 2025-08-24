@@ -64,6 +64,19 @@ export function LikeTab() {
 		[lightImpact, setDishePromises, items, locale, logFrontendEvent],
 	);
 
+	const handleSearchByMood = useCallback(() => {
+		lightImpact();
+		router.push({
+			pathname: "/[locale]/(tabs)/search",
+			params: { locale },
+		});
+		logFrontendEvent({
+			event_name: "likes_empty_search_navigation",
+			error_level: "log",
+			payload: { source: "likes_empty_state" },
+		});
+	}, [lightImpact, locale, logFrontendEvent]);
+
 	const renderLikeItem = useCallback(
 		({ item, index }: { item: DishMediaEntry; index: number }) => {
 			const gridItem = {
@@ -108,10 +121,13 @@ export function LikeTab() {
 			<View style={styles.emptyStateContainer}>
 				<View style={styles.emptyStateCard}>
 					<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noLikedDishMediaEntries")}</Text>
+					<TouchableOpacity style={styles.searchButton} onPress={handleSearchByMood}>
+						<Text style={styles.searchButtonText}>{i18n.t("Profile.buttons.searchByMood")}</Text>
+					</TouchableOpacity>
 				</View>
 			</View>
 		);
-	}, [errorMessage, refresh]);
+	}, [errorMessage, refresh, handleSearchByMood]);
 
 	return (
 		<GridList
@@ -186,6 +202,17 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 	},
 	retryButtonText: {
+		color: "#FFFFFF",
+		fontWeight: "600",
+	},
+	searchButton: {
+		marginTop: 16,
+		backgroundColor: "#5EA2FF",
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 20,
+	},
+	searchButtonText: {
 		color: "#FFFFFF",
 		fontWeight: "600",
 	},

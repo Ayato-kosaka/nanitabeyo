@@ -206,6 +206,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 			</LocationModal>
 		</>
 	);
+	);
 }
 
 const styles = StyleSheet.create({
