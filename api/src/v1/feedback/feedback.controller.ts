@@ -1,32 +1,46 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
-import { FeedbackService } from './feedback.service';
-import { CreateFeedbackDto, FeedbackType } from '@shared/v1/dto';
+// api/src/v1/feedback/feedback.controller.ts
+//
+// ❶ ルーティングは v1 プレフィクスを含め @Controller レベルで宣言
+// ❷ DTO → ValidationPipe → Service 呼び出しという王道 3 段構え
+// ❸ "認証必須 / 任意" を Guard で明確化
+// ❹ Swagger / OpenAPI デコレータで自動ドキュメント化
+//
+
+import {
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+
+import { CreateFeedbackDto } from '@shared/v1/dto';
 import { CreateFeedbackResponseDto } from '@shared/v1/res';
 
-@Controller('feedback')
+// 横串 (Auth)
+import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+
+// ドメイン Service
+import { FeedbackService } from './feedback.service';
+
+@ApiTags('Feedback')
+@Controller('v1/feedback')
 export class FeedbackController {
   constructor(private readonly feedbackService: FeedbackService) {}
 
+  /* ------------------------------------------------------------------ */
+  /*                    POST /v1/feedback/issue (任意認証)              */
+  /* ------------------------------------------------------------------ */
   @Post('issue')
-  @HttpCode(HttpStatus.CREATED)
-  async createIssue(@Body() createFeedbackDto: CreateFeedbackDto): Promise<CreateFeedbackResponseDto> {
-    // Validate input
-    if (!createFeedbackDto.type || !Object.values(FeedbackType).includes(createFeedbackDto.type)) {
-      throw new BadRequestException('Invalid feedback type');
-    }
-    
-    if (!createFeedbackDto.title || createFeedbackDto.title.length < 5 || createFeedbackDto.title.length > 80) {
-      throw new BadRequestException('Title must be between 5 and 80 characters');
-    }
-    
-    if (!createFeedbackDto.message || createFeedbackDto.message.length < 10 || createFeedbackDto.message.length > 2000) {
-      throw new BadRequestException('Message must be between 10 and 2000 characters');
-    }
-
-    if (!createFeedbackDto.os || !createFeedbackDto.device) {
-      throw new BadRequestException('OS and device information are required');
-    }
-
-    return this.feedbackService.createIssue(createFeedbackDto);
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({ summary: 'GitHub Issue 作成 (フィードバック/バグ報告)' })
+  @ApiResponse({ status: 201, description: 'Issue 作成成功' })
+  async createIssue(
+    @Body() dto: CreateFeedbackDto,
+  ): Promise<CreateFeedbackResponseDto> {
+    return this.feedbackService.createIssue(dto);
   }
 }

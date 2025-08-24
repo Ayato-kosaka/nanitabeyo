@@ -1,4 +1,4 @@
 export interface CreateFeedbackResponseDto {
-  issueNumber: number;
-  issueUrl: string;
+	issueNumber: number;
+	issueUrl: string;
 }
