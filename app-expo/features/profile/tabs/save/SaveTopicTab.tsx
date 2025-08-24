@@ -1,27 +1,22 @@
 import React, { useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, StyleProp, FlatListProps } from "react-native";
 import { GridList } from "../../components/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
-
-// Mock data type for saved topics
-interface SavedTopic {
-	id: string;
-	name: string;
-	imageUrl: string;
-	savedCount: number;
-}
+import { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
+import { useLocale } from "@/hooks/useLocale";
+import { Json } from "@shared/supabase/database.types";
 
 interface SaveTopicTabProps {
-	data: SavedTopic[];
+	data: QueryMeSavedDishCategoriesResponse["data"];
 	isLoading?: boolean;
 	isLoadingMore?: boolean;
 	refreshing?: boolean;
 	onRefresh?: () => void;
 	onEndReached?: () => void;
-	onItemPress?: (item: SavedTopic, index: number) => void;
-	onScroll?: any;
-	contentContainerStyle?: any;
+	onItemPress?: (item: QueryMeSavedDishCategoriesResponse["data"][number], index: number) => void;
+	onScroll?: FlatListProps<QueryMeSavedDishCategoriesResponse["data"]>["onScroll"];
+	contentContainerStyle?: StyleProp<ViewStyle>;
 	error?: string | null;
 	onRetry?: () => void;
 }
@@ -39,18 +34,21 @@ export function SaveTopicTab({
 	error,
 	onRetry,
 }: SaveTopicTabProps) {
+	const locales = useLocale();
+
 	const renderTopicItem = useCallback(
-		({ item, index }: { item: SavedTopic; index: number }) => {
+		({ item, index }: { item: QueryMeSavedDishCategoriesResponse["data"][number]; index: number }) => {
 			return (
 				<ImageCard
 					item={{
 						id: item.id,
-						imageUrl: item.imageUrl,
+						imageUrl: item.image_url,
 					}}
 					onPress={() => onItemPress?.(item, index)}>
 					<View style={styles.topicCardOverlay}>
-						<Text style={styles.topicName}>{item.name}</Text>
-						<Text style={styles.savedCount}>{i18n.t("Profile.savedCount", { count: item.savedCount })}</Text>
+						<Text style={styles.topicName}>
+							{(item.labels as { [key: string]: string })[locales.split("-")[0]] ?? item.label_en}
+						</Text>
 					</View>
 				</ImageCard>
 			);

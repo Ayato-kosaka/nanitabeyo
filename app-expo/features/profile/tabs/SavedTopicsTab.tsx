@@ -34,7 +34,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 
 	// Location search modal state
 	const [locationText, setLocationText] = useState("");
-	const [selectedTopic, setSelectedTopic] = useState<any>(null);
+	const [selectedTopic, setSelectedTopic] = useState<QueryMeSavedDishCategoriesResponse["data"][number] | null>(null);
 	const {
 		BlurModal: LocationModal,
 		open: openLocationModal,
@@ -53,7 +53,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		);
 	}
 
-	const topics = useCursorPagination<QueryMeSavedDishCategoriesDto, any>(
+	const topics = useCursorPagination<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse["data"][number]>(
 		useCallback(
 			async ({ cursor }) => {
 				const response = await callBackend<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse>(
@@ -105,24 +105,16 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				// Get location details including coordinates and language code
 				const locationDetails = await getLocationDetails(location);
 
-				// Create dishItemsPromise using the exported helper with location details
-				const topicForSearch = {
-					category: selectedTopic.dish_category?.name || selectedTopic.name,
-					topicTitle: selectedTopic.dish_category?.name || selectedTopic.name,
-					reason: "Selected from saved topics",
-					categoryId: selectedTopic.dish_category_id || selectedTopic.id,
-					imageUrl: selectedTopic.dish_category?.image_url || selectedTopic.imageUrl,
-				};
-
 				const dishItemsPromise = createDishItemsPromise(
-					topicForSearch,
+					selectedTopic.id,
+					selectedTopic.label_en,
 					locationDetails.location.latitude,
 					locationDetails.location.longitude,
 					locationDetails.localLanguageCode,
 				);
 
 				// Set to store
-				setDishes(topicForSearch.categoryId, dishItemsPromise);
+				setDishes(selectedTopic.id, dishItemsPromise);
 
 				// Navigate to result screen (referenced from topics.tsx handleViewDetails)
 				// Stay within profile tab as required
@@ -130,7 +122,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					pathname: "/[locale]/(tabs)/profile/search-results",
 					params: {
 						locale,
-						topicId: topicForSearch.categoryId,
+						topicId: selectedTopic.id,
 					},
 				});
 
@@ -140,7 +132,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					payload: {
 						topicId: selectedTopic.id,
 						location: location.text,
-						categoryId: topicForSearch.categoryId,
+						categoryId: selectedTopic.id,
 					},
 				});
 			} catch (error) {
@@ -149,7 +141,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					event_name: "saved_topic_navigation_failed",
 					error_level: "error",
 					payload: {
-						topicId: selectedTopic?.id,
+						selectedTopic,
 						error: error instanceof Error ? error.message : String(error),
 					},
 				});

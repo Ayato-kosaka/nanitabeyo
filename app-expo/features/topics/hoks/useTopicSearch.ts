@@ -29,7 +29,8 @@ export const useTopicSearch = () => {
 	// Helper function to create dishItemsPromise with image preloading (DRY principle)
 	const createDishItemsPromise = useCallback(
 		(
-			topic: QueryDishCategoryRecommendationsResponse[number],
+			categoryId: Topic["categoryId"],
+			category: Topic["category"],
 			latitude: number,
 			longitude: number,
 			languageCode: string,
@@ -56,8 +57,8 @@ export const useTopicSearch = () => {
 						requestPayload: {
 							location: `${latitude},${longitude}`,
 							radius: radius,
-							categoryId: topic.categoryId,
-							categoryName: topic.category,
+							categoryId: categoryId,
+							categoryName: category,
 							minRating: 3.0, // Fixed value as per requirement
 							languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
 							priceLevels: priceLevels,
@@ -145,7 +146,8 @@ export const useTopicSearch = () => {
 						...topic,
 						isHidden: false,
 						dishItemsPromise: createDishItemsPromise(
-							topic,
+							topic.categoryId,
+							topic.category,
 							params.location.latitude,
 							params.location.longitude,
 							params.localLanguageCode,
