@@ -17,6 +17,7 @@
 	},
 	"dependencies": {
 		"@expo/config-plugins": "^10.1.2",
+		"@expo/metro-runtime": "~5.0.4",
 		"@expo/vector-icons": "^14.1.0",
 		"@lucide/lab": "^0.1.2",
 		"@react-google-maps/api": "^2.19.3",
