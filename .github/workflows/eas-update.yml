@@ -51,7 +51,9 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: ✨ Update environment variable
-        run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}
+        run: pnpx eas-cli ${{ github.event.inputs.channel }} \
+          --variable-name EXPO_PUBLIC_COMMIT_ID \
+          --value ${{ github.sha }}
 
       - name: 📤 EAS Update to selected channel (iOS & Android only)
         run: |
