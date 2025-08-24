@@ -9,6 +9,7 @@ import {
 	Dimensions,
 	SafeAreaView,
 	Alert,
+	Platform,
 } from "react-native";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter, usePathname } from "expo-router";
@@ -326,6 +327,12 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 		try {
 			const mapUrl = `https://www.google.com/maps/place/?q=place_id:${item.restaurant.google_place_id}`;
+
+			if (Platform.OS === "web") {
+				window.open(mapUrl, "_blank", "noopener,noreferrer"); // 別タブで開く
+				return;
+			}
+
 			const canOpen = await Linking.canOpenURL(mapUrl);
 
 			if (canOpen) {
