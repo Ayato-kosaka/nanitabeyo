@@ -18,7 +18,7 @@ export function LikeTab() {
 	const { callBackend } = useAPICall();
 	const { items, loadInitial, loadMore, refresh, error, isLoadingInitial, isLoadingMore } = useCursorPagination<
 		QueryMeLikedDishMediaDto,
-		DishMediaEntry
+		QueryMeLikedDishMediaResponse["data"][number]
 	>(
 		useCallback(
 			async ({ cursor }) => {
@@ -48,7 +48,7 @@ export function LikeTab() {
 	const locale = useLocale();
 
 	const handleItemPress = useCallback(
-		(item: DishMediaEntry, index: number) => {
+		(item: QueryMeLikedDishMediaResponse["data"][number], index: number) => {
 			lightImpact();
 			setDishePromises("liked", Promise.resolve(items));
 			router.push({
@@ -78,12 +78,13 @@ export function LikeTab() {
 	}, [lightImpact, locale, logFrontendEvent]);
 
 	const renderLikeItem = useCallback(
-		({ item, index }: { item: DishMediaEntry; index: number }) => {
+		({ item, index }: { item: QueryMeLikedDishMediaResponse["data"][number]; index: number }) => {
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
 				imageUrl: item.dish_media.thumbnailImageUrl,
 			};
+			console.log("Rendering liked item:", gridItem);
 
 			return (
 				<ImageCard item={gridItem} onPress={() => handleItemPress(item, index)}>
@@ -132,7 +133,7 @@ export function LikeTab() {
 	return (
 		<GridList
 			data={items.map((item) => ({ ...item, id: item.dish_media.id }))}
-			renderItem={({ item, index }) => renderLikeItem({ item: item as DishMediaEntry, index })}
+			renderItem={({ item, index }) => renderLikeItem({ item: item, index })}
 			numColumns={3}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}
