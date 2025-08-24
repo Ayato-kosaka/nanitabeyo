@@ -76,15 +76,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	},
 	plugins: [
 		"expo-router",
-		// [
-		// 	"expo-splash-screen",
-		// 	{
-		// 		image: "./assets/images/splash-icon.png",
-		// 		imageWidth: 200,
-		// 		resizeMode: "contain",
-		// 		backgroundColor: "#fe3764",
-		// 	},
-		// ],
+		[
+			"expo-splash-screen",
+			{
+				image: "./assets/images/splash-icon.png",
+				resizeMode: "contain",
+				backgroundColor: "#000",
+			},
+		],
 		[
 			"expo-camera",
 			{
