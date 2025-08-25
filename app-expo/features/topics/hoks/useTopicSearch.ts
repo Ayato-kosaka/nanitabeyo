@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Image } from "react-native";
+import { Image, Platform } from "react-native";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -25,6 +25,52 @@ export const useTopicSearch = () => {
 	const { callBackend } = useAPICall();
 	const locale = useLocale();
 	const { logFrontendEvent } = useLogger();
+
+	// Enhanced prefetch function for better iOS compatibility
+	const prefetchImageWithRetry = useCallback(
+		async (imageUrl: string): Promise<boolean> => {
+			try {
+				// First attempt: standard prefetch
+				await Image.prefetch(imageUrl);
+
+				// iOS-specific: Add small delay to ensure cache completion
+				if (Platform.OS === "ios") {
+					await new Promise((resolve) => setTimeout(resolve, 100));
+				}
+
+				// Verify prefetch worked by attempting to query cache
+				// Note: This doesn't guarantee the image is cached, but provides better error detection
+				const prefetchResult = await Image.prefetch(imageUrl);
+
+				return true;
+			} catch (error) {
+				// Retry once for network-related failures
+				try {
+					await new Promise((resolve) => setTimeout(resolve, 200));
+					await Image.prefetch(imageUrl);
+
+					if (Platform.OS === "ios") {
+						await new Promise((resolve) => setTimeout(resolve, 100));
+					}
+
+					return true;
+				} catch (retryError) {
+					logFrontendEvent({
+						event_name: "image_preload_failed",
+						error_level: "warn",
+						payload: {
+							imageType: "topic",
+							imageUrl: imageUrl,
+							error: retryError instanceof Error ? retryError.message : String(retryError),
+							isRetry: true,
+						},
+					});
+					return false;
+				}
+			}
+		},
+		[logFrontendEvent],
+	);
 
 	// Helper function to create dishItemsPromise with image preloading (DRY principle)
 	const createDishItemsPromise = useCallback(
@@ -65,31 +111,29 @@ export const useTopicSearch = () => {
 						},
 					});
 
-					// Preload dish media images
-					await Promise.allSettled(
-						dishItems.map(async (dishItem) => {
+					// Preload dish media images with enhanced prefetch
+					if (Platform.OS === "ios") {
+						// Sequential processing for iOS to reduce memory pressure
+						for (const dishItem of dishItems) {
 							if (dishItem.dish_media.media_type === "image") {
-								try {
-									await Image.prefetch(dishItem.dish_media.mediaUrl);
-								} catch (error) {
-									logFrontendEvent({
-										event_name: "image_preload_failed",
-										error_level: "warn",
-										payload: {
-											imageType: "dish_media",
-											imageUrl: dishItem.dish_media.mediaUrl,
-											error: error instanceof Error ? error.message : String(error),
-										},
-									});
-								}
+								await prefetchImageWithRetry(dishItem.dish_media.mediaUrl);
 							}
-						}),
-					);
+						}
+					} else {
+						// Parallel processing for other platforms
+						await Promise.allSettled(
+							dishItems.map(async (dishItem) => {
+								if (dishItem.dish_media.media_type === "image") {
+									await prefetchImageWithRetry(dishItem.dish_media.mediaUrl);
+								}
+							}),
+						);
+					}
 				}
 				return dishItems.slice(0, searchResultRestaurantsNumber);
 			})();
 		},
-		[callBackend, locale, logFrontendEvent],
+		[callBackend, locale, logFrontendEvent, prefetchImageWithRetry],
 	);
 
 	const searchTopics = useCallback(
@@ -125,18 +169,18 @@ export const useTopicSearch = () => {
 				const createTopicWithImagePreload = async (
 					topic: QueryDishCategoryRecommendationsResponse[number],
 				): Promise<Topic> => {
-					// Preload topic image
+					// Preload topic image with enhanced iOS support
 					if (topic.imageUrl) {
-						try {
-							await Image.prefetch(topic.imageUrl);
-						} catch (error) {
+						const prefetchSuccess = await prefetchImageWithRetry(topic.imageUrl);
+
+						if (!prefetchSuccess) {
 							logFrontendEvent({
-								event_name: "image_preload_failed",
+								event_name: "topic_image_prefetch_failed",
 								error_level: "warn",
 								payload: {
-									imageType: "topic",
+									topicId: topic.categoryId,
 									imageUrl: topic.imageUrl,
-									error: error instanceof Error ? error.message : String(error),
+									platform: Platform.OS,
 								},
 							});
 						}
@@ -157,9 +201,22 @@ export const useTopicSearch = () => {
 
 				// Early display: Set topics from initial response with category IDs
 				if (topicsResponseWithCategoryIds.length > 0) {
-					const initialTopics = await Promise.all(
-						topicsResponseWithCategoryIds.map((topic) => createTopicWithImagePreload(topic)),
-					);
+					// For iOS, process topics sequentially to reduce memory pressure
+					let initialTopics: Topic[] = [];
+
+					if (Platform.OS === "ios") {
+						// Sequential processing for iOS
+						for (const topic of topicsResponseWithCategoryIds) {
+							const processedTopic = await createTopicWithImagePreload(topic);
+							initialTopics.push(processedTopic);
+						}
+					} else {
+						// Parallel processing for Android and other platforms
+						initialTopics = await Promise.all(
+							topicsResponseWithCategoryIds.map((topic) => createTopicWithImagePreload(topic)),
+						);
+					}
+
 					setTopics(initialTopics);
 					// Set loading to false after early display
 					setIsLoading(false);
@@ -201,9 +258,21 @@ export const useTopicSearch = () => {
 
 					// Add additional topics to the array (append to the end)
 					if (additionalTopicsWithCategoryIds.length > 0) {
-						const additionalTopics = await Promise.all(
-							additionalTopicsWithCategoryIds.map((topic) => createTopicWithImagePreload(topic)),
-						);
+						let additionalTopics: Topic[] = [];
+
+						if (Platform.OS === "ios") {
+							// Sequential processing for iOS
+							for (const topic of additionalTopicsWithCategoryIds) {
+								const processedTopic = await createTopicWithImagePreload(topic);
+								additionalTopics.push(processedTopic);
+							}
+						} else {
+							// Parallel processing for Android and other platforms
+							additionalTopics = await Promise.all(
+								additionalTopicsWithCategoryIds.map((topic) => createTopicWithImagePreload(topic)),
+							);
+						}
+
 						setTopics((prevTopics) => [...prevTopics, ...additionalTopics]);
 					}
 
@@ -228,7 +297,7 @@ export const useTopicSearch = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend, locale, createDishItemsPromise, logFrontendEvent],
+		[callBackend, locale, createDishItemsPromise, logFrontendEvent, prefetchImageWithRetry],
 	);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {
