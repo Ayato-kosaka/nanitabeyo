@@ -69,9 +69,9 @@ export class ClaudeService {
 REQUIRED JSON FORMAT (exact structure):
 [
   {
-    "category": "string (dish category name)",
+    "category": "string (dish category name, MUST match Wikidata label exactly)",
     "topicTitle": "string (catchy topic title)", 
-    "reason": "string (brief reason)"
+    "reason": "string (brief reason why this is recommended)"
   }
 ]
 
