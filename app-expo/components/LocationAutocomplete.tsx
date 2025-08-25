@@ -14,7 +14,7 @@ import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
-import { MapPin } from "lucide-react-native";
+import { MapPin, X } from "lucide-react-native";
 
 interface LocationAutocompleteProps {
 	/** Current value of the input */
@@ -23,6 +23,8 @@ interface LocationAutocompleteProps {
 	onChangeText: (text: string) => void;
 	/** Called when a suggestion is selected */
 	onSelectSuggestion: (location: AutocompleteLocation) => void;
+	/** Called when clear button is pressed */
+	onClear?: () => void;
 	/** Placeholder text for the input */
 	placeholder?: string;
 	/** Optional right-side icon or element */
@@ -41,6 +43,7 @@ export function LocationAutocomplete({
 	value,
 	onChangeText,
 	onSelectSuggestion,
+	onClear,
 	placeholder = i18n.t("Search.currentLocation"),
 	autofocus = false,
 	renderInputRight,
@@ -110,10 +113,23 @@ export function LocationAutocomplete({
 			lightImpact();
 			onSelectSuggestion(suggestion);
 			setShowSuggestions(false);
-			inputRef.current?.blur();
+			// Delay the blur to allow the parent state update to complete
+			setTimeout(() => {
+				inputRef.current?.blur();
+			}, 100);
 		},
 		[onSelectSuggestion, lightImpact],
 	);
+
+	// Handle clear button press
+	const handleClear = useCallback(() => {
+		lightImpact();
+		onChangeText("");
+		if (onClear) {
+			onClear();
+		}
+		inputRef.current?.focus();
+	}, [onChangeText, onClear, lightImpact]);
 
 	// Cleanup debounce timer on unmount
 	useEffect(() => {
@@ -146,6 +162,17 @@ export function LocationAutocomplete({
 					accessibilityHint="Enter a location to search for restaurants"
 					testID={`${testID}-input`}
 				/>
+				{/* Clear button */}
+				{value.length > 0 && (
+					<TouchableOpacity
+						style={styles.clearButton}
+						onPress={handleClear}
+						accessibilityRole="button"
+						accessibilityLabel="Clear location"
+						testID={`${testID}-clear`}>
+						<X size={16} color="#6B7280" />
+					</TouchableOpacity>
+				)}
 				{renderInputRight && renderInputRight}
 			</View>
 
@@ -218,6 +245,10 @@ const styles = StyleSheet.create({
 		color: "#1A1A1A",
 	},
 	inputFocused: {},
+	clearButton: {
+		padding: 12,
+		marginRight: 4,
+	},
 	loadingContainer: {
 		flexDirection: "row",
 		alignItems: "center",
