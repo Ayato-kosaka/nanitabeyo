@@ -64,16 +64,25 @@ export class ClaudeService {
 
     const { family, variant } = prompt;
 
-    const outputFormatHint = `HARD RULES: Output MUST be valid JSON. Do not include any explanation or text outside of the JSON array.
-HARD RULES: Use the following JSON format exactly:
+    const outputFormatHint = `CRITICAL: You MUST output ONLY valid JSON. No explanations, no text outside the JSON array.
+
+REQUIRED JSON FORMAT (exact structure):
 [
   {
-    "category": "string (dish category name, MUST match Wikidata label exactly)",
-    "topicTitle": "string (catchy topic title)",
-    "reason": "string (brief reason why this is recommended)"
+    "category": "string (dish category name)",
+    "topicTitle": "string (catchy topic title)", 
+    "reason": "string (brief reason)"
   }
 ]
-HARD RULES: All text content (category, topicTitle, reason) MUST be in the language specified by the language tag: ${params.languageTag}`;
+
+FORMATTING RULES:
+- All property names MUST use double quotes: "category", "topicTitle", "reason"
+- All string values MUST use double quotes
+- No trailing commas
+- No comments or extra text
+- Return exactly 10 items in the array
+
+LANGUAGE REQUIREMENT: All text content MUST be in ${params.languageTag}`;
 
     const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
 
