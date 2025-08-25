@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
@@ -10,6 +10,8 @@ import { toggleReaction } from "@/lib/reactions";
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
 	const [isSaved, setIsSaved] = useState(false);
+	const [isImageLoading, setIsImageLoading] = useState(true);
+	const [imageLoadError, setImageLoadError] = useState(false);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
@@ -46,9 +48,50 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		onHide(item.categoryId);
 	};
 
+	const handleImageLoad = () => {
+		setIsImageLoading(false);
+		setImageLoadError(false);
+	};
+
+	const handleImageError = (error: any) => {
+		setIsImageLoading(false);
+		setImageLoadError(true);
+		logFrontendEvent({
+			event_name: "topic_image_load_failed",
+			error_level: "warn",
+			payload: {
+				categoryId: item.categoryId,
+				imageUrl: item.imageUrl,
+				error: error?.nativeEvent?.error || "Unknown image load error",
+			},
+		});
+	};
+
 	return (
 		<View style={styles.card}>
-			<Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+			{/* Image with loading states */}
+			<Image
+				source={{ uri: item.imageUrl }}
+				style={styles.cardImage}
+				onLoad={handleImageLoad}
+				onError={handleImageError}
+			/>
+
+			{/* Loading indicator */}
+			{isImageLoading && (
+				<View style={styles.loadingContainer}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
+				</View>
+			)}
+
+			{/* Error state - minimal fallback */}
+			{imageLoadError && (
+				<View style={styles.errorContainer}>
+					<View style={styles.errorIcon}>
+						<Text style={styles.errorText}>📷</Text>
+					</View>
+				</View>
+			)}
 
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>
@@ -142,5 +185,36 @@ const styles = StyleSheet.create({
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 3,
 		fontWeight: "500",
+	},
+	loadingContainer: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: "rgba(248, 249, 250, 0.95)",
+		justifyContent: "center",
+		alignItems: "center",
+		borderRadius: 24,
+	},
+	errorContainer: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: "rgba(243, 244, 246, 0.95)",
+		justifyContent: "center",
+		alignItems: "center",
+		borderRadius: 24,
+	},
+	errorIcon: {
+		padding: 16,
+		borderRadius: 12,
+		backgroundColor: "rgba(255, 255, 255, 0.8)",
+	},
+	errorText: {
+		fontSize: 24,
+		textAlign: "center",
 	},
 });

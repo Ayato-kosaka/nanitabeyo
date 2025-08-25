@@ -65,12 +65,22 @@ export const useTopicSearch = () => {
 						},
 					});
 
-					// Preload dish media images
+					// Preload dish media images with better cache warming
 					await Promise.allSettled(
 						dishItems.map(async (dishItem) => {
 							if (dishItem.dish_media.media_type === "image") {
 								try {
+									// First attempt: Standard prefetch
 									await Image.prefetch(dishItem.dish_media.mediaUrl);
+
+									// Second attempt: Force cache warming with Image.getSize
+									await new Promise<void>((resolve) => {
+										Image.getSize(
+											dishItem.dish_media.mediaUrl,
+											() => resolve(), // Success
+											() => resolve(), // Error - continue anyway
+										);
+									});
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
@@ -125,10 +135,36 @@ export const useTopicSearch = () => {
 				const createTopicWithImagePreload = async (
 					topic: QueryDishCategoryRecommendationsResponse[number],
 				): Promise<Topic> => {
-					// Preload topic image
+					// Preload topic image with retry logic and better cache warming
 					if (topic.imageUrl) {
 						try {
+							// First attempt: Standard prefetch
 							await Image.prefetch(topic.imageUrl);
+
+							// Second attempt: Force cache warming with Image.getSize
+							// This helps ensure the image is truly cached and accessible
+							await new Promise<void>((resolve, reject) => {
+								Image.getSize(
+									topic.imageUrl,
+									() => {
+										// Image is successfully cached and dimensions retrieved
+										resolve();
+									},
+									(error) => {
+										// Log warning but don't fail the entire process
+										logFrontendEvent({
+											event_name: "image_cache_verification_failed",
+											error_level: "warn",
+											payload: {
+												imageType: "topic",
+												imageUrl: topic.imageUrl,
+												error: error.message || String(error),
+											},
+										});
+										resolve(); // Continue anyway
+									},
+								);
+							});
 						} catch (error) {
 							logFrontendEvent({
 								event_name: "image_preload_failed",
