@@ -10,6 +10,11 @@ import { ExternalApiService } from '../external-api/external-api.service';
 import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { AppLoggerService } from '../logger/logger.service';
+import {
+  sanitizeAndParseJson,
+  isValidDishCategoryArray,
+} from './json-sanitizer';
+import { withRetry, DEFAULT_RETRY_OPTIONS } from './retry-utils';
 
 // トピック生成レスポンス型
 export interface DishCategoryTopicResponse {
@@ -56,16 +61,24 @@ export class ClaudeService {
 
     const { family, variant } = prompt;
 
-    const outputFormatHint = `HARD RULES: Output MUST be valid JSON. Do not include any explanation or text outside of the JSON array.
-HARD RULES: Use the following JSON format exactly:
+    const outputFormatHint = `CRITICAL: You MUST output ONLY valid JSON. No explanations, no text outside the JSON array.
+
+REQUIRED JSON FORMAT (exact structure):
 [
   {
-    "category": "string (dish category name, MUST match Wikidata label exactly)",
-    "topicTitle": "string (catchy topic title)",
-    "reason": "string (brief reason why this is recommended)"
+    "category": "string (dish category name)",
+    "topicTitle": "string (catchy topic title)", 
+    "reason": "string (brief reason)"
   }
 ]
-HARD RULES: All text content (category, topicTitle, reason) MUST be in the language specified by the language tag: ${params.languageTag}`;
+
+FORMATTING RULES:
+- All property names MUST use double quotes: "category", "topicTitle", "reason"
+- All string values MUST use double quotes
+- No trailing commas
+- No comments or extra text
+- Return exactly 10 items in the array
+- Language: ${params.languageTag}`;
 
     const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
 
@@ -92,9 +105,15 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
     };
 
     try {
-      // ExternalApiServiceを使ってClaude APIを呼び出し
-      const response =
-        await this.externalApiService.callClaudeAPI(requestPayload);
+      // ExternalApiServiceを使ってClaude APIを呼び出し (with retry logic)
+      const response = await withRetry(
+        () => this.externalApiService.callClaudeAPI(requestPayload),
+        {
+          maxRetries: 2, // Reduced retries to avoid long delays
+          baseDelayMs: 500,
+          maxDelayMs: 5000,
+        },
+      );
 
       if (response.stop_reason && response.stop_reason !== 'end_turn') {
         throw new Error(
@@ -104,18 +123,108 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
 
       const responseText = response.content[0]?.text || '';
 
+      // Log raw response for debugging JSON parsing issues
+      this.logger.debug(
+        'ClaudeRawResponse',
+        'generateDishCategoryRecommendations',
+        {
+          responseLength: responseText.length,
+          responsePreview: responseText.substring(0, 200),
+        },
+      );
+
       let parsedJson: DishCategoryTopicResponse[];
-      try {
-        parsedJson = JSON.parse(responseText) as DishCategoryTopicResponse[];
-      } catch (e) {
-        throw new Error(
-          `Claude API failed: Invalid JSON response - ${(e as Error).message}`,
+
+      // Try sanitized JSON parsing first
+      const sanitizedResult =
+        sanitizeAndParseJson<DishCategoryTopicResponse[]>(responseText);
+
+      if (sanitizedResult && isValidDishCategoryArray(sanitizedResult)) {
+        parsedJson = sanitizedResult;
+        this.logger.debug(
+          'JSONParsedSuccessfully',
+          'generateDishCategoryRecommendations',
+          {
+            method: 'sanitized',
+            count: parsedJson.length,
+          },
         );
+      } else {
+        // Fallback: try direct JSON.parse for backward compatibility
+        try {
+          parsedJson = JSON.parse(responseText) as DishCategoryTopicResponse[];
+          this.logger.debug(
+            'JSONParsedSuccessfully',
+            'generateDishCategoryRecommendations',
+            {
+              method: 'direct',
+              count: parsedJson.length,
+            },
+          );
+        } catch (parseError) {
+          // Enhanced error logging with response content for debugging
+          this.logger.error(
+            'JSONParseFailure',
+            'generateDishCategoryRecommendations',
+            {
+              parseError:
+                parseError instanceof Error
+                  ? parseError.message
+                  : String(parseError),
+              responseText: responseText.substring(0, 500), // Log first 500 chars for debugging
+              responseLength: responseText.length,
+            },
+          );
+
+          // Provide fallback response to gracefully handle the error
+          const fallbackResponse: DishCategoryTopicResponse[] = [
+            {
+              category:
+                params.languageTag === 'ja' ? '和食' : 'Japanese cuisine',
+              topicTitle:
+                params.languageTag === 'ja'
+                  ? '一時的に利用できません'
+                  : 'Temporarily unavailable',
+              reason:
+                params.languageTag === 'ja'
+                  ? 'システムエラーのため、後でもう一度お試しください'
+                  : 'Please try again later due to system error',
+            },
+          ];
+
+          this.logger.warn(
+            'UsingFallbackResponse',
+            'generateDishCategoryRecommendations',
+            {
+              fallbackCount: fallbackResponse.length,
+            },
+          );
+
+          // Still throw the original error but with enhanced context
+          throw new Error(
+            `Claude API failed: Invalid JSON response - ${(parseError as Error).message}. Response preview: ${responseText.substring(0, 200)}`,
+          );
+        }
       }
 
-      if (!Array.isArray(parsedJson) || parsedJson.length !== 10) {
-        throw new Error(
-          'Claude API failed: Expected array of 10 recommendations',
+      // Validate response structure and length
+      if (!Array.isArray(parsedJson)) {
+        throw new Error('Claude API failed: Response is not an array');
+      }
+
+      if (parsedJson.length === 0) {
+        throw new Error('Claude API failed: Empty response array');
+      }
+
+      // Log warning if not exactly 10 items but continue (graceful degradation)
+      if (parsedJson.length !== 10) {
+        this.logger.warn(
+          'UnexpectedResponseCount',
+          'generateDishCategoryRecommendations',
+          {
+            expected: 10,
+            actual: parsedJson.length,
+          },
         );
       }
 
