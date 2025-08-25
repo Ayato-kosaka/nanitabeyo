@@ -417,6 +417,9 @@ export default function MapScreen() {
 						onChangeText={setReviewText}
 						multiline
 						numberOfLines={4}
+						autoComplete="off"
+						autoCorrect={false}
+						spellCheck={false}
 					/>
 				</Card>
 
