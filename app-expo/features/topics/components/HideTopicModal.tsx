@@ -43,6 +43,9 @@ export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHide
 				numberOfLines={3}
 				textAlignVertical="top"
 				placeholderTextColor="#79747E"
+				autoComplete="off"
+				autoCorrect={false}
+				spellCheck={false}
 			/>
 
 			<View style={styles.modalActions}>

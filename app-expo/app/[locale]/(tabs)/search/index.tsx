@@ -83,6 +83,17 @@ export default function SearchScreen() {
 		else setTimeSlot("late_night");
 	}, [getCurrentLocation, logFrontendEvent]);
 
+	const handleLocationClear = () => {
+		lightImpact();
+		setLocation(null);
+		setLocationQuery("");
+		logFrontendEvent({
+			event_name: "location_cleared",
+			error_level: "log",
+			payload: {},
+		});
+	};
+
 	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
 		logFrontendEvent({
@@ -228,6 +239,7 @@ export default function SearchScreen() {
 							value={locationQuery}
 							onChangeText={setLocationQuery}
 							onSelectSuggestion={handleLocationSelect}
+							onClear={handleLocationClear}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							renderInputRight={
 								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
