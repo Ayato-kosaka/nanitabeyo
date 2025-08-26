@@ -348,9 +348,6 @@ export function ProfileTabsLayout() {
 						numberOfLines={4}
 						placeholder={i18n.t("Profile.placeholders.enterBio")}
 						placeholderTextColor="#666"
-						autoComplete="off"
-						autoCorrect={false}
-						spellCheck={false}
 					/>
 				</Card>
 				<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSaveProfile} label={i18n.t("Common.save")} />
@@ -392,9 +389,6 @@ export function ProfileTabsLayout() {
 							placeholder={i18n.t("Feedback.placeholders.title")}
 							placeholderTextColor="#666"
 							maxLength={80}
-							autoComplete="off"
-							autoCorrect={false}
-							spellCheck={false}
 						/>
 						<Text style={styles.characterCount}>{feedbackTitle.length}/80</Text>
 						{titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
@@ -413,9 +407,6 @@ export function ProfileTabsLayout() {
 							numberOfLines={6}
 							maxLength={2000}
 							textAlignVertical="top"
-							autoComplete="off"
-							autoCorrect={false}
-							spellCheck={false}
 						/>
 						<Text style={styles.characterCount}>{feedbackMessage.length}/2000</Text>
 						{messageError ? <Text style={styles.errorText}>{messageError}</Text> : null}
