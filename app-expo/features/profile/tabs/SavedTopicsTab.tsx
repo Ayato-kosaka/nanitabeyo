@@ -174,19 +174,21 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				onRetry={topics.refresh}
 			/>
 
-			{/* Location Search Modal */}
+			{/* Location Search Modal - Updated to use render-prop pattern */}
 			<LocationModal>
-				<Card>
-					<Text style={styles.modalTitle}>{i18n.t("Search.locationModal.title")}</Text>
-					<LocationAutocomplete
-						value={locationText}
-						onChangeText={setLocationText}
-						onSelectSuggestion={handleLocationSelect}
-						placeholder={i18n.t("Search.placeholders.enterLocation")}
-						autofocus={true}
-						testID="saved-topic-location-search"
-					/>
-				</Card>
+				{({ close }) => (
+					<Card>
+						<Text style={styles.modalTitle}>{i18n.t("Search.locationModal.title")}</Text>
+						<LocationAutocomplete
+							value={locationText}
+							onChangeText={setLocationText}
+							onSelectSuggestion={handleLocationSelect}
+							placeholder={i18n.t("Search.placeholders.enterLocation")}
+							autofocus={true}
+							testID="saved-topic-location-search"
+						/>
+					</Card>
+				)}
 			</LocationModal>
 		</>
 	);

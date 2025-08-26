@@ -33,6 +33,7 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { ProfileEditForm } from "@/components/forms/ProfileEditForm";
 import { ImageCard, ImageCardGrid } from "@/components/ImageCardGrid";
 import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
 import Stars from "@/components/Stars";
@@ -338,7 +339,6 @@ export default function ProfileScreen() {
 	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
 	const [selectedTab, setSelectedTab] = useState<TabType>("reviews");
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
-	const [editedBio, setEditedBio] = useState("");
 	const [isFollowing, setIsFollowing] = useState(false);
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -724,28 +724,12 @@ export default function ProfileScreen() {
 
 	const handleEditProfile = () => {
 		lightImpact();
-		setEditedBio(profile.bio);
 		openEditModal();
 
 		logFrontendEvent({
 			event_name: "profile_edit_started",
 			error_level: "log",
 			payload: { currentBioLength: profile.bio.length },
-		});
-	};
-
-	const handleSaveProfile = () => {
-		mediumImpact();
-		// In a real app, this would update the profile via API
-		closeEditModal();
-
-		logFrontendEvent({
-			event_name: "profile_edit_saved",
-			error_level: "log",
-			payload: {
-				oldBioLength: profile.bio.length,
-				newBioLength: editedBio.length,
-			},
 		});
 	};
 
@@ -1043,21 +1027,27 @@ export default function ProfileScreen() {
 				</View>
 			</ScrollView>
 
-			{/* Edit Profile Modal */}
+			{/* Edit Profile Modal - Using ProfileEditForm to prevent Japanese IME issues */}
 			<BlurModal>
-				<Card>
-					<Text style={styles.editLabel}>{i18n.t("Profile.labels.bio")}</Text>
-					<TextInput
-						style={styles.editInput}
-						value={editedBio}
-						onChangeText={setEditedBio}
-						multiline
-						numberOfLines={4}
-						placeholder={i18n.t("Profile.placeholders.enterBio")}
-						placeholderTextColor="#666"
+				{({ close }) => (
+					<ProfileEditForm
+						initialValue={profile.bio}
+						onSubmit={(newBio) => {
+							// Update profile bio here (in real app, this would be an API call)
+							mediumImpact();
+							close();
+							logFrontendEvent({
+								event_name: "profile_edit_saved",
+								error_level: "log",
+								payload: {
+									oldBioLength: profile.bio.length,
+									newBioLength: newBio.length,
+								},
+							});
+						}}
+						onCancel={close}
 					/>
-				</Card>
-				<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSaveProfile} label={i18n.t("Common.save")} />
+				)}
 			</BlurModal>
 		</LinearGradient>
 	);
