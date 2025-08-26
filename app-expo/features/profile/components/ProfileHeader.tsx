@@ -109,7 +109,7 @@ export function ProfileHeader({
 
 					{/* Bio */}
 					<Text style={[styles.bio]} pointerEvents="none">
-						{profile.bio}
+						{isGuest ? i18n.t("Profile.guestBio") : profile.bio}
 					</Text>
 
 					{/* Action Buttons */}
