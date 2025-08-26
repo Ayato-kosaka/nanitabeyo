@@ -7,7 +7,7 @@ import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { DialogProvider } from "@/contexts/DialogProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { SnackbarProvider } from "@/contexts/SnackbarProvider";
-import { PaperProvider } from "react-native-paper";
+import { PaperProvider, Portal } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
@@ -83,19 +83,21 @@ export default function RootLayout() {
 				<SnackbarProvider>
 					<DialogProvider>
 						<AuthProvider>
-							<SplashHandler>
-								<HealthCheckInitializer>
-									<GestureHandlerRootView style={{ flex: 1 }}>
-										<AppProvider>
-											<Stack screenOptions={{ header: () => null }}>
-												<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-												<Stack.Screen name="+not-found" />
-											</Stack>
-											<StatusBar style="light" />
-										</AppProvider>
-									</GestureHandlerRootView>
-								</HealthCheckInitializer>
-							</SplashHandler>
+							<Portal.Host>
+								<SplashHandler>
+									<HealthCheckInitializer>
+										<GestureHandlerRootView style={{ flex: 1 }}>
+											<AppProvider>
+												<Stack screenOptions={{ header: () => null }}>
+													<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+													<Stack.Screen name="+not-found" />
+												</Stack>
+												<StatusBar style="light" />
+											</AppProvider>
+										</GestureHandlerRootView>
+									</HealthCheckInitializer>
+								</SplashHandler>
+							</Portal.Host>
 						</AuthProvider>
 					</DialogProvider>
 				</SnackbarProvider>
