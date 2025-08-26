@@ -48,12 +48,6 @@ export default function ProfileSearchResultScreen() {
 	if (isLoading) {
 		return (
 			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-				<View style={styles.header}>
-					<TouchableOpacity onPress={handleBack} style={styles.backButton}>
-						<ArrowLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>Loading...</Text>
-				</View>
 				<View style={styles.loadingContainer}>
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
@@ -64,12 +58,6 @@ export default function ProfileSearchResultScreen() {
 	if (error) {
 		return (
 			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-				<View style={styles.header}>
-					<TouchableOpacity onPress={handleBack} style={styles.backButton}>
-						<ArrowLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>Error</Text>
-				</View>
 				<View style={styles.errorContainer}>
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
@@ -79,12 +67,6 @@ export default function ProfileSearchResultScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<View style={styles.header}>
-				<TouchableOpacity onPress={handleBack} style={styles.backButton}>
-					<ArrowLeft size={24} color="#1A1A1A" />
-				</TouchableOpacity>
-				<Text style={styles.headerTitle}>Search Results</Text>
-			</View>
 			<FoodContentFeed items={dishes} />
 		</LinearGradient>
 	);
@@ -92,34 +74,6 @@ export default function ProfileSearchResultScreen() {
 
 const styles = StyleSheet.create({
 	container: {
-		flex: 1,
-	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingTop: 60,
-		paddingBottom: 16,
-		backgroundColor: "transparent",
-	},
-	backButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "rgba(255, 255, 255, 0.9)",
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 2,
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginLeft: 16,
 		flex: 1,
 	},
 	loadingContainer: {
