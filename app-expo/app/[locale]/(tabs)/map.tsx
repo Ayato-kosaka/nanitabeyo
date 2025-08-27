@@ -27,8 +27,8 @@ import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import Stars from "@/components/Stars";
 import { useHaptics } from "@/hooks/useHaptics";
-import { ReviewForm } from "@/components/forms/ReviewForm";
-import { BidForm } from "@/components/forms/BidForm";
+import { ReviewForm } from "@/features/map/components/ReviewForm";
+import { BidForm } from "@/features/map/components/BidForm";
 
 const { width, height } = Dimensions.get("window");
 

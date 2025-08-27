@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SaveTopicTab } from "./save/SaveTopicTab";
-import { LocationSearchForm } from "@/components/forms/LocationSearchForm";
+import { LocationSearchForm } from "../components/LocationSearchForm";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useCursorPagination } from "@/features/profile/hooks/useCursorPagination";

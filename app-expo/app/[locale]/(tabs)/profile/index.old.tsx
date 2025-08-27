@@ -33,7 +33,7 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { ProfileEditForm } from "@/components/forms/ProfileEditForm";
+import { ProfileEditForm } from "@/features/profile/components/ProfileEditForm";
 import { ImageCard, ImageCardGrid } from "@/components/ImageCardGrid";
 import { BidItem, EarningItem, mockBids, mockEarnings } from "@/features/profile/constants";
 import Stars from "@/components/Stars";
