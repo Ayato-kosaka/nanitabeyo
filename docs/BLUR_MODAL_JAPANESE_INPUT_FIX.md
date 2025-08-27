@@ -51,17 +51,17 @@ const { BlurModal, open, close } = useBlurModal();
 
 // In your JSX:
 <BlurModal>
-  {({ close }) => (
-    <ProfileEditForm
-      initialValue={currentBio}
-      onSubmit={(newBio) => {
-        updateProfile(newBio);
-        close();
-      }}
-      onCancel={close}
-    />
-  )}
-</BlurModal>
+	{({ close }) => (
+		<ProfileEditForm
+			initialValue={currentBio}
+			onSubmit={(newBio) => {
+				updateProfile(newBio);
+				close();
+			}}
+			onCancel={close}
+		/>
+	)}
+</BlurModal>;
 ```
 
 ### 2. Custom Form Components
@@ -70,31 +70,34 @@ Create your own form components that manage internal state:
 
 ```tsx
 function MyTextForm({ initialValue, onSubmit, onCancel }) {
-  const [value, setValue] = useState(initialValue);
-  
-  return (
-    <Card>
-      <TextInput
-        value={value}
-        onChangeText={setValue} // Internal state only
-        placeholder="Type Japanese text here..."
-      />
-      <Button onPress={() => onSubmit(value)} title="Save" />
-      <Button onPress={onCancel} title="Cancel" />
-    </Card>
-  );
+	const [value, setValue] = useState(initialValue);
+
+	return (
+		<Card>
+			<TextInput
+				value={value}
+				onChangeText={setValue} // Internal state only
+				placeholder="Type Japanese text here..."
+			/>
+			<Button onPress={() => onSubmit(value)} title="Save" />
+			<Button onPress={onCancel} title="Cancel" />
+		</Card>
+	);
 }
 
 // Usage:
 <BlurModal>
-  {({ close }) => (
-    <MyTextForm
-      initialValue="初期値"
-      onSubmit={(value) => { saveData(value); close(); }}
-      onCancel={close}
-    />
-  )}
-</BlurModal>
+	{({ close }) => (
+		<MyTextForm
+			initialValue="初期値"
+			onSubmit={(value) => {
+				saveData(value);
+				close();
+			}}
+			onCancel={close}
+		/>
+	)}
+</BlurModal>;
 ```
 
 ### 3. Migration from External State
@@ -146,6 +149,7 @@ Existing code using the old pattern will continue to work without changes. Howev
 ## Technical Implementation
 
 The `BlurModal` component now accepts `children` as either:
+
 - `ReactNode` (original behavior)
 - `(props: { close: () => void }) => ReactNode` (new render-prop pattern)
 

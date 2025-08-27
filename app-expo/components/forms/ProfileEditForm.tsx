@@ -60,11 +60,7 @@ export function ProfileEditForm({
 					textAlignVertical={multiline ? "top" : "center"}
 				/>
 			</Card>
-			<PrimaryButton 
-				style={{ marginHorizontal: 16 }} 
-				onPress={handleSave} 
-				label={i18n.t("Common.save")} 
-			/>
+			<PrimaryButton style={{ marginHorizontal: 16 }} onPress={handleSave} label={i18n.t("Common.save")} />
 		</>
 	);
 }

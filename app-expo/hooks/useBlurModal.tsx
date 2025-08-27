@@ -68,7 +68,7 @@ export function useBlurModal({
 				showCloseButton?: boolean;
 			}) => {
 				if (!visible) return null;
-				
+
 				// Render children - support both ReactNode and render prop pattern
 				const renderChildren = () => {
 					if (typeof children === "function") {
