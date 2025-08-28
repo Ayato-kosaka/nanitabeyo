@@ -59,6 +59,7 @@ model dish_categories {
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_category_variants {
@@ -69,7 +70,6 @@ model dish_category_variants {
   created_at       DateTime        @default(now()) @db.Timestamptz(6)
   dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([surface_form(ops: raw("gin_trgm_ops"))], map: "idx_dcv_surface_form_trgm", type: Gin)
   @@index([dish_category_id], map: "idx_dish_category_variants_dish_category_id")
   @@schema("dev")
 }
@@ -120,12 +120,12 @@ model dish_reviews {
   dish_id                String                   @db.Uuid
   comment                String
   comment_tsv            Unsupported("tsvector")? @default(dbgenerated("to_tsvector('simple'::regconfig, COALESCE(comment, ''::text))"))
-  original_language_code String                   @db.Char(2)
+  original_language_code String
   user_id                String?                  @db.Uuid
   rating                 Int                      @db.SmallInt
   price_cents            Int?
   currency_code          String?                  @db.Char(3)
-  created_dish_media_id  String?                  @db.Uuid
+  created_dish_media_id  String                   @db.Uuid
   imported_user_name     String?
   imported_user_avatar   String?
   created_at             DateTime                 @default(now()) @db.Timestamptz(6)
@@ -142,7 +142,7 @@ model dish_reviews {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dishes {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  restaurant_id   String?         @db.Uuid
+  restaurant_id   String          @db.Uuid
   category_id     String
   name            String?
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
@@ -151,7 +151,7 @@ model dishes {
   dish_media      dish_media[]
   dish_reviews    dish_reviews[]
   dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  restaurants     restaurants?    @relation(fields: [restaurant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  restaurants     restaurants     @relation(fields: [restaurant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([category_id], map: "idx_dishes_category")
   @@index([restaurant_id], map: "idx_dishes_restaurant")
@@ -288,6 +288,7 @@ model reactions {
   target_type     String
   target_id       String
   action_type     String
+  meta            Json?
   created_at      DateTime @db.Timestamptz(6)
   created_version String
   lock_no         Int
@@ -324,28 +325,16 @@ model restaurant_bids {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurants {
-  id              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  google_place_id String?                   @unique
-  name            String
-  latitude        Float
-  longitude       Float
-  location        Unsupported("geography")? @default(dbgenerated("(dev.st_setsrid(dev.st_makepoint(longitude, latitude), 4326))::dev.geography"))
-  image_url       String
-  created_at      DateTime                  @default(now()) @db.Timestamptz(6)
-  dishes          dishes[]
-  restaurant_bids restaurant_bids[]
-
-  @@index([location], map: "idx_restaurants_location", type: Gist)
-  @@schema("dev")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model spatial_ref_sys {
-  srid      Int     @id
-  auth_name String? @db.VarChar(256)
-  auth_srid Int?
-  srtext    String? @db.VarChar(2048)
-  proj4text String? @db.VarChar(2048)
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  google_place_id    String            @unique
+  name               String
+  name_language_code String
+  latitude           Float
+  longitude          Float
+  image_url          String
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  dishes             dishes[]
+  restaurant_bids    restaurant_bids[]
 
   @@schema("dev")
 }
@@ -354,7 +343,6 @@ model spatial_ref_sys {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
   id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username        String            @unique(map: "uq_users_username") @db.Citext
   display_name    String?
   avatar          String?
   bio             String?
@@ -362,6 +350,7 @@ model users {
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
   updated_at      DateTime          @default(now()) @db.Timestamptz(6)
   lock_no         Int               @default(0)
+  username        String            @db.Citext
   dish_likes      dish_likes[]
   dish_media      dish_media[]
   dish_reviews    dish_reviews[]

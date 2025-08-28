@@ -25,6 +25,7 @@
 		"unsupportedVersion": "This version is no longer supported."
 	},
 	"Search": {
+		"currentLocation": "Current location",
 		"DistanceSlider": {
 			"near": "Near",
 			"far": "Far"
@@ -48,6 +49,9 @@
 			"distance": "How far?",
 			"budget": "Price range?",
 			"restrictions": "Restrictions"
+		},
+		"locationModal": {
+			"title": "Enter search location"
 		},
 		"required": "Required",
 		"placeholders": {
@@ -125,7 +129,8 @@
 		},
 		"empty": "No dishes available",
 		"retry": "Back to search",
-		"chooseThis": "Choose this!"
+		"chooseThis": "Choose this!",
+		"hiddenMessage": "{{title}} has been hidden"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -141,10 +146,18 @@
 			"reservation": "Reservation"
 		},
 		"actions": {
-			"share": "Share"
+			"share": "Share",
+			"seeMore": "see more",
+			"openMap": "Open map"
+		},
+		"share": {
+			"title": "Check out {{dishName}}"
 		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"
+		},
+		"errors": {
+			"mapOpenFailed": "Could not open map application"
 		},
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"
@@ -163,15 +176,31 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Deposits",
-			"earnings": "Earnings"
+			"earnings": "Earnings",
+			"topics": "Topics",
+			"posts": "Posts",
+			"saved-posts": "Posts",
+			"saved-topics": "Topics",
+			"wallet-deposit": "Deposits",
+			"wallet-earning": "Earnings"
 		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "Loading...",
+		"tabError": {
+			"failedToLoad": "Failed to load data: {{error}}",
+			"retry": "Retry"
+		},
 		"emptyState": {
 			"noDeposits": "No deposits for the selected status",
-			"noEarnings": "No earnings for the selected status"
+			"noEarnings": "No earnings for the selected status",
+			"noDishReviews": "No posts yet",
+			"noLikedDishMediaEntries": "No liked posts",
+			"noSavedItems": "No saved items",
+			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
+			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
 		"statusLabels": {
 			"active": "Active",
@@ -184,7 +213,9 @@
 			"editProfile": "Edit Profile",
 			"follow": "Follow",
 			"following": "Following",
-			"message": "Message"
+			"message": "Message",
+			"searchByMood": "Find dishes you'll \"like\" based on today's mood",
+			"sendFeedback": "Send Feedback"
 		},
 		"stats": {
 			"following": "Following",
@@ -197,7 +228,9 @@
 		"privateContent": "This content is private",
 		"placeholders": {
 			"enterBio": "Enter your bio..."
-		}
+		},
+		"savedCount": "{{count}} saves",
+		"guestBio": "Welcome, Guest 👋\nThank you for using the new gourmet app 'CraveCatch'😊\nAccount features and more updates coming soon!"
 	},
 	"NotFound": {
 		"title": "Oops!",
@@ -278,6 +311,30 @@
 				"asian": "Asian",
 				"other": "Other"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "Send Feedback/Bug Report",
+		"labels": {
+			"type": "Type",
+			"title": "Title",
+			"message": "Message"
+		},
+		"types": {
+			"request": "Feature Request",
+			"bug": "Bug Report"
+		},
+		"placeholders": {
+			"title": "Enter a title (5-80 characters)",
+			"message": "Describe your feedback or issue (10-2000 characters)"
+		},
+		"buttons": {
+			"submit": "Submit"
+		},
+		"errors": {
+			"titleLength": "Title must be between 5 and 80 characters",
+			"messageLength": "Message must be between 10 and 2000 characters",
+			"submitFailed": "Failed to submit feedback. Please try again."
 		}
 	}
 }

@@ -8,3 +8,4 @@ export * from "./locations.response";
 export * from "./restaurants.response";
 export * from "./user-uploads.response";
 export * from "./users.response";
+export * from "./feedback.response";

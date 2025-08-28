@@ -70,5 +70,4 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID_PROD }}
-          entryPoint: app-expo
           channelId: ${{ github.event.inputs.target == 'production' && 'live' || github.event.inputs.target }}

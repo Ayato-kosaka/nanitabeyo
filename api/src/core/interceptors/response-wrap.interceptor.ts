@@ -25,6 +25,7 @@ import { Reflector } from '@nestjs/core';
 import { BaseResponse } from '@shared/v1/res';
 import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
 import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
+import { AppLoggerService } from '../logger/logger.service';
 
 /* -------------------------------------------------------------------------- */
 /*                           Skip Decorator (Opt‐in)                           */
@@ -40,6 +41,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
   constructor(
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
+    private readonly logger: AppLoggerService,
   ) {}
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
@@ -50,7 +52,10 @@ export class ResponseWrapInterceptor implements NestInterceptor {
     );
     if (shouldSkip) return next.handle();
 
-    const res = ctx.switchToHttp().getResponse();
+    const http = ctx.switchToHttp();
+    const req = http.getRequest();
+    const res = http.getResponse();
+    const startedAt = Date.now();
 
     return next.handle().pipe(
       map((payload) => {
@@ -64,6 +69,22 @@ export class ResponseWrapInterceptor implements NestInterceptor {
           typeof payload === 'object' &&
           'success' in payload &&
           'errorCode' in payload;
+
+        // Build and send backend event log (success path)
+        try {
+          const info = {
+            method: req?.method,
+            url: req?.originalUrl ?? req?.url,
+            statusCode: res?.statusCode,
+            wrapped: !alreadyWrapped,
+            duration_ms: Date.now() - startedAt,
+            handler: ctx.getHandler()?.name,
+            controller: ctx.getClass()?.name,
+          };
+          this.logger.log('response_success', 'ResponseWrapInterceptor', info);
+        } catch {
+          // avoid throwing from interceptor if logging fails
+        }
 
         if (alreadyWrapped) return payload;
 

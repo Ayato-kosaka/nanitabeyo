@@ -16,8 +16,16 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { QueryAutocompleteLocationsDto } from '@shared/v1/dto';
-import { AutocompleteLocationsResponse } from '@shared/v1/res';
+import {
+  QueryAutocompleteLocationsDto,
+  QueryLocationDetailsDto,
+  QueryReverseGeocodingDto,
+} from '@shared/v1/dto';
+import {
+  AutocompleteLocationsResponse,
+  LocationDetailsResponse,
+  LocationReverseGeocodingResponse,
+} from '@shared/v1/res';
 
 // 横串 (Auth)
 import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
@@ -45,10 +53,62 @@ export class LocationsController {
     type: String,
     description: '言語コード (例: "ja", "en")',
   })
+  @ApiQuery({
+    name: 'sessionToken',
+    type: String,
+    required: false,
+    description: 'セッショントークン',
+  })
   @ApiResponse({ status: 200, description: '候補リスト取得成功' })
   async autocompleteLocations(
     @Query() query: QueryAutocompleteLocationsDto,
   ): Promise<AutocompleteLocationsResponse> {
     return this.locationsService.autocompleteLocations(query);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              GET /v1/locations/details (任意認証)                  */
+  /* ------------------------------------------------------------------ */
+  @Get('details')
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Google Places API Details (New) のラッパー',
+  })
+  @ApiQuery({ name: 'placeId', type: String, description: 'Place ID' })
+  @ApiQuery({
+    name: 'languageCode',
+    type: String,
+    description: '言語コード (例: "en", "ja")',
+  })
+  @ApiQuery({
+    name: 'sessionToken',
+    type: String,
+    required: false,
+    description: 'セッショントークン',
+  })
+  @ApiResponse({ status: 200, description: '地点詳細取得成功' })
+  async getLocationDetails(
+    @Query() query: QueryLocationDetailsDto,
+  ): Promise<LocationDetailsResponse> {
+    return this.locationsService.getLocationDetails(query);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*           GET /v1/locations/reverse-geocoding (任意認証)           */
+  /* ------------------------------------------------------------------ */
+  @Get('reverse-geocoding')
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Google Geocoding API (Reverse Geocoding) のラッパー',
+  })
+  @ApiQuery({ name: 'lat', type: Number, description: '緯度 (-90 ~ 90)' })
+  @ApiQuery({ name: 'lng', type: Number, description: '経度 (-180 ~ 180)' })
+  @ApiResponse({ status: 200, description: '逆ジオコーディング成功' })
+  async getReverseGeocoding(
+    @Query() query: QueryReverseGeocodingDto,
+  ): Promise<LocationReverseGeocodingResponse> {
+    return this.locationsService.getReverseGeocoding(query);
   }
 }

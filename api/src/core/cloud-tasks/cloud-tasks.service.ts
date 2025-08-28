@@ -32,7 +32,7 @@ export class CloudTasksService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      })
+      });
       return;
     }
 

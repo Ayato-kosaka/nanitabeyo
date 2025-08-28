@@ -120,7 +120,10 @@ export class ExternalApiService {
 
       if (data.search && data.search.length > 0) {
         const result = data.search[0];
-        this.logger.debug;
+        this.logger.debug('searchWikidata', 'searchWikidata', {
+          qid: result.id,
+          label: result.label,
+        });
         return { qid: result.id, label: result.label };
       }
 
@@ -248,7 +251,11 @@ export class ExternalApiService {
   /**
    * Google Places API: Get Photo Media (JSON with photoUri)
    */
-  async getPhotoMedia(photoRef: string): Promise<{ photoUri: string } | null> {
+  async getPhotoMedia(
+    photoRef: string,
+    widthPx?: number,
+    heightPx?: number,
+  ): Promise<{ photoUri: string } | null> {
     const apiKey = env.GOOGLE_PLACE_API_KEY;
     if (!apiKey) {
       throw new Error('GOOGLE_PLACE_API_KEY is not configured');
@@ -257,7 +264,21 @@ export class ExternalApiService {
     const photoName = photoRef.endsWith('/media')
       ? photoRef
       : `${photoRef}/media`;
-    const endpoint = `https://places.googleapis.com/v1/${photoName}?maxWidthPx=800&skipHttpRedirect=true`;
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    queryParams.append('skipHttpRedirect', 'true');
+
+    // Use provided dimensions if available, otherwise fall back to 800px
+    if (widthPx) {
+      queryParams.append('maxWidthPx', widthPx.toString());
+    } else if (heightPx) {
+      queryParams.append('maxHeightPx', heightPx.toString());
+    } else {
+      queryParams.append('maxWidthPx', '800');
+    }
+
+    const endpoint = `https://places.googleapis.com/v1/${photoName}?${queryParams.toString()}`;
 
     try {
       const response = await this.makeExternalApiCall({
@@ -287,6 +308,8 @@ export class ExternalApiService {
       this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         photoRef,
+        widthPx,
+        heightPx,
       });
       throw error;
     }
@@ -317,6 +340,7 @@ export class ExternalApiService {
           'X-Goog-Api-Key': apiKey,
           'X-Goog-FieldMask': fieldMask,
         },
+        skipLogging: true, // Skip logging for autocomplete to reduce noise
       });
 
       if (!response.ok) {
@@ -344,6 +368,154 @@ export class ExternalApiService {
   }
 
   /**
+   * Google Places API: Place Details (New)
+   */
+  async callPlaceDetails(
+    fieldMask: string,
+    placeId: string,
+    languageCode: string,
+    sessionToken?: string,
+  ): Promise<google.maps.places.v1.IPlace> {
+    const apiKey = env.GOOGLE_PLACE_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_PLACE_API_KEY is not configured');
+    }
+
+    const endpoint = `https://places.googleapis.com/v1/places/${placeId}`;
+
+    try {
+      const headers: Record<string, string> = {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': fieldMask,
+      };
+
+      if (sessionToken) {
+        headers['X-Goog-FieldMask'] = fieldMask;
+      }
+
+      const url = new URL(endpoint);
+      url.searchParams.append('languageCode', languageCode);
+      if (sessionToken) {
+        url.searchParams.append('sessionToken', sessionToken);
+      }
+
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Places Details API',
+        endpoint: url.toString(),
+        method: 'GET',
+        request_payload: {},
+        function_name: 'callPlaceDetails',
+        customHeaders: headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Google Places Details API request failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.logger.error('GooglePlacesDetailsAPICallError', 'callPlaceDetails', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        placeId,
+        languageCode,
+        sessionToken,
+        fieldMask,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Google Geocoding API: Reverse Geocoding
+   */
+  async callReverseGeocoding(
+    lat: number,
+    lng: number,
+    languageCode: string,
+  ): Promise<{
+    results: {
+      address_components?: {
+        long_name?: string;
+        short_name?: string;
+        types?: string[];
+      }[];
+      formatted_address?: string;
+      geometry?: {
+        location?: {
+          lat?: number;
+          lng?: number;
+        };
+        location_type?: string;
+        viewport?: {
+          northeast?: {
+            lat?: number;
+            lng?: number;
+          };
+          southwest?: {
+            lat?: number;
+            lng?: number;
+          };
+        };
+      };
+      place_id?: string;
+      plus_code?: {
+        compound_code?: string;
+        global_code?: string;
+      };
+      types?: string[];
+    }[];
+    status: string;
+  }> {
+    const apiKey = env.GOOGLE_PLACE_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_PLACE_API_KEY is not configured');
+    }
+
+    const endpoint = 'https://maps.googleapis.com/maps/api/geocode/json';
+
+    try {
+      const url = new URL(endpoint);
+      url.searchParams.append('latlng', `${lat},${lng}`);
+      url.searchParams.append('key', apiKey);
+      url.searchParams.append('language', languageCode);
+      url.searchParams.append(
+        'result_type',
+        'street_address|locality|administrative_area_level_1|country',
+      );
+
+      const response = await this.makeExternalApiCall({
+        api_name: 'Google Geocoding API',
+        endpoint: url.toString(),
+        method: 'GET',
+        request_payload: {},
+        function_name: 'callReverseGeocoding',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Google Geocoding API request failed: ${response.status} ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      this.logger.error('GoogleGeocodingAPICallError', 'callReverseGeocoding', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        lat,
+        lng,
+        languageCode,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * 外部API呼び出しとログ記録を行う
    */
   private async makeExternalApiCall(
@@ -352,6 +524,7 @@ export class ExternalApiService {
       'status_code' | 'response_time_ms' | 'response_payload' | 'error_message'
     > & {
       customHeaders?: Record<string, string>;
+      skipLogging?: boolean;
     },
   ): Promise<Response> {
     const {
@@ -361,6 +534,7 @@ export class ExternalApiService {
       request_payload,
       function_name,
       customHeaders = {},
+      skipLogging = false,
     } = params;
     const startTime = Date.now();
 
@@ -378,38 +552,43 @@ export class ExternalApiService {
 
       const responseTime = Date.now() - startTime;
 
-      // 成功時のログ記録
-      await this.logger.externalApi({
-        api_name,
-        endpoint,
-        method,
-        request_payload,
-        response_payload: await response
-          .clone()
-          .json()
-          .catch(() => null),
-        status_code: response.status,
-        response_time_ms: responseTime,
-        function_name,
-        error_message: null,
-      });
+      if (!skipLogging) {
+        // 成功時のログ記録
+        await this.logger.externalApi({
+          api_name,
+          endpoint,
+          method,
+          request_payload,
+          response_payload: await response
+            .clone()
+            .json()
+            .catch(() => null),
+          status_code: response.status,
+          response_time_ms: responseTime,
+          function_name,
+          error_message: null,
+        });
+      }
 
       return response;
     } catch (error) {
       const responseTime = Date.now() - startTime;
 
-      // エラー時のログ記録
-      await this.logger.externalApi({
-        api_name,
-        endpoint,
-        method,
-        request_payload: request_payload,
-        response_payload: null,
-        status_code: 0,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        response_time_ms: responseTime,
-        function_name,
-      });
+      if (!skipLogging) {
+        // エラー時のログ記録
+        await this.logger.externalApi({
+          api_name,
+          endpoint,
+          method,
+          request_payload: request_payload,
+          response_payload: null,
+          status_code: 0,
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          response_time_ms: responseTime,
+          function_name,
+        });
+      }
 
       throw error;
     }

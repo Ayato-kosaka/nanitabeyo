@@ -1,0 +1,10 @@
+// app-expo/tsconfig.dev.json
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["./*"],
+			"@shared/*": ["../shared/dist/*"] // 開発中だけ dist を指す
+		}
+	}
+}

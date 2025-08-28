@@ -1,5 +1,5 @@
 import React, { ReactNode, memo, useCallback, useEffect, useState } from "react";
-import { BackHandler, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { BackHandler, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
 import { ScrollView } from "react-native";
 import { X } from "lucide-react-native";
@@ -63,11 +63,20 @@ export function useBlurModal({
 				contentContainerStyle,
 				showCloseButton = true,
 			}: {
-				children: ReactNode;
+				children: ReactNode | ((props: { close: () => void }) => ReactNode);
 				contentContainerStyle?: StyleProp<ViewStyle>;
 				showCloseButton?: boolean;
 			}) => {
 				if (!visible) return null;
+
+				// Render children - support both ReactNode and render prop pattern
+				const renderChildren = () => {
+					if (typeof children === "function") {
+						return children({ close });
+					}
+					return children;
+				};
+
 				return (
 					<Portal>
 						{/* Fullscreen layer */}
@@ -79,17 +88,30 @@ export function useBlurModal({
 								android_ripple={{ color: "rgba(255,255,255,0.05)" }}>
 								{/* Blur background */}
 								<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
-
 								{/* Content (non-blocking layout wrapper) */}
+								{Platform.OS !== "web" && (
+									<ScrollView
+										pointerEvents="box-none"
+										keyboardShouldPersistTaps="handled"
+										contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+										<View pointerEvents="auto" style={contentContainerStyle}>
+											{renderChildren()}
+										</View>
+									</ScrollView>
+								)}
+							</Pressable>
+
+							{/* Content (non-blocking layout wrapper) */}
+							{Platform.OS === "web" && (
 								<ScrollView
 									pointerEvents="box-none"
 									keyboardShouldPersistTaps="handled"
 									contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
-									<View pointerEvents="box-none" style={contentContainerStyle}>
-										{children}
+									<View pointerEvents="auto" style={contentContainerStyle}>
+										{renderChildren()}
 									</View>
 								</ScrollView>
-							</Pressable>
+							)}
 
 							{/* Close button */}
 							{showCloseButton && (

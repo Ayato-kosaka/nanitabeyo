@@ -14,6 +14,8 @@ export { CreateDishDto } from "./dishes/create-dish.dto";
 export { BulkImportDishesDto } from "./dishes/bulk-import-dishes.dto";
 
 export { QueryAutocompleteLocationsDto } from "./locations/query-autocomplete-locations.dto";
+export { QueryLocationDetailsDto } from "./locations/query-location-details.dto";
+export { QueryReverseGeocodingDto } from "./locations/query-reverse-geocoding.dto";
 
 export { QueryRestaurantsDto } from "./restaurants/query-restaurants.dto";
 export { CreateRestaurantDto } from "./restaurants/create-restaurant.dto";
@@ -31,3 +33,5 @@ export { QueryMePayoutsDto } from "./users/query-me-payouts.dto";
 export { QueryMeRestaurantBidsDto } from "./users/query-me-restaurant-bids.dto";
 export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categories.dto";
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
+
+export { CreateFeedbackDto } from "./feedback/create-feedback.dto";

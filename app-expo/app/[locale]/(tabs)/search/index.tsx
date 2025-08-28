@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	ScrollView,
-	TouchableOpacity,
-	TextInput,
-	SafeAreaView,
-	ActivityIndicator,
-	FlatList,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
 import { Divider } from "react-native-paper";
 import {
 	MapPin,
@@ -25,11 +15,19 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
-import type { AutocompleteLocation } from "@shared/api/v1/res";
+import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
-import { timeSlots, sceneOptions, moodOptions, distanceOptions, restrictionOptions } from "@/features/search/constants";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import {
+	timeSlots,
+	sceneOptions,
+	moodOptions,
+	distanceOptions,
+	restrictionOptions,
+	priceLevelOptions,
+} from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
 import i18n from "@/lib/i18n";
@@ -41,25 +39,23 @@ export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const [location, setLocation] = useState<Pick<SearchParams, "address" | "latitude" | "longitude"> | null>(null);
+	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
-	const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
 	const [scene, setScene] = useState<SearchParams["scene"] | undefined>(undefined);
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
 	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
-	const [priceLevels, setPriceLevels] = useState<number[]>([2, 3, 4, 5]); // Default all selected
+	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
+		"PRICE_LEVEL_INEXPENSIVE",
+		"PRICE_LEVEL_MODERATE",
+		"PRICE_LEVEL_EXPENSIVE",
+		"PRICE_LEVEL_VERY_EXPENSIVE",
+	]); // Default all selected
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-	const {
-		suggestions,
-		isSearching: isLocationSearching,
-		searchLocations,
-		getCurrentLocation,
-		getLocationDetails,
-	} = useLocationSearch();
+	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
 
 	useEffect(() => {
@@ -71,7 +67,12 @@ export default function SearchScreen() {
 		});
 
 		// Auto-detect current location on mount
-		getCurrentLocation().then(setLocation).catch(console.error);
+		getCurrentLocation()
+			.then((currentLocation) => {
+				setLocation(currentLocation);
+				setLocationQuery(i18n.t("Search.currentLocation"));
+			})
+			.catch(console.error);
 
 		// Auto-set time slot based on current time
 		const hour = new Date().getHours();
@@ -80,30 +81,29 @@ export default function SearchScreen() {
 		else if (hour < 17) setTimeSlot("afternoon");
 		else if (hour < 22) setTimeSlot("dinner");
 		else setTimeSlot("late_night");
-	}, [getCurrentLocation, logFrontendEvent]);
+	}, []);
 
-	const handleLocationSearch = (query: string) => {
-		setLocationQuery(query);
-		if (query.length >= 2) {
-			setShowLocationSuggestions(true);
-			searchLocations(query);
-		} else {
-			setShowLocationSuggestions(false);
-		}
+	const handleLocationClear = () => {
+		lightImpact();
+		setLocation(null);
+		setLocationQuery("");
+		logFrontendEvent({
+			event_name: "location_cleared",
+			error_level: "log",
+			payload: {},
+		});
 	};
 
 	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
-		lightImpact();
 		logFrontendEvent({
 			event_name: "location_selected",
 			error_level: "log",
 			payload: { placeId: prediction.place_id, mainText: prediction.mainText },
 		});
+		setLocationQuery(prediction.mainText);
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
-			setLocationQuery(locationDetails.address);
-			setShowLocationSuggestions(false);
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "location_selection_failed",
@@ -124,7 +124,7 @@ export default function SearchScreen() {
 		try {
 			const currentLocation = await getCurrentLocation();
 			setLocation(currentLocation);
-			setLocationQuery(currentLocation.address);
+			setLocationQuery(i18n.t("Search.currentLocation"));
 			logFrontendEvent({
 				event_name: "current_location_success",
 				error_level: "log",
@@ -169,15 +169,7 @@ export default function SearchScreen() {
 		logFrontendEvent({
 			event_name: "search_started",
 			error_level: "log",
-			payload: {
-				hasLocation: !!location,
-				timeSlot,
-				scene,
-				mood,
-				restrictionsCount: restrictions.length,
-				distance,
-				priceLevelsCount: priceLevels.length,
-			},
+			payload: searchParams,
 		});
 
 		try {
@@ -188,12 +180,6 @@ export default function SearchScreen() {
 					locale,
 					searchParams: JSON.stringify(searchParams),
 				},
-			});
-
-			logFrontendEvent({
-				event_name: "search_navigation_success",
-				error_level: "log",
-				payload: { targetScreen: "topics" },
 			});
 		} catch (error) {
 			logFrontendEvent({
@@ -227,16 +213,6 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
-	const renderLocationSuggestion = ({ item }: { item: AutocompleteLocation }) => (
-		<TouchableOpacity style={styles.suggestionItem} onPress={() => handleLocationSelect(item)}>
-			<MapPin size={16} color="#666" />
-			<View style={styles.suggestionText}>
-				<Text style={styles.suggestionMain}>{item.mainText}</Text>
-				<Text style={styles.suggestionSecondary}>{item.secondaryText}</Text>
-			</View>
-		</TouchableOpacity>
-	);
-
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Header */}
@@ -247,6 +223,7 @@ export default function SearchScreen() {
 			<ScrollView
 				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
+				keyboardShouldPersistTaps="always"
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
 				<Card>
@@ -257,38 +234,21 @@ export default function SearchScreen() {
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
 						</View>
 					</View>
-					<View style={styles.locationInputContainer}>
-						<TextInput
-							style={styles.locationInput}
-							placeholder={i18n.t("Search.placeholders.enterLocation")}
-							placeholderTextColor="#6B7280"
+					<View style={styles.locationSection}>
+						<LocationAutocomplete
 							value={locationQuery}
-							onChangeText={handleLocationSearch}
-							onFocus={() => locationQuery.length >= 2 && setShowLocationSuggestions(true)}
+							onChangeText={setLocationQuery}
+							onSelectSuggestion={handleLocationSelect}
+							onClear={handleLocationClear}
+							placeholder={i18n.t("Search.placeholders.enterLocation")}
+							renderInputRight={
+								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
+									<Navigation size={20} color="#5EA2FF" />
+								</TouchableOpacity>
+							}
+							testID="search-location-autocomplete"
 						/>
-						<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
-							<Navigation size={20} color="#5EA2FF" />
-						</TouchableOpacity>
 					</View>
-
-					{showLocationSuggestions && (
-						<View style={styles.suggestionsContainer}>
-							{isLocationSearching ? (
-								<View style={styles.loadingContainer}>
-									<ActivityIndicator size="small" color="#5EA2FF" />
-									<Text style={styles.loadingText}>{i18n.t("Search.loading")}</Text>
-								</View>
-							) : (
-								<FlatList
-									data={suggestions}
-									renderItem={renderLocationSuggestion}
-									keyExtractor={(item) => item.place_id}
-									style={styles.suggestionsList}
-									scrollEnabled={false}
-								/>
-							)}
-						</View>
-					)}
 				</Card>
 
 				{/* Time of Day */}
@@ -496,72 +456,15 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		color: "#DC2626",
 	},
-	locationInputContainer: {
+	locationSection: {
 		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 16,
-		backgroundColor: "#F8F9FA",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 1,
-	},
-	locationInput: {
-		flex: 1,
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: "#1A1A1A",
+		alignItems: "flex-start",
+		gap: 12,
 	},
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
 		borderLeftColor: "#E5E7EB",
-	},
-	suggestionsContainer: {
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	loadingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 20,
-	},
-	loadingText: {
-		marginLeft: 8,
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	suggestionsList: {},
-	suggestionItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		borderBottomWidth: 0.5,
-		borderBottomColor: "#F3F4F6",
-	},
-	suggestionText: {
-		marginLeft: 16,
-		flex: 1,
-	},
-	suggestionMain: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "600",
-	},
-	suggestionSecondary: {
-		fontSize: 14,
-		color: "#6B7280",
-		marginTop: 4,
 	},
 	chipGrid: {
 		flexDirection: "row",

@@ -25,6 +25,7 @@
 		"unsupportedVersion": "此版本已不再受支持."
 	},
 	"Search": {
+		"currentLocation": "当前位置",
 		"DistanceSlider": {
 			"near": "近",
 			"far": "远"
@@ -48,6 +49,9 @@
 			"distance": "距离？",
 			"budget": "预算？",
 			"restrictions": "限制条件"
+		},
+		"locationModal": {
+			"title": "输入搜索地点"
 		},
 		"required": "必填",
 		"placeholders": {
@@ -125,7 +129,8 @@
 		},
 		"empty": "没有可显示的菜品",
 		"retry": "返回搜索",
-		"chooseThis": "就选这个！"
+		"chooseThis": "就选这个！",
+		"hiddenMessage": "{{title}}已被隐藏"
 	},
 	"Notifications": {
 		"title": "通知",
@@ -141,10 +146,18 @@
 			"reservation": "预订"
 		},
 		"actions": {
-			"share": "分享"
+			"share": "分享",
+			"seeMore": "查看更多",
+			"openMap": "打开地图"
+		},
+		"share": {
+			"title": "看看{{dishName}}"
 		},
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
+		},
+		"errors": {
+			"mapOpenFailed": "无法打开地图应用"
 		},
 		"info": {
 			"walkFromShibuya": "距离涩谷站步行13分钟"
@@ -163,15 +176,31 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "存款",
-			"earnings": "收益"
+			"earnings": "收益",
+			"topics": "主题",
+			"posts": "帖子",
+			"saved-posts": "帖子",
+			"saved-topics": "主题",
+			"wallet-deposit": "存款",
+			"wallet-earning": "收益"
 		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "加载中...",
+		"tabError": {
+			"failedToLoad": "加载数据失败：{{error}}",
+			"retry": "重试"
+		},
 		"emptyState": {
 			"noDeposits": "所选状态没有存款",
-			"noEarnings": "所选状态没有收益"
+			"noEarnings": "所选状态没有收益",
+			"noDishReviews": "暂无帖子",
+			"noLikedDishMediaEntries": "暂无点赞的帖子",
+			"noSavedItems": "没有已保存的项目",
+			"noSavedPosts": "发现感兴趣的帖子时，使用\"保存\"功能可以重新查看",
+			"noSavedTopics": "发现感兴趣的菜品时，使用\"保存\"功能可以探索附近的餐厅"
 		},
 		"statusLabels": {
 			"active": "活跃",
@@ -184,7 +213,9 @@
 			"editProfile": "编辑个人资料",
 			"follow": "关注",
 			"following": "已关注",
-			"message": "消息"
+			"message": "消息",
+			"searchByMood": "根据今天的心情寻找你会\"喜欢\"的菜品",
+			"sendFeedback": "发送反馈"
 		},
 		"stats": {
 			"following": "关注中",
@@ -197,7 +228,9 @@
 		"privateContent": "此内容为私密",
 		"placeholders": {
 			"enterBio": "请输入您的个人简介..."
-		}
+		},
+		"savedCount": "{{count}} 次收藏",
+		"guestBio": "欢迎，访客 👋\n感谢您使用新概念美食应用《CraveCatch》😊\n账户功能和更多更新即将推出！"
 	},
 	"NotFound": {
 		"title": "哎呀！",
@@ -278,6 +311,30 @@
 				"asian": "亚洲菜",
 				"other": "其他"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "发送反馈/错误报告",
+		"labels": {
+			"type": "类型",
+			"title": "标题",
+			"message": "消息"
+		},
+		"types": {
+			"request": "功能请求",
+			"bug": "错误报告"
+		},
+		"placeholders": {
+			"title": "请输入标题（5-80个字符）",
+			"message": "请描述您的反馈或问题（10-2000个字符）"
+		},
+		"buttons": {
+			"submit": "提交"
+		},
+		"errors": {
+			"titleLength": "标题必须在5到80个字符之间",
+			"messageLength": "消息必须在10到2000个字符之间",
+			"submitFailed": "提交反馈失败。请重试。"
 		}
 	}
 }

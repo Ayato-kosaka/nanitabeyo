@@ -1,7 +1,7 @@
 import { usePathname } from "expo-router";
 import { useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { v4 as uuidv4 } from "uuid";
+import * as Crypto from "expo-crypto";
 import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import { EnumLiteral } from "@shared/utils/devDB.types";
@@ -67,7 +67,7 @@ export const useLogger = () => {
 				const now = new Date().toISOString();
 
 				await supabase.from("frontend_event_logs").insert({
-					id: uuidv4(),
+					id: Crypto.randomUUID(),
 					user_id: user?.id,
 					event_name,
 					path_name,

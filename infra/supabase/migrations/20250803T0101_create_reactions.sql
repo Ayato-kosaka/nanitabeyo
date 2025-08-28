@@ -7,6 +7,7 @@ CREATE TABLE reactions (
     target_type TEXT NOT NULL,
     target_id TEXT NOT NULL,
     action_type TEXT NOT NULL,
+    meta JSONB,
     created_at TIMESTAMPTZ NOT NULL,
     created_version TEXT NOT NULL,
     lock_no INTEGER NOT NULL
@@ -24,6 +25,7 @@ COMMENT ON COLUMN reactions.user_id IS 'リアクションをしたユーザー�
 COMMENT ON COLUMN reactions.target_type IS 'リアクション対象のテーブル（例：spot, spot_guide）';
 COMMENT ON COLUMN reactions.target_id IS '対象となるスポットやガイドのID';
 COMMENT ON COLUMN reactions.action_type IS '実行されたアクションの種類（例：like, bookmark）';
+COMMENT ON COLUMN reactions.meta IS 'メタ情報を格納するJSONBフィールド（例：hideReason等）';
 COMMENT ON COLUMN reactions.created_at IS 'リアクション作成日時';
 COMMENT ON COLUMN reactions.created_version IS '実行時のアプリバージョン（バグ分析用途）';
 COMMENT ON COLUMN reactions.lock_no IS '楽観ロック用バージョン番号';

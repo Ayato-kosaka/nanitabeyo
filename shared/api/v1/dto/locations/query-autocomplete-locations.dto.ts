@@ -1,4 +1,4 @@
-import { IsString } from "@nestjs/class-validator";
+import { IsOptional, IsString } from "@nestjs/class-validator";
 
 /** GET /v1/locations/autocomplete のクエリ */
 export class QueryAutocompleteLocationsDto {
@@ -9,4 +9,9 @@ export class QueryAutocompleteLocationsDto {
 	/** 言語コード (例: 'ja', 'en') */
 	@IsString()
 	languageCode!: string;
+
+	/** セッショントークン */
+	@IsOptional()
+	@IsString()
+	sessionToken?: string;
 }

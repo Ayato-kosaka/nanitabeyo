@@ -101,7 +101,7 @@ export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndex
 	const renderCarouselItem = useCallback(
 		({ item }: { item: DishMediaEntry }) => (
 			<View style={styles.carouselItem}>
-				<FoodContentScreen item={item} />
+				<FoodContentScreen item={item} carouselRef={carouselRef} />
 			</View>
 		),
 		[],

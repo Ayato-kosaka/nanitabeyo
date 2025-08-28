@@ -20,6 +20,8 @@ import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { reverse } from 'dns';
+import { DishMediaEntryItem } from './dish-media.mapper';
 
 @Injectable()
 export class DishMediaService {
@@ -42,28 +44,58 @@ export class DishMediaService {
       viewer: viewerId ?? 'anon',
     });
 
-    const records = await this.repo.findDishMedias(dto, viewerId);
+    const dishMediaIds = await this.repo.findDishMediaIds(dto, viewerId);
 
-    // 署名 URL を付与
-    const withSignedUrl = await Promise.all(
-      records.map(async (rec) => {
-        const signedUrl = await this.storage.generateSignedUrl(
+    const dishMediaEntryItems = await this.fetchDishMediaEntryItems(
+      dishMediaIds,
+      {
+        userId: viewerId,
+      },
+    );
+
+    this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
+      count: dishMediaEntryItems.length,
+    });
+    return dishMediaEntryItems;
+  }
+
+  /**
+   * dishMediaIds から DishMediaEntryItem[] を取得し署名付き URL を付与
+   */
+  public async fetchDishMediaEntryItems(
+    dishMediaIds: string[],
+    option: {
+      userId?: string;
+      reviewLimit?: number;
+    },
+  ): Promise<DishMediaEntryItem[]> {
+    if (!dishMediaIds.length) return [];
+
+    const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(
+      dishMediaIds,
+      option,
+    );
+
+    const dishMediaEntryItems = await Promise.all<DishMediaEntryItem>(
+      dishMediaEntries.map(async (rec) => {
+        const mediaUrl = await this.storage.generateSignedUrl(
           rec.dish_media.media_path,
+        );
+        const thumbnailImageUrl = await this.storage.generateSignedUrl(
+          rec.dish_media.thumbnail_path,
         );
         return {
           ...rec,
           dish_media: {
             ...rec.dish_media,
-            media_url: signedUrl,
+            mediaUrl,
+            thumbnailImageUrl,
           },
         };
       }),
-    );
+    ).then((list) => list.filter((v): v is NonNullable<typeof v> => !!v));
 
-    this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
-      count: withSignedUrl.length,
-    });
-    return withSignedUrl;
+    return dishMediaEntryItems;
   }
 
   /* ------------------------------------------------------------------ */

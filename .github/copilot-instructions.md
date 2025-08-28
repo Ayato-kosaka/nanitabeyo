@@ -1,4 +1,4 @@
-# Food App (dish-scroll) Development Instructions
+# Food App (nanitabeyo) Development Instructions
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
@@ -7,29 +7,28 @@ Always reference these instructions first and fallback to search or bash command
 ### Bootstrap and Dependencies
 
 - Install pnpm globally: `npm install -g pnpm@10.8.0`
-- Install all dependencies: `pnpm install --frozen-lockfile` -- takes 4 minutes, downloads ~2000 packages. NEVER CANCEL. Set timeout to 10+ minutes.
-- Run formatting (works correctly): `pnpm format` -- takes 6 seconds.
+- Install all dependencies: `pnpm install --frozen-lockfile` -- takes 1 minute 10 seconds, downloads ~2000 packages. NEVER CANCEL. Set timeout to 5+ minutes.
+- Run formatting (works correctly): `pnpm format` -- takes 6-7 seconds.
 
 ### Build and Type Checking Status
 
-- **CRITICAL**: Build and typecheck currently FAIL due to TypeScript errors in shared converters.
-- The errors are in `shared/converters/` files with bigint vs number mismatches and null vs array type issues.
-- Do NOT attempt to run `pnpm build` or `pnpm typecheck` expecting success - they will fail.
-- Do NOT attempt to run `pnpm lint` - it fails due to eslint command not found in app-expo.
+- **BUILD WORKS**: `pnpm build` succeeds in ~12 seconds. You CAN build the codebase.
+- **TYPECHECK WORKS**: `pnpm typecheck` succeeds in ~9 seconds. TypeScript validation passes.
+- **LINTING PARTIALLY WORKS**: `pnpm lint` fails only in app-expo due to missing eslint command, but api linting works.
 
 ### Development Servers
 
 #### API Development Server
 
-- **WORKS**: Start API development server with required environment variables:
+- **REQUIRES COMPLETE .ENV**: Start API development server with ALL required environment variables in `api/.env` file:
   ```bash
-  cd api && API_COMMIT_ID=test API_NODE_ENV=development CORS_ORIGIN=http://localhost:3000 API_GOOGLE_PLACE_API_KEY=test_key pnpm dev
+  cd api && pnpm dev
   ```
-- Server runs despite TypeScript errors in watch mode
+- Requires comprehensive environment variables (see Environment Variables section below)
+- Server fails without proper .env file containing DB_SCHEMA, SUPABASE_JWT_SECRET, GCS_BUCKET_NAME, etc.
 - Uses NestJS with hot reload on file changes
 - Automatically copies Prisma files to dist/shared/prisma
 - Runs on default NestJS port (usually 3000)
-- **Expected behavior**: Shows TypeScript compilation errors but continues running in watch mode
 
 #### Expo App Development Server
 
@@ -50,10 +49,11 @@ Always reference these instructions first and fallback to search or bash command
 
 ### Testing Status
 
-- **API Tests**: Fail due to module resolution issues with `@shared/v1/dto` imports
+- **API Tests**: Partially pass - some fail due to module resolution issues with `@shared/v1/dto` imports
+- **API Functional Tests**: Available for dish-categories endpoint - `cd api && pnpm test:functional:dish-categories`
 - **App-Expo Tests**: Fail due to missing jest command
-- **E2E Tests**: Not validated due to dependency on working API and app
-- Do NOT expect test commands to work without first fixing module resolution
+- **E2E Tests**: Available but require working API and app servers (Detox framework)
+- Do NOT expect all test commands to work without first fixing module resolution
 
 ### Database and Prisma
 
@@ -72,7 +72,18 @@ Always reference these instructions first and fallback to search or bash command
 API_COMMIT_ID=test
 API_NODE_ENV=development
 CORS_ORIGIN=http://localhost:3000
-API_GOOGLE_PLACE_API_KEY=test_key
+DB_SCHEMA=dev
+SUPABASE_JWT_SECRET=test_jwt_secret
+GOOGLE_PLACE_API_KEY=test_key
+GCS_BUCKET_NAME=test_bucket
+GCS_STATIC_MASTER_DIR_PATH=static
+CLAUDE_API_KEY=test_claude_key
+GOOGLE_API_KEY=test_google_key
+GOOGLE_SEARCH_ENGINE_ID=test_search_engine
+GCP_PROJECT=test_project
+TASKS_LOCATION=us-central1
+CLOUD_RUN_URL=http://localhost:3000
+TASKS_INVOKER_SA=test@test.iam.gserviceaccount.com
 DATABASE_URL=postgresql://user:pass@host:port/dbname?schema=dev
 ```
 
@@ -86,19 +97,20 @@ DATABASE_URL=postgresql://user:pass@host:port/dbname?schema=dev
 
 ### Basic Development Workflow Validation
 
-1. Clone repository and run `pnpm install --frozen-lockfile` (wait 4+ minutes)
-2. Start API: `cd api && API_COMMIT_ID=test API_NODE_ENV=development CORS_ORIGIN=http://localhost:3000 API_GOOGLE_PLACE_API_KEY=test_key pnpm dev`
-3. Start Expo app: `cd app-expo && pnpm start`
-4. Verify API shows TypeScript errors but remains running in watch mode
-5. Verify Expo shows "Waiting on http://localhost:8081" message
-6. Run `pnpm format` to verify code formatting works
+1. Clone repository and run `pnpm install --frozen-lockfile` (wait 1+ minutes)
+2. Create `api/.env` file with all required environment variables (see Environment Variables section)
+3. Start API: `cd api && pnpm dev` (requires complete .env file)
+4. Start Expo app: `cd app-expo && pnpm start`
+5. Verify API starts without environment validation errors
+6. Verify Expo shows "Waiting on http://localhost:8081" message
+7. Run `pnpm format` to verify code formatting works
 
 ### Code Quality Validation
 
-- **Format code**: `pnpm format` -- works correctly, uses Prettier
-- **Linting**: Currently broken, do not rely on `pnpm lint`
-- **Type checking**: Currently broken due to converter type mismatches
-- **Building**: Currently broken, do not attempt `pnpm build`
+- **Format code**: `pnpm format` -- works correctly in ~7 seconds, uses Prettier
+- **Build code**: `pnpm build` -- WORKS in ~12 seconds. Set timeout to 30+ seconds.
+- **Type checking**: `pnpm typecheck` -- WORKS in ~9 seconds. Set timeout to 30+ seconds.
+- **Linting**: `pnpm lint` -- partially broken (app-expo eslint missing), api linting works
 
 ### Manual Testing Scenarios
 
@@ -106,11 +118,12 @@ After making changes, always validate manually by:
 
 #### API Testing
 
-1. Start API server with required environment variables
-2. API will show TypeScript compilation errors but continue running
-3. Test API endpoints manually using curl or Postman
-4. Example: `curl http://localhost:3000/health` (if health endpoint exists)
-5. Watch console for request logs and error messages
+1. Create `api/.env` file with all required environment variables (see Environment Variables section)
+2. Start API server: `cd api && pnpm dev`
+3. API will start successfully if all environment variables are provided
+4. Test API endpoints manually using curl or Postman
+5. Example: `curl http://localhost:3000/health` (if health endpoint exists)
+6. Watch console for request logs and error messages
 
 #### Mobile App Testing
 
@@ -147,36 +160,40 @@ After making changes, always validate manually by:
 
 ### Important File Locations
 
-- **API Configuration**: `api/src/config/env.ts` (environment validation)
+- **API Configuration**: `api/src/core/config/env.ts` (environment validation)
+- **API Environment**: `api/.env` (create this file with all required variables)
 - **Shared Types**: `shared/supabase/database.types.ts`, `shared/prisma/index.d.ts`
 - **Expo Configuration**: `app-expo/app.config.ts`
 - **Build Configuration**: `turbo.json`, `package.json` scripts
 - **Database Schema**: `shared/prisma/schema.prisma`
+- **Database Scripts**: `scripts/` directory (apply-migration.sh, db-pull.sh, reset-schema.sh)
+- **Functional Tests**: `api/test/functional/v1/dish-categories/` (comprehensive API testing)
+- **GitHub Workflows**: `.github/workflows/` (api-deploy.yml, eas-build-\*.yml, etc.)
 
 ## Common Commands Reference
 
 ### Working Commands (Validated)
 
 ```bash
-# Dependencies and setup
+# Dependencies and setup (VALIDATED TIMINGS)
 npm install -g pnpm@10.8.0
-pnpm install --frozen-lockfile  # 4+ minutes, NEVER CANCEL
+pnpm install --frozen-lockfile  # 1m 10s, NEVER CANCEL
 
 # Development servers (working)
-cd api && API_COMMIT_ID=test API_NODE_ENV=development CORS_ORIGIN=http://localhost:3000 API_GOOGLE_PLACE_API_KEY=test_key pnpm dev
+cd api && pnpm dev  # requires complete .env file
 cd app-expo && pnpm start
 
 # Code quality (working)
-pnpm format  # Prettier formatting
+pnpm format  # Prettier formatting (~7 seconds)
+pnpm build   # Build codebase (~12 seconds)
+pnpm typecheck  # TypeScript validation (~9 seconds)
 ```
 
 ### Broken Commands (DO NOT USE)
 
 ```bash
 # These commands are currently broken:
-pnpm build        # Fails on TypeScript errors
-pnpm typecheck    # Fails on TypeScript errors
-pnpm lint         # Fails on missing eslint command
+pnpm lint         # Fails on missing eslint in app-expo (api linting works)
 pnpm test         # Fails on module resolution
 pnpm dev          # Fails on Expo tunnel requirements
 ```
@@ -191,19 +208,21 @@ pnpm db:reset      # Reset database schema
 
 ## Timing Expectations
 
-- **Dependency Installation**: 4 minutes (247 seconds) - NEVER CANCEL. Set timeout to 10+ minutes.
-- **Format Command**: 6 seconds
-- **API Dev Server Startup**: 5-10 seconds to show TypeScript errors, then continues running
+- **Dependency Installation**: 1 minute 10 seconds - NEVER CANCEL. Set timeout to 5+ minutes.
+- **Format Command**: 6-7 seconds
+- **Build Command**: 12 seconds - Set timeout to 30+ seconds.
+- **Typecheck Command**: 9 seconds - Set timeout to 30+ seconds.
+- **API Dev Server Startup**: 5-10 seconds with proper .env, fails immediately without required environment variables
 - **Expo Dev Server Startup**: 10-15 seconds to start Metro bundler
-- **Build/Typecheck**: 6 seconds (but fails)
 
 ## Known Issues and Workarounds
 
-### TypeScript Conversion Errors
+### Environment Variable Issues
 
-- Files affected: `shared/converters/convert_dish_categories.ts`, `convert_payouts.ts`, `convert_restaurant_bids.ts`
-- Issue: Type mismatches between Supabase types (number/null) and Prisma types (bigint/string[])
-- Workaround: Development servers run despite these errors
+- API requires comprehensive .env file with 15+ environment variables
+- Missing any required environment variable causes immediate startup failure
+- Use complete .env template provided in Environment Variables section
+- Development servers cannot run without proper environment configuration
 
 ### Linting Issues
 
@@ -224,11 +243,65 @@ pnpm db:reset      # Reset database schema
 
 ## Working Development Workflow
 
-1. **Setup**: Install pnpm globally, run `pnpm install --frozen-lockfile` (wait 4+ minutes)
-2. **API Development**: Use API dev command with environment variables, accept TypeScript errors
-3. **Mobile Development**: Use `pnpm start` in app-expo directory
-4. **Code Quality**: Use `pnpm format` for consistent formatting
-5. **Manual Testing**: Test API endpoints and mobile app functionality manually
-6. **Deployment**: Use GitHub Actions workflows for production deployment
+1. **Setup**: Install pnpm globally, run `pnpm install --frozen-lockfile` (wait 1+ minutes)
+2. **Environment Setup**: Create complete `api/.env` file with all required variables
+3. **API Development**: Use `cd api && pnpm dev` with proper environment configuration
+4. **Mobile Development**: Use `pnpm start` in app-expo directory
+5. **Code Quality**: Use `pnpm format`, `pnpm build`, `pnpm typecheck` (all work correctly)
+6. **Manual Testing**: Test API endpoints and mobile app functionality manually
+7. **Deployment**: Use GitHub Actions workflows for production deployment
+
+### Infrastructure and Deployment
+
+- **Google Cloud Setup**: `infra/gcp/create_api_dev_service_account.sh` (service account creation)
+- **API Deployment**: Google Cloud Run via `.github/workflows/api-deploy.yml`
+- **Mobile App**: Expo Application Services (EAS) via multiple workflows
+- **Database**: Supabase PostgreSQL with multi-schema setup
+- **Firebase**: Storage and hosting via `firebase-hosting-deploy.yml`
 
 Always validate your changes manually by running the development servers and testing the application functionality rather than relying on automated build/test processes.
+
+## CRITICAL Command Timeouts
+
+When using these commands, set explicit timeouts to prevent premature cancellation:
+
+- `pnpm install --frozen-lockfile`: Set timeout to 300+ seconds (5+ minutes)
+- `pnpm build`: Set timeout to 60+ seconds
+- `pnpm typecheck`: Set timeout to 60+ seconds
+- `pnpm format`: Set timeout to 30+ seconds
+- API development server startup: Set timeout to 60+ seconds for initial compilation
+- Expo development server startup: Set timeout to 60+ seconds for Metro bundler
+
+## Comprehensive Validation Scenarios
+
+### Pre-Development Setup Validation
+
+1. Install pnpm: `npm install -g pnpm@10.8.0`
+2. Install dependencies: `pnpm install --frozen-lockfile` (1m 10s)
+3. Test formatting: `pnpm format` (7s)
+4. Test build: `pnpm build` (12s)
+5. Test typecheck: `pnpm typecheck` (9s)
+
+### API Development Validation
+
+1. Create `api/.env` with all required environment variables
+2. Start API: `cd api && pnpm dev`
+3. Verify server starts without environment validation errors
+4. Test basic endpoint: `curl http://localhost:3000` (may return 404, but server responds)
+5. Verify hot reload by editing a source file
+
+### Mobile App Development Validation
+
+1. Start Expo: `cd app-expo && pnpm start`
+2. Verify Metro bundler starts and shows "Waiting on http://localhost:8081"
+3. Open browser to http://localhost:8081 to see Expo DevTools
+4. Verify app can be opened in web browser or Expo Go
+5. Test hot reload by editing a React component
+
+### Full Stack Validation
+
+1. Start API server in one terminal: `cd api && pnpm dev`
+2. Start Expo server in another terminal: `cd app-expo && pnpm start`
+3. Verify both servers run simultaneously without conflicts
+4. Test communication between frontend and backend (if endpoints available)
+5. Verify hot reload works in both API and mobile app

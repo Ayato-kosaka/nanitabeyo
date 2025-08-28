@@ -82,7 +82,7 @@ export class DishMediaController {
       query,
       user?.userId,
     );
-    return this.dishMediaMapper.toQueryResponse(items);
+    return this.dishMediaMapper.toQueryDishMediaResponse(items);
   }
 
   /* ------------------------------------------------------------------ */

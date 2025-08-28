@@ -2,6 +2,16 @@ name: EAS Build Develop
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build for"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ios
+          - android
 
 jobs:
   eas-build:
@@ -10,7 +20,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: .
+        working-directory: app-expo
 
     steps:
       - name: ⏬ Checkout repository
@@ -30,10 +40,6 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Build our shared library so it emits .d.ts / .js into shared/dist
-      - name: 📚 Build shared package
-        run: pnpm -F shared run build
-
       - name: 📥 Cache Turbo
         uses: actions/cache@v3
         with:
@@ -51,5 +57,4 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🚀 Run EAS build (development profile)
-        working-directory: app-expo
-        run: pnpx eas-cli build --profile development --platform all --non-interactive --no-wait
+        run: pnpx eas-cli build --profile development --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait

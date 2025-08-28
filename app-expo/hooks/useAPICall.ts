@@ -110,43 +110,51 @@ export const useAPICall = () => {
 						method,
 						status: response.status,
 						requestId,
-						errorCode: errorPayload.error,
-						errorMessage: errorPayload.message || errorMessage,
+						requestPayload: isMultipart ? "[multipart/form-data]" : requestPayload,
+						errorPayload,
 					},
 				});
 
-				// 特定エラーコードによる分岐
+				// 特定ステータスコードによる分岐
+				if (response.status === 503) {
+					// メンテナンスモード (HTTP 503 Service Unavailable)
+					showDialog(i18n.t("Error.maintenanceMessage"), {
+						okLabel: i18n.t("Common.ok"),
+						onConfirm: () => {
+							// ダイアログを閉じてもアプリは操作不可状態を維持
+						},
+					});
+					throw {
+						code: "maintenance_mode",
+						message: errorPayload.message || errorMessage,
+						requestId,
+					};
+				}
+
+				if (response.status === 426) {
+					// 強制アップデート (HTTP 426 Upgrade Required)
+					const storeUrl = Platform.select({
+						ios: Env.APP_STORE_URL,
+						android: Env.PLAY_STORE_URL,
+					});
+					showDialog(i18n.t("Error.unsupportedVersion"), {
+						okLabel: i18n.t("Common.goStore"),
+						onConfirm: () => storeUrl && Linking.openURL(storeUrl),
+					});
+					throw {
+						code: "unsupported_version",
+						message: errorPayload.message || errorMessage,
+						requestId,
+					};
+				}
+
+				// 既存の403エラー処理（後方互換性のため残す）
 				if (response.status === 403) {
-					switch (errorPayload.error) {
-						case "Service maintenance":
-							showDialog(i18n.t("Error.maintenanceMessage")); // 🧃 表示のみ（アプリ全体は操作制限済み想定）
-							throw {
-								code: "maintenance_mode",
-								message: errorPayload.message || errorMessage,
-								requestId,
-							};
-						case "Unsupported version":
-							const storeUrl = Platform.select({
-								ios: Env.APP_STORE_URL, // iOS の App Store URL
-								android: Env.PLAY_STORE_URL, // Android の Play Store URL
-							});
-							showDialog(i18n.t("Error.unsupportedVersion"), {
-								// 🧃 表示のみ（アプリ全体は操作制限済み想定）
-								okLabel: i18n.t("Common.goStore"),
-								onConfirm: () => storeUrl && Linking.openURL(storeUrl),
-							});
-							throw {
-								code: "unsupported_version",
-								message: errorPayload.message || errorMessage,
-								requestId,
-							};
-						default:
-							throw {
-								code: "forbidden",
-								message: errorPayload.message || errorMessage,
-								requestId,
-							};
-					}
+					throw {
+						code: "forbidden",
+						message: errorPayload.message || errorMessage,
+						requestId,
+					};
 				}
 
 				// その他の HTTP エラー
@@ -200,7 +208,7 @@ export const useAPICall = () => {
 					requestId,
 					duration,
 					status: response.status,
-					hasData: !!json.data,
+					responsePayload: json,
 				},
 			});
 

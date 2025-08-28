@@ -2,6 +2,16 @@ name: EAS Build Preview Prod
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build for"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ios
+          - android
 
 jobs:
   build-preview-prod:
@@ -10,7 +20,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: .
+        working-directory: app-expo
 
     steps:
       - name: ⏬ Checkout repository
@@ -30,10 +40,6 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Build our shared library so it emits .d.ts / .js into shared/dist
-      - name: 📚 Build shared package
-        run: pnpm -F shared run build
-
       - name: 🏗 Setup Expo & EAS CLI
         uses: expo/expo-github-action@v8
         with:
@@ -41,9 +47,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: ✨ Update environment variable
-        working-directory: app-expo
         run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
 
       - name: 🚀 Build app (production preview)
-        working-directory: app-expo
-        run: pnpx eas-cli build --profile preview --platform all --non-interactive --no-wait --clear-cache
+        run: pnpx eas-cli build --profile preview --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait --clear-cache

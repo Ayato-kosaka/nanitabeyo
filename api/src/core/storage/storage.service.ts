@@ -3,7 +3,11 @@ import { Bucket, Storage } from '@google-cloud/storage';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { STORAGE_CLIENT } from './storage.constants';
-import { UploadFileParams, UploadResult } from './storage.types';
+import {
+  UploadFileParams,
+  UploadFileAtPathParams,
+  UploadResult,
+} from './storage.types';
 import { getExt, buildFileName, buildFullPath } from './storage.utils';
 
 @Injectable()
@@ -39,8 +43,69 @@ export class StorageService {
       finalFileName,
     });
 
+    return this.saveAndSign(
+      fullPath,
+      buffer,
+      mimeType,
+      metadata,
+      expiresInSeconds,
+      true, // Allow overwrite for existing uploadFile behavior
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                          Upload at Specific Path                       */
+  /* ---------------------------------------------------------------------- */
+  async uploadFileAtPath({
+    buffer,
+    mimeType,
+    fullPath,
+    metadata = {},
+    expiresInSeconds = 24 * 60 * 60,
+    overwriteIfExists = false,
+  }: UploadFileAtPathParams): Promise<UploadResult> {
+    return this.saveAndSign(
+      fullPath,
+      buffer,
+      mimeType,
+      metadata,
+      expiresInSeconds,
+      overwriteIfExists,
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                       Common Save and Sign Logic                       */
+  /* ---------------------------------------------------------------------- */
+  private async saveAndSign(
+    fullPath: string,
+    buffer: Buffer,
+    mimeType: string,
+    metadata: Record<string, string>,
+    expiresInSeconds: number,
+    overwriteIfExists: boolean,
+  ): Promise<UploadResult> {
     try {
-      await this.bucket.file(fullPath).save(buffer, {
+      const file = this.bucket.file(fullPath);
+
+      // Check if file exists and handle overwrite logic
+      if (!overwriteIfExists) {
+        const [exists] = await file.exists();
+        if (exists) {
+          this.logger.debug('FileAlreadyExists', 'saveAndSign', {
+            path: fullPath,
+            action: 'skipping_upload',
+          });
+          // Return existing file's signed URL
+          const signedUrl = await this.generateSignedUrl(
+            fullPath,
+            expiresInSeconds,
+          );
+          return { path: fullPath, signedUrl };
+        }
+      }
+
+      await file.save(buffer, {
         metadata: {
           contentType: mimeType,
           metadata,
@@ -55,7 +120,7 @@ export class StorageService {
 
       return { path: fullPath, signedUrl };
     } catch (err) {
-      this.logger.error('GcsUploadError', 'uploadFile', {
+      this.logger.error('GcsUploadError', 'saveAndSign', {
         error_message: (err as Error).message,
         path: fullPath,
       });

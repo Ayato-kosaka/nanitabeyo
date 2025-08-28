@@ -38,10 +38,7 @@ export class DishCategoryVariantsService {
       dto,
     );
 
-    const dishCategories = await this.repo.findDishCategoryVariants(
-      dto.q,
-      dto.lang,
-    );
+    const dishCategories = await this.repo.findDishCategoryVariants(dto.q);
 
     // レスポンス形式に変換 - 最大20件まで
     const response: QueryDishCategoryVariantsResponse = [];

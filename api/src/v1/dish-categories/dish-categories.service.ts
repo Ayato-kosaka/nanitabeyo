@@ -51,7 +51,8 @@ export class DishCategoriesService {
         // このカテゴリ名にマッチするデータベースレコードを探す
         const matchedCategory = dishCategories.find((dbCategory) =>
           dbCategory.dish_category_variants.some(
-            (variant) => variant.surface_form === claudeRec.category,
+            (variant) =>
+              variant.surface_form === claudeRec.category.toLowerCase(),
           ),
         );
 

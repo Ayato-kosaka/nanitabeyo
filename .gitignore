@@ -14,6 +14,9 @@ build/
 # --- Turbo Cache ---
 .turbo/
 
+# --- Temporary Files ---
+tmp/
+
 # --- Expo ---
 *.log
 .expo-shared/
@@ -22,6 +25,11 @@ build/
 api/lib/
 api/.env
 api/.runtimeconfig.json
+
+# --- Functional Test Results ---
+test-results/
+*.csv
+*.log
 
 # --- E2E / Detox ---
 e2e/artifacts/
