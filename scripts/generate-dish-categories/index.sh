@@ -190,27 +190,15 @@ SQL
 
 echo "✅ Multilingual labels applied to dish_categories."
 
-# ========== STEP 5: Generate variants with Python ==========
-echo "→ [5] Generating surface forms (variants)..."
+echo "→ [5] Generating surface forms and importing into dish_category_variants (stream)..."
 
 python3 "${WORKDIR}/generate_variants.py" \
         "${TMPDIR}/labels.csv" \
         "${TMPDIR}/dishes_final.csv" \
-        > "${TMPDIR}/variants.csv"
+| psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
+   -c "COPY ${DB_SCHEMA:-public}.dish_category_variants (id, dish_category_id, surface_form, source, created_at) FROM STDIN CSV HEADER;"
 
-echo "✅ Variants CSV generated: ${TMPDIR}/variants.csv"
-
-# ========== STEP 6: Import dish_category_variants ==========
-echo "→ [6] Importing into dish_category_variants table..."
-
-psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
-  -v schema="${DB_SCHEMA:-public}" <<SQL
-SET search_path TO :"schema";
-\copy dish_category_variants (id, dish_category_id, surface_form, source, created_at) \
-  FROM '${VARIANTS_CSV}' CSV HEADER;
-SQL
-
-echo "✅ dish_category_variants inserted."
+echo "✅ dish_category_variants inserted (stream)."
 
 # ========== STEP 7: Fetch ancestor tags from Wikidata and apply ==========
 echo "→ [7] Fetching ancestor tags via WDQS and updating dish_categories.tags ..."
