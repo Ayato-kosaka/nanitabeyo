@@ -6,5 +6,11 @@ import { mockDishItems } from "@/data/searchMockData";
 export default function FoodScreen() {
 	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	return <FoodContentFeed items={mockDishItems} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} />;
+	return (
+		<FoodContentFeed
+			key={`main-${isNaN(initialIndex) ? 0 : initialIndex}`}
+			items={mockDishItems}
+			initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
+		/>
+	);
 }

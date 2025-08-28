@@ -21,6 +21,7 @@ export default function FoodScreen() {
 
 	return (
 		<FoodContentFeed
+			key={`home-${isNaN(initialIndex) ? 0 : initialIndex}`}
 			items={mockDishItems}
 			initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
 			onIndexChange={handleIndexChange}
