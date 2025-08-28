@@ -55,14 +55,25 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	useEffect(() => {
 		const clamped = Math.min(Math.max(0, initialIndex), Math.max(0, items.length - 1));
 		if (clamped !== currentIndex) {
+			logFrontendEvent({
+				event_name: "food_feed_index_change",
+				error_level: "debug",
+				payload: {
+					fromIndex: currentIndex,
+					toIndex: clamped,
+					initialIndex,
+					itemCount: items.length,
+				},
+			});
 			setCurrentIndex(clamped);
 			// scroll without animation to match initialIndex update
-			requestAnimationFrame(() => {
-				listRef.current?.scrollToIndex({ index: clamped, animated: false });
-			});
+			if (pageHeight > 0) {
+				requestAnimationFrame(() => {
+					listRef.current?.scrollToIndex({ index: clamped, animated: false });
+				});
+			}
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [initialIndex, items.length]);
+	}, [initialIndex, items.length, currentIndex, pageHeight, logFrontendEvent]);
 
 	const keyExtractor = (it: DishMediaEntry) => String(it.dish_media.id);
 

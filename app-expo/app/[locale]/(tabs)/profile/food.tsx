@@ -64,7 +64,13 @@ export default function ProfileFoodScreen() {
 		);
 	}
 
-	return <FoodContentFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} />;
+	return (
+		<FoodContentFeed
+			key={`${tabName}-${isNaN(initialIndex) ? 0 : initialIndex}`}
+			items={items}
+			initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
+		/>
+	);
 }
 
 const styles = StyleSheet.create({
