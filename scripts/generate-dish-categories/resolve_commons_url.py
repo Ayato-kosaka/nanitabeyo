@@ -73,7 +73,8 @@ def main():
         if 'image_url' not in fieldnames:
             fieldnames.append('image_url')
         
-        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+        fieldnames_out = ["id", "label_en", "labels", "image_url", "origin", "cuisine", "tags"]
+        writer = csv.DictWriter(outfile, fieldnames=fieldnames_out)
         writer.writeheader()
         
         for row in reader:
@@ -90,7 +91,16 @@ def main():
             else:
                 row['image_url'] = ''
             
-            writer.writerow(row)
+            out = {
+                "id": row.get("id", "").strip(),
+                "label_en": row.get("label_en", row.get("labelEN", "")).strip(),
+                "labels": row.get("labels", "").strip(),
+                "image_url": image_url,
+                "origin": row.get("origin", "").strip(),
+                "cuisine": row.get("cuisine", "").strip(),
+                "tags": row.get("tags", "").strip(),
+            }
+            writer.writerow(out)
     
     print(f"✅ Processed {processed_count} rows, resolved {resolved_count} image URLs", file=sys.stderr)
 
