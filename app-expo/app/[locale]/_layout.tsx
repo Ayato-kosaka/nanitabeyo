@@ -73,7 +73,7 @@ export default function RootLayout() {
 		}
 
 		i18n.locale = getResolvedLocale(locale);
-	}, [locale, scheme, router, logFrontendEvent]);
+	}, [locale]);
 
 	if (!fontsLoaded) return null;
 
