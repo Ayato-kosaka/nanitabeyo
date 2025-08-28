@@ -10,34 +10,34 @@ WHERE {
   # ==== 取り込み対象 ====
   {
     # A. 料理（dish）…インスタンスも含める
-    ?dish wdt:P31/wdt:P279* wd:Q746549.
-  }
-  UNION {
-    ?dish wdt:P279+ wd:Q746549.
+    ?dish (wdt:P31|wdt:P279)+ wd:Q746549.
   }
   UNION {
     # B. 菜系（cuisine）…クラス/インスタンス両方
-    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q1778821 .
+    ?dish (wdt:P31|wdt:P279)+ wd:Q1778821 .
   }
   UNION {
     # C. 食事（meal）…朝食/昼食/夕食などを含む概念
-    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q6460735 .
+    ?dish (wdt:P31|wdt:P279)+ wd:Q6460735 .
   }
   UNION {
     # D. デザート（甘味の上位）
-    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q8495 .
+    ?dish (wdt:P31|wdt:P279)+ wd:Q8495 .
   }
   UNION {
     # E. ヌードル（うどん等を包含）
-    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q192874 .
+    ?dish (wdt:P31|wdt:P279)+ wd:Q192874 .
   }
   UNION {
     # F. 定食（和定食/朝食セットの受け皿）
-    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q117231375 .
+    ?dish (wdt:P31|wdt:P279)+ wd:Q117231375 .
   }
   UNION {
     # G. カフェ（店舗種別）
-    ?dish (wdt:P31/wdt:P279* | wdt:P279+) wd:Q30022 .
+    ?dish (wdt:P31|wdt:P279)+ wd:Q30022 .
+  } UNION {
+    # H. type of food or dish
+    ?dish (wdt:P31|wdt:P279)+ wd:Q19861951 . 
   }
 
   # 英語ラベル

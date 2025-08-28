@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, FlatList, useWindowDimensions, ViewToken, View } from "react-native";
+import { StyleSheet, FlatList, ViewToken, View } from "react-native";
 import FoodContentScreen from "./FoodContentScreen";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 interface FoodContentFeedProps {
 	items: DishMediaEntry[];
@@ -15,13 +13,9 @@ interface FoodContentFeedProps {
 
 export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange }: FoodContentFeedProps) {
 	const listRef = useRef<FlatList<DishMediaEntry>>(null);
-	const { height: winH } = useWindowDimensions();
-	const insets = useSafeAreaInsets();
-	let tabH = 0;
-	try {
-		tabH = useBottomTabBarHeight();
-	} catch {}
-	const pageHeight = Math.max(1, Math.floor(winH - tabH - insets.bottom));
+
+	// derive page height from actual layout instead of window/tab/safe-area math
+	const [pageHeight, setPageHeight] = useState(0);
 
 	const [currentIndex, setCurrentIndex] = useState(Math.min(Math.max(0, initialIndex), Math.max(0, items.length - 1)));
 
@@ -47,6 +41,15 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	useEffect(() => {
 		setCurrentIndex((i) => Math.min(Math.max(0, i), Math.max(0, items.length - 1)));
 	}, [items.length]);
+
+	// --- ensure we are positioned once the layout height is known
+	useEffect(() => {
+		if (pageHeight <= 0) return;
+		requestAnimationFrame(() => {
+			listRef.current?.scrollToIndex({ index: currentIndex, animated: false });
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pageHeight]);
 
 	// --- scroll to initialIndex when it changes (and list is ready)
 	useEffect(() => {
@@ -101,32 +104,39 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	if (items.length === 0) return null;
 
 	return (
-		<FlatList
-			ref={listRef}
-			data={items}
-			keyExtractor={keyExtractor}
-			renderItem={({ item, index }) => (
-				<View style={{ height: pageHeight }}>
-					<FoodContentScreen item={item} />
-				</View>
-			)}
-			style={styles.list}
-			contentContainerStyle={{}}
-			pagingEnabled
-			// 縦方向の1ページ=画面高
-			getItemLayout={getItemLayout}
-			initialScrollIndex={currentIndex}
-			// スクロール感
-			showsVerticalScrollIndicator={false}
-			decelerationRate="fast"
-			// パフォーマンス
-			windowSize={5}
-			maxToRenderPerBatch={3}
-			removeClippedSubviews
-			// 表示中アイテム確定
-			onViewableItemsChanged={onViewableItemsChanged}
-			viewabilityConfig={viewabilityConfig}
-		/>
+		<View
+			style={{ flex: 1 }}
+			onLayout={(e) => {
+				const h = Math.max(1, Math.floor(e.nativeEvent.layout.height));
+				if (h !== pageHeight) setPageHeight(h);
+			}}>
+			<FlatList
+				ref={listRef}
+				data={items}
+				keyExtractor={keyExtractor}
+				renderItem={({ item }) => (
+					<View style={{ height: Math.max(1, pageHeight) }}>
+						<FoodContentScreen item={item} />
+					</View>
+				)}
+				style={styles.list}
+				contentContainerStyle={{}}
+				pagingEnabled
+				// 縦方向の1ページ=画面高
+				getItemLayout={pageHeight > 0 ? getItemLayout : undefined}
+				// initialScrollIndex is handled after layout via scrollToIndex to avoid wrong offsets
+				// スクロール感
+				showsVerticalScrollIndicator={false}
+				decelerationRate="fast"
+				// パフォーマンス
+				windowSize={5}
+				maxToRenderPerBatch={3}
+				removeClippedSubviews
+				// 表示中アイテム確定
+				onViewableItemsChanged={onViewableItemsChanged}
+				viewabilityConfig={viewabilityConfig}
+			/>
+		</View>
 	);
 }
 

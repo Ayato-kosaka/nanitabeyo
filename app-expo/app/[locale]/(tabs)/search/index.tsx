@@ -81,7 +81,7 @@ export default function SearchScreen() {
 		else if (hour < 17) setTimeSlot("afternoon");
 		else if (hour < 22) setTimeSlot("dinner");
 		else setTimeSlot("late_night");
-	}, [getCurrentLocation, logFrontendEvent]);
+	}, []);
 
 	const handleLocationClear = () => {
 		lightImpact();
