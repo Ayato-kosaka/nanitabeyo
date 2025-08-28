@@ -219,7 +219,7 @@ export class DishesService {
       dishCategoryName: dto.categoryName,
       minRating: dto.minRating,
       languageCode: dto.languageCode,
-      priceLevels: dto.priceLevels,
+      priceLevels: dto.priceLevels, // Now optional, can be undefined
       pageSize,
     });
 

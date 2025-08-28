@@ -34,6 +34,7 @@ export const useTopicSearch = () => {
 			latitude: number,
 			longitude: number,
 			languageCode: string,
+			localLanguageCode?: string,
 			radius: number = 500, // Default 500m
 			priceLevels: string[] = [
 				"PRICE_LEVEL_INEXPENSIVE",
@@ -52,17 +53,35 @@ export const useTopicSearch = () => {
 				// TODO: GET /v1/dish-media
 				if (dishItems.length < searchResultRestaurantsNumber) {
 					// if (false) {
+
+					// Check if all price levels are selected - if so, don't send priceLevels parameter
+					const allPriceLevels = [
+						"PRICE_LEVEL_INEXPENSIVE",
+						"PRICE_LEVEL_MODERATE",
+						"PRICE_LEVEL_EXPENSIVE",
+						"PRICE_LEVEL_VERY_EXPENSIVE",
+					];
+					const isAllPriceLevelsSelected =
+						priceLevels.length === allPriceLevels.length &&
+						allPriceLevels.every((level) => priceLevels.includes(level));
+
+					// Use localLanguageCode for category name if available
+					const categoryName = localLanguageCode ? category : category;
+
+					const requestPayload: BulkImportDishesDto = {
+						location: `${latitude},${longitude}`,
+						radius: radius,
+						categoryId: categoryId,
+						categoryName: categoryName,
+						minRating: 3.0, // Fixed value as per requirement
+						languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
+						// Only include priceLevels if not all are selected
+						...(isAllPriceLevelsSelected ? {} : { priceLevels: priceLevels }),
+					};
+
 					dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dishes/bulk-import", {
 						method: "POST",
-						requestPayload: {
-							location: `${latitude},${longitude}`,
-							radius: radius,
-							categoryId: categoryId,
-							categoryName: category,
-							minRating: 3.0, // Fixed value as per requirement
-							languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
-							priceLevels: priceLevels,
-						},
+						requestPayload,
 					});
 
 					// Preload dish media images
@@ -114,6 +133,7 @@ export const useTopicSearch = () => {
 						mood: params.mood,
 						restrictions: params.restrictions,
 						languageTag: locale,
+						localLanguageCode: params.localLanguageCode, // Use localLanguageCode for category localization
 					},
 				});
 
@@ -121,9 +141,7 @@ export const useTopicSearch = () => {
 					.filter((topic) => topic.categoryId && topic.imageUrl)
 					.slice(0, searchResultTopicsNumber);
 
-				const createTopic = (
-					topic: QueryDishCategoryRecommendationsResponse[number],
-				): Topic => {
+				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
 					return {
 						...topic,
 						isHidden: false,
@@ -133,6 +151,7 @@ export const useTopicSearch = () => {
 							params.location.latitude,
 							params.location.longitude,
 							params.localLanguageCode,
+							params.localLanguageCode, // Pass localLanguageCode for category name localization
 						),
 					};
 				};
