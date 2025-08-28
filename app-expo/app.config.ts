@@ -80,7 +80,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			"expo-splash-screen",
 			{
 				image: "./assets/images/splash-icon.png",
-				resizeMode: "contain",
+				enableFullScreenImage_legacy: true,
+				resizeMode: "cover",
 				backgroundColor: "#ffffff",
 			},
 		],
