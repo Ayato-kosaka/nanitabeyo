@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SaveTopicTab } from "./save/SaveTopicTab";
-import { Card } from "@/components/Card";
-import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import { LocationSearchForm } from "../components/LocationSearchForm";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useCursorPagination } from "@/features/profile/hooks/useCursorPagination";
@@ -33,7 +32,6 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { getLocationDetails } = useLocationSearch();
 
 	// Location search modal state
-	const [locationText, setLocationText] = useState("");
 	const [selectedTopic, setSelectedTopic] = useState<QueryMeSavedDishCategoriesResponse["data"][number] | null>(null);
 	const {
 		BlurModal: LocationModal,
@@ -87,7 +85,6 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 
 			// Set selected topic and open location modal
 			setSelectedTopic(item);
-			setLocationText("");
 			openLocationModal();
 		},
 		[lightImpact, logFrontendEvent, openLocationModal],
@@ -158,6 +155,10 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		],
 	);
 
+	const handleLocationCancel = useCallback(() => {
+		closeLocationModal();
+	}, [closeLocationModal]);
+
 	const error = topics.error ? (topics.error instanceof Error ? topics.error.message : String(topics.error)) : null;
 
 	return (
@@ -174,19 +175,11 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				onRetry={topics.refresh}
 			/>
 
-			{/* Location Search Modal */}
+			{/* Location Search Modal - Updated to use render-prop pattern */}
 			<LocationModal>
-				<Card>
-					<Text style={styles.modalTitle}>{i18n.t("Search.locationModal.title")}</Text>
-					<LocationAutocomplete
-						value={locationText}
-						onChangeText={setLocationText}
-						onSelectSuggestion={handleLocationSelect}
-						placeholder={i18n.t("Search.placeholders.enterLocation")}
-						autofocus={true}
-						testID="saved-topic-location-search"
-					/>
-				</Card>
+				{({ close }) => (
+					<LocationSearchForm onSubmit={handleLocationSelect} onCancel={close} testID="saved-topic-location-search" />
+				)}
 			</LocationModal>
 		</>
 	);
@@ -215,13 +208,5 @@ const styles = StyleSheet.create({
 		marginTop: 16,
 		fontWeight: "500",
 		textAlign: "center",
-	},
-	modalTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 16,
-		textAlign: "center",
-		letterSpacing: -0.3,
 	},
 });

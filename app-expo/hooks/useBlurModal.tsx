@@ -63,11 +63,20 @@ export function useBlurModal({
 				contentContainerStyle,
 				showCloseButton = true,
 			}: {
-				children: ReactNode;
+				children: ReactNode | ((props: { close: () => void }) => ReactNode);
 				contentContainerStyle?: StyleProp<ViewStyle>;
 				showCloseButton?: boolean;
 			}) => {
 				if (!visible) return null;
+
+				// Render children - support both ReactNode and render prop pattern
+				const renderChildren = () => {
+					if (typeof children === "function") {
+						return children({ close });
+					}
+					return children;
+				};
+
 				return (
 					<Portal>
 						{/* Fullscreen layer */}
@@ -86,7 +95,7 @@ export function useBlurModal({
 										keyboardShouldPersistTaps="handled"
 										contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
 										<View pointerEvents="auto" style={contentContainerStyle}>
-											{children}
+											{renderChildren()}
 										</View>
 									</ScrollView>
 								)}
@@ -99,7 +108,7 @@ export function useBlurModal({
 									keyboardShouldPersistTaps="handled"
 									contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
-										{children}
+										{renderChildren()}
 									</View>
 								</ScrollView>
 							)}

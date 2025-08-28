@@ -119,7 +119,7 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
           // ExternalApiServiceを使ってClaude APIを呼び出し
           const response =
             await this.externalApiService.callClaudeAPI(requestPayload);
-          
+
           // Store for usage tracking
           lastResponse = response;
           lastResponseText = response.content[0]?.text || '';
@@ -158,7 +158,9 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
 
           // Fallback: try direct JSON.parse
           try {
-            const directResult = JSON.parse(lastResponseText) as DishCategoryTopicResponse[];
+            const directResult = JSON.parse(
+              lastResponseText,
+            ) as DishCategoryTopicResponse[];
             this.logger.debug(
               'JSONParsedSuccessfully',
               'generateDishCategoryRecommendations',
