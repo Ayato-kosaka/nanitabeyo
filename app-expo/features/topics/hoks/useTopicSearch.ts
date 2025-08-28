@@ -121,9 +121,7 @@ export const useTopicSearch = () => {
 					.filter((topic) => topic.categoryId && topic.imageUrl)
 					.slice(0, searchResultTopicsNumber);
 
-				const createTopic = (
-					topic: QueryDishCategoryRecommendationsResponse[number],
-				): Topic => {
+				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
 					return {
 						...topic,
 						isHidden: false,

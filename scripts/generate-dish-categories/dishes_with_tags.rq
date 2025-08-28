@@ -2,7 +2,7 @@
 SELECT
   ?dish
   ?labelEN
-  ?image_url
+  ?image_title
   (GROUP_CONCAT(DISTINCT ?originQ;   separator="|") AS ?origins)
   (GROUP_CONCAT(DISTINCT ?cuisineQ;  separator="|") AS ?cuisines)
   (GROUP_CONCAT(DISTINCT ?ancestorQ; separator="|") AS ?tags)
@@ -44,10 +44,10 @@ WHERE {
   ?dish rdfs:label ?labelEN .
   FILTER (LANG(?labelEN) = "en")
 
-  # 画像（https に正規化）
+  # 画像（ファイル名を抽出）
   OPTIONAL {
     ?dish wdt:P18 ?imageRaw .
-    BIND( IRI(REPLACE(STR(?imageRaw), "^http:", "https:")) AS ?image_url )
+    BIND( STRAFTER(STR(?imageRaw), "Special:FilePath/") AS ?image_title )
   }
 
   # 起源 / cuisine（QIDだけ拾う）
@@ -62,5 +62,5 @@ WHERE {
   }
   BIND( STRAFTER(STR(?ancAll), "entity/") AS ?tagQ )
 }
-GROUP BY ?dish ?labelEN ?image_url
+GROUP BY ?dish ?labelEN ?image_title
 ORDER BY ?dish

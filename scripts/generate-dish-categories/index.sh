@@ -36,7 +36,7 @@ SELECT
   dish AS id,
   labelEN AS label_en,
   '{}' AS labels,
-  COALESCE(image, '') AS image_url,
+  COALESCE(image_title, '') AS image_title,
   CASE WHEN origins  IS NULL OR origins  = '' THEN '{}' ELSE '{'||REPLACE(origins, '|', ',') ||'}' END AS origin,
   CASE WHEN cuisines IS NULL OR cuisines = '' THEN '{}' ELSE '{'||REPLACE(cuisines,'|', ',') ||'}' END AS cuisine,
   CASE WHEN tags     IS NULL OR tags     = '' THEN '{}' ELSE '{'||REPLACE(tags,    '|', ',') ||'}' END AS tags
@@ -44,6 +44,16 @@ FROM stdin
 " > "${DISHES_CSV}"
 
 echo "✅ Preprocessed to ${DISHES_CSV}"
+
+# ========== STEP 2.5: Resolve Special:FilePath to actual upload.wikimedia.org URL ==========
+echo "→ [2.5] Resolve Special:FilePath to actual upload.wikimedia.org URL"
+
+python3 "${WORKDIR}/resolve_commons_url.py" \
+        "${DISHES_CSV}" \
+        "${TMPDIR}/dishes_pg_with_final.csv"
+DISHES_CSV="${TMPDIR}/dishes_pg_with_final.csv"
+
+echo "✅ Image URLs resolved to ${DISHES_CSV}"
 
 # ========== STEP 3: Import dish_categories ==========
 echo "→ [3] Importing into dish_categories table..."
