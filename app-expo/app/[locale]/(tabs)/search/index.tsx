@@ -95,16 +95,15 @@ export default function SearchScreen() {
 	};
 
 	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
-		lightImpact();
 		logFrontendEvent({
 			event_name: "location_selected",
 			error_level: "log",
 			payload: { placeId: prediction.place_id, mainText: prediction.mainText },
 		});
+		setLocationQuery(prediction.mainText);
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
-			setLocationQuery(prediction.mainText);
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "location_selection_failed",
@@ -224,6 +223,7 @@ export default function SearchScreen() {
 			<ScrollView
 				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
+				keyboardShouldPersistTaps="always"
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
 				<Card>
