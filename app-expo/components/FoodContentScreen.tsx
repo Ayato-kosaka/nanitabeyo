@@ -269,7 +269,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			payload: {
 				restaurantId: item.restaurant.id,
 				restaurantName: item.restaurant.name,
-				fromDishId: item.dish_media.id,
+				fromDishMediaId: item.dish_media.id,
 			},
 		});
 	};
