@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
@@ -48,7 +49,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	return (
 		<View style={styles.card}>
-			<Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+			<Image source={{ uri: item.imageUrl }} style={styles.cardImage} contentFit="cover" transition={0} />
 
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Image } from "react-native";
+import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -70,7 +70,7 @@ export const useTopicSearch = () => {
 						dishItems.map(async (dishItem) => {
 							if (dishItem.dish_media.media_type === "image") {
 								try {
-									await Image.prefetch(dishItem.dish_media.mediaUrl);
+									await Image.loadAsync(dishItem.dish_media.mediaUrl);
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
@@ -121,9 +121,7 @@ export const useTopicSearch = () => {
 					.filter((topic) => topic.categoryId && topic.imageUrl)
 					.slice(0, searchResultTopicsNumber);
 
-				const createTopic = (
-					topic: QueryDishCategoryRecommendationsResponse[number],
-				): Topic => {
+				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
 					return {
 						...topic,
 						isHidden: false,
@@ -144,7 +142,7 @@ export const useTopicSearch = () => {
 							.filter((topic) => topic.imageUrl)
 							.map(async (topic) => {
 								try {
-									await Image.prefetch(topic.imageUrl!);
+									await Image.loadAsync(topic.imageUrl!);
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
@@ -205,7 +203,7 @@ export const useTopicSearch = () => {
 								.filter((topic) => topic.imageUrl)
 								.map(async (topic) => {
 									try {
-										await Image.prefetch(topic.imageUrl!);
+										await Image.loadAsync(topic.imageUrl!);
 									} catch (error) {
 										logFrontendEvent({
 											event_name: "image_preload_failed",

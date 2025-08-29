@@ -3,7 +3,6 @@ import {
 	View,
 	Text,
 	StyleSheet,
-	Image,
 	ScrollView,
 	TouchableOpacity,
 	Dimensions,
@@ -13,6 +12,7 @@ import {
 	TextInput,
 	Modal,
 } from "react-native";
+import { Image } from "expo-image";
 import { useLocalSearchParams, router } from "expo-router";
 import { ArrowLeft, MapPin, Star, Phone, Clock, Calendar, Camera, Filter, Search, X } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
@@ -182,7 +182,7 @@ export default function RestaurantScreen() {
 
 	const renderFoodPost = ({ item, index }: { item: FoodPost; index: number }) => (
 		<TouchableOpacity style={styles.foodPost} onPress={() => handleFoodPostPress(index)}>
-			<Image source={{ uri: item.image }} style={styles.foodPostImage} />
+			<Image source={{ uri: item.image }} style={styles.foodPostImage} contentFit="cover" transition={0} />
 			<View style={styles.foodPostOverlay}>
 				<View style={styles.foodPostStats}>
 					<Text style={styles.foodPostLikes}>{formatLikeCount(item.likes)}</Text>
@@ -275,7 +275,12 @@ export default function RestaurantScreen() {
 
 				{/* Restaurant Header */}
 				<View style={styles.restaurantHeader}>
-					<Image source={{ uri: restaurantInfo.image }} style={styles.restaurantImage} />
+					<Image
+						source={{ uri: restaurantInfo.image }}
+						style={styles.restaurantImage}
+						contentFit="cover"
+						transition={0}
+					/>
 					<View style={styles.restaurantInfo}>
 						<Text style={styles.restaurantName}>{restaurantInfo.name}</Text>
 						<View style={styles.ratingContainer}>

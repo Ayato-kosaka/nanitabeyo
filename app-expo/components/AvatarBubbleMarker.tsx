@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Image, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { Marker } from "./MapView";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 
@@ -38,6 +39,8 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }:
 							borderRadius: radius,
 						},
 					]}
+					contentFit="cover"
+					transition={0}
 				/>
 				{/* バブルしっぽ */}
 				<View

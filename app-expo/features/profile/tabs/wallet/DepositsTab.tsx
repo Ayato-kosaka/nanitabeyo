@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
-import { View, ScrollView, TouchableOpacity, Text, FlatList, StyleSheet, Image } from "react-native";
+import { View, ScrollView, TouchableOpacity, Text, FlatList, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { Tabs } from "@/components/collapsible-tabs";
 import i18n from "@/lib/i18n";
 import { BidItem } from "../../constants";
@@ -84,6 +85,8 @@ export function DepositsTab({
 					<Image
 						source={{ uri: item.restaurantImageUrl }}
 						style={styles.depositAvatar}
+						contentFit="cover"
+						transition={0}
 						onError={() => console.log("Failed to load restaurant image")}
 					/>
 					<View style={styles.depositInfo}>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from "react-native";
+import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { LinearGradient } from "expo-linear-gradient";
 import { Heart, MessageCircle, UserPlus, AtSign, Share, MoveHorizontal as MoreHorizontal } from "lucide-react-native";
@@ -69,7 +70,7 @@ export default function NotificationsScreen() {
 				activeOpacity={0.7}>
 				{/* Left: Avatar with Action Icon */}
 				<View style={styles.avatarContainer}>
-					<Image source={{ uri: notification.user.avatar }} style={styles.avatar} />
+					<Image source={{ uri: notification.user.avatar }} style={styles.avatar} contentFit="cover" transition={0} />
 					<View style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
 						{getNotificationIcon(notification.type)}
 					</View>
@@ -87,7 +88,12 @@ export default function NotificationsScreen() {
 				{/* Right: Post Thumbnail or More Options */}
 				<View style={styles.rightContainer}>
 					{notification.postThumbnail ? (
-						<Image source={{ uri: notification.postThumbnail }} style={styles.postThumbnail} />
+						<Image
+							source={{ uri: notification.postThumbnail }}
+							style={styles.postThumbnail}
+							contentFit="cover"
+							transition={0}
+						/>
 					) : (
 						<TouchableOpacity style={styles.moreButton}>
 							<MoreHorizontal size={20} color="#666" />
