@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import { Image } from "react-native";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
+import { prefetchWithUserAgent } from "@/components/WikimediaImage";
 import type {
 	BulkImportDishesDto,
 	CreateDishCategoryVariantDto,
@@ -70,7 +70,7 @@ export const useTopicSearch = () => {
 						dishItems.map(async (dishItem) => {
 							if (dishItem.dish_media.media_type === "image") {
 								try {
-									await Image.prefetch(dishItem.dish_media.mediaUrl);
+									await prefetchWithUserAgent(dishItem.dish_media.mediaUrl);
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
@@ -142,7 +142,7 @@ export const useTopicSearch = () => {
 							.filter((topic) => topic.imageUrl)
 							.map(async (topic) => {
 								try {
-									await Image.prefetch(topic.imageUrl!);
+									await prefetchWithUserAgent(topic.imageUrl!);
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
@@ -203,7 +203,7 @@ export const useTopicSearch = () => {
 								.filter((topic) => topic.imageUrl)
 								.map(async (topic) => {
 									try {
-										await Image.prefetch(topic.imageUrl!);
+										await prefetchWithUserAgent(topic.imageUrl!);
 									} catch (error) {
 										logFrontendEvent({
 											event_name: "image_preload_failed",

@@ -1,6 +1,39 @@
 import React from "react";
-import { View, StyleSheet, PixelRatio } from "react-native";
+import { View, StyleSheet, PixelRatio, Platform } from "react-native";
 import { Image, ImageSource } from "expo-image";
+
+/**
+ * Generate User-Agent header according to Wikimedia policy
+ * Format: Nanitabeyo/0.1 (contact: email) Platform/Version expo-image/Version
+ */
+export const getUserAgent = (): string => {
+	const appName = "Nanitabeyo";
+	const appVersion = "0.1";
+	const contact = "contact: dev@nanitabeyo.com";
+	
+	// Platform-specific user agent components
+	const platformInfo = Platform.select({
+		android: "okhttp/4.x",
+		ios: "URLSession/iOS",
+		web: "fetch/web",
+		default: "expo/client",
+	});
+	
+	const expoImageVersion = "expo-image/2.x";
+	
+	return `${appName}/${appVersion} (${contact}) ${platformInfo} ${expoImageVersion}`;
+};
+
+/**
+ * Prefetch image with proper User-Agent header for Wikimedia compliance
+ */
+export const prefetchWithUserAgent = async (uri: string): Promise<boolean> => {
+	return Image.prefetch(uri, {
+		headers: {
+			"User-Agent": getUserAgent(),
+		},
+	});
+};
 
 interface WikimediaImageProps {
 	/** Original Wikimedia Commons URL (e.g., upload.wikimedia.org/.../File.jpg) */
@@ -86,7 +119,7 @@ export function WikimediaImage({
 	const source: ImageSource = {
 		uri: optimizedUri,
 		headers: {
-			"User-Agent": "Nanitabeyo/0.1 (contact: dev@nanitabeyo.com)",
+			"User-Agent": getUserAgent(),
 		},
 	};
 
