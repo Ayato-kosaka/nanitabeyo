@@ -1,7 +1,6 @@
 import React, { memo, ReactNode, useCallback, useMemo } from "react";
 import {
 	FlatList,
-	Image,
 	ListRenderItemInfo,
 	Pressable,
 	StyleProp,
@@ -12,6 +11,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { WikimediaImage } from "@/components/WikimediaImage";
 
 /* -------------------------------------------------------------------------- */
 /*                                  型定義                                    */
@@ -99,7 +99,13 @@ function _ImageCard<T extends ImageCardItem>({
 			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("ImageCardGrid.openItemDetails")}>
-			<Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+			<WikimediaImage
+				uri={item.imageUrl}
+				width={width}
+				height={height}
+				contentFit="cover"
+				recyclingKey={item.id.toString()}
+			/>
 			<LinearGradient
 				colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.1)"]}
 				style={StyleSheet.absoluteFill}

@@ -15,7 +15,6 @@ import i18n from "@/lib/i18n";
 import { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { Json } from "@shared/supabase/database.types";
-import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 
 interface SaveTopicTabProps {
 	data: QueryMeSavedDishCategoriesResponse["data"];
@@ -45,11 +44,6 @@ export function SaveTopicTab({
 	onRetry,
 }: SaveTopicTabProps) {
 	const locales = useLocale();
-	const { width: deviceWidth } = useWindowDimensions();
-
-	// Calculate card width for 2 columns with 16px padding and 8px gap
-	// Same calculation as ImageCardGrid: (deviceWidth - paddingHorizontal*2 - gap*(columns-1)) / columns
-	const cardWidth = (deviceWidth - 16 * 2 - 8 * (2 - 1)) / 2;
 
 	const renderTopicItem = useCallback(
 		({ item, index }: { item: QueryMeSavedDishCategoriesResponse["data"][number]; index: number }) => {
@@ -57,7 +51,7 @@ export function SaveTopicTab({
 				<ImageCard
 					item={{
 						id: item.id,
-						imageUrl: wikimediaThumbFromOriginal(item.image_url, cardWidth),
+						imageUrl: item.image_url,
 					}}
 					onPress={() => onItemPress?.(item, index)}>
 					<View style={styles.topicCardOverlay}>
@@ -68,7 +62,7 @@ export function SaveTopicTab({
 				</ImageCard>
 			);
 		},
-		[onItemPress, cardWidth, locales],
+		[onItemPress, locales],
 	);
 
 	const renderEmptyState = useCallback(() => {
