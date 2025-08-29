@@ -6,6 +6,7 @@ import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
+import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
@@ -48,7 +49,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	return (
 		<View style={styles.card}>
-			<Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+			<Image source={{ uri: wikimediaThumbFromOriginal(item.imageUrl, CARD_WIDTH) }} style={styles.cardImage} />
 
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>
