@@ -77,6 +77,6 @@ export const WIKIMEDIA_HEADERS: Readonly<Record<string, string>> = Object.freeze
  */
 export async function prefetchWithUserAgent(imageUrl: string): Promise<boolean> {
 	return Image.prefetch(imageUrl, {
-		headers: WIKIMEDIA_HEADERS
+		headers: WIKIMEDIA_HEADERS,
 	});
-};
+}

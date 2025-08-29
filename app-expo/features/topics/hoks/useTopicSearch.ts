@@ -140,7 +140,7 @@ export const useTopicSearch = () => {
 					.slice(0, searchResultTopicsNumber)
 					.map((topic) => ({
 						...topic,
-						imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH)
+						imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
 					}));
 
 				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
@@ -204,9 +204,12 @@ export const useTopicSearch = () => {
 									});
 									return {
 										...topic,
-										category: createDishCategoryVariantResponse.labels && typeof createDishCategoryVariantResponse.labels === 'object' && params.localLanguageCode in createDishCategoryVariantResponse.labels
-											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
-											: topic.category,
+										category:
+											createDishCategoryVariantResponse.labels &&
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
+												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
 										imageUrl: createDishCategoryVariantResponse.image_url,
 									};
@@ -222,7 +225,7 @@ export const useTopicSearch = () => {
 						.slice(0, searchResultTopicsNumber - topicsResponseWithCategoryIds.length)
 						.map((topic) => ({
 							...topic,
-							imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH)
+							imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
 						}));
 
 					// Add additional topics to the array (append to the end)
