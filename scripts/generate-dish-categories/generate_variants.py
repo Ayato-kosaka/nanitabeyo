@@ -12,7 +12,7 @@ def norm_key(s: str) -> str:
     """NFKC -> 空白圧縮 -> casefold（小文字）"""
     s = unicodedata.normalize("NFKC", s)
     s = " ".join(s.split())
-    return s.casefold()
+    return s.lower()
 
 def is_bad(s: str) -> bool:
     """空/無意味な文字列は True（出力しない）"""
@@ -70,7 +70,7 @@ def main():
     with open(labels_csv, newline="", encoding="utf-8") as f:
         r = csv.DictReader(f)
         for row in r:
-            qid = row["dish"]
+            qid = row["dish"].split("/")[-1]  # "https://www.wikidata.org/wiki/Q12345" -> "Q12345"
             if qid not in valid_ids:
                 stats["skipped_not_in_final"] += 1
                 continue
