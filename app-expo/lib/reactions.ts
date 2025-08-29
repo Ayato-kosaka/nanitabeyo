@@ -1,4 +1,3 @@
-import * as Crypto from "expo-crypto";
 import { supabase } from "./supabase";
 import { Env } from "@/constants/Env";
 import type { DeepNonNullable } from "@shared/utils/types";
@@ -19,15 +18,13 @@ export const insertReaction = async ({
 	if (!userId) throw new Error("No authenticated user");
 
 	const { error } = await supabase.from("reactions").insert({
-		id: Crypto.randomUUID(),
+		// id, created_at, and lock_no will use database defaults
 		user_id: userId,
 		target_type,
 		target_id,
 		action_type,
 		meta,
-		created_at: new Date().toISOString(),
 		created_version: Env.APP_VERSION,
-		lock_no: 0,
 	});
 
 	if (error) throw new Error(error.message);
