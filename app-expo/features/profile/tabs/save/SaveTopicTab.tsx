@@ -98,7 +98,7 @@ export function SaveTopicTab({
 		<GridList
 			data={data}
 			renderItem={renderTopicItem}
-			numColumns={2}
+			numColumns={3}
 			contentContainerStyle={[styles.gridContent, contentContainerStyle]}
 			columnWrapperStyle={styles.gridRow}
 			isLoading={isLoading}
