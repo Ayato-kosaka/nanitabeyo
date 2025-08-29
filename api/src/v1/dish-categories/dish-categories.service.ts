@@ -56,8 +56,29 @@ export class DishCategoriesService {
           ),
         );
 
+        // Use localLanguageCode if available to get localized category name
+        let categoryName = claudeRec.category;
+        if (dto.localLanguageCode && matchedCategory?.labels) {
+          try {
+            const labels = matchedCategory.labels as Record<string, string>;
+            // Try to get the localized label, fallback to English, then original
+            categoryName =
+              labels[dto.localLanguageCode] ||
+              labels['en'] ||
+              matchedCategory.label_en ||
+              claudeRec.category;
+          } catch (error) {
+            this.logger.warn('LabelsParsingError', 'getRecommendations', {
+              categoryId: matchedCategory.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            // Fallback to English label or original category
+            categoryName = matchedCategory.label_en || claudeRec.category;
+          }
+        }
+
         return {
-          category: claudeRec.category,
+          category: categoryName,
           topicTitle: claudeRec.topicTitle,
           reason: claudeRec.reason,
           categoryId: matchedCategory?.id || '',

@@ -167,47 +167,147 @@ export class LocationsService {
     // カテゴリに基づく検索クエリを構築
     const query = params.dishCategoryName;
 
-    const requestPayload: protos.google.maps.places.v1.ISearchTextRequest = {
-      textQuery: query,
-      locationBias: {
-        circle: {
-          center: { latitude: lat, longitude: lng },
-          radius: params.radius,
+    // Build the base request payload
+    const baseRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
+      {
+        textQuery: query,
+        locationBias: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: params.radius,
+          },
         },
-      },
-      ...(params.pageSize && { pageSize: params.pageSize }),
-      ...(params.minRating && { minRating: params.minRating }),
-      ...(params.languageCode && { languageCode: params.languageCode }),
-      // priceLevels は string 配列なので、型チェックを回避するためにキャスト
-      ...(params.priceLevels && {
-        priceLevels: params.priceLevels.map(
-          (level) =>
-            level as unknown as protos.google.maps.places.v1.PriceLevel,
-        ),
-      }),
-      rankPreference: 'DISTANCE',
-    };
+        ...(params.pageSize && { pageSize: params.pageSize }),
+        ...(params.languageCode && { languageCode: params.languageCode }),
+      };
 
-    try {
-      const response = await this.externalApiService.callPlaceSearchText(
-        'places.id,places.displayName,places.location,contextualContents.photos.name,contextualContents.photos.widthPx,contextualContents.photos.heightPx,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
-        requestPayload,
-      );
+    // Helper function to perform search with given parameters
+    const performSearch = async (
+      requestPayload: protos.google.maps.places.v1.ISearchTextRequest,
+      searchAttempt: string,
+    ): Promise<google.maps.places.v1.ISearchTextResponse> => {
+      try {
+        this.logger.debug('GoogleMapsTextSearchAttempt', 'searchRestaurants', {
+          attempt: searchAttempt,
+          hasMinRating: 'minRating' in requestPayload,
+          hasPriceLevels: 'priceLevels' in requestPayload,
+          hasRankPreference: 'rankPreference' in requestPayload,
+        });
 
-      if (!response.places || response.places.length === 0) {
+        const response = await this.externalApiService.callPlaceSearchText(
+          'places.id,places.displayName,places.location,contextualContents.photos.name,contextualContents.photos.widthPx,contextualContents.photos.heightPx,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
+          requestPayload,
+        );
+
+        if (response.places && response.places.length > 0) {
+          this.logger.debug(
+            'GoogleMapsTextSearchSuccess',
+            'searchRestaurants',
+            {
+              resultCount: response.places?.length,
+              searchAttempt,
+            },
+          );
+          return response;
+        }
+
         this.logger.debug(
           'GoogleMapsTextSearchNoResults',
           'searchRestaurants',
           {
             resultCount: 0,
+            searchAttempt,
           },
         );
         return {};
+      } catch (error) {
+        this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          location: params.location,
+          radius: params.radius,
+          category: params.dishCategoryName,
+          searchAttempt,
+        });
+        throw error;
+      }
+    };
+
+    try {
+      // Step 1: Normal search with all conditions
+      const fullRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
+        {
+          ...baseRequestPayload,
+          ...(params.minRating && { minRating: params.minRating }),
+          // priceLevels は string 配列なので、型チェックを回避するためにキャスト
+          ...(params.priceLevels && {
+            priceLevels: params.priceLevels.map(
+              (level) =>
+                level as unknown as protos.google.maps.places.v1.PriceLevel,
+            ),
+          }),
+          rankPreference: 'DISTANCE',
+        };
+
+      let response = await performSearch(fullRequestPayload, 'full_conditions');
+
+      if (response.places && response.places.length > 0) {
+        return response;
       }
 
-      this.logger.debug('GoogleMapsTextSearchSuccess', 'searchRestaurants', {
-        resultCount: response.places?.length,
+      // Step 2: Retry without minRating and priceLevels if no results
+      this.logger.warn('GoogleMapsTextSearchFallback', 'searchRestaurants', {
+        message:
+          'No results with full conditions, retrying without minRating and priceLevels',
+        originalParams: params,
       });
+
+      const relaxedRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
+        {
+          ...baseRequestPayload,
+          rankPreference: 'DISTANCE',
+        };
+
+      response = await performSearch(
+        relaxedRequestPayload,
+        'without_rating_and_price',
+      );
+
+      if (response.places && response.places.length > 0) {
+        return response;
+      }
+
+      // Step 3: Final attempt without rankPreference
+      this.logger.warn(
+        'GoogleMapsTextSearchFinalFallback',
+        'searchRestaurants',
+        {
+          message:
+            'No results with relaxed conditions, retrying without rankPreference',
+          originalParams: params,
+        },
+      );
+
+      const minimalRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
+        {
+          ...baseRequestPayload,
+        };
+
+      response = await performSearch(
+        minimalRequestPayload,
+        'minimal_conditions',
+      );
+
+      if (!response.places || response.places.length === 0) {
+        this.logger.warn(
+          'GoogleMapsTextSearchAllFallbacksFailed',
+          'searchRestaurants',
+          {
+            message: 'All search attempts returned 0 results',
+            originalParams: params,
+          },
+        );
+      }
 
       return response;
     } catch (error) {
