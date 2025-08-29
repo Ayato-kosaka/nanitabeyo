@@ -324,13 +324,14 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			},
 		});
 
-		if (!item.restaurant.google_place_id) {
+		const placeId = item.restaurant.google_place_id;
+		if (!placeId) {
 			Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
 			return;
 		}
 
 		try {
-			const mapUrl = `https://www.google.com/maps/place/?q=place_id:${item.restaurant.google_place_id}`;
+			const mapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(placeId)}&query=${encodeURIComponent(item.restaurant.name || "")}`;
 
 			if (Platform.OS === "web") {
 				window.open(mapUrl, "_blank", "noopener,noreferrer"); // 別タブで開く
