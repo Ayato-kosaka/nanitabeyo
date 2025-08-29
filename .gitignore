@@ -52,4 +52,5 @@ yarn-error.log*
 
 # --- Optional: Supabase CLI metadata ---
 supabase/.temp/
-supabase/.env
+supabase/.env*.pyc
+__pycache__/
