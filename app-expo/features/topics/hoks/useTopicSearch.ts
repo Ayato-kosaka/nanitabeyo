@@ -53,17 +53,32 @@ export const useTopicSearch = () => {
 				// TODO: GET /v1/dish-media
 				if (dishItems.length < searchResultRestaurantsNumber) {
 					// if (false) {
+
+					// Check if all price levels are selected - if so, don't send priceLevels parameter
+					const allPriceLevels = [
+						"PRICE_LEVEL_INEXPENSIVE",
+						"PRICE_LEVEL_MODERATE",
+						"PRICE_LEVEL_EXPENSIVE",
+						"PRICE_LEVEL_VERY_EXPENSIVE",
+					];
+					const isAllPriceLevelsSelected =
+						priceLevels.length === allPriceLevels.length &&
+						allPriceLevels.every((level) => priceLevels.includes(level));
+
+					const requestPayload: BulkImportDishesDto = {
+						location: `${latitude},${longitude}`,
+						radius: radius,
+						categoryId: categoryId,
+						categoryName: category,
+						minRating: 3.0, // Fixed value as per requirement
+						languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
+						// Only include priceLevels if not all are selected
+						...(isAllPriceLevelsSelected ? {} : { priceLevels: priceLevels }),
+					};
+
 					dishItems = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dishes/bulk-import", {
 						method: "POST",
-						requestPayload: {
-							location: `${latitude},${longitude}`,
-							radius: radius,
-							categoryId: categoryId,
-							categoryName: category,
-							minRating: 3.0, // Fixed value as per requirement
-							languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
-							priceLevels: priceLevels,
-						},
+						requestPayload,
 					});
 
 					// Preload dish media images
@@ -115,6 +130,7 @@ export const useTopicSearch = () => {
 						mood: params.mood,
 						restrictions: params.restrictions,
 						languageTag: locale,
+						localLanguageCode: params.localLanguageCode,
 					},
 				});
 
@@ -183,6 +199,9 @@ export const useTopicSearch = () => {
 									});
 									return {
 										...topic,
+										category: createDishCategoryVariantResponse.labels && typeof createDishCategoryVariantResponse.labels === 'object' && params.localLanguageCode in createDishCategoryVariantResponse.labels
+											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
+											: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
 										imageUrl: createDishCategoryVariantResponse.image_url,
 									};
