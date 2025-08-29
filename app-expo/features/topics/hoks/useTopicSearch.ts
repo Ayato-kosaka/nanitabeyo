@@ -3,6 +3,7 @@ import { Image } from "react-native";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
+import { prefetchWithUserAgent, wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 import type {
 	BulkImportDishesDto,
 	CreateDishCategoryVariantDto,
@@ -17,6 +18,7 @@ import type {
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
+import { CARD_WIDTH } from "../constants";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -135,7 +137,11 @@ export const useTopicSearch = () => {
 
 				let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
 					.filter((topic) => topic.categoryId && topic.imageUrl)
-					.slice(0, searchResultTopicsNumber);
+					.slice(0, searchResultTopicsNumber)
+					.map((topic) => ({
+						...topic,
+						imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH)
+					}));
 
 				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
 					return {
@@ -158,7 +164,7 @@ export const useTopicSearch = () => {
 							.filter((topic) => topic.imageUrl)
 							.map(async (topic) => {
 								try {
-									await Image.prefetch(topic.imageUrl!);
+									await prefetchWithUserAgent(topic.imageUrl!);
 								} catch (error) {
 									logFrontendEvent({
 										event_name: "image_preload_failed",
@@ -213,7 +219,11 @@ export const useTopicSearch = () => {
 
 					const additionalTopicsWithCategoryIds = createDishCategoryVariantResponse
 						.filter((topic) => topic.categoryId && topic.imageUrl)
-						.slice(0, searchResultTopicsNumber - topicsResponseWithCategoryIds.length);
+						.slice(0, searchResultTopicsNumber - topicsResponseWithCategoryIds.length)
+						.map((topic) => ({
+							...topic,
+							imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH)
+						}));
 
 					// Add additional topics to the array (append to the end)
 					if (additionalTopicsWithCategoryIds.length > 0) {
@@ -222,7 +232,7 @@ export const useTopicSearch = () => {
 								.filter((topic) => topic.imageUrl)
 								.map(async (topic) => {
 									try {
-										await Image.prefetch(topic.imageUrl!);
+										await prefetchWithUserAgent(topic.imageUrl!);
 									} catch (error) {
 										logFrontendEvent({
 											event_name: "image_preload_failed",
