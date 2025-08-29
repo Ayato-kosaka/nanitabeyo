@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
-import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
+import { generateUserAgent } from "@/lib/wikimedia";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
@@ -49,7 +50,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	return (
 		<View style={styles.card}>
-			<Image source={{ uri: wikimediaThumbFromOriginal(item.imageUrl, CARD_WIDTH) }} style={styles.cardImage} />
+			<Image source={{ uri: item.imageUrl, headers: { "User-Agent": generateUserAgent() } }} style={styles.cardImage} />
 
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>
@@ -89,7 +90,6 @@ const styles = StyleSheet.create({
 	cardImage: {
 		width: "100%",
 		height: "100%",
-		resizeMode: "cover",
 	},
 	cardOverlay: {
 		position: "absolute",
