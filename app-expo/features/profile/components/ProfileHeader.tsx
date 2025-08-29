@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, LayoutChangeEvent } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "lucide-react-native";
 import { Card } from "@/components/Card";
@@ -82,6 +83,9 @@ export function ProfileHeader({
 						<Image
 							source={isGuest ? require("@/assets/images/icon.png") : { uri: profile.avatar }}
 							style={styles.avatar}
+							contentFit="cover"
+							transition={0}
+							cachePolicy={"memory-disk"}
 						/>
 
 						{!isGuest && (
@@ -190,7 +194,7 @@ const styles = StyleSheet.create({
 		borderWidth: 3,
 		borderColor: "#FFFFFF",
 		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
+		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.15,
 		shadowRadius: 8,
 		elevation: 6,
