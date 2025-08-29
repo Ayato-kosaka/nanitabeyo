@@ -12,6 +12,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 
 /* -------------------------------------------------------------------------- */
 /*                                  型定義                                    */
@@ -77,6 +78,8 @@ function _ImageCard<T extends ImageCardItem>({
 	const { lightImpact } = useHaptics();
 	const { width: widthDimensions } = useWindowDimensions();
 
+	const source = useMemo(() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS }), [item.imageUrl]);
+
 	/** 列数・ギャップ・左右 padding からカード幅を計算 */
 	const width = useMemo(
 		() => (widthDimensions - paddingHorizontal * 2 - gap * (columns - 1)) / columns,
@@ -99,7 +102,13 @@ function _ImageCard<T extends ImageCardItem>({
 			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("ImageCardGrid.openItemDetails")}>
-			<Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+			<Image
+				source={source}
+				cachePolicy="memory-disk"
+				transition={100}
+				style={StyleSheet.absoluteFill}
+				contentFit="cover"
+			/>
 			<LinearGradient
 				colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.1)"]}
 				style={StyleSheet.absoluteFill}

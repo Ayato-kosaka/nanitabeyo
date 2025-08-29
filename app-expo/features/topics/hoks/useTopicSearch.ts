@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Image } from "react-native";
+import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";

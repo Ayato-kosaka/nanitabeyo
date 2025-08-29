@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Trash, Bookmark } from "lucide-react-native";
@@ -7,13 +7,15 @@ import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
-import { generateUserAgent } from "@/lib/wikimedia";
+import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
 	const [isSaved, setIsSaved] = useState(false);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+
+	const source = useMemo(() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS }), [item.imageUrl]);
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
@@ -50,7 +52,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	return (
 		<View style={styles.card}>
-			<Image source={{ uri: item.imageUrl, headers: { "User-Agent": generateUserAgent() } }} style={styles.cardImage} />
+			<Image source={source} cachePolicy="memory" transition={100} style={styles.cardImage} />
 
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>

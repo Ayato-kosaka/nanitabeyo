@@ -62,6 +62,13 @@ export function generateUserAgent(): string {
 }
 
 /**
+ * Wikimedia-compliant headers with User-Agent
+ */
+export const WIKIMEDIA_HEADERS: Readonly<Record<string, string>> = Object.freeze({
+	"User-Agent": generateUserAgent(),
+});
+
+/**
  * Prefetch image with Wikimedia-compliant User-Agent header
  * Only applies User-Agent for Wikimedia Commons URLs
  *
@@ -70,8 +77,6 @@ export function generateUserAgent(): string {
  */
 export async function prefetchWithUserAgent(imageUrl: string): Promise<boolean> {
 	return Image.prefetch(imageUrl, {
-		headers: {
-			"User-Agent": generateUserAgent(),
-		},
+		headers: WIKIMEDIA_HEADERS
 	});
 };
