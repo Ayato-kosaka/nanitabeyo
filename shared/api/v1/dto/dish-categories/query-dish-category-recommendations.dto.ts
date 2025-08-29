@@ -36,10 +36,9 @@ export class QueryDishCategoryRecommendationsDto {
 	languageTag!: string;
 
 	/** 現地言語コード (例: ka, ja, en) */
-	@IsOptional()
 	@IsString()
 	@Matches(/^[a-z]{2,3}$/, {
 		message: "localLanguageCode must be a 2-3 character language code (e.g., en, ja, ka)",
 	})
-	localLanguageCode?: string;
+	localLanguageCode!: string;
 }

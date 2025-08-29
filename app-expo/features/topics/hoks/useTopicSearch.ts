@@ -34,7 +34,6 @@ export const useTopicSearch = () => {
 			latitude: number,
 			longitude: number,
 			languageCode: string,
-			localLanguageCode?: string,
 			radius: number = 500, // Default 500m
 			priceLevels: string[] = [
 				"PRICE_LEVEL_INEXPENSIVE",
@@ -65,14 +64,11 @@ export const useTopicSearch = () => {
 						priceLevels.length === allPriceLevels.length &&
 						allPriceLevels.every((level) => priceLevels.includes(level));
 
-					// Use localLanguageCode for category name if available
-					const categoryName = localLanguageCode ? category : category;
-
 					const requestPayload: BulkImportDishesDto = {
 						location: `${latitude},${longitude}`,
 						radius: radius,
 						categoryId: categoryId,
-						categoryName: categoryName,
+						categoryName: category,
 						minRating: 3.0, // Fixed value as per requirement
 						languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
 						// Only include priceLevels if not all are selected
@@ -133,7 +129,7 @@ export const useTopicSearch = () => {
 						mood: params.mood,
 						restrictions: params.restrictions,
 						languageTag: locale,
-						localLanguageCode: params.localLanguageCode, // Use localLanguageCode for category localization
+						localLanguageCode: params.localLanguageCode,
 					},
 				});
 
@@ -151,7 +147,6 @@ export const useTopicSearch = () => {
 							params.location.latitude,
 							params.location.longitude,
 							params.localLanguageCode,
-							params.localLanguageCode, // Pass localLanguageCode for category name localization
 						),
 					};
 				};
@@ -203,6 +198,9 @@ export const useTopicSearch = () => {
 									});
 									return {
 										...topic,
+										category: createDishCategoryVariantResponse.labels && typeof createDishCategoryVariantResponse.labels === 'object' && params.localLanguageCode in createDishCategoryVariantResponse.labels
+											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
+											: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
 										imageUrl: createDishCategoryVariantResponse.image_url,
 									};
