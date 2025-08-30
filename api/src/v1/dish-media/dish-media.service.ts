@@ -12,7 +12,7 @@ import {
   CreateDishMediaDto,
   LikeDishMediaParamsDto,
   SaveDishMediaParamsDto,
-  QueryDishMediaDto,
+  SearchDishMediaDto,
 } from '@shared/v1/dto';
 
 import { DishMediaRepository } from './dish-media.repository';
@@ -34,9 +34,9 @@ export class DishMediaService {
   ) {}
 
   /* ------------------------------------------------------------------ */
-  /*                         GET /v1/dish-media                         */
+  /*                     GET /v1/dish-media/search                      */
   /* ------------------------------------------------------------------ */
-  async findByCriteria(dto: QueryDishMediaDto, viewerId?: string) {
+  async findByCriteria(dto: SearchDishMediaDto, viewerId?: string) {
     this.logger.debug('FindByCriteria', 'findByCriteria', {
       location: dto.location,
       radius: dto.radius,
@@ -57,6 +57,30 @@ export class DishMediaService {
       count: dishMediaEntryItems.length,
     });
     return dishMediaEntryItems;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                    GET /v1/dish-media?ids=...                      */
+  /* ------------------------------------------------------------------ */
+  async findByIds(ids: string[], viewerId?: string) {
+    this.logger.debug('FindByIds', 'findByIds', {
+      count: ids.length,
+      viewer: viewerId ?? 'anon',
+    });
+
+    const items = await this.fetchDishMediaEntryItems(ids, {
+      userId: viewerId,
+    });
+
+    const foundSet = new Set(items.map((item) => item.dish_media.id));
+    const notFound = ids.filter((id) => !foundSet.has(id));
+
+    this.logger.debug('FindByIdsResult', 'findByIds', {
+      count: items.length,
+      notFound: notFound.length,
+    });
+
+    return { items, notFound };
   }
 
   /**

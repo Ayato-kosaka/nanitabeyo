@@ -1,16 +1,16 @@
-// libs/api-contracts/src/v1/dish-media/dto/query-dish-media.dto.ts
+// libs/api-contracts/src/v1/dish-media/dto/search-dish-media.dto.ts
 
 import { IsNumber, IsOptional, IsPositive, Max, Min, Matches, IsUUID } from "@nestjs/class-validator";
 import { Type } from "@nestjs/class-transformer";
 
 /**
- * Query parameters accepted by **GET /v1/dish-media**.
+ * Query parameters accepted by **GET /v1/dish-media/search**.
  *
  * - 変換は class-transformer (@Type) で自動的に JS Number へ
  * - バリデーションは class-validator だけに依存
  * - Nest / Prisma と完全分離 ⇒ どのランタイムでも再利用可
  */
-export class QueryDishMediaDto {
+export class SearchDishMediaDto {
 	/**
 	 * 緯度経度（WGS-84）を `"lat,lng"` 形式で指定
 	 *   - Latitude  ‐90 〜 +90

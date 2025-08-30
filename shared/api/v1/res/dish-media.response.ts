@@ -21,8 +21,14 @@ export type DishMediaEntry = {
 	})[];
 };
 
-/** GET /v1/dish-media のレスポンス型 */
+/** GET /v1/dish-media/search のレスポンス型 */
 export type QueryDishMediaResponse = DishMediaEntry[];
+
+/** GET /v1/dish-media?ids=... のレスポンス型 */
+export type QueryDishMediaByIdsResponse = {
+        items: DishMediaEntry[];
+        notFound: string[];
+};
 
 /** POST /v1/dish-media のレスポンス型 */
 export type CreateDishMediaResponse = void;

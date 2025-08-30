@@ -11,8 +11,9 @@
 					"/*/food/*",
 					"/*/home/*",
 					"/*/map/*",
-					"/*/notifications/*",
-					"/*/search/*",
+                                        "/*/notifications/*",
+                                        "/*/posts/*",
+                                        "/*/search/*",
 					"/*"
 				]
 			}
