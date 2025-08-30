@@ -1,73 +1,56 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { X } from "lucide-react-native";
+import { useLocalSearchParams } from "expo-router";
+import FoodContentMap from "@/components/FoodContentMap";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowLeft } from "lucide-react-native";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import FoodContentFeed from "@/components/FoodContentFeed";
-import i18n from "@/lib/i18n";
-import type { DishMediaEntry } from "@shared/api/v1/res";
+import { useSearchResult } from "@/features/search/hooks/useSearchResult";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
 
 export default function ProfileSearchResultScreen() {
-	const { locale, topicId } = useLocalSearchParams<{
-		locale: string;
-		topicId: string;
-	}>();
+	const { topicId } = useLocalSearchParams<{ topicId: string }>();
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
-	const [dishes, setDishes] = useState<DishMediaEntry[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-
-	const dishPromisesMap = useDishMediaEntriesStore((state) => state.dishPromisesMap);
+	const { currentIndex, showCompletionModal, dishesPromise, handleIndexChange, handleClose, handleReturnToCards } =
+		useSearchResult(topicId as string);
 
 	useEffect(() => {
-		const loadDishes = async () => {
-			if (!topicId || !dishPromisesMap[topicId]) {
-				setError("No data available");
-				setIsLoading(false);
-				return;
-			}
+		// Log screen view with search parameters
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: {
+				screen: "search_result",
+				topicId,
+				hasTopicId: !!topicId,
+			},
+		});
+	}, [topicId, logFrontendEvent]);
 
-			try {
-				const dishItems = await dishPromisesMap[topicId];
-				setDishes(dishItems);
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "Failed to load dishes");
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadDishes();
-	}, [topicId, dishPromisesMap]);
-
-	const handleBack = () => {
-		router.back();
+	const handleCloseWithHaptic = () => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "search_result_closed",
+			error_level: "log",
+			payload: { topicId, currentIndex },
+		});
+		handleClose();
 	};
-
-	if (isLoading) {
-		return (
-			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-				<View style={styles.loadingContainer}>
-					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
-				</View>
-			</LinearGradient>
-		);
-	}
-
-	if (error) {
-		return (
-			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			</LinearGradient>
-		);
-	}
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<FoodContentFeed items={dishes} />
+			{/* Header with Back Button */}
+			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
+				<TouchableOpacity style={styles.closeButton} onPress={handleCloseWithHaptic}>
+					<X size={24} color="#000" />
+				</TouchableOpacity>
+			</View>
+
+			{/* Feed Content */}
+			{/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
+			<FoodContentMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} />
 		</LinearGradient>
 	);
 }
@@ -76,24 +59,23 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
+	closeButtonContainer: {
+		position: "absolute",
+		right: 0,
+		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "space-between",
+		padding: 16,
+		zIndex: 10,
 	},
-	loadingText: {
-		fontSize: 16,
-		color: "#666",
-	},
-	errorContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 32,
-	},
-	errorText: {
-		fontSize: 16,
-		color: "#666",
-		textAlign: "center",
+	closeButton: {
+		padding: 8,
+		borderRadius: 24,
+		backgroundColor: "#FFFFFF",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.3,
+		shadowRadius: 12,
+		elevation: 6,
 	},
 });
