@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
-import { View, ScrollView, TouchableOpacity, Text, FlatList, StyleSheet, Image } from "react-native";
+import { View, ScrollView, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { Tabs } from "@/components/collapsible-tabs";
 import i18n from "@/lib/i18n";
 import { BidItem } from "../../constants";
