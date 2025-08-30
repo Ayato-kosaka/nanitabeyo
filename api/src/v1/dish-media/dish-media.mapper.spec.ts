@@ -12,7 +12,7 @@ describe('DishMediaMapper', () => {
     mapper = module.get<DishMediaMapper>(DishMediaMapper);
   });
 
-  describe('toQueryDishMediaResponse', () => {
+  describe('toSearchDishMediaResponse', () => {
     it('should map correctly without spreading unwanted fields', () => {
       // Create mock data that simulates what repository provides
       const mockItem: DishMediaEntryItem = {
@@ -82,7 +82,7 @@ describe('DishMediaMapper', () => {
       (mockItem.dish_media as any).private_field = 'should-not-appear';
       (mockItem.dish_reviews[0] as any).admin_notes = 'should-not-appear';
 
-      const result = mapper.toQueryDishMediaResponse([mockItem]);
+      const result = mapper.toSearchDishMediaResponse([mockItem]);
 
       expect(result).toHaveLength(1);
       const entry = result[0];
@@ -160,7 +160,7 @@ describe('DishMediaMapper', () => {
     });
 
     it('should handle empty arrays', () => {
-      const result = mapper.toQueryDishMediaResponse([]);
+      const result = mapper.toSearchDishMediaResponse([]);
       expect(result).toEqual([]);
     });
   });

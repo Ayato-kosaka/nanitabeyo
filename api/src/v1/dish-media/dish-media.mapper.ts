@@ -1,13 +1,13 @@
 // food-app/api/src/v1/dish-media/dish-media.mapper.ts
 //
-// ❶ Repository → Controller 公開型（QueryDishMediaResponse）へ変換
+// ❶ Repository → Controller 公開型（SearchDishMediaResponse）へ変換
 // ❷ Prisma → Supabase 型は shared/converters のユーティリティを reuse
 //
 
 import { Injectable } from '@nestjs/common';
 
 import { DishMediaEntryEntity } from './dish-media.repository';
-import { QueryDishMediaResponse } from '@shared/v1/res';
+import { SearchDishMediaResponse } from '@shared/v1/res';
 
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
@@ -25,11 +25,11 @@ export type DishMediaEntryItem = DishMediaEntryEntity & {
 export class DishMediaMapper {
   /**
    * Repository から取得した `DishMediaEntryEntity[]` を
-   * Controller が返す `QueryDishMediaResponse` に整形する
+   * Controller が返す `SearchDishMediaResponse` に整形する
    */
-  toQueryDishMediaResponse(
+  toSearchDishMediaResponse(
     items: DishMediaEntryItem[],
-  ): QueryDishMediaResponse {
+  ): SearchDishMediaResponse {
     return items.map((src) => {
       // Use convertPrismaToSupabase as base, then add only required additional fields
       const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);
