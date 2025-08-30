@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches } from "@nestjs/class-validator";
+import { IsOptional, IsString, Matches } from "class-validator";
 
 /**
  * Query parameters for GET /v1/dish-categories/recommendations

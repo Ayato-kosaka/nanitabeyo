@@ -1,4 +1,4 @@
-import { IsUUID } from "@nestjs/class-validator";
+import { IsUUID } from "class-validator";
 
 /** POST /v1/dish-reviews/:id/likes/:userId のパスパラメータ */
 export class LikeDishReviewParamsDto {

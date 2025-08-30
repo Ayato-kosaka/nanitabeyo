@@ -1,4 +1,4 @@
-import { IsIn, IsString, Length } from "@nestjs/class-validator";
+import { IsIn, IsString, Length } from "class-validator";
 
 /** POST /v1/feedback/issue のボディ */
 export class CreateFeedbackDto {

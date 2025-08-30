@@ -1,5 +1,5 @@
-import { Transform } from "@nestjs/class-transformer";
-import { ArrayNotEmpty, IsArray, IsUUID } from "@nestjs/class-validator";
+import { Transform } from 'class-transformer';
+import { ArrayNotEmpty, IsArray, IsUUID } from 'class-validator';
 
 /**
  * Query parameters accepted by **GET /v1/dish-media?ids=...**.

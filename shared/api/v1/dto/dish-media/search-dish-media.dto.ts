@@ -1,7 +1,7 @@
 // libs/api-contracts/src/v1/dish-media/dto/search-dish-media.dto.ts
 
-import { IsNumber, IsOptional, IsPositive, Max, Min, Matches, IsUUID } from "@nestjs/class-validator";
-import { Type } from "@nestjs/class-transformer";
+import { IsNumber, IsOptional, IsPositive, Max, Min, Matches, IsUUID } from "class-validator";
+import { Type } from "class-transformer";
 
 /**
  * Query parameters accepted by **GET /v1/dish-media/search**.

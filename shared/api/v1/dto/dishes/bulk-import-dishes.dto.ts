@@ -9,8 +9,8 @@ import {
 	Length,
 	IsIn,
 	IsOptional,
-} from "@nestjs/class-validator";
-import { Type } from "@nestjs/class-transformer";
+} from "class-validator";
+import { Type } from "class-transformer";
 
 /** POST /v1/dishes/bulk-import のボディ */
 export class BulkImportDishesDto {

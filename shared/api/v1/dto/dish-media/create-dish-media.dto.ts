@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsUUID } from "@nestjs/class-validator";
+import { IsEnum, IsString, IsUUID } from "class-validator";
 
 /**
  * クライアントがアップロード済みの

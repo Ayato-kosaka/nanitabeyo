@@ -1,5 +1,5 @@
-import { IsNumber, IsOptional, IsString, IsUUID, Max, Min } from "@nestjs/class-validator";
-import { Type } from "@nestjs/class-transformer";
+import { IsNumber, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
+import { Type } from "class-transformer";
 
 /** POST /v1/dish-reviews のボディ */
 export class CreateDishReviewDto {

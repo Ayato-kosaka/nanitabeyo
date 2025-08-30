@@ -1,4 +1,4 @@
-import { IsUUID } from "@nestjs/class-validator";
+import { IsUUID } from "class-validator";
 
 /** /v1/users/:id 系のパスパラメータ */
 export class UserIdParamsDto {

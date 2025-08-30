@@ -15,7 +15,7 @@ export default function PostsScreen() {
 		const idArray =
 			typeof ids === "string" ? ids.split(",") : Array.isArray(ids) ? ids.flatMap((v) => v.split(",")) : [];
 		const requestPayload: QueryDishMediaByIdsDto = { ids: idArray };
-		const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dishes/bulk-import", {
+		const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
 			method: "GET",
 			requestPayload,
 		});
