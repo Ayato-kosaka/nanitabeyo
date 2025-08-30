@@ -3,7 +3,7 @@ import { GoogleMap, Marker as GoogleMarker } from "@react-google-maps/api";
 import type { MapViewProps, MarkerProps } from "./MapView";
 import type { MapPressEvent, MarkerPressEvent, PoiClickEvent, Region } from "react-native-maps";
 import { OverlayView } from "@react-google-maps/api";
-import { TouchableOpacity, Image, View } from "react-native";
+import { TouchableOpacity } from "react-native";
 
 /** ─────────────────────────────────────────────────────────────
  *  ネイティブと API 互換にするためのハンドル

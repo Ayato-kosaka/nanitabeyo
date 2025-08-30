@@ -1,10 +1,4 @@
 {
-	"ios": {
-		"CFBundleDisplayName": "CraveCatch"
-	},
-	"android": {
-		"app_name": "CraveCatch"
-	},
 	"Common": {
 		"cancel": "Cancelar",
 		"ok": "Aceptar",
@@ -31,6 +25,7 @@
 		"unsupportedVersion": "Esta versión ya no es compatible."
 	},
 	"Search": {
+		"currentLocation": "Ubicación actual",
 		"DistanceSlider": {
 			"near": "Cerca",
 			"far": "Lejos"
@@ -54,6 +49,9 @@
 			"distance": "¿Qué distancia?",
 			"budget": "¿Presupuesto?",
 			"restrictions": "Restricciones"
+		},
+		"locationModal": {
+			"title": "Ingresa ubicación de búsqueda"
 		},
 		"required": "Obligatorio",
 		"placeholders": {
@@ -131,7 +129,8 @@
 		},
 		"empty": "No hay platos disponibles",
 		"retry": "Volver a la búsqueda",
-		"chooseThis": "¡Este!"
+		"chooseThis": "¡Este!",
+		"hiddenMessage": "{{title}} se ha ocultado"
 	},
 	"Notifications": {
 		"title": "Notificaciones",
@@ -148,7 +147,11 @@
 		},
 		"actions": {
 			"share": "Compartir",
+			"seeMore": "ver más",
 			"openMap": "Abrir mapa"
+		},
+		"share": {
+			"title": "Mira {{dishName}}"
 		},
 		"buttons": {
 			"viewRestaurant": "Ver restaurante"
@@ -173,15 +176,31 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Depósitos",
-			"earnings": "Ganancias"
+			"earnings": "Ganancias",
+			"topics": "Temas",
+			"posts": "Publicaciones",
+			"saved-posts": "Publicaciones",
+			"saved-topics": "Temas",
+			"wallet-deposit": "Depósitos",
+			"wallet-earning": "Ganancias"
 		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "Cargando...",
+		"tabError": {
+			"failedToLoad": "Error al cargar los datos: {{error}}",
+			"retry": "Reintentar"
+		},
 		"emptyState": {
 			"noDeposits": "No hay depósitos para el estado seleccionado",
-			"noEarnings": "No hay ganancias para el estado seleccionado"
+			"noEarnings": "No hay ganancias para el estado seleccionado",
+			"noDishReviews": "Aún no hay publicaciones",
+			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
+			"noSavedItems": "No hay elementos guardados",
+			"noSavedPosts": "Cuando encuentres publicaciones interesantes, usa \"Guardar\" para revisarlas",
+			"noSavedTopics": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
 		},
 		"statusLabels": {
 			"active": "Activo",
@@ -194,7 +213,9 @@
 			"editProfile": "Editar Perfil",
 			"follow": "Seguir",
 			"following": "Siguiendo",
-			"message": "Mensaje"
+			"message": "Mensaje",
+			"searchByMood": "Encuentra platos que te \"gustarán\" según tu estado de ánimo de hoy",
+			"sendFeedback": "Enviar Comentarios"
 		},
 		"stats": {
 			"following": "Siguiendo",
@@ -207,7 +228,9 @@
 		"privateContent": "Este contenido es privado",
 		"placeholders": {
 			"enterBio": "Ingresa tu biografía..."
-		}
+		},
+		"savedCount": "{{count}} guardados",
+		"guestBio": "Bienvenido, Invitado 👋\nGracias por usar la nueva app gourmet 'CraveCatch'😊\n¡Funciones de cuenta y más actualizaciones próximamente!"
 	},
 	"NotFound": {
 		"title": "¡Vaya!",
@@ -288,6 +311,30 @@
 				"asian": "Asiática",
 				"other": "Otra"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "Enviar Comentarios/Reporte de Errores",
+		"labels": {
+			"type": "Tipo",
+			"title": "Título",
+			"message": "Mensaje"
+		},
+		"types": {
+			"request": "Solicitud de Función",
+			"bug": "Reporte de Error"
+		},
+		"placeholders": {
+			"title": "Ingrese un título (5-80 caracteres)",
+			"message": "Describa sus comentarios o problema (10-2000 caracteres)"
+		},
+		"buttons": {
+			"submit": "Enviar"
+		},
+		"errors": {
+			"titleLength": "El título debe tener entre 5 y 80 caracteres",
+			"messageLength": "El mensaje debe tener entre 10 y 2000 caracteres",
+			"submitFailed": "Error al enviar comentarios. Por favor, inténtelo de nuevo."
 		}
 	}
 }

@@ -9,12 +9,11 @@ import {
 	ScrollView,
 	Image,
 	Alert,
-	ActivityIndicator,
 	FlatList,
 	Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MapPin, Search, Navigation, Camera, DollarSign, Star, Calendar, X, Plus } from "lucide-react-native";
+import { MapPin, Search, Navigation, Camera, DollarSign, Plus } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
@@ -28,6 +27,8 @@ import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import Stars from "@/components/Stars";
 import { useHaptics } from "@/hooks/useHaptics";
+import { ReviewForm } from "@/features/map/components/ReviewForm";
+import { BidForm } from "@/features/map/components/BidForm";
 
 const { width, height } = Dimensions.get("window");
 
@@ -36,10 +37,6 @@ export default function MapScreen() {
 	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
 	const [selectedTab, setSelectedTab] = useState<"reviews" | "bids">("reviews");
 	const [searchQuery, setSearchQuery] = useState("");
-	const [bidAmount, setBidAmount] = useState("");
-	const [reviewText, setReviewText] = useState("");
-	const [rating, setRating] = useState(5);
-	const [price, setPrice] = useState("");
 	const [isProcessing, setIsProcessing] = useState(false);
 	const {
 		BlurModal: RestaurantBlurModal,
@@ -122,7 +119,7 @@ export default function MapScreen() {
 		}
 	};
 
-	const handleBid = async () => {
+	const handleBid = async (bidAmount: string) => {
 		if (!bidAmount || !selectedPlace) return;
 
 		mediumImpact();
@@ -138,7 +135,6 @@ export default function MapScreen() {
 				}),
 			);
 			closeBidModal();
-			setBidAmount("");
 		} catch (error) {
 			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.bidError"));
 		} finally {
@@ -146,8 +142,8 @@ export default function MapScreen() {
 		}
 	};
 
-	const handleReviewSubmit = async () => {
-		if (!reviewText || !price) return;
+	const handleReviewSubmit = async (data: { price: string; reviewText: string; rating: number }) => {
+		if (!data.reviewText || !data.price) return;
 
 		mediumImpact();
 		setIsProcessing(true);
@@ -155,9 +151,6 @@ export default function MapScreen() {
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 			Alert.alert(i18n.t("Common.success"), i18n.t("Map.alerts.reviewSuccess"));
 			closeReviewModal();
-			setReviewText("");
-			setPrice("");
-			setRating(5);
 		} catch (error) {
 			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.reviewError"));
 		} finally {
@@ -386,83 +379,12 @@ export default function MapScreen() {
 
 			{/* Review Modal */}
 			<ReviewBlurModal>
-				<Card>
-					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.price")}</Text>
-					<TextInput
-						style={styles.textInput}
-						placeholder={i18n.t("Map.placeholders.enterPrice")}
-						value={price}
-						onChangeText={setPrice}
-						keyboardType="numeric"
-					/>
-				</Card>
-
-				<Card>
-					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.rating")}</Text>
-					<View style={styles.ratingInput}>
-						{[1, 2, 3, 4, 5].map((star) => (
-							<TouchableOpacity key={star} onPress={() => setRating(star)}>
-								<Star size={32} color="#FFD700" fill={star <= rating ? "#FFD700" : "transparent"} />
-							</TouchableOpacity>
-						))}
-					</View>
-				</Card>
-
-				<Card>
-					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.comment")}</Text>
-					<TextInput
-						style={[styles.textInput, styles.textArea]}
-						placeholder={i18n.t("Map.placeholders.enterReview")}
-						value={reviewText}
-						onChangeText={setReviewText}
-						multiline
-						numberOfLines={4}
-					/>
-				</Card>
-
-				<PrimaryButton
-					label={i18n.t("Common.post")}
-					onPress={handleReviewSubmit}
-					disabled={isProcessing}
-					style={{ marginHorizontal: 16 }}
-				/>
+				{({ close }) => <ReviewForm onSubmit={handleReviewSubmit} onCancel={close} isProcessing={isProcessing} />}
 			</ReviewBlurModal>
 
 			{/* Bid Modal */}
 			<BidBlurModal>
-				<Card>
-					<Text style={styles.inputLabel}>{i18n.t("Map.inputs.bidAmount")}</Text>
-					<TextInput
-						style={styles.textInput}
-						placeholder={i18n.t("Map.placeholders.enterBidAmount")}
-						value={bidAmount}
-						onChangeText={setBidAmount}
-						keyboardType="numeric"
-					/>
-				</Card>
-
-				<View style={styles.bidInfo}>
-					<View style={styles.bidInfoRow}>
-						<Calendar size={16} color="#666" />
-						<Text style={styles.bidInfoText}>
-							{i18n.t("Map.labels.endDate")}{" "}
-							{new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("ja-JP")}
-						</Text>
-					</View>
-				</View>
-
-				{isProcessing && (
-					<View style={styles.processingContainer}>
-						<ActivityIndicator size="large" color="#007AFF" />
-						<Text style={styles.processingText}>{i18n.t("Map.labels.paymentProcessing")}</Text>
-					</View>
-				)}
-				<PrimaryButton
-					label={i18n.t("Map.buttons.bid")}
-					onPress={handleBid}
-					disabled={isProcessing || !bidAmount}
-					style={{ marginHorizontal: 16 }}
-				/>
+				{({ close }) => <BidForm onSubmit={handleBid} onCancel={close} isProcessing={isProcessing} />}
 			</BidBlurModal>
 		</SafeAreaView>
 	);

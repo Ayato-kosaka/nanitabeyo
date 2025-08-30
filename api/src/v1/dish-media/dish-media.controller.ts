@@ -32,14 +32,16 @@ import {
   CreateDishMediaDto,
   LikeDishMediaParamsDto,
   SaveDishMediaParamsDto,
-  QueryDishMediaDto,
+  QueryDishMediaByIdsDto,
+  SearchDishMediaDto,
 } from '@shared/v1/dto';
 import {
-  QueryDishMediaResponse,
+  SearchDishMediaResponse,
   CreateDishMediaResponse,
   LikeDishMediaResponse,
   UnlikeDishMediaResponse,
   SaveDishMediaResponse,
+  QueryDishMediaByIdsResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -60,9 +62,37 @@ export class DishMediaController {
   ) {}
 
   /* ------------------------------------------------------------------ */
-  /*                             GET /v1/dish-media                     */
+  /*                      GET /v1/dish-media?ids=...                     */
   /* ------------------------------------------------------------------ */
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'ID リストで料理メディア取得' })
+  @ApiQuery({
+    name: 'ids',
+    required: true,
+    description: 'dish media ids',
+    isArray: true,
+  })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  async queryDishMediaByIds(
+    @Query() query: QueryDishMediaByIdsDto,
+    @CurrentUser() user?: RequestUser,
+  ): Promise<QueryDishMediaByIdsResponse> {
+    const { items, notFound } = await this.dishMediaService.findByIds(
+      query.ids,
+      user?.userId,
+    );
+    return {
+      items: this.dishMediaMapper.toSearchDishMediaResponse(items),
+      notFound,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                      GET /v1/dish-media/search                      */
+  /* ------------------------------------------------------------------ */
+  @Get('search')
   @UseGuards(OptionalJwtAuthGuard) // ログインしていれば絞り込み強化、未ログインでも OK
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '条件検索で料理メディア取得（返却 1 件固定）' })
@@ -74,15 +104,15 @@ export class DishMediaController {
   @ApiQuery({ name: 'radius', required: true, description: '検索半径 (m)' })
   @ApiQuery({ name: 'categoryId', required: false })
   @ApiResponse({ status: 200, description: '取得成功' })
-  async findByQuery(
-    @Query() query: QueryDishMediaDto,
+  async searchDishMedia(
+    @Query() query: SearchDishMediaDto,
     @CurrentUser() user?: RequestUser,
-  ): Promise<QueryDishMediaResponse> {
+  ): Promise<SearchDishMediaResponse> {
     const items = await this.dishMediaService.findByCriteria(
       query,
       user?.userId,
     );
-    return this.dishMediaMapper.toQueryResponse(items);
+    return this.dishMediaMapper.toSearchDishMediaResponse(items);
   }
 
   /* ------------------------------------------------------------------ */

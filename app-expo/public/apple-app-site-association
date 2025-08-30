@@ -1,0 +1,22 @@
+{
+	"applinks": {
+		"apps": [],
+		"details": [
+			{
+				"appID": "JC3HSJZJH5.com.nanitabeyo",
+				"paths": [
+					"/*/restaurant/*",
+					"/*/profile/*",
+					"/*/topic/*",
+					"/*/food/*",
+					"/*/home/*",
+					"/*/map/*",
+                                        "/*/notifications/*",
+                                        "/*/posts/*",
+                                        "/*/search/*",
+					"/*"
+				]
+			}
+		]
+	}
+}

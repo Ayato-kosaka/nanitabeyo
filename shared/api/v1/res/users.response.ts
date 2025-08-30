@@ -1,40 +1,45 @@
-import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
-import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
-import { SupabaseRestaurants } from "../../../converters/convert_restaurants";
-import { SupabaseDishes } from "../../../converters/convert_dishes";
 import { SupabasePayouts } from "../../../converters/convert_payouts";
 import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_bids";
 import { SupabaseDishCategories } from "../../../converters/convert_dish_categories";
+import { PaginatedResponse } from "./paginated-response";
+import { DishMediaEntry } from "./dish-media.response";
 
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
-export type QueryUserDishReviewsResponse = {
-	dish_media: SupabaseDishMedia;
-	dish_review: SupabaseDishReviews;
-	signedUrls: string[];
-	hasMedia: boolean;
-}[];
+export type QueryUserDishReviewsResponse = PaginatedResponse<
+	DishMediaEntry & {
+		dish: {
+			reviewCount: number;
+			averageRating: number;
+		};
+		dish_media: { isMe: boolean };
+	}
+>;
 
 /** GET /v1/users/me/liked-dish-media のレスポンス型 */
-export type QueryMeLikedDishMediaResponse = {
-	restaurant: SupabaseRestaurants;
-	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
-	dish_reviews: SupabaseDishReviews[];
-}[];
+export type QueryMeLikedDishMediaResponse = PaginatedResponse<
+	DishMediaEntry & {
+		dish: {
+			reviewCount: number;
+			averageRating: number;
+		};
+	}
+>;
 
 /** GET /v1/users/me/payouts のレスポンス型 */
-export type QueryMePayoutsResponse = SupabasePayouts[];
+export type QueryMePayoutsResponse = PaginatedResponse<SupabasePayouts>;
 
 /** GET /v1/users/me/restaurant-bids のレスポンス型 */
-export type QueryMeRestaurantBidsResponse = SupabaseRestaurantBids[];
+export type QueryMeRestaurantBidsResponse = PaginatedResponse<SupabaseRestaurantBids>;
 
 /** GET /v1/users/me/saved-dish-categories のレスポンス型 */
-export type QueryMeSavedDishCategoriesResponse = SupabaseDishCategories[];
+export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishCategories>;
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
-export type QueryMeSavedDishMediaResponse = {
-	restaurant: SupabaseRestaurants;
-	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
-	dish_reviews: SupabaseDishReviews[];
-}[];
+export type QueryMeSavedDishMediaResponse = PaginatedResponse<
+	DishMediaEntry & {
+		dish: {
+			reviewCount: number;
+			averageRating: number;
+		};
+	}
+>;

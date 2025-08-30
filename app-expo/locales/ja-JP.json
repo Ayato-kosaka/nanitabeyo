@@ -1,10 +1,4 @@
 {
-	"ios": {
-		"CFBundleDisplayName": "なに食べよ"
-	},
-	"android": {
-		"app_name": "なに食べよ"
-	},
 	"Common": {
 		"cancel": "キャンセル",
 		"ok": "OK",
@@ -31,6 +25,7 @@
 		"unsupportedVersion": "古いバージョンのため利用できません。"
 	},
 	"Search": {
+		"currentLocation": "現在地",
 		"DistanceSlider": {
 			"near": "近い",
 			"far": "遠い"
@@ -54,6 +49,9 @@
 			"distance": "距離は？",
 			"budget": "価格帯は？",
 			"restrictions": "制約条件"
+		},
+		"locationModal": {
+			"title": "検索地点を入力"
 		},
 		"required": "必須",
 		"placeholders": {
@@ -131,7 +129,8 @@
 		},
 		"empty": "表示できる料理がありません",
 		"retry": "検索に戻る",
-		"chooseThis": "これにする！"
+		"chooseThis": "これにする！",
+		"hiddenMessage": "{{title}}を非表示にしました"
 	},
 	"Notifications": {
 		"title": "通知",
@@ -148,7 +147,11 @@
 		},
 		"actions": {
 			"share": "シェア",
+			"seeMore": "もっと見る",
 			"openMap": "地図を開く"
+		},
+		"share": {
+			"title": "{{dishName}}をチェック"
 		},
 		"buttons": {
 			"viewRestaurant": "店を見る"
@@ -173,15 +176,31 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "入札",
-			"earnings": "収益"
+			"earnings": "収益",
+			"topics": "トピック",
+			"posts": "投稿",
+			"saved-posts": "投稿",
+			"saved-topics": "トピック",
+			"wallet-deposit": "入札",
+			"wallet-earning": "収益"
 		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "読み込み中...",
+		"tabError": {
+			"failedToLoad": "データの読み込みに失敗しました: {{error}}",
+			"retry": "再試行"
+		},
 		"emptyState": {
 			"noDeposits": "選択したステータスの入札がありません",
-			"noEarnings": "選択したステータスの収益がありません"
+			"noEarnings": "選択したステータスの収益がありません",
+			"noDishReviews": "投稿はまだありません",
+			"noLikedDishMediaEntries": "いいねした投稿はありません",
+			"noSavedItems": "保存されたアイテムはありません",
+			"noSavedPosts": "気になる投稿を見つけたら\"保存\"で見返せます",
+			"noSavedTopics": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます"
 		},
 		"statusLabels": {
 			"active": "アクティブ",
@@ -194,7 +213,9 @@
 			"editProfile": "プロフィールを編集",
 			"follow": "フォロー",
 			"following": "フォロー中",
-			"message": "メッセージ"
+			"message": "メッセージ",
+			"searchByMood": "\"いいね\"と思う料理を今日の気分で探す",
+			"sendFeedback": "ご意見・不具合"
 		},
 		"stats": {
 			"following": "フォロー中",
@@ -207,7 +228,9 @@
 		"privateContent": "この内容は非公開です",
 		"placeholders": {
 			"enterBio": "自己紹介を入力してください..."
-		}
+		},
+		"savedCount": "{{count}}件保存",
+		"guestBio": "ようこそ、ゲストさん 👋\n新感覚グルメアプリ「なに食べよ」を使って頂きありがとうございます😊\nアカウント機能含め、近日アップデートしていきます！"
 	},
 	"NotFound": {
 		"title": "おっと！",
@@ -288,6 +311,30 @@
 				"asian": "アジア料理",
 				"other": "その他"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "ご意見・不具合を送る",
+		"labels": {
+			"type": "種類",
+			"title": "タイトル",
+			"message": "メッセージ"
+		},
+		"types": {
+			"request": "ご意見",
+			"bug": "不具合"
+		},
+		"placeholders": {
+			"title": "タイトルを入力してください（5-80文字）",
+			"message": "ご意見や不具合の詳細を教えてください（10-2000文字）"
+		},
+		"buttons": {
+			"submit": "送信"
+		},
+		"errors": {
+			"titleLength": "タイトルは5文字以上80文字以下で入力してください",
+			"messageLength": "メッセージは10文字以上2000文字以下で入力してください",
+			"submitFailed": "送信に失敗しました。もう一度お試しください。"
 		}
 	}
 }

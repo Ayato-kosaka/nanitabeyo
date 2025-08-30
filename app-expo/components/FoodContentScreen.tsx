@@ -1,15 +1,16 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
 	View,
 	Text,
 	StyleSheet,
 	Image,
 	TouchableOpacity,
-	ScrollView,
 	Dimensions,
 	SafeAreaView,
 	Alert,
+	Platform,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,12 +22,40 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
+import { getRemoteConfig } from "@/lib/remoteConfig";
+import { toggleReaction } from "@/lib/reactions";
+import { generateShareUrl, handleShare } from "@/lib/share";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get("window");
 
 interface FoodContentScreenProps {
 	item: DishMediaEntry;
+	carouselRef?: React.RefObject<any>;
 }
+
+// Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
+const isFullWidthChar = (ch: string) => {
+	const code = ch.charCodeAt(0);
+	return code > 0xff; // simple heuristic
+};
+
+// Return substring fitting within unitLimit (FW=2, others=1)
+const sliceByUnitLimit = (text: string, unitLimit: number) => {
+	let units = 0;
+	let i = 0;
+	while (i < text.length) {
+		const add = isFullWidthChar(text[i]) ? 2 : 1;
+		if (units + add > unitLimit) break;
+		units += add;
+		i++;
+	}
+	return {
+		substring: text.slice(0, i),
+		isTruncated: i < text.length,
+		usedUnits: units,
+	};
+};
 
 const formatLikeCount = (count: number): string => {
 	if (count >= 1000000) {
@@ -38,7 +67,7 @@ const formatLikeCount = (count: number): string => {
 	return count.toString();
 };
 
-export default function FoodContentScreen({ item }: FoodContentScreenProps) {
+export default function FoodContentScreen({ item, carouselRef }: FoodContentScreenProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -52,20 +81,41 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			{} as { [key: string]: { isLiked: boolean; count: number } },
 		),
 	);
+	// State to track expanded characters count for each comment
+	const [commentExpandedChars, setCommentExpandedChars] = useState(
+		item.dish_reviews.reduce(
+			(acc, review) => {
+				const remoteConfig = getRemoteConfig();
+				const charLimit = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
+				// Interpret as unit limit (FW=2, half=1)
+				acc[review.id] = charLimit;
+				return acc;
+			},
+			{} as { [key: string]: number },
+		),
+	);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
+	const insets = useSafeAreaInsets();
+	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
-	const handleCommentLike = (commentId: string) => {
+	useEffect(() => {
+		scrollViewRef.current?.scrollToEnd({ animated: false });
+	}, [item.dish_reviews.length]);
+
+	const handleCommentLike = async (commentId: string) => {
 		lightImpact();
 		const currentLikeState = commentLikes[commentId]?.isLiked || false;
+		const willLike = !currentLikeState;
+
 		setCommentLikes((prev) => ({
 			...prev,
 			[commentId]: {
-				isLiked: !prev[commentId]?.isLiked,
-				count: prev[commentId]?.isLiked ? (prev[commentId]?.count || 0) - 1 : (prev[commentId]?.count || 0) + 1,
+				isLiked: willLike,
+				count: currentLikeState ? (prev[commentId]?.count || 0) - 1 : (prev[commentId]?.count || 0) + 1,
 			},
 		}));
 
@@ -74,13 +124,64 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			error_level: "log",
 			payload: {
 				commentId,
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
+			},
+		});
+
+		try {
+			await toggleReaction({
+				target_type: "dish_reviews",
+				target_id: commentId,
+				action_type: "like",
+				willReact: willLike,
+			});
+		} catch (error) {
+			// Revert state on error
+			setCommentLikes((prev) => ({
+				...prev,
+				[commentId]: {
+					isLiked: currentLikeState,
+					count: currentLikeState ? (prev[commentId]?.count || 0) + 1 : (prev[commentId]?.count || 0) - 1,
+				},
+			}));
+			logFrontendEvent({
+				event_name: "comment_like_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: commentId,
+					action_type: "like",
+				},
+			});
+		}
+	};
+
+	const handleSeeMore = (commentId: string) => {
+		lightImpact();
+		const remoteConfig = getRemoteConfig();
+		const charUnitIncrement = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
+
+		setCommentExpandedChars((prev) => ({
+			...prev,
+			[commentId]: prev[commentId] + charUnitIncrement,
+		}));
+
+		logFrontendEvent({
+			event_name: "comment_see_more_clicked",
+			error_level: "log",
+			payload: {
+				commentId,
+				dishMediaId: item.dish_media.id,
+				restaurantId: item.restaurant.id,
+				previousExpandedChars: commentExpandedChars[commentId],
+				newExpandedChars: commentExpandedChars[commentId] + charUnitIncrement,
+				unitIncrement: charUnitIncrement,
 			},
 		});
 	};
 
-	const handleLike = () => {
+	const handleLike = async () => {
 		lightImpact();
 		const willLike = !isLiked;
 		setIsLiked(willLike);
@@ -90,15 +191,38 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			event_name: willLike ? "dish_liked" : "dish_unliked",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 				previousLikeCount: likesCount,
 				newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
 			},
 		});
+
+		try {
+			await toggleReaction({
+				target_type: "dish_media",
+				target_id: item.dish_media.id,
+				action_type: "like",
+				willReact: willLike,
+			});
+		} catch (error) {
+			// Revert state on error
+			setIsLiked(!willLike);
+			setLikesCount((prev) => (willLike ? prev - 1 : prev + 1));
+			logFrontendEvent({
+				event_name: "dish_like_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.dish_media.id,
+					action_type: "like",
+					willReact: willLike,
+				},
+			});
+		}
 	};
 
-	const handleSave = () => {
+	const handleSave = async () => {
 		lightImpact();
 		const willSave = !isSaved;
 		setIsSaved(willSave);
@@ -107,10 +231,32 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			event_name: willSave ? "dish_saved" : "dish_unsaved",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
+
+		try {
+			await toggleReaction({
+				target_type: "dish_media",
+				target_id: item.dish_media.id,
+				action_type: "save",
+				willReact: willSave,
+			});
+		} catch (error) {
+			// Revert state on error
+			setIsSaved(!willSave);
+			logFrontendEvent({
+				event_name: "dish_save_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.dish_media.id,
+					action_type: "save",
+					willReact: willSave,
+				},
+			});
+		}
 	};
 
 	const handleViewRestaurant = () => {
@@ -123,7 +269,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			payload: {
 				restaurantId: item.restaurant.id,
 				restaurantName: item.restaurant.name,
-				fromDishId: item.dish_media.id,
+				fromDishMediaId: item.dish_media.id,
 			},
 		});
 	};
@@ -144,7 +290,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			error_level: "log",
 			payload: {
 				creatorUserId: "123",
-				fromDishId: item.dish_media.id,
+				fromDishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
@@ -158,7 +304,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			event_name: "dish_menu_opened",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
@@ -174,17 +320,24 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 				restaurantId: item.restaurant.id,
 				restaurantName: item.restaurant.name,
 				googlePlaceId: item.restaurant.google_place_id,
-				fromDishId: item.dish_media.id,
+				fromDishMediaId: item.dish_media.id,
 			},
 		});
 
-		if (!item.restaurant.google_place_id) {
+		const placeId = item.restaurant.google_place_id;
+		if (!placeId) {
 			Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
 			return;
 		}
 
 		try {
-			const mapUrl = `https://www.google.com/maps/place/?q=place_id:${item.restaurant.google_place_id}`;
+			const mapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(placeId)}&query=${encodeURIComponent(item.restaurant.name || "")}`;
+
+			if (Platform.OS === "web") {
+				window.open(mapUrl, "_blank", "noopener,noreferrer"); // 別タブで開く
+				return;
+			}
+
 			const canOpen = await Linking.canOpenURL(mapUrl);
 
 			if (canOpen) {
@@ -216,10 +369,68 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			event_name: "dish_menu_option_selected",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
+	};
+
+	const handleSharePress = async () => {
+		lightImpact();
+
+		try {
+			const shareUrl = generateShareUrl(`/${locale}/posts?ids=${item.dish_media.id}`);
+
+			logFrontendEvent({
+				event_name: "dish_share_attempted",
+				error_level: "log",
+				payload: {
+					dishMediaId: item.dish_media.id,
+					restaurantId: item.restaurant.id,
+					shareUrl,
+				},
+			});
+
+			await handleShare(
+				shareUrl,
+				i18n.t("FoodContentScreen.share.title", { dishName: item.restaurant.name }),
+				() => {
+					// Success callback
+					logFrontendEvent({
+						event_name: "dish_share_success",
+						error_level: "log",
+						payload: {
+							dishMediaId: item.dish_media.id,
+							restaurantId: item.restaurant.id,
+							shareUrl,
+						},
+					});
+				},
+				(error) => {
+					// Error callback
+					logFrontendEvent({
+						event_name: "dish_share_failed",
+						error_level: "error",
+						payload: {
+							dishMediaId: item.dish_media.id,
+							restaurantId: item.restaurant.id,
+							shareUrl,
+							error,
+						},
+					});
+				},
+			);
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_share_error",
+				error_level: "error",
+				payload: {
+					dishMediaId: item.dish_media.id,
+					restaurantId: item.restaurant.id,
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			});
+		}
 	};
 
 	const menuOptions = [
@@ -238,7 +449,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Background Image */}
-			<Image source={{ uri: item.dish_media.mediaImageUrl }} style={styles.backgroundImage} />
+			<Image source={{ uri: item.dish_media.mediaUrl }} style={styles.backgroundImage} />
 
 			{/* Top Header */}
 			<View style={styles.topHeader}>
@@ -266,10 +477,15 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
 				<ScrollView
 					ref={scrollViewRef}
-					style={styles.commentsContainer}
+					style={[styles.commentsContainer, { paddingRight: Math.max(16, rightActionsWidth + insets.right + 8) }]}
 					showsVerticalScrollIndicator={false}
-					onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}>
+					nestedScrollEnabled={Platform.OS === "android"}
+					simultaneousHandlers={carouselRef}>
 					{item.dish_reviews.map((review) => {
+						const unitLimit = commentExpandedChars[review.id]!;
+						const { substring, isTruncated } = sliceByUnitLimit(review.comment, unitLimit);
+						const displayText = substring;
+
 						return (
 							<View key={review.id} style={styles.commentItem}>
 								<View style={styles.commentHeader}>
@@ -277,7 +493,17 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 									<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 								</View>
 								<View style={styles.commentContent}>
-									<Text style={styles.commentText}>{review.comment}</Text>
+									<View style={styles.commentTextContainer}>
+										<Text style={styles.commentText}>
+											{displayText}
+											{isTruncated && "...  "}
+											{isTruncated && (
+												<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
+													<Text style={styles.seeMoreText}>{i18n.t("FoodContentScreen.actions.seeMore")}</Text>
+												</TouchableOpacity>
+											)}
+										</Text>
+									</View>
 									<View style={styles.commentActions}>
 										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(review.id)}>
 											<Heart
@@ -287,7 +513,7 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 											/>
 										</TouchableOpacity>
 										{commentLikes[review.id].count > 0 && (
-											<Text style={styles.commentLikeCount}>{commentLikes[review.id].count}</Text>
+											<Text style={styles.commentLikeCount}>{formatLikeCount(commentLikes[review.id].count)}</Text>
 										)}
 									</View>
 								</View>
@@ -299,7 +525,52 @@ export default function FoodContentScreen({ item }: FoodContentScreenProps) {
 
 			{/* Bottom Section */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
-				<View pointerEvents="box-none" style={styles.actionRow}></View>
+				<View pointerEvents="box-none" style={styles.actionRow}>
+					{/* Action Buttons */}
+					<View style={styles.rightActions} onLayout={(e) => setRightActionsWidth(e.nativeEvent.layout.width)}>
+						<TouchableOpacity style={styles.actionButton} onPress={() => handleViewRestaurant()}>
+							<Image
+								source={{
+									uri: item.restaurant.image_url,
+								}}
+								style={styles.restaurantAvatar}
+								onError={() => console.log("Failed to load restaurant avatar")}
+							/>
+						</TouchableOpacity>
+
+						<View style={styles.actionContainer}>
+							<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+								<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+							</TouchableOpacity>
+							<Text style={styles.actionText}>{formatLikeCount(likesCount)}</Text>
+						</View>
+
+						<TouchableOpacity style={styles.actionButton} onPress={handleSave}>
+							<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
+						</TouchableOpacity>
+
+						<View style={styles.actionContainer}>
+							<TouchableOpacity style={styles.actionButton} onPress={handleSharePress}>
+								<Share size={28} color="#FFFFFF" />
+							</TouchableOpacity>
+							<Text style={styles.actionText}>{i18n.t("FoodContentScreen.actions.share")}</Text>
+						</View>
+
+						<View style={styles.actionContainer}>
+							<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress}>
+								<MapPinned size={28} color="#FFFFFF" />
+							</TouchableOpacity>
+							<Text style={styles.actionText}>{i18n.t("FoodContentScreen.actions.openMap")}</Text>
+						</View>
+
+						{/* <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleMenuOpen}
+            >
+              <EllipsisVertical size={28} color="#FFFFFF" />
+            </TouchableOpacity> */}
+					</View>
+				</View>
 			</View>
 
 			{/* Menu Modal */}
@@ -436,7 +707,6 @@ const styles = StyleSheet.create({
 	commentsContainer: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
-		marginRight: 48,
 	},
 	commentItem: {
 		marginBottom: 12,
@@ -463,21 +733,28 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "flex-start",
 	},
+	commentTextContainer: {
+		flex: 1,
+		marginRight: 8,
+	},
 	commentText: {
 		fontSize: 14,
 		color: "#FFFFFF",
 		lineHeight: 20,
-		flex: 1,
-		marginRight: 8,
 		fontWeight: "400",
 	},
+	seeMoreButton: {},
+	seeMoreText: {
+		fontSize: 12,
+		color: "#CCCCCC",
+		fontWeight: "500",
+	},
 	commentActions: {
-		flexDirection: "row",
 		alignItems: "center",
+		width: 18,
 	},
 	commentLikeButton: {
-		marginRight: 8,
-		padding: 4,
+		paddingVertical: 4,
 	},
 	commentLikeCount: {
 		fontSize: 12,

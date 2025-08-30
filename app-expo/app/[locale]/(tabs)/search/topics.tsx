@@ -12,7 +12,7 @@ import { TopicsError } from "@/features/topics/components/TopicsError";
 import { HideTopicModal } from "@/features/topics/components/HideTopicModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSearchStore } from "@/stores/useSearchStore";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
@@ -24,7 +24,7 @@ export default function TopicsScreen() {
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
-	const setDishes = useSearchStore((state) => state.setDishePromises);
+	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
@@ -50,7 +50,7 @@ export default function TopicsScreen() {
 				router.back();
 			}
 		}
-	}, [searchParams, searchTopics, showSnackbar]);
+	}, [searchParams]);
 
 	const handleViewDetails = (topic: Topic) => {
 		setDishes(topic.categoryId, topic.dishItemsPromise);

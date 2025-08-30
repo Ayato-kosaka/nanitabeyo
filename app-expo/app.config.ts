@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	version,
 	orientation: "portrait",
 	icon: "./assets/images/icon.png",
-	scheme: "myapp",
+	scheme: "nanitabeyo",
 	updates: {
 		url: "https://u.expo.dev/e01a92f1-0341-4eb5-84cc-61b8cef1a8f1",
 	},
@@ -21,9 +21,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
+		associatedDomains: [`applinks:food-scroll.web.app`],
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleAllowMixedLocalizations: true,
+			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],
+			CFBundleDisplayName: "$(CFBundleDisplayName)",
 		},
 		config: {
 			googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY,
@@ -36,6 +39,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},
+		intentFilters: [
+			{
+				action: "VIEW",
+				autoVerify: true,
+				data: [
+					{
+						scheme: "https",
+						host: "food-scroll.web.app",
+						pathPrefix: "/",
+					},
+				],
+				category: ["BROWSABLE", "DEFAULT"],
+			},
+		],
 		config: {
 			googleMaps: {
 				apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY,
@@ -47,17 +64,32 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		output: "static",
 		favicon: "./assets/images/favicon.png",
 	},
+	locales: {
+		ar: "./languages/ar-SA.json",
+		en: "./languages/en-US.json",
+		es: "./languages/es-ES.json",
+		fr: "./languages/fr-FR.json",
+		hi: "./languages/hi-IN.json",
+		ja: "./languages/ja-JP.json",
+		ko: "./languages/ko-KR.json",
+		zh: "./languages/zh-CN.json",
+	},
 	plugins: [
 		"expo-router",
-		// [
-		// 	"expo-splash-screen",
-		// 	{
-		// 		image: "./assets/images/splash-icon.png",
-		// 		imageWidth: 200,
-		// 		resizeMode: "contain",
-		// 		backgroundColor: "#fe3764",
-		// 	},
-		// ],
+		[
+			"expo-splash-screen",
+			{
+				backgroundColor: "#ffffff",
+				ios: {
+					image: "./assets/images/splash-icon.png",
+					resizeMode: "cover",
+					enableFullScreenImage_legacy: true,
+				},
+				android: {
+					image: "./assets/images/icon.png",
+				},
+			},
+		],
 		[
 			"expo-camera",
 			{
@@ -86,8 +118,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		[
 			"react-native-google-mobile-ads",
 			{
-				androidAppId: "ca-app-pub-8992436220024710~4233642482",
-				iosAppId: "ca-app-pub-8992436220024710~2925264393",
+				androidAppId: "ca-app-pub-8992436220024710~7855939059",
+				iosAppId: "ca-app-pub-8992436220024710~3141802451",
 				skAdNetworkItems: [
 					"cstr6suwn9.skadnetwork",
 					"4fzdc2evr5.skadnetwork",
@@ -168,5 +200,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_UNIT_ID,
 		EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID,
 		EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID,
+		EXPO_PUBLIC_WEB_BASE_URL: process.env.EXPO_PUBLIC_WEB_BASE_URL,
 	},
 });

@@ -1,6 +1,7 @@
 export { CreateDishMediaDto } from "./dish-media/create-dish-media.dto";
 export { LikeDishMediaParamsDto } from "./dish-media/like-dish-media.dto";
-export { QueryDishMediaDto } from "./dish-media/query-dish-media.dto";
+export { QueryDishMediaByIdsDto } from "./dish-media/query-dish-media-by-ids.dto";
+export { SearchDishMediaDto } from "./dish-media/search-dish-media.dto";
 export { SaveDishMediaParamsDto } from "./dish-media/save-dish-media.dto";
 
 export { QueryDishCategoryRecommendationsDto } from "./dish-categories/query-dish-category-recommendations.dto";
@@ -15,6 +16,7 @@ export { BulkImportDishesDto } from "./dishes/bulk-import-dishes.dto";
 
 export { QueryAutocompleteLocationsDto } from "./locations/query-autocomplete-locations.dto";
 export { QueryLocationDetailsDto } from "./locations/query-location-details.dto";
+export { QueryReverseGeocodingDto } from "./locations/query-reverse-geocoding.dto";
 
 export { QueryRestaurantsDto } from "./restaurants/query-restaurants.dto";
 export { CreateRestaurantDto } from "./restaurants/create-restaurant.dto";
@@ -32,3 +34,5 @@ export { QueryMePayoutsDto } from "./users/query-me-payouts.dto";
 export { QueryMeRestaurantBidsDto } from "./users/query-me-restaurant-bids.dto";
 export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categories.dto";
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
+
+export { CreateFeedbackDto } from "./feedback/create-feedback.dto";

@@ -2,6 +2,16 @@ name: EAS Build Develop
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build for"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ios
+          - android
 
 jobs:
   eas-build:
@@ -47,4 +57,4 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🚀 Run EAS build (development profile)
-        run: pnpx eas-cli build --profile development --platform all --non-interactive --no-wait
+        run: pnpx eas-cli build --profile development --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait

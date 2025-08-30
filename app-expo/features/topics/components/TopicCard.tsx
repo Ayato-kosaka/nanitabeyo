@@ -1,29 +1,58 @@
-import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { Trash, Bookmark } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
+import { toggleReaction } from "@/lib/reactions";
+import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
 	const [isSaved, setIsSaved] = useState(false);
 	const { lightImpact, errorNotification } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
-	const handleSave = () => {
+	const source = useMemo(() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS }), [item.imageUrl]);
+
+	const handleSave = async () => {
 		const willSave = !isSaved;
 		lightImpact();
 		setIsSaved(willSave);
+
+		try {
+			await toggleReaction({
+				target_type: "dish_categories",
+				target_id: item.categoryId,
+				action_type: "save",
+				willReact: willSave,
+			});
+		} catch (error) {
+			// Revert state on error
+			setIsSaved(!willSave);
+			logFrontendEvent({
+				event_name: "topic_save_reaction_failed",
+				error_level: "log",
+				payload: {
+					error: error instanceof Error ? error.message : String(error),
+					target_id: item.categoryId,
+					action_type: "save",
+					willReact: willSave,
+				},
+			});
+		}
 	};
 
-	const handleHide = () => {
+	const handleHide = async () => {
 		errorNotification();
 		onHide(item.categoryId);
 	};
 
 	return (
 		<View style={styles.card}>
-			<Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+			<Image source={source} cachePolicy="memory" transition={100} style={styles.cardImage} />
 
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>
@@ -63,7 +92,6 @@ const styles = StyleSheet.create({
 	cardImage: {
 		width: "100%",
 		height: "100%",
-		resizeMode: "cover",
 	},
 	cardOverlay: {
 		position: "absolute",

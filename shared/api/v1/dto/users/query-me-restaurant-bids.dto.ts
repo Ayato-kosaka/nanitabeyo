@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from "@nestjs/class-validator";
+import { IsOptional, IsString } from "class-validator";
 
 /** GET /v1/users/me/restaurant-bids のクエリ */
 export class QueryMeRestaurantBidsDto {

@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm" WITH SCHEMA extensions;
 
 CREATE TABLE dish_category_variants (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

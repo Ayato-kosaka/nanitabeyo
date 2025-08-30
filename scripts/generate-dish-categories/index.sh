@@ -1,23 +1,33 @@
 #!/bin/bash
 set -euo pipefail
 
-# 流し方
-# DATABASE_URL=postgresql://xxx bash scripts/generate-dish-categories/index.sh
+# ==========================================
+# このスクリプトは「料理カテゴリーマスタ」を生成するための一連処理
+# - Wikidata から SPARQL で料理情報を取得
+# - CSV を PostgreSQL に取り込みやすい形式へ整形
+# - Wikimedia Commons の Special:FilePath を upload.wikimedia.org 実体URLへ変換
+# - DB (dish_categories) を再構築
+# - 多言語ラベルや派生表記 (variants) を生成
+# - さらに祖先タグ (tags) を Wikidata から取得して反映
+#
+# 実行方法:
+#   DATABASE_URL=postgresql://xxx bash scripts/generate-dish-categories/index.sh
+# ==========================================
 
-# ========== SETTINGS ==========
-WDQS_URL="https://query.wikidata.org/sparql"
+# ========== 設定 ==========
+WDQS_URL="https://query.wikidata.org/sparql"   # Wikidata Query Service
 PSQL_ARGS=()
-PSQL_ARGS+=("$DATABASE_URL")
-DB_SCHEMA="dev"
-WORKDIR="$(cd "$(dirname "$0")" && pwd)"
-TMPDIR="${WORKDIR}/../../data/dish_master_tmp"
+PSQL_ARGS+=("$DATABASE_URL")                   # psql 接続先
+DB_SCHEMA="dev"                                # 書き込み先スキーマ
+WORKDIR="$(cd "$(dirname "$0")" && pwd)"       # スクリプトのあるディレクトリ
+TMPDIR="${WORKDIR}/../../data/dish_master_tmp" # 一時作業ディレクトリ
 DISHES_CSV="$(realpath "${TMPDIR}/dishes_pg.csv")"
 VARIANTS_CSV="$(realpath "${TMPDIR}/variants.csv")"
 mkdir -p "$TMPDIR"
 
 echo "▼ Start generating dish categories..."
 
-# ========== STEP 1: Get core dish info (QID, label, tags, etc.) ==========
+# ========== STEP 1: Wikidata から料理データを取得 ==========
 echo "→ [1] Fetching dishes_with_tags from Wikidata..."
 
 curl -sG "${WDQS_URL}" \
@@ -28,7 +38,7 @@ curl -sG "${WDQS_URL}" \
 
 echo "✅ Raw dish data saved to ${TMPDIR}/dishes_raw.csv"
 
-# ========== STEP 2: Preprocess CSV to PostgreSQL format ==========
+# ========== STEP 2: CSV を PostgreSQL 形式に整形 ==========
 echo "→ [2] Transforming CSV to PostgreSQL-compatible format..."
 
 tr -d '\r' < "${TMPDIR}/dishes_raw.csv" | csvsql -d , --query "
@@ -36,7 +46,7 @@ SELECT
   dish AS id,
   labelEN AS label_en,
   '{}' AS labels,
-  COALESCE(image, '') AS image_url,
+  COALESCE(image, '') AS image_raw,        -- 画像URLは生のまま保持（Special:FilePathでもOK）
   CASE WHEN origins  IS NULL OR origins  = '' THEN '{}' ELSE '{'||REPLACE(origins, '|', ',') ||'}' END AS origin,
   CASE WHEN cuisines IS NULL OR cuisines = '' THEN '{}' ELSE '{'||REPLACE(cuisines,'|', ',') ||'}' END AS cuisine,
   CASE WHEN tags     IS NULL OR tags     = '' THEN '{}' ELSE '{'||REPLACE(tags,    '|', ',') ||'}' END AS tags
@@ -45,13 +55,24 @@ FROM stdin
 
 echo "✅ Preprocessed to ${DISHES_CSV}"
 
-# ========== STEP 3: Import dish_categories ==========
+# ========== STEP 2.5: Wikimedia 実体URLへ変換 ==========
+echo "→ [2.5] Resolve Special:FilePath to actual upload.wikimedia.org URL"
+
+python3 "${WORKDIR}/resolve_commons_url.py" \
+        "${DISHES_CSV}" \
+        "${TMPDIR}/dishes_pg_with_final.csv"
+DISHES_CSV="${TMPDIR}/dishes_pg_with_final.csv"
+
+echo "✅ Image URLs resolved to ${DISHES_CSV}"
+
+# ========== STEP 3: dish_categories テーブル更新 ==========
 echo "→ [3] Importing into dish_categories table..."
 
 psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
   -v schema="${DB_SCHEMA:-public}" <<SQL
 SET search_path TO :"schema";
 
+-- 一時テーブルにロード
 CREATE TEMP TABLE tmp_dishes (
   id TEXT,
   label_en TEXT,
@@ -64,16 +85,18 @@ CREATE TEMP TABLE tmp_dishes (
 
 \copy tmp_dishes FROM '${DISHES_CSV}' CSV HEADER
 
+-- 重複件数の確認ログ
 \echo [psql] dup_count=
 SELECT count(*) FROM (
   SELECT id FROM tmp_dishes GROUP BY id HAVING count(*) > 1
 ) s;
 
+-- 画像URLが NULL/NULL文字の場合は空文字に修正
 UPDATE tmp_dishes
 SET image_url = ''
 WHERE image_url IS NULL OR image_url = 'NULL';
 
--- 既存: tmp_dishes に \copy → 画像あり優先の1行に間引く
+-- 1) id単位で重複 → 画像ありを優先
 DROP TABLE IF EXISTS tmp_dishes_one;
 CREATE TEMP TABLE tmp_dishes_one AS
 SELECT DISTINCT ON (id)
@@ -81,7 +104,7 @@ SELECT DISTINCT ON (id)
 FROM tmp_dishes
 ORDER BY id, (image_url = ''), image_url DESC;
 
--- 追加: label_en を小文字化したキーで重複排除（QID数値が最小を採用）
+-- 2) label_en 小文字キーで重複排除 → QID数値が最小のものを採用
 DROP TABLE IF EXISTS tmp_dishes_by_label;
 CREATE TEMP TABLE tmp_dishes_by_label AS
 WITH numbered AS (
@@ -93,11 +116,13 @@ WITH numbered AS (
 SELECT DISTINCT ON (label_key)
        id, label_en, labels, image_url, origin, cuisine, tags
 FROM numbered
-ORDER BY label_key, qnum;  -- 小さいQIDが勝ち
+ORDER BY label_key, qnum;  -- 小さいQIDを優先
 
+-- 既存データをクリア
 DELETE FROM dish_category_variants;
 DELETE FROM dish_categories;
 
+-- dish_categories に挿入（ON CONFLICT: 更新）
 INSERT INTO dish_categories
 (id, label_en, labels, image_url, origin, cuisine, tags)
 SELECT
@@ -120,12 +145,14 @@ SET label_en = EXCLUDED.label_en,
     tags = EXCLUDED.tags,
     updated_at = now(),
     lock_no = dish_categories.lock_no + 1;
-  \copy (SELECT id, label_en FROM dish_categories) TO '${TMPDIR}/dishes_final.csv' CSV HEADER
+
+-- 次工程用のCSVに吐き出し
+\copy (SELECT id, label_en FROM dish_categories) TO '${TMPDIR}/dishes_final.csv' CSV HEADER
 SQL
 
 echo "✅ dish_categories updated."
 
-# ========== STEP 4: Fetch multilingual labels ==========
+# ========== STEP 4: 多言語ラベルの取得と適用 ==========
 echo "→ [4-1] Fetching multilingual labels from Wikidata..."
 
 curl -sG "${WDQS_URL}" \
@@ -142,7 +169,7 @@ psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
   -v schema="${DB_SCHEMA:-public}" <<SQL
 SET search_path TO :"schema";
 
--- labels.csv を受ける一時テーブル
+-- 一時テーブルに labels.csv をロード
 CREATE TEMP TABLE tmp_labels_raw (
   id TEXT,
   lang TEXT,
@@ -151,8 +178,7 @@ CREATE TEMP TABLE tmp_labels_raw (
 
 \copy tmp_labels_raw FROM '${TMPDIR}/labels.csv' CSV HEADER
 
--- ID 形式を dish_categories.id (= 'Q12345' など) に正規化
--- URLが入ってきたケースにも対応
+-- id を 'Q12345' 形式に正規化
 DROP TABLE IF EXISTS tmp_labels_norm;
 CREATE TEMP TABLE tmp_labels_norm AS
 SELECT
@@ -165,7 +191,7 @@ SELECT
 FROM tmp_labels_raw
 WHERE lang IS NOT NULL AND label IS NOT NULL AND label <> '';
 
--- 同一 (id,lang) の重複がある場合は、短いラベルを優先（任意の方針）
+-- (id,lang) 重複時は短いラベルを優先
 DROP TABLE IF EXISTS tmp_labels_dedup;
 CREATE TEMP TABLE tmp_labels_dedup AS
 SELECT DISTINCT ON (id, lang)
@@ -173,14 +199,14 @@ SELECT DISTINCT ON (id, lang)
 FROM tmp_labels_norm
 ORDER BY id, lang, LENGTH(label), label;
 
--- lang -> label の JSONB に集約
+-- JSONB に集約
 DROP TABLE IF EXISTS tmp_labels_json;
 CREATE TEMP TABLE tmp_labels_json AS
 SELECT id, jsonb_object_agg(lang, label) AS labels
 FROM tmp_labels_dedup
 GROUP BY id;
 
--- dish_categories.labels を更新 (labels.csv の内容を優先して上書き)
+-- dish_categories に labels を反映
 UPDATE dish_categories d
 SET labels = COALESCE(j.labels, '{}'::jsonb),
     updated_at = now()
@@ -190,41 +216,28 @@ SQL
 
 echo "✅ Multilingual labels applied to dish_categories."
 
-# ========== STEP 5: Generate variants with Python ==========
-echo "→ [5] Generating surface forms (variants)..."
+# ========== STEP 5: 表記ゆれ (variants) を生成・投入 ==========
+echo "→ [5] Generating surface forms and importing into dish_category_variants (stream)..."
 
 python3 "${WORKDIR}/generate_variants.py" \
         "${TMPDIR}/labels.csv" \
         "${TMPDIR}/dishes_final.csv" \
-        > "${TMPDIR}/variants.csv"
+| psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
+   -c "COPY ${DB_SCHEMA:-public}.dish_category_variants (id, dish_category_id, surface_form, source, created_at) FROM STDIN CSV HEADER;"
 
-echo "✅ Variants CSV generated: ${TMPDIR}/variants.csv"
+echo "✅ dish_category_variants inserted (stream)."
 
-# ========== STEP 6: Import dish_category_variants ==========
-echo "→ [6] Importing into dish_category_variants table..."
-
-psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
-  -v schema="${DB_SCHEMA:-public}" <<SQL
-SET search_path TO :"schema";
-\copy dish_category_variants (id, dish_category_id, surface_form, source, created_at) \
-  FROM '${VARIANTS_CSV}' CSV HEADER;
-SQL
-
-echo "✅ dish_category_variants inserted."
-
-# ========== STEP 7: Fetch ancestor tags from Wikidata and apply ==========
+# ========== STEP 7: 祖先タグを取得し dish_categories.tags を更新 ==========
 echo "→ [7] Fetching ancestor tags via WDQS and updating dish_categories.tags ..."
 
 TAGS_RAW_CSV="${TMPDIR}/tags_raw.csv"
-: > "${TAGS_RAW_CSV}"   # 空にしておく
+: > "${TAGS_RAW_CSV}"   # 空ファイルで初期化
 
-# 7-1) dishes_final.csv の id を読み込み → SQL でバッチ化（200件/バッチ）
-#      psql 側で「各バッチの VALUES ブロック」を組み立てて、bash で1行ずつ処理します
+# 7-1) id を 200件ごとにバッチ化し、WDQS に問い合わせ
 psql -qAtX "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
   -v schema="${DB_SCHEMA:-public}" <<SQL | while IFS=$'\t' read -r batch_no values_block; do
 SET search_path TO :"schema";
 
--- 行番号付与 → 200件ごとにグルーピング
 WITH numbered AS (
   SELECT id,
          ROW_NUMBER() OVER (ORDER BY id) AS rn
@@ -232,16 +245,15 @@ WITH numbered AS (
 )
 SELECT
   ((rn-1)/200) AS batch_no,
-  'VALUES ?dish { ' || STRING_AGG('wd:'||id, ' ') || ' }' AS values_block -- 例: VALUES ?dish { wd:Q100136136 wd:Q100138427  ... }
+  'VALUES ?dish { ' || STRING_AGG('wd:'||id, ' ') || ' }' AS values_block
 FROM numbered
 GROUP BY ((rn-1)/200)
 ORDER BY ((rn-1)/200);
 SQL
 
-  # 7-2) バッチごとに WDQS へ問い合わせ
-    echo "   - WDQS batch ${batch_no}"
-    curl -sG "${WDQS_URL}" \
-      --data-urlencode query="
+  echo "   - WDQS batch ${batch_no}"
+  curl -sG "${WDQS_URL}" \
+    --data-urlencode query="
 PREFIX wd:  <http://www.wikidata.org/entity/>
 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 
@@ -256,30 +268,26 @@ SELECT ?dish ?tagQ WHERE {
   }
   BIND( STRAFTER(STR(?ancAll), 'entity/') AS ?tagQ )
 }" \
-      -H "Accept: text/csv" \
-      -H "User-Agent: food-app/0.1 (contact: you@example.com)" \
-      >> "${TAGS_RAW_CSV}"
+    -H "Accept: text/csv" \
+    -H "User-Agent: food-app/0.1 (contact: you@example.com)" \
+    >> "${TAGS_RAW_CSV}"
 
-    # ポライトに少し待つ（WDQSに優しく）
-    sleep 0.8
-  done
+  sleep 0.8   # 負荷を避けるためポライトに待機
+done
 
-# 7-3) 取得CSVをDBに取り込み → dish_categories.tags を更新
+# 7-3) 取得したタグを dish_categories.tags に反映
 psql "${PSQL_ARGS[@]}" -v ON_ERROR_STOP=1 \
   -v schema="${DB_SCHEMA:-public}" <<SQL
 SET search_path TO :"schema";
 
--- 取り込みテーブル
 DROP TABLE IF EXISTS tmp_step7_tags_raw;
 CREATE TEMP TABLE tmp_step7_tags_raw (
   dish TEXT,
   tagQ TEXT
 );
 
--- header 行が複数ついている可能性があるので、\copy 後に除外する
 \copy tmp_step7_tags_raw (dish, tagQ) FROM '${TAGS_RAW_CSV}' CSV HEADER
 
--- 正規化（wd:Q123 → Q123、URL → Q123）
 DROP TABLE IF EXISTS tmp_step7_tags_norm;
 CREATE TEMP TABLE tmp_step7_tags_norm AS
 SELECT
@@ -295,22 +303,21 @@ SELECT
   END AS tag_q
 FROM tmp_step7_tags_raw
 WHERE dish IS NOT NULL AND tagQ IS NOT NULL AND dish <> '' AND tagQ <> ''
-  AND LOWER(dish) <> 'dish' AND LOWER(tagQ) <> 'tagq'; -- ヘッダ除去保険
+  AND LOWER(dish) <> 'dish' AND LOWER(tagQ) <> 'tagq';
 
--- 重複除去
+-- 重複除去 → 配列に集約
 DROP TABLE IF EXISTS tmp_step7_tags_dist;
 CREATE TEMP TABLE tmp_step7_tags_dist AS
 SELECT DISTINCT id, tag_q
 FROM tmp_step7_tags_norm;
 
--- id ごとに配列へ集約
 DROP TABLE IF EXISTS tmp_step7_tags_agg;
 CREATE TEMP TABLE tmp_step7_tags_agg AS
 SELECT id, ARRAY_AGG(tag_q ORDER BY tag_q) AS tags_new
 FROM tmp_step7_tags_dist
 GROUP BY id;
 
--- 更新
+-- dish_categories 更新
 UPDATE dish_categories d
 SET tags = m.tags_new,
     updated_at = NOW(),
@@ -318,12 +325,10 @@ SET tags = m.tags_new,
 FROM tmp_step7_tags_agg m
 WHERE d.id = m.id;
 
--- 反映件数のログ
 \echo [psql] step7_tags_updated=:ROW_COUNT
 SQL
 
 echo "✅ Ancestor tags applied to dish_categories.tags"
 
-
-# ========== FINISH ==========
+# ========== 完了 ==========
 echo "🎉 Dish category master generation complete!"

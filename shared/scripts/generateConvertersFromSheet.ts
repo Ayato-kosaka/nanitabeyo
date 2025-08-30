@@ -46,8 +46,11 @@ function toPascalCase(str: string): string {
  * @param columnType カラムのデータ型文字列
  * @returns 除外対象であれば true
  */
-function isExccludedType(columnType: string): boolean {
-	return ["tsvector", "geography(point,4326)"].includes(columnType.toLowerCase());
+function isAllExccludedType(columnType: string): boolean {
+	return ["geography(point,4326)"].includes(columnType.toLowerCase());
+}
+function isPrismaExccludedType(columnType: string): boolean {
+	return ["tsvector"].includes(columnType.toLowerCase());
 }
 
 /**
@@ -111,7 +114,7 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 	// Supabase → Prisma 変換本体
 	const toPrismaBody = columns
 		.map(({ c_name, c_datatype, c_not_null }) => {
-			if (isExccludedType(c_datatype)) return;
+			if (isAllExccludedType(c_datatype) || isPrismaExccludedType(c_datatype)) return;
 			const isArray = isArrayColumn(c_datatype);
 			const baseType = getBaseType(c_datatype);
 
@@ -151,7 +154,8 @@ function generateConverter(tableName: string, columns: TColumn[]): string {
 	// Prisma → Supabase 変換本体
 	const toSupabaseBody = columns
 		.map(({ c_name, c_datatype, c_not_null }) => {
-			if (isExccludedType(c_datatype)) return `    ${c_name}: null,`;
+			if (isPrismaExccludedType(c_datatype)) return `    ${c_name}: null,`;
+			if (isAllExccludedType(c_datatype)) return;
 			const isArray = isArrayColumn(c_datatype);
 			const baseType = getBaseType(c_datatype);
 

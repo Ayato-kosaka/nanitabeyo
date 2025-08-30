@@ -1,5 +1,5 @@
-import { IsNumber, IsString, IsUUID, Matches, IsArray, Min, Max, Length, IsIn } from "@nestjs/class-validator";
-import { Type } from "@nestjs/class-transformer";
+import { IsNumber, IsString, IsUUID, Matches, IsArray, Min, Max, Length, IsIn, IsOptional } from "class-validator";
+import { Type } from "class-transformer";
 
 /** POST /v1/dishes/bulk-import のボディ */
 export class BulkImportDishesDto {
@@ -32,10 +32,12 @@ export class BulkImportDishesDto {
 	@Length(2, 5)
 	languageCode!: string;
 
-	/** 価格レベル配列 (2: INEXPENSIVE, 3: MODERATE, 4: EXPENSIVE, 5: VERY_EXPENSIVE) */
+	/** 価格レベル配列 */
+	@IsOptional()
 	@IsArray()
-	@IsNumber({}, { each: true })
-	@IsIn([2, 3, 4, 5], { each: true })
-	@Type(() => Number)
-	priceLevels!: number[];
+	@IsString({ each: true })
+	@IsIn(["PRICE_LEVEL_INEXPENSIVE", "PRICE_LEVEL_MODERATE", "PRICE_LEVEL_EXPENSIVE", "PRICE_LEVEL_VERY_EXPENSIVE"], {
+		each: true,
+	})
+	priceLevels?: string[];
 }

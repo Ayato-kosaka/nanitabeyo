@@ -2,6 +2,16 @@ name: EAS Build Submit Prod
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build for"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ios
+          - android
   # push:
   # branches:
   #   - "release/**"
@@ -43,4 +53,4 @@ jobs:
         run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
 
       - name: 🚀 Build and Submit App (production)
-        run: pnpx eas-cli build --profile production --platform all --non-interactive --no-wait --auto-submit
+        run: pnpx eas-cli build --profile production --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait --auto-submit

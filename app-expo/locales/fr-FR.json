@@ -1,10 +1,4 @@
 {
-	"ios": {
-		"CFBundleDisplayName": "CraveCatch"
-	},
-	"android": {
-		"app_name": "CraveCatch"
-	},
 	"Common": {
 		"cancel": "Annuler",
 		"ok": "OK",
@@ -31,6 +25,7 @@
 		"unsupportedVersion": "Cette version n'est plus prise en charge."
 	},
 	"Search": {
+		"currentLocation": "Localisation actuelle",
 		"DistanceSlider": {
 			"near": "Proche",
 			"far": "Loin"
@@ -54,6 +49,9 @@
 			"distance": "À quelle distance ?",
 			"budget": "Budget ?",
 			"restrictions": "Restrictions"
+		},
+		"locationModal": {
+			"title": "Saisir lieu de recherche"
 		},
 		"required": "Obligatoire",
 		"placeholders": {
@@ -131,7 +129,8 @@
 		},
 		"empty": "Aucun plat disponible",
 		"retry": "Retour à la recherche",
-		"chooseThis": "Je choisis celui-ci !"
+		"chooseThis": "Je choisis celui-ci !",
+		"hiddenMessage": "{{title}} a été masqué"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -148,7 +147,11 @@
 		},
 		"actions": {
 			"share": "Partager",
+			"seeMore": "voir plus",
 			"openMap": "Ouvrir la carte"
+		},
+		"share": {
+			"title": "Découvrez {{dishName}}"
 		},
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
@@ -173,15 +176,31 @@
 	"Profile": {
 		"tabs": {
 			"deposits": "Dépôts",
-			"earnings": "Revenus"
+			"earnings": "Revenus",
+			"topics": "Sujets",
+			"posts": "Publications",
+			"saved-posts": "Publications",
+			"saved-topics": "Sujets",
+			"wallet-deposit": "Dépôts",
+			"wallet-earning": "Revenus"
 		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
 		},
+		"loading": "Chargement...",
+		"tabError": {
+			"failedToLoad": "Échec du chargement des données : {{error}}",
+			"retry": "Réessayer"
+		},
 		"emptyState": {
 			"noDeposits": "Aucun dépôt pour le statut sélectionné",
-			"noEarnings": "Aucun revenu pour le statut sélectionné"
+			"noEarnings": "Aucun revenu pour le statut sélectionné",
+			"noDishReviews": "Aucune publication pour l'instant",
+			"noLikedDishMediaEntries": "Aucune publication aimée",
+			"noSavedItems": "Aucun élément enregistré",
+			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
+			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
 		"statusLabels": {
 			"active": "Actif",
@@ -194,7 +213,9 @@
 			"editProfile": "Modifier le profil",
 			"follow": "Suivre",
 			"following": "Suivi",
-			"message": "Message"
+			"message": "Message",
+			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour",
+			"sendFeedback": "Envoyer Commentaires"
 		},
 		"stats": {
 			"following": "Abonnements",
@@ -207,7 +228,9 @@
 		"privateContent": "Ce contenu est privé",
 		"placeholders": {
 			"enterBio": "Entrez votre biographie..."
-		}
+		},
+		"savedCount": "{{count}} enregistrements",
+		"guestBio": "Bienvenue, Invité 👋\nMerci d'utiliser la nouvelle app gastronomique 'CraveCatch'😊\nFonctions de compte et plus de mises à jour bientôt disponibles !"
 	},
 	"NotFound": {
 		"title": "Oups !",
@@ -288,6 +311,30 @@
 				"asian": "Asiatique",
 				"other": "Autre"
 			}
+		}
+	},
+	"Feedback": {
+		"title": "Envoyer Commentaires/Rapport de Bug",
+		"labels": {
+			"type": "Type",
+			"title": "Titre",
+			"message": "Message"
+		},
+		"types": {
+			"request": "Demande de Fonctionnalité",
+			"bug": "Rapport de Bug"
+		},
+		"placeholders": {
+			"title": "Entrez un titre (5-80 caractères)",
+			"message": "Décrivez vos commentaires ou problème (10-2000 caractères)"
+		},
+		"buttons": {
+			"submit": "Envoyer"
+		},
+		"errors": {
+			"titleLength": "Le titre doit contenir entre 5 et 80 caractères",
+			"messageLength": "Le message doit contenir entre 10 et 2000 caractères",
+			"submitFailed": "Échec de l'envoi des commentaires. Veuillez réessayer."
 		}
 	}
 }

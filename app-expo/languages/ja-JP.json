@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"CFBundleDisplayName": "なに食べよ"
+	},
+	"android": {
+		"app_name": "なに食べよ"
+	}
+}

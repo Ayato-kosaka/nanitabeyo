@@ -14,6 +14,9 @@ build/
 # --- Turbo Cache ---
 .turbo/
 
+# --- Temporary Files ---
+tmp/
+
 # --- Expo ---
 *.log
 .expo-shared/
@@ -49,4 +52,5 @@ yarn-error.log*
 
 # --- Optional: Supabase CLI metadata ---
 supabase/.temp/
-supabase/.env
+supabase/.env*.pyc
+__pycache__/

@@ -28,7 +28,7 @@
 	},
 	"packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971",
 	"dependencies": {
-		"@nestjs/class-transformer": "^0.4.0",
-		"@nestjs/class-validator": "^0.13.4"
+		"class-transformer": "^0.5.1",
+		"class-validator": "^0.14.0"
 	}
 }
