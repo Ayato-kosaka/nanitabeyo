@@ -528,7 +528,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 				<View pointerEvents="box-none" style={styles.actionRow}>
 					{/* Action Buttons */}
 					<View style={styles.rightActions} onLayout={(e) => setRightActionsWidth(e.nativeEvent.layout.width)}>
-						<TouchableOpacity style={styles.actionButton} onPress={() => handleViewRestaurant()}>
+						{/* <TouchableOpacity style={styles.actionButton} onPress={() => handleViewRestaurant()}>
 							<Image
 								source={{
 									uri: item.restaurant.image_url,
@@ -536,7 +536,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 								style={styles.restaurantAvatar}
 								onError={() => console.log("Failed to load restaurant avatar")}
 							/>
-						</TouchableOpacity>
+						</TouchableOpacity> */}
 
 						<View style={styles.actionContainer}>
 							<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
