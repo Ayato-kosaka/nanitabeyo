@@ -66,12 +66,12 @@ export function ProfileHeader({
 				)}
 				<Text style={styles.headerTitle}>{profile.username}</Text>
 				<View style={{ flexDirection: "row", gap: 8 }}>
-					<TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
+					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity>
 					<TouchableOpacity style={styles.settingButton} onPress={onSettings || (() => {})}>
 						<Settings size={24} color="#666" />
-					</TouchableOpacity>
+					</TouchableOpacity> */}
 				</View>
 			</View>
 

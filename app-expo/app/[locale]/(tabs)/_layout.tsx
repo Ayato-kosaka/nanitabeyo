@@ -63,7 +63,6 @@ export default function TabLayout() {
 				name="profile"
 				options={{
 					title: i18n.t("Tabs.profile"),
-					href: null,
 					tabBarIcon: ({ size, color }) => <User size={ICON_SIZE} color={color} />,
 				}}
 			/>
