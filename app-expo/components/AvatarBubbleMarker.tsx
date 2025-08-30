@@ -21,10 +21,14 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }:
 				style={[
 					styles.shadowWrapper,
 					{
+						width: size,
+						height: size,
+						borderRadius: radius,
 						shadowColor: color === "#FFF" ? "#000" : color,
 						shadowRadius: 10,
 						shadowOffset: { width: 0, height: 0 },
 						shadowOpacity: 0.25,
+						elevation: 10,
 					},
 				]}>
 				{/* 円形クリップ用: borderRadius + overflow:hidden はこの子だけに適用 */}
