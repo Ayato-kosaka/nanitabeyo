@@ -95,7 +95,7 @@ describe('Mapper Integration - Response Size Validation', () => {
     (baseItem.dish_reviews[0] as any).sentiment_score = 0.85;
     (baseItem.dish_reviews[0] as any).language_detection = 'en';
 
-    const result = dishMediaMapper.toQueryDishMediaResponse([baseItem]);
+    const result = dishMediaMapper.toSearchDishMediaResponse([baseItem]);
     const entry = result[0];
 
     // Verify ONLY the expected fields are present (no extras)

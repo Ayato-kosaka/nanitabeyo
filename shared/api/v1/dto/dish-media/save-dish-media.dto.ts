@@ -1,4 +1,4 @@
-import { IsUUID } from "@nestjs/class-validator";
+import { IsUUID } from "class-validator";
 
 /**
  * 「保存」エンドポイントのパスパラメータ。

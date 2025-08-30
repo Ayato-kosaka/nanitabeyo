@@ -16,7 +16,7 @@ import { AppLoggerService } from 'src/core/logger/logger.service';
 
 import {
   CreateDishMediaDto,
-  QueryDishMediaDto,
+  SearchDishMediaDto,
   LikeDishMediaParamsDto,
   SaveDishMediaParamsDto,
 } from '@shared/v1/dto';
@@ -64,7 +64,7 @@ export class DishMediaRepository {
       limit = 42,
       cursor,
       sort = '-createdAt',
-    }: QueryDishMediaDto,
+    }: SearchDishMediaDto,
     viewerId?: string,
   ): Promise<string[]> {
     // Haversine 距離 (PostgreSQL + PostGIS) の簡易例

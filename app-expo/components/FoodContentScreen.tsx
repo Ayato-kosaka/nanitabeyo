@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
-import { useRouter, usePathname } from "expo-router";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { useBlurModal } from "@/hooks/useBlurModal";
@@ -375,13 +375,12 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 		});
 	};
 
-	const pathname = usePathname();
 
-	const handleSharePress = async () => {
-		lightImpact();
+        const handleSharePress = async () => {
+                lightImpact();
 
-		try {
-			const shareUrl = generateShareUrl(pathname);
+                try {
+                        const shareUrl = generateShareUrl(`/${locale}/posts?ids=${item.dish_media.id}`);
 
 			logFrontendEvent({
 				event_name: "dish_share_attempted",

@@ -1,4 +1,4 @@
-import { IsString, IsUUID } from "@nestjs/class-validator";
+import { IsString, IsUUID } from "class-validator";
 
 /** POST /v1/dishes のボディ */
 export class CreateDishDto {

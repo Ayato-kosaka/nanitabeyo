@@ -1,5 +1,5 @@
-import { IsNumber, IsOptional, IsString, Max, Min } from "@nestjs/class-validator";
-import { Type } from "@nestjs/class-transformer";
+import { IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
+import { Type } from "class-transformer";
 
 /** GET /v1/restaurants のクエリ */
 export class QueryRestaurantsDto {

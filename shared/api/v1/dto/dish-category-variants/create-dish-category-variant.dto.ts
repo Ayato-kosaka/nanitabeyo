@@ -1,4 +1,4 @@
-import { IsString } from "@nestjs/class-validator";
+import { IsString } from "class-validator";
 
 /** POST /v1/dish-category-variants のボディ */
 export class CreateDishCategoryVariantDto {
