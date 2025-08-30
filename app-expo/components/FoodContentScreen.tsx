@@ -375,12 +375,11 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 		});
 	};
 
+	const handleSharePress = async () => {
+		lightImpact();
 
-        const handleSharePress = async () => {
-                lightImpact();
-
-                try {
-                        const shareUrl = generateShareUrl(`/${locale}/posts?ids=${item.dish_media.id}`);
+		try {
+			const shareUrl = generateShareUrl(`/${locale}/posts?ids=${item.dish_media.id}`);
 
 			logFrontendEvent({
 				event_name: "dish_share_attempted",

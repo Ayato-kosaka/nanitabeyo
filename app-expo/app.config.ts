@@ -76,20 +76,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	},
 	plugins: [
 		"expo-router",
-                [
-                        "expo-splash-screen",
-                        {
-                                backgroundColor: "#ffffff",
-                                ios: {
-                                        image: "./assets/images/splash-icon.png",
-                                        resizeMode: "cover",
-                                        enableFullScreenImage_legacy: true,
-                                },
-                                android: {
-                                        image: "./assets/images/icon.png",
-                                },
-                        },
-                ],
+		[
+			"expo-splash-screen",
+			{
+				backgroundColor: "#ffffff",
+				ios: {
+					image: "./assets/images/splash-icon.png",
+					resizeMode: "cover",
+					enableFullScreenImage_legacy: true,
+				},
+				android: {
+					image: "./assets/images/icon.png",
+				},
+			},
+		],
 		[
 			"expo-camera",
 			{

@@ -149,7 +149,7 @@ function generateCartesianCombinations(
                 ...(restrictions.length > 0 && {
                   restrictions: [...restrictions],
                 }),
-                localLanguageCode: 'en'
+                localLanguageCode: 'en',
               };
 
               combinations.push(params);
@@ -179,7 +179,7 @@ function generateRandomCombinations(
     const params: QueryDishCategoryRecommendationsDto = {
       address: getRandomElement(TEST_PARAMETERS.addresses),
       languageTag: getRandomElement(TEST_PARAMETERS.languageTags),
-      localLanguageCode: 'en'
+      localLanguageCode: 'en',
     };
 
     params.timeSlot = getRandomElement(TEST_PARAMETERS.timeSlots);
@@ -221,7 +221,7 @@ function generateStratifiedCombinations(
         const params: QueryDishCategoryRecommendationsDto = {
           address,
           languageTag,
-          localLanguageCode: 'en'
+          localLanguageCode: 'en',
         };
 
         // Systematically vary optional parameters
@@ -241,7 +241,7 @@ function generateStratifiedCombinations(
         if (variation & 8) {
           const restrictionsArray =
             TEST_PARAMETERS.restrictions[
-            i % TEST_PARAMETERS.restrictions.length
+              i % TEST_PARAMETERS.restrictions.length
             ];
           if (restrictionsArray.length > 0) {
             params.restrictions = [...restrictionsArray];

@@ -1,15 +1,4 @@
-import {
-	IsNumber,
-	IsString,
-	IsUUID,
-	Matches,
-	IsArray,
-	Min,
-	Max,
-	Length,
-	IsIn,
-	IsOptional,
-} from "class-validator";
+import { IsNumber, IsString, IsUUID, Matches, IsArray, Min, Max, Length, IsIn, IsOptional } from "class-validator";
 import { Type } from "class-transformer";
 
 /** POST /v1/dishes/bulk-import のボディ */
