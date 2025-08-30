@@ -15,11 +15,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { userProfile, otherUserProfile } from "@/data/profileData";
 import { mockBids, mockEarnings } from "../constants";
-import { Card } from "@/components/Card";
-import { PrimaryButton } from "@/components/PrimaryButton";
 import { ProfileEditForm } from "../components/ProfileEditForm";
 import { FeedbackForm } from "../components/FeedbackForm";
-import i18n from "@/lib/i18n";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 
@@ -43,9 +40,15 @@ export function ProfileTabsLayout() {
 	const isGuest = profile.username === "guest";
 
 	const availableTabs: GroupName[] = useMemo(() => {
-		const tabs: GroupName[] = ["reviews"];
+		const tabs: GroupName[] = [];
+		if (!isGuest) {
+			tabs.push("reviews");
+		}
 		if (isOwnProfile) {
-			tabs.push("saved", "liked", "wallet");
+			tabs.push("saved", "liked");
+			if (!isGuest) {
+				tabs.push("wallet");
+			}
 		}
 		return tabs;
 	}, [isOwnProfile]);
@@ -193,9 +196,11 @@ export function ProfileTabsLayout() {
 				pagerProps={{ scrollEnabled: true }}
 				headerContainerStyle={{ shadowColor: "transparent" }}
 				containerStyle={{ backgroundColor: "white" }}>
-				<Tabs.Tab name="reviews">
-					<ReviewTab />
-				</Tabs.Tab>
+				{!isGuest ? (
+					<Tabs.Tab name="reviews">
+						<ReviewTab />
+					</Tabs.Tab>
+				) : null}
 				{isOwnProfile ? (
 					<Tabs.Tab name="saved-posts">
 						<SavedPostsTab isOwnProfile={isOwnProfile} />
@@ -211,7 +216,7 @@ export function ProfileTabsLayout() {
 						<LikeTab />
 					</Tabs.Tab>
 				) : null}
-				{isOwnProfile ? (
+				{isOwnProfile && !isGuest ? (
 					<Tabs.Tab name="wallet-deposit">
 						<DepositsTab
 							data={mockBids}
@@ -226,7 +231,7 @@ export function ProfileTabsLayout() {
 						/>
 					</Tabs.Tab>
 				) : null}
-				{isOwnProfile ? (
+				{isOwnProfile && !isGuest ? (
 					<Tabs.Tab name="wallet-earning">
 						<EarningsTab
 							data={mockEarnings}
