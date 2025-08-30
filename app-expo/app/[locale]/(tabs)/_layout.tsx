@@ -47,7 +47,6 @@ export default function TabLayout() {
 				name="map"
 				options={{
 					title: i18n.t("Tabs.map"),
-					href: null,
 					tabBarIcon: ({ size, color }) => <MapPinned size={ICON_SIZE} color={color} />,
 				}}
 			/>
@@ -55,7 +54,6 @@ export default function TabLayout() {
 				name="notifications"
 				options={{
 					title: i18n.t("Tabs.notifications"),
-					href: null,
 					tabBarIcon: ({ size, color }) => <Bell size={ICON_SIZE} color={color} />,
 				}}
 			/>
@@ -63,7 +61,6 @@ export default function TabLayout() {
 				name="profile"
 				options={{
 					title: i18n.t("Tabs.profile"),
-					href: null,
 					tabBarIcon: ({ size, color }) => <User size={ICON_SIZE} color={color} />,
 				}}
 			/>
