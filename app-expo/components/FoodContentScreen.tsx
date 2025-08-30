@@ -124,7 +124,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			error_level: "log",
 			payload: {
 				commentId,
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
@@ -172,7 +172,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			error_level: "log",
 			payload: {
 				commentId,
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 				previousExpandedChars: commentExpandedChars[commentId],
 				newExpandedChars: commentExpandedChars[commentId] + charUnitIncrement,
@@ -191,7 +191,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			event_name: willLike ? "dish_liked" : "dish_unliked",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 				previousLikeCount: likesCount,
 				newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
@@ -231,7 +231,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			event_name: willSave ? "dish_saved" : "dish_unsaved",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
@@ -269,7 +269,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			payload: {
 				restaurantId: item.restaurant.id,
 				restaurantName: item.restaurant.name,
-				fromDishId: item.dish_media.id,
+				fromDishMediaId: item.dish_media.id,
 			},
 		});
 	};
@@ -290,7 +290,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			error_level: "log",
 			payload: {
 				creatorUserId: "123",
-				fromDishId: item.dish_media.id,
+				fromDishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
@@ -304,7 +304,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			event_name: "dish_menu_opened",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
@@ -320,7 +320,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 				restaurantId: item.restaurant.id,
 				restaurantName: item.restaurant.name,
 				googlePlaceId: item.restaurant.google_place_id,
-				fromDishId: item.dish_media.id,
+				fromDishMediaId: item.dish_media.id,
 			},
 		});
 
@@ -369,7 +369,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 			event_name: "dish_menu_option_selected",
 			error_level: "log",
 			payload: {
-				dishId: item.dish_media.id,
+				dishMediaId: item.dish_media.id,
 				restaurantId: item.restaurant.id,
 			},
 		});
@@ -387,7 +387,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 				event_name: "dish_share_attempted",
 				error_level: "log",
 				payload: {
-					dishId: item.dish_media.id,
+					dishMediaId: item.dish_media.id,
 					restaurantId: item.restaurant.id,
 					shareUrl,
 				},
@@ -402,7 +402,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 						event_name: "dish_share_success",
 						error_level: "log",
 						payload: {
-							dishId: item.dish_media.id,
+							dishMediaId: item.dish_media.id,
 							restaurantId: item.restaurant.id,
 							shareUrl,
 						},
@@ -414,7 +414,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 						event_name: "dish_share_failed",
 						error_level: "error",
 						payload: {
-							dishId: item.dish_media.id,
+							dishMediaId: item.dish_media.id,
 							restaurantId: item.restaurant.id,
 							shareUrl,
 							error,
@@ -427,7 +427,7 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 				event_name: "dish_share_error",
 				error_level: "error",
 				payload: {
-					dishId: item.dish_media.id,
+					dishMediaId: item.dish_media.id,
 					restaurantId: item.restaurant.id,
 					error: error instanceof Error ? error.message : "Unknown error",
 				},
