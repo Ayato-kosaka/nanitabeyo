@@ -1,6 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import { Image } from "expo-image";
+import { View, Image, StyleSheet } from "react-native";
 import { Marker } from "./MapView";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 
@@ -12,14 +11,11 @@ type Props = RNMarkerProps & {
 
 export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }: Props) {
 	const radius = size / 2;
-
 	return (
 		<Marker {...props}>
-			{/* シャドウ専用ラッパー: elevation はここだけに付与（Android） */}
 			<View
-				collapsable={false}
 				style={[
-					styles.shadowWrapper,
+					styles.container,
 					{
 						width: size,
 						height: size,
@@ -31,36 +27,25 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }:
 						elevation: 10,
 					},
 				]}>
-				{/* 円形クリップ用: borderRadius + overflow:hidden はこの子だけに適用 */}
-				<View
-					collapsable={false}
+				<Image
+					source={{ uri }}
 					style={[
-						styles.circle,
+						styles.avatar,
 						{
-							width: size,
-							height: size,
-							borderRadius: radius,
 							borderColor: color,
-						},
-					]}>
-					<Image
-						source={{ uri }}
-						style={{
 							width: size,
 							height: size,
 							borderRadius: radius,
-						}}
-					/>
-				</View>
-
-				{/* バブルしっぽ（枠色に合わせたダイヤ形） */}
+						},
+					]}
+				/>
+				{/* バブルしっぽ */}
 				<View
 					style={[
 						styles.bubbleTail,
 						{
 							backgroundColor: color,
-							// size に応じてしっぽの位置を微調整
-							bottom: -Math.max(2, Math.round((48 / size) * 2)),
+							bottom: -(48 / size) * 2,
 						},
 					]}
 				/>
@@ -70,25 +55,17 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }:
 }
 
 const styles = StyleSheet.create({
-	// 影用の外側。ここには borderRadius を付けない（＝Android の描画欠け回避）
-	shadowWrapper: {
+	container: {
 		alignItems: "center",
-		justifyContent: "center",
 	},
-	// 円形コンテンツ（クリップ＆枠線）
-	circle: {
-		overflow: "hidden",
+	avatar: {
 		borderWidth: 2,
-		zIndex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FFF",
+		zIndex: 1000,
 	},
 	bubbleTail: {
 		position: "absolute",
 		width: 8,
 		height: 8,
 		transform: [{ rotate: "45deg" }],
-		zIndex: 0,
 	},
 });
