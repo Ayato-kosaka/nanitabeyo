@@ -9,9 +9,11 @@
 		"post": "发布",
 		"processing": "处理中...",
 		"error": "错误",
-		"success": "成功",
-		"daysRemaining": "剩余{{count}}天",
-		"timeAgo": {
+                "success": "成功",
+                "defaultTitle": "CraveCatch - Find your dish",
+                "defaultDesc": "只需告诉应用你的心情，我们的 AI 就会推荐你可能想吃的菜。然后浏览真实的美食照片和评论，立即选择一个合适的餐厅。",
+                "daysRemaining": "剩余{{count}}天",
+                "timeAgo": {
 			"seconds": "{{count}}秒前",
 			"minutes": "{{count}}分钟前",
 			"hours": "{{count}}小时前",
