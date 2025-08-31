@@ -39,6 +39,9 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: 🗺️ Generate Sitemap
+        run: WEB_BASE_URL=${{ vars.WEB_BASE_URL }} node scripts/gen-sitemap.mjs
+
       # Build our shared library so it emits .d.ts / .js into shared/dist
       - name: 📚 Build shared package
         run: pnpm -F shared run build
