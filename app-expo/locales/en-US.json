@@ -9,11 +9,11 @@
 		"post": "Post",
 		"processing": "Processing...",
 		"error": "Error",
-                "success": "Success",
-                "defaultTitle": "CraveCatch - Find your dish",
-                "defaultDesc": "Simply tell the app how you feel, and our AI will suggest dishes you'll likely crave. Then browse real food photos and reviews to instantly pick a restaurant that feels right.",
-                "daysRemaining": "Remaining {{count}} days",
-                "timeAgo": {
+		"success": "Success",
+		"defaultTitle": "CraveCatch - Find your dish",
+		"defaultDesc": "Simply tell the app how you feel, and our AI will suggest dishes you'll likely crave. Then browse real food photos and reviews to instantly pick a restaurant that feels right.",
+		"daysRemaining": "Remaining {{count}} days",
+		"timeAgo": {
 			"seconds": "{{count}} seconds ago",
 			"minutes": "{{count}} minutes ago",
 			"hours": "{{count}} hours ago",
