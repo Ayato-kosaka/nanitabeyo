@@ -9,9 +9,11 @@
 		"post": "投稿",
 		"processing": "処理中...",
 		"error": "エラー",
-		"success": "成功",
-		"daysRemaining": "残り{{count}}日",
-		"timeAgo": {
+                "success": "成功",
+                "defaultTitle": "なに食べよ",
+                "defaultDesc": "あなたの気分を入力すると、AIが「これ食べたいでしょ！」という料理を提案してくれます。提案された料理写真やレビューを見ながら、直感的にお店を選べます。",
+                "daysRemaining": "残り{{count}}日",
+                "timeAgo": {
 			"seconds": "{{count}}秒前",
 			"minutes": "{{count}}分前",
 			"hours": "{{count}}時間前",

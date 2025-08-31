@@ -9,9 +9,11 @@
 		"post": "نشر",
 		"processing": "معالجة...",
 		"error": "خطأ",
-		"success": "نجح",
-		"daysRemaining": "متبقي {{count}} يومًا",
-		"timeAgo": {
+                "success": "نجح",
+                "defaultTitle": "CraveCatch - Find your dish",
+                "defaultDesc": "ما عليك سوى إخبار التطبيق بما تشعر به، وسيقترح لك ذكاؤنا الاصطناعي الأطباق التي قد تشتهيها. ثم تصفح صور الطعام الحقيقية والمراجعات لاختيار المطعم الذي يبدو مناسبًا على الفور.",
+                "daysRemaining": "متبقي {{count}} يومًا",
+                "timeAgo": {
 			"seconds": "منذ {{count}} ثانية",
 			"minutes": "منذ {{count}} دقيقة",
 			"hours": "منذ {{count}} ساعة",
