@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
 import { Env } from "@/constants/Env";
 
 /**
@@ -19,38 +18,29 @@ export default function StoreRedirectScreen() {
 
 	useEffect(() => {
 		const baseUrl = Env.WEB_BASE_URL.endsWith("/") ? Env.WEB_BASE_URL : `${Env.WEB_BASE_URL}/`;
+		const ua = navigator.userAgent || "";
+		const isIOS = /iPhone|iPad|iPod/i.test(ua);
+		const isAndroid = /Android/i.test(ua);
+		const isMobile = isIOS || isAndroid;
 
+		// ネイティブアプリ内ならホームへ戻す
 		if (Platform.OS !== "web") {
 			// If this screen is opened inside the app, go to the root screen
 			router.replace("/");
 			return;
 		}
 
-		const ua = navigator.userAgent || "";
-		const isIOS = /iPhone|iPad|iPod/i.test(ua);
-		const isAndroid = /Android/i.test(ua);
-		const isMobile = isIOS || isAndroid;
-
+		// デスクトップはそのまま Web へ
 		if (!isMobile) {
 			// Desktop: just open the web root
 			window.location.replace(baseUrl);
 			return;
 		}
 
-		// Try to open the app via Universal/App Links
-		Linking.openURL(baseUrl);
-
-		if (isIOS) {
-			// Additional attempt with custom scheme for iOS
-			setTimeout(() => {
-				Linking.openURL("nanitabeyo:/");
-			}, 100);
-		}
-
-		// After 800ms, if the app didn't open, redirect to the store
 		const storeUrl = isIOS ? Env.APP_STORE_URL : Env.PLAY_STORE_URL;
+		window.location.href = storeUrl;
 		const timer = setTimeout(() => {
-			window.location.href = storeUrl;
+			router.replace("/");
 		}, 800);
 
 		return () => clearTimeout(timer);
