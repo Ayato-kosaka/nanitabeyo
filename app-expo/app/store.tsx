@@ -26,44 +26,24 @@ export default function StoreRedirectScreen() {
 		const isAndroid = /Android/i.test(ua);
 		const isMobile = isIOS || isAndroid;
 
-		logFrontendEvent({
-			event_name: "StoreRedirectScreen_open",
-			error_level: "log",
-			payload: {
-				platform: Platform.OS,
-				userAgent: ua,
-				isIOS,
-				isAndroid,
-				isMobile,
-			},
-		});
-
+		// ネイティブアプリ内ならホームへ戻す
 		if (Platform.OS !== "web") {
 			// If this screen is opened inside the app, go to the root screen
 			router.replace("/");
 			return;
 		}
 
+		// デスクトップはそのまま Web へ
 		if (!isMobile) {
 			// Desktop: just open the web root
 			window.location.replace(baseUrl);
 			return;
 		}
 
-		// Try to open the app via Universal/App Links
-		Linking.openURL(baseUrl);
-
-		if (isIOS) {
-			// Additional attempt with custom scheme for iOS
-			setTimeout(() => {
-				Linking.openURL("nanitabeyo:/");
-			}, 100);
-		}
-
-		// After 800ms, if the app didn't open, redirect to the store
 		const storeUrl = isIOS ? Env.APP_STORE_URL : Env.PLAY_STORE_URL;
+		window.location.href = storeUrl;
 		const timer = setTimeout(() => {
-			window.location.href = storeUrl;
+			router.replace("/");
 		}, 800);
 
 		return () => clearTimeout(timer);
