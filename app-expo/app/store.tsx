@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import { Env } from "@/constants/Env";
+import { useLogger } from "@/hooks/useLogger";
 
 /**
  * Store redirect screen used for the `/store` route.
@@ -16,20 +17,32 @@ import { Env } from "@/constants/Env";
  */
 export default function StoreRedirectScreen() {
 	const router = useRouter();
+	const { logFrontendEvent } = useLogger();
 
 	useEffect(() => {
 		const baseUrl = Env.WEB_BASE_URL.endsWith("/") ? Env.WEB_BASE_URL : `${Env.WEB_BASE_URL}/`;
+		const ua = navigator.userAgent || "";
+		const isIOS = /iPhone|iPad|iPod/i.test(ua);
+		const isAndroid = /Android/i.test(ua);
+		const isMobile = isIOS || isAndroid;
+
+		logFrontendEvent({
+			event_name: "StoreRedirectScreen_open",
+			error_level: "log",
+			payload: {
+				platform: Platform.OS,
+				userAgent: ua,
+				isIOS,
+				isAndroid,
+				isMobile,
+			},
+		});
 
 		if (Platform.OS !== "web") {
 			// If this screen is opened inside the app, go to the root screen
 			router.replace("/");
 			return;
 		}
-
-		const ua = navigator.userAgent || "";
-		const isIOS = /iPhone|iPad|iPod/i.test(ua);
-		const isAndroid = /Android/i.test(ua);
-		const isMobile = isIOS || isAndroid;
 
 		if (!isMobile) {
 			// Desktop: just open the web root
