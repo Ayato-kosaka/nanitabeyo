@@ -10,6 +10,8 @@
 		"processing": "처리 중...",
 		"error": "오류",
 		"success": "성공",
+		"defaultTitle": "CraveCatch - Find your dish",
+		"defaultDesc": "앱에 지금 기분을 말하면 AI가 당신이 먹고 싶어 할 만한 요리를 추천해 줍니다. 그런 다음 실제 음식 사진과 리뷰를 보며 마음에 드는 식당을 바로 선택하세요.",
 		"daysRemaining": "남은 {{count}}일",
 		"timeAgo": {
 			"seconds": "{{count}}초 전",

@@ -10,6 +10,8 @@
 		"processing": "Procesando...",
 		"error": "Error",
 		"success": "Éxito",
+		"defaultTitle": "CraveCatch - Find your dish",
+		"defaultDesc": "Simplemente dile a la app cómo te sientes y nuestra IA te sugerirá los platos que probablemente se te antojen. Luego, explora fotos reales de comida y reseñas para elegir al instante el restaurante que te parezca adecuado.",
 		"daysRemaining": "Quedan {{count}} días",
 		"timeAgo": {
 			"seconds": "hace {{count}} segundos",
