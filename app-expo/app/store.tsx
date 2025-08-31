@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
 import { Env } from "@/constants/Env";
-import { useLogger } from "@/hooks/useLogger";
 
 /**
  * Store redirect screen used for the `/store` route.
@@ -17,7 +15,6 @@ import { useLogger } from "@/hooks/useLogger";
  */
 export default function StoreRedirectScreen() {
 	const router = useRouter();
-	const { logFrontendEvent } = useLogger();
 
 	useEffect(() => {
 		const baseUrl = Env.WEB_BASE_URL.endsWith("/") ? Env.WEB_BASE_URL : `${Env.WEB_BASE_URL}/`;
