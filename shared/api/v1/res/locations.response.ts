@@ -32,6 +32,8 @@ export interface LocationDetailsResponse {
 	address: string;
 	/** addressComponents から解決された現地言語コード (BCP47) */
 	localLanguageCode: string;
+	/** addressComponents から解決された現地通貨コード (ISO 4217) */
+	localCurrencyCode: string | null;
 }
 
 /** GET /v1/locations/reverse-geocoding のレスポンス型 */
@@ -56,4 +58,6 @@ export interface LocationReverseGeocodingResponse {
 	address: string;
 	/** 解決された現地言語コード (BCP47) */
 	localLanguageCode: string;
+	/** addressComponents から解決された現地通貨コード (ISO 4217) */
+	localCurrencyCode: string | null;
 }

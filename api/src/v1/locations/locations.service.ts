@@ -24,6 +24,7 @@ import { protos } from '@googlemaps/places';
 // Import language dictionaries
 import * as territoryLanguages from './territory_languages.json';
 import * as subterritoryOverrides from './subterritory_overrides.json';
+import * as countryCurrencyMapping from './country_currency_mapping.json';
 
 // Interface definitions for language dictionaries
 interface TerritoryLanguage {
@@ -39,6 +40,11 @@ interface SubterritoryOverride {
   primary_lang: string;
   script: string;
   fallback_list: string[];
+}
+
+interface CountryCurrencyMapping {
+  country: string;
+  currency: string | null;
 }
 
 @Injectable()
@@ -146,6 +152,36 @@ export class LocationsService {
 
     // 最初の候補を採用
     return candidates[0] || 'en';
+  }
+
+  /**
+   * addressComponents から現地通貨コードを解決
+   */
+  private resolveLocalCurrencyCode(
+    addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
+  ): string | null {
+    const { countryCode } = this.extractLocationCodes(addressComponents);
+
+    if (!countryCode) {
+      this.logger.warn('CountryCodeNotFound', 'resolveLocalCurrencyCode', {
+        addressComponents,
+      });
+      return null; // フォールバック
+    }
+
+    // 通貨マッピングから通貨コードを取得
+    const currencyMapping = (
+      countryCurrencyMapping as CountryCurrencyMapping[]
+    ).find((item) => item.country === countryCode);
+
+    const currencyCode = currencyMapping?.currency || null;
+
+    this.logger.debug('CurrencyResolution', 'resolveLocalCurrencyCode', {
+      countryCode,
+      currencyCode,
+    });
+
+    return currencyCode;
   }
 
   /**
@@ -511,12 +547,17 @@ export class LocationsService {
       const localLanguageCode =
         this.resolveLocalLanguageCode(addressComponents);
 
+      // Resolve local currency code from addressComponents
+      const localCurrencyCode =
+        this.resolveLocalCurrencyCode(addressComponents);
+
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,
         location,
         viewport,
         address,
         localLanguageCode,
+        localCurrencyCode,
       });
 
       return {
@@ -524,6 +565,7 @@ export class LocationsService {
         viewport,
         address,
         localLanguageCode,
+        localCurrencyCode,
       };
     } catch (error) {
       this.logger.error('GooglePlacesDetailsCallError', 'getLocationDetails', {
@@ -595,11 +637,16 @@ export class LocationsService {
       const localLanguageCode =
         this.resolveLocalLanguageCode(addressComponents);
 
+      // Resolve local currency code from addressComponents
+      const localCurrencyCode =
+        this.resolveLocalCurrencyCode(addressComponents);
+
       return {
         location,
         viewport,
         address,
         localLanguageCode,
+        localCurrencyCode,
       };
     } catch (error) {
       this.logger.error('GoogleGeocodingReverseError', 'getReverseGeocoding', {

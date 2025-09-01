@@ -14,6 +14,7 @@ describe('LocationsController', () => {
   const mockLocationsService = {
     autocompleteLocations: jest.fn(),
     getLocationDetails: jest.fn(),
+    getReverseGeocoding: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -111,7 +112,8 @@ describe('LocationsController', () => {
           },
         },
         address: 'Tokyo, Japan',
-        regionCode: 'JP',
+        localLanguageCode: 'ja',
+        localCurrencyCode: 'JPY',
       };
 
       mockLocationsService.getLocationDetails.mockResolvedValue(expectedResult);
@@ -143,7 +145,8 @@ describe('LocationsController', () => {
           },
         },
         address: 'Tokyo, Japan',
-        regionCode: 'JP',
+        localLanguageCode: 'ja',
+        localCurrencyCode: 'JPY',
       };
 
       mockLocationsService.getLocationDetails.mockResolvedValue(expectedResult);
