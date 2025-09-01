@@ -20,7 +20,8 @@
 			"days": "{{count}} दिन पहले",
 			"months": "{{count}} महीने पहले",
 			"years": "{{count}} साल पहले"
-		}
+		},
+		"site": "CraveCatch"
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",

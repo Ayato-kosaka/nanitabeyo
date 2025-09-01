@@ -1,6 +1,5 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
-import Head from "expo-router/head";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -18,9 +17,7 @@ import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
-import { Env } from "@/constants/Env";
-
-const ogLocale = (tag: string) => tag.replace("-", "_");
+import { SeoHead } from "../_seo";
 
 /**
  * 🌍 BCP 47 言語タグが妥当な形式かを検証するユーティリティ関数。
@@ -51,11 +48,6 @@ export default function RootLayout() {
 	const { logFrontendEvent } = useLogger();
 
 	const fontsLoaded = useLocaleFonts(locale);
-
-	const baseURL = useMemo(() => `${Env.WEB_BASE_URL}/${locale}`, [locale]);
-	const DEFAULT_TITLE = i18n.t("Common.defaultTitle");
-	const DEFAULT_DESC = i18n.t("Common.defaultDesc");
-	const DEFAULT_IMG = `${Env.WEB_BASE_URL}/og/default.png`;
 
 	useEffect(() => {
 		const isLocaleSupported = isValidBcp47Tag(locale);
@@ -88,29 +80,7 @@ export default function RootLayout() {
 
 	return (
 		<>
-			<Head>
-				{/* canonical / 基本OG */}
-				<link rel="canonical" href={Env.WEB_BASE_URL} />
-
-				<title>{DEFAULT_TITLE}</title>
-				<meta name="description" content={DEFAULT_DESC} />
-
-				<meta property="og:type" content="website" />
-				<meta property="og:site_name" content="Food Scroll" />
-				<meta property="og:title" content={DEFAULT_TITLE} />
-				<meta property="og:description" content={DEFAULT_DESC} />
-				<meta property="og:url" content={baseURL} />
-				<meta property="og:image" content={DEFAULT_IMG} />
-				<meta property="og:image:width" content="1200" />
-				<meta property="og:image:height" content="630" />
-				<meta property="og:locale" content={ogLocale(String(locale))} />
-
-				{/* Twitter */}
-				<meta name="twitter:card" content="summary_large_image" />
-				<meta name="twitter:title" content={DEFAULT_TITLE} />
-				<meta name="twitter:description" content={DEFAULT_DESC} />
-				<meta name="twitter:image" content={DEFAULT_IMG} />
-			</Head>
+			<SeoHead />
 			<SafeAreaProvider>
 				<PaperProvider theme={theme}>
 					<SnackbarProvider>

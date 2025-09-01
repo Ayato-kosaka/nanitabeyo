@@ -20,7 +20,8 @@
 			"days": "{{count}}일 전",
 			"months": "{{count}}개월 전",
 			"years": "{{count}}년 전"
-		}
+		},
+		"site": "CraveCatch"
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
