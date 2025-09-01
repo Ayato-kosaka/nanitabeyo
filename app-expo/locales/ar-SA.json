@@ -20,7 +20,8 @@
 			"days": "منذ {{count}} يوم",
 			"months": "منذ {{count}} شهر",
 			"years": "منذ {{count}} سنة"
-		}
+		},
+		"site": "CraveCatch"
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",

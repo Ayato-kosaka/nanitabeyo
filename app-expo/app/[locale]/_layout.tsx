@@ -17,6 +17,7 @@ import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
+import { SeoHead } from "../_seo";
 
 /**
  * 🌍 BCP 47 言語タグが妥当な形式かを検証するユーティリティ関数。
@@ -78,30 +79,33 @@ export default function RootLayout() {
 	if (!fontsLoaded) return null;
 
 	return (
-		<SafeAreaProvider>
-			<PaperProvider theme={theme}>
-				<SnackbarProvider>
-					<DialogProvider>
-						<AuthProvider>
-							<Portal.Host>
-								<SplashHandler>
-									<HealthCheckInitializer>
-										<GestureHandlerRootView style={{ flex: 1 }}>
-											<AppProvider>
-												<Stack screenOptions={{ header: () => null }}>
-													<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-													<Stack.Screen name="+not-found" />
-												</Stack>
-												<StatusBar style="light" />
-											</AppProvider>
-										</GestureHandlerRootView>
-									</HealthCheckInitializer>
-								</SplashHandler>
-							</Portal.Host>
-						</AuthProvider>
-					</DialogProvider>
-				</SnackbarProvider>
-			</PaperProvider>
-		</SafeAreaProvider>
+		<>
+			<SeoHead />
+			<SafeAreaProvider>
+				<PaperProvider theme={theme}>
+					<SnackbarProvider>
+						<DialogProvider>
+							<AuthProvider>
+								<Portal.Host>
+									<SplashHandler>
+										<HealthCheckInitializer>
+											<GestureHandlerRootView style={{ flex: 1 }}>
+												<AppProvider>
+													<Stack screenOptions={{ header: () => null }}>
+														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+														<Stack.Screen name="+not-found" />
+													</Stack>
+													<StatusBar style="light" />
+												</AppProvider>
+											</GestureHandlerRootView>
+										</HealthCheckInitializer>
+									</SplashHandler>
+								</Portal.Host>
+							</AuthProvider>
+						</DialogProvider>
+					</SnackbarProvider>
+				</PaperProvider>
+			</SafeAreaProvider>
+		</>
 	);
 }

@@ -20,7 +20,8 @@
 			"days": "{{count}}天前",
 			"months": "{{count}}个月前",
 			"years": "{{count}}年前"
-		}
+		},
+		"site": "CraveCatch"
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",

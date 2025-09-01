@@ -20,7 +20,8 @@
 			"days": "{{count}} days ago",
 			"months": "{{count}} months ago",
 			"years": "{{count}} years ago"
-		}
+		},
+		"site": "CraveCatch"
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",

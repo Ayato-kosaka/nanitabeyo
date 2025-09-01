@@ -20,7 +20,8 @@
 			"days": "{{count}}日前",
 			"months": "{{count}}ヶ月前",
 			"years": "{{count}}年前"
-		}
+		},
+		"site": "なに食べよ"
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
