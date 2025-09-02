@@ -1,19 +1,8 @@
 import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
-// Manual type definition until Prisma client is regenerated
-export type PrismaRestaurants = {
-  id: string;
-  google_place_id: string;
-  name: string;
-  name_language_code: string;
-  latitude: number;
-  longitude: number;
-  image_url: string;
-  address_components?: any; // JSON field
-  plus_code?: any; // JSON field
-  created_at: Date;
-};
+
+export type PrismaRestaurants = Omit<Prisma.RestaurantsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
 
 export type SupabaseRestaurants = TableRow<'restaurants'>;
 
@@ -30,6 +19,7 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     name_language_code: supabase.name_language_code,
     latitude: supabase.latitude,
     longitude: supabase.longitude,
+
     image_url: supabase.image_url,
     address_components: supabase.address_components,
     plus_code: supabase.plus_code,
