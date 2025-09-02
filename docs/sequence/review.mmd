@@ -17,9 +17,15 @@ sequenceDiagram
 
     %% review/restaurant‑screen 画像＋レビュー投稿 ───────
     Note over User,UI: RestaurantScreen<br>(画像＋レビュー投稿)
-        UI ->> Backend: GET /v1/restaurants/by-google-place-id?googlePlaceId
-            Backend ->> Database: from(restaurants).where(restaurantId)
+        UI ->> Backend: POST /v1/restaurants {googlePlaceId}
+            Backend ->> Database: from(restaurants).where(googlePlaceId)
                 Database ->> Backend: Restaurants
+            alt ヒットなし
+                Backend ->> 外部API: Google Place Detail API
+                    外部API ->> Backend: placeDetail
+                Backend ->> Database: UPSERT Restaurants
+            end
+            Backend ->> UI: Restaurants
         UI ->> Backend: GET /v1/restaurants/{id}/dish-media?cursor
             Backend ->> Database: from(dishes).where(restaurant_id)<br>.join(from(dish_media).join(dish_media_id)<br>.orderBy(dishLikesCount).limit(1))<br>.on(dish_id)<br>.join(dish_reviews).on(dish_id)<br>.groupBy(dish_category_id).limit(41)
                 Database ->> Backend: {Restaurants, Dishes, DishMedia, DishReviews[]}[], nextCursor
@@ -35,15 +41,6 @@ sequenceDiagram
         UI ->> Backend: POST /v1/dish-category-variants<br>{name}
         UI ->> UI: 無ければエラー表示
     User ->> UI: レビュー投稿ボタン押下
-        UI ->> Backend: POST /v1/restaurants {googlePlaceId}
-            Backend ->> Database: from(restaurants).where(googlePlaceId)
-                Database ->> Backend: Restaurants
-            alt ヒットなし
-                Backend ->> 外部API: Google Place Detail API
-                    外部API ->> Backend: placeDetail
-                Backend ->> Database: UPSERT Restaurants
-            end
-            Backend ->> UI: Restaurants
         UI ->> Backend: POST /v1/dishes {restaurantId, dishCategory}
             Backend ->> Database: UPSERT dishes
                 Database ->> Backend: Dish
