@@ -5,12 +5,20 @@
 //
 
 /**
- * Google Places API の AddressComponent 型定義
+ * Google Places API の IAddressComponent 型定義
  */
-export interface AddressComponent {
-	longText?: string;
-	shortText?: string;
-	types?: string[];
+export interface IAddressComponent {
+	/** AddressComponent longText */
+	longText?: string | null;
+
+	/** AddressComponent shortText */
+	shortText?: string | null;
+
+	/** AddressComponent types */
+	types?: string[] | null;
+
+	/** AddressComponent languageCode */
+	languageCode?: string | null;
 }
 
 /**
@@ -106,7 +114,7 @@ const COUNTRY_TO_CURRENCY_MAP: Record<string, string> = {
  * @param addressComponents Google Places API から取得した住所コンポーネント配列
  * @returns 国コード (例: "JP", "US") または null (見つからない場合)
  */
-export function extractCountryCode(addressComponents: AddressComponent[]): string | null {
+export function extractCountryCode(addressComponents: IAddressComponent[]): string | null {
 	if (!addressComponents || !Array.isArray(addressComponents)) {
 		return null;
 	}
@@ -135,7 +143,7 @@ export function getCurrencyCodeFromCountry(countryCode: string | null): string |
  * @returns ISO-4217 通貨コード (例: "JPY", "USD") または null (決定できない場合)
  */
 export function getCurrencyCodeFromAddressComponents(
-	addressComponents: AddressComponent[] | null | undefined,
+	addressComponents: IAddressComponent[] | null | undefined,
 ): string | null {
 	if (!addressComponents) {
 		return null;

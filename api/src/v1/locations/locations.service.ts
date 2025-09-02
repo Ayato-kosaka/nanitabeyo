@@ -199,7 +199,6 @@ export class LocationsService {
             'places.id',
             'places.displayName',
             'places.location',
-            'places.postalAddress',
             'places.addressComponents',
             'places.plusCode',
             'contextualContents.photos.name',

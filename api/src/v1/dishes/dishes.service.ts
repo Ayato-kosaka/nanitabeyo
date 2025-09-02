@@ -238,7 +238,9 @@ export class DishesService {
           !place.id ||
           !place.displayName?.text ||
           !place.location?.latitude ||
-          !place.location?.longitude
+          !place.location?.longitude ||
+          !place.addressComponents ||
+          !place.plusCode
         )
           throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
 
@@ -275,8 +277,10 @@ export class DishesService {
           latitude: place.location!.latitude,
           longitude: place.location!.longitude,
           image_url: photoMedia.photoUri,
-          address_components: place.addressComponents || null,
-          plus_code: place.plusCode || null,
+          address_components: JSON.parse(
+            JSON.stringify(place.addressComponents),
+          ),
+          plus_code: JSON.parse(JSON.stringify(place.plusCode)),
           created_at: new Date(),
         };
 
