@@ -17,7 +17,7 @@ sequenceDiagram
 
     %% review/restaurant‑screen 画像＋レビュー投稿 ───────
     Note over User,UI: RestaurantScreen<br>(画像＋レビュー投稿)
-        UI ->> Backend: GET /v1/restaurants/{id}
+        UI ->> Backend: GET /v1/restaurants/by-google-place-id?googlePlaceId
             Backend ->> Database: from(restaurants).where(restaurantId)
                 Database ->> Backend: Restaurants
         UI ->> Backend: GET /v1/restaurants/{id}/dish-media?cursor

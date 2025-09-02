@@ -9,11 +9,11 @@ sequenceDiagram
     participant Worker     
 %% ─────────────────────────────────────────────────────────────────────────
     Note over User,UI: RestaurantMapScreen<br>(Google Map + 入札ピン)
-        UI ->> Backend: GET /v1/restaurants?lat, lng, radius, cursor
+        UI ->> Backend: GET /v1/restaurants/search?lat, lng, radius, cursor
             Backend ->> Database: SELECT restaurants, SUM(amount_cents) AS total_cents<br>FROM restaurants<br>LEFT JOIN restaurant_bids<br>ON start_date <= CURRENT_DATE<br>AND end_date   >  CURRENT_DATE<br>AND status = 'confirmed'<br>GROUP BY restaurant_id;
             Backend ->> UI: {Restaurants, meta.totalCents}[], nextCursor
     User ->> UI: onLocationChanged
-        UI ->> Backend: GET /v1/restaurants?lat, lng, radius, cursor
+        UI ->> Backend: GET /v1/restaurants/search?lat, lng, radius, cursor
     User ->> UI: Poiを選択<br>(restaurants or Google PLaces Restaurant)
         UI ->> UI: navigate(RestaurantScreen, {restaurantId})
 

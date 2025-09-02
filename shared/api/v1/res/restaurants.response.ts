@@ -4,7 +4,7 @@ import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
 import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
 import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_bids";
 
-/** GET /v1/restaurants のレスポンス型 */
+/** GET /v1/restaurants/search のレスポンス型 */
 export type QueryRestaurantsResponse = {
 	restaurant: SupabaseRestaurants;
 	meta: { totalCents: number };
