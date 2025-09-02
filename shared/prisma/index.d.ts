@@ -20789,6 +20789,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: number
+    address_components: number
+    plus_code: number
     created_at: number
     _all: number
   }
@@ -20834,6 +20836,8 @@ export namespace Prisma {
     latitude?: true
     longitude?: true
     image_url?: true
+    address_components?: true
+    plus_code?: true
     created_at?: true
     _all?: true
   }
@@ -20932,6 +20936,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonValue
+    plus_code: JsonValue
     created_at: Date
     _count: RestaurantsCountAggregateOutputType | null
     _avg: RestaurantsAvgAggregateOutputType | null
@@ -20962,6 +20968,8 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
@@ -20976,6 +20984,8 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
@@ -20987,6 +20997,8 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
@@ -20998,10 +21010,12 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
   }
 
-  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "created_at", ExtArgs["result"]["restaurants"]>
+  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "address_components" | "plus_code" | "created_at", ExtArgs["result"]["restaurants"]>
   export type restaurantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
@@ -21024,6 +21038,8 @@ export namespace Prisma {
       latitude: number
       longitude: number
       image_url: string
+      address_components: Prisma.JsonValue
+      plus_code: Prisma.JsonValue
       created_at: Date
     }, ExtArgs["result"]["restaurants"]>
     composites: {}
@@ -21457,6 +21473,8 @@ export namespace Prisma {
     readonly latitude: FieldRef<"restaurants", 'Float'>
     readonly longitude: FieldRef<"restaurants", 'Float'>
     readonly image_url: FieldRef<"restaurants", 'String'>
+    readonly address_components: FieldRef<"restaurants", 'Json'>
+    readonly plus_code: FieldRef<"restaurants", 'Json'>
     readonly created_at: FieldRef<"restaurants", 'DateTime'>
   }
     
@@ -23410,6 +23428,8 @@ export namespace Prisma {
     latitude: 'latitude',
     longitude: 'longitude',
     image_url: 'image_url',
+    address_components: 'address_components',
+    plus_code: 'plus_code',
     created_at: 'created_at'
   };
 
@@ -24890,6 +24910,8 @@ export namespace Prisma {
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
+    address_components?: JsonFilter<"restaurants">
+    plus_code?: JsonFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
@@ -24903,6 +24925,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
+    address_components?: SortOrder
+    plus_code?: SortOrder
     created_at?: SortOrder
     dishes?: dishesOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
@@ -24919,6 +24943,8 @@ export namespace Prisma {
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
+    address_components?: JsonFilter<"restaurants">
+    plus_code?: JsonFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
@@ -24932,6 +24958,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
+    address_components?: SortOrder
+    plus_code?: SortOrder
     created_at?: SortOrder
     _count?: restaurantsCountOrderByAggregateInput
     _avg?: restaurantsAvgOrderByAggregateInput
@@ -24951,6 +24979,8 @@ export namespace Prisma {
     latitude?: FloatWithAggregatesFilter<"restaurants"> | number
     longitude?: FloatWithAggregatesFilter<"restaurants"> | number
     image_url?: StringWithAggregatesFilter<"restaurants"> | string
+    address_components?: JsonWithAggregatesFilter<"restaurants">
+    plus_code?: JsonWithAggregatesFilter<"restaurants">
     created_at?: DateTimeWithAggregatesFilter<"restaurants"> | Date | string
   }
 
@@ -26382,6 +26412,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
@@ -26395,6 +26427,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -26408,6 +26442,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
@@ -26421,6 +26457,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -26434,6 +26472,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
   }
 
@@ -26445,6 +26485,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -26456,6 +26498,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -27807,6 +27851,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
+    address_components?: SortOrder
+    plus_code?: SortOrder
     created_at?: SortOrder
   }
 
@@ -30086,6 +30132,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
@@ -30098,6 +30146,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -30230,6 +30280,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30242,6 +30294,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30541,6 +30595,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
   }
@@ -30553,6 +30609,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -30632,6 +30690,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30644,6 +30704,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
