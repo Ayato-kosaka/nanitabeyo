@@ -10,7 +10,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useBlurModal } from "@/hooks/useBlurModal";
-import { useTopicSearch } from "@/features/topics/hoks/useTopicSearch";
+import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useLocale } from "@/hooks/useLocale";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
