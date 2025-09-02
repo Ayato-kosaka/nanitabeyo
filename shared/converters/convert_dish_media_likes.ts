@@ -2,16 +2,16 @@ import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
 
-export type PrismaDishLikes = Omit<Prisma.Dish_likesGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
+export type PrismaDishMediaLikes = Omit<Prisma.Dish_media_likesGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
 
-export type SupabaseDishLikes = TableRow<'dish_likes'>;
+export type SupabaseDishMediaLikes = TableRow<'dish_media_likes'>;
 
 /**
  * Supabase 型 → Prisma 型 に変換
  * @param supabase 通信用の Supabase 型オブジェクト
  * @returns アプリ内部用の Prisma 型オブジェクト
  */
-export function convertSupabaseToPrisma_DishLikes(supabase: SupabaseDishLikes): PrismaDishLikes {
+export function convertSupabaseToPrisma_DishMediaLikes(supabase: SupabaseDishMediaLikes): PrismaDishMediaLikes {
   return {
     id: supabase.id,
     dish_media_id: supabase.dish_media_id,
@@ -25,7 +25,7 @@ export function convertSupabaseToPrisma_DishLikes(supabase: SupabaseDishLikes): 
  * @param prisma アプリ内部で操作される Prisma 型オブジェクト
  * @returns API 通信用の Supabase 型オブジェクト
  */
-export function convertPrismaToSupabase_DishLikes(prisma: PrismaDishLikes): SupabaseDishLikes {
+export function convertPrismaToSupabase_DishMediaLikes(prisma: PrismaDishMediaLikes): SupabaseDishMediaLikes {
   return {
     id: prisma.id,
     dish_media_id: prisma.dish_media_id,

@@ -51,7 +51,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -215,7 +215,7 @@ export class DishMediaRepository {
     //   whereClause.created_at = { lt: new Date(cursor) };
     // }
 
-    // const likes = await this.prisma.prisma.dish_likes.findMany({
+    // const likes = await this.prisma.prisma.dish_media_likes.findMany({
     //   where: whereClause,
     //   orderBy: { created_at: 'desc' },
     //   take: limit,
@@ -278,7 +278,7 @@ export class DishMediaRepository {
   /**
    * dishMediaIds から DishMediaEntryEntity 配列を構築
    *  - dish_media 本体 / dishes.restaurants
-   *  - user の like/save 状態 (dish_likes + reactions)
+   *  - user の like/save 状態 (dish_media_likes + reactions)
    *  - review の like 状態 & likeCount
    *  - 順序は入力 dishMediaIds の順を維持
    */
@@ -295,8 +295,8 @@ export class DishMediaRepository {
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
       where: { id: { in: dishMediaIds } },
       include: {
-        dish_likes: { where: { user_id: userId } }, // User がいいねしているか
-        _count: { select: { dish_likes: true } }, // いいね数を取得
+        dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
+        _count: { select: { dish_media_likes: true } }, // いいね数を取得
         dishes: {
           include: {
             restaurants: true,
@@ -374,11 +374,11 @@ export class DishMediaRepository {
               this.reactionKey('dish_media', dishMedia.id, 'save'),
             ),
             isLiked:
-              dishMedia.dish_likes.length > 0 ||
+              dishMedia.dish_media_likes.length > 0 ||
               reactionSet.has(
                 this.reactionKey('dish_media', dishMedia.id, 'like'),
               ),
-            likeCount: dishMedia._count.dish_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
+            likeCount: dishMedia._count.dish_media_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
           },
           dish_reviews: dishReviews.map((review) => ({
             ...review,
@@ -406,14 +406,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -429,12 +429,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
@@ -449,7 +449,7 @@ export class DishMediaRepository {
   /*                     いいね / いいね解除                         */
   /* ------------------------------------------------------------------ */
   async likeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.prisma.dish_likes.upsert({
+    await this.prisma.prisma.dish_media_likes.upsert({
       where: { dish_media_id_user_id: { dish_media_id: id, user_id: userId } },
       update: {},
       create: {
@@ -460,7 +460,7 @@ export class DishMediaRepository {
   }
 
   async unlikeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.prisma.dish_likes.deleteMany({
+    await this.prisma.prisma.dish_media_likes.deleteMany({
       where: { dish_media_id: id, user_id: userId },
     });
   }
