@@ -275,6 +275,8 @@ export class DishesService {
           latitude: place.location!.latitude,
           longitude: place.location!.longitude,
           image_url: photoMedia.photoUri,
+          address_components: place.addressComponents || null,
+          plus_code: place.plusCode || null,
           created_at: new Date(),
         };
 

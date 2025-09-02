@@ -200,6 +200,7 @@ export class LocationsService {
             'places.displayName',
             'places.location',
             'places.postalAddress',
+            'places.addressComponents',
             'places.plusCode',
             'contextualContents.photos.name',
             'contextualContents.photos.widthPx',

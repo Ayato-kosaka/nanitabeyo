@@ -683,6 +683,7 @@ export type Database = {
 			};
 			restaurants: {
 				Row: {
+					address_components: Json | null;
 					created_at: string;
 					google_place_id: string;
 					id: string;
@@ -692,8 +693,10 @@ export type Database = {
 					longitude: number;
 					name: string;
 					name_language_code: string;
+					plus_code: Json | null;
 				};
 				Insert: {
+					address_components?: Json | null;
 					created_at?: string;
 					google_place_id: string;
 					id?: string;
@@ -703,8 +706,10 @@ export type Database = {
 					longitude: number;
 					name: string;
 					name_language_code: string;
+					plus_code?: Json | null;
 				};
 				Update: {
+					address_components?: Json | null;
 					created_at?: string;
 					google_place_id?: string;
 					id?: string;
@@ -714,6 +719,7 @@ export type Database = {
 					longitude?: number;
 					name?: string;
 					name_language_code?: string;
+					plus_code?: Json | null;
 				};
 				Relationships: [];
 			};
