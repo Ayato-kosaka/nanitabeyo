@@ -62,7 +62,9 @@ describe('DishCategoryVariantsService Error Handling', () => {
       ],
     }).compile();
 
-    service = module.get<DishCategoryVariantsService>(DishCategoryVariantsService);
+    service = module.get<DishCategoryVariantsService>(
+      DishCategoryVariantsService,
+    );
     mockRepo = module.get(DishCategoryVariantsRepository);
     mockExternalApiService = module.get(ExternalApiService);
     mockPrismaService = module.get(PrismaService);
@@ -95,13 +97,13 @@ describe('DishCategoryVariantsService Error Handling', () => {
     it('should throw NotFoundException when Wikidata QID has no corresponding dish category', async () => {
       // Mock direct search to fail
       mockRepo.findDishCategoryVariantBySurfaceForm.mockResolvedValue(null);
-      
+
       // Mock Wikidata to return a result
       mockExternalApiService.searchWikidata.mockResolvedValue({
         qid: 'Q123456',
         label: 'test-label',
       });
-      
+
       // Mock QID lookup to fail
       mockRepo.findDishCategoryByQid.mockResolvedValue(null);
 
@@ -136,7 +138,9 @@ describe('DishCategoryVariantsService Error Handling', () => {
         dish_categories: mockCategory,
       };
 
-      mockRepo.findDishCategoryVariantBySurfaceForm.mockResolvedValue(mockVariant);
+      mockRepo.findDishCategoryVariantBySurfaceForm.mockResolvedValue(
+        mockVariant,
+      );
 
       const result = await service.createDishCategoryVariant(dto);
 

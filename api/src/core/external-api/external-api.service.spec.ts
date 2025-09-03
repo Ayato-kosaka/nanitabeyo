@@ -55,7 +55,7 @@ describe('ExternalApiService Error Handling', () => {
 
     it('should log 403 errors as warning instead of error', async () => {
       const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
-      
+
       // Mock a 403 error response
       mockFetch.mockResolvedValue({
         ok: false,
@@ -81,7 +81,7 @@ describe('ExternalApiService Error Handling', () => {
 
     it('should log non-403 errors as error level', async () => {
       const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
-      
+
       // Mock a 500 error response
       mockFetch.mockResolvedValue({
         ok: false,
@@ -107,7 +107,7 @@ describe('ExternalApiService Error Handling', () => {
 
     it('should log network errors as error level', async () => {
       const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
-      
+
       // Mock a network error
       mockFetch.mockRejectedValue(new Error('Network error'));
 
@@ -128,7 +128,7 @@ describe('ExternalApiService Error Handling', () => {
     it('should return corrected spelling when API succeeds', async () => {
       const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
       const correctedQuery = 'corrected test query';
-      
+
       // Mock successful response
       mockFetch.mockResolvedValue({
         ok: true,
