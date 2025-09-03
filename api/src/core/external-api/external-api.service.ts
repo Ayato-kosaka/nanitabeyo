@@ -76,7 +76,7 @@ export interface ClaudeMessageRequest {
 
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
@@ -221,12 +221,13 @@ export class ExternalApiService {
       });
       return null;
     } catch (error) {
-      this.logger.error(
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
         'GoogleCustomSearchAPICallError',
         'getCorrectedSpelling',
         {
-          error_message:
-            error instanceof Error ? error.message : 'Unknown error',
+          error_message: errorMessage,
           query,
         },
       );
