@@ -6,17 +6,18 @@
 
 import { Injectable } from '@nestjs/common';
 import { PromptService } from '../prompt/prompt.service';
-import { ExternalApiService } from '../external-api/external-api.service';
+import { ExternalApiService, ClaudeMessageRequest } from '../external-api/external-api.service';
 import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { AppLoggerService } from '../logger/logger.service';
 import {
-  sanitizeAndParseJson,
-  isValidDishCategoryArray,
-} from './json-sanitizer';
-import { withRetry, DEFAULT_RETRY_OPTIONS } from './retry-utils';
+  DISH_CATEGORY_TOOL_SCHEMA,
+  extractDishCategoryItems,
+  DishCategoryItem,
+} from './tool-schema';
+import { withTwoLayerRetry, DEFAULT_RETRY_OPTIONS, LOGICAL_RETRY_OPTIONS } from './retry-utils';
 
-// トピック生成レスポンス型
+// トピック生成レスポンス型 (keeping backward compatibility)
 export interface DishCategoryTopicResponse {
   category: string;
   topicTitle: string;
@@ -37,6 +38,7 @@ export class ClaudeService {
 
   /**
    * 料理カテゴリ提案を生成する
+   * Uses Claude tool calling for structured output instead of free-form JSON parsing
    */
   async generateDishCategoryRecommendations(params: {
     address: string;
@@ -64,27 +66,16 @@ export class ClaudeService {
 
     const { family, variant } = prompt;
 
-    const outputFormatHint = `CRITICAL: You MUST output ONLY valid JSON. No explanations, no text outside the JSON array.
+    // Enhanced system prompt for tool calling
+    const systemPrompt = `${variant.prompt_text}
 
-REQUIRED JSON FORMAT (exact structure):
-[
-  {
-    "category": "string (dish category name, MUST match Wikidata label exactly)",
-    "topicTitle": "string (catchy topic title)", 
-    "reason": "string (brief reason why this is recommended)"
-  }
-]
-
-FORMATTING RULES:
-- All property names MUST use double quotes: "category", "topicTitle", "reason"
-- All string values MUST use double quotes
-- No trailing commas
-- No comments or extra text
-- Return exactly 10 items in the array
-
-LANGUAGE REQUIREMENT: All text content MUST be in ${params.languageTag}`;
-
-    const systemPrompt = `${variant.prompt_text}\n\n${outputFormatHint}`.trim();
+CRITICAL INSTRUCTIONS:
+- You MUST use the provided tool to generate exactly 10 dish category recommendations
+- Each category MUST match Wikidata labels exactly 
+- All text content MUST be in ${params.languageTag}
+- Do NOT output any free-form text - use ONLY the tool
+- Avoid ASCII double quotes (") in text values; use Japanese quotes (「」) or single quotes when needed
+- Each recommendation must have unique, appealing content`.trim();
 
     const variablePromptPart = `Generate ${EXPECTED_RECOMMENDATIONS_COUNT} diverse and appealing dish category recommendations based on:  
 ${`Address: ${params.address}`}
@@ -95,7 +86,8 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
 
     const fullPrompt = `${systemPrompt}\n\n${variablePromptPart}`;
 
-    const requestPayload = {
+    // Claude API request with tool calling
+    const requestPayload: ClaudeMessageRequest = {
       model: 'claude-3-haiku-20240307',
       max_tokens: 4096,
       temperature: 0.7,
@@ -106,117 +98,96 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
           content: variablePromptPart,
         },
       ],
+      tools: [DISH_CATEGORY_TOOL_SCHEMA],
+      tool_choice: {
+        type: 'tool',
+        name: DISH_CATEGORY_TOOL_SCHEMA.name,
+      },
+      stream: false, // Non-streaming by default as requested
     };
 
     try {
       // Store response data for usage tracking
       let lastResponse: any;
-      let lastResponseText = '';
+      let lastResponseContent: any;
 
-      // Retry logic for both API call and JSON parsing
-      const parsedJson = await withRetry(
-        async (): Promise<DishCategoryTopicResponse[]> => {
-          // ExternalApiServiceを使ってClaude APIを呼び出し
-          const response =
-            await this.externalApiService.callClaudeAPI(requestPayload);
-
-          // Store for usage tracking
+      // Two-layer retry: API retries + logical validation retries
+      const retryResult = await withTwoLayerRetry(
+        // Layer 1: API call with transport-level retries
+        async () => {
+          const response = await this.externalApiService.callClaudeAPI(requestPayload);
           lastResponse = response;
-          lastResponseText = response.content[0]?.text || '';
-
-          if (response.stop_reason && response.stop_reason !== 'end_turn') {
-            throw new Error(
-              `Claude API failed: Unexpected stop_reason - ${response.stop_reason}`,
-            );
+          return response;
+        },
+        // Layer 2: Logical validation with schema checking
+        (response) => {
+          if (response.stop_reason && !['end_turn', 'tool_use'].includes(response.stop_reason)) {
+            throw new Error(`Claude API failed: Unexpected stop_reason - ${response.stop_reason}`);
           }
 
-          // Log raw response for debugging JSON parsing issues
-          this.logger.debug(
-            'ClaudeRawResponse',
-            'generateDishCategoryRecommendations',
-            {
-              responseLength: lastResponseText.length,
-              responsePreview: lastResponseText.substring(0, 200),
-            },
+          // Find tool_use content in response
+          const toolUseContent = response.content.find(
+            (content) => content.type === 'tool_use'
           );
 
-          // Try sanitized JSON parsing first
-          const sanitizedResult =
-            sanitizeAndParseJson<DishCategoryTopicResponse[]>(lastResponseText);
-
-          if (sanitizedResult && isValidDishCategoryArray(sanitizedResult)) {
-            this.logger.debug(
-              'JSONParsedSuccessfully',
-              'generateDishCategoryRecommendations',
-              {
-                method: 'sanitized',
-                count: sanitizedResult.length,
-              },
-            );
-            return sanitizedResult;
+          if (!toolUseContent) {
+            throw new Error('Expected tool_use content not found in Claude response');
           }
 
-          // Fallback: try direct JSON.parse
-          try {
-            const directResult = JSON.parse(
-              lastResponseText,
-            ) as DishCategoryTopicResponse[];
-            this.logger.debug(
-              'JSONParsedSuccessfully',
-              'generateDishCategoryRecommendations',
-              {
-                method: 'direct',
-                count: directResult.length,
-              },
-            );
-            return directResult;
-          } catch (parseError) {
-            // Enhanced error logging with response content for debugging
-            this.logger.error(
-              'JSONParseFailure',
-              'generateDishCategoryRecommendations',
-              {
-                parseError:
-                  parseError instanceof Error
-                    ? parseError.message
-                    : String(parseError),
-                responseText: lastResponseText.substring(0, 500), // Log first 500 chars for debugging
-                responseLength: lastResponseText.length,
-              },
-            );
+          lastResponseContent = toolUseContent;
 
-            throw new Error(
-              `Claude API failed: Invalid JSON response - ${(parseError as Error).message}. Response preview: ${lastResponseText.substring(0, 200)}`,
-            );
+          // Extract and validate tool response
+          const items = extractDishCategoryItems(toolUseContent);
+          if (!items) {
+            throw new Error('Tool response validation failed: Invalid structure or item count');
           }
+
+          if (items.length !== EXPECTED_RECOMMENDATIONS_COUNT) {
+            throw new Error(`Invalid item count: expected ${EXPECTED_RECOMMENDATIONS_COUNT}, got ${items.length}`);
+          }
+
+          return response; // Return the original response to satisfy type requirements
         },
+        // API retry options
         {
           maxRetries: 2, // Reduced retries to avoid long delays
           baseDelayMs: 500,
           maxDelayMs: 5000,
         },
+        // Logical retry options (single retry for schema validation failures)
+        LOGICAL_RETRY_OPTIONS,
       );
 
-      // Validate response structure and length
-      if (!Array.isArray(parsedJson)) {
-        throw new Error('Claude API failed: Response is not an array');
-      }
+      // Extract items from the final validated response
+      const toolUseContent = retryResult.result.content.find(
+        (content) => content.type === 'tool_use'
+      );
+      const extractedItems = extractDishCategoryItems(toolUseContent!)!;
+      lastResponseContent = toolUseContent;
 
-      if (parsedJson.length === 0) {
-        throw new Error('Claude API failed: Empty response array');
-      }
+      // Log successful tool calling with separated content and metadata
+      this.logger.debug(
+        'ClaudeToolResponseSuccess',
+        'generateDishCategoryRecommendations',
+        {
+          toolName: DISH_CATEGORY_TOOL_SCHEMA.name,
+          itemCount: extractedItems.length,
+          retryMetrics: retryResult.metrics,
+          responseId: lastResponse.id,
+          model: lastResponse.model,
+        },
+      );
 
-      // Log warning if not exactly the expected count but continue (graceful degradation)
-      if (parsedJson.length !== EXPECTED_RECOMMENDATIONS_COUNT) {
-        this.logger.warn(
-          'UnexpectedResponseCount',
-          'generateDishCategoryRecommendations',
-          {
-            expected: EXPECTED_RECOMMENDATIONS_COUNT,
-            actual: parsedJson.length,
-          },
-        );
-      }
+      // Log tool response content separately from metadata
+      this.logger.debug(
+        'ClaudeToolContent',
+        'generateDishCategoryRecommendations',
+        {
+          toolInput: lastResponseContent.input,
+          toolId: lastResponseContent.id,
+          toolName: lastResponseContent.name,
+        },
+      );
 
       // PromptServiceを使ってプロンプト使用履歴を記録
       await this.promptService.createPromptUsage({
@@ -224,16 +195,18 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
         variant_id: variant.id,
         target_type: 'dish_category_recommendations',
         target_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
-        generated_text: lastResponseText,
+        generated_text: JSON.stringify(extractedItems), // Store structured data instead of raw text
         used_prompt_text: fullPrompt,
         input_data: params,
         llm_model: 'claude-3-haiku-20240307',
         temperature: 0.7,
         generated_user: this.cls.get<string>(CLS_KEY_USER_ID),
         metadata: {
-          response_length: parsedJson.length,
+          response_length: extractedItems.length,
           input_tokens: lastResponse.usage.input_tokens,
           output_tokens: lastResponse.usage.output_tokens,
+          tool_calling: true,
+          retry_metrics: retryResult.metrics,
         },
       });
 
@@ -241,16 +214,20 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
         'DishCategoryRecommendationsGenerated',
         'generateDishCategoryRecommendations',
         {
-          count: parsedJson.length,
+          count: extractedItems.length,
+          retryMetrics: retryResult.metrics,
         },
       );
-      return parsedJson;
+
+      // Return in the expected format (maintain backward compatibility)
+      return extractedItems as DishCategoryTopicResponse[];
     } catch (error) {
       this.logger.error(
         'GenerateDishCategoryRecommendationsError',
         'generateDishCategoryRecommendations',
         {
           error_message: error instanceof Error ? error.message : String(error),
+          tool_calling_enabled: true,
         },
       );
       throw error;

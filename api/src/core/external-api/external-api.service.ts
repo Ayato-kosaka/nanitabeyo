@@ -95,7 +95,7 @@ export class ExternalApiService {
         api_name: 'Claude API',
         endpoint,
         method: 'POST',
-        request_payload: payload,
+        request_payload: payload as any, // Allow flexible payload types for Claude API
         function_name: 'callClaudeAPI',
         customHeaders: {
           'anthropic-version': '2023-06-01',
