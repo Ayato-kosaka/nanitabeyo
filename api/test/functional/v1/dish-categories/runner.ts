@@ -333,6 +333,7 @@ export class DishCategoriesTestRunner {
     // Add query parameters
     url.searchParams.set('address', params.address);
     url.searchParams.set('languageTag', params.languageTag);
+    url.searchParams.set('localLanguageCode', 'ja'); // Fixed to Japanese for testing
 
     if (params.timeSlot) url.searchParams.set('timeSlot', params.timeSlot);
     if (params.scene) url.searchParams.set('scene', params.scene);

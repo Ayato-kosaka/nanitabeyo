@@ -27,21 +27,51 @@ interface GoogleCustomSearchResponse {
 }
 
 // Claude API のレスポンス型
-interface ClaudeMessageResponse {
+export interface ClaudeMessageResponse {
   id: string;
   model: string;
   role: 'assistant';
   type: 'message';
-  content: {
-    type: 'text';
-    text: string;
-  }[];
+  content: (
+    | {
+        type: 'text';
+        text: string;
+      }
+    | {
+        type: 'tool_use';
+        id: string;
+        name: string;
+        input: any;
+      }
+  )[];
   stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
   stop_sequence: string | null;
   usage: {
     input_tokens: number;
     output_tokens: number;
   };
+}
+
+// Claude API のリクエスト型
+export interface ClaudeMessageRequest {
+  model: string;
+  max_tokens: number;
+  temperature?: number;
+  system?: string;
+  messages: {
+    role: 'user' | 'assistant';
+    content: string;
+  }[];
+  tools?: {
+    name: string;
+    description: string;
+    input_schema: any;
+  }[];
+  tool_choice?:
+    | { type: 'auto' }
+    | { type: 'any' }
+    | { type: 'tool'; name: string };
+  stream?: boolean;
 }
 
 @Injectable()
@@ -51,7 +81,9 @@ export class ExternalApiService {
   /**
    * Claude API呼び出し
    */
-  async callClaudeAPI(payload: any): Promise<ClaudeMessageResponse> {
+  async callClaudeAPI(
+    payload: ClaudeMessageRequest,
+  ): Promise<ClaudeMessageResponse> {
     const claudeApiKey = env.CLAUDE_API_KEY;
 
     if (!claudeApiKey) {
@@ -65,7 +97,7 @@ export class ExternalApiService {
         api_name: 'Claude API',
         endpoint,
         method: 'POST',
-        request_payload: payload,
+        request_payload: payload as any, // Allow flexible payload types for Claude API
         function_name: 'callClaudeAPI',
         customHeaders: {
           'anthropic-version': '2023-06-01',
