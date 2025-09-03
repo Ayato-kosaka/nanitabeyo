@@ -1,12 +1,17 @@
 /**
  * JSON sanitization utilities for Claude API responses
  *
+ * @deprecated These utilities are deprecated in favor of Claude tool calling.
+ * Tool calling provides structured output that doesn't require JSON parsing.
+ * These functions are preserved for backward compatibility only.
+ *
  * Claude API sometimes returns malformed JSON with unquoted property names
  * or other formatting issues. This utility attempts to fix common issues.
  */
 
 /**
  * Attempts to sanitize and parse potentially malformed JSON from Claude API
+ * @deprecated Use Claude tool calling instead of free-form JSON parsing
  * @param jsonString The raw JSON string from Claude API
  * @returns Parsed JSON object or null if parsing fails
  */
@@ -78,6 +83,7 @@ export function sanitizeAndParseJson<T = any>(jsonString: string): T | null {
 
 /**
  * Validates that the parsed JSON matches expected DishCategoryTopicResponse structure
+ * @deprecated Use tool calling schema validation instead
  * @param data The parsed JSON data
  * @returns true if data is valid array of dish category responses
  */
