@@ -234,22 +234,26 @@ export class DishesService {
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
         const contextualContent = contextualContents[index];
-        
+
         // Check required fields with proper validation for latitude/longitude
         const missingFields: string[] = [];
         if (!place.id) missingFields.push('id');
         if (!place.displayName?.text) missingFields.push('displayName.text');
-        if (typeof place.location?.latitude !== 'number') missingFields.push('location.latitude');
-        if (typeof place.location?.longitude !== 'number') missingFields.push('location.longitude');
+        if (typeof place.location?.latitude !== 'number')
+          missingFields.push('location.latitude');
+        if (typeof place.location?.longitude !== 'number')
+          missingFields.push('location.longitude');
         if (!place.addressComponents) missingFields.push('addressComponents');
-        
+
         if (missingFields.length > 0) {
           this.logger.error('InvalidPlaceData', 'bulkImportFromGoogle', {
             placeId: place.id || 'unknown',
             missingFields,
             place: JSON.stringify(place),
           });
-          throw new Error(`Invalid place data - missing fields: ${missingFields.join(', ')}`);
+          throw new Error(
+            `Invalid place data - missing fields: ${missingFields.join(', ')}`,
+          );
         }
 
         const reviews = contextualContent.reviews || [];
@@ -288,7 +292,9 @@ export class DishesService {
           address_components: JSON.parse(
             JSON.stringify(place.addressComponents),
           ),
-          plus_code: place.plusCode ? JSON.parse(JSON.stringify(place.plusCode)) : null,
+          plus_code: place.plusCode
+            ? JSON.parse(JSON.stringify(place.plusCode))
+            : null,
           created_at: new Date(),
         };
 
