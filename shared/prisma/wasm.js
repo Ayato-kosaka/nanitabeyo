@@ -323,14 +323,14 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
 
 exports.Prisma.UsersScalarFieldEnum = {
   id: 'id',
-  username: 'username',
   display_name: 'display_name',
   avatar: 'avatar',
   bio: 'bio',
   last_login_at: 'last_login_at',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  lock_no: 'lock_no'
+  lock_no: 'lock_no',
+  username: 'username'
 };
 
 exports.Prisma.SortOrder = {

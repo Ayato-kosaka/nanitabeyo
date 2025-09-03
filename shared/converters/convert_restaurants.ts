@@ -40,7 +40,7 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     name_language_code: prisma.name_language_code,
     latitude: prisma.latitude,
     longitude: prisma.longitude,
-    location: undefined,
+
     image_url: prisma.image_url,
     address_components: prisma.address_components,
     plus_code: prisma.plus_code,

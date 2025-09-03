@@ -70,7 +70,6 @@ model dish_category_variants {
   created_at       DateTime        @default(now()) @db.Timestamptz(6)
   dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([surface_form(ops: raw("gin_trgm_ops"))], map: "idx_dcv_surface_form_trgm", type: Gin)
   @@index([dish_category_id], map: "idx_dish_category_variants_dish_category_id")
   @@schema("dev")
 }
@@ -329,21 +328,19 @@ model restaurant_bids {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model restaurants {
-  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  google_place_id    String                    @unique
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  google_place_id    String            @unique
   name               String
   name_language_code String
   latitude           Float
   longitude          Float
-  location           Unsupported("geography")? @default(dbgenerated("(extensions.st_setsrid(extensions.st_makepoint(longitude, latitude), 4326))::extensions.geography"))
   image_url          String
   address_components Json
   plus_code          Json?
-  created_at         DateTime                  @default(now()) @db.Timestamptz(6)
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
   dishes             dishes[]
   restaurant_bids    restaurant_bids[]
 
-  @@index([location], map: "idx_restaurants_location", type: Gist)
   @@schema("dev")
 }
 
@@ -351,7 +348,6 @@ model restaurants {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username         String             @unique(map: "uq_users_username") @db.Citext
   display_name     String?
   avatar           String?
   bio              String?
@@ -359,6 +355,7 @@ model users {
   created_at       DateTime           @default(now()) @db.Timestamptz(6)
   updated_at       DateTime           @default(now()) @db.Timestamptz(6)
   lock_no          Int                @default(0)
+  username         String             @db.Citext
   dish_media       dish_media[]
   dish_media_likes dish_media_likes[]
   dish_reviews     dish_reviews[]

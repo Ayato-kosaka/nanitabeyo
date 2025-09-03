@@ -20937,7 +20937,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonValue
-    plus_code: JsonValue
+    plus_code: JsonValue | null
     created_at: Date
     _count: RestaurantsCountAggregateOutputType | null
     _avg: RestaurantsAvgAggregateOutputType | null
@@ -21039,7 +21039,7 @@ export namespace Prisma {
       longitude: number
       image_url: string
       address_components: Prisma.JsonValue
-      plus_code: Prisma.JsonValue
+      plus_code: Prisma.JsonValue | null
       created_at: Date
     }, ExtArgs["result"]["restaurants"]>
     composites: {}
@@ -21952,7 +21952,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -21960,11 +21959,11 @@ export namespace Prisma {
     created_at: Date | null
     updated_at: Date | null
     lock_no: number | null
+    username: string | null
   }
 
   export type UsersMaxAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -21972,11 +21971,11 @@ export namespace Prisma {
     created_at: Date | null
     updated_at: Date | null
     lock_no: number | null
+    username: string | null
   }
 
   export type UsersCountAggregateOutputType = {
     id: number
-    username: number
     display_name: number
     avatar: number
     bio: number
@@ -21984,6 +21983,7 @@ export namespace Prisma {
     created_at: number
     updated_at: number
     lock_no: number
+    username: number
     _all: number
   }
 
@@ -21998,7 +21998,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -22006,11 +22005,11 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    username?: true
   }
 
   export type UsersMaxAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -22018,11 +22017,11 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    username?: true
   }
 
   export type UsersCountAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -22030,6 +22029,7 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    username?: true
     _all?: true
   }
 
@@ -22121,7 +22121,6 @@ export namespace Prisma {
 
   export type UsersGroupByOutputType = {
     id: string
-    username: string
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -22129,6 +22128,7 @@ export namespace Prisma {
     created_at: Date
     updated_at: Date
     lock_no: number
+    username: string
     _count: UsersCountAggregateOutputType | null
     _avg: UsersAvgAggregateOutputType | null
     _sum: UsersSumAggregateOutputType | null
@@ -22152,7 +22152,6 @@ export namespace Prisma {
 
   export type usersSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22160,6 +22159,7 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    username?: boolean
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
@@ -22169,7 +22169,6 @@ export namespace Prisma {
 
   export type usersSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22177,11 +22176,11 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    username?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22189,11 +22188,11 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    username?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectScalar = {
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22201,9 +22200,10 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    username?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no" | "username", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
@@ -22224,7 +22224,6 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      username: string
       display_name: string | null
       avatar: string | null
       bio: string | null
@@ -22232,6 +22231,7 @@ export namespace Prisma {
       created_at: Date
       updated_at: Date
       lock_no: number
+      username: string
     }, ExtArgs["result"]["users"]>
     composites: {}
   }
@@ -22660,7 +22660,6 @@ export namespace Prisma {
    */
   interface usersFieldRefs {
     readonly id: FieldRef<"users", 'String'>
-    readonly username: FieldRef<"users", 'String'>
     readonly display_name: FieldRef<"users", 'String'>
     readonly avatar: FieldRef<"users", 'String'>
     readonly bio: FieldRef<"users", 'String'>
@@ -22668,6 +22667,7 @@ export namespace Prisma {
     readonly created_at: FieldRef<"users", 'DateTime'>
     readonly updated_at: FieldRef<"users", 'DateTime'>
     readonly lock_no: FieldRef<"users", 'Int'>
+    readonly username: FieldRef<"users", 'String'>
   }
     
 
@@ -23438,14 +23438,14 @@ export namespace Prisma {
 
   export const UsersScalarFieldEnum: {
     id: 'id',
-    username: 'username',
     display_name: 'display_name',
     avatar: 'avatar',
     bio: 'bio',
     last_login_at: 'last_login_at',
     created_at: 'created_at',
     updated_at: 'updated_at',
-    lock_no: 'lock_no'
+    lock_no: 'lock_no',
+    username: 'username'
   };
 
   export type UsersScalarFieldEnum = (typeof UsersScalarFieldEnum)[keyof typeof UsersScalarFieldEnum]
@@ -24911,7 +24911,7 @@ export namespace Prisma {
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
     address_components?: JsonFilter<"restaurants">
-    plus_code?: JsonFilter<"restaurants">
+    plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
@@ -24926,7 +24926,7 @@ export namespace Prisma {
     longitude?: SortOrder
     image_url?: SortOrder
     address_components?: SortOrder
-    plus_code?: SortOrder
+    plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
     dishes?: dishesOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
@@ -24944,7 +24944,7 @@ export namespace Prisma {
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
     address_components?: JsonFilter<"restaurants">
-    plus_code?: JsonFilter<"restaurants">
+    plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
@@ -24959,7 +24959,7 @@ export namespace Prisma {
     longitude?: SortOrder
     image_url?: SortOrder
     address_components?: SortOrder
-    plus_code?: SortOrder
+    plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
     _count?: restaurantsCountOrderByAggregateInput
     _avg?: restaurantsAvgOrderByAggregateInput
@@ -24980,7 +24980,7 @@ export namespace Prisma {
     longitude?: FloatWithAggregatesFilter<"restaurants"> | number
     image_url?: StringWithAggregatesFilter<"restaurants"> | string
     address_components?: JsonWithAggregatesFilter<"restaurants">
-    plus_code?: JsonWithAggregatesFilter<"restaurants">
+    plus_code?: JsonNullableWithAggregatesFilter<"restaurants">
     created_at?: DateTimeWithAggregatesFilter<"restaurants"> | Date | string
   }
 
@@ -24989,7 +24989,6 @@ export namespace Prisma {
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
     id?: UuidFilter<"users"> | string
-    username?: StringFilter<"users"> | string
     display_name?: StringNullableFilter<"users"> | string | null
     avatar?: StringNullableFilter<"users"> | string | null
     bio?: StringNullableFilter<"users"> | string | null
@@ -24997,6 +24996,7 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"users"> | Date | string
     updated_at?: DateTimeFilter<"users"> | Date | string
     lock_no?: IntFilter<"users"> | number
+    username?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
@@ -25005,7 +25005,6 @@ export namespace Prisma {
 
   export type usersOrderByWithRelationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -25013,6 +25012,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
     dish_media?: dish_mediaOrderByRelationAggregateInput
     dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
@@ -25021,7 +25021,6 @@ export namespace Prisma {
 
   export type usersWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    username?: string
     AND?: usersWhereInput | usersWhereInput[]
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
@@ -25032,15 +25031,15 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"users"> | Date | string
     updated_at?: DateTimeFilter<"users"> | Date | string
     lock_no?: IntFilter<"users"> | number
+    username?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
-  }, "id" | "username">
+  }, "id">
 
   export type usersOrderByWithAggregationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -25048,6 +25047,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
     _count?: usersCountOrderByAggregateInput
     _avg?: usersAvgOrderByAggregateInput
     _max?: usersMaxOrderByAggregateInput
@@ -25060,7 +25060,6 @@ export namespace Prisma {
     OR?: usersScalarWhereWithAggregatesInput[]
     NOT?: usersScalarWhereWithAggregatesInput | usersScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"users"> | string
-    username?: StringWithAggregatesFilter<"users"> | string
     display_name?: StringNullableWithAggregatesFilter<"users"> | string | null
     avatar?: StringNullableWithAggregatesFilter<"users"> | string | null
     bio?: StringNullableWithAggregatesFilter<"users"> | string | null
@@ -25068,6 +25067,7 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"users"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"users"> | Date | string
     lock_no?: IntWithAggregatesFilter<"users"> | number
+    username?: StringWithAggregatesFilter<"users"> | string
   }
 
   export type backend_event_logsCreateInput = {
@@ -26413,7 +26413,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonNullValueInput | InputJsonValue
-    plus_code: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
@@ -26428,7 +26428,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonNullValueInput | InputJsonValue
-    plus_code: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -26443,7 +26443,7 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
@@ -26458,7 +26458,7 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -26473,7 +26473,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonNullValueInput | InputJsonValue
-    plus_code: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
   }
 
@@ -26486,7 +26486,7 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -26499,13 +26499,12 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type usersCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26513,6 +26512,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
@@ -26521,7 +26521,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26529,6 +26528,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
@@ -26537,7 +26537,6 @@ export namespace Prisma {
 
   export type usersUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26545,6 +26544,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
@@ -26553,7 +26553,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26561,6 +26560,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
@@ -26569,7 +26569,6 @@ export namespace Prisma {
 
   export type usersCreateManyInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26577,11 +26576,11 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
   }
 
   export type usersUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26589,11 +26588,11 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
   }
 
   export type usersUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26601,6 +26600,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -27917,7 +27917,6 @@ export namespace Prisma {
 
   export type usersCountOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27925,6 +27924,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
   }
 
   export type usersAvgOrderByAggregateInput = {
@@ -27933,7 +27933,6 @@ export namespace Prisma {
 
   export type usersMaxOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27941,11 +27940,11 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
   }
 
   export type usersMinOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27953,6 +27952,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
   }
 
   export type usersSumOrderByAggregateInput = {
@@ -29516,7 +29516,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29524,6 +29523,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -29531,7 +29531,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29539,6 +29538,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -29651,7 +29651,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29659,6 +29658,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -29666,7 +29666,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29674,6 +29673,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -29770,7 +29770,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_media_likesInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29778,6 +29777,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -29785,7 +29785,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_media_likesInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29793,6 +29792,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -29853,7 +29853,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_media_likesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29861,6 +29860,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -29868,7 +29868,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_media_likesInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29876,6 +29875,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -29910,7 +29910,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29918,6 +29917,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -29925,7 +29925,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29933,6 +29932,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -29989,7 +29989,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29997,6 +29996,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -30004,7 +30004,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30012,6 +30011,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -30133,7 +30133,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonNullValueInput | InputJsonValue
-    plus_code: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
@@ -30147,7 +30147,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonNullValueInput | InputJsonValue
-    plus_code: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -30281,7 +30281,7 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30295,7 +30295,7 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30596,7 +30596,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonNullValueInput | InputJsonValue
-    plus_code: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
   }
@@ -30610,7 +30610,7 @@ export namespace Prisma {
     longitude: number
     image_url: string
     address_components: JsonNullValueInput | InputJsonValue
-    plus_code: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -30622,7 +30622,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30630,6 +30629,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
@@ -30637,7 +30637,6 @@ export namespace Prisma {
 
   export type usersUncheckedCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30645,6 +30644,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
@@ -30691,7 +30691,7 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30705,7 +30705,7 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
     address_components?: JsonNullValueInput | InputJsonValue
-    plus_code?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30723,7 +30723,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30731,6 +30730,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
@@ -30738,7 +30738,6 @@ export namespace Prisma {
 
   export type usersUncheckedUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30746,6 +30745,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
