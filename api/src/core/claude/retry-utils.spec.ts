@@ -1,8 +1,15 @@
 /**
- * Tests for retry utilities
+ * Tests for retry utilities including two-layer retry strategy
  */
 
-import { withRetry, isRetryableError } from './retry-utils';
+import {
+  withRetry,
+  withTwoLayerRetry,
+  isRetryableError,
+  isLogicalValidationError,
+  DEFAULT_RETRY_OPTIONS,
+  LOGICAL_RETRY_OPTIONS,
+} from './retry-utils';
 
 // Mock function to simulate API calls
 const createMockApiCall = (
@@ -118,3 +125,91 @@ describe('Retry Utils', () => {
 
 // Note: We're not exporting isRetryableError from retry-utils, so we need to test it indirectly
 // through the withRetry function behavior or make it exported for testing
+
+describe('Two-Layer Retry Strategy', () => {
+  describe('withTwoLayerRetry', () => {
+    it('should succeed with no retries', async () => {
+      const mockApiCall = jest.fn().mockResolvedValue('api-result');
+      const mockValidator = jest.fn().mockReturnValue('validated-result');
+
+      const result = await withTwoLayerRetry(mockApiCall, mockValidator);
+
+      expect(result.result).toBe('validated-result');
+      expect(result.metrics.apiRetries).toBe(0);
+      expect(result.metrics.logicalRetries).toBe(0);
+      expect(result.metrics.totalAttempts).toBe(1);
+      expect(mockApiCall).toHaveBeenCalledTimes(1);
+      expect(mockValidator).toHaveBeenCalledWith('api-result');
+    });
+
+    it('should handle logical validation retries', async () => {
+      const mockApiCall = jest.fn().mockResolvedValue('api-result');
+      const mockValidator = jest.fn()
+        .mockImplementationOnce(() => {
+          throw new Error('Schema validation failed');
+        })
+        .mockReturnValueOnce('validated-result');
+
+      const result = await withTwoLayerRetry(mockApiCall, mockValidator);
+
+      expect(result.result).toBe('validated-result');
+      expect(result.metrics.apiRetries).toBe(0);
+      expect(result.metrics.logicalRetries).toBe(1);
+      expect(result.metrics.totalAttempts).toBe(2);
+      expect(mockApiCall).toHaveBeenCalledTimes(2);
+      expect(mockValidator).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw after max logical retries', async () => {
+      const mockApiCall = jest.fn().mockResolvedValue('api-result');
+      const mockValidator = jest.fn().mockImplementation(() => {
+        throw new Error('Schema validation failed');
+      });
+
+      await expect(
+        withTwoLayerRetry(mockApiCall, mockValidator, {}, { maxRetries: 1 })
+      ).rejects.toThrow('Schema validation failed');
+    });
+  });
+
+  describe('isLogicalValidationError', () => {
+    it('should identify schema validation errors', () => {
+      expect(isLogicalValidationError(new Error('Schema validation failed'))).toBe(true);
+      expect(isLogicalValidationError(new Error('Invalid tool response'))).toBe(true);
+      expect(isLogicalValidationError(new Error('Expected tool_use content'))).toBe(true);
+      expect(isLogicalValidationError(new Error('Invalid item count'))).toBe(true);
+      expect(isLogicalValidationError(new Error('Missing required fields'))).toBe(true);
+      expect(isLogicalValidationError(new Error('Tool response validation failed'))).toBe(true);
+    });
+
+    it('should not identify API errors as logical errors', () => {
+      expect(isLogicalValidationError(new Error('ECONNRESET'))).toBe(false);
+      expect(isLogicalValidationError(new Error('Authentication failed'))).toBe(false);
+    });
+
+    it('should handle null/undefined errors', () => {
+      expect(isLogicalValidationError(null)).toBe(false);
+      expect(isLogicalValidationError(undefined)).toBe(false);
+    });
+  });
+
+  describe('constants', () => {
+    it('should have correct default retry options', () => {
+      expect(DEFAULT_RETRY_OPTIONS).toEqual({
+        maxRetries: 3,
+        baseDelayMs: 1000,
+        maxDelayMs: 10000,
+        jitterMs: 200,
+      });
+    });
+
+    it('should have correct logical retry options', () => {
+      expect(LOGICAL_RETRY_OPTIONS).toEqual({
+        maxRetries: 1,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+        jitterMs: 0,
+      });
+    });
+  });
+});
