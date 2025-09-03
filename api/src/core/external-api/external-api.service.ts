@@ -189,8 +189,9 @@ export class ExternalApiService {
       });
       return null;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
       // Check if this is a 403 error and log as warning instead of error
       if (errorMessage.includes('403')) {
         this.logger.warn(
