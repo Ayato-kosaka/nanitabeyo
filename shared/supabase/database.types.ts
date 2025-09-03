@@ -689,11 +689,10 @@ export type Database = {
 					id: string;
 					image_url: string;
 					latitude: number;
-					location: unknown | null;
 					longitude: number;
 					name: string;
 					name_language_code: string;
-					plus_code: Json;
+					plus_code: Json | null;
 				};
 				Insert: {
 					address_components: Json;
@@ -702,11 +701,10 @@ export type Database = {
 					id?: string;
 					image_url: string;
 					latitude: number;
-					location?: unknown | null;
 					longitude: number;
 					name: string;
 					name_language_code: string;
-					plus_code: Json;
+					plus_code?: Json | null;
 				};
 				Update: {
 					address_components?: Json;
@@ -715,11 +713,10 @@ export type Database = {
 					id?: string;
 					image_url?: string;
 					latitude?: number;
-					location?: unknown | null;
 					longitude?: number;
 					name?: string;
 					name_language_code?: string;
-					plus_code?: Json;
+					plus_code?: Json | null;
 				};
 				Relationships: [];
 			};

@@ -234,22 +234,34 @@ export class DishesService {
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
         const contextualContent = contextualContents[index];
-        if (
-          !place.id ||
-          !place.displayName?.text ||
-          !place.location?.latitude ||
-          !place.location?.longitude ||
-          !place.addressComponents ||
-          !place.plusCode
-        )
-          throw new Error(`Invalid place data: ${JSON.stringify(place)}`);
+
+        // Check required fields with proper validation for latitude/longitude
+        const missingFields: string[] = [];
+        if (!place.id) missingFields.push('id');
+        if (!place.displayName?.text) missingFields.push('displayName.text');
+        if (typeof place.location?.latitude !== 'number')
+          missingFields.push('location.latitude');
+        if (typeof place.location?.longitude !== 'number')
+          missingFields.push('location.longitude');
+        if (!place.addressComponents) missingFields.push('addressComponents');
+
+        if (missingFields.length > 0) {
+          this.logger.error('InvalidPlaceData', 'bulkImportFromGoogle', {
+            placeId: place.id || 'unknown',
+            missingFields,
+            place: JSON.stringify(place),
+          });
+          throw new Error(
+            `Invalid place data - missing fields: ${missingFields.join(', ')}`,
+          );
+        }
 
         const reviews = contextualContent.reviews || [];
         const photos = contextualContent.photos || [];
 
         if (!photos || photos.length === 0) {
           this.logger.warn('NoPhotoForPlace', 'bulkImportFromGoogle', {
-            placeId: place.id,
+            placeId: place.id!,
           });
           return null; // 写真がない場合はスキップ
         }
@@ -257,11 +269,11 @@ export class DishesService {
         // PhotoMediaUri を複数候補から取得（バイナリ取得は行わない）
         const photoMedia = await this.tryGetPhotoMedia(photos);
         if (!photoMedia) {
-          throw new Error(`No photo URL found for place: ${place.id}`);
+          throw new Error(`No photo URL found for place: ${place.id!}`);
         }
 
         const ext = getExt('image/jpeg');
-        const mediaFileName = buildFileName(place.id, ext);
+        const mediaFileName = buildFileName(place.id!, ext);
         const mediaPath = buildFullPath({
           env: env.API_NODE_ENV,
           resourceType: 'google-maps',
@@ -271,16 +283,18 @@ export class DishesService {
 
         const restaurant: PrismaRestaurants = {
           id: 'unknown',
-          google_place_id: place.id,
-          name: place.displayName.text,
+          google_place_id: place.id!,
+          name: place.displayName!.text!,
           name_language_code: dto.languageCode,
-          latitude: place.location!.latitude,
-          longitude: place.location!.longitude,
+          latitude: place.location!.latitude!,
+          longitude: place.location!.longitude!,
           image_url: photoMedia.photoUri,
           address_components: JSON.parse(
             JSON.stringify(place.addressComponents),
           ),
-          plus_code: JSON.parse(JSON.stringify(place.plusCode)),
+          plus_code: place.plusCode
+            ? JSON.parse(JSON.stringify(place.plusCode))
+            : null,
           created_at: new Date(),
         };
 
@@ -342,12 +356,12 @@ export class DishesService {
           await this.cloudTasksService.enqueueCreateDishMediaEntry(jobPayload);
           this.logger.debug('AsyncJobEnqueued', 'bulkImportFromGoogle', {
             jobId,
-            placeId: place.id,
+            placeId: place.id!,
           });
         } catch (error) {
           this.logger.error('AsyncJobEnqueueError', 'bulkImportFromGoogle', {
             jobId,
-            placeId: place.id,
+            placeId: place.id!,
             error: error instanceof Error ? error.message : 'Unknown error',
           });
           // エンキューエラーでも同期レスポンスは継続
@@ -374,7 +388,7 @@ export class DishesService {
         return BulkImportDishesResponseEntry;
       } catch (error) {
         this.logger.error('BulkImportPlaceError', 'bulkImportFromGoogle', {
-          placeId: place.id,
+          placeId: place.id || 'unknown',
           error: error instanceof Error ? error.message : 'Unknown error',
         });
         // 1つのレストランでエラーが起きても処理を続行
