@@ -3,7 +3,7 @@
 // Service for dish category variants business logic
 //
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 import {
   QueryDishCategoryVariantsDto,
@@ -104,7 +104,7 @@ export class DishCategoryVariantsService {
         wikidataResult.qid,
       );
       if (!categoryByQid) {
-        throw new InternalServerErrorException(
+        throw new NotFoundException(
           `No dish category found for Wikidata QID: ${wikidataResult.qid}`,
         );
       }
@@ -156,6 +156,6 @@ export class DishCategoryVariantsService {
     this.logger.warn('NoMatchFound', 'createDishCategoryVariant', {
       name: dto.name,
     });
-    throw new InternalServerErrorException('No matching dish category found');
+    throw new NotFoundException('No matching dish category found');
   }
 }
