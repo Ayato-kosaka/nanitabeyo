@@ -338,7 +338,7 @@ model restaurants {
   location           Unsupported("geography")? @default(dbgenerated("(extensions.st_setsrid(extensions.st_makepoint(longitude, latitude), 4326))::extensions.geography"))
   image_url          String
   address_components Json
-  plus_code          Json
+  plus_code          Json?
   created_at         DateTime                  @default(now()) @db.Timestamptz(6)
   dishes             dishes[]
   restaurant_bids    restaurant_bids[]
