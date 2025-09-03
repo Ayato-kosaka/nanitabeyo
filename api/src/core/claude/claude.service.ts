@@ -6,7 +6,10 @@
 
 import { Injectable } from '@nestjs/common';
 import { PromptService } from '../prompt/prompt.service';
-import { ExternalApiService, ClaudeMessageRequest } from '../external-api/external-api.service';
+import {
+  ExternalApiService,
+  ClaudeMessageRequest,
+} from '../external-api/external-api.service';
 import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { AppLoggerService } from '../logger/logger.service';
@@ -15,14 +18,11 @@ import {
   extractDishCategoryItems,
   DishCategoryItem,
 } from './tool-schema';
-import { withTwoLayerRetry, DEFAULT_RETRY_OPTIONS, LOGICAL_RETRY_OPTIONS } from './retry-utils';
-
-// トピック生成レスポンス型 (keeping backward compatibility)
-export interface DishCategoryTopicResponse {
-  category: string;
-  topicTitle: string;
-  reason: string;
-}
+import {
+  withTwoLayerRetry,
+  DEFAULT_RETRY_OPTIONS,
+  LOGICAL_RETRY_OPTIONS,
+} from './retry-utils';
 
 // 期待する料理カテゴリ推奨の数
 const EXPECTED_RECOMMENDATIONS_COUNT = 10;
@@ -47,7 +47,7 @@ export class ClaudeService {
     mood?: string;
     restrictions?: string[];
     languageTag: string;
-  }): Promise<DishCategoryTopicResponse[]> {
+  }): Promise<DishCategoryItem[]> {
     this.logger.debug(
       'GenerateDishCategoryRecommendations',
       'generateDishCategoryRecommendations',
@@ -115,23 +115,31 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
       const retryResult = await withTwoLayerRetry(
         // Layer 1: API call with transport-level retries
         async () => {
-          const response = await this.externalApiService.callClaudeAPI(requestPayload);
+          const response =
+            await this.externalApiService.callClaudeAPI(requestPayload);
           lastResponse = response;
           return response;
         },
         // Layer 2: Logical validation with schema checking
         (response) => {
-          if (response.stop_reason && !['end_turn', 'tool_use'].includes(response.stop_reason)) {
-            throw new Error(`Claude API failed: Unexpected stop_reason - ${response.stop_reason}`);
+          if (
+            response.stop_reason &&
+            !['end_turn', 'tool_use'].includes(response.stop_reason)
+          ) {
+            throw new Error(
+              `Claude API failed: Unexpected stop_reason - ${response.stop_reason}`,
+            );
           }
 
           // Find tool_use content in response
           const toolUseContent = response.content.find(
-            (content) => content.type === 'tool_use'
+            (content) => content.type === 'tool_use',
           );
 
           if (!toolUseContent) {
-            throw new Error('Expected tool_use content not found in Claude response');
+            throw new Error(
+              'Expected tool_use content not found in Claude response',
+            );
           }
 
           lastResponseContent = toolUseContent;
@@ -139,11 +147,15 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
           // Extract and validate tool response
           const items = extractDishCategoryItems(toolUseContent);
           if (!items) {
-            throw new Error('Tool response validation failed: Invalid structure or item count');
+            throw new Error(
+              'Tool response validation failed: Invalid structure or item count',
+            );
           }
 
           if (items.length !== EXPECTED_RECOMMENDATIONS_COUNT) {
-            throw new Error(`Invalid item count: expected ${EXPECTED_RECOMMENDATIONS_COUNT}, got ${items.length}`);
+            throw new Error(
+              `Invalid item count: expected ${EXPECTED_RECOMMENDATIONS_COUNT}, got ${items.length}`,
+            );
           }
 
           return response; // Return the original response to satisfy type requirements
@@ -160,7 +172,7 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
 
       // Extract items from the final validated response
       const toolUseContent = retryResult.result.content.find(
-        (content) => content.type === 'tool_use'
+        (content) => content.type === 'tool_use',
       );
       const extractedItems = extractDishCategoryItems(toolUseContent!)!;
       lastResponseContent = toolUseContent;
@@ -220,7 +232,7 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
       );
 
       // Return in the expected format (maintain backward compatibility)
-      return extractedItems as DishCategoryTopicResponse[];
+      return extractedItems as DishCategoryItem[];
     } catch (error) {
       this.logger.error(
         'GenerateDishCategoryRecommendationsError',

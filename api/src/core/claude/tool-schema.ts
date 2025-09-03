@@ -19,7 +19,8 @@ export interface DishCategoryItem {
  */
 export const DISH_CATEGORY_TOOL_SCHEMA = {
   name: 'generate_dish_categories',
-  description: 'Generate exactly 10 dish category recommendations with structured data',
+  description:
+    'Generate exactly 10 dish category recommendations with structured data',
   input_schema: {
     type: 'object',
     properties: {
@@ -32,25 +33,26 @@ export const DISH_CATEGORY_TOOL_SCHEMA = {
           properties: {
             category: {
               type: 'string',
-              description: 'Dish category name that matches Wikidata label exactly'
+              description:
+                'Dish category name that matches Wikidata label exactly',
             },
             topicTitle: {
-              type: 'string', 
-              description: 'Catchy topic title for the recommendation'
+              type: 'string',
+              description: 'Catchy topic title for the recommendation',
             },
             reason: {
               type: 'string',
-              description: 'Brief reason why this category is recommended'
-            }
+              description: 'Brief reason why this category is recommended',
+            },
           },
           required: ['category', 'topicTitle', 'reason'],
-          additionalProperties: false
-        }
-      }
+          additionalProperties: false,
+        },
+      },
     },
     required: ['items'],
-    additionalProperties: false
-  }
+    additionalProperties: false,
+  },
 };
 
 /**
@@ -58,28 +60,31 @@ export const DISH_CATEGORY_TOOL_SCHEMA = {
  * @param data The tool response data to validate
  * @returns true if data is valid, false otherwise
  */
-export function validateDishCategoryToolResponse(data: any): data is DishCategoryToolResponse {
+export function validateDishCategoryToolResponse(
+  data: any,
+): data is DishCategoryToolResponse {
   if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
     return false;
   }
 
   const { items } = data;
-  
+
   // Must be exactly 10 items
   if (items.length !== 10) {
     return false;
   }
 
   // Validate each item
-  return items.every((item: any) => 
-    typeof item === 'object' &&
-    item !== null &&
-    typeof item.category === 'string' &&
-    typeof item.topicTitle === 'string' &&
-    typeof item.reason === 'string' &&
-    item.category.trim() !== '' &&
-    item.topicTitle.trim() !== '' &&
-    item.reason.trim() !== ''
+  return items.every(
+    (item: any) =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof item.category === 'string' &&
+      typeof item.topicTitle === 'string' &&
+      typeof item.reason === 'string' &&
+      item.category.trim() !== '' &&
+      item.topicTitle.trim() !== '' &&
+      item.reason.trim() !== '',
   );
 }
 
@@ -88,7 +93,9 @@ export function validateDishCategoryToolResponse(data: any): data is DishCategor
  * @param toolUseContent The tool_use content from Claude response
  * @returns Array of dish category items or null if invalid
  */
-export function extractDishCategoryItems(toolUseContent: any): DishCategoryItem[] | null {
+export function extractDishCategoryItems(
+  toolUseContent: any,
+): DishCategoryItem[] | null {
   if (!toolUseContent || toolUseContent.type !== 'tool_use') {
     return null;
   }

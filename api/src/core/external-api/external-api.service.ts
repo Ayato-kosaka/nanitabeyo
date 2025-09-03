@@ -67,7 +67,7 @@ export interface ClaudeMessageRequest {
     description: string;
     input_schema: any;
   }[];
-  tool_choice?: 
+  tool_choice?:
     | { type: 'auto' }
     | { type: 'any' }
     | { type: 'tool'; name: string };
@@ -81,7 +81,9 @@ export class ExternalApiService {
   /**
    * Claude API呼び出し
    */
-  async callClaudeAPI(payload: ClaudeMessageRequest): Promise<ClaudeMessageResponse> {
+  async callClaudeAPI(
+    payload: ClaudeMessageRequest,
+  ): Promise<ClaudeMessageResponse> {
     const claudeApiKey = env.CLAUDE_API_KEY;
 
     if (!claudeApiKey) {

@@ -100,12 +100,16 @@ export async function withTwoLayerRetry<T>(
 ): Promise<RetryResult<T>> {
   const apiConfig = { ...DEFAULT_RETRY_OPTIONS, ...apiRetryOptions };
   const logicalConfig = { ...LOGICAL_RETRY_OPTIONS, ...logicalRetryOptions };
-  
+
   let apiRetries = 0;
   let logicalRetries = 0;
   let totalAttempts = 0;
 
-  for (let logicalAttempt = 0; logicalAttempt <= logicalConfig.maxRetries; logicalAttempt++) {
+  for (
+    let logicalAttempt = 0;
+    logicalAttempt <= logicalConfig.maxRetries;
+    logicalAttempt++
+  ) {
     try {
       // Layer 1: API retry with transport-level error handling
       const apiResult = await withRetry(async () => {
@@ -115,12 +119,13 @@ export async function withTwoLayerRetry<T>(
       }, apiConfig);
 
       // Track API retries (total attempts - 1 for the successful call - previous logical attempts)
-      const currentAttemptApiRetries = totalAttempts - 1 - (logicalAttempt * (apiConfig.maxRetries + 1));
+      const currentAttemptApiRetries =
+        totalAttempts - 1 - logicalAttempt * (apiConfig.maxRetries + 1);
       apiRetries += Math.max(0, currentAttemptApiRetries);
 
       // Layer 2: Logical validation
       const validatedResult = validator(apiResult);
-      
+
       return {
         result: validatedResult,
         metrics: {
@@ -131,7 +136,7 @@ export async function withTwoLayerRetry<T>(
       };
     } catch (error) {
       const isLastLogicalAttempt = logicalAttempt === logicalConfig.maxRetries;
-      
+
       if (isLastLogicalAttempt) {
         throw error;
       }
