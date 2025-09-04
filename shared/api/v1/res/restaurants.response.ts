@@ -30,3 +30,6 @@ export type QueryRestaurantDishMediaResponse = PaginatedResponse<
 
 /** GET /v1/restaurants/:id/restaurant-bids のレスポンス型 */
 export type QueryRestaurantBidsResponse = SupabaseRestaurantBids[];
+
+/** GET /v1/restaurants/by-google-place-id のレスポンス型 */
+export type QueryRestaurantsByGooglePlaceIdResponse = SupabaseRestaurants;

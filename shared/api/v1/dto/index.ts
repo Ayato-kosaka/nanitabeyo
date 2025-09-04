@@ -24,6 +24,7 @@ export { RestaurantIdParamsDto } from "./restaurants/restaurant-id-params.dto";
 export { CreateRestaurantBidIntentDto } from "./restaurants/create-restaurant-bid-intent.dto";
 export { QueryRestaurantDishMediaDto } from "./restaurants/query-restaurant-dish-media.dto";
 export { QueryRestaurantBidsDto } from "./restaurants/query-restaurant-bids.dto";
+export { QueryRestaurantsByGooglePlaceIdDto } from "./restaurants/query-restaurants-by-google-place-id.dto";
 
 export { CreateUserUploadSignedUrlDto } from "./user-uploads/create-user-upload-signed-url.dto";
 

@@ -143,6 +143,44 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
+  /*                        Signed URL (PUT) for Upload                    */
+  /* ---------------------------------------------------------------------- */
+  async generateSignedPutUrl(
+    path: string,
+    contentType: string,
+    expiresInSeconds = 15 * 60, // 15分
+  ): Promise<{ putUrl: string; objectPath: string; expiresAt: string }> {
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1_000);
+    
+    try {
+      const [url] = await this.bucket.file(path).getSignedUrl({
+        action: 'write',
+        expires: expiresAt,
+        contentType,
+      });
+
+      this.logger.debug('SignedPutUrlGenerated', 'generateSignedPutUrl', {
+        path,
+        contentType,
+        expiresAt: expiresAt.toISOString(),
+      });
+
+      return {
+        putUrl: url,
+        objectPath: path,
+        expiresAt: expiresAt.toISOString(),
+      };
+    } catch (err) {
+      this.logger.error('GcsSignedPutUrlError', 'generateSignedPutUrl', {
+        error_message: (err as Error).message,
+        path,
+        contentType,
+      });
+      throw err;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /*                               Delete File                              */
   /* ---------------------------------------------------------------------- */
   async deleteFile(path: string): Promise<void> {

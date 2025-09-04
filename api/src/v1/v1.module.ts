@@ -8,6 +8,8 @@ import { DishesModule } from './dishes/dishes.module';
 import { LocationsModule } from './locations/locations.module';
 import { UsersModule } from './users/users.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { RestaurantsModule } from './restaurants/restaurants.module';
+import { UserUploadsModule } from './user-uploads/user-uploads.module';
 import { NotifierModule } from 'src/core/notifier/notifier.module';
 
 @Module({
@@ -21,6 +23,8 @@ import { NotifierModule } from 'src/core/notifier/notifier.module';
     LocationsModule,
     UsersModule,
     FeedbackModule,
+    RestaurantsModule,
+    UserUploadsModule,
     NotifierModule,
   ],
 })
