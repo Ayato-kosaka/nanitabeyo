@@ -100,7 +100,7 @@ export function useBlurModal({
 								)}
 
 								{/* Content (non-blocking layout wrapper) */}
-								{Platform.OS !== "web" && (
+								{Platform.OS === "ios" && (
 									<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
 										<View pointerEvents="auto" style={contentContainerStyle}>
 											{renderChildren()}
@@ -110,7 +110,7 @@ export function useBlurModal({
 							</Pressable>
 
 							{/* Content (non-blocking layout wrapper) */}
-							{Platform.OS === "web" && (
+							{Platform.OS !== "ios" && (
 								<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
 										{renderChildren()}
