@@ -92,7 +92,10 @@ export function useBlurModal({
 								{Platform.OS === "android" && (
 									<View
 										testID="android-overlay"
-										style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0, 0, 0, 0.4)" }]}
+										style={[
+											StyleSheet.absoluteFill,
+											{ backgroundColor: `rgba(0, 0, 0, ${Math.max(0.3, (intensity / 100) * 0.7)})` },
+										]}
 									/>
 								)}
 								{/* Content (non-blocking layout wrapper) */}
