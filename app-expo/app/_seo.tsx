@@ -1,5 +1,4 @@
 // app/_seo.tsx
-import Head from "expo-router/head";
 import { usePathname, useSegments } from "expo-router";
 import { Env } from "@/constants/Env";
 import i18n, { I18N_SUPPORTED_LOCALES } from "@/lib/i18n";
@@ -76,46 +75,5 @@ export function SeoHead(props: SeoProps) {
 		}
 	})();
 
-	return (
-		<Head>
-			{/* 基本 */}
-			<title>{title}</title>
-			<meta name="description" content={desc} />
-			<link rel="canonical" href={canonical} />
-			{props.robots && <meta name="robots" content={props.robots} />}
-
-			{/* hreflang（全対応言語） */}
-			{I18N_SUPPORTED_LOCALES.map((lng) => (
-				<link key={lng} rel="alternate" hrefLang={lng} href={buildCanonical(pathNoLocale, lng)} />
-			))}
-			<link rel="alternate" hrefLang="x-default" href={buildCanonical(pathNoLocale, DEFAULT_LOCALE)} />
-
-			{/* Open Graph */}
-			<meta property="og:type" content="website" />
-			<meta property="og:site_name" content={og.site_name} />
-			<meta property="og:title" content={title} />
-			<meta property="og:description" content={desc} />
-			<meta property="og:url" content={og.url} />
-			<meta property="og:image" content={img} />
-			<meta property="og:image:alt" content={imgAlt} />
-			<meta property="og:image:width" content={og.imgW} />
-			<meta property="og:image:height" content={og.imgH} />
-			<meta property="og:locale" content={og.locale} />
-			{otherLocales.map((lng) => (
-				<meta key={lng} property="og:locale:alternate" content={ogLocale(lng)} />
-			))}
-
-			{/* Twitter */}
-			<meta name="twitter:card" content="summary_large_image" />
-			{host && <meta name="twitter:domain" content={host} />}
-			{TWITTER_SITE && <meta name="twitter:site" content={TWITTER_SITE} />}
-			<meta name="twitter:title" content={title} />
-			<meta name="twitter:description" content={desc} />
-			<meta name="twitter:image" content={img} />
-			<meta name="twitter:image:alt" content={imgAlt} />
-
-			{/* ページ言語のヒント（<html lang> は +html.tsx 側での制御が難しいため補助） */}
-			<meta httpEquiv="Content-Language" content={locale} />
-		</Head>
-	);
+	return <></>;
 }
