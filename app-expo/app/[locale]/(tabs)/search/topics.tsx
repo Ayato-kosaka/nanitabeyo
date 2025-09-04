@@ -9,7 +9,7 @@ import { useHideTopic } from "@/features/topics/hooks/useHideTopic";
 import { TopicCard } from "@/features/topics/components/TopicCard";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { HideTopicModal } from "@/features/topics/components/HideTopicModal";
+import { HideTopicForm } from "@/features/topics/components/HideTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { LinearGradient } from "expo-linear-gradient";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
@@ -32,8 +32,6 @@ export default function TopicsScreen() {
 	const {
 		BlurModal: HideTopicBlurModal,
 		close: closeHideModal,
-		hideReason,
-		setHideReason,
 		handleHideCard,
 		confirmHideCard,
 	} = useHideTopic(topics, hideTopic, showSnackbar);
@@ -145,12 +143,14 @@ export default function TopicsScreen() {
 
 			{/* Hide Card Modal */}
 			<HideTopicBlurModal contentContainerStyle={styles.modalOverlay}>
-				<HideTopicModal
-					onClose={closeHideModal}
-					hideReason={hideReason}
-					setHideReason={setHideReason}
-					confirmHideCard={confirmHideCard}
-				/>
+				{({ close }) => (
+					<HideTopicForm
+						onSubmit={(hideReason) => {
+							confirmHideCard(hideReason);
+						}}
+						onCancel={close}
+					/>
+				)}
 			</HideTopicBlurModal>
 		</LinearGradient>
 	);
