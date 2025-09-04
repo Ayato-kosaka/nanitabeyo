@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, LayoutChangeEvent } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, LayoutChangeEvent } from "react-native";
 import { Camera, DollarSign } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
@@ -7,7 +7,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
-import { mockBidHistory, type ActiveBid } from "@/features/map/constants";
+import { mockBidHistory } from "@/features/map/constants";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
@@ -15,13 +15,14 @@ import { BidForm } from "@/features/map/components/BidForm";
 import { Tabs, GridList } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
-import { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
+import { QueryRestaurantDishMediaResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
 import { mockDishItems } from "@/data/searchMockData";
+import { useLogger } from "@/hooks/useLogger";
 
 type BidStatus = { id: string; label: string; color: string };
 
 type Props = {
-	selectedPlace: ActiveBid;
+	selectedPlace: QueryRestaurantsResponse[number];
 };
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
@@ -46,6 +47,7 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 
 export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
 	// Bid status filters
 	const bidStatuses: BidStatus[] = [
@@ -83,16 +85,18 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 		setIsProcessing(true);
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 2000));
-			Alert.alert(
-				i18n.t("Common.success"),
-				i18n.t("Map.alerts.bidSuccess", {
-					place: selectedPlace.placeName,
-					amount: parseInt(bidAmount).toLocaleString(),
-				}),
-			);
+			logFrontendEvent({
+				event_name: "restaurant_bid_submitted",
+				error_level: "log",
+				payload: { restaurantId: selectedPlace.restaurant.id, bidAmount: Number(bidAmount) },
+			});
 			closeBidModal();
 		} catch {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.bidError"));
+			logFrontendEvent({
+				event_name: "restaurant_bid_submission_failed",
+				error_level: "error",
+				payload: { restaurantId: selectedPlace.restaurant.id, bidAmount: Number(bidAmount) },
+			});
 		} finally {
 			setIsProcessing(false);
 		}
@@ -104,10 +108,18 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 		setIsProcessing(true);
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 1000));
-			Alert.alert(i18n.t("Common.success"), i18n.t("Map.alerts.reviewSuccess"));
+			logFrontendEvent({
+				event_name: "restaurant_review_submitted",
+				error_level: "log",
+				payload: { restaurantId: selectedPlace.restaurant.id, rating: data.rating },
+			});
 			closeReviewModal();
 		} catch {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.reviewError"));
+			logFrontendEvent({
+				event_name: "restaurant_review_submission_failed",
+				error_level: "error",
+				payload: { restaurantId: selectedPlace.restaurant.id, rating: data.rating },
+			});
 		} finally {
 			setIsProcessing(false);
 		}
@@ -124,13 +136,13 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image source={{ uri: selectedPlace.imageUrl }} style={styles.restaurantAvatar} />
+						<Image source={{ uri: selectedPlace.restaurant.image_url }} style={styles.restaurantAvatar} />
 						<View style={styles.restaurantDetails}>
-							<Text style={styles.restaurantName}>{selectedPlace.placeName}</Text>
+							<Text style={styles.restaurantName}>{selectedPlace.restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={selectedPlace.rating} />
-								<Text style={styles.ratingText}>{selectedPlace.rating}</Text>
-								<Text style={styles.reviewCount}>({selectedPlace.reviewCount})</Text>
+								<Stars rating={selectedPlace.restaurant.averageRating} />
+								<Text style={styles.ratingText}>{selectedPlace.restaurant.averageRating}</Text>
+								<Text style={styles.reviewCount}>({selectedPlace.restaurant.reviewCount})</Text>
 							</View>
 						</View>
 					</View>
@@ -140,11 +152,15 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 					<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
 					<Text style={styles.bidAmount}>
 						{i18n.t("Search.currencySuffix")}
-						{selectedPlace.totalAmount.toLocaleString()}
+						{selectedPlace.meta.totalCents.toLocaleString()}
 					</Text>
 					<Text style={styles.remainingDays}>
 						{i18n.t("Common.daysRemaining", {
-							count: selectedPlace.remainingDays,
+							count: selectedPlace.meta.maxEndDate
+								? Math.ceil(
+										(new Date(selectedPlace.meta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+									)
+								: 0,
 						})}
 					</Text>
 				</View>
