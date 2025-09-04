@@ -39,18 +39,18 @@ export type dish_categories = $Result.DefaultSelection<Prisma.$dish_categoriesPa
  */
 export type dish_category_variants = $Result.DefaultSelection<Prisma.$dish_category_variantsPayload>
 /**
- * Model dish_likes
- * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
- * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
- */
-export type dish_likes = $Result.DefaultSelection<Prisma.$dish_likesPayload>
-/**
  * Model dish_media
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
 export type dish_media = $Result.DefaultSelection<Prisma.$dish_mediaPayload>
+/**
+ * Model dish_media_likes
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_media_likes = $Result.DefaultSelection<Prisma.$dish_media_likesPayload>
 /**
  * Model dish_reviews
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -358,16 +358,6 @@ export class PrismaClient<
   get dish_category_variants(): Prisma.dish_category_variantsDelegate<ExtArgs, ClientOptions>;
 
   /**
-   * `prisma.dish_likes`: Exposes CRUD operations for the **dish_likes** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more Dish_likes
-    * const dish_likes = await prisma.dish_likes.findMany()
-    * ```
-    */
-  get dish_likes(): Prisma.dish_likesDelegate<ExtArgs, ClientOptions>;
-
-  /**
    * `prisma.dish_media`: Exposes CRUD operations for the **dish_media** model.
     * Example usage:
     * ```ts
@@ -376,6 +366,16 @@ export class PrismaClient<
     * ```
     */
   get dish_media(): Prisma.dish_mediaDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_media_likes`: Exposes CRUD operations for the **dish_media_likes** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_media_likes
+    * const dish_media_likes = await prisma.dish_media_likes.findMany()
+    * ```
+    */
+  get dish_media_likes(): Prisma.dish_media_likesDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.dish_reviews`: Exposes CRUD operations for the **dish_reviews** model.
@@ -940,8 +940,8 @@ export namespace Prisma {
     config: 'config',
     dish_categories: 'dish_categories',
     dish_category_variants: 'dish_category_variants',
-    dish_likes: 'dish_likes',
     dish_media: 'dish_media',
+    dish_media_likes: 'dish_media_likes',
     dish_reviews: 'dish_reviews',
     dishes: 'dishes',
     external_api_logs: 'external_api_logs',
@@ -972,7 +972,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_likes" | "dish_media" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "users"
+      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_media" | "dish_media_likes" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1272,80 +1272,6 @@ export namespace Prisma {
           }
         }
       }
-      dish_likes: {
-        payload: Prisma.$dish_likesPayload<ExtArgs>
-        fields: Prisma.dish_likesFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.dish_likesFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.dish_likesFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>
-          }
-          findFirst: {
-            args: Prisma.dish_likesFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.dish_likesFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>
-          }
-          findMany: {
-            args: Prisma.dish_likesFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>[]
-          }
-          create: {
-            args: Prisma.dish_likesCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>
-          }
-          createMany: {
-            args: Prisma.dish_likesCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.dish_likesCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>[]
-          }
-          delete: {
-            args: Prisma.dish_likesDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>
-          }
-          update: {
-            args: Prisma.dish_likesUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>
-          }
-          deleteMany: {
-            args: Prisma.dish_likesDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.dish_likesUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.dish_likesUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>[]
-          }
-          upsert: {
-            args: Prisma.dish_likesUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_likesPayload>
-          }
-          aggregate: {
-            args: Prisma.Dish_likesAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateDish_likes>
-          }
-          groupBy: {
-            args: Prisma.dish_likesGroupByArgs<ExtArgs>
-            result: $Utils.Optional<Dish_likesGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.dish_likesCountArgs<ExtArgs>
-            result: $Utils.Optional<Dish_likesCountAggregateOutputType> | number
-          }
-        }
-      }
       dish_media: {
         payload: Prisma.$dish_mediaPayload<ExtArgs>
         fields: Prisma.dish_mediaFieldRefs
@@ -1417,6 +1343,80 @@ export namespace Prisma {
           count: {
             args: Prisma.dish_mediaCountArgs<ExtArgs>
             result: $Utils.Optional<Dish_mediaCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_media_likes: {
+        payload: Prisma.$dish_media_likesPayload<ExtArgs>
+        fields: Prisma.dish_media_likesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_media_likesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_media_likesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_media_likesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_media_likesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>
+          }
+          findMany: {
+            args: Prisma.dish_media_likesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>[]
+          }
+          create: {
+            args: Prisma.dish_media_likesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>
+          }
+          createMany: {
+            args: Prisma.dish_media_likesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_media_likesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_media_likesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>
+          }
+          update: {
+            args: Prisma.dish_media_likesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_media_likesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_media_likesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_media_likesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_media_likesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_likesPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_media_likesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_media_likes>
+          }
+          groupBy: {
+            args: Prisma.dish_media_likesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_likesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_media_likesCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_likesCountAggregateOutputType> | number
           }
         }
       }
@@ -2404,8 +2404,8 @@ export namespace Prisma {
     config?: configOmit
     dish_categories?: dish_categoriesOmit
     dish_category_variants?: dish_category_variantsOmit
-    dish_likes?: dish_likesOmit
     dish_media?: dish_mediaOmit
+    dish_media_likes?: dish_media_likesOmit
     dish_reviews?: dish_reviewsOmit
     dishes?: dishesOmit
     external_api_logs?: external_api_logsOmit
@@ -2538,12 +2538,12 @@ export namespace Prisma {
    */
 
   export type Dish_mediaCountOutputType = {
-    dish_likes: number
+    dish_media_likes: number
     payouts: number
   }
 
   export type Dish_mediaCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_likes?: boolean | Dish_mediaCountOutputTypeCountDish_likesArgs
+    dish_media_likes?: boolean | Dish_mediaCountOutputTypeCountDish_media_likesArgs
     payouts?: boolean | Dish_mediaCountOutputTypeCountPayoutsArgs
   }
 
@@ -2561,8 +2561,8 @@ export namespace Prisma {
   /**
    * Dish_mediaCountOutputType without action
    */
-  export type Dish_mediaCountOutputTypeCountDish_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: dish_likesWhereInput
+  export type Dish_mediaCountOutputTypeCountDish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_likesWhereInput
   }
 
   /**
@@ -2720,15 +2720,15 @@ export namespace Prisma {
    */
 
   export type UsersCountOutputType = {
-    dish_likes: number
     dish_media: number
+    dish_media_likes: number
     dish_reviews: number
     restaurant_bids: number
   }
 
   export type UsersCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_likes?: boolean | UsersCountOutputTypeCountDish_likesArgs
     dish_media?: boolean | UsersCountOutputTypeCountDish_mediaArgs
+    dish_media_likes?: boolean | UsersCountOutputTypeCountDish_media_likesArgs
     dish_reviews?: boolean | UsersCountOutputTypeCountDish_reviewsArgs
     restaurant_bids?: boolean | UsersCountOutputTypeCountRestaurant_bidsArgs
   }
@@ -2747,15 +2747,15 @@ export namespace Prisma {
   /**
    * UsersCountOutputType without action
    */
-  export type UsersCountOutputTypeCountDish_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: dish_likesWhereInput
+  export type UsersCountOutputTypeCountDish_mediaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_mediaWhereInput
   }
 
   /**
    * UsersCountOutputType without action
    */
-  export type UsersCountOutputTypeCountDish_mediaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: dish_mediaWhereInput
+  export type UsersCountOutputTypeCountDish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_likesWhereInput
   }
 
   /**
@@ -7029,1059 +7029,6 @@ export namespace Prisma {
 
 
   /**
-   * Model dish_likes
-   */
-
-  export type AggregateDish_likes = {
-    _count: Dish_likesCountAggregateOutputType | null
-    _min: Dish_likesMinAggregateOutputType | null
-    _max: Dish_likesMaxAggregateOutputType | null
-  }
-
-  export type Dish_likesMinAggregateOutputType = {
-    id: string | null
-    dish_media_id: string | null
-    user_id: string | null
-    created_at: Date | null
-  }
-
-  export type Dish_likesMaxAggregateOutputType = {
-    id: string | null
-    dish_media_id: string | null
-    user_id: string | null
-    created_at: Date | null
-  }
-
-  export type Dish_likesCountAggregateOutputType = {
-    id: number
-    dish_media_id: number
-    user_id: number
-    created_at: number
-    _all: number
-  }
-
-
-  export type Dish_likesMinAggregateInputType = {
-    id?: true
-    dish_media_id?: true
-    user_id?: true
-    created_at?: true
-  }
-
-  export type Dish_likesMaxAggregateInputType = {
-    id?: true
-    dish_media_id?: true
-    user_id?: true
-    created_at?: true
-  }
-
-  export type Dish_likesCountAggregateInputType = {
-    id?: true
-    dish_media_id?: true
-    user_id?: true
-    created_at?: true
-    _all?: true
-  }
-
-  export type Dish_likesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which dish_likes to aggregate.
-     */
-    where?: dish_likesWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of dish_likes to fetch.
-     */
-    orderBy?: dish_likesOrderByWithRelationInput | dish_likesOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: dish_likesWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` dish_likes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` dish_likes.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned dish_likes
-    **/
-    _count?: true | Dish_likesCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: Dish_likesMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: Dish_likesMaxAggregateInputType
-  }
-
-  export type GetDish_likesAggregateType<T extends Dish_likesAggregateArgs> = {
-        [P in keyof T & keyof AggregateDish_likes]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateDish_likes[P]>
-      : GetScalarType<T[P], AggregateDish_likes[P]>
-  }
-
-
-
-
-  export type dish_likesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: dish_likesWhereInput
-    orderBy?: dish_likesOrderByWithAggregationInput | dish_likesOrderByWithAggregationInput[]
-    by: Dish_likesScalarFieldEnum[] | Dish_likesScalarFieldEnum
-    having?: dish_likesScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: Dish_likesCountAggregateInputType | true
-    _min?: Dish_likesMinAggregateInputType
-    _max?: Dish_likesMaxAggregateInputType
-  }
-
-  export type Dish_likesGroupByOutputType = {
-    id: string
-    dish_media_id: string
-    user_id: string
-    created_at: Date
-    _count: Dish_likesCountAggregateOutputType | null
-    _min: Dish_likesMinAggregateOutputType | null
-    _max: Dish_likesMaxAggregateOutputType | null
-  }
-
-  type GetDish_likesGroupByPayload<T extends dish_likesGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<Dish_likesGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof Dish_likesGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], Dish_likesGroupByOutputType[P]>
-            : GetScalarType<T[P], Dish_likesGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type dish_likesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    dish_media_id?: boolean
-    user_id?: boolean
-    created_at?: boolean
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
-    users?: boolean | usersDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["dish_likes"]>
-
-  export type dish_likesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    dish_media_id?: boolean
-    user_id?: boolean
-    created_at?: boolean
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
-    users?: boolean | usersDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["dish_likes"]>
-
-  export type dish_likesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    dish_media_id?: boolean
-    user_id?: boolean
-    created_at?: boolean
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
-    users?: boolean | usersDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["dish_likes"]>
-
-  export type dish_likesSelectScalar = {
-    id?: boolean
-    dish_media_id?: boolean
-    user_id?: boolean
-    created_at?: boolean
-  }
-
-  export type dish_likesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_media_id" | "user_id" | "created_at", ExtArgs["result"]["dish_likes"]>
-  export type dish_likesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
-    users?: boolean | usersDefaultArgs<ExtArgs>
-  }
-  export type dish_likesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
-    users?: boolean | usersDefaultArgs<ExtArgs>
-  }
-  export type dish_likesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
-    users?: boolean | usersDefaultArgs<ExtArgs>
-  }
-
-  export type $dish_likesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "dish_likes"
-    objects: {
-      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
-      users: Prisma.$usersPayload<ExtArgs>
-    }
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      dish_media_id: string
-      user_id: string
-      created_at: Date
-    }, ExtArgs["result"]["dish_likes"]>
-    composites: {}
-  }
-
-  type dish_likesGetPayload<S extends boolean | null | undefined | dish_likesDefaultArgs> = $Result.GetResult<Prisma.$dish_likesPayload, S>
-
-  type dish_likesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<dish_likesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: Dish_likesCountAggregateInputType | true
-    }
-
-  export interface dish_likesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_likes'], meta: { name: 'dish_likes' } }
-    /**
-     * Find zero or one Dish_likes that matches the filter.
-     * @param {dish_likesFindUniqueArgs} args - Arguments to find a Dish_likes
-     * @example
-     * // Get one Dish_likes
-     * const dish_likes = await prisma.dish_likes.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends dish_likesFindUniqueArgs>(args: SelectSubset<T, dish_likesFindUniqueArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one Dish_likes that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {dish_likesFindUniqueOrThrowArgs} args - Arguments to find a Dish_likes
-     * @example
-     * // Get one Dish_likes
-     * const dish_likes = await prisma.dish_likes.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends dish_likesFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_likesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first Dish_likes that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_likesFindFirstArgs} args - Arguments to find a Dish_likes
-     * @example
-     * // Get one Dish_likes
-     * const dish_likes = await prisma.dish_likes.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends dish_likesFindFirstArgs>(args?: SelectSubset<T, dish_likesFindFirstArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first Dish_likes that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_likesFindFirstOrThrowArgs} args - Arguments to find a Dish_likes
-     * @example
-     * // Get one Dish_likes
-     * const dish_likes = await prisma.dish_likes.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends dish_likesFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_likesFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more Dish_likes that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_likesFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all Dish_likes
-     * const dish_likes = await prisma.dish_likes.findMany()
-     * 
-     * // Get first 10 Dish_likes
-     * const dish_likes = await prisma.dish_likes.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const dish_likesWithIdOnly = await prisma.dish_likes.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends dish_likesFindManyArgs>(args?: SelectSubset<T, dish_likesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a Dish_likes.
-     * @param {dish_likesCreateArgs} args - Arguments to create a Dish_likes.
-     * @example
-     * // Create one Dish_likes
-     * const Dish_likes = await prisma.dish_likes.create({
-     *   data: {
-     *     // ... data to create a Dish_likes
-     *   }
-     * })
-     * 
-     */
-    create<T extends dish_likesCreateArgs>(args: SelectSubset<T, dish_likesCreateArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many Dish_likes.
-     * @param {dish_likesCreateManyArgs} args - Arguments to create many Dish_likes.
-     * @example
-     * // Create many Dish_likes
-     * const dish_likes = await prisma.dish_likes.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends dish_likesCreateManyArgs>(args?: SelectSubset<T, dish_likesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many Dish_likes and returns the data saved in the database.
-     * @param {dish_likesCreateManyAndReturnArgs} args - Arguments to create many Dish_likes.
-     * @example
-     * // Create many Dish_likes
-     * const dish_likes = await prisma.dish_likes.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Dish_likes and only return the `id`
-     * const dish_likesWithIdOnly = await prisma.dish_likes.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends dish_likesCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_likesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a Dish_likes.
-     * @param {dish_likesDeleteArgs} args - Arguments to delete one Dish_likes.
-     * @example
-     * // Delete one Dish_likes
-     * const Dish_likes = await prisma.dish_likes.delete({
-     *   where: {
-     *     // ... filter to delete one Dish_likes
-     *   }
-     * })
-     * 
-     */
-    delete<T extends dish_likesDeleteArgs>(args: SelectSubset<T, dish_likesDeleteArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one Dish_likes.
-     * @param {dish_likesUpdateArgs} args - Arguments to update one Dish_likes.
-     * @example
-     * // Update one Dish_likes
-     * const dish_likes = await prisma.dish_likes.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends dish_likesUpdateArgs>(args: SelectSubset<T, dish_likesUpdateArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more Dish_likes.
-     * @param {dish_likesDeleteManyArgs} args - Arguments to filter Dish_likes to delete.
-     * @example
-     * // Delete a few Dish_likes
-     * const { count } = await prisma.dish_likes.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends dish_likesDeleteManyArgs>(args?: SelectSubset<T, dish_likesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more Dish_likes.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_likesUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many Dish_likes
-     * const dish_likes = await prisma.dish_likes.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends dish_likesUpdateManyArgs>(args: SelectSubset<T, dish_likesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more Dish_likes and returns the data updated in the database.
-     * @param {dish_likesUpdateManyAndReturnArgs} args - Arguments to update many Dish_likes.
-     * @example
-     * // Update many Dish_likes
-     * const dish_likes = await prisma.dish_likes.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more Dish_likes and only return the `id`
-     * const dish_likesWithIdOnly = await prisma.dish_likes.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends dish_likesUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_likesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one Dish_likes.
-     * @param {dish_likesUpsertArgs} args - Arguments to update or create a Dish_likes.
-     * @example
-     * // Update or create a Dish_likes
-     * const dish_likes = await prisma.dish_likes.upsert({
-     *   create: {
-     *     // ... data to create a Dish_likes
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the Dish_likes we want to update
-     *   }
-     * })
-     */
-    upsert<T extends dish_likesUpsertArgs>(args: SelectSubset<T, dish_likesUpsertArgs<ExtArgs>>): Prisma__dish_likesClient<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of Dish_likes.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_likesCountArgs} args - Arguments to filter Dish_likes to count.
-     * @example
-     * // Count the number of Dish_likes
-     * const count = await prisma.dish_likes.count({
-     *   where: {
-     *     // ... the filter for the Dish_likes we want to count
-     *   }
-     * })
-    **/
-    count<T extends dish_likesCountArgs>(
-      args?: Subset<T, dish_likesCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], Dish_likesCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a Dish_likes.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {Dish_likesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends Dish_likesAggregateArgs>(args: Subset<T, Dish_likesAggregateArgs>): Prisma.PrismaPromise<GetDish_likesAggregateType<T>>
-
-    /**
-     * Group by Dish_likes.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_likesGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends dish_likesGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: dish_likesGroupByArgs['orderBy'] }
-        : { orderBy?: dish_likesGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, dish_likesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_likesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the dish_likes model
-   */
-  readonly fields: dish_likesFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for dish_likes.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__dish_likesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    users<T extends usersDefaultArgs<ExtArgs> = {}>(args?: Subset<T, usersDefaultArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the dish_likes model
-   */
-  interface dish_likesFieldRefs {
-    readonly id: FieldRef<"dish_likes", 'String'>
-    readonly dish_media_id: FieldRef<"dish_likes", 'String'>
-    readonly user_id: FieldRef<"dish_likes", 'String'>
-    readonly created_at: FieldRef<"dish_likes", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * dish_likes findUnique
-   */
-  export type dish_likesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * Filter, which dish_likes to fetch.
-     */
-    where: dish_likesWhereUniqueInput
-  }
-
-  /**
-   * dish_likes findUniqueOrThrow
-   */
-  export type dish_likesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * Filter, which dish_likes to fetch.
-     */
-    where: dish_likesWhereUniqueInput
-  }
-
-  /**
-   * dish_likes findFirst
-   */
-  export type dish_likesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * Filter, which dish_likes to fetch.
-     */
-    where?: dish_likesWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of dish_likes to fetch.
-     */
-    orderBy?: dish_likesOrderByWithRelationInput | dish_likesOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for dish_likes.
-     */
-    cursor?: dish_likesWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` dish_likes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` dish_likes.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of dish_likes.
-     */
-    distinct?: Dish_likesScalarFieldEnum | Dish_likesScalarFieldEnum[]
-  }
-
-  /**
-   * dish_likes findFirstOrThrow
-   */
-  export type dish_likesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * Filter, which dish_likes to fetch.
-     */
-    where?: dish_likesWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of dish_likes to fetch.
-     */
-    orderBy?: dish_likesOrderByWithRelationInput | dish_likesOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for dish_likes.
-     */
-    cursor?: dish_likesWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` dish_likes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` dish_likes.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of dish_likes.
-     */
-    distinct?: Dish_likesScalarFieldEnum | Dish_likesScalarFieldEnum[]
-  }
-
-  /**
-   * dish_likes findMany
-   */
-  export type dish_likesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * Filter, which dish_likes to fetch.
-     */
-    where?: dish_likesWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of dish_likes to fetch.
-     */
-    orderBy?: dish_likesOrderByWithRelationInput | dish_likesOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing dish_likes.
-     */
-    cursor?: dish_likesWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` dish_likes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` dish_likes.
-     */
-    skip?: number
-    distinct?: Dish_likesScalarFieldEnum | Dish_likesScalarFieldEnum[]
-  }
-
-  /**
-   * dish_likes create
-   */
-  export type dish_likesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * The data needed to create a dish_likes.
-     */
-    data: XOR<dish_likesCreateInput, dish_likesUncheckedCreateInput>
-  }
-
-  /**
-   * dish_likes createMany
-   */
-  export type dish_likesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many dish_likes.
-     */
-    data: dish_likesCreateManyInput | dish_likesCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * dish_likes createManyAndReturn
-   */
-  export type dish_likesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * The data used to create many dish_likes.
-     */
-    data: dish_likesCreateManyInput | dish_likesCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesIncludeCreateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * dish_likes update
-   */
-  export type dish_likesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * The data needed to update a dish_likes.
-     */
-    data: XOR<dish_likesUpdateInput, dish_likesUncheckedUpdateInput>
-    /**
-     * Choose, which dish_likes to update.
-     */
-    where: dish_likesWhereUniqueInput
-  }
-
-  /**
-   * dish_likes updateMany
-   */
-  export type dish_likesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update dish_likes.
-     */
-    data: XOR<dish_likesUpdateManyMutationInput, dish_likesUncheckedUpdateManyInput>
-    /**
-     * Filter which dish_likes to update
-     */
-    where?: dish_likesWhereInput
-    /**
-     * Limit how many dish_likes to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * dish_likes updateManyAndReturn
-   */
-  export type dish_likesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * The data used to update dish_likes.
-     */
-    data: XOR<dish_likesUpdateManyMutationInput, dish_likesUncheckedUpdateManyInput>
-    /**
-     * Filter which dish_likes to update
-     */
-    where?: dish_likesWhereInput
-    /**
-     * Limit how many dish_likes to update.
-     */
-    limit?: number
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesIncludeUpdateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * dish_likes upsert
-   */
-  export type dish_likesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * The filter to search for the dish_likes to update in case it exists.
-     */
-    where: dish_likesWhereUniqueInput
-    /**
-     * In case the dish_likes found by the `where` argument doesn't exist, create a new dish_likes with this data.
-     */
-    create: XOR<dish_likesCreateInput, dish_likesUncheckedCreateInput>
-    /**
-     * In case the dish_likes was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<dish_likesUpdateInput, dish_likesUncheckedUpdateInput>
-  }
-
-  /**
-   * dish_likes delete
-   */
-  export type dish_likesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    /**
-     * Filter which dish_likes to delete.
-     */
-    where: dish_likesWhereUniqueInput
-  }
-
-  /**
-   * dish_likes deleteMany
-   */
-  export type dish_likesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which dish_likes to delete
-     */
-    where?: dish_likesWhereInput
-    /**
-     * Limit how many dish_likes to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * dish_likes without action
-   */
-  export type dish_likesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-  }
-
-
-  /**
    * Model dish_media
    */
 
@@ -8311,9 +7258,9 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
-    dish_likes?: boolean | dish_media$dish_likesArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
+    dish_media_likes?: boolean | dish_media$dish_media_likesArgs<ExtArgs>
     payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media"]>
@@ -8360,9 +7307,9 @@ export namespace Prisma {
 
   export type dish_mediaOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "user_id" | "media_path" | "media_type" | "thumbnail_path" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["dish_media"]>
   export type dish_mediaInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_likes?: boolean | dish_media$dish_likesArgs<ExtArgs>
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
+    dish_media_likes?: boolean | dish_media$dish_media_likesArgs<ExtArgs>
     payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -8378,9 +7325,9 @@ export namespace Prisma {
   export type $dish_mediaPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "dish_media"
     objects: {
-      dish_likes: Prisma.$dish_likesPayload<ExtArgs>[]
       dishes: Prisma.$dishesPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs> | null
+      dish_media_likes: Prisma.$dish_media_likesPayload<ExtArgs>[]
       payouts: Prisma.$payoutsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -8787,9 +7734,9 @@ export namespace Prisma {
    */
   export interface Prisma__dish_mediaClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    dish_likes<T extends dish_media$dish_likesArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dishes<T extends dishesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dishesDefaultArgs<ExtArgs>>): Prisma__dishesClient<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends dish_media$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    dish_media_likes<T extends dish_media$dish_media_likesArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_media_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     payouts<T extends dish_media$payoutsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$payoutsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -9225,30 +8172,6 @@ export namespace Prisma {
   }
 
   /**
-   * dish_media.dish_likes
-   */
-  export type dish_media$dish_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    where?: dish_likesWhereInput
-    orderBy?: dish_likesOrderByWithRelationInput | dish_likesOrderByWithRelationInput[]
-    cursor?: dish_likesWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: Dish_likesScalarFieldEnum | Dish_likesScalarFieldEnum[]
-  }
-
-  /**
    * dish_media.users
    */
   export type dish_media$usersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9265,6 +8188,30 @@ export namespace Prisma {
      */
     include?: usersInclude<ExtArgs> | null
     where?: usersWhereInput
+  }
+
+  /**
+   * dish_media.dish_media_likes
+   */
+  export type dish_media$dish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    where?: dish_media_likesWhereInput
+    orderBy?: dish_media_likesOrderByWithRelationInput | dish_media_likesOrderByWithRelationInput[]
+    cursor?: dish_media_likesWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_media_likesScalarFieldEnum | Dish_media_likesScalarFieldEnum[]
   }
 
   /**
@@ -9307,6 +8254,1059 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: dish_mediaInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_media_likes
+   */
+
+  export type AggregateDish_media_likes = {
+    _count: Dish_media_likesCountAggregateOutputType | null
+    _min: Dish_media_likesMinAggregateOutputType | null
+    _max: Dish_media_likesMaxAggregateOutputType | null
+  }
+
+  export type Dish_media_likesMinAggregateOutputType = {
+    id: string | null
+    dish_media_id: string | null
+    user_id: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_media_likesMaxAggregateOutputType = {
+    id: string | null
+    dish_media_id: string | null
+    user_id: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_media_likesCountAggregateOutputType = {
+    id: number
+    dish_media_id: number
+    user_id: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Dish_media_likesMinAggregateInputType = {
+    id?: true
+    dish_media_id?: true
+    user_id?: true
+    created_at?: true
+  }
+
+  export type Dish_media_likesMaxAggregateInputType = {
+    id?: true
+    dish_media_id?: true
+    user_id?: true
+    created_at?: true
+  }
+
+  export type Dish_media_likesCountAggregateInputType = {
+    id?: true
+    dish_media_id?: true
+    user_id?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Dish_media_likesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_likes to aggregate.
+     */
+    where?: dish_media_likesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_likes to fetch.
+     */
+    orderBy?: dish_media_likesOrderByWithRelationInput | dish_media_likesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_media_likesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_likes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_likes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_media_likes
+    **/
+    _count?: true | Dish_media_likesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_media_likesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_media_likesMaxAggregateInputType
+  }
+
+  export type GetDish_media_likesAggregateType<T extends Dish_media_likesAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_media_likes]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_media_likes[P]>
+      : GetScalarType<T[P], AggregateDish_media_likes[P]>
+  }
+
+
+
+
+  export type dish_media_likesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_likesWhereInput
+    orderBy?: dish_media_likesOrderByWithAggregationInput | dish_media_likesOrderByWithAggregationInput[]
+    by: Dish_media_likesScalarFieldEnum[] | Dish_media_likesScalarFieldEnum
+    having?: dish_media_likesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_media_likesCountAggregateInputType | true
+    _min?: Dish_media_likesMinAggregateInputType
+    _max?: Dish_media_likesMaxAggregateInputType
+  }
+
+  export type Dish_media_likesGroupByOutputType = {
+    id: string
+    dish_media_id: string
+    user_id: string
+    created_at: Date
+    _count: Dish_media_likesCountAggregateOutputType | null
+    _min: Dish_media_likesMinAggregateOutputType | null
+    _max: Dish_media_likesMaxAggregateOutputType | null
+  }
+
+  type GetDish_media_likesGroupByPayload<T extends dish_media_likesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_media_likesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_media_likesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_media_likesGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_media_likesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_media_likesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_likes"]>
+
+  export type dish_media_likesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_likes"]>
+
+  export type dish_media_likesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_likes"]>
+
+  export type dish_media_likesSelectScalar = {
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    created_at?: boolean
+  }
+
+  export type dish_media_likesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_media_id" | "user_id" | "created_at", ExtArgs["result"]["dish_media_likes"]>
+  export type dish_media_likesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }
+  export type dish_media_likesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }
+  export type dish_media_likesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }
+
+  export type $dish_media_likesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_media_likes"
+    objects: {
+      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
+      users: Prisma.$usersPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      dish_media_id: string
+      user_id: string
+      created_at: Date
+    }, ExtArgs["result"]["dish_media_likes"]>
+    composites: {}
+  }
+
+  type dish_media_likesGetPayload<S extends boolean | null | undefined | dish_media_likesDefaultArgs> = $Result.GetResult<Prisma.$dish_media_likesPayload, S>
+
+  type dish_media_likesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_media_likesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_media_likesCountAggregateInputType | true
+    }
+
+  export interface dish_media_likesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_media_likes'], meta: { name: 'dish_media_likes' } }
+    /**
+     * Find zero or one Dish_media_likes that matches the filter.
+     * @param {dish_media_likesFindUniqueArgs} args - Arguments to find a Dish_media_likes
+     * @example
+     * // Get one Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_media_likesFindUniqueArgs>(args: SelectSubset<T, dish_media_likesFindUniqueArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_media_likes that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_media_likesFindUniqueOrThrowArgs} args - Arguments to find a Dish_media_likes
+     * @example
+     * // Get one Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_media_likesFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_media_likesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_likes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_likesFindFirstArgs} args - Arguments to find a Dish_media_likes
+     * @example
+     * // Get one Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_media_likesFindFirstArgs>(args?: SelectSubset<T, dish_media_likesFindFirstArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_likes that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_likesFindFirstOrThrowArgs} args - Arguments to find a Dish_media_likes
+     * @example
+     * // Get one Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_media_likesFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_media_likesFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_media_likes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_likesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.findMany()
+     * 
+     * // Get first 10 Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dish_media_likesWithIdOnly = await prisma.dish_media_likes.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends dish_media_likesFindManyArgs>(args?: SelectSubset<T, dish_media_likesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_media_likes.
+     * @param {dish_media_likesCreateArgs} args - Arguments to create a Dish_media_likes.
+     * @example
+     * // Create one Dish_media_likes
+     * const Dish_media_likes = await prisma.dish_media_likes.create({
+     *   data: {
+     *     // ... data to create a Dish_media_likes
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_media_likesCreateArgs>(args: SelectSubset<T, dish_media_likesCreateArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_media_likes.
+     * @param {dish_media_likesCreateManyArgs} args - Arguments to create many Dish_media_likes.
+     * @example
+     * // Create many Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_media_likesCreateManyArgs>(args?: SelectSubset<T, dish_media_likesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_media_likes and returns the data saved in the database.
+     * @param {dish_media_likesCreateManyAndReturnArgs} args - Arguments to create many Dish_media_likes.
+     * @example
+     * // Create many Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_media_likes and only return the `id`
+     * const dish_media_likesWithIdOnly = await prisma.dish_media_likes.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_media_likesCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_media_likesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_media_likes.
+     * @param {dish_media_likesDeleteArgs} args - Arguments to delete one Dish_media_likes.
+     * @example
+     * // Delete one Dish_media_likes
+     * const Dish_media_likes = await prisma.dish_media_likes.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_media_likes
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_media_likesDeleteArgs>(args: SelectSubset<T, dish_media_likesDeleteArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_media_likes.
+     * @param {dish_media_likesUpdateArgs} args - Arguments to update one Dish_media_likes.
+     * @example
+     * // Update one Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_media_likesUpdateArgs>(args: SelectSubset<T, dish_media_likesUpdateArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_media_likes.
+     * @param {dish_media_likesDeleteManyArgs} args - Arguments to filter Dish_media_likes to delete.
+     * @example
+     * // Delete a few Dish_media_likes
+     * const { count } = await prisma.dish_media_likes.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_media_likesDeleteManyArgs>(args?: SelectSubset<T, dish_media_likesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_likes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_likesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_media_likesUpdateManyArgs>(args: SelectSubset<T, dish_media_likesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_likes and returns the data updated in the database.
+     * @param {dish_media_likesUpdateManyAndReturnArgs} args - Arguments to update many Dish_media_likes.
+     * @example
+     * // Update many Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_media_likes and only return the `id`
+     * const dish_media_likesWithIdOnly = await prisma.dish_media_likes.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_media_likesUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_media_likesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_media_likes.
+     * @param {dish_media_likesUpsertArgs} args - Arguments to update or create a Dish_media_likes.
+     * @example
+     * // Update or create a Dish_media_likes
+     * const dish_media_likes = await prisma.dish_media_likes.upsert({
+     *   create: {
+     *     // ... data to create a Dish_media_likes
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_media_likes we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_media_likesUpsertArgs>(args: SelectSubset<T, dish_media_likesUpsertArgs<ExtArgs>>): Prisma__dish_media_likesClient<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_media_likes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_likesCountArgs} args - Arguments to filter Dish_media_likes to count.
+     * @example
+     * // Count the number of Dish_media_likes
+     * const count = await prisma.dish_media_likes.count({
+     *   where: {
+     *     // ... the filter for the Dish_media_likes we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_media_likesCountArgs>(
+      args?: Subset<T, dish_media_likesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_media_likesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_media_likes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_media_likesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_media_likesAggregateArgs>(args: Subset<T, Dish_media_likesAggregateArgs>): Prisma.PrismaPromise<GetDish_media_likesAggregateType<T>>
+
+    /**
+     * Group by Dish_media_likes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_likesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_media_likesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_media_likesGroupByArgs['orderBy'] }
+        : { orderBy?: dish_media_likesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_media_likesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_media_likesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_media_likes model
+   */
+  readonly fields: dish_media_likesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_media_likes.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_media_likesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    users<T extends usersDefaultArgs<ExtArgs> = {}>(args?: Subset<T, usersDefaultArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_media_likes model
+   */
+  interface dish_media_likesFieldRefs {
+    readonly id: FieldRef<"dish_media_likes", 'String'>
+    readonly dish_media_id: FieldRef<"dish_media_likes", 'String'>
+    readonly user_id: FieldRef<"dish_media_likes", 'String'>
+    readonly created_at: FieldRef<"dish_media_likes", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_media_likes findUnique
+   */
+  export type dish_media_likesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_likes to fetch.
+     */
+    where: dish_media_likesWhereUniqueInput
+  }
+
+  /**
+   * dish_media_likes findUniqueOrThrow
+   */
+  export type dish_media_likesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_likes to fetch.
+     */
+    where: dish_media_likesWhereUniqueInput
+  }
+
+  /**
+   * dish_media_likes findFirst
+   */
+  export type dish_media_likesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_likes to fetch.
+     */
+    where?: dish_media_likesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_likes to fetch.
+     */
+    orderBy?: dish_media_likesOrderByWithRelationInput | dish_media_likesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_likes.
+     */
+    cursor?: dish_media_likesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_likes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_likes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_likes.
+     */
+    distinct?: Dish_media_likesScalarFieldEnum | Dish_media_likesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_likes findFirstOrThrow
+   */
+  export type dish_media_likesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_likes to fetch.
+     */
+    where?: dish_media_likesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_likes to fetch.
+     */
+    orderBy?: dish_media_likesOrderByWithRelationInput | dish_media_likesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_likes.
+     */
+    cursor?: dish_media_likesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_likes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_likes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_likes.
+     */
+    distinct?: Dish_media_likesScalarFieldEnum | Dish_media_likesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_likes findMany
+   */
+  export type dish_media_likesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_likes to fetch.
+     */
+    where?: dish_media_likesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_likes to fetch.
+     */
+    orderBy?: dish_media_likesOrderByWithRelationInput | dish_media_likesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_media_likes.
+     */
+    cursor?: dish_media_likesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_likes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_likes.
+     */
+    skip?: number
+    distinct?: Dish_media_likesScalarFieldEnum | Dish_media_likesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_likes create
+   */
+  export type dish_media_likesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_media_likes.
+     */
+    data: XOR<dish_media_likesCreateInput, dish_media_likesUncheckedCreateInput>
+  }
+
+  /**
+   * dish_media_likes createMany
+   */
+  export type dish_media_likesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_media_likes.
+     */
+    data: dish_media_likesCreateManyInput | dish_media_likesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_media_likes createManyAndReturn
+   */
+  export type dish_media_likesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_media_likes.
+     */
+    data: dish_media_likesCreateManyInput | dish_media_likesCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_likes update
+   */
+  export type dish_media_likesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_media_likes.
+     */
+    data: XOR<dish_media_likesUpdateInput, dish_media_likesUncheckedUpdateInput>
+    /**
+     * Choose, which dish_media_likes to update.
+     */
+    where: dish_media_likesWhereUniqueInput
+  }
+
+  /**
+   * dish_media_likes updateMany
+   */
+  export type dish_media_likesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_media_likes.
+     */
+    data: XOR<dish_media_likesUpdateManyMutationInput, dish_media_likesUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_likes to update
+     */
+    where?: dish_media_likesWhereInput
+    /**
+     * Limit how many dish_media_likes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_likes updateManyAndReturn
+   */
+  export type dish_media_likesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_media_likes.
+     */
+    data: XOR<dish_media_likesUpdateManyMutationInput, dish_media_likesUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_likes to update
+     */
+    where?: dish_media_likesWhereInput
+    /**
+     * Limit how many dish_media_likes to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_likes upsert
+   */
+  export type dish_media_likesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_media_likes to update in case it exists.
+     */
+    where: dish_media_likesWhereUniqueInput
+    /**
+     * In case the dish_media_likes found by the `where` argument doesn't exist, create a new dish_media_likes with this data.
+     */
+    create: XOR<dish_media_likesCreateInput, dish_media_likesUncheckedCreateInput>
+    /**
+     * In case the dish_media_likes was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_media_likesUpdateInput, dish_media_likesUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_media_likes delete
+   */
+  export type dish_media_likesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    /**
+     * Filter which dish_media_likes to delete.
+     */
+    where: dish_media_likesWhereUniqueInput
+  }
+
+  /**
+   * dish_media_likes deleteMany
+   */
+  export type dish_media_likesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_likes to delete
+     */
+    where?: dish_media_likesWhereInput
+    /**
+     * Limit how many dish_media_likes to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_likes without action
+   */
+  export type dish_media_likesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
   }
 
 
@@ -20789,6 +20789,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: number
+    address_components: number
+    plus_code: number
     created_at: number
     _all: number
   }
@@ -20834,6 +20836,8 @@ export namespace Prisma {
     latitude?: true
     longitude?: true
     image_url?: true
+    address_components?: true
+    plus_code?: true
     created_at?: true
     _all?: true
   }
@@ -20932,6 +20936,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonValue
+    plus_code: JsonValue | null
     created_at: Date
     _count: RestaurantsCountAggregateOutputType | null
     _avg: RestaurantsAvgAggregateOutputType | null
@@ -20962,6 +20968,8 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
@@ -20976,6 +20984,8 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
@@ -20987,6 +20997,8 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
@@ -20998,10 +21010,12 @@ export namespace Prisma {
     latitude?: boolean
     longitude?: boolean
     image_url?: boolean
+    address_components?: boolean
+    plus_code?: boolean
     created_at?: boolean
   }
 
-  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "created_at", ExtArgs["result"]["restaurants"]>
+  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "address_components" | "plus_code" | "created_at", ExtArgs["result"]["restaurants"]>
   export type restaurantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
@@ -21024,6 +21038,8 @@ export namespace Prisma {
       latitude: number
       longitude: number
       image_url: string
+      address_components: Prisma.JsonValue
+      plus_code: Prisma.JsonValue | null
       created_at: Date
     }, ExtArgs["result"]["restaurants"]>
     composites: {}
@@ -21457,6 +21473,8 @@ export namespace Prisma {
     readonly latitude: FieldRef<"restaurants", 'Float'>
     readonly longitude: FieldRef<"restaurants", 'Float'>
     readonly image_url: FieldRef<"restaurants", 'String'>
+    readonly address_components: FieldRef<"restaurants", 'Json'>
+    readonly plus_code: FieldRef<"restaurants", 'Json'>
     readonly created_at: FieldRef<"restaurants", 'DateTime'>
   }
     
@@ -21934,7 +21952,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -21942,11 +21959,11 @@ export namespace Prisma {
     created_at: Date | null
     updated_at: Date | null
     lock_no: number | null
+    username: string | null
   }
 
   export type UsersMaxAggregateOutputType = {
     id: string | null
-    username: string | null
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -21954,11 +21971,11 @@ export namespace Prisma {
     created_at: Date | null
     updated_at: Date | null
     lock_no: number | null
+    username: string | null
   }
 
   export type UsersCountAggregateOutputType = {
     id: number
-    username: number
     display_name: number
     avatar: number
     bio: number
@@ -21966,6 +21983,7 @@ export namespace Prisma {
     created_at: number
     updated_at: number
     lock_no: number
+    username: number
     _all: number
   }
 
@@ -21980,7 +21998,6 @@ export namespace Prisma {
 
   export type UsersMinAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -21988,11 +22005,11 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    username?: true
   }
 
   export type UsersMaxAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -22000,11 +22017,11 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    username?: true
   }
 
   export type UsersCountAggregateInputType = {
     id?: true
-    username?: true
     display_name?: true
     avatar?: true
     bio?: true
@@ -22012,6 +22029,7 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    username?: true
     _all?: true
   }
 
@@ -22103,7 +22121,6 @@ export namespace Prisma {
 
   export type UsersGroupByOutputType = {
     id: string
-    username: string
     display_name: string | null
     avatar: string | null
     bio: string | null
@@ -22111,6 +22128,7 @@ export namespace Prisma {
     created_at: Date
     updated_at: Date
     lock_no: number
+    username: string
     _count: UsersCountAggregateOutputType | null
     _avg: UsersAvgAggregateOutputType | null
     _sum: UsersSumAggregateOutputType | null
@@ -22134,7 +22152,6 @@ export namespace Prisma {
 
   export type usersSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22142,8 +22159,9 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
-    dish_likes?: boolean | users$dish_likesArgs<ExtArgs>
+    username?: boolean
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
+    dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
     restaurant_bids?: boolean | users$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
@@ -22151,7 +22169,6 @@ export namespace Prisma {
 
   export type usersSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22159,11 +22176,11 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    username?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22171,11 +22188,11 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    username?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectScalar = {
     id?: boolean
-    username?: boolean
     display_name?: boolean
     avatar?: boolean
     bio?: boolean
@@ -22183,12 +22200,13 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    username?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no" | "username", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_likes?: boolean | users$dish_likesArgs<ExtArgs>
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
+    dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
     restaurant_bids?: boolean | users$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
@@ -22199,14 +22217,13 @@ export namespace Prisma {
   export type $usersPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "users"
     objects: {
-      dish_likes: Prisma.$dish_likesPayload<ExtArgs>[]
       dish_media: Prisma.$dish_mediaPayload<ExtArgs>[]
+      dish_media_likes: Prisma.$dish_media_likesPayload<ExtArgs>[]
       dish_reviews: Prisma.$dish_reviewsPayload<ExtArgs>[]
       restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      username: string
       display_name: string | null
       avatar: string | null
       bio: string | null
@@ -22214,6 +22231,7 @@ export namespace Prisma {
       created_at: Date
       updated_at: Date
       lock_no: number
+      username: string
     }, ExtArgs["result"]["users"]>
     composites: {}
   }
@@ -22608,8 +22626,8 @@ export namespace Prisma {
    */
   export interface Prisma__usersClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    dish_likes<T extends users$dish_likesArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_media<T extends users$dish_mediaArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_mediaArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_media_likes<T extends users$dish_media_likesArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_media_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_reviews<T extends users$dish_reviewsArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_reviewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restaurant_bids<T extends users$restaurant_bidsArgs<ExtArgs> = {}>(args?: Subset<T, users$restaurant_bidsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -22642,7 +22660,6 @@ export namespace Prisma {
    */
   interface usersFieldRefs {
     readonly id: FieldRef<"users", 'String'>
-    readonly username: FieldRef<"users", 'String'>
     readonly display_name: FieldRef<"users", 'String'>
     readonly avatar: FieldRef<"users", 'String'>
     readonly bio: FieldRef<"users", 'String'>
@@ -22650,6 +22667,7 @@ export namespace Prisma {
     readonly created_at: FieldRef<"users", 'DateTime'>
     readonly updated_at: FieldRef<"users", 'DateTime'>
     readonly lock_no: FieldRef<"users", 'Int'>
+    readonly username: FieldRef<"users", 'String'>
   }
     
 
@@ -23038,30 +23056,6 @@ export namespace Prisma {
   }
 
   /**
-   * users.dish_likes
-   */
-  export type users$dish_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the dish_likes
-     */
-    select?: dish_likesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the dish_likes
-     */
-    omit?: dish_likesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: dish_likesInclude<ExtArgs> | null
-    where?: dish_likesWhereInput
-    orderBy?: dish_likesOrderByWithRelationInput | dish_likesOrderByWithRelationInput[]
-    cursor?: dish_likesWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: Dish_likesScalarFieldEnum | Dish_likesScalarFieldEnum[]
-  }
-
-  /**
    * users.dish_media
    */
   export type users$dish_mediaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -23083,6 +23077,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Dish_mediaScalarFieldEnum | Dish_mediaScalarFieldEnum[]
+  }
+
+  /**
+   * users.dish_media_likes
+   */
+  export type users$dish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_likes
+     */
+    select?: dish_media_likesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_likes
+     */
+    omit?: dish_media_likesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_likesInclude<ExtArgs> | null
+    where?: dish_media_likesWhereInput
+    orderBy?: dish_media_likesOrderByWithRelationInput | dish_media_likesOrderByWithRelationInput[]
+    cursor?: dish_media_likesWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_media_likesScalarFieldEnum | Dish_media_likesScalarFieldEnum[]
   }
 
   /**
@@ -23217,16 +23235,6 @@ export namespace Prisma {
   export type Dish_category_variantsScalarFieldEnum = (typeof Dish_category_variantsScalarFieldEnum)[keyof typeof Dish_category_variantsScalarFieldEnum]
 
 
-  export const Dish_likesScalarFieldEnum: {
-    id: 'id',
-    dish_media_id: 'dish_media_id',
-    user_id: 'user_id',
-    created_at: 'created_at'
-  };
-
-  export type Dish_likesScalarFieldEnum = (typeof Dish_likesScalarFieldEnum)[keyof typeof Dish_likesScalarFieldEnum]
-
-
   export const Dish_mediaScalarFieldEnum: {
     id: 'id',
     dish_id: 'dish_id',
@@ -23240,6 +23248,16 @@ export namespace Prisma {
   };
 
   export type Dish_mediaScalarFieldEnum = (typeof Dish_mediaScalarFieldEnum)[keyof typeof Dish_mediaScalarFieldEnum]
+
+
+  export const Dish_media_likesScalarFieldEnum: {
+    id: 'id',
+    dish_media_id: 'dish_media_id',
+    user_id: 'user_id',
+    created_at: 'created_at'
+  };
+
+  export type Dish_media_likesScalarFieldEnum = (typeof Dish_media_likesScalarFieldEnum)[keyof typeof Dish_media_likesScalarFieldEnum]
 
 
   export const Dish_reviewsScalarFieldEnum: {
@@ -23410,6 +23428,8 @@ export namespace Prisma {
     latitude: 'latitude',
     longitude: 'longitude',
     image_url: 'image_url',
+    address_components: 'address_components',
+    plus_code: 'plus_code',
     created_at: 'created_at'
   };
 
@@ -23418,14 +23438,14 @@ export namespace Prisma {
 
   export const UsersScalarFieldEnum: {
     id: 'id',
-    username: 'username',
     display_name: 'display_name',
     avatar: 'avatar',
     bio: 'bio',
     last_login_at: 'last_login_at',
     created_at: 'created_at',
     updated_at: 'updated_at',
-    lock_no: 'lock_no'
+    lock_no: 'lock_no',
+    username: 'username'
   };
 
   export type UsersScalarFieldEnum = (typeof UsersScalarFieldEnum)[keyof typeof UsersScalarFieldEnum]
@@ -23909,60 +23929,6 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"dish_category_variants"> | Date | string
   }
 
-  export type dish_likesWhereInput = {
-    AND?: dish_likesWhereInput | dish_likesWhereInput[]
-    OR?: dish_likesWhereInput[]
-    NOT?: dish_likesWhereInput | dish_likesWhereInput[]
-    id?: UuidFilter<"dish_likes"> | string
-    dish_media_id?: UuidFilter<"dish_likes"> | string
-    user_id?: UuidFilter<"dish_likes"> | string
-    created_at?: DateTimeFilter<"dish_likes"> | Date | string
-    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
-    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
-  }
-
-  export type dish_likesOrderByWithRelationInput = {
-    id?: SortOrder
-    dish_media_id?: SortOrder
-    user_id?: SortOrder
-    created_at?: SortOrder
-    dish_media?: dish_mediaOrderByWithRelationInput
-    users?: usersOrderByWithRelationInput
-  }
-
-  export type dish_likesWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    dish_media_id_user_id?: dish_likesDish_media_idUser_idCompoundUniqueInput
-    AND?: dish_likesWhereInput | dish_likesWhereInput[]
-    OR?: dish_likesWhereInput[]
-    NOT?: dish_likesWhereInput | dish_likesWhereInput[]
-    dish_media_id?: UuidFilter<"dish_likes"> | string
-    user_id?: UuidFilter<"dish_likes"> | string
-    created_at?: DateTimeFilter<"dish_likes"> | Date | string
-    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
-    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
-  }, "id" | "dish_media_id_user_id">
-
-  export type dish_likesOrderByWithAggregationInput = {
-    id?: SortOrder
-    dish_media_id?: SortOrder
-    user_id?: SortOrder
-    created_at?: SortOrder
-    _count?: dish_likesCountOrderByAggregateInput
-    _max?: dish_likesMaxOrderByAggregateInput
-    _min?: dish_likesMinOrderByAggregateInput
-  }
-
-  export type dish_likesScalarWhereWithAggregatesInput = {
-    AND?: dish_likesScalarWhereWithAggregatesInput | dish_likesScalarWhereWithAggregatesInput[]
-    OR?: dish_likesScalarWhereWithAggregatesInput[]
-    NOT?: dish_likesScalarWhereWithAggregatesInput | dish_likesScalarWhereWithAggregatesInput[]
-    id?: UuidWithAggregatesFilter<"dish_likes"> | string
-    dish_media_id?: UuidWithAggregatesFilter<"dish_likes"> | string
-    user_id?: UuidWithAggregatesFilter<"dish_likes"> | string
-    created_at?: DateTimeWithAggregatesFilter<"dish_likes"> | Date | string
-  }
-
   export type dish_mediaWhereInput = {
     AND?: dish_mediaWhereInput | dish_mediaWhereInput[]
     OR?: dish_mediaWhereInput[]
@@ -23976,9 +23942,9 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"dish_media"> | Date | string
     updated_at?: DateTimeFilter<"dish_media"> | Date | string
     lock_no?: IntFilter<"dish_media"> | number
-    dish_likes?: Dish_likesListRelationFilter
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+    dish_media_likes?: Dish_media_likesListRelationFilter
     payouts?: PayoutsListRelationFilter
   }
 
@@ -23992,9 +23958,9 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
-    dish_likes?: dish_likesOrderByRelationAggregateInput
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
+    dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
     payouts?: payoutsOrderByRelationAggregateInput
   }
 
@@ -24011,9 +23977,9 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"dish_media"> | Date | string
     updated_at?: DateTimeFilter<"dish_media"> | Date | string
     lock_no?: IntFilter<"dish_media"> | number
-    dish_likes?: Dish_likesListRelationFilter
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+    dish_media_likes?: Dish_media_likesListRelationFilter
     payouts?: PayoutsListRelationFilter
   }, "id">
 
@@ -24047,6 +24013,60 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"dish_media"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"dish_media"> | Date | string
     lock_no?: IntWithAggregatesFilter<"dish_media"> | number
+  }
+
+  export type dish_media_likesWhereInput = {
+    AND?: dish_media_likesWhereInput | dish_media_likesWhereInput[]
+    OR?: dish_media_likesWhereInput[]
+    NOT?: dish_media_likesWhereInput | dish_media_likesWhereInput[]
+    id?: UuidFilter<"dish_media_likes"> | string
+    dish_media_id?: UuidFilter<"dish_media_likes"> | string
+    user_id?: UuidFilter<"dish_media_likes"> | string
+    created_at?: DateTimeFilter<"dish_media_likes"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
+  }
+
+  export type dish_media_likesOrderByWithRelationInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+    dish_media?: dish_mediaOrderByWithRelationInput
+    users?: usersOrderByWithRelationInput
+  }
+
+  export type dish_media_likesWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    dish_media_id_user_id?: dish_media_likesDish_media_idUser_idCompoundUniqueInput
+    AND?: dish_media_likesWhereInput | dish_media_likesWhereInput[]
+    OR?: dish_media_likesWhereInput[]
+    NOT?: dish_media_likesWhereInput | dish_media_likesWhereInput[]
+    dish_media_id?: UuidFilter<"dish_media_likes"> | string
+    user_id?: UuidFilter<"dish_media_likes"> | string
+    created_at?: DateTimeFilter<"dish_media_likes"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
+  }, "id" | "dish_media_id_user_id">
+
+  export type dish_media_likesOrderByWithAggregationInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+    _count?: dish_media_likesCountOrderByAggregateInput
+    _max?: dish_media_likesMaxOrderByAggregateInput
+    _min?: dish_media_likesMinOrderByAggregateInput
+  }
+
+  export type dish_media_likesScalarWhereWithAggregatesInput = {
+    AND?: dish_media_likesScalarWhereWithAggregatesInput | dish_media_likesScalarWhereWithAggregatesInput[]
+    OR?: dish_media_likesScalarWhereWithAggregatesInput[]
+    NOT?: dish_media_likesScalarWhereWithAggregatesInput | dish_media_likesScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"dish_media_likes"> | string
+    dish_media_id?: UuidWithAggregatesFilter<"dish_media_likes"> | string
+    user_id?: UuidWithAggregatesFilter<"dish_media_likes"> | string
+    created_at?: DateTimeWithAggregatesFilter<"dish_media_likes"> | Date | string
   }
 
   export type dish_reviewsWhereInput = {
@@ -24890,6 +24910,8 @@ export namespace Prisma {
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
+    address_components?: JsonFilter<"restaurants">
+    plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
@@ -24903,6 +24925,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
+    address_components?: SortOrder
+    plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
     dishes?: dishesOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
@@ -24919,6 +24943,8 @@ export namespace Prisma {
     latitude?: FloatFilter<"restaurants"> | number
     longitude?: FloatFilter<"restaurants"> | number
     image_url?: StringFilter<"restaurants"> | string
+    address_components?: JsonFilter<"restaurants">
+    plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
@@ -24932,6 +24958,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
+    address_components?: SortOrder
+    plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
     _count?: restaurantsCountOrderByAggregateInput
     _avg?: restaurantsAvgOrderByAggregateInput
@@ -24951,6 +24979,8 @@ export namespace Prisma {
     latitude?: FloatWithAggregatesFilter<"restaurants"> | number
     longitude?: FloatWithAggregatesFilter<"restaurants"> | number
     image_url?: StringWithAggregatesFilter<"restaurants"> | string
+    address_components?: JsonWithAggregatesFilter<"restaurants">
+    plus_code?: JsonNullableWithAggregatesFilter<"restaurants">
     created_at?: DateTimeWithAggregatesFilter<"restaurants"> | Date | string
   }
 
@@ -24959,7 +24989,6 @@ export namespace Prisma {
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
     id?: UuidFilter<"users"> | string
-    username?: StringFilter<"users"> | string
     display_name?: StringNullableFilter<"users"> | string | null
     avatar?: StringNullableFilter<"users"> | string | null
     bio?: StringNullableFilter<"users"> | string | null
@@ -24967,15 +24996,15 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"users"> | Date | string
     updated_at?: DateTimeFilter<"users"> | Date | string
     lock_no?: IntFilter<"users"> | number
-    dish_likes?: Dish_likesListRelationFilter
+    username?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
+    dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
   }
 
   export type usersOrderByWithRelationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -24983,15 +25012,15 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
-    dish_likes?: dish_likesOrderByRelationAggregateInput
+    username?: SortOrder
     dish_media?: dish_mediaOrderByRelationAggregateInput
+    dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
   }
 
   export type usersWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    username?: string
     AND?: usersWhereInput | usersWhereInput[]
     OR?: usersWhereInput[]
     NOT?: usersWhereInput | usersWhereInput[]
@@ -25002,15 +25031,15 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"users"> | Date | string
     updated_at?: DateTimeFilter<"users"> | Date | string
     lock_no?: IntFilter<"users"> | number
-    dish_likes?: Dish_likesListRelationFilter
+    username?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
+    dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
-  }, "id" | "username">
+  }, "id">
 
   export type usersOrderByWithAggregationInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrderInput | SortOrder
     avatar?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -25018,6 +25047,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
     _count?: usersCountOrderByAggregateInput
     _avg?: usersAvgOrderByAggregateInput
     _max?: usersMaxOrderByAggregateInput
@@ -25030,7 +25060,6 @@ export namespace Prisma {
     OR?: usersScalarWhereWithAggregatesInput[]
     NOT?: usersScalarWhereWithAggregatesInput | usersScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"users"> | string
-    username?: StringWithAggregatesFilter<"users"> | string
     display_name?: StringNullableWithAggregatesFilter<"users"> | string | null
     avatar?: StringNullableWithAggregatesFilter<"users"> | string | null
     bio?: StringNullableWithAggregatesFilter<"users"> | string | null
@@ -25038,6 +25067,7 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"users"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"users"> | Date | string
     lock_no?: IntWithAggregatesFilter<"users"> | number
+    username?: StringWithAggregatesFilter<"users"> | string
   }
 
   export type backend_event_logsCreateInput = {
@@ -25320,53 +25350,6 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type dish_likesCreateInput = {
-    id?: string
-    created_at?: Date | string
-    dish_media: dish_mediaCreateNestedOneWithoutDish_likesInput
-    users: usersCreateNestedOneWithoutDish_likesInput
-  }
-
-  export type dish_likesUncheckedCreateInput = {
-    id?: string
-    dish_media_id: string
-    user_id: string
-    created_at?: Date | string
-  }
-
-  export type dish_likesUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_likesNestedInput
-    users?: usersUpdateOneRequiredWithoutDish_likesNestedInput
-  }
-
-  export type dish_likesUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    dish_media_id?: StringFieldUpdateOperationsInput | string
-    user_id?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type dish_likesCreateManyInput = {
-    id?: string
-    dish_media_id: string
-    user_id: string
-    created_at?: Date | string
-  }
-
-  export type dish_likesUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type dish_likesUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    dish_media_id?: StringFieldUpdateOperationsInput | string
-    user_id?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
   export type dish_mediaCreateInput = {
     id?: string
     media_path: string
@@ -25375,9 +25358,9 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -25391,7 +25374,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -25403,9 +25386,9 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -25419,7 +25402,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -25455,6 +25438,53 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_likesCreateInput = {
+    id?: string
+    created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_likesInput
+    users: usersCreateNestedOneWithoutDish_media_likesInput
+  }
+
+  export type dish_media_likesUncheckedCreateInput = {
+    id?: string
+    dish_media_id: string
+    user_id: string
+    created_at?: Date | string
+  }
+
+  export type dish_media_likesUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_likesNestedInput
+    users?: usersUpdateOneRequiredWithoutDish_media_likesNestedInput
+  }
+
+  export type dish_media_likesUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_likesCreateManyInput = {
+    id?: string
+    dish_media_id: string
+    user_id: string
+    created_at?: Date | string
+  }
+
+  export type dish_media_likesUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_likesUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_reviewsCreateInput = {
@@ -26382,6 +26412,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
@@ -26395,6 +26427,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
@@ -26408,6 +26442,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
@@ -26421,6 +26457,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
@@ -26434,6 +26472,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
   }
 
@@ -26445,6 +26485,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -26456,12 +26498,13 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type usersCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26469,15 +26512,15 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutUsersInput
+    username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26485,15 +26528,15 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutUsersInput
+    username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26501,15 +26544,15 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26517,15 +26560,15 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type usersCreateManyInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -26533,11 +26576,11 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    username: string
   }
 
   export type usersUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26545,11 +26588,11 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
   }
 
   export type usersUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26557,6 +26600,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -26999,48 +27043,6 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
-  export type Dish_mediaScalarRelationFilter = {
-    is?: dish_mediaWhereInput
-    isNot?: dish_mediaWhereInput
-  }
-
-  export type UsersScalarRelationFilter = {
-    is?: usersWhereInput
-    isNot?: usersWhereInput
-  }
-
-  export type dish_likesDish_media_idUser_idCompoundUniqueInput = {
-    dish_media_id: string
-    user_id: string
-  }
-
-  export type dish_likesCountOrderByAggregateInput = {
-    id?: SortOrder
-    dish_media_id?: SortOrder
-    user_id?: SortOrder
-    created_at?: SortOrder
-  }
-
-  export type dish_likesMaxOrderByAggregateInput = {
-    id?: SortOrder
-    dish_media_id?: SortOrder
-    user_id?: SortOrder
-    created_at?: SortOrder
-  }
-
-  export type dish_likesMinOrderByAggregateInput = {
-    id?: SortOrder
-    dish_media_id?: SortOrder
-    user_id?: SortOrder
-    created_at?: SortOrder
-  }
-
-  export type Dish_likesListRelationFilter = {
-    every?: dish_likesWhereInput
-    some?: dish_likesWhereInput
-    none?: dish_likesWhereInput
-  }
-
   export type DishesScalarRelationFilter = {
     is?: dishesWhereInput
     isNot?: dishesWhereInput
@@ -27051,13 +27053,19 @@ export namespace Prisma {
     isNot?: usersWhereInput | null
   }
 
+  export type Dish_media_likesListRelationFilter = {
+    every?: dish_media_likesWhereInput
+    some?: dish_media_likesWhereInput
+    none?: dish_media_likesWhereInput
+  }
+
   export type PayoutsListRelationFilter = {
     every?: payoutsWhereInput
     some?: payoutsWhereInput
     none?: payoutsWhereInput
   }
 
-  export type dish_likesOrderByRelationAggregateInput = {
+  export type dish_media_likesOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -27107,6 +27115,42 @@ export namespace Prisma {
 
   export type dish_mediaSumOrderByAggregateInput = {
     lock_no?: SortOrder
+  }
+
+  export type Dish_mediaScalarRelationFilter = {
+    is?: dish_mediaWhereInput
+    isNot?: dish_mediaWhereInput
+  }
+
+  export type UsersScalarRelationFilter = {
+    is?: usersWhereInput
+    isNot?: usersWhereInput
+  }
+
+  export type dish_media_likesDish_media_idUser_idCompoundUniqueInput = {
+    dish_media_id: string
+    user_id: string
+  }
+
+  export type dish_media_likesCountOrderByAggregateInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_media_likesMaxOrderByAggregateInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_media_likesMinOrderByAggregateInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -27807,6 +27851,8 @@ export namespace Prisma {
     latitude?: SortOrder
     longitude?: SortOrder
     image_url?: SortOrder
+    address_components?: SortOrder
+    plus_code?: SortOrder
     created_at?: SortOrder
   }
 
@@ -27871,7 +27917,6 @@ export namespace Prisma {
 
   export type usersCountOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27879,6 +27924,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
   }
 
   export type usersAvgOrderByAggregateInput = {
@@ -27887,7 +27933,6 @@ export namespace Prisma {
 
   export type usersMaxOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27895,11 +27940,11 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
   }
 
   export type usersMinOrderByAggregateInput = {
     id?: SortOrder
-    username?: SortOrder
     display_name?: SortOrder
     avatar?: SortOrder
     bio?: SortOrder
@@ -27907,6 +27952,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    username?: SortOrder
   }
 
   export type usersSumOrderByAggregateInput = {
@@ -28076,41 +28122,6 @@ export namespace Prisma {
     update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDish_category_variantsInput, dish_categoriesUpdateWithoutDish_category_variantsInput>, dish_categoriesUncheckedUpdateWithoutDish_category_variantsInput>
   }
 
-  export type dish_mediaCreateNestedOneWithoutDish_likesInput = {
-    create?: XOR<dish_mediaCreateWithoutDish_likesInput, dish_mediaUncheckedCreateWithoutDish_likesInput>
-    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_likesInput
-    connect?: dish_mediaWhereUniqueInput
-  }
-
-  export type usersCreateNestedOneWithoutDish_likesInput = {
-    create?: XOR<usersCreateWithoutDish_likesInput, usersUncheckedCreateWithoutDish_likesInput>
-    connectOrCreate?: usersCreateOrConnectWithoutDish_likesInput
-    connect?: usersWhereUniqueInput
-  }
-
-  export type dish_mediaUpdateOneRequiredWithoutDish_likesNestedInput = {
-    create?: XOR<dish_mediaCreateWithoutDish_likesInput, dish_mediaUncheckedCreateWithoutDish_likesInput>
-    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_likesInput
-    upsert?: dish_mediaUpsertWithoutDish_likesInput
-    connect?: dish_mediaWhereUniqueInput
-    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutDish_likesInput, dish_mediaUpdateWithoutDish_likesInput>, dish_mediaUncheckedUpdateWithoutDish_likesInput>
-  }
-
-  export type usersUpdateOneRequiredWithoutDish_likesNestedInput = {
-    create?: XOR<usersCreateWithoutDish_likesInput, usersUncheckedCreateWithoutDish_likesInput>
-    connectOrCreate?: usersCreateOrConnectWithoutDish_likesInput
-    upsert?: usersUpsertWithoutDish_likesInput
-    connect?: usersWhereUniqueInput
-    update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_likesInput, usersUpdateWithoutDish_likesInput>, usersUncheckedUpdateWithoutDish_likesInput>
-  }
-
-  export type dish_likesCreateNestedManyWithoutDish_mediaInput = {
-    create?: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput> | dish_likesCreateWithoutDish_mediaInput[] | dish_likesUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutDish_mediaInput | dish_likesCreateOrConnectWithoutDish_mediaInput[]
-    createMany?: dish_likesCreateManyDish_mediaInputEnvelope
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-  }
-
   export type dishesCreateNestedOneWithoutDish_mediaInput = {
     create?: XOR<dishesCreateWithoutDish_mediaInput, dishesUncheckedCreateWithoutDish_mediaInput>
     connectOrCreate?: dishesCreateOrConnectWithoutDish_mediaInput
@@ -28123,6 +28134,13 @@ export namespace Prisma {
     connect?: usersWhereUniqueInput
   }
 
+  export type dish_media_likesCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_media_likesCreateManyDish_mediaInputEnvelope
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+  }
+
   export type payoutsCreateNestedManyWithoutDish_mediaInput = {
     create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
@@ -28130,11 +28148,11 @@ export namespace Prisma {
     connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
   }
 
-  export type dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput = {
-    create?: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput> | dish_likesCreateWithoutDish_mediaInput[] | dish_likesUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutDish_mediaInput | dish_likesCreateOrConnectWithoutDish_mediaInput[]
-    createMany?: dish_likesCreateManyDish_mediaInputEnvelope
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
+  export type dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_media_likesCreateManyDish_mediaInputEnvelope
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
   }
 
   export type payoutsUncheckedCreateNestedManyWithoutDish_mediaInput = {
@@ -28142,20 +28160,6 @@ export namespace Prisma {
     connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
     createMany?: payoutsCreateManyDish_mediaInputEnvelope
     connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-  }
-
-  export type dish_likesUpdateManyWithoutDish_mediaNestedInput = {
-    create?: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput> | dish_likesCreateWithoutDish_mediaInput[] | dish_likesUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutDish_mediaInput | dish_likesCreateOrConnectWithoutDish_mediaInput[]
-    upsert?: dish_likesUpsertWithWhereUniqueWithoutDish_mediaInput | dish_likesUpsertWithWhereUniqueWithoutDish_mediaInput[]
-    createMany?: dish_likesCreateManyDish_mediaInputEnvelope
-    set?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    disconnect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    delete?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    update?: dish_likesUpdateWithWhereUniqueWithoutDish_mediaInput | dish_likesUpdateWithWhereUniqueWithoutDish_mediaInput[]
-    updateMany?: dish_likesUpdateManyWithWhereWithoutDish_mediaInput | dish_likesUpdateManyWithWhereWithoutDish_mediaInput[]
-    deleteMany?: dish_likesScalarWhereInput | dish_likesScalarWhereInput[]
   }
 
   export type dishesUpdateOneRequiredWithoutDish_mediaNestedInput = {
@@ -28176,6 +28180,20 @@ export namespace Prisma {
     update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_mediaInput, usersUpdateWithoutDish_mediaInput>, usersUncheckedUpdateWithoutDish_mediaInput>
   }
 
+  export type dish_media_likesUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_media_likesUpsertWithWhereUniqueWithoutDish_mediaInput | dish_media_likesUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_media_likesCreateManyDish_mediaInputEnvelope
+    set?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    disconnect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    delete?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    update?: dish_media_likesUpdateWithWhereUniqueWithoutDish_mediaInput | dish_media_likesUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_media_likesUpdateManyWithWhereWithoutDish_mediaInput | dish_media_likesUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
+  }
+
   export type payoutsUpdateManyWithoutDish_mediaNestedInput = {
     create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
@@ -28190,18 +28208,18 @@ export namespace Prisma {
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
   }
 
-  export type dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput = {
-    create?: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput> | dish_likesCreateWithoutDish_mediaInput[] | dish_likesUncheckedCreateWithoutDish_mediaInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutDish_mediaInput | dish_likesCreateOrConnectWithoutDish_mediaInput[]
-    upsert?: dish_likesUpsertWithWhereUniqueWithoutDish_mediaInput | dish_likesUpsertWithWhereUniqueWithoutDish_mediaInput[]
-    createMany?: dish_likesCreateManyDish_mediaInputEnvelope
-    set?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    disconnect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    delete?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    update?: dish_likesUpdateWithWhereUniqueWithoutDish_mediaInput | dish_likesUpdateWithWhereUniqueWithoutDish_mediaInput[]
-    updateMany?: dish_likesUpdateManyWithWhereWithoutDish_mediaInput | dish_likesUpdateManyWithWhereWithoutDish_mediaInput[]
-    deleteMany?: dish_likesScalarWhereInput | dish_likesScalarWhereInput[]
+  export type dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_media_likesUpsertWithWhereUniqueWithoutDish_mediaInput | dish_media_likesUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_media_likesCreateManyDish_mediaInputEnvelope
+    set?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    disconnect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    delete?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    update?: dish_media_likesUpdateWithWhereUniqueWithoutDish_mediaInput | dish_media_likesUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_media_likesUpdateManyWithWhereWithoutDish_mediaInput | dish_media_likesUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
   }
 
   export type payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput = {
@@ -28216,6 +28234,34 @@ export namespace Prisma {
     update?: payoutsUpdateWithWhereUniqueWithoutDish_mediaInput | payoutsUpdateWithWhereUniqueWithoutDish_mediaInput[]
     updateMany?: payoutsUpdateManyWithWhereWithoutDish_mediaInput | payoutsUpdateManyWithWhereWithoutDish_mediaInput[]
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+  }
+
+  export type dish_mediaCreateNestedOneWithoutDish_media_likesInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_likesInput, dish_mediaUncheckedCreateWithoutDish_media_likesInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_likesInput
+    connect?: dish_mediaWhereUniqueInput
+  }
+
+  export type usersCreateNestedOneWithoutDish_media_likesInput = {
+    create?: XOR<usersCreateWithoutDish_media_likesInput, usersUncheckedCreateWithoutDish_media_likesInput>
+    connectOrCreate?: usersCreateOrConnectWithoutDish_media_likesInput
+    connect?: usersWhereUniqueInput
+  }
+
+  export type dish_mediaUpdateOneRequiredWithoutDish_media_likesNestedInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_likesInput, dish_mediaUncheckedCreateWithoutDish_media_likesInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_likesInput
+    upsert?: dish_mediaUpsertWithoutDish_media_likesInput
+    connect?: dish_mediaWhereUniqueInput
+    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutDish_media_likesInput, dish_mediaUpdateWithoutDish_media_likesInput>, dish_mediaUncheckedUpdateWithoutDish_media_likesInput>
+  }
+
+  export type usersUpdateOneRequiredWithoutDish_media_likesNestedInput = {
+    create?: XOR<usersCreateWithoutDish_media_likesInput, usersUncheckedCreateWithoutDish_media_likesInput>
+    connectOrCreate?: usersCreateOrConnectWithoutDish_media_likesInput
+    upsert?: usersUpsertWithoutDish_media_likesInput
+    connect?: usersWhereUniqueInput
+    update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_media_likesInput, usersUpdateWithoutDish_media_likesInput>, usersUncheckedUpdateWithoutDish_media_likesInput>
   }
 
   export type dishesCreateNestedOneWithoutDish_reviewsInput = {
@@ -28646,18 +28692,18 @@ export namespace Prisma {
     deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
   }
 
-  export type dish_likesCreateNestedManyWithoutUsersInput = {
-    create?: XOR<dish_likesCreateWithoutUsersInput, dish_likesUncheckedCreateWithoutUsersInput> | dish_likesCreateWithoutUsersInput[] | dish_likesUncheckedCreateWithoutUsersInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutUsersInput | dish_likesCreateOrConnectWithoutUsersInput[]
-    createMany?: dish_likesCreateManyUsersInputEnvelope
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-  }
-
   export type dish_mediaCreateNestedManyWithoutUsersInput = {
     create?: XOR<dish_mediaCreateWithoutUsersInput, dish_mediaUncheckedCreateWithoutUsersInput> | dish_mediaCreateWithoutUsersInput[] | dish_mediaUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_mediaCreateOrConnectWithoutUsersInput | dish_mediaCreateOrConnectWithoutUsersInput[]
     createMany?: dish_mediaCreateManyUsersInputEnvelope
     connect?: dish_mediaWhereUniqueInput | dish_mediaWhereUniqueInput[]
+  }
+
+  export type dish_media_likesCreateNestedManyWithoutUsersInput = {
+    create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
+    createMany?: dish_media_likesCreateManyUsersInputEnvelope
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
   }
 
   export type dish_reviewsCreateNestedManyWithoutUsersInput = {
@@ -28674,18 +28720,18 @@ export namespace Prisma {
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
   }
 
-  export type dish_likesUncheckedCreateNestedManyWithoutUsersInput = {
-    create?: XOR<dish_likesCreateWithoutUsersInput, dish_likesUncheckedCreateWithoutUsersInput> | dish_likesCreateWithoutUsersInput[] | dish_likesUncheckedCreateWithoutUsersInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutUsersInput | dish_likesCreateOrConnectWithoutUsersInput[]
-    createMany?: dish_likesCreateManyUsersInputEnvelope
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-  }
-
   export type dish_mediaUncheckedCreateNestedManyWithoutUsersInput = {
     create?: XOR<dish_mediaCreateWithoutUsersInput, dish_mediaUncheckedCreateWithoutUsersInput> | dish_mediaCreateWithoutUsersInput[] | dish_mediaUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_mediaCreateOrConnectWithoutUsersInput | dish_mediaCreateOrConnectWithoutUsersInput[]
     createMany?: dish_mediaCreateManyUsersInputEnvelope
     connect?: dish_mediaWhereUniqueInput | dish_mediaWhereUniqueInput[]
+  }
+
+  export type dish_media_likesUncheckedCreateNestedManyWithoutUsersInput = {
+    create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
+    createMany?: dish_media_likesCreateManyUsersInputEnvelope
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
   }
 
   export type dish_reviewsUncheckedCreateNestedManyWithoutUsersInput = {
@@ -28706,20 +28752,6 @@ export namespace Prisma {
     set?: Date | string | null
   }
 
-  export type dish_likesUpdateManyWithoutUsersNestedInput = {
-    create?: XOR<dish_likesCreateWithoutUsersInput, dish_likesUncheckedCreateWithoutUsersInput> | dish_likesCreateWithoutUsersInput[] | dish_likesUncheckedCreateWithoutUsersInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutUsersInput | dish_likesCreateOrConnectWithoutUsersInput[]
-    upsert?: dish_likesUpsertWithWhereUniqueWithoutUsersInput | dish_likesUpsertWithWhereUniqueWithoutUsersInput[]
-    createMany?: dish_likesCreateManyUsersInputEnvelope
-    set?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    disconnect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    delete?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    update?: dish_likesUpdateWithWhereUniqueWithoutUsersInput | dish_likesUpdateWithWhereUniqueWithoutUsersInput[]
-    updateMany?: dish_likesUpdateManyWithWhereWithoutUsersInput | dish_likesUpdateManyWithWhereWithoutUsersInput[]
-    deleteMany?: dish_likesScalarWhereInput | dish_likesScalarWhereInput[]
-  }
-
   export type dish_mediaUpdateManyWithoutUsersNestedInput = {
     create?: XOR<dish_mediaCreateWithoutUsersInput, dish_mediaUncheckedCreateWithoutUsersInput> | dish_mediaCreateWithoutUsersInput[] | dish_mediaUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_mediaCreateOrConnectWithoutUsersInput | dish_mediaCreateOrConnectWithoutUsersInput[]
@@ -28732,6 +28764,20 @@ export namespace Prisma {
     update?: dish_mediaUpdateWithWhereUniqueWithoutUsersInput | dish_mediaUpdateWithWhereUniqueWithoutUsersInput[]
     updateMany?: dish_mediaUpdateManyWithWhereWithoutUsersInput | dish_mediaUpdateManyWithWhereWithoutUsersInput[]
     deleteMany?: dish_mediaScalarWhereInput | dish_mediaScalarWhereInput[]
+  }
+
+  export type dish_media_likesUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
+    upsert?: dish_media_likesUpsertWithWhereUniqueWithoutUsersInput | dish_media_likesUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: dish_media_likesCreateManyUsersInputEnvelope
+    set?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    disconnect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    delete?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    update?: dish_media_likesUpdateWithWhereUniqueWithoutUsersInput | dish_media_likesUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: dish_media_likesUpdateManyWithWhereWithoutUsersInput | dish_media_likesUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
   }
 
   export type dish_reviewsUpdateManyWithoutUsersNestedInput = {
@@ -28762,20 +28808,6 @@ export namespace Prisma {
     deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
   }
 
-  export type dish_likesUncheckedUpdateManyWithoutUsersNestedInput = {
-    create?: XOR<dish_likesCreateWithoutUsersInput, dish_likesUncheckedCreateWithoutUsersInput> | dish_likesCreateWithoutUsersInput[] | dish_likesUncheckedCreateWithoutUsersInput[]
-    connectOrCreate?: dish_likesCreateOrConnectWithoutUsersInput | dish_likesCreateOrConnectWithoutUsersInput[]
-    upsert?: dish_likesUpsertWithWhereUniqueWithoutUsersInput | dish_likesUpsertWithWhereUniqueWithoutUsersInput[]
-    createMany?: dish_likesCreateManyUsersInputEnvelope
-    set?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    disconnect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    delete?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    connect?: dish_likesWhereUniqueInput | dish_likesWhereUniqueInput[]
-    update?: dish_likesUpdateWithWhereUniqueWithoutUsersInput | dish_likesUpdateWithWhereUniqueWithoutUsersInput[]
-    updateMany?: dish_likesUpdateManyWithWhereWithoutUsersInput | dish_likesUpdateManyWithWhereWithoutUsersInput[]
-    deleteMany?: dish_likesScalarWhereInput | dish_likesScalarWhereInput[]
-  }
-
   export type dish_mediaUncheckedUpdateManyWithoutUsersNestedInput = {
     create?: XOR<dish_mediaCreateWithoutUsersInput, dish_mediaUncheckedCreateWithoutUsersInput> | dish_mediaCreateWithoutUsersInput[] | dish_mediaUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_mediaCreateOrConnectWithoutUsersInput | dish_mediaCreateOrConnectWithoutUsersInput[]
@@ -28788,6 +28820,20 @@ export namespace Prisma {
     update?: dish_mediaUpdateWithWhereUniqueWithoutUsersInput | dish_mediaUpdateWithWhereUniqueWithoutUsersInput[]
     updateMany?: dish_mediaUpdateManyWithWhereWithoutUsersInput | dish_mediaUpdateManyWithWhereWithoutUsersInput[]
     deleteMany?: dish_mediaScalarWhereInput | dish_mediaScalarWhereInput[]
+  }
+
+  export type dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
+    upsert?: dish_media_likesUpsertWithWhereUniqueWithoutUsersInput | dish_media_likesUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: dish_media_likesCreateManyUsersInputEnvelope
+    set?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    disconnect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    delete?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+    update?: dish_media_likesUpdateWithWhereUniqueWithoutUsersInput | dish_media_likesUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: dish_media_likesUpdateManyWithWhereWithoutUsersInput | dish_media_likesUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
   }
 
   export type dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput = {
@@ -29441,172 +29487,6 @@ export namespace Prisma {
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
 
-  export type dish_mediaCreateWithoutDish_likesInput = {
-    id?: string
-    media_path: string
-    media_type: string
-    thumbnail_path: string
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    dishes: dishesCreateNestedOneWithoutDish_mediaInput
-    users?: usersCreateNestedOneWithoutDish_mediaInput
-    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
-  }
-
-  export type dish_mediaUncheckedCreateWithoutDish_likesInput = {
-    id?: string
-    dish_id: string
-    user_id?: string | null
-    media_path: string
-    media_type: string
-    thumbnail_path: string
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
-  }
-
-  export type dish_mediaCreateOrConnectWithoutDish_likesInput = {
-    where: dish_mediaWhereUniqueInput
-    create: XOR<dish_mediaCreateWithoutDish_likesInput, dish_mediaUncheckedCreateWithoutDish_likesInput>
-  }
-
-  export type usersCreateWithoutDish_likesInput = {
-    id?: string
-    username: string
-    display_name?: string | null
-    avatar?: string | null
-    bio?: string | null
-    last_login_at?: Date | string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
-    dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
-    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
-  }
-
-  export type usersUncheckedCreateWithoutDish_likesInput = {
-    id?: string
-    username: string
-    display_name?: string | null
-    avatar?: string | null
-    bio?: string | null
-    last_login_at?: Date | string | null
-    created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
-    dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
-    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
-    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
-  }
-
-  export type usersCreateOrConnectWithoutDish_likesInput = {
-    where: usersWhereUniqueInput
-    create: XOR<usersCreateWithoutDish_likesInput, usersUncheckedCreateWithoutDish_likesInput>
-  }
-
-  export type dish_mediaUpsertWithoutDish_likesInput = {
-    update: XOR<dish_mediaUpdateWithoutDish_likesInput, dish_mediaUncheckedUpdateWithoutDish_likesInput>
-    create: XOR<dish_mediaCreateWithoutDish_likesInput, dish_mediaUncheckedCreateWithoutDish_likesInput>
-    where?: dish_mediaWhereInput
-  }
-
-  export type dish_mediaUpdateToOneWithWhereWithoutDish_likesInput = {
-    where?: dish_mediaWhereInput
-    data: XOR<dish_mediaUpdateWithoutDish_likesInput, dish_mediaUncheckedUpdateWithoutDish_likesInput>
-  }
-
-  export type dish_mediaUpdateWithoutDish_likesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    media_path?: StringFieldUpdateOperationsInput | string
-    media_type?: StringFieldUpdateOperationsInput | string
-    thumbnail_path?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
-    users?: usersUpdateOneWithoutDish_mediaNestedInput
-    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
-  }
-
-  export type dish_mediaUncheckedUpdateWithoutDish_likesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    dish_id?: StringFieldUpdateOperationsInput | string
-    user_id?: NullableStringFieldUpdateOperationsInput | string | null
-    media_path?: StringFieldUpdateOperationsInput | string
-    media_type?: StringFieldUpdateOperationsInput | string
-    thumbnail_path?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
-  }
-
-  export type usersUpsertWithoutDish_likesInput = {
-    update: XOR<usersUpdateWithoutDish_likesInput, usersUncheckedUpdateWithoutDish_likesInput>
-    create: XOR<usersCreateWithoutDish_likesInput, usersUncheckedCreateWithoutDish_likesInput>
-    where?: usersWhereInput
-  }
-
-  export type usersUpdateToOneWithWhereWithoutDish_likesInput = {
-    where?: usersWhereInput
-    data: XOR<usersUpdateWithoutDish_likesInput, usersUncheckedUpdateWithoutDish_likesInput>
-  }
-
-  export type usersUpdateWithoutDish_likesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
-    display_name?: NullableStringFieldUpdateOperationsInput | string | null
-    avatar?: NullableStringFieldUpdateOperationsInput | string | null
-    bio?: NullableStringFieldUpdateOperationsInput | string | null
-    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
-    dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
-    restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
-  }
-
-  export type usersUncheckedUpdateWithoutDish_likesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
-    display_name?: NullableStringFieldUpdateOperationsInput | string | null
-    avatar?: NullableStringFieldUpdateOperationsInput | string | null
-    bio?: NullableStringFieldUpdateOperationsInput | string | null
-    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
-    dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
-    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
-    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
-  }
-
-  export type dish_likesCreateWithoutDish_mediaInput = {
-    id?: string
-    created_at?: Date | string
-    users: usersCreateNestedOneWithoutDish_likesInput
-  }
-
-  export type dish_likesUncheckedCreateWithoutDish_mediaInput = {
-    id?: string
-    user_id: string
-    created_at?: Date | string
-  }
-
-  export type dish_likesCreateOrConnectWithoutDish_mediaInput = {
-    where: dish_likesWhereUniqueInput
-    create: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput>
-  }
-
-  export type dish_likesCreateManyDish_mediaInputEnvelope = {
-    data: dish_likesCreateManyDish_mediaInput | dish_likesCreateManyDish_mediaInput[]
-    skipDuplicates?: boolean
-  }
-
   export type dishesCreateWithoutDish_mediaInput = {
     id?: string
     name?: string | null
@@ -29636,7 +29516,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29644,14 +29523,14 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutUsersInput
+    username: string
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutDish_mediaInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29659,7 +29538,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutUsersInput
+    username: string
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
   }
@@ -29667,6 +29547,28 @@ export namespace Prisma {
   export type usersCreateOrConnectWithoutDish_mediaInput = {
     where: usersWhereUniqueInput
     create: XOR<usersCreateWithoutDish_mediaInput, usersUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_likesCreateWithoutDish_mediaInput = {
+    id?: string
+    created_at?: Date | string
+    users: usersCreateNestedOneWithoutDish_media_likesInput
+  }
+
+  export type dish_media_likesUncheckedCreateWithoutDish_mediaInput = {
+    id?: string
+    user_id: string
+    created_at?: Date | string
+  }
+
+  export type dish_media_likesCreateOrConnectWithoutDish_mediaInput = {
+    where: dish_media_likesWhereUniqueInput
+    create: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_likesCreateManyDish_mediaInputEnvelope = {
+    data: dish_media_likesCreateManyDish_mediaInput | dish_media_likesCreateManyDish_mediaInput[]
+    skipDuplicates?: boolean
   }
 
   export type payoutsCreateWithoutDish_mediaInput = {
@@ -29701,32 +29603,6 @@ export namespace Prisma {
   export type payoutsCreateManyDish_mediaInputEnvelope = {
     data: payoutsCreateManyDish_mediaInput | payoutsCreateManyDish_mediaInput[]
     skipDuplicates?: boolean
-  }
-
-  export type dish_likesUpsertWithWhereUniqueWithoutDish_mediaInput = {
-    where: dish_likesWhereUniqueInput
-    update: XOR<dish_likesUpdateWithoutDish_mediaInput, dish_likesUncheckedUpdateWithoutDish_mediaInput>
-    create: XOR<dish_likesCreateWithoutDish_mediaInput, dish_likesUncheckedCreateWithoutDish_mediaInput>
-  }
-
-  export type dish_likesUpdateWithWhereUniqueWithoutDish_mediaInput = {
-    where: dish_likesWhereUniqueInput
-    data: XOR<dish_likesUpdateWithoutDish_mediaInput, dish_likesUncheckedUpdateWithoutDish_mediaInput>
-  }
-
-  export type dish_likesUpdateManyWithWhereWithoutDish_mediaInput = {
-    where: dish_likesScalarWhereInput
-    data: XOR<dish_likesUpdateManyMutationInput, dish_likesUncheckedUpdateManyWithoutDish_mediaInput>
-  }
-
-  export type dish_likesScalarWhereInput = {
-    AND?: dish_likesScalarWhereInput | dish_likesScalarWhereInput[]
-    OR?: dish_likesScalarWhereInput[]
-    NOT?: dish_likesScalarWhereInput | dish_likesScalarWhereInput[]
-    id?: UuidFilter<"dish_likes"> | string
-    dish_media_id?: UuidFilter<"dish_likes"> | string
-    user_id?: UuidFilter<"dish_likes"> | string
-    created_at?: DateTimeFilter<"dish_likes"> | Date | string
   }
 
   export type dishesUpsertWithoutDish_mediaInput = {
@@ -29775,7 +29651,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29783,14 +29658,14 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29798,9 +29673,36 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+  }
+
+  export type dish_media_likesUpsertWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_media_likesWhereUniqueInput
+    update: XOR<dish_media_likesUpdateWithoutDish_mediaInput, dish_media_likesUncheckedUpdateWithoutDish_mediaInput>
+    create: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_likesUpdateWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_media_likesWhereUniqueInput
+    data: XOR<dish_media_likesUpdateWithoutDish_mediaInput, dish_media_likesUncheckedUpdateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_likesUpdateManyWithWhereWithoutDish_mediaInput = {
+    where: dish_media_likesScalarWhereInput
+    data: XOR<dish_media_likesUpdateManyMutationInput, dish_media_likesUncheckedUpdateManyWithoutDish_mediaInput>
+  }
+
+  export type dish_media_likesScalarWhereInput = {
+    AND?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
+    OR?: dish_media_likesScalarWhereInput[]
+    NOT?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
+    id?: UuidFilter<"dish_media_likes"> | string
+    dish_media_id?: UuidFilter<"dish_media_likes"> | string
+    user_id?: UuidFilter<"dish_media_likes"> | string
+    created_at?: DateTimeFilter<"dish_media_likes"> | Date | string
   }
 
   export type payoutsUpsertWithWhereUniqueWithoutDish_mediaInput = {
@@ -29835,6 +29737,150 @@ export namespace Prisma {
     lock_no?: IntFilter<"payouts"> | number
   }
 
+  export type dish_mediaCreateWithoutDish_media_likesInput = {
+    id?: string
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dishes: dishesCreateNestedOneWithoutDish_mediaInput
+    users?: usersCreateNestedOneWithoutDish_mediaInput
+    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaUncheckedCreateWithoutDish_media_likesInput = {
+    id?: string
+    dish_id: string
+    user_id?: string | null
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaCreateOrConnectWithoutDish_media_likesInput = {
+    where: dish_mediaWhereUniqueInput
+    create: XOR<dish_mediaCreateWithoutDish_media_likesInput, dish_mediaUncheckedCreateWithoutDish_media_likesInput>
+  }
+
+  export type usersCreateWithoutDish_media_likesInput = {
+    id?: string
+    display_name?: string | null
+    avatar?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersUncheckedCreateWithoutDish_media_likesInput = {
+    id?: string
+    display_name?: string | null
+    avatar?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersCreateOrConnectWithoutDish_media_likesInput = {
+    where: usersWhereUniqueInput
+    create: XOR<usersCreateWithoutDish_media_likesInput, usersUncheckedCreateWithoutDish_media_likesInput>
+  }
+
+  export type dish_mediaUpsertWithoutDish_media_likesInput = {
+    update: XOR<dish_mediaUpdateWithoutDish_media_likesInput, dish_mediaUncheckedUpdateWithoutDish_media_likesInput>
+    create: XOR<dish_mediaCreateWithoutDish_media_likesInput, dish_mediaUncheckedCreateWithoutDish_media_likesInput>
+    where?: dish_mediaWhereInput
+  }
+
+  export type dish_mediaUpdateToOneWithWhereWithoutDish_media_likesInput = {
+    where?: dish_mediaWhereInput
+    data: XOR<dish_mediaUpdateWithoutDish_media_likesInput, dish_mediaUncheckedUpdateWithoutDish_media_likesInput>
+  }
+
+  export type dish_mediaUpdateWithoutDish_media_likesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
+    users?: usersUpdateOneWithoutDish_mediaNestedInput
+    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type dish_mediaUncheckedUpdateWithoutDish_media_likesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type usersUpsertWithoutDish_media_likesInput = {
+    update: XOR<usersUpdateWithoutDish_media_likesInput, usersUncheckedUpdateWithoutDish_media_likesInput>
+    create: XOR<usersCreateWithoutDish_media_likesInput, usersUncheckedCreateWithoutDish_media_likesInput>
+    where?: usersWhereInput
+  }
+
+  export type usersUpdateToOneWithWhereWithoutDish_media_likesInput = {
+    where?: usersWhereInput
+    data: XOR<usersUpdateWithoutDish_media_likesInput, usersUncheckedUpdateWithoutDish_media_likesInput>
+  }
+
+  export type usersUpdateWithoutDish_media_likesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+  }
+
+  export type usersUncheckedUpdateWithoutDish_media_likesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+  }
+
   export type dishesCreateWithoutDish_reviewsInput = {
     id?: string
     name?: string | null
@@ -29864,7 +29910,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29872,14 +29917,14 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutUsersInput
+    username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutDish_reviewsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -29887,8 +29932,9 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutUsersInput
+    username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
   }
 
@@ -29943,7 +29989,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29951,14 +29996,14 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutDish_reviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29966,8 +30011,9 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
@@ -29979,8 +30025,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -29993,7 +30039,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -30086,6 +30132,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
@@ -30098,6 +30146,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -30230,6 +30280,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30242,6 +30294,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30291,9 +30345,9 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutPayoutsInput = {
@@ -30306,7 +30360,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutPayoutsInput = {
@@ -30376,9 +30430,9 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutPayoutsInput = {
@@ -30391,7 +30445,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type prompt_variantsCreateWithoutPrompt_familiesInput = {
@@ -30541,6 +30595,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
   }
@@ -30553,6 +30609,8 @@ export namespace Prisma {
     latitude: number
     longitude: number
     image_url: string
+    address_components: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -30564,7 +30622,6 @@ export namespace Prisma {
 
   export type usersCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30572,14 +30629,14 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutUsersInput
+    username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutRestaurant_bidsInput = {
     id?: string
-    username: string
     display_name?: string | null
     avatar?: string | null
     bio?: string | null
@@ -30587,8 +30644,9 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutUsersInput
+    username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
   }
 
@@ -30632,6 +30690,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30644,6 +30704,8 @@ export namespace Prisma {
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
     image_url?: StringFieldUpdateOperationsInput | string
+    address_components?: JsonNullValueInput | InputJsonValue
+    plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
@@ -30661,7 +30723,6 @@ export namespace Prisma {
 
   export type usersUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30669,14 +30730,14 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutRestaurant_bidsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    username?: StringFieldUpdateOperationsInput | string
     display_name?: NullableStringFieldUpdateOperationsInput | string | null
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30684,8 +30745,9 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutUsersNestedInput
+    username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
@@ -30814,28 +30876,6 @@ export namespace Prisma {
     lock_no?: IntFilter<"restaurant_bids"> | number
   }
 
-  export type dish_likesCreateWithoutUsersInput = {
-    id?: string
-    created_at?: Date | string
-    dish_media: dish_mediaCreateNestedOneWithoutDish_likesInput
-  }
-
-  export type dish_likesUncheckedCreateWithoutUsersInput = {
-    id?: string
-    dish_media_id: string
-    created_at?: Date | string
-  }
-
-  export type dish_likesCreateOrConnectWithoutUsersInput = {
-    where: dish_likesWhereUniqueInput
-    create: XOR<dish_likesCreateWithoutUsersInput, dish_likesUncheckedCreateWithoutUsersInput>
-  }
-
-  export type dish_likesCreateManyUsersInputEnvelope = {
-    data: dish_likesCreateManyUsersInput | dish_likesCreateManyUsersInput[]
-    skipDuplicates?: boolean
-  }
-
   export type dish_mediaCreateWithoutUsersInput = {
     id?: string
     media_path: string
@@ -30844,8 +30884,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesCreateNestedManyWithoutDish_mediaInput
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -30858,7 +30898,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
-    dish_likes?: dish_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -30869,6 +30909,28 @@ export namespace Prisma {
 
   export type dish_mediaCreateManyUsersInputEnvelope = {
     data: dish_mediaCreateManyUsersInput | dish_mediaCreateManyUsersInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_media_likesCreateWithoutUsersInput = {
+    id?: string
+    created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_likesInput
+  }
+
+  export type dish_media_likesUncheckedCreateWithoutUsersInput = {
+    id?: string
+    dish_media_id: string
+    created_at?: Date | string
+  }
+
+  export type dish_media_likesCreateOrConnectWithoutUsersInput = {
+    where: dish_media_likesWhereUniqueInput
+    create: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput>
+  }
+
+  export type dish_media_likesCreateManyUsersInputEnvelope = {
+    data: dish_media_likesCreateManyUsersInput | dish_media_likesCreateManyUsersInput[]
     skipDuplicates?: boolean
   }
 
@@ -30952,22 +31014,6 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type dish_likesUpsertWithWhereUniqueWithoutUsersInput = {
-    where: dish_likesWhereUniqueInput
-    update: XOR<dish_likesUpdateWithoutUsersInput, dish_likesUncheckedUpdateWithoutUsersInput>
-    create: XOR<dish_likesCreateWithoutUsersInput, dish_likesUncheckedCreateWithoutUsersInput>
-  }
-
-  export type dish_likesUpdateWithWhereUniqueWithoutUsersInput = {
-    where: dish_likesWhereUniqueInput
-    data: XOR<dish_likesUpdateWithoutUsersInput, dish_likesUncheckedUpdateWithoutUsersInput>
-  }
-
-  export type dish_likesUpdateManyWithWhereWithoutUsersInput = {
-    where: dish_likesScalarWhereInput
-    data: XOR<dish_likesUpdateManyMutationInput, dish_likesUncheckedUpdateManyWithoutUsersInput>
-  }
-
   export type dish_mediaUpsertWithWhereUniqueWithoutUsersInput = {
     where: dish_mediaWhereUniqueInput
     update: XOR<dish_mediaUpdateWithoutUsersInput, dish_mediaUncheckedUpdateWithoutUsersInput>
@@ -30982,6 +31028,22 @@ export namespace Prisma {
   export type dish_mediaUpdateManyWithWhereWithoutUsersInput = {
     where: dish_mediaScalarWhereInput
     data: XOR<dish_mediaUpdateManyMutationInput, dish_mediaUncheckedUpdateManyWithoutUsersInput>
+  }
+
+  export type dish_media_likesUpsertWithWhereUniqueWithoutUsersInput = {
+    where: dish_media_likesWhereUniqueInput
+    update: XOR<dish_media_likesUpdateWithoutUsersInput, dish_media_likesUncheckedUpdateWithoutUsersInput>
+    create: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput>
+  }
+
+  export type dish_media_likesUpdateWithWhereUniqueWithoutUsersInput = {
+    where: dish_media_likesWhereUniqueInput
+    data: XOR<dish_media_likesUpdateWithoutUsersInput, dish_media_likesUncheckedUpdateWithoutUsersInput>
+  }
+
+  export type dish_media_likesUpdateManyWithWhereWithoutUsersInput = {
+    where: dish_media_likesScalarWhereInput
+    data: XOR<dish_media_likesUpdateManyMutationInput, dish_media_likesUncheckedUpdateManyWithoutUsersInput>
   }
 
   export type dish_reviewsUpsertWithWhereUniqueWithoutUsersInput = {
@@ -31084,7 +31146,7 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
-  export type dish_likesCreateManyDish_mediaInput = {
+  export type dish_media_likesCreateManyDish_mediaInput = {
     id?: string
     user_id: string
     created_at?: Date | string
@@ -31102,19 +31164,19 @@ export namespace Prisma {
     lock_no?: number
   }
 
-  export type dish_likesUpdateWithoutDish_mediaInput = {
+  export type dish_media_likesUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    users?: usersUpdateOneRequiredWithoutDish_likesNestedInput
+    users?: usersUpdateOneRequiredWithoutDish_media_likesNestedInput
   }
 
-  export type dish_likesUncheckedUpdateWithoutDish_mediaInput = {
+  export type dish_media_likesUncheckedUpdateWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
     user_id?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type dish_likesUncheckedUpdateManyWithoutDish_mediaInput = {
+  export type dish_media_likesUncheckedUpdateManyWithoutDish_mediaInput = {
     id?: StringFieldUpdateOperationsInput | string
     user_id?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31189,8 +31251,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31203,7 +31265,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31446,12 +31508,6 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
-  export type dish_likesCreateManyUsersInput = {
-    id?: string
-    dish_media_id: string
-    created_at?: Date | string
-  }
-
   export type dish_mediaCreateManyUsersInput = {
     id?: string
     dish_id: string
@@ -31461,6 +31517,12 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+  }
+
+  export type dish_media_likesCreateManyUsersInput = {
+    id?: string
+    dish_media_id: string
+    created_at?: Date | string
   }
 
   export type dish_reviewsCreateManyUsersInput = {
@@ -31492,24 +31554,6 @@ export namespace Prisma {
     lock_no?: number
   }
 
-  export type dish_likesUpdateWithoutUsersInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_likesNestedInput
-  }
-
-  export type dish_likesUncheckedUpdateWithoutUsersInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    dish_media_id?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type dish_likesUncheckedUpdateManyWithoutUsersInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    dish_media_id?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
   export type dish_mediaUpdateWithoutUsersInput = {
     id?: StringFieldUpdateOperationsInput | string
     media_path?: StringFieldUpdateOperationsInput | string
@@ -31518,8 +31562,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUpdateManyWithoutDish_mediaNestedInput
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31532,7 +31576,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
-    dish_likes?: dish_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31545,6 +31589,24 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_likesUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_likesNestedInput
+  }
+
+  export type dish_media_likesUncheckedUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_likesUncheckedUpdateManyWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_reviewsUpdateWithoutUsersInput = {

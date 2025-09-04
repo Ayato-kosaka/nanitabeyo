@@ -271,6 +271,9 @@
 		"emptyState": {
 			"noBidsForStatus": "選択したステータスの入札がありません"
 		},
+		"empty": {
+			"bidHistory": "入札履歴はまだありません"
+		},
 		"alerts": {
 			"locationError": "位置情報の取得に失敗しました",
 			"currentLocationError": "現在地の取得に失敗しました",

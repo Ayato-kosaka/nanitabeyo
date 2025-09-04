@@ -68,6 +68,9 @@ export class DishesRepository {
       update: {},
       create: {
         ...createData,
+        address_components:
+          createData.address_components as Prisma.InputJsonValue,
+        plus_code: createData.plus_code as Prisma.InputJsonValue,
       },
     });
   }

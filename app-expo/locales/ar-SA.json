@@ -271,6 +271,9 @@
 		"emptyState": {
 			"noBidsForStatus": "لا توجد عروض للحالة المحددة"
 		},
+		"empty": {
+			"bidHistory": "لا يوجد سجل للعروض حتى الآن"
+		},
 		"alerts": {
 			"locationError": "فشل في الحصول على معلومات الموقع",
 			"currentLocationError": "فشل في الحصول على الموقع الحالي",

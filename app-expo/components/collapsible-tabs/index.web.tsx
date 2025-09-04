@@ -269,3 +269,4 @@ export const Tabs = {
 	FlatList: TabsFlatList,
 	ScrollView: ScrollView, // For compatibility, though we'll primarily use FlatList
 };
+export { GridList } from "./GridList";

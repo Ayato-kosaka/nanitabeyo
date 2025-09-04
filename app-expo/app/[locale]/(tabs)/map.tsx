@@ -1,58 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	TouchableOpacity,
-	Modal,
-	TextInput,
-	ScrollView,
-	Image,
-	Alert,
-	FlatList,
-	Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MapPin, Search, Navigation, Camera, DollarSign, Plus } from "lucide-react-native";
-import MapView, { Marker, Region } from "@/components/MapView";
+import { MapPin, Search, Navigation } from "lucide-react-native";
+import MapView, { Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
-import type { AutocompleteLocation } from "@shared/api/v1/res";
+import type { AutocompleteLocation, QueryRestaurantsResponse } from "@shared/api/v1/res";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/hooks/useBlurModal";
-import { Card } from "@/components/Card";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { ImageCardGrid } from "@/components/ImageCardGrid";
-import i18n from "@/lib/i18n";
-import { ActiveBid, Review, mockActiveBids, mockReviews, mockBidHistory } from "@/features/map/constants";
-import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
-import Stars from "@/components/Stars";
+import { mockActiveBids } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
-import { ReviewForm } from "@/features/map/components/ReviewForm";
-import { BidForm } from "@/features/map/components/BidForm";
-
-const { width, height } = Dimensions.get("window");
+import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
+import i18n from "@/lib/i18n";
+import { useLogger } from "@/hooks/useLogger";
 
 export default function MapScreen() {
-	const { lightImpact, mediumImpact } = useHaptics();
-	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
-	const [selectedTab, setSelectedTab] = useState<"reviews" | "bids">("reviews");
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [isProcessing, setIsProcessing] = useState(false);
 	const {
 		BlurModal: RestaurantBlurModal,
 		open: openRestaurantModal,
 		close: closeRestaurantModal,
 	} = useBlurModal({ intensity: 100 });
-	const {
-		BlurModal: ReviewBlurModal,
-		open: openReviewModal,
-		close: closeReviewModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1200 });
-	const {
-		BlurModal: BidBlurModal,
-		open: openBidModal,
-		close: closeBidModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1300 });
 
 	const mapRef = useRef<any>(null);
 	const { suggestions, getLocationDetails, searchLocations, getCurrentLocation } = useLocationSearch();
@@ -64,7 +34,6 @@ export default function MapScreen() {
 		longitudeDelta: 0.01,
 	});
 
-	const [selectedBidStatuses, setSelectedBidStatuses] = useState<string[]>(["active", "completed", "refunded"]);
 	useEffect(() => {
 		getCurrentLocation().then(({ location }) => {
 			const newRegion = {
@@ -78,7 +47,7 @@ export default function MapScreen() {
 		});
 	}, []);
 
-	const handleMarkerPress = (bid: ActiveBid) => {
+	const handleMarkerPress = (bid: QueryRestaurantsResponse[number]) => {
 		lightImpact();
 		setSelectedPlace(bid);
 		openRestaurantModal();
@@ -98,7 +67,11 @@ export default function MapScreen() {
 			mapRef.current?.animateToRegion(newRegion, 1000);
 			setSearchQuery("");
 		} catch (error) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.locationError"));
+			logFrontendEvent({
+				event_name: "MapSearchError",
+				error_level: "error",
+				payload: { error, prediction },
+			});
 		}
 	};
 
@@ -115,68 +88,13 @@ export default function MapScreen() {
 			setCurrentRegion(newRegion);
 			mapRef.current?.animateToRegion(newRegion, 1000);
 		} catch (error) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.currentLocationError"));
+			logFrontendEvent({
+				event_name: "MapCurrentLocationError",
+				error_level: "error",
+				payload: { error },
+			});
 		}
 	};
-
-	const handleBid = async (bidAmount: string) => {
-		if (!bidAmount || !selectedPlace) return;
-
-		mediumImpact();
-		setIsProcessing(true);
-		try {
-			// Mock Stripe payment processing
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-			Alert.alert(
-				i18n.t("Common.success"),
-				i18n.t("Map.alerts.bidSuccess", {
-					place: selectedPlace.placeName,
-					amount: parseInt(bidAmount).toLocaleString(),
-				}),
-			);
-			closeBidModal();
-		} catch (error) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.bidError"));
-		} finally {
-			setIsProcessing(false);
-		}
-	};
-
-	const handleReviewSubmit = async (data: { price: string; reviewText: string; rating: number }) => {
-		if (!data.reviewText || !data.price) return;
-
-		mediumImpact();
-		setIsProcessing(true);
-		try {
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-			Alert.alert(i18n.t("Common.success"), i18n.t("Map.alerts.reviewSuccess"));
-			closeReviewModal();
-		} catch (error) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.reviewError"));
-		} finally {
-			setIsProcessing(false);
-		}
-	};
-
-	const bidStatuses = [
-		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
-		{ id: "completed", label: i18n.t("Profile.statusLabels.completed"), color: "#2196F3" },
-		{ id: "refunded", label: i18n.t("Profile.statusLabels.refunded"), color: "#FF9800" },
-	];
-
-	const toggleBidStatus = (statusId: string) => {
-		lightImpact();
-		setSelectedBidStatuses((prev) =>
-			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
-		);
-	};
-
-	const handleTabSelect = (tab: "reviews" | "bids") => {
-		lightImpact();
-		setSelectedTab(tab);
-	};
-
-	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
 
 	return (
 		<SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
@@ -184,11 +102,11 @@ export default function MapScreen() {
 			<MapView ref={mapRef} style={styles.map} region={currentRegion} onRegionChangeComplete={setCurrentRegion}>
 				{mockActiveBids.map((bid) => (
 					<AvatarBubbleMarker
-						key={bid.placeId}
-						coordinate={{ latitude: bid.latitude, longitude: bid.longitude }}
+						key={bid.restaurant.id}
+						coordinate={{ latitude: bid.restaurant.latitude, longitude: bid.restaurant.longitude }}
 						onPress={() => handleMarkerPress(bid)}
 						color="#FFF"
-						uri={bid.imageUrl}
+						uri={bid.restaurant.image_url}
 					/>
 				))}
 			</MapView>
@@ -233,159 +151,8 @@ export default function MapScreen() {
 
 			{/* Bottom Sheet */}
 			<RestaurantBlurModal>
-				{selectedPlace && (
-					<>
-						<Card>
-							<View style={styles.restaurantInfo}>
-								<Image source={{ uri: selectedPlace.imageUrl }} style={styles.restaurantAvatar} />
-								<View style={styles.restaurantDetails}>
-									<Text style={styles.restaurantName}>{selectedPlace.placeName}</Text>
-									<View style={styles.ratingContainer}>
-										<Stars rating={selectedPlace.rating} />
-										<Text style={styles.ratingText}>{selectedPlace.rating}</Text>
-										<Text style={styles.reviewCount}>({selectedPlace.reviewCount})</Text>
-									</View>
-								</View>
-							</View>
-						</Card>
-
-						<View style={styles.bidAmountContainer}>
-							<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
-							<Text style={styles.bidAmount}>
-								{i18n.t("Search.currencySuffix")}
-								{selectedPlace.totalAmount.toLocaleString()}
-							</Text>
-							<Text style={styles.remainingDays}>
-								{i18n.t("Common.daysRemaining", {
-									count: selectedPlace.remainingDays,
-								})}
-							</Text>
-						</View>
-
-						{/* Action Buttons */}
-						<View style={styles.actionButtons}>
-							<PrimaryButton
-								onPress={() => openReviewModal()}
-								label={i18n.t("Map.buttons.postReview")}
-								icon={<Camera size={20} color="#FFF" />}
-								borderRadius={8}
-								style={{ flex: 1 }}
-							/>
-							<PrimaryButton
-								onPress={() => openBidModal()}
-								label={i18n.t("Map.buttons.placeBid")}
-								icon={<DollarSign size={20} color="#FFF" />}
-								borderRadius={8}
-								style={{ flex: 1 }}
-							/>
-						</View>
-
-						{/* Tabs */}
-						<View style={styles.tabContainer}>
-							<TouchableOpacity
-								style={[styles.tab, selectedTab === "reviews" && styles.activeTab]}
-								onPress={() => handleTabSelect("reviews")}>
-								<Text style={[styles.tabText, selectedTab === "reviews" && styles.activeTabText]}>
-									{i18n.t("Map.tabs.reviews")}
-								</Text>
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={[styles.tab, selectedTab === "bids" && styles.activeTab]}
-								onPress={() => handleTabSelect("bids")}>
-								<Text style={[styles.tabText, selectedTab === "bids" && styles.activeTabText]}>
-									{i18n.t("Map.tabs.bids")}
-								</Text>
-							</TouchableOpacity>
-						</View>
-
-						{/* Tab Content */}
-						{selectedTab === "reviews" ? (
-							<ImageCardGrid
-								data={mockReviews}
-								renderOverlay={(review) => (
-									<View style={styles.reviewCardOverlay}>
-										<Text style={styles.reviewCardTitle}>{review.dishName}</Text>
-										<View style={styles.reviewCardRating}>
-											<Stars rating={review.rating} />
-											<Text style={styles.reviewCardRatingText}>({review.reviewCount})</Text>
-										</View>
-									</View>
-								)}
-							/>
-						) : (
-							<View style={styles.bidsContent}>
-								{/* Status Filter Chips */}
-								<ScrollView
-									horizontal
-									showsHorizontalScrollIndicator={false}
-									style={styles.statusFilterContainer}
-									contentContainerStyle={styles.statusFilterContent}>
-									{bidStatuses.map((status) => (
-										<TouchableOpacity
-											key={status.id}
-											style={[
-												styles.statusChip,
-												selectedBidStatuses.includes(status.id) && {
-													backgroundColor: status.color,
-												},
-											]}
-											onPress={() => toggleBidStatus(status.id)}>
-											<Text
-												style={[
-													styles.statusChipText,
-													selectedBidStatuses.includes(status.id) && styles.statusChipTextActive,
-												]}>
-												{status.label}
-											</Text>
-										</TouchableOpacity>
-									))}
-								</ScrollView>
-
-								{/* Filtered Bid History */}
-								{filteredBidHistory.length > 0 ? (
-									filteredBidHistory.map((bid) => (
-										<View key={bid.id} style={styles.bidHistoryCard}>
-											<View style={styles.bidHistoryHeader}>
-												<Text style={styles.bidHistoryAmount}>
-													{i18n.t("Search.currencySuffix")}
-													{bid.amount.toLocaleString()}
-												</Text>
-												<View
-													style={[
-														styles.bidStatusChip,
-														{
-															backgroundColor: getBidStatusColor(bid.status),
-														},
-													]}>
-													<Text style={styles.bidStatusText}>{getBidStatusText(bid.status)}</Text>
-												</View>
-											</View>
-											<Text style={styles.bidHistoryDate}>{bid.date}</Text>
-											<Text style={styles.bidHistoryDays}>
-												{i18n.t("Common.daysRemaining", { count: bid.remainingDays })}
-											</Text>
-										</View>
-									))
-								) : (
-									<View style={styles.emptyState}>
-										<Text style={styles.emptyStateText}>{i18n.t("Map.emptyState.noBidsForStatus")}</Text>
-									</View>
-								)}
-							</View>
-						)}
-					</>
-				)}
+				{selectedPlace && <SelectedRestaurantDetails id={selectedPlace.restaurant.google_place_id} />}
 			</RestaurantBlurModal>
-
-			{/* Review Modal */}
-			<ReviewBlurModal>
-				{({ close }) => <ReviewForm onSubmit={handleReviewSubmit} onCancel={close} isProcessing={isProcessing} />}
-			</ReviewBlurModal>
-
-			{/* Bid Modal */}
-			<BidBlurModal>
-				{({ close }) => <BidForm onSubmit={handleBid} onCancel={close} isProcessing={isProcessing} />}
-			</BidBlurModal>
 		</SafeAreaView>
 	);
 }
@@ -459,232 +226,5 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.4,
 		shadowRadius: 8,
 		elevation: 8,
-	},
-	restaurantInfo: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginVertical: 12,
-	},
-	restaurantAvatar: {
-		width: 60,
-		height: 60,
-		borderRadius: 20,
-	},
-	restaurantDetails: {
-		flex: 1,
-		marginLeft: 12,
-	},
-	restaurantName: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#000",
-		marginBottom: 4,
-	},
-	ratingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 4,
-	},
-	ratingText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#000",
-		marginRight: 4,
-	},
-	reviewCount: {
-		fontSize: 12,
-		color: "#666",
-	},
-	bidAmountContainer: {
-		backgroundColor: "#F0F8FF",
-		padding: 16,
-		borderRadius: 12,
-		alignItems: "center",
-		marginVertical: 12,
-		marginHorizontal: 16,
-	},
-	bidAmountLabel: {
-		fontSize: 12,
-		color: "#666",
-		marginBottom: 4,
-	},
-	bidAmount: {
-		fontSize: 28,
-		fontWeight: "bold",
-		color: "#007AFF",
-		marginBottom: 4,
-	},
-	remainingDays: {
-		fontSize: 14,
-		color: "#666",
-	},
-	actionButtons: {
-		flexDirection: "row",
-		gap: 12,
-		margin: 16,
-	},
-	tabContainer: {
-		flexDirection: "row",
-		marginHorizontal: 16,
-		marginBottom: 16,
-	},
-	tab: {
-		flex: 1,
-		paddingVertical: 12,
-		alignItems: "center",
-	},
-	activeTab: {
-		borderBottomWidth: 2,
-		borderBottomColor: "#007AFF",
-	},
-	tabText: {
-		fontSize: 16,
-		color: "#666",
-		fontWeight: "500",
-	},
-	activeTabText: {
-		color: "#007AFF",
-		fontWeight: "600",
-	},
-	reviewCardOverlay: {
-		position: "absolute",
-		bottom: 8,
-		left: 8,
-		right: 8,
-		flexDirection: "column",
-		justifyContent: "space-between",
-	},
-	reviewCardTitle: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#FFF",
-		marginBottom: 4,
-	},
-	reviewCardRating: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	reviewCardRatingText: {
-		fontSize: 10,
-		color: "#FFF",
-		marginLeft: 4,
-	},
-	bidsContent: {
-		paddingHorizontal: 16,
-		gap: 12,
-	},
-	bidHistoryCard: {
-		backgroundColor: "#F8F9FA",
-		padding: 16,
-		borderRadius: 12,
-	},
-	bidHistoryHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 4,
-	},
-	bidHistoryAmount: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#007AFF",
-	},
-	bidHistoryDate: {
-		fontSize: 12,
-		color: "#666",
-		marginBottom: 2,
-	},
-	bidHistoryDays: {
-		fontSize: 12,
-		color: "#666",
-	},
-	bidStatusChip: {
-		paddingHorizontal: 12,
-		paddingVertical: 4,
-		borderRadius: 12,
-	},
-	bidStatusText: {
-		fontSize: 12,
-		color: "#FFF",
-		fontWeight: "500",
-	},
-	inputLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#000",
-		marginBottom: 8,
-	},
-	textInput: {
-		borderWidth: 1,
-		borderColor: "#E5E5E5",
-		borderRadius: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		fontSize: 16,
-		color: "#000",
-	},
-	textArea: {
-		height: 100,
-		textAlignVertical: "top",
-	},
-	ratingInput: {
-		flexDirection: "row",
-		gap: 8,
-	},
-	bidInfo: {
-		marginHorizontal: 16,
-		marginBottom: 24,
-	},
-	bidInfoRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 8,
-	},
-	bidInfoText: {
-		fontSize: 14,
-		color: "#666",
-		marginLeft: 8,
-	},
-	processingContainer: {
-		alignItems: "center",
-		paddingVertical: 32,
-	},
-	processingText: {
-		fontSize: 16,
-		color: "#666",
-		marginTop: 16,
-	},
-	statusFilterContainer: {
-		marginBottom: 16,
-	},
-	statusFilterContent: {
-		paddingHorizontal: 4,
-		gap: 8,
-	},
-	statusChip: {
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-		borderRadius: 20,
-		borderColor: "#E0E0E0",
-		marginHorizontal: 4,
-	},
-	statusChipText: {
-		fontSize: 14,
-		color: "#666",
-		fontWeight: "500",
-	},
-	statusChipTextActive: {
-		color: "#FFF",
-		fontWeight: "600",
-	},
-	emptyState: {
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 40,
-	},
-	emptyStateText: {
-		fontSize: 16,
-		color: "#666",
-		textAlign: "center",
 	},
 });

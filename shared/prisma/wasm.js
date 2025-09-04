@@ -159,13 +159,6 @@ exports.Prisma.Dish_category_variantsScalarFieldEnum = {
   created_at: 'created_at'
 };
 
-exports.Prisma.Dish_likesScalarFieldEnum = {
-  id: 'id',
-  dish_media_id: 'dish_media_id',
-  user_id: 'user_id',
-  created_at: 'created_at'
-};
-
 exports.Prisma.Dish_mediaScalarFieldEnum = {
   id: 'id',
   dish_id: 'dish_id',
@@ -176,6 +169,13 @@ exports.Prisma.Dish_mediaScalarFieldEnum = {
   created_at: 'created_at',
   updated_at: 'updated_at',
   lock_no: 'lock_no'
+};
+
+exports.Prisma.Dish_media_likesScalarFieldEnum = {
+  id: 'id',
+  dish_media_id: 'dish_media_id',
+  user_id: 'user_id',
+  created_at: 'created_at'
 };
 
 exports.Prisma.Dish_reviewsScalarFieldEnum = {
@@ -316,19 +316,21 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   latitude: 'latitude',
   longitude: 'longitude',
   image_url: 'image_url',
+  address_components: 'address_components',
+  plus_code: 'plus_code',
   created_at: 'created_at'
 };
 
 exports.Prisma.UsersScalarFieldEnum = {
   id: 'id',
-  username: 'username',
   display_name: 'display_name',
   avatar: 'avatar',
   bio: 'bio',
   last_login_at: 'last_login_at',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  lock_no: 'lock_no'
+  lock_no: 'lock_no',
+  username: 'username'
 };
 
 exports.Prisma.SortOrder = {
@@ -397,8 +399,8 @@ exports.Prisma.ModelName = {
   config: 'config',
   dish_categories: 'dish_categories',
   dish_category_variants: 'dish_category_variants',
-  dish_likes: 'dish_likes',
   dish_media: 'dish_media',
+  dish_media_likes: 'dish_media_likes',
   dish_reviews: 'dish_reviews',
   dishes: 'dishes',
   external_api_logs: 'external_api_logs',

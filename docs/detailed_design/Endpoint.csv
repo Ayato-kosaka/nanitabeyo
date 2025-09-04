@@ -21,7 +21,6 @@
 "入札意図の登録（決済前）"
 "レストラン料理投稿一覧"
 "レストラン入札履歴一覧"
-"レストラン取得"
 "GCS 署名付き URL 発行`system-generated/${contentType}/${Timestamp}_${identifier}`"
 "レビューした料理投稿一覧"
 "自分がいいねした料理投稿一覧"

@@ -87,30 +87,35 @@ export function useBlurModal({
 								style={[StyleSheet.absoluteFillObject]}
 								android_ripple={{ color: "rgba(255,255,255,0.05)" }}>
 								{/* Blur background */}
-								<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
+								{Platform.OS === "android" ? (
+									<View
+										testID="android-overlay"
+										style={[
+											StyleSheet.absoluteFillObject,
+											{ backgroundColor: `rgba(255,255,255,${0.5 + (intensity * 0.4) / 100})` },
+										]}
+									/>
+								) : (
+									<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
+								)}
+
 								{/* Content (non-blocking layout wrapper) */}
-								{Platform.OS !== "web" && (
-									<ScrollView
-										pointerEvents="box-none"
-										keyboardShouldPersistTaps="handled"
-										contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+								{Platform.OS === "ios" && (
+									<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
 										<View pointerEvents="auto" style={contentContainerStyle}>
 											{renderChildren()}
 										</View>
-									</ScrollView>
+									</View>
 								)}
 							</Pressable>
 
 							{/* Content (non-blocking layout wrapper) */}
-							{Platform.OS === "web" && (
-								<ScrollView
-									pointerEvents="box-none"
-									keyboardShouldPersistTaps="handled"
-									contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+							{Platform.OS !== "ios" && (
+								<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
 										{renderChildren()}
 									</View>
-								</ScrollView>
+								</View>
 							)}
 
 							{/* Close button */}

@@ -195,7 +195,19 @@ export class LocationsService {
         });
 
         const response = await this.externalApiService.callPlaceSearchText(
-          'places.id,places.displayName,places.location,contextualContents.photos.name,contextualContents.photos.widthPx,contextualContents.photos.heightPx,contextualContents.reviews.originalText,contextualContents.reviews.rating,contextualContents.reviews.authorAttribution',
+          [
+            'places.id',
+            'places.displayName',
+            'places.location',
+            'places.addressComponents',
+            'places.plusCode',
+            'contextualContents.photos.name',
+            'contextualContents.photos.widthPx',
+            'contextualContents.photos.heightPx',
+            'contextualContents.reviews.originalText',
+            'contextualContents.reviews.rating',
+            'contextualContents.reviews.authorAttribution',
+          ].join(','),
           requestPayload,
         );
 

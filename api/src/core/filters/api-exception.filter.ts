@@ -75,11 +75,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
             ? exceptionResponse
             : exception.message;
       }
-      this.logger.error(
-        `ValidationError`,
-        'ApiExceptionFilter',
-        exception.stack,
-      );
+      this.logger.error(`ValidationError`, 'ApiExceptionFilter', exception);
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const msg = exception.message as ErrorCode;

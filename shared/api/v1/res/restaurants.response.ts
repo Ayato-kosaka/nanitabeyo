@@ -1,13 +1,15 @@
 import { SupabaseRestaurants } from "../../../converters/convert_restaurants";
-import { SupabaseDishes } from "../../../converters/convert_dishes";
-import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
-import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
 import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_bids";
+import { DishMediaEntry } from "./dish-media.response";
+import { PaginatedResponse } from "./paginated-response";
 
-/** GET /v1/restaurants のレスポンス型 */
+/** GET /v1/restaurants/search のレスポンス型 */
 export type QueryRestaurantsResponse = {
-	restaurant: SupabaseRestaurants;
-	meta: { totalCents: number };
+	restaurant: SupabaseRestaurants & {
+		reviewCount: number;
+		averageRating: number;
+	};
+	meta: { totalCents: number; maxEndDate: string | null };
 }[];
 
 /** POST /v1/restaurants のレスポンス型 */
@@ -17,15 +19,14 @@ export type CreateRestaurantResponse = SupabaseRestaurants;
 export type CreateRestaurantBidIntentResponse = { clientSecret: string };
 
 /** GET /v1/restaurants/:id/dish-media のレスポンス型 */
-export type QueryRestaurantDishMediaResponse = {
-	restaurant: SupabaseRestaurants;
-	dish: SupabaseDishes;
-	dish_media: SupabaseDishMedia;
-	dish_reviews: SupabaseDishReviews[];
-}[];
+export type QueryRestaurantDishMediaResponse = PaginatedResponse<
+	DishMediaEntry & {
+		dish: {
+			reviewCount: number;
+			averageRating: number;
+		};
+	}
+>;
 
 /** GET /v1/restaurants/:id/restaurant-bids のレスポンス型 */
 export type QueryRestaurantBidsResponse = SupabaseRestaurantBids[];
-
-/** GET /v1/restaurants/:id のレスポンス型 */
-export type GetRestaurantResponse = SupabaseRestaurants;

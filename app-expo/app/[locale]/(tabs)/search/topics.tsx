@@ -4,7 +4,7 @@ import { ThumbsUp, X } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Topic, SearchParams } from "@/types/search";
-import { useTopicSearch } from "@/features/topics/hoks/useTopicSearch";
+import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useHideTopic } from "@/features/topics/hooks/useHideTopic";
 import { TopicCard } from "@/features/topics/components/TopicCard";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";

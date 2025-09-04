@@ -1,7 +1,7 @@
 import { IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
 import { Type } from "class-transformer";
 
-/** GET /v1/restaurants のクエリ */
+/** GET /v1/restaurants/search のクエリ */
 export class QueryRestaurantsDto {
 	@Type(() => Number)
 	@IsNumber()

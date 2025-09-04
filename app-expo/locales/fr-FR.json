@@ -271,6 +271,9 @@
 		"emptyState": {
 			"noBidsForStatus": "Aucune enchère pour l'état sélectionné"
 		},
+		"empty": {
+			"bidHistory": "Pas encore d'historique d'enchères"
+		},
 		"alerts": {
 			"locationError": "Échec de l'obtention des informations de localisation",
 			"currentLocationError": "Échec de l'obtention de la position actuelle",

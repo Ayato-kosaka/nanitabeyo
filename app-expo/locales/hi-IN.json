@@ -270,6 +270,9 @@
 		"emptyState": {
 			"noBidsForStatus": "चयनित स्थिति के लिए कोई बोली नहीं"
 		},
+		"empty": {
+			"bidHistory": "अभी तक बोली का इतिहास नहीं है"
+		},
 		"alerts": {
 			"locationError": "स्थान जानकारी प्राप्त करने में विफल",
 			"currentLocationError": "वर्तमान स्थान प्राप्त करने में विफल",

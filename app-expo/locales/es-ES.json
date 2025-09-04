@@ -271,6 +271,9 @@
 		"emptyState": {
 			"noBidsForStatus": "No hay ofertas para el estado seleccionado"
 		},
+		"empty": {
+			"bidHistory": "Aún no hay historial de ofertas"
+		},
 		"alerts": {
 			"locationError": "Error al obtener información de ubicación",
 			"currentLocationError": "Error al obtener ubicación actual",

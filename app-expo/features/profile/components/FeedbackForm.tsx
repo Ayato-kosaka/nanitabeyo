@@ -8,6 +8,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import type { CreateFeedbackDto } from "@shared/api/v1/dto";
+import { Keyboard } from "react-native";
 
 interface FeedbackFormProps {
 	/** Initial feedback type */
@@ -76,6 +77,8 @@ export function FeedbackForm({
 	);
 
 	const handleSubmit = useCallback(async () => {
+		Keyboard.dismiss();
+
 		// Clear previous errors
 		setTitleError("");
 		setMessageError("");

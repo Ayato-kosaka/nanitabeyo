@@ -271,6 +271,9 @@
 		"emptyState": {
 			"noBidsForStatus": "선택한 상태의 입찰이 없습니다"
 		},
+		"empty": {
+			"bidHistory": "아직 입찰 내역이 없습니다"
+		},
 		"alerts": {
 			"locationError": "위치 정보 가져오기 실패",
 			"currentLocationError": "현재 위치 가져오기 실패",

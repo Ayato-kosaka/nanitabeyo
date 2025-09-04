@@ -99,13 +99,13 @@ sequenceDiagram
         alt ログイン済み
             alt まだ Like していない
                 UI ->> Backend: POST /v1/dish-media/{id}/likes/{userId}
-                    Backend ->> Database: INSERT dish_likes
+                    Backend ->> Database: INSERT dish_media_likes
                     Backend ->> Notifier: push {to:creatorId,title:"いいねされました"}
                         Notifier -->> Backend: ok
                 UI ->> UI: likeCount++
             else 既に Like 済み
                 UI ->> Backend: DELETE /v1/dish-media/{id}/likes/{userId}
-                    Backend ->> Database: DELETE FROM dish_likes
+                    Backend ->> Database: DELETE FROM dish_media_likes
                 UI ->> UI: likeCount--
             end
         else 匿名ログイン
@@ -149,7 +149,7 @@ sequenceDiagram
 
     %% ── Likes 一覧を取得 ──────────────────────────────
         UI ->> Backend: GET /v1/users/me/liked-dish-media?cursor
-            Backend ->> Database: from(dish_likes).where(user_id)<br>.orderBy(created_at).limit(42)
+            Backend ->> Database: from(dish_media_likes).where(user_id)<br>.orderBy(created_at).limit(42)
                 Database ->> Backend: dish_media_id[]
             Backend ->> Database: from(dish_media)<br>.join(restaurants).on(restaurant_id)<br>.join(dishes).on(dish_id)<br>.join(dish_reviews).on(dish_id)<br>.in(dish_media_id).orderBy(dish_media_id)
                 Database ->> Backend: {Restaurants, Dishes, DishMedia, DishReviews[]}[]

@@ -270,6 +270,9 @@
 		"emptyState": {
 			"noBidsForStatus": "所选状态没有出价"
 		},
+		"empty": {
+			"bidHistory": "暂无出价记录"
+		},
 		"alerts": {
 			"locationError": "获取位置信息失败",
 			"currentLocationError": "获取当前位置失败",
