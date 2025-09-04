@@ -21,7 +21,10 @@ import {
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
 } from '@shared/v1/res';
-import { RestaurantsRepository, RestaurantWithMeta } from './restaurants.repository';
+import {
+  RestaurantsRepository,
+  RestaurantWithMeta,
+} from './restaurants.repository';
 import { RestaurantsMapper } from './restaurants.mapper';
 
 @Injectable()
@@ -59,13 +62,17 @@ export class RestaurantsService {
   /* ------------------------------------------------------------------ */
   /*             POST /v1/restaurants (Google Place ID 创建)           */
   /* ------------------------------------------------------------------ */
-  async createRestaurant(dto: CreateRestaurantDto): Promise<CreateRestaurantResponse> {
+  async createRestaurant(
+    dto: CreateRestaurantDto,
+  ): Promise<CreateRestaurantResponse> {
     this.logger.debug('CreateRestaurant', 'createRestaurant', {
       googlePlaceId: dto.googlePlaceId,
     });
 
     // 1. 先检查数据库中是否已存在
-    const existingRestaurant = await this.repo.findByGooglePlaceId(dto.googlePlaceId);
+    const existingRestaurant = await this.repo.findByGooglePlaceId(
+      dto.googlePlaceId,
+    );
     if (existingRestaurant) {
       this.logger.debug('RestaurantExists', 'createRestaurant', {
         restaurantId: existingRestaurant.id,
@@ -75,7 +82,8 @@ export class RestaurantsService {
 
     // 2. 调用 Google Place Details API 获取详细信息
     try {
-      const fieldMask = 'id,displayName,formattedAddress,location,nationalPhoneNumber,websiteUri,rating,userRatingCount,priceLevel,regularOpeningHours,photos,types';
+      const fieldMask =
+        'id,displayName,formattedAddress,location,nationalPhoneNumber,websiteUri,rating,userRatingCount,priceLevel,regularOpeningHours,photos,types';
       const placeDetail = await this.externalApi.callPlaceDetails(
         fieldMask,
         dto.googlePlaceId,
@@ -126,9 +134,13 @@ export class RestaurantsService {
     // 转换为响应格式
     const response = this.mapper.toRestaurantDishMediaResponse(items, viewerId);
 
-    this.logger.debug('GetRestaurantDishMediaResult', 'getRestaurantDishMedia', {
-      count: response.data.length,
-    });
+    this.logger.debug(
+      'GetRestaurantDishMediaResult',
+      'getRestaurantDishMedia',
+      {
+        count: response.data.length,
+      },
+    );
 
     return response;
   }
@@ -139,9 +151,13 @@ export class RestaurantsService {
   async getRestaurantByGooglePlaceId(
     dto: QueryRestaurantsByGooglePlaceIdDto,
   ): Promise<QueryRestaurantsByGooglePlaceIdResponse | null> {
-    this.logger.debug('GetRestaurantByGooglePlaceId', 'getRestaurantByGooglePlaceId', {
-      googlePlaceId: dto.googlePlaceId,
-    });
+    this.logger.debug(
+      'GetRestaurantByGooglePlaceId',
+      'getRestaurantByGooglePlaceId',
+      {
+        googlePlaceId: dto.googlePlaceId,
+      },
+    );
 
     // 从数据库查询餐厅
     const restaurant = await this.repo.findByGooglePlaceId(dto.googlePlaceId);

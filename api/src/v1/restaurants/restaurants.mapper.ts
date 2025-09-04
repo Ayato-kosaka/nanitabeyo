@@ -26,7 +26,9 @@ export class RestaurantsMapper {
       .filter((src) => src.dish_media.length > 0) // dish_mediaが存在するもののみ
       .map((src) => {
         // レストラン情報
-        const restaurant = convertPrismaToSupabase_Restaurants(src.dishes.restaurants);
+        const restaurant = convertPrismaToSupabase_Restaurants(
+          src.dishes.restaurants,
+        );
 
         // 料理情報
         const dish = {
@@ -40,9 +42,11 @@ export class RestaurantsMapper {
             name: null,
           }),
           reviewCount: src.dish_reviews.length,
-          averageRating: src.dish_reviews.length > 0
-            ? src.dish_reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / src.dish_reviews.length
-            : 0,
+          averageRating:
+            src.dish_reviews.length > 0
+              ? src.dish_reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+                src.dish_reviews.length
+              : 0,
         };
 
         // 料理メディア情報 (最新の1件)
@@ -52,11 +56,15 @@ export class RestaurantsMapper {
           // 追加のフィールド
           isSaved: false, // saving機能が実装されていない場合はfalse
           isLiked: viewerId
-            ? latestDishMedia.dish_media_likes?.some((like: any) => like.user_id === viewerId) || false
+            ? latestDishMedia.dish_media_likes?.some(
+                (like: any) => like.user_id === viewerId,
+              ) || false
             : false,
           likeCount: latestDishMedia.dish_media_likes?.length || 0,
           mediaUrl: this.generateMediaUrl(latestDishMedia.media_path),
-          thumbnailImageUrl: this.generateThumbnailUrl(latestDishMedia.media_path),
+          thumbnailImageUrl: this.generateThumbnailUrl(
+            latestDishMedia.media_path,
+          ),
         };
 
         // レビュー情報
@@ -65,7 +73,10 @@ export class RestaurantsMapper {
           return {
             ...reviewBase,
             // 追加のフィールド
-            username: review.users?.username || review.imported_user_name || 'Anonymous',
+            username:
+              review.users?.username ||
+              review.imported_user_name ||
+              'Anonymous',
             isLiked: false, // review likes機能が実装されていない場合はfalse
             likeCount: 0, // review likes機能が実装されていない場合は0
           };

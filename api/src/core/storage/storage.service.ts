@@ -151,7 +151,7 @@ export class StorageService {
     expiresInSeconds = 15 * 60, // 15分
   ): Promise<{ putUrl: string; objectPath: string; expiresAt: string }> {
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1_000);
-    
+
     try {
       const [url] = await this.bucket.file(path).getSignedUrl({
         action: 'write',

@@ -20,9 +20,7 @@ import { AuthModule } from '../../core/auth/auth.module';
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [UserUploadsController],
-  providers: [
-    UserUploadsService,
-  ],
+  providers: [UserUploadsService],
   exports: [
     UserUploadsService, // 他ドメインから利用できるよう export
   ],

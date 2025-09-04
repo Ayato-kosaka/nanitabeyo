@@ -8,12 +8,8 @@ import { Injectable } from '@nestjs/common';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { env } from '../../core/config/env';
-import {
-  CreateUserUploadSignedUrlDto,
-} from '@shared/v1/dto';
-import {
-  CreateUserUploadSignedUrlResponse,
-} from '@shared/v1/res';
+import { CreateUserUploadSignedUrlDto } from '@shared/v1/dto';
+import { CreateUserUploadSignedUrlResponse } from '@shared/v1/res';
 
 @Injectable()
 export class UserUploadsService {
@@ -40,11 +36,11 @@ export class UserUploadsService {
     const sanitizedContentType = dto.contentType.replace(/[^a-zA-Z0-9]/g, '-');
     const sanitizedIdentifier = dto.identifier.replace(/[^a-zA-Z0-9_-]/g, '_');
     const fileName = `${timestamp}_${sanitizedIdentifier}`;
-    
+
     // ファイル拡張子を推測
     const extension = this.getFileExtension(dto.contentType);
     const fullFileName = extension ? `${fileName}.${extension}` : fileName;
-    
+
     const objectPath = `system-generated/${sanitizedContentType}/${fullFileName}`;
 
     try {

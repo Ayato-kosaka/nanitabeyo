@@ -19,12 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import {
-  CreateUserUploadSignedUrlDto,
-} from '@shared/v1/dto';
-import {
-  CreateUserUploadSignedUrlResponse,
-} from '@shared/v1/res';
+import { CreateUserUploadSignedUrlDto } from '@shared/v1/dto';
+import { CreateUserUploadSignedUrlResponse } from '@shared/v1/res';
 
 // 横串 (Auth)
 import { JwtAuthGuard } from '../../core/auth/auth.guard';

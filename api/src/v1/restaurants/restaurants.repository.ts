@@ -9,7 +9,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_RestaurantBids } from '../../../../shared/converters/convert_restaurant_bids';
-import { QueryRestaurantsDto, QueryRestaurantDishMediaDto } from '@shared/v1/dto';
+import {
+  QueryRestaurantsDto,
+  QueryRestaurantDishMediaDto,
+} from '@shared/v1/dto';
 
 export type RestaurantWithMeta = {
   restaurant: any;
@@ -116,7 +119,9 @@ export class RestaurantsRepository {
       latitude: placeDetail.location?.latitude || 0,
       longitude: placeDetail.location?.longitude || 0,
       image_url: placeDetail.photos?.[0]?.name || '',
-      address_components: placeDetail.formattedAddress ? { formatted_address: placeDetail.formattedAddress } : {},
+      address_components: placeDetail.formattedAddress
+        ? { formatted_address: placeDetail.formattedAddress }
+        : {},
       plus_code: placeDetail.plusCode || null,
       created_at: new Date(),
     };
