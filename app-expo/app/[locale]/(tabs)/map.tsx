@@ -151,7 +151,7 @@ export default function MapScreen() {
 
 			{/* Bottom Sheet */}
 			<RestaurantBlurModal>
-				{selectedPlace && <SelectedRestaurantDetails selectedPlace={selectedPlace} />}
+				{selectedPlace && <SelectedRestaurantDetails id={selectedPlace.restaurant.google_place_id} />}
 			</RestaurantBlurModal>
 		</SafeAreaView>
 	);

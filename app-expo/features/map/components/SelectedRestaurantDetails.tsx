@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, use, useEffect } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, LayoutChangeEvent } from "react-native";
 import { Camera, DollarSign } from "lucide-react-native";
 import { Card } from "@/components/Card";
@@ -7,7 +7,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
-import { mockBidHistory } from "@/features/map/constants";
+import { mockActiveBids, mockBidHistory } from "@/features/map/constants";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
@@ -22,7 +22,7 @@ import { useLogger } from "@/hooks/useLogger";
 type BidStatus = { id: string; label: string; color: string };
 
 type Props = {
-	selectedPlace: QueryRestaurantsResponse[number];
+	id: string;
 };
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
@@ -45,9 +45,10 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({ selectedPlace }: Props) {
+export function SelectedRestaurantDetails({ id }: Props) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 
 	// Bid status filters
 	const bidStatuses: BidStatus[] = [
@@ -79,6 +80,11 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
 
+	useEffect(() => {
+		// TODO: GET /v1/restaurants を呼び出す
+		setSelectedPlace(mockActiveBids.find((bid) => bid.restaurant.google_place_id === id) || null);
+	}, [id]);
+
 	const handleBid = async (bidAmount: string) => {
 		if (!bidAmount) return;
 		mediumImpact();
@@ -88,14 +94,14 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 			logFrontendEvent({
 				event_name: "restaurant_bid_submitted",
 				error_level: "log",
-				payload: { restaurantId: selectedPlace.restaurant.id, bidAmount: Number(bidAmount) },
+				payload: { restaurantId: selectedPlace?.restaurant.id, bidAmount: Number(bidAmount) },
 			});
 			closeBidModal();
 		} catch {
 			logFrontendEvent({
 				event_name: "restaurant_bid_submission_failed",
 				error_level: "error",
-				payload: { restaurantId: selectedPlace.restaurant.id, bidAmount: Number(bidAmount) },
+				payload: { restaurantId: selectedPlace?.restaurant.id, bidAmount: Number(bidAmount) },
 			});
 		} finally {
 			setIsProcessing(false);
@@ -111,14 +117,14 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 			logFrontendEvent({
 				event_name: "restaurant_review_submitted",
 				error_level: "log",
-				payload: { restaurantId: selectedPlace.restaurant.id, rating: data.rating },
+				payload: { restaurantId: selectedPlace?.restaurant.id, rating: data.rating },
 			});
 			closeReviewModal();
 		} catch {
 			logFrontendEvent({
 				event_name: "restaurant_review_submission_failed",
 				error_level: "error",
-				payload: { restaurantId: selectedPlace.restaurant.id, rating: data.rating },
+				payload: { restaurantId: selectedPlace?.restaurant.id, rating: data.rating },
 			});
 		} finally {
 			setIsProcessing(false);
@@ -132,7 +138,7 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 	}, []);
 
 	const renderHeader = useCallback(() => {
-		return (
+		return selectedPlace ? (
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
@@ -182,6 +188,8 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 					/>
 				</View>
 			</View>
+		) : (
+			<Card />
 		);
 	}, [handleHeaderLayout, openReviewModal, openBidModal, selectedPlace]);
 
