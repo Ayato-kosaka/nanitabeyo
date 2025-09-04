@@ -264,9 +264,9 @@ function TabsFlatList<T>({
 
 // Export the API that matches react-native-collapsible-tab-view
 export const Tabs = {
-        Container,
-        Tab,
-        FlatList: TabsFlatList,
-        ScrollView: ScrollView, // For compatibility, though we'll primarily use FlatList
+	Container,
+	Tab,
+	FlatList: TabsFlatList,
+	ScrollView: ScrollView, // For compatibility, though we'll primarily use FlatList
 };
 export { GridList } from "./GridList";
