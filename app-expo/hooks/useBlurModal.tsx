@@ -90,27 +90,21 @@ export function useBlurModal({
 								<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
 								{/* Content (non-blocking layout wrapper) */}
 								{Platform.OS !== "web" && (
-									<ScrollView
-										pointerEvents="box-none"
-										keyboardShouldPersistTaps="handled"
-										contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+									<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
 										<View pointerEvents="auto" style={contentContainerStyle}>
 											{renderChildren()}
 										</View>
-									</ScrollView>
+									</View>
 								)}
 							</Pressable>
 
 							{/* Content (non-blocking layout wrapper) */}
 							{Platform.OS === "web" && (
-								<ScrollView
-									pointerEvents="box-none"
-									keyboardShouldPersistTaps="handled"
-									contentContainerStyle={[styles.contentContainer, { paddingTop: 32 }]}>
+								<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
 										{renderChildren()}
 									</View>
-								</ScrollView>
+								</View>
 							)}
 
 							{/* Close button */}

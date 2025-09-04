@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { GridList } from "../components/GridList";
+import { GridList } from "@/components/collapsible-tabs";
 import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";

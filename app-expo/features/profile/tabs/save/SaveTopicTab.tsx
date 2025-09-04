@@ -9,7 +9,7 @@ import {
 	FlatListProps,
 	useWindowDimensions,
 } from "react-native";
-import { GridList } from "../../components/GridList";
+import { GridList } from "@/components/collapsible-tabs";
 import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
 import { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";

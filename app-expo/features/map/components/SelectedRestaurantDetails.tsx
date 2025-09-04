@@ -1,25 +1,28 @@
-import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, LayoutChangeEvent } from "react-native";
+import React, { useState, useCallback, use, useEffect } from "react";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, LayoutChangeEvent } from "react-native";
 import { Camera, DollarSign } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { ImageCardGrid } from "@/components/ImageCardGrid";
+import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
-import { mockReviews, mockBidHistory, type ActiveBid } from "@/features/map/constants";
+import { mockActiveBids, mockBidHistory } from "@/features/map/constants";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { BidForm } from "@/features/map/components/BidForm";
-import { Tabs } from "@/components/collapsible-tabs";
+import { Tabs, GridList } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
+import { QueryRestaurantDishMediaResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
+import { mockDishItems } from "@/data/searchMockData";
+import { useLogger } from "@/hooks/useLogger";
 
 type BidStatus = { id: string; label: string; color: string };
 
 type Props = {
-	selectedPlace: ActiveBid;
+	id: string;
 };
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
@@ -42,8 +45,10 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({ selectedPlace }: Props) {
+export function SelectedRestaurantDetails({ id }: Props) {
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 
 	// Bid status filters
 	const bidStatuses: BidStatus[] = [
@@ -75,22 +80,29 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
 
+	useEffect(() => {
+		// TODO: GET /v1/restaurants を呼び出す
+		setSelectedPlace(mockActiveBids.find((bid) => bid.restaurant.google_place_id === id) || null);
+	}, [id]);
+
 	const handleBid = async (bidAmount: string) => {
 		if (!bidAmount) return;
 		mediumImpact();
 		setIsProcessing(true);
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 2000));
-			Alert.alert(
-				i18n.t("Common.success"),
-				i18n.t("Map.alerts.bidSuccess", {
-					place: selectedPlace.placeName,
-					amount: parseInt(bidAmount).toLocaleString(),
-				}),
-			);
+			logFrontendEvent({
+				event_name: "restaurant_bid_submitted",
+				error_level: "log",
+				payload: { restaurantId: selectedPlace?.restaurant.id, bidAmount: Number(bidAmount) },
+			});
 			closeBidModal();
 		} catch {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.bidError"));
+			logFrontendEvent({
+				event_name: "restaurant_bid_submission_failed",
+				error_level: "error",
+				payload: { restaurantId: selectedPlace?.restaurant.id, bidAmount: Number(bidAmount) },
+			});
 		} finally {
 			setIsProcessing(false);
 		}
@@ -102,10 +114,18 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 		setIsProcessing(true);
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 1000));
-			Alert.alert(i18n.t("Common.success"), i18n.t("Map.alerts.reviewSuccess"));
+			logFrontendEvent({
+				event_name: "restaurant_review_submitted",
+				error_level: "log",
+				payload: { restaurantId: selectedPlace?.restaurant.id, rating: data.rating },
+			});
 			closeReviewModal();
 		} catch {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.reviewError"));
+			logFrontendEvent({
+				event_name: "restaurant_review_submission_failed",
+				error_level: "error",
+				payload: { restaurantId: selectedPlace?.restaurant.id, rating: data.rating },
+			});
 		} finally {
 			setIsProcessing(false);
 		}
@@ -118,17 +138,17 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 	}, []);
 
 	const renderHeader = useCallback(() => {
-		return (
+		return selectedPlace ? (
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image source={{ uri: selectedPlace.imageUrl }} style={styles.restaurantAvatar} />
+						<Image source={{ uri: selectedPlace.restaurant.image_url }} style={styles.restaurantAvatar} />
 						<View style={styles.restaurantDetails}>
-							<Text style={styles.restaurantName}>{selectedPlace.placeName}</Text>
+							<Text style={styles.restaurantName}>{selectedPlace.restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={selectedPlace.rating} />
-								<Text style={styles.ratingText}>{selectedPlace.rating}</Text>
-								<Text style={styles.reviewCount}>({selectedPlace.reviewCount})</Text>
+								<Stars rating={selectedPlace.restaurant.averageRating} />
+								<Text style={styles.ratingText}>{selectedPlace.restaurant.averageRating}</Text>
+								<Text style={styles.reviewCount}>({selectedPlace.restaurant.reviewCount})</Text>
 							</View>
 						</View>
 					</View>
@@ -138,11 +158,15 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 					<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
 					<Text style={styles.bidAmount}>
 						{i18n.t("Search.currencySuffix")}
-						{selectedPlace.totalAmount.toLocaleString()}
+						{selectedPlace.meta.totalCents.toLocaleString()}
 					</Text>
 					<Text style={styles.remainingDays}>
 						{i18n.t("Common.daysRemaining", {
-							count: selectedPlace.remainingDays,
+							count: selectedPlace.meta.maxEndDate
+								? Math.ceil(
+										(new Date(selectedPlace.meta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+									)
+								: 0,
 						})}
 					</Text>
 				</View>
@@ -164,10 +188,78 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 					/>
 				</View>
 			</View>
+		) : (
+			<Card />
 		);
 	}, [handleHeaderLayout, openReviewModal, openBidModal, selectedPlace]);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
+
+	const renderReviewItem = useCallback(
+		({ item }: { item: QueryRestaurantDishMediaResponse["data"][number] }) => (
+			<ImageCard item={{ id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}>
+				<View style={styles.reviewCardOverlay}>
+					<Text style={styles.reviewCardTitle}>{item.dish.name}</Text>
+					<View style={styles.reviewCardRating}>
+						<Stars rating={item.dish.averageRating} />
+						<Text style={styles.reviewCardRatingText}>({item.dish.reviewCount})</Text>
+					</View>
+				</View>
+			</ImageCard>
+		),
+		[],
+	);
+
+	const renderBidHeader = useCallback(
+		() => (
+			<ScrollView
+				horizontal
+				showsHorizontalScrollIndicator={false}
+				style={styles.statusFilterContainer}
+				contentContainerStyle={styles.statusFilterContent}>
+				{bidStatuses.map((status) => (
+					<TouchableOpacity
+						key={status.id}
+						style={[styles.statusChip, selectedBidStatuses.includes(status.id) && { backgroundColor: status.color }]}
+						onPress={() => toggleBidStatus(status.id)}>
+						<Text
+							style={[styles.statusChipText, selectedBidStatuses.includes(status.id) && styles.statusChipTextActive]}>
+							{status.label}
+						</Text>
+					</TouchableOpacity>
+				))}
+			</ScrollView>
+		),
+		[bidStatuses, selectedBidStatuses, toggleBidStatus],
+	);
+
+	const renderBidItem = useCallback(
+		({ item }: { item: (typeof filteredBidHistory)[number] }) => (
+			<View style={styles.bidHistoryCard}>
+				<View style={styles.bidHistoryHeader}>
+					<Text style={styles.bidHistoryAmount}>
+						{i18n.t("Search.currencySuffix")}
+						{item.amount.toLocaleString()}
+					</Text>
+					<View style={[styles.bidStatusChip, { backgroundColor: getBidStatusColor(item.status) }]}>
+						<Text style={styles.bidStatusText}>{getBidStatusText(item.status)}</Text>
+					</View>
+				</View>
+				<Text style={styles.bidHistoryDate}>{item.date}</Text>
+				<Text style={styles.bidHistoryDays}>{i18n.t("Common.daysRemaining", { count: item.remainingDays })}</Text>
+			</View>
+		),
+		[],
+	);
+
+	const renderBidEmpty = useCallback(
+		() => (
+			<View style={styles.emptyState}>
+				<Text style={styles.emptyStateText}>{i18n.t("Map.empty.bidHistory")}</Text>
+			</View>
+		),
+		[],
+	);
 
 	return (
 		<View style={styles.container}>
@@ -178,72 +270,23 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 				headerContainerStyle={{ shadowColor: "transparent" }}
 				containerStyle={{ backgroundColor: "white" }}>
 				<Tabs.Tab name="reviews">
-					<Tabs.ScrollView>
-						<ImageCardGrid
-							data={mockReviews}
-							renderOverlay={(review) => (
-								<View style={styles.reviewCardOverlay}>
-									<Text style={styles.reviewCardTitle}>{review.dishName}</Text>
-									<View style={styles.reviewCardRating}>
-										<Stars rating={review.rating} />
-										<Text style={styles.reviewCardRatingText}>({review.reviewCount})</Text>
-									</View>
-								</View>
-							)}
-							scrollEnabled={false}
-						/>
-					</Tabs.ScrollView>
+					<GridList
+						data={mockDishItems.map((item) => ({ ...item, id: item.dish_media.id }))}
+						renderItem={renderReviewItem}
+						numColumns={3}
+						contentContainerStyle={styles.reviewsContent}
+						columnWrapperStyle={styles.reviewsRow}
+					/>
 				</Tabs.Tab>
 				<Tabs.Tab name="bids">
-					<Tabs.ScrollView contentContainerStyle={styles.bidsContent}>
-						<ScrollView
-							horizontal
-							showsHorizontalScrollIndicator={false}
-							style={styles.statusFilterContainer}
-							contentContainerStyle={styles.statusFilterContent}>
-							{bidStatuses.map((status) => (
-								<TouchableOpacity
-									key={status.id}
-									style={[
-										styles.statusChip,
-										selectedBidStatuses.includes(status.id) && { backgroundColor: status.color },
-									]}
-									onPress={() => toggleBidStatus(status.id)}>
-									<Text
-										style={[
-											styles.statusChipText,
-											selectedBidStatuses.includes(status.id) && styles.statusChipTextActive,
-										]}>
-										{status.label}
-									</Text>
-								</TouchableOpacity>
-							))}
-						</ScrollView>
-
-						{filteredBidHistory.length > 0 ? (
-							filteredBidHistory.map((bid) => (
-								<View key={bid.id} style={styles.bidHistoryCard}>
-									<View style={styles.bidHistoryHeader}>
-										<Text style={styles.bidHistoryAmount}>
-											{i18n.t("Search.currencySuffix")}
-											{bid.amount.toLocaleString()}
-										</Text>
-										<View style={[styles.bidStatusChip, { backgroundColor: getBidStatusColor(bid.status) }]}>
-											<Text style={styles.bidStatusText}>{getBidStatusText(bid.status)}</Text>
-										</View>
-									</View>
-									<Text style={styles.bidHistoryDate}>{bid.date}</Text>
-									<Text style={styles.bidHistoryDays}>
-										{i18n.t("Common.daysRemaining", { count: bid.remainingDays })}
-									</Text>
-								</View>
-							))
-						) : (
-							<View style={styles.emptyState}>
-								<Text style={styles.emptyStateText}>{i18n.t("Map.empty.bidHistory")}</Text>
-							</View>
-						)}
-					</Tabs.ScrollView>
+					<Tabs.FlatList
+						data={filteredBidHistory}
+						renderItem={renderBidItem}
+						keyExtractor={(item) => item.id}
+						ListHeaderComponent={renderBidHeader}
+						ListEmptyComponent={renderBidEmpty}
+						contentContainerStyle={styles.bidsContent}
+					/>
 				</Tabs.Tab>
 			</Tabs.Container>
 
@@ -326,6 +369,13 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: 12,
 		margin: 16,
+	},
+	reviewsContent: {
+		paddingHorizontal: 16,
+		paddingVertical: 8,
+	},
+	reviewsRow: {
+		gap: 1,
 	},
 	tabContainer: {
 		flexDirection: "row",

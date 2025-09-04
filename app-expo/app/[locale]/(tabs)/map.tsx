@@ -4,17 +4,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MapPin, Search, Navigation } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
-import type { AutocompleteLocation } from "@shared/api/v1/res";
+import type { AutocompleteLocation, QueryRestaurantsResponse } from "@shared/api/v1/res";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/hooks/useBlurModal";
-import { ActiveBid, mockActiveBids } from "@/features/map/constants";
+import { mockActiveBids } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
 import i18n from "@/lib/i18n";
+import { useLogger } from "@/hooks/useLogger";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
-	const [selectedPlace, setSelectedPlace] = useState<ActiveBid | null>(null);
+	const { logFrontendEvent } = useLogger();
+	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const {
 		BlurModal: RestaurantBlurModal,
@@ -45,7 +47,7 @@ export default function MapScreen() {
 		});
 	}, []);
 
-	const handleMarkerPress = (bid: ActiveBid) => {
+	const handleMarkerPress = (bid: QueryRestaurantsResponse[number]) => {
 		lightImpact();
 		setSelectedPlace(bid);
 		openRestaurantModal();
@@ -65,7 +67,11 @@ export default function MapScreen() {
 			mapRef.current?.animateToRegion(newRegion, 1000);
 			setSearchQuery("");
 		} catch (error) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.locationError"));
+			logFrontendEvent({
+				event_name: "MapSearchError",
+				error_level: "error",
+				payload: { error, prediction },
+			});
 		}
 	};
 
@@ -82,7 +88,11 @@ export default function MapScreen() {
 			setCurrentRegion(newRegion);
 			mapRef.current?.animateToRegion(newRegion, 1000);
 		} catch (error) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("Map.alerts.currentLocationError"));
+			logFrontendEvent({
+				event_name: "MapCurrentLocationError",
+				error_level: "error",
+				payload: { error },
+			});
 		}
 	};
 
@@ -92,11 +102,11 @@ export default function MapScreen() {
 			<MapView ref={mapRef} style={styles.map} region={currentRegion} onRegionChangeComplete={setCurrentRegion}>
 				{mockActiveBids.map((bid) => (
 					<AvatarBubbleMarker
-						key={bid.placeId}
-						coordinate={{ latitude: bid.latitude, longitude: bid.longitude }}
+						key={bid.restaurant.id}
+						coordinate={{ latitude: bid.restaurant.latitude, longitude: bid.restaurant.longitude }}
 						onPress={() => handleMarkerPress(bid)}
 						color="#FFF"
-						uri={bid.imageUrl}
+						uri={bid.restaurant.image_url}
 					/>
 				))}
 			</MapView>
@@ -141,7 +151,7 @@ export default function MapScreen() {
 
 			{/* Bottom Sheet */}
 			<RestaurantBlurModal>
-				{selectedPlace && <SelectedRestaurantDetails selectedPlace={selectedPlace} />}
+				{selectedPlace && <SelectedRestaurantDetails id={selectedPlace.restaurant.google_place_id} />}
 			</RestaurantBlurModal>
 		</SafeAreaView>
 	);
