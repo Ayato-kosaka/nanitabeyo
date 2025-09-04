@@ -4,7 +4,7 @@ import { Camera, DollarSign } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { ImageCardGrid } from "@/components/ImageCardGrid";
+import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
 import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import { mockReviews, mockBidHistory, type ActiveBid } from "@/features/map/constants";
@@ -12,7 +12,7 @@ import { useBlurModal } from "@/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { BidForm } from "@/features/map/components/BidForm";
-import { Tabs } from "@/components/collapsible-tabs";
+import { Tabs, GridList } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 
@@ -167,85 +167,110 @@ export function SelectedRestaurantDetails({ selectedPlace }: Props) {
 		);
 	}, [handleHeaderLayout, openReviewModal, openBidModal, selectedPlace]);
 
-	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
+        const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
-	return (
-		<View style={styles.container}>
-			<Tabs.Container
-				renderHeader={renderHeader}
-				headerHeight={headerHeight}
-				renderTabBar={renderTabBar}
-				headerContainerStyle={{ shadowColor: "transparent" }}
-				containerStyle={{ backgroundColor: "white" }}>
-				<Tabs.Tab name="reviews">
-					<Tabs.ScrollView>
-						<ImageCardGrid
-							data={mockReviews}
-							renderOverlay={(review) => (
-								<View style={styles.reviewCardOverlay}>
-									<Text style={styles.reviewCardTitle}>{review.dishName}</Text>
-									<View style={styles.reviewCardRating}>
-										<Stars rating={review.rating} />
-										<Text style={styles.reviewCardRatingText}>({review.reviewCount})</Text>
-									</View>
-								</View>
-							)}
-							scrollEnabled={false}
-						/>
-					</Tabs.ScrollView>
-				</Tabs.Tab>
-				<Tabs.Tab name="bids">
-					<Tabs.ScrollView contentContainerStyle={styles.bidsContent}>
-						<ScrollView
-							horizontal
-							showsHorizontalScrollIndicator={false}
-							style={styles.statusFilterContainer}
-							contentContainerStyle={styles.statusFilterContent}>
-							{bidStatuses.map((status) => (
-								<TouchableOpacity
-									key={status.id}
-									style={[
-										styles.statusChip,
-										selectedBidStatuses.includes(status.id) && { backgroundColor: status.color },
-									]}
-									onPress={() => toggleBidStatus(status.id)}>
-									<Text
-										style={[
-											styles.statusChipText,
-											selectedBidStatuses.includes(status.id) && styles.statusChipTextActive,
-										]}>
-										{status.label}
-									</Text>
-								</TouchableOpacity>
-							))}
-						</ScrollView>
+        const renderReviewItem = useCallback(
+                ({ item }: { item: typeof mockReviews[number] }) => (
+                        <ImageCard item={{ id: item.id, imageUrl: item.imageUrl }}>
+                                <View style={styles.reviewCardOverlay}>
+                                        <Text style={styles.reviewCardTitle}>{item.dishName}</Text>
+                                        <View style={styles.reviewCardRating}>
+                                                <Stars rating={item.rating} />
+                                                <Text style={styles.reviewCardRatingText}>({item.reviewCount})</Text>
+                                        </View>
+                                </View>
+                        </ImageCard>
+                ),
+                [],
+        );
 
-						{filteredBidHistory.length > 0 ? (
-							filteredBidHistory.map((bid) => (
-								<View key={bid.id} style={styles.bidHistoryCard}>
-									<View style={styles.bidHistoryHeader}>
-										<Text style={styles.bidHistoryAmount}>
-											{i18n.t("Search.currencySuffix")}
-											{bid.amount.toLocaleString()}
-										</Text>
-										<View style={[styles.bidStatusChip, { backgroundColor: getBidStatusColor(bid.status) }]}>
-											<Text style={styles.bidStatusText}>{getBidStatusText(bid.status)}</Text>
-										</View>
-									</View>
-									<Text style={styles.bidHistoryDate}>{bid.date}</Text>
-									<Text style={styles.bidHistoryDays}>
-										{i18n.t("Common.daysRemaining", { count: bid.remainingDays })}
-									</Text>
-								</View>
-							))
-						) : (
-							<View style={styles.emptyState}>
-								<Text style={styles.emptyStateText}>{i18n.t("Map.empty.bidHistory")}</Text>
-							</View>
-						)}
-					</Tabs.ScrollView>
-				</Tabs.Tab>
-			</Tabs.Container>
+        const renderBidHeader = useCallback(
+                () => (
+                        <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.statusFilterContainer}
+                                contentContainerStyle={styles.statusFilterContent}>
+                                {bidStatuses.map((status) => (
+                                        <TouchableOpacity
+                                                key={status.id}
+                                                style={[
+                                                        styles.statusChip,
+                                                        selectedBidStatuses.includes(status.id) && { backgroundColor: status.color },
+                                                ]}
+                                                onPress={() => toggleBidStatus(status.id)}>
+                                                <Text
+                                                        style={[
+                                                                styles.statusChipText,
+                                                                selectedBidStatuses.includes(status.id) && styles.statusChipTextActive,
+                                                        ]}>
+                                                        {status.label}
+                                                </Text>
+                                        </TouchableOpacity>
+                                ))}
+                        </ScrollView>
+                ),
+                [bidStatuses, selectedBidStatuses, toggleBidStatus],
+        );
+
+        const renderBidItem = useCallback(
+                ({ item }: { item: typeof filteredBidHistory[number] }) => (
+                        <View style={styles.bidHistoryCard}>
+                                <View style={styles.bidHistoryHeader}>
+                                        <Text style={styles.bidHistoryAmount}>
+                                                {i18n.t("Search.currencySuffix")}
+                                                {item.amount.toLocaleString()}
+                                        </Text>
+                                        <View style={[styles.bidStatusChip, { backgroundColor: getBidStatusColor(item.status) }]}>
+                                                <Text style={styles.bidStatusText}>{getBidStatusText(item.status)}</Text>
+                                        </View>
+                                </View>
+                                <Text style={styles.bidHistoryDate}>{item.date}</Text>
+                                <Text style={styles.bidHistoryDays}>
+                                        {i18n.t("Common.daysRemaining", { count: item.remainingDays })}
+                                </Text>
+                        </View>
+                ),
+                [],
+        );
+
+        const renderBidEmpty = useCallback(
+                () => (
+                        <View style={styles.emptyState}>
+                                <Text style={styles.emptyStateText}>{i18n.t("Map.empty.bidHistory")}</Text>
+                        </View>
+                ),
+                [],
+        );
+
+        return (
+                <View style={styles.container}>
+                        <Tabs.Container
+                                renderHeader={renderHeader}
+                                headerHeight={headerHeight}
+                                renderTabBar={renderTabBar}
+                                headerContainerStyle={{ shadowColor: "transparent" }}
+                                containerStyle={{ backgroundColor: "white" }}>
+                                <Tabs.Tab name="reviews">
+                                        <GridList
+                                                data={mockReviews}
+                                                renderItem={renderReviewItem}
+                                                numColumns={3}
+                                                contentContainerStyle={styles.reviewsContent}
+                                                columnWrapperStyle={styles.reviewsRow}
+                                        />
+                                </Tabs.Tab>
+                                <Tabs.Tab name="bids">
+                                        <Tabs.FlatList
+                                                data={filteredBidHistory}
+                                                renderItem={renderBidItem}
+                                                keyExtractor={(item) => item.id}
+                                                ListHeaderComponent={renderBidHeader}
+                                                ListEmptyComponent={renderBidEmpty}
+                                                contentContainerStyle={styles.bidsContent}
+                                        />
+                                </Tabs.Tab>
+                        </Tabs.Container>
 
 			{/* Review Modal */}
 			<ReviewBlurModal>
@@ -322,16 +347,23 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: "#666",
 	},
-	actionButtons: {
-		flexDirection: "row",
-		gap: 12,
-		margin: 16,
-	},
-	tabContainer: {
-		flexDirection: "row",
-		marginHorizontal: 16,
-		marginBottom: 16,
-	},
+        actionButtons: {
+                flexDirection: "row",
+                gap: 12,
+                margin: 16,
+        },
+        reviewsContent: {
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+        },
+        reviewsRow: {
+                gap: 8,
+        },
+        tabContainer: {
+                flexDirection: "row",
+                marginHorizontal: 16,
+                marginBottom: 16,
+        },
 	tab: {
 		flex: 1,
 		paddingVertical: 12,
