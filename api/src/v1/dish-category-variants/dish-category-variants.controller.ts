@@ -71,7 +71,7 @@ export class DishCategoryVariantsController {
   @ApiOperation({ summary: '料理カテゴリ表記揺れ登録' })
   @ApiResponse({ status: 201, description: '登録成功' })
   @ApiResponse({
-    status: 500,
+    status: 404,
     description: 'マッチする料理カテゴリが見つからない',
   })
   async createDishCategoryVariant(

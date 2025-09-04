@@ -69,7 +69,7 @@
 "restaurants","location","geography(Point,4326)",false,false,false,true,"N/A","GIST(location)","検索用緯度経度（Point）","","","",""
 "restaurants","image_url","text",false,false,false,true,"N/A",false,"店舗画像 URL","","","",""
 "restaurants","address_components","jsonb",false,false,false,true,"N/A",false,"Google Place Details の address_components JSON","","","",""
-"restaurants","plus_code","jsonb",false,false,false,true,"N/A",false,"Google Place Details の plus_code JSON","","","",""
+"restaurants","plus_code","jsonb",false,false,false,false,"N/A",false,"Google Place Details の plus_code JSON","","","",""
 "restaurants","created_at","timestamptz",false,false,false,true,"N/A",false,"作成日時","","","",""
 "restaurant_bids","id","UUID",true,false,false,true,"N/A",true,"一意な ID","","","",""
 "restaurant_bids","restaurant_id","UUID",false,"restaurants.id",false,true,"N/A",true,"対象レストラン ID","","","",""

@@ -57,6 +57,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.657825,
 			longitude: 139.696711,
+			// location: null,
+			address_components: null,
+			plus_code: null,
 		},
 		dish: {
 			id: "dish_feed_1",
@@ -157,6 +160,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.65741,
 			longitude: 139.704493,
+			// location: null,
+			address_components: null,
+			plus_code: null,
 		},
 		dish: {
 			id: "dish_feed_2",
@@ -257,6 +263,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.65408,
 			longitude: 139.707492,
+			// location: null,
+			address_components: null,
+			plus_code: null,
 		},
 		dish: {
 			id: "dish_feed_3",
@@ -357,6 +366,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.659186,
 			longitude: 139.698929,
+			// location: null,
+			address_components: null,
+			plus_code: null,
 		},
 		dish: {
 			id: "dish_feed_4",
@@ -457,6 +469,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.658813,
 			longitude: 139.698221,
+			// location: null,
+			address_components: null,
+			plus_code: null,
 		},
 		dish: {
 			id: "dish_feed_5",
