@@ -1,29 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
-import { X } from "lucide-react-native";
 import { width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 
 interface Props {
-	onClose: () => void;
-	hideReason: string;
-	setHideReason: (text: string) => void;
-	confirmHideCard: () => void;
+	initialValue?: string;
+	onSubmit: (hideReason: string) => void;
+	onCancel: () => void;
 }
 
-// Content for the hide topic modal
-export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHideCard }: Props) => {
+// Self-contained form component for hiding topics with internal state management
+// This prevents parent re-renders during typing, preserving Japanese IME composition
+export const HideTopicForm = ({ initialValue = "", onSubmit, onCancel }: Props) => {
+	// Internal state - this is the key to fixing Japanese input
+	const [hideReason, setHideReason] = useState(initialValue);
 	const { lightImpact, errorNotification } = useHaptics();
 
-	const handleClose = () => {
+	const handleCancel = () => {
 		lightImpact();
-		onClose();
+		onCancel();
 	};
 
 	const handleConfirm = () => {
 		errorNotification();
-		confirmHideCard();
+		onSubmit(hideReason);
 	};
 
 	return (
@@ -38,7 +39,7 @@ export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHide
 				style={styles.reasonInput}
 				placeholder={i18n.t("Topics.HideTopicModal.placeholder")}
 				value={hideReason}
-				onChangeText={setHideReason}
+				onChangeText={setHideReason} // Internal state only - no parent re-renders
 				multiline
 				numberOfLines={3}
 				textAlignVertical="top"
@@ -46,7 +47,7 @@ export const HideTopicModal = ({ onClose, hideReason, setHideReason, confirmHide
 			/>
 
 			<View style={styles.modalActions}>
-				<TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
+				<TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
 					<Text style={styles.cancelButtonText}>{i18n.t("Common.cancel")}</Text>
 				</TouchableOpacity>
 				<TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>

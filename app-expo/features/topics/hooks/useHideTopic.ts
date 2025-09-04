@@ -11,11 +11,9 @@ export const useHideTopic = (
 	showSnackbar: (message: string) => void,
 ) => {
 	const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-	const [hideReason, setHideReason] = useState("");
 	const { BlurModal, open, close } = useBlurModal({
 		intensity: 100,
 		onClose: () => {
-			setHideReason("");
 			setSelectedCardId(null);
 		},
 	});
@@ -27,7 +25,7 @@ export const useHideTopic = (
 	};
 
 	// Confirm hiding the selected card
-	const confirmHideCard = async () => {
+	const confirmHideCard = async (hideReason: string) => {
 		const selectedTopic = topics.find((topic) => topic.categoryId === selectedCardId);
 		if (selectedCardId && selectedTopic) {
 			try {
@@ -55,8 +53,6 @@ export const useHideTopic = (
 	return {
 		BlurModal,
 		close,
-		hideReason,
-		setHideReason,
 		handleHideCard,
 		confirmHideCard,
 	};
