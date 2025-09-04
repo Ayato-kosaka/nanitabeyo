@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
-import { width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { Card } from "@/components/Card";
 
 interface Props {
 	initialValue?: string;
@@ -28,7 +28,7 @@ export const HideTopicForm = ({ initialValue = "", onSubmit, onCancel }: Props) 
 	};
 
 	return (
-		<View style={styles.modalContainer}>
+		<Card>
 			<View style={styles.modalHeader}>
 				<Text style={styles.modalTitle}>{i18n.t("Topics.HideTopicModal.title")}</Text>
 			</View>
@@ -54,23 +54,11 @@ export const HideTopicForm = ({ initialValue = "", onSubmit, onCancel }: Props) 
 					<Text style={styles.confirmButtonText}>{i18n.t("Topics.HideTopicModal.confirm")}</Text>
 				</TouchableOpacity>
 			</View>
-		</View>
+		</Card>
 	);
 };
 
 const styles = StyleSheet.create({
-	modalContainer: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 24,
-		padding: 24,
-		width: width - 48,
-		maxWidth: 400,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		shadowRadius: 24,
-		elevation: 12,
-	},
 	modalHeader: {
 		flexDirection: "row",
 		justifyContent: "space-between",
