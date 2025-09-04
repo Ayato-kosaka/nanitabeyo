@@ -88,6 +88,13 @@ export function useBlurModal({
 								android_ripple={{ color: "rgba(255,255,255,0.05)" }}>
 								{/* Blur background */}
 								<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
+								{/* Android-specific dark overlay for better background obscuring */}
+								{Platform.OS === "android" && (
+									<View
+										testID="android-overlay"
+										style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0, 0, 0, 0.4)" }]}
+									/>
+								)}
 								{/* Content (non-blocking layout wrapper) */}
 								{Platform.OS !== "web" && (
 									<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
