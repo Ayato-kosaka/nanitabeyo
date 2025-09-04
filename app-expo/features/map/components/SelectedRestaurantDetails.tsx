@@ -6,7 +6,6 @@ import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ImageCard } from "@/components/ImageCardGrid";
 import i18n from "@/lib/i18n";
-import { getBidStatusColor, getBidStatusText } from "@/features/map/utils";
 import { mockActiveBids, mockBidHistory } from "@/features/map/constants";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -18,9 +17,9 @@ import { useSharedValueState } from "@/hooks/useSharedValueState";
 import { QueryRestaurantDishMediaResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
 import { mockDishItems } from "@/data/searchMockData";
 import { useLogger } from "@/hooks/useLogger";
+import { SupabaseRestaurantBids } from "@shared/converters/convert_restaurant_bids";
 
-type BidStatus = { id: string; label: string; color: string };
-
+type BidStatus = { id: SupabaseRestaurantBids["status"]; label: string; color: string };
 type Props = {
 	id: string;
 };
@@ -52,8 +51,8 @@ export function SelectedRestaurantDetails({ id }: Props) {
 
 	// Bid status filters
 	const bidStatuses: BidStatus[] = [
-		{ id: "active", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
-		{ id: "completed", label: i18n.t("Profile.statusLabels.completed"), color: "#2196F3" },
+		{ id: "pending", label: i18n.t("Profile.statusLabels.active"), color: "#4CAF50" },
+		{ id: "paid", label: i18n.t("Profile.statusLabels.completed"), color: "#2196F3" },
 		{ id: "refunded", label: i18n.t("Profile.statusLabels.refunded"), color: "#FF9800" },
 	];
 	const [selectedBidStatuses, setSelectedBidStatuses] = useState<string[]>(bidStatuses.map((b) => b.id));
@@ -163,8 +162,12 @@ export function SelectedRestaurantDetails({ id }: Props) {
 					<Text style={styles.remainingDays}>
 						{i18n.t("Common.daysRemaining", {
 							count: selectedPlace.meta.maxEndDate
-								? Math.ceil(
-										(new Date(selectedPlace.meta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+								? Math.max(
+										0,
+										Math.ceil(
+											(new Date(selectedPlace.meta.maxEndDate).getTime() - new Date().getTime()) /
+												(1000 * 60 * 60 * 24),
+										),
 									)
 								: 0,
 						})}
@@ -239,14 +242,27 @@ export function SelectedRestaurantDetails({ id }: Props) {
 				<View style={styles.bidHistoryHeader}>
 					<Text style={styles.bidHistoryAmount}>
 						{i18n.t("Search.currencySuffix")}
-						{item.amount.toLocaleString()}
+						{item.amount_cents.toLocaleString()}
 					</Text>
-					<View style={[styles.bidStatusChip, { backgroundColor: getBidStatusColor(item.status) }]}>
-						<Text style={styles.bidStatusText}>{getBidStatusText(item.status)}</Text>
+					<View
+						style={[
+							styles.bidStatusChip,
+							{ backgroundColor: bidStatuses.find((b) => b.id === item.status)?.color || "#666" },
+						]}>
+						<Text style={styles.bidStatusText}>
+							{bidStatuses.find((b) => b.id === item.status)?.label || item.status}
+						</Text>
 					</View>
 				</View>
-				<Text style={styles.bidHistoryDate}>{item.date}</Text>
-				<Text style={styles.bidHistoryDays}>{i18n.t("Common.daysRemaining", { count: item.remainingDays })}</Text>
+				<Text style={styles.bidHistoryDate}>{item.end_date}</Text>
+				<Text style={styles.bidHistoryDays}>
+					{i18n.t("Common.daysRemaining", {
+						count: Math.max(
+							0,
+							Math.ceil((new Date(item.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+						),
+					})}
+				</Text>
 			</View>
 		),
 		[],

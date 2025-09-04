@@ -1,5 +1,5 @@
 import { mockDishItems } from "@/data/searchMockData";
-import { QueryRestaurantsResponse } from "@shared/api/v1/res";
+import { QueryRestaurantBidsResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
 
 // Mock data for active bids
 export const mockActiveBids: QueryRestaurantsResponse = mockDishItems.map((dish) => ({
@@ -8,8 +8,50 @@ export const mockActiveBids: QueryRestaurantsResponse = mockDishItems.map((dish)
 }));
 
 // Mock data for bid history
-export const mockBidHistory = [
-	{ id: "1", amount: 15000, status: "active", date: "2024-01-15", remainingDays: 12 },
-	{ id: "2", amount: 8000, status: "completed", date: "2024-01-10", remainingDays: 0 },
-	{ id: "3", amount: 12000, status: "refunded", date: "2024-01-05", remainingDays: 0 },
+export const mockBidHistory: QueryRestaurantBidsResponse = [
+	{
+		id: "1",
+		amount_cents: 15000,
+		status: "pending",
+		end_date: "2026-01-15",
+		created_at: "2023-12-01",
+		currency_code: "USD",
+		lock_no: 101,
+		payment_intent_id: null,
+		refund_id: null,
+		restaurant_id: "rest_1",
+		start_date: "2023-12-01",
+		updated_at: "2023-12-02",
+		user_id: "user_1",
+	},
+	{
+		id: "2",
+		amount_cents: 8000,
+		status: "paid",
+		end_date: "2024-01-10",
+		created_at: "2023-11-01",
+		currency_code: "USD",
+		lock_no: 102,
+		payment_intent_id: "pi_123",
+		refund_id: null,
+		restaurant_id: "rest_2",
+		start_date: "2023-11-01",
+		updated_at: "2023-11-02",
+		user_id: "user_2",
+	},
+	{
+		id: "3",
+		amount_cents: 12000,
+		status: "refunded",
+		end_date: "2024-01-05",
+		created_at: "2023-10-01",
+		currency_code: "USD",
+		lock_no: 103,
+		payment_intent_id: null,
+		refund_id: "rf_456",
+		restaurant_id: "rest_3",
+		start_date: "2023-10-01",
+		updated_at: "2023-10-02",
+		user_id: "user_3",
+	},
 ];

@@ -278,6 +278,9 @@
 			"reviewSuccess": "Review posted successfully",
 			"reviewError": "Failed to post review"
 		},
+		"empty": {
+			"bidHistory": "No bid history yet"
+		},
 		"currentLocation": "Current location"
 	},
 	"Restaurant": {
