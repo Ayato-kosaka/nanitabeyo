@@ -10,6 +10,7 @@ import { StorageService } from '../../core/storage/storage.service';
 import { env } from '../../core/config/env';
 import { CreateUserUploadSignedUrlDto } from '@shared/v1/dto';
 import { CreateUserUploadSignedUrlResponse } from '@shared/v1/res';
+import { getExt, buildFullPath, buildFileName } from '../../core/storage/storage.utils';
 
 @Injectable()
 export class UserUploadsService {
@@ -31,17 +32,16 @@ export class UserUploadsService {
       userId,
     });
 
-    // パス生成: system-generated/${contentType}/${Timestamp}_${identifier}
-    const timestamp = Date.now();
-    const sanitizedContentType = dto.contentType.replace(/[^a-zA-Z0-9]/g, '-');
-    const sanitizedIdentifier = dto.identifier.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const fileName = `${timestamp}_${sanitizedIdentifier}`;
-
-    // ファイル拡張子を推測
-    const extension = this.getFileExtension(dto.contentType);
-    const fullFileName = extension ? `${fileName}.${extension}` : fileName;
-
-    const objectPath = `system-generated/${sanitizedContentType}/${fullFileName}`;
+    // Use storage utilities for path generation
+    const extension = getExt(dto.contentType);
+    const fullFileName = buildFileName(dto.identifier, extension);
+    
+    const objectPath = buildFullPath({
+      env: env.API_NODE_ENV,
+      resourceType: 'user-uploads',
+      usageType: dto.contentType.replace(/[^a-zA-Z0-9]/g, '-'),
+      finalFileName: fullFileName,
+    });
 
     try {
       // GCS 署名付き PUT URL を生成
@@ -71,27 +71,5 @@ export class UserUploadsService {
       });
       throw error;
     }
-  }
-
-  /**
-   * Content-Type からファイル拡張子を推測
-   */
-  private getFileExtension(contentType: string): string {
-    const extensionMap: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/jpg': 'jpg',
-      'image/png': 'png',
-      'image/gif': 'gif',
-      'image/webp': 'webp',
-      'image/svg+xml': 'svg',
-      'video/mp4': 'mp4',
-      'video/quicktime': 'mov',
-      'video/x-msvideo': 'avi',
-      'application/pdf': 'pdf',
-      'text/plain': 'txt',
-      'application/json': 'json',
-    };
-
-    return extensionMap[contentType.toLowerCase()] || '';
   }
 }

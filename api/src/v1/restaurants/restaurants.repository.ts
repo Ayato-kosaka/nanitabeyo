@@ -8,6 +8,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+import { Prisma } from '../../../../shared/prisma/client';
 import {
   QueryRestaurantsDto,
   QueryRestaurantDishMediaDto,
@@ -34,9 +35,10 @@ export class RestaurantsRepository {
   ) {}
 
   /* ------------------------------------------------------------------ */
-  /*                    餐厅搜索查询（周边 + 入札状况）                    */
+  /*                    Restaurant search queries (nearby + bidding status)                    */
   /* ------------------------------------------------------------------ */
   async searchNearbyRestaurants(
+    tx: Prisma.TransactionClient,
     dto: QueryRestaurantsDto,
   ): Promise<RestaurantWithMeta[]> {
     this.logger.debug('SearchNearbyRestaurants', 'searchNearbyRestaurants', {
@@ -45,11 +47,11 @@ export class RestaurantsRepository {
       radius: dto.radius,
     });
 
-    // 地理围栏查询：根据经纬度和半径查找餐厅
-    const radiusInKm = dto.radius / 1000; // 转换为公里
-    const radiusInDegrees = radiusInKm / 111; // 大致转换（1度约等于111公里）
+    // Geographic fence query: find restaurants based on latitude/longitude and radius
+    const radiusInKm = dto.radius / 1000; // Convert to kilometers
+    const radiusInDegrees = radiusInKm / 111; // Rough conversion (1 degree ≈ 111 km)
 
-    const rawResult = await this.prisma.prisma.$queryRaw<
+    const rawResult = await tx.$queryRaw<
       (PrismaRestaurants & {
         total_cents: number;
         max_end_date: string | null;
@@ -85,29 +87,33 @@ export class RestaurantsRepository {
   }
 
   /* ------------------------------------------------------------------ */
-  /*               餐厅的菜品媒体查询（按餐厅和类别过滤）                    */
+  /*               Restaurant dish media queries (filter by restaurant and category)                    */
   /* ------------------------------------------------------------------ */
   async findRestaurantByGooglePlaceId(
+    tx: Prisma.TransactionClient,
     google_place_id: string,
   ): Promise<PrismaRestaurants | null> {
-    return this.prisma.prisma.restaurants.findUnique({
+    return tx.restaurants.findUnique({
       where: { google_place_id },
     });
   }
 
   /* ------------------------------------------------------------------ */
-  /*                   餐厅评论统计（数量 + 平均评分）                       */
+  /*                   Restaurant review statistics (count + average rating)                       */
   /* ------------------------------------------------------------------ */
-  async getRestaurantReviewStats(restaurant_id: string) {
+  async getRestaurantReviewStats(
+    tx: Prisma.TransactionClient, 
+    restaurant_id: string
+  ) {
     this.logger.debug('GetRestaurantReviewStats', 'getRestaurantReviewStats', {
       restaurant_id,
     });
-    const result = await this.prisma.prisma.dish_reviews.aggregate({
+    const result = await tx.dish_reviews.aggregate({
       where: {
         dishes: { restaurant_id },
       },
-      _count: { _all: true }, // レビュー件数
-      _avg: { rating: true }, // rating の平均
+      _count: { _all: true }, // Review count
+      _avg: { rating: true }, // Average rating
     });
     const reviewCount = result._count?._all ?? 0;
     const averageRating = result._avg?.rating ?? 0;
@@ -119,10 +125,10 @@ export class RestaurantsRepository {
   }
 
   /* ------------------------------------------------------------------ */
-  /*                          查找餐厅是否存在                          */
+  /*                          Check if restaurant exists                          */
   /* ------------------------------------------------------------------ */
-  async restaurantExists(id: string): Promise<boolean> {
-    const count = await this.prisma.prisma.restaurants.count({
+  async restaurantExists(tx: Prisma.TransactionClient, id: string): Promise<boolean> {
+    const count = await tx.restaurants.count({
       where: { id },
     });
     return count > 0;

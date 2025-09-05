@@ -2,13 +2,14 @@
 //
 // ❶ Service for restaurants domain - business logic
 // ❷ Following the pattern from dish-media/dish-media.service.ts
-// ❃ Handles Google Place API integration, restaurant creation/search, dish media queries
+// ❸ Handles Google Place API integration, restaurant creation/search, dish media queries
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { ExternalApiService } from '../../core/external-api/external-api.service';
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
+import { Prisma } from '../../../../shared/prisma/client';
 import {
   QueryRestaurantsDto,
   CreateRestaurantDto,
@@ -35,7 +36,7 @@ export class RestaurantsService {
   ) {}
 
   /* ------------------------------------------------------------------ */
-  /*              GET /v1/restaurants/search (周边餐厅搜索)               */
+  /*              GET /v1/restaurants/search (nearby restaurant search)               */
   /* ------------------------------------------------------------------ */
   async searchRestaurants(
     dto: QueryRestaurantsDto,
@@ -46,8 +47,10 @@ export class RestaurantsService {
       radius: dto.radius,
     });
 
-    // 从数据库查询周边餐厅和入札状况
-    const results = await this.repo.searchNearbyRestaurants(dto);
+    // Query nearby restaurants and bidding status from database
+    const results = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) => this.repo.searchNearbyRestaurants(tx, dto),
+    );
 
     this.logger.debug('SearchRestaurantsResult', 'searchRestaurants', {
       count: results.length,
@@ -60,7 +63,7 @@ export class RestaurantsService {
   }
 
   /* ------------------------------------------------------------------ */
-  /*             POST /v1/restaurants (Google Place ID 创建)           */
+  /*             POST /v1/restaurants (Google Place ID creation)           */
   /* ------------------------------------------------------------------ */
   async createRestaurant(
     dto: CreateRestaurantDto,
@@ -69,31 +72,31 @@ export class RestaurantsService {
       googlePlaceId: dto.googlePlaceId,
     });
 
-    // 1. レストランが既に存在するか確認
-    let restaurant = await this.repo.findRestaurantByGooglePlaceId(
-      dto.googlePlaceId,
+    // 1. Check if restaurant already exists
+    let restaurant = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) => this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
     );
     let restaurantReviewStats = {
       reviewCount: 0,
       averageRating: 0,
     };
     if (restaurant) {
-      restaurantReviewStats = await this.repo.getRestaurantReviewStats(
-        restaurant.id,
+      restaurantReviewStats = await this.prisma.withTransaction(
+        (tx: Prisma.TransactionClient) => this.repo.getRestaurantReviewStats(tx, restaurant!.id),
       );
     } else {
-      // 2. 调用 Google Place Details API 获取详细信息
+      // 2. Call Google Place Details API to get detailed information
       try {
         const fieldMask =
           'id,displayName,formattedAddress,location,nationalPhoneNumber,websiteUri,rating,userRatingCount,priceLevel,regularOpeningHours,photos,types';
         const placeDetail = await this.externalApi.callPlaceDetails(
           fieldMask,
           dto.googlePlaceId,
-          'ja', // 日语优先
+          'ja', // Japanese priority
         );
 
-        // 3. 创建餐厅记录
-        // TODO: restaurant = await this.DishesRepository.createOrGetRestaurant(placeDetail);
+        // 3. Create restaurant record
+        // TODO: restaurant = await this.repo.createRestaurant(placeDetail);
 
         this.logger.debug('RestaurantCreated', 'createRestaurant', {
           // restaurantId: restaurant.id,
@@ -115,7 +118,7 @@ export class RestaurantsService {
   }
 
   /* ------------------------------------------------------------------ */
-  /*         GET /v1/restaurants/{id}/dish-media (餐厅料理投稿一览)        */
+  /*         GET /v1/restaurants/{id}/dish-media (restaurant dish media list)        */
   /* ------------------------------------------------------------------ */
   async getRestaurantDishMedia(
     restaurantId: string,
@@ -128,13 +131,15 @@ export class RestaurantsService {
       viewer: userId ?? 'anon',
     });
 
-    // 验证餐厅是否存在
-    const restaurantExists = await this.repo.restaurantExists(restaurantId);
+    // Validate restaurant exists
+    const restaurantExists = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) => this.repo.restaurantExists(tx, restaurantId),
+    );
     if (!restaurantExists) {
       throw new NotFoundException('Restaurant not found');
     }
 
-    // TODO: const dishMediaByRestaurant = await this.DishMediaRepository.findDishMediaByRestaurant(restaurantId, dto);
+    // TODO: const dishMediaByRestaurant = await this.repo.findDishMediaByRestaurant(restaurantId, dto);
 
     // const dishMediaIds = dishMediaByRestaurant.map((l) => l.dish_media_id);
 
@@ -159,7 +164,7 @@ export class RestaurantsService {
   }
 
   /* ------------------------------------------------------------------ */
-  /*    GET /v1/restaurants/by-google-place-id (Google Place ID 查询)  */
+  /*    GET /v1/restaurants/by-google-place-id (Google Place ID query)  */
   /* ------------------------------------------------------------------ */
   async getRestaurantByGooglePlaceId(
     dto: QueryRestaurantsByGooglePlaceIdDto,
@@ -172,9 +177,9 @@ export class RestaurantsService {
       },
     );
 
-    // 从数据库查询餐厅
-    const restaurant = await this.repo.findRestaurantByGooglePlaceId(
-      dto.googlePlaceId,
+    // Query restaurant from database
+    const restaurant = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) => this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
     );
 
     if (!restaurant) {
