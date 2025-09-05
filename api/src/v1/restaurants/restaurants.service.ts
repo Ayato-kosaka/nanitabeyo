@@ -21,10 +21,7 @@ import {
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
 } from '@shared/v1/res';
-import {
-  RestaurantsRepository,
-  RestaurantWithMeta,
-} from './restaurants.repository';
+import { RestaurantsRepository } from './restaurants.repository';
 import { RestaurantsMapper } from './restaurants.mapper';
 
 @Injectable()
@@ -56,7 +53,10 @@ export class RestaurantsService {
       count: results.length,
     });
 
-    return results;
+    return results.map((r) => ({
+      restaurant: convertPrismaToSupabase_Restaurants(r.restaurant),
+      meta: r.meta,
+    }));
   }
 
   /* ------------------------------------------------------------------ */
@@ -69,43 +69,49 @@ export class RestaurantsService {
       googlePlaceId: dto.googlePlaceId,
     });
 
-    // 1. 先检查数据库中是否已存在
-    const existingRestaurant = await this.repo.findByGooglePlaceId(
+    // 1. レストランが既に存在するか確認
+    let restaurant = await this.repo.findRestaurantByGooglePlaceId(
       dto.googlePlaceId,
     );
-    if (existingRestaurant) {
-      this.logger.debug('RestaurantExists', 'createRestaurant', {
-        restaurantId: existingRestaurant.id,
-      });
-      return convertPrismaToSupabase_Restaurants(existingRestaurant);
-    }
-
-    // 2. 调用 Google Place Details API 获取详细信息
-    try {
-      const fieldMask =
-        'id,displayName,formattedAddress,location,nationalPhoneNumber,websiteUri,rating,userRatingCount,priceLevel,regularOpeningHours,photos,types';
-      const placeDetail = await this.externalApi.callPlaceDetails(
-        fieldMask,
-        dto.googlePlaceId,
-        'ja', // 日语优先
+    let restaurantReviewStats = {
+      reviewCount: 0,
+      averageRating: 0,
+    };
+    if (restaurant) {
+      restaurantReviewStats = await this.repo.getRestaurantReviewStats(
+        restaurant.id,
       );
+    } else {
+      // 2. 调用 Google Place Details API 获取详细信息
+      try {
+        const fieldMask =
+          'id,displayName,formattedAddress,location,nationalPhoneNumber,websiteUri,rating,userRatingCount,priceLevel,regularOpeningHours,photos,types';
+        const placeDetail = await this.externalApi.callPlaceDetails(
+          fieldMask,
+          dto.googlePlaceId,
+          'ja', // 日语优先
+        );
 
-      // 3. 创建餐厅记录
-      const newRestaurant = await this.repo.createRestaurant(placeDetail);
+        // 3. 创建餐厅记录
+        // TODO: restaurant = await this.DishesRepository.createOrGetRestaurant(placeDetail);
 
-      this.logger.debug('RestaurantCreated', 'createRestaurant', {
-        restaurantId: newRestaurant.id,
-        name: newRestaurant.name,
-      });
-
-      return convertPrismaToSupabase_Restaurants(newRestaurant);
-    } catch (error) {
-      this.logger.error('GooglePlaceDetailsFailed', 'createRestaurant', {
-        googlePlaceId: dto.googlePlaceId,
-        error: (error as Error).message,
-      });
-      throw new NotFoundException('Google Place not found or invalid');
+        this.logger.debug('RestaurantCreated', 'createRestaurant', {
+          // restaurantId: restaurant.id,
+          // name: restaurant.name,
+        });
+      } catch (error) {
+        this.logger.error('GooglePlaceDetailsFailed', 'createRestaurant', {
+          googlePlaceId: dto.googlePlaceId,
+          error: (error as Error).message,
+        });
+        throw new NotFoundException('Google Place not found or invalid');
+      }
     }
+
+    return {
+      ...convertPrismaToSupabase_Restaurants(restaurant!),
+      ...restaurantReviewStats,
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -114,12 +120,12 @@ export class RestaurantsService {
   async getRestaurantDishMedia(
     restaurantId: string,
     dto: QueryRestaurantDishMediaDto,
-    viewerId?: string,
+    userId?: string,
   ): Promise<QueryRestaurantDishMediaResponse> {
     this.logger.debug('GetRestaurantDishMedia', 'getRestaurantDishMedia', {
       restaurantId,
       cursor: dto.cursor,
-      viewer: viewerId ?? 'anon',
+      viewer: userId ?? 'anon',
     });
 
     // 验证餐厅是否存在
@@ -128,21 +134,28 @@ export class RestaurantsService {
       throw new NotFoundException('Restaurant not found');
     }
 
-    // 获取餐厅的料理投稿数据
-    const items = await this.repo.getRestaurantDishMedia(restaurantId, dto);
+    // TODO: const dishMediaByRestaurant = await this.DishMediaRepository.findDishMediaByRestaurant(restaurantId, dto);
 
-    // 转换为响应格式
-    const response = this.mapper.toRestaurantDishMediaResponse(items, viewerId);
+    // const dishMediaIds = dishMediaByRestaurant.map((l) => l.dish_media_id);
+
+    // const dishMediaEntries =
+    //   await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
+    //     userId,
+    //   });
 
     this.logger.debug(
       'GetRestaurantDishMediaResult',
       'getRestaurantDishMedia',
       {
-        count: response.data.length,
+        // count: dishMediaEntries.length,
       },
     );
 
-    return response;
+    // return this.mapper.toRestaurantDishMediaResponse({
+    //   data: dishMediaEntries,
+    //   nextCursor: dishMediaByRestaurant.nextCursor,
+    // });
+    return {} as QueryRestaurantDishMediaResponse;
   }
 
   /* ------------------------------------------------------------------ */
@@ -160,7 +173,9 @@ export class RestaurantsService {
     );
 
     // 从数据库查询餐厅
-    const restaurant = await this.repo.findByGooglePlaceId(dto.googlePlaceId);
+    const restaurant = await this.repo.findRestaurantByGooglePlaceId(
+      dto.googlePlaceId,
+    );
 
     if (!restaurant) {
       this.logger.debug('RestaurantNotFound', 'getRestaurantByGooglePlaceId', {

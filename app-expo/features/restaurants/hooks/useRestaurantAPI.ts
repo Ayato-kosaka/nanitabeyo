@@ -15,7 +15,7 @@ import type {
 
 /**
  * レストラン関連の API 呼び出しフック
- * 
+ *
  * - レストラン検索（地理座標ベース）
  * - Google Place ID によるレストラン作成・取得
  * - レストランの料理投稿一覧取得
@@ -33,13 +33,10 @@ export const useRestaurantAPI = () => {
 			setIsLoading(true);
 			setError(null);
 			try {
-				const response = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>(
-					"/v1/restaurants/search",
-					{
-						method: "GET",
-						requestPayload: params,
-					}
-				);
+				const response = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>("/v1/restaurants/search", {
+					method: "GET",
+					requestPayload: params,
+				});
 				return response;
 			} catch (err) {
 				const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -49,7 +46,7 @@ export const useRestaurantAPI = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend]
+		[callBackend],
 	);
 
 	/**
@@ -60,13 +57,10 @@ export const useRestaurantAPI = () => {
 			setIsLoading(true);
 			setError(null);
 			try {
-				const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>(
-					"/v1/restaurants",
-					{
-						method: "POST",
-						requestPayload: data,
-					}
-				);
+				const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("/v1/restaurants", {
+					method: "POST",
+					requestPayload: data,
+				});
 				return response;
 			} catch (err) {
 				const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -76,7 +70,7 @@ export const useRestaurantAPI = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend]
+		[callBackend],
 	);
 
 	/**
@@ -87,13 +81,13 @@ export const useRestaurantAPI = () => {
 			setIsLoading(true);
 			setError(null);
 			try {
-				const response = await callBackend<QueryRestaurantsByGooglePlaceIdDto, QueryRestaurantsByGooglePlaceIdResponse | null>(
-					"/v1/restaurants/by-google-place-id",
-					{
-						method: "GET",
-						requestPayload: params,
-					}
-				);
+				const response = await callBackend<
+					QueryRestaurantsByGooglePlaceIdDto,
+					QueryRestaurantsByGooglePlaceIdResponse | null
+				>("/v1/restaurants/by-google-place-id", {
+					method: "GET",
+					requestPayload: params,
+				});
 				return response;
 			} catch (err) {
 				const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -103,7 +97,7 @@ export const useRestaurantAPI = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend]
+		[callBackend],
 	);
 
 	/**
@@ -119,7 +113,7 @@ export const useRestaurantAPI = () => {
 					{
 						method: "GET",
 						requestPayload: params,
-					}
+					},
 				);
 				return response;
 			} catch (err) {
@@ -130,7 +124,7 @@ export const useRestaurantAPI = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend]
+		[callBackend],
 	);
 
 	return {

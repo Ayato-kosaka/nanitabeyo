@@ -14,7 +14,11 @@ import { BidForm } from "@/features/map/components/BidForm";
 import { Tabs, GridList } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
-import { QueryRestaurantDishMediaResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
+import {
+	CreateRestaurantResponse,
+	QueryRestaurantDishMediaResponse,
+	QueryRestaurantsResponse,
+} from "@shared/api/v1/res";
 import { mockDishItems } from "@/data/searchMockData";
 import { useLogger } from "@/hooks/useLogger";
 import { SupabaseRestaurantBids } from "@shared/converters/convert_restaurant_bids";
@@ -22,6 +26,8 @@ import { SupabaseRestaurantBids } from "@shared/converters/convert_restaurant_bi
 type BidStatus = { id: SupabaseRestaurantBids["status"]; label: string; color: string };
 type Props = {
 	id: string;
+	totalCents: number;
+	maxEndDate: string | null;
 };
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
@@ -44,10 +50,10 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({ id }: Props) {
+export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
+	const [selectedRestaurant, setSelectedRestaurant] = useState<CreateRestaurantResponse | null>(null);
 
 	// Bid status filters
 	const bidStatuses: BidStatus[] = [
@@ -81,7 +87,10 @@ export function SelectedRestaurantDetails({ id }: Props) {
 
 	useEffect(() => {
 		// TODO: GET /v1/restaurants を呼び出す
-		setSelectedPlace(mockActiveBids.find((bid) => bid.restaurant.google_place_id === id) || null);
+		const mockActiveBid = mockActiveBids.find((bid) => bid.restaurant.google_place_id === id);
+		if (mockActiveBid) {
+			setSelectedRestaurant({ ...mockActiveBid.restaurant, reviewCount: 120, averageRating: 4.5 });
+		}
 	}, [id]);
 
 	const handleBid = async (bidAmount: string) => {
@@ -93,14 +102,14 @@ export function SelectedRestaurantDetails({ id }: Props) {
 			logFrontendEvent({
 				event_name: "restaurant_bid_submitted",
 				error_level: "log",
-				payload: { restaurantId: selectedPlace?.restaurant.id, bidAmount: Number(bidAmount) },
+				payload: { restaurantId: selectedRestaurant?.id, bidAmount: Number(bidAmount) },
 			});
 			closeBidModal();
 		} catch {
 			logFrontendEvent({
 				event_name: "restaurant_bid_submission_failed",
 				error_level: "error",
-				payload: { restaurantId: selectedPlace?.restaurant.id, bidAmount: Number(bidAmount) },
+				payload: { restaurantId: selectedRestaurant?.id, bidAmount: Number(bidAmount) },
 			});
 		} finally {
 			setIsProcessing(false);
@@ -116,14 +125,14 @@ export function SelectedRestaurantDetails({ id }: Props) {
 			logFrontendEvent({
 				event_name: "restaurant_review_submitted",
 				error_level: "log",
-				payload: { restaurantId: selectedPlace?.restaurant.id, rating: data.rating },
+				payload: { restaurantId: selectedRestaurant?.id, rating: data.rating },
 			});
 			closeReviewModal();
 		} catch {
 			logFrontendEvent({
 				event_name: "restaurant_review_submission_failed",
 				error_level: "error",
-				payload: { restaurantId: selectedPlace?.restaurant.id, rating: data.rating },
+				payload: { restaurantId: selectedRestaurant?.id, rating: data.rating },
 			});
 		} finally {
 			setIsProcessing(false);
@@ -137,42 +146,39 @@ export function SelectedRestaurantDetails({ id }: Props) {
 	}, []);
 
 	const renderHeader = useCallback(() => {
-		return selectedPlace ? (
+		return selectedRestaurant ? (
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image source={{ uri: selectedPlace.restaurant.image_url }} style={styles.restaurantAvatar} />
+						<Image source={{ uri: selectedRestaurant.image_url }} style={styles.restaurantAvatar} />
 						<View style={styles.restaurantDetails}>
-							<Text style={styles.restaurantName}>{selectedPlace.restaurant.name}</Text>
+							<Text style={styles.restaurantName}>{selectedRestaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={selectedPlace.restaurant.averageRating} />
-								<Text style={styles.ratingText}>{selectedPlace.restaurant.averageRating}</Text>
-								<Text style={styles.reviewCount}>({selectedPlace.restaurant.reviewCount})</Text>
+								<Stars rating={selectedRestaurant.averageRating} />
+								<Text style={styles.ratingText}>{selectedRestaurant.averageRating}</Text>
+								<Text style={styles.reviewCount}>({selectedRestaurant.reviewCount})</Text>
 							</View>
 						</View>
 					</View>
 				</Card>
 
-				<View style={styles.bidAmountContainer}>
-					<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
-					<Text style={styles.bidAmount}>
-						{i18n.t("Search.currencySuffix")}
-						{selectedPlace.meta.totalCents.toLocaleString()}
-					</Text>
-					<Text style={styles.remainingDays}>
-						{i18n.t("Common.daysRemaining", {
-							count: selectedPlace.meta.maxEndDate
-								? Math.max(
-										0,
-										Math.ceil(
-											(new Date(selectedPlace.meta.maxEndDate).getTime() - new Date().getTime()) /
-												(1000 * 60 * 60 * 24),
-										),
-									)
-								: 0,
-						})}
-					</Text>
-				</View>
+				{maxEndDate && (
+					<View style={styles.bidAmountContainer}>
+						<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
+						<Text style={styles.bidAmount}>
+							{i18n.t("Search.currencySuffix")}
+							{totalCents.toLocaleString()}
+						</Text>
+						<Text style={styles.remainingDays}>
+							{i18n.t("Common.daysRemaining", {
+								count: Math.max(
+									0,
+									Math.ceil((new Date(maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+								),
+							})}
+						</Text>
+					</View>
+				)}
 
 				<View style={styles.actionButtons}>
 					<PrimaryButton
@@ -194,7 +200,7 @@ export function SelectedRestaurantDetails({ id }: Props) {
 		) : (
 			<Card />
 		);
-	}, [handleHeaderLayout, openReviewModal, openBidModal, selectedPlace]);
+	}, [handleHeaderLayout, openReviewModal, openBidModal, selectedRestaurant]);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 

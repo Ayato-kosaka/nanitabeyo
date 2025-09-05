@@ -1,15 +1,11 @@
 import { useState, useCallback } from "react";
 import { useAPICall } from "@/hooks/useAPICall";
-import type {
-	CreateUserUploadSignedUrlDto,
-} from "@shared/api/v1/dto";
-import type {
-	CreateUserUploadSignedUrlResponse,
-} from "@shared/api/v1/res";
+import type { CreateUserUploadSignedUrlDto } from "@shared/api/v1/dto";
+import type { CreateUserUploadSignedUrlResponse } from "@shared/api/v1/res";
 
 /**
  * ファイルアップロード関連の API 呼び出しフック
- * 
+ *
  * - GCS 署名付き URL の発行
  * - ファイルアップロードの実行
  */
@@ -32,7 +28,7 @@ export const useFileUpload = () => {
 					{
 						method: "POST",
 						requestPayload: data,
-					}
+					},
 				);
 				return response;
 			} catch (err) {
@@ -43,57 +39,54 @@ export const useFileUpload = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend]
+		[callBackend],
 	);
 
 	/**
 	 * 署名付き URL を使ってファイルをアップロード
 	 */
-	const uploadFile = useCallback(
-		async (putUrl: string, file: Blob | File, contentType: string): Promise<void> => {
-			setIsLoading(true);
-			setUploadProgress(0);
-			setError(null);
+	const uploadFile = useCallback(async (putUrl: string, file: Blob | File, contentType: string): Promise<void> => {
+		setIsLoading(true);
+		setUploadProgress(0);
+		setError(null);
 
-			try {
-				// Create XMLHttpRequest for progress tracking
-				const xhr = new XMLHttpRequest();
+		try {
+			// Create XMLHttpRequest for progress tracking
+			const xhr = new XMLHttpRequest();
 
-				return new Promise((resolve, reject) => {
-					xhr.upload.addEventListener("progress", (event) => {
-						if (event.lengthComputable) {
-							const progress = (event.loaded / event.total) * 100;
-							setUploadProgress(progress);
-						}
-					});
-
-					xhr.addEventListener("load", () => {
-						if (xhr.status >= 200 && xhr.status < 300) {
-							setUploadProgress(100);
-							resolve();
-						} else {
-							reject(new Error(`Upload failed with status: ${xhr.status}`));
-						}
-					});
-
-					xhr.addEventListener("error", () => {
-						reject(new Error("Network error during upload"));
-					});
-
-					xhr.open("PUT", putUrl);
-					xhr.setRequestHeader("Content-Type", contentType);
-					xhr.send(file);
+			return new Promise((resolve, reject) => {
+				xhr.upload.addEventListener("progress", (event) => {
+					if (event.lengthComputable) {
+						const progress = (event.loaded / event.total) * 100;
+						setUploadProgress(progress);
+					}
 				});
-			} catch (err) {
-				const errorMessage = err instanceof Error ? err.message : "Upload failed";
-				setError(errorMessage);
-				throw err;
-			} finally {
-				setIsLoading(false);
-			}
-		},
-		[]
-	);
+
+				xhr.addEventListener("load", () => {
+					if (xhr.status >= 200 && xhr.status < 300) {
+						setUploadProgress(100);
+						resolve();
+					} else {
+						reject(new Error(`Upload failed with status: ${xhr.status}`));
+					}
+				});
+
+				xhr.addEventListener("error", () => {
+					reject(new Error("Network error during upload"));
+				});
+
+				xhr.open("PUT", putUrl);
+				xhr.setRequestHeader("Content-Type", contentType);
+				xhr.send(file);
+			});
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "Upload failed";
+			setError(errorMessage);
+			throw err;
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
 
 	/**
 	 * 署名付き URL 発行とファイルアップロードを一度に実行
@@ -102,7 +95,7 @@ export const useFileUpload = () => {
 		async (
 			file: Blob | File,
 			contentType: string,
-			identifier: string
+			identifier: string,
 		): Promise<{ objectPath: string; putUrl: string }> => {
 			try {
 				// 1. 署名付き URL を取得
@@ -124,7 +117,7 @@ export const useFileUpload = () => {
 				throw err;
 			}
 		},
-		[getSignedUploadUrl, uploadFile]
+		[getSignedUploadUrl, uploadFile],
 	);
 
 	return {
