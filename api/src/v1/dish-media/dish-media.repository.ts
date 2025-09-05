@@ -19,6 +19,7 @@ import {
   SearchDishMediaDto,
   LikeDishMediaParamsDto,
   SaveDishMediaParamsDto,
+  QueryRestaurantDishMediaDto,
 } from '@shared/v1/dto';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -51,7 +52,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -117,6 +118,73 @@ export class DishMediaRepository {
       LIMIT ${limit};
     `,
     );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*    レストランの料理メディアを取得（各料理のメディア1件、いいね数が最大のもの） */
+  /* ------------------------------------------------------------------ */
+  async findDishMediaByRestaurant(
+    restaurantId: string,
+    { limit = 42, cursor: cursorStr }: QueryRestaurantDishMediaDto,
+  ) {
+    const cursor = cursorStr
+      ? {
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
+      : null;
+    const cursorWhere = cursor
+      ? Prisma.sql`
+          AND (
+            ranked.like_count < ${cursor.likeCount}
+            OR (ranked.like_count = ${cursor.likeCount} AND ranked.dish_media_id < ${cursor.mediaId})
+          )
+        `
+      : Prisma.empty;
+
+    const rows = await this.prisma.prisma.$queryRaw<
+      { dish_media_id: string; dish_id: string; like_count: number }[]
+    >(Prisma.sql`
+      WITH media_like_counts AS (
+        SELECT
+          dm.id        AS dish_media_id,
+          dm.dish_id   AS dish_id,
+          COUNT(dml.id) AS like_count
+        FROM dish_media dm
+        JOIN dishes d
+          ON d.id = dm.dish_id
+        LEFT JOIN dish_media_likes dml
+          ON dml.dish_media_id = dm.id
+        WHERE d.restaurant_id = ${restaurantId}
+        GROUP BY dm.id, dm.dish_id
+      ),
+      ranked AS (
+        SELECT
+          mlc.*,
+          ROW_NUMBER() OVER (
+            PARTITION BY mlc.dish_id
+            ORDER BY mlc.like_count DESC, mlc.dish_media_id DESC
+          ) AS rn
+        FROM media_like_counts mlc
+      )
+      SELECT
+        ranked.dish_media_id,
+        ranked.dish_id,
+        ranked.like_count
+      FROM ranked
+      WHERE ranked.rn = 1
+        ${cursorWhere}
+      ORDER BY ranked.like_count DESC, ranked.dish_media_id DESC
+      LIMIT ${limit};
+    `);
+
+    // 次ページ用カーソル（取得できた最後の行の複合キーをそのまま返す）
+    const last = rows[rows.length - 1];
+    const nextCursor: string | null = last
+      ? `${last.like_count}_${last.dish_media_id}`
+      : null;
+
+    return { items: rows, nextCursor };
   }
 
   /* ------------------------------------------------------------------ */
@@ -406,14 +474,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -429,12 +497,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
