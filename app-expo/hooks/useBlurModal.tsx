@@ -32,7 +32,6 @@ export interface BlurModalOptions {
 	closeIconColor?: string;
 	/** モーダル内部レイヤーの zIndex */
 	zIndex?: number;
-
 	/** iOSでヘッダー等の高さ分を避けたい場合のオフセット */
 	keyboardVerticalOffset?: number;
 	/** バックドロップ/戻るキーで、まずキーボードだけ閉じる */
@@ -93,6 +92,7 @@ export function useBlurModal({
 
 	/* ---- バックドロップ押下の処理 ---- */
 	const handleBackdropPress = useCallback(() => {
+		console.log("Backdrop pressed");
 		if (dismissKeyboardFirst && isKeyboardVisibleRef.current) {
 			Keyboard.dismiss();
 			return;
@@ -149,6 +149,7 @@ export function useBlurModal({
 								style={{ flex: 1 }}
 								behavior={Platform.OS === "ios" ? "padding" : "height"}
 								keyboardVerticalOffset={keyboardVerticalOffset}
+								pointerEvents="box-none"
 								onStartShouldSetResponder={() => {
 									Keyboard.dismiss();
 									return false; // ← 自分ではレスポンダを奪わない（子要素にタップを渡す）
