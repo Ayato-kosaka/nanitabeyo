@@ -1,7 +1,16 @@
-import React, { ReactNode, memo, useCallback, useEffect, useState } from "react";
-import { BackHandler, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import React, { ReactNode, memo, useCallback, useEffect, useState, useRef } from "react";
+import {
+	BackHandler,
+	Platform,
+	Pressable,
+	StyleProp,
+	StyleSheet,
+	View,
+	ViewStyle,
+	Keyboard,
+	KeyboardAvoidingView,
+} from "react-native";
 import { BlurView } from "expo-blur";
-import { ScrollView } from "react-native";
 import { X } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { Portal } from "react-native-paper";
@@ -23,6 +32,10 @@ export interface BlurModalOptions {
 	closeIconColor?: string;
 	/** モーダル内部レイヤーの zIndex */
 	zIndex?: number;
+	/** iOSでヘッダー等の高さ分を避けたい場合のオフセット */
+	keyboardVerticalOffset?: number;
+	/** バックドロップ/戻るキーで、まずキーボードだけ閉じる */
+	dismissKeyboardFirst?: boolean;
 }
 
 export function useBlurModal({
@@ -32,8 +45,11 @@ export function useBlurModal({
 	closeIconSize = 28,
 	closeIconColor = "#666666",
 	zIndex = 1100,
+	keyboardVerticalOffset = 0,
+	dismissKeyboardFirst = true,
 }: BlurModalOptions = {}) {
 	const [visible, setVisible] = useState(false);
+	const isKeyboardVisibleRef = useRef(false);
 
 	/* ── 開閉メソッド ─────────────────────────────────────────────── */
 	const open = useCallback(() => setVisible(true), []);
@@ -44,6 +60,11 @@ export function useBlurModal({
 	useEffect(() => {
 		if (!visible) return;
 		const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+			/* ---- まずキーボードを閉じる ---- */
+			if (isKeyboardVisibleRef.current) {
+				Keyboard.dismiss();
+				return true;
+			}
 			close();
 			return true; // ハンドリング済み
 		});
@@ -54,6 +75,30 @@ export function useBlurModal({
 	useEffect(() => {
 		visible ? onOpen?.() : onClose?.();
 	}, [visible, onOpen, onClose]);
+
+	/* ---- キーボード可視状態の追跡 ---- */
+	useEffect(() => {
+		const showSub = Keyboard.addListener("keyboardDidShow", () => {
+			isKeyboardVisibleRef.current = true;
+		});
+		const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+			isKeyboardVisibleRef.current = false;
+		});
+		return () => {
+			showSub.remove();
+			hideSub.remove();
+		};
+	}, []);
+
+	/* ---- バックドロップ押下の処理 ---- */
+	const handleBackdropPress = useCallback(() => {
+		console.log("Backdrop pressed");
+		if (dismissKeyboardFirst && isKeyboardVisibleRef.current) {
+			Keyboard.dismiss();
+			return;
+		}
+		close();
+	}, [dismissKeyboardFirst, close]);
 
 	/* ── モーダル Component ───────────────────────────────────────── */
 	const BlurModal = useCallback(
@@ -72,7 +117,7 @@ export function useBlurModal({
 				// Render children - support both ReactNode and render prop pattern
 				const renderChildren = () => {
 					if (typeof children === "function") {
-						return children({ close });
+						return (children as (p: { close: () => void }) => ReactNode)({ close });
 					}
 					return children;
 				};
@@ -83,7 +128,7 @@ export function useBlurModal({
 						<View style={[StyleSheet.absoluteFill, { zIndex }]} pointerEvents="box-none">
 							{/* Dim overlay to ensure consistent contrast across platforms */}
 							<Pressable
-								onPress={close}
+								onPress={handleBackdropPress}
 								style={[StyleSheet.absoluteFillObject]}
 								android_ripple={{ color: "rgba(255,255,255,0.05)" }}>
 								{/* Blur background */}
@@ -98,25 +143,24 @@ export function useBlurModal({
 								) : (
 									<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
 								)}
-
-								{/* Content (non-blocking layout wrapper) */}
-								{Platform.OS === "ios" && (
-									<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
-										<View pointerEvents="auto" style={contentContainerStyle}>
-											{renderChildren()}
-										</View>
-									</View>
-								)}
 							</Pressable>
 
-							{/* Content (non-blocking layout wrapper) */}
-							{Platform.OS !== "ios" && (
+							<KeyboardAvoidingView
+								style={{ flex: 1 }}
+								behavior={Platform.OS === "ios" ? "padding" : "height"}
+								keyboardVerticalOffset={keyboardVerticalOffset}
+								pointerEvents="box-none"
+								onStartShouldSetResponder={() => {
+									Keyboard.dismiss();
+									return false; // ← 自分ではレスポンダを奪わない（子要素にタップを渡す）
+								}}>
+								{/* Content (non-blocking layout wrapper) */}
 								<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
 										{renderChildren()}
 									</View>
 								</View>
-							)}
+							</KeyboardAvoidingView>
 
 							{/* Close button */}
 							{showCloseButton && (
@@ -141,7 +185,7 @@ export function useBlurModal({
 				);
 			},
 		),
-		[visible, intensity, close, zIndex, closeIconColor, closeIconSize],
+		[visible, intensity, close, zIndex, closeIconColor, closeIconSize, keyboardVerticalOffset, handleBackdropPress],
 	);
 
 	return { BlurModal, open, close, toggle, visible };

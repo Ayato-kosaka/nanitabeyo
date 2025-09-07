@@ -25,10 +25,10 @@ export const Card = forwardRef<View, CardProps>(
 	) => {
 		/** ----- Theme-aware background ----- */
 		const colorScheme = useColorScheme();
-		const bgColor = colorScheme === "dark" ? "rgba(255,255,255,0.05)" : "#FFFFFF";
+		const bgColor = colorScheme === "dark" ? "#1E1E1E" : "#FFFFFF";
 
 		/** ----- Compose shadow style (iOS / Android / Web) ----- */
-		const shadow: ViewStyle =
+		const shadowStyle: ViewStyle =
 			Platform.OS === "android"
 				? { elevation }
 				: {
@@ -41,19 +41,31 @@ export const Card = forwardRef<View, CardProps>(
 		/** ----- Merge all styles ----- */
 		const containerStyle: StyleProp<ViewStyle> = [
 			{
-				backgroundColor: bgColor,
 				borderRadius: radius,
 				margin: 16,
+				// Android の描画安定化（端末によって効く）
+				// @ts-ignore
+				renderToHardwareTextureAndroid: true,
+				backgroundColor: "transparent",
+			},
+			shadowStyle,
+		];
+		const surfaceStyle: StyleProp<ViewStyle> = [
+			{
+				backgroundColor: bgColor,
+				borderRadius: radius,
+				overflow: "hidden",
 				// Default padding
 				...(typeof padding === "number" ? { padding } : (padding as object)),
 			},
-			shadow,
 			style,
 		];
 
 		return (
-			<View ref={ref} style={containerStyle} {...rest}>
-				{children}
+			<View style={containerStyle} pointerEvents="box-none">
+				<View ref={ref} style={surfaceStyle} {...rest}>
+					{children}
+				</View>
 			</View>
 		);
 	},

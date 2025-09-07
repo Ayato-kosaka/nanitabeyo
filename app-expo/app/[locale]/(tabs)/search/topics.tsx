@@ -142,7 +142,7 @@ export default function TopicsScreen() {
 			)}
 
 			{/* Hide Card Modal */}
-			<HideTopicBlurModal contentContainerStyle={styles.modalOverlay}>
+			<HideTopicBlurModal>
 				{({ close }) => (
 					<HideTopicForm
 						onSubmit={(hideReason) => {
@@ -265,10 +265,5 @@ const styles = StyleSheet.create({
 		marginBottom: 24,
 		lineHeight: 28,
 		fontWeight: "500",
-	},
-	modalOverlay: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
 	},
 });
