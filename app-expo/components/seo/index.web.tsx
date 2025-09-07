@@ -1,4 +1,7 @@
-// app/_seo.tsx
+// app-expo/components/seo/index.web.tsx
+// React Native Web では <head> を直接操作できないため、expo-router の Head コンポーネントを利用
+// ただし、Expo Router の Head は Next.js の Head と完全互換ではないため、必要最低限の実装に留める
+
 import Head from "expo-router/head";
 import { usePathname, useSegments } from "expo-router";
 import { Env } from "@/constants/Env";
@@ -37,7 +40,7 @@ export function buildCanonical(pathNoLocale: string, locale: string) {
 	return `${WEB_BASE_URL}/${locale}${p}`.replace(/\/+$/, "");
 }
 
-type SeoProps = {
+export type SeoProps = {
 	title?: string;
 	description?: string;
 	image?: string; // できれば絶対URL
