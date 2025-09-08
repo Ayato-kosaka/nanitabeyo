@@ -107,18 +107,38 @@ export class RestaurantsService {
           'ja', // Japanese priority
         );
 
+
+        // Check required fields with proper validation for latitude/longitude
+        const missingFields: string[] = [];
+        if (!placeDetail.id) missingFields.push('id');
+        if (!placeDetail.displayName?.text) missingFields.push('displayName.text');
+        if (typeof placeDetail.location?.latitude !== 'number')
+          missingFields.push('location.latitude');
+        if (typeof placeDetail.location?.longitude !== 'number')
+          missingFields.push('location.longitude');
+        if (!placeDetail.addressComponents) missingFields.push('addressComponents');
+
+        if (missingFields.length > 0) {
+          this.logger.error('InvalidPlaceData', 'createRestaurant', {
+            placeId: placeDetail.id || 'unknown',
+            missingFields,
+            place: JSON.stringify(placeDetail),
+          });
+          throw new Error(
+            `Invalid place data - missing fields: ${missingFields.join(', ')}`,
+          );
+        }
+
         // 3. Create restaurant record
         const restaurantData: PrismaRestaurants = {
           id: 'unknown', // Will be assigned by database
           google_place_id: dto.googlePlaceId,
-          name: placeDetail.displayName?.text || 'Unknown Restaurant',
+          name: placeDetail.displayName!.text!,
           name_language_code: 'ja', // Japanese priority as set above
-          latitude: placeDetail.location?.latitude || 0,
-          longitude: placeDetail.location?.longitude || 0,
-          image_url: placeDetail.photos?.[0]?.name || '', // Use first photo if available, empty string as fallback
-          address_components: placeDetail.addressComponents
-            ? JSON.parse(JSON.stringify(placeDetail.addressComponents))
-            : null,
+          latitude: placeDetail.location!.latitude!,
+          longitude: placeDetail.location!.longitude!,
+          image_url: placeDetail.photos?.[0]?.name || '', // TODO: 引数から受け取る。
+          address_components: JSON.parse(JSON.stringify(placeDetail.addressComponents)),
           plus_code: placeDetail.plusCode
             ? JSON.parse(JSON.stringify(placeDetail.plusCode))
             : null,
