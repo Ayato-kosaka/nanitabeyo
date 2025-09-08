@@ -15,6 +15,8 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { ExternalApiModule } from '../../core/external-api/external-api.module';
 import { AuthModule } from '../../core/auth/auth.module';
+import { DishesModule } from '../dishes/dishes.module';
+import { DishMediaModule } from '../dish-media/dish-media.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { AuthModule } from '../../core/auth/auth.module';
     LoggerModule, // アプリ共通 Logger
     ExternalApiModule, // Google Place API 呼び出し
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
+    forwardRef(() => DishesModule), // DishesRepository を利用するため
+    forwardRef(() => DishMediaModule), // DishMediaService を利用するため
   ],
   controllers: [RestaurantsController],
   providers: [RestaurantsService, RestaurantsRepository, RestaurantsMapper],

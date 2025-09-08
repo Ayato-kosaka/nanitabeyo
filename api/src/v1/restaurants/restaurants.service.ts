@@ -24,6 +24,10 @@ import {
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
 import { RestaurantsMapper } from './restaurants.mapper';
+import { DishesRepository } from '../dishes/dishes.repository';
+import { DishMediaService } from '../dish-media/dish-media.service';
+import { DishMediaRepository } from '../dish-media/dish-media.repository';
+import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 
 @Injectable()
 export class RestaurantsService {
@@ -33,6 +37,9 @@ export class RestaurantsService {
     private readonly externalApi: ExternalApiService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
+    private readonly dishesRepository: DishesRepository,
+    private readonly dishMediaService: DishMediaService,
+    private readonly dishMediaRepository: DishMediaRepository,
   ) { }
 
   /* ------------------------------------------------------------------ */
@@ -101,12 +108,38 @@ export class RestaurantsService {
         );
 
         // 3. Create restaurant record
-        // TODO: restaurant = await this.repo.createRestaurant(placeDetail);
+        const restaurantData: PrismaRestaurants = {
+          id: 'unknown', // Will be assigned by database
+          google_place_id: dto.googlePlaceId,
+          name: placeDetail.displayName?.text || 'Unknown Restaurant',
+          name_language_code: 'ja', // Japanese priority as set above
+          latitude: placeDetail.location?.latitude || 0,
+          longitude: placeDetail.location?.longitude || 0,
+          image_url: placeDetail.photos?.[0]?.name || '', // Use first photo if available, empty string as fallback
+          address_components: placeDetail.addressComponents
+            ? JSON.parse(JSON.stringify(placeDetail.addressComponents))
+            : null,
+          plus_code: placeDetail.plusCode
+            ? JSON.parse(JSON.stringify(placeDetail.plusCode))
+            : null,
+          created_at: new Date(),
+        };
+
+        restaurant = await this.prisma.withTransaction(
+          (tx: Prisma.TransactionClient) =>
+            this.dishesRepository.createOrGetRestaurant(tx, restaurantData, dto.googlePlaceId),
+        );
 
         this.logger.debug('RestaurantCreated', 'createRestaurant', {
-          // restaurantId: restaurant.id,
-          // name: restaurant.name,
+          restaurantId: restaurant.id,
+          name: restaurant.name,
+          googlePlaceId: restaurant.google_place_id,
         });
+
+        // Fetch review stats for the newly created restaurant
+        restaurantReviewStats = await this.prisma.withTransaction(
+          (tx: Prisma.TransactionClient) => this.repo.getRestaurantReviewStats(tx, restaurant!.id),
+        );
       } catch (error) {
         this.logger.error('GooglePlaceDetailsFailed', 'createRestaurant', {
           googlePlaceId: dto.googlePlaceId,
@@ -144,28 +177,28 @@ export class RestaurantsService {
       throw new NotFoundException('Restaurant not found');
     }
 
-    // TODO: const dishMediaByRestaurant = await this.repo.findDishMediaByRestaurant(restaurantId, dto);
+    // Get dish media by restaurant with pagination
+    const dishMediaByRestaurant = await this.dishMediaRepository.findDishMediaByRestaurant(restaurantId, dto);
 
-    // const dishMediaIds = dishMediaByRestaurant.map((l) => l.dish_media_id);
+    const dishMediaIds = dishMediaByRestaurant.items.map((l) => l.dish_media_id);
 
-    // const dishMediaEntries =
-    //   await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
-    //     userId,
-    //   });
+    const dishMediaEntries =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
+        userId,
+      });
 
     this.logger.debug(
       'GetRestaurantDishMediaResult',
       'getRestaurantDishMedia',
       {
-        // count: dishMediaEntries.length,
+        count: dishMediaEntries.length,
       },
     );
 
-    // return this.mapper.toRestaurantDishMediaResponse({
-    //   data: dishMediaEntries,
-    //   nextCursor: dishMediaByRestaurant.nextCursor,
-    // });
-    return {} as QueryRestaurantDishMediaResponse;
+    return this.mapper.toRestaurantDishMediaResponse({
+      data: dishMediaEntries,
+      nextCursor: dishMediaByRestaurant.nextCursor,
+    });
   }
 
   /* ------------------------------------------------------------------ */
