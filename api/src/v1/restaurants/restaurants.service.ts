@@ -33,7 +33,7 @@ export class RestaurantsService {
     private readonly externalApi: ExternalApiService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -87,8 +87,13 @@ export class RestaurantsService {
     } else {
       // 2. Call Google Place Details API to get detailed information
       try {
-        const fieldMask =
-          'id,displayName,formattedAddress,location,nationalPhoneNumber,websiteUri,rating,userRatingCount,priceLevel,regularOpeningHours,photos,types';
+        const fieldMask = [
+          'id',
+          'displayName',
+          'location',
+          'addressComponents',
+          'plusCode',
+        ].join(',');
         const placeDetail = await this.externalApi.callPlaceDetails(
           fieldMask,
           dto.googlePlaceId,
