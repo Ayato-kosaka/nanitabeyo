@@ -9,6 +9,8 @@ import {
 import { Request } from 'express';
 import { RemoteConfigService } from '../remote-config/remote-config.service';
 import { isVersionGreaterOrEqual } from '../utils/version.util';
+import { ClsService } from 'nestjs-cls';
+import { CLS_KEY_APP_VERSION } from '../cls/cls.constants';
 
 /**
  * 🔒 メンテナンス・バージョン制御ガード
@@ -24,7 +26,10 @@ export class MaintenanceGuard implements CanActivate {
   /** 許可するパス（メンテナンス・バージョンチェックを行わない） */
   private readonly allowedPaths = ['/metrics'];
 
-  constructor(private readonly remoteConfigService: RemoteConfigService) {}
+  constructor(
+    private readonly remoteConfigService: RemoteConfigService,
+    private readonly cls: ClsService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -62,6 +67,7 @@ export class MaintenanceGuard implements CanActivate {
       // バージョンチェック（X-App-Version未送信時はスキップ）
       const appVersion = request.headers['x-app-version'] as string;
       if (appVersion) {
+        this.cls.set(CLS_KEY_APP_VERSION, appVersion);
         if (!isVersionGreaterOrEqual(appVersion, minimumVersionStr)) {
           throw new HttpException(
             {

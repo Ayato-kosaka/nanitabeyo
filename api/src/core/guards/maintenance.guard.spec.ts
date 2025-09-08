@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { MaintenanceGuard } from './maintenance.guard';
 import { RemoteConfigService } from '../remote-config/remote-config.service';
+import { ClsService } from 'nestjs-cls';
 
 // Mock request object
 const createMockRequest = (
@@ -29,6 +30,7 @@ describe('MaintenanceGuard', () => {
     const mockRemoteConfigService = {
       getRemoteConfigValue: jest.fn(),
     };
+    const mockClsService = { set: jest.fn() } as unknown as ClsService;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -36,6 +38,10 @@ describe('MaintenanceGuard', () => {
         {
           provide: RemoteConfigService,
           useValue: mockRemoteConfigService,
+        },
+        {
+          provide: ClsService,
+          useValue: mockClsService,
         },
       ],
     }).compile();

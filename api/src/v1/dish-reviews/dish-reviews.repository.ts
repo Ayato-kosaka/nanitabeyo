@@ -6,13 +6,18 @@
 //
 
 import { Injectable } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
+import { CLS_KEY_APP_VERSION } from '../../core/cls/cls.constants';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDishReviewDto } from '@shared/v1/dto';
 
 @Injectable()
 export class DishReviewsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cls: ClsService,
+  ) {}
 
   /**
    * 料理が存在するかチェック
@@ -80,6 +85,8 @@ export class DishReviewsRepository {
     // Generate a unique ID for the reaction
     const reactionId = `${userId}_${reviewId}_like_${Date.now()}`;
 
+    const appVersion = this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
+
     return this.prisma.prisma.reactions.create({
       data: {
         id: reactionId,
@@ -88,7 +95,7 @@ export class DishReviewsRepository {
         target_id: reviewId,
         action_type: 'like',
         created_at: new Date(),
-        created_version: '1.0.0', // TODO: 実際のバージョンを取得
+        created_version: appVersion,
         lock_no: 0,
       },
     });
