@@ -6,14 +6,23 @@ import { MAX_FILENAME_BYTES } from './storage.constants';
 /* -------------------------------------------------------------------------- */
 export const EXTENSION_TABLE = {
   'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
   'image/png': 'png',
+  'image/gif': 'gif',
   'image/webp': 'webp',
+  'image/svg+xml': 'svg',
   'audio/mpeg': 'mp3',
-};
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/x-msvideo': 'avi',
+  'application/pdf': 'pdf',
+  'text/plain': 'txt',
+  'application/json': 'json',
+} as const;
 
 /** 未知の MIME は “bin” 拡張子扱い */
-export const getExt = (mime: keyof typeof EXTENSION_TABLE): string =>
-  EXTENSION_TABLE[mime];
+export const getExt = (mime: string): string =>
+  EXTENSION_TABLE[mime as keyof typeof EXTENSION_TABLE] || 'bin';
 
 /* -------------------------------------------------------------------------- */
 /*                               ファイル名生成                               */

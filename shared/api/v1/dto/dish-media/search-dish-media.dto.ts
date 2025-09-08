@@ -41,7 +41,7 @@ export class SearchDishMediaDto {
 
 	/**
 	 * 返却件数（ページサイズ）
-	 * min = 1 / max = 100 / default = 20
+	 * min = 1 / max = 100
 	 */
 	@IsOptional()
 	@Type(() => Number)

@@ -34,6 +34,7 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
   ],
   exports: [
     DishMediaService, // 他ドメインが “いいね数集計” 等で再利用できる
+    DishMediaRepository,
   ],
 })
 export class DishMediaModule {}
