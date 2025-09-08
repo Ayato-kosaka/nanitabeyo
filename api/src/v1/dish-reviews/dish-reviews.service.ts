@@ -55,9 +55,9 @@ export class DishReviewsService {
   }
 
   /* ------------------------------------------------------------------ */
-  /*            POST /v1/dish-reviews/:id/likes/:userId (いいね)          */
+  /*            POST /v1/dish-reviews/:id/likes (いいね)                 */
   /* ------------------------------------------------------------------ */
-  async likeDishReview({ id, userId }: LikeDishReviewParamsDto) {
+  async likeDishReview({ id }: LikeDishReviewParamsDto, userId: string) {
     this.logger.verbose('LikeDishReview', 'likeDishReview', { id, userId });
 
     // レビューが存在するか確認

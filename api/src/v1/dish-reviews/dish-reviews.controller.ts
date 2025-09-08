@@ -60,20 +60,20 @@ export class DishReviewsController {
   }
 
   /* ------------------------------------------------------------------ */
-  /*            POST /v1/dish-reviews/:id/likes/:userId                 */
+  /*            POST /v1/dish-reviews/:id/likes                         */
   /* ------------------------------------------------------------------ */
-  @Post(':id/likes/:userId')
-  @UseGuards(OptionalJwtAuthGuard)
+  @Post(':id/likes')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レビューいいね追加' })
   @ApiParam({ name: 'id', required: true, description: 'dish_reviews.id' })
-  @ApiParam({ name: 'userId', required: true, description: 'users.id' })
   @ApiResponse({ status: 201, description: 'いいね追加成功' })
   async likeDishReview(
     @Param('id', ParseUUIDPipe) id: string,
-    @Param('userId', ParseUUIDPipe) userId: string,
+    @CurrentUser() user: RequestUser,
   ): Promise<LikeDishReviewResponse> {
-    const params: LikeDishReviewParamsDto = { id, userId };
-    return this.dishReviewsService.likeDishReview(params);
+    const params: LikeDishReviewParamsDto = { id };
+    return this.dishReviewsService.likeDishReview(params, user.userId);
   }
 }
