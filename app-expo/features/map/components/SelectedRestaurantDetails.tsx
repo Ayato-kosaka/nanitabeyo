@@ -68,6 +68,7 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 			prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
 		);
 	};
+	// TODO: SavedTopicsTab, SavedPostsTab を参考に useCursorPagination で取得したデータを使う
 	const filteredBidHistory = mockBidHistory.filter((bid) => selectedBidStatuses.includes(bid.status));
 
 	// Modals
@@ -86,7 +87,7 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 	const [isProcessing, setIsProcessing] = useState(false);
 
 	useEffect(() => {
-		// TODO: GET /v1/restaurants を呼び出す
+		// TODO: POST /v1/restaurants を呼び出す
 		const mockActiveBid = mockActiveBids.find((bid) => bid.restaurant.google_place_id === id);
 		if (mockActiveBid) {
 			setSelectedRestaurant({ ...mockActiveBid.restaurant, reviewCount: 120, averageRating: 4.5 });
@@ -293,6 +294,7 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 				containerStyle={{ backgroundColor: "white" }}>
 				<Tabs.Tab name="reviews">
 					<GridList
+						// TODO: SavedPostsTab, SavePostTab を参考に useCursorPagination で取得したデータを使う
 						data={mockDishItems.map((item) => ({ ...item, id: item.dish_media.id }))}
 						renderItem={renderReviewItem}
 						numColumns={3}

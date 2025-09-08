@@ -102,8 +102,8 @@ export class RestaurantsRepository {
   /*                   Restaurant review statistics (count + average rating)                       */
   /* ------------------------------------------------------------------ */
   async getRestaurantReviewStats(
-    tx: Prisma.TransactionClient, 
-    restaurant_id: string
+    tx: Prisma.TransactionClient,
+    restaurant_id: string,
   ) {
     this.logger.debug('GetRestaurantReviewStats', 'getRestaurantReviewStats', {
       restaurant_id,
@@ -127,7 +127,10 @@ export class RestaurantsRepository {
   /* ------------------------------------------------------------------ */
   /*                          Check if restaurant exists                          */
   /* ------------------------------------------------------------------ */
-  async restaurantExists(tx: Prisma.TransactionClient, id: string): Promise<boolean> {
+  async restaurantExists(
+    tx: Prisma.TransactionClient,
+    id: string,
+  ): Promise<boolean> {
     const count = await tx.restaurants.count({
       where: { id },
     });

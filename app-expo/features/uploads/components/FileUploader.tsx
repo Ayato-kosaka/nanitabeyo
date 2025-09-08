@@ -34,7 +34,7 @@ export function FileUploader({
 }: FileUploaderProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
-	
+
 	const [isUploading, setIsUploading] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 	const [uploadError, setUploadError] = useState<string | null>(null);
@@ -53,16 +53,16 @@ export function FileUploader({
 					payload: { contentType, identifier, fileSize: file.size },
 				});
 
-				const signedUrlResponse = await callBackend<
-					CreateUserUploadSignedUrlDto,
-					CreateUserUploadSignedUrlResponse
-				>("v1/user-uploads/signed-url", {
-					method: "POST",
-					requestPayload: {
-						contentType,
-						identifier,
+				const signedUrlResponse = await callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>(
+					"v1/user-uploads/signed-url",
+					{
+						method: "POST",
+						requestPayload: {
+							contentType,
+							identifier,
+						},
 					},
-				});
+				);
 
 				logFrontendEvent({
 					event_name: "file_upload_signed_url_received",
@@ -93,7 +93,7 @@ export function FileUploader({
 							logFrontendEvent({
 								event_name: "file_upload_progress",
 								error_level: "debug",
-								payload: { 
+								payload: {
 									percentage: percentage.toFixed(1),
 									loaded: event.loaded,
 									total: event.total,
@@ -106,30 +106,30 @@ export function FileUploader({
 					xhr.addEventListener("load", () => {
 						if (xhr.status >= 200 && xhr.status < 300) {
 							setUploadProgress({ loaded: file.size, total: file.size, percentage: 100 });
-							
+
 							logFrontendEvent({
 								event_name: "file_upload_to_storage_success",
 								error_level: "log",
-								payload: { 
+								payload: {
 									objectPath: signedUrlResponse.objectPath,
 									status: xhr.status,
 								},
 							});
-							
+
 							resolve();
 						} else {
 							const errorMessage = `Upload failed with status: ${xhr.status}`;
-							
+
 							logFrontendEvent({
 								event_name: "file_upload_to_storage_error",
 								error_level: "error",
-								payload: { 
+								payload: {
 									error: errorMessage,
 									status: xhr.status,
 									responseText: xhr.responseText,
 								},
 							});
-							
+
 							reject(new Error(errorMessage));
 						}
 					});
@@ -137,26 +137,26 @@ export function FileUploader({
 					// Handle network errors
 					xhr.addEventListener("error", () => {
 						const errorMessage = "Network error during upload";
-						
+
 						logFrontendEvent({
 							event_name: "file_upload_network_error",
 							error_level: "error",
 							payload: { error: errorMessage },
 						});
-						
+
 						reject(new Error(errorMessage));
 					});
 
 					// Handle upload timeout
 					xhr.addEventListener("timeout", () => {
 						const errorMessage = "Upload timed out";
-						
+
 						logFrontendEvent({
 							event_name: "file_upload_timeout",
 							error_level: "error",
 							payload: { error: errorMessage },
 						});
-						
+
 						reject(new Error(errorMessage));
 					});
 
@@ -176,24 +176,23 @@ export function FileUploader({
 
 				onUploadComplete?.(signedUrlResponse.objectPath);
 				return signedUrlResponse.objectPath;
-				
 			} catch (error: any) {
 				const errorMessage = error?.message || "Upload failed";
 				setUploadError(errorMessage);
-				
+
 				logFrontendEvent({
 					event_name: "file_upload_failed",
 					error_level: "error",
 					payload: { error: errorMessage, contentType, identifier },
 				});
-				
+
 				onUploadError?.(errorMessage);
 				throw error;
 			} finally {
 				setIsUploading(false);
 			}
 		},
-		[callBackend, contentType, identifier, logFrontendEvent, onUploadComplete, onUploadError]
+		[callBackend, contentType, identifier, logFrontendEvent, onUploadComplete, onUploadError],
 	);
 
 	const handleFileSelect = useCallback(() => {
@@ -202,7 +201,7 @@ export function FileUploader({
 			const input = document.createElement("input");
 			input.type = "file";
 			input.accept = contentType.startsWith("image/") ? "image/*" : contentType;
-			
+
 			input.onchange = async (event: any) => {
 				const file = event.target.files?.[0];
 				if (file) {
@@ -213,16 +212,14 @@ export function FileUploader({
 					}
 				}
 			};
-			
+
 			input.click();
 		} else {
 			// Native file selection would go here
 			// For now, show a message that this would trigger camera/gallery
-			Alert.alert(
-				i18n.t("FileUpload.title"),
-				i18n.t("FileUpload.nativeNotImplemented"),
-				[{ text: i18n.t("Common.ok") }]
-			);
+			Alert.alert(i18n.t("FileUpload.title"), i18n.t("FileUpload.nativeNotImplemented"), [
+				{ text: i18n.t("Common.ok") },
+			]);
 		}
 	}, [uploadFile, contentType]);
 
@@ -270,45 +267,28 @@ export function FileUploader({
 				<View style={styles.progressContainer}>
 					<View style={styles.progressHeader}>
 						<Text style={styles.progressTitle}>{i18n.t("FileUpload.uploading")}</Text>
-						<Text style={styles.progressText}>
-							{formatProgress(uploadProgress)}
-						</Text>
+						<Text style={styles.progressText}>{formatProgress(uploadProgress)}</Text>
 					</View>
 					<View style={styles.progressBar}>
-						<View 
-							style={[
-								styles.progressFill, 
-								{ width: `${uploadProgress.percentage}%` }
-							]} 
-						/>
+						<View style={[styles.progressFill, { width: `${uploadProgress.percentage}%` }]} />
 					</View>
 				</View>
 			)}
 
-			<TouchableOpacity 
-				style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]} 
+			<TouchableOpacity
+				style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
 				onPress={handleFileSelect}
-				disabled={isUploading}
-			>
+				disabled={isUploading}>
 				{isUploading ? (
 					<>
 						<ActivityIndicator size="small" color="#FFF" />
-						<Text style={styles.uploadButtonText}>
-							{i18n.t("FileUpload.uploading")}
-						</Text>
+						<Text style={styles.uploadButtonText}>{i18n.t("FileUpload.uploading")}</Text>
 					</>
 				) : (
 					<>
-						{contentType.startsWith("image/") ? (
-							<Camera size={20} color="#FFF" />
-						) : (
-							<Upload size={20} color="#FFF" />
-						)}
+						{contentType.startsWith("image/") ? <Camera size={20} color="#FFF" /> : <Upload size={20} color="#FFF" />}
 						<Text style={styles.uploadButtonText}>
-							{contentType.startsWith("image/") 
-								? i18n.t("FileUpload.selectImage")
-								: i18n.t("FileUpload.selectFile")
-							}
+							{contentType.startsWith("image/") ? i18n.t("FileUpload.selectImage") : i18n.t("FileUpload.selectFile")}
 						</Text>
 					</>
 				)}

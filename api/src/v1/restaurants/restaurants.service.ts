@@ -40,7 +40,7 @@ export class RestaurantsService {
     private readonly dishesRepository: DishesRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -56,7 +56,8 @@ export class RestaurantsService {
 
     // Query nearby restaurants and bidding status from database
     const results = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) => this.repo.searchNearbyRestaurants(tx, dto),
+      (tx: Prisma.TransactionClient) =>
+        this.repo.searchNearbyRestaurants(tx, dto),
     );
 
     this.logger.debug('SearchRestaurantsResult', 'searchRestaurants', {
@@ -81,7 +82,8 @@ export class RestaurantsService {
 
     // 1. Check if restaurant already exists
     let restaurant = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) => this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
+      (tx: Prisma.TransactionClient) =>
+        this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
     );
     let restaurantReviewStats = {
       reviewCount: 0,
@@ -89,7 +91,8 @@ export class RestaurantsService {
     };
     if (restaurant) {
       restaurantReviewStats = await this.prisma.withTransaction(
-        (tx: Prisma.TransactionClient) => this.repo.getRestaurantReviewStats(tx, restaurant!.id),
+        (tx: Prisma.TransactionClient) =>
+          this.repo.getRestaurantReviewStats(tx, restaurant!.id),
       );
     } else {
       // 2. Call Google Place Details API to get detailed information
@@ -107,16 +110,17 @@ export class RestaurantsService {
           dto.languageCode, // Use dynamic language code from request
         );
 
-
         // Check required fields with proper validation for latitude/longitude
         const missingFields: string[] = [];
         if (!placeDetail.id) missingFields.push('id');
-        if (!placeDetail.displayName?.text) missingFields.push('displayName.text');
+        if (!placeDetail.displayName?.text)
+          missingFields.push('displayName.text');
         if (typeof placeDetail.location?.latitude !== 'number')
           missingFields.push('location.latitude');
         if (typeof placeDetail.location?.longitude !== 'number')
           missingFields.push('location.longitude');
-        if (!placeDetail.addressComponents) missingFields.push('addressComponents');
+        if (!placeDetail.addressComponents)
+          missingFields.push('addressComponents');
 
         if (missingFields.length > 0) {
           this.logger.error('InvalidPlaceData', 'createRestaurant', {
@@ -138,7 +142,9 @@ export class RestaurantsService {
           latitude: placeDetail.location!.latitude!,
           longitude: placeDetail.location!.longitude!,
           image_url: placeDetail.photos?.[0]?.name || '', // TODO: 引数から受け取る。
-          address_components: JSON.parse(JSON.stringify(placeDetail.addressComponents)),
+          address_components: JSON.parse(
+            JSON.stringify(placeDetail.addressComponents),
+          ),
           plus_code: placeDetail.plusCode
             ? JSON.parse(JSON.stringify(placeDetail.plusCode))
             : null,
@@ -147,7 +153,11 @@ export class RestaurantsService {
 
         restaurant = await this.prisma.withTransaction(
           (tx: Prisma.TransactionClient) =>
-            this.dishesRepository.createOrGetRestaurant(tx, restaurantData, dto.googlePlaceId),
+            this.dishesRepository.createOrGetRestaurant(
+              tx,
+              restaurantData,
+              dto.googlePlaceId,
+            ),
         );
 
         this.logger.debug('RestaurantCreated', 'createRestaurant', {
@@ -158,7 +168,8 @@ export class RestaurantsService {
 
         // Fetch review stats for the newly created restaurant
         restaurantReviewStats = await this.prisma.withTransaction(
-          (tx: Prisma.TransactionClient) => this.repo.getRestaurantReviewStats(tx, restaurant!.id),
+          (tx: Prisma.TransactionClient) =>
+            this.repo.getRestaurantReviewStats(tx, restaurant!.id),
         );
       } catch (error) {
         this.logger.error('GooglePlaceDetailsFailed', 'createRestaurant', {
@@ -191,16 +202,23 @@ export class RestaurantsService {
 
     // Validate restaurant exists
     const restaurantExists = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) => this.repo.restaurantExists(tx, restaurantId),
+      (tx: Prisma.TransactionClient) =>
+        this.repo.restaurantExists(tx, restaurantId),
     );
     if (!restaurantExists) {
       throw new NotFoundException('Restaurant not found');
     }
 
     // Get dish media by restaurant with pagination
-    const dishMediaByRestaurant = await this.dishMediaRepository.findDishMediaByRestaurant(restaurantId, dto);
+    const dishMediaByRestaurant =
+      await this.dishMediaRepository.findDishMediaByRestaurant(
+        restaurantId,
+        dto,
+      );
 
-    const dishMediaIds = dishMediaByRestaurant.items.map((l) => l.dish_media_id);
+    const dishMediaIds = dishMediaByRestaurant.items.map(
+      (l) => l.dish_media_id,
+    );
 
     const dishMediaEntries =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
@@ -237,7 +255,8 @@ export class RestaurantsService {
 
     // Query restaurant from database
     const restaurant = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) => this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
+      (tx: Prisma.TransactionClient) =>
+        this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
     );
 
     if (!restaurant) {

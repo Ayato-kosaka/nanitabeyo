@@ -39,39 +39,39 @@ export default function MapScreen() {
 	});
 
 	// Search nearby restaurants when region changes
-	const searchNearbyRestaurants = useCallback(async (region: Region) => {
-		if (isLoadingRestaurants) return;
-		
-		setIsLoadingRestaurants(true);
-		try {
-			const results = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>(
-				"v1/restaurants/search",
-				{
+	const searchNearbyRestaurants = useCallback(
+		async (region: Region) => {
+			if (isLoadingRestaurants) return;
+
+			setIsLoadingRestaurants(true);
+			try {
+				const results = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>("v1/restaurants/search", {
 					method: "GET",
 					requestPayload: {
 						lat: region.latitude,
 						lng: region.longitude,
-						radius: 1000, // 1km radius
-						limit: 50,
+						radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000, // Approximate radius based on map view
+						limit: 16,
 					},
-				}
-			);
-			setRestaurants(results);
-			logFrontendEvent({
-				event_name: "restaurant_search_success",
-				error_level: "log",
-				payload: { count: results.length, lat: region.latitude, lng: region.longitude },
-			});
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "restaurant_search_error",
-				error_level: "error",
-				payload: { error, lat: region.latitude, lng: region.longitude },
-			});
-		} finally {
-			setIsLoadingRestaurants(false);
-		}
-	}, [callBackend, isLoadingRestaurants, logFrontendEvent]);
+				});
+				setRestaurants(results);
+				logFrontendEvent({
+					event_name: "restaurant_search_success",
+					error_level: "log",
+					payload: { count: results.length, lat: region.latitude, lng: region.longitude },
+				});
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "restaurant_search_error",
+					error_level: "error",
+					payload: { error, lat: region.latitude, lng: region.longitude },
+				});
+			} finally {
+				setIsLoadingRestaurants(false);
+			}
+		},
+		[callBackend, isLoadingRestaurants, logFrontendEvent],
+	);
 
 	useEffect(() => {
 		getCurrentLocation().then(({ location }) => {
@@ -86,13 +86,13 @@ export default function MapScreen() {
 			// Search restaurants at current location
 			searchNearbyRestaurants(newRegion);
 		});
-	}, [searchNearbyRestaurants]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	// Handle region change with debouncing
 	const handleRegionChangeComplete = useCallback((region: Region) => {
 		setCurrentRegion(region);
-		searchNearbyRestaurants(region);
-	}, [searchNearbyRestaurants]);
+	}, []);
 
 	const handleMarkerPress = (bid: QueryRestaurantsResponse[number]) => {
 		lightImpact();
@@ -146,18 +146,17 @@ export default function MapScreen() {
 	return (
 		<SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
 			{/* Map */}
-			<MapView 
-				ref={mapRef} 
-				style={styles.map} 
-				region={currentRegion} 
-				onRegionChangeComplete={handleRegionChangeComplete}
-			>
+			<MapView
+				ref={mapRef}
+				style={styles.map}
+				region={currentRegion}
+				onRegionChangeComplete={handleRegionChangeComplete}>
 				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
 					<AvatarBubbleMarker
 						key={restaurantData.restaurant.id}
-						coordinate={{ 
-							latitude: restaurantData.restaurant.latitude, 
-							longitude: restaurantData.restaurant.longitude 
+						coordinate={{
+							latitude: restaurantData.restaurant.latitude,
+							longitude: restaurantData.restaurant.longitude,
 						}}
 						onPress={() => handleMarkerPress(restaurantData)}
 						color="#FFF"
