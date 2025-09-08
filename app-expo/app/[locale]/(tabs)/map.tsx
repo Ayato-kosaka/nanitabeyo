@@ -1,13 +1,14 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MapPin, Search, Navigation } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
+import { useAPICall } from "@/hooks/useAPICall";
 import type { AutocompleteLocation, QueryRestaurantsResponse } from "@shared/api/v1/res";
+import type { QueryRestaurantsDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/hooks/useBlurModal";
-import { mockActiveBids } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
 import i18n from "@/lib/i18n";
@@ -16,8 +17,11 @@ import { useLogger } from "@/hooks/useLogger";
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
 	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
+	const [isLoadingRestaurants, setIsLoadingRestaurants] = useState(false);
 	const {
 		BlurModal: RestaurantBlurModal,
 		open: openRestaurantModal,
@@ -34,6 +38,41 @@ export default function MapScreen() {
 		longitudeDelta: 0.01,
 	});
 
+	// Search nearby restaurants when region changes
+	const searchNearbyRestaurants = useCallback(async (region: Region) => {
+		if (isLoadingRestaurants) return;
+		
+		setIsLoadingRestaurants(true);
+		try {
+			const results = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>(
+				"v1/restaurants/search",
+				{
+					method: "GET",
+					requestPayload: {
+						lat: region.latitude,
+						lng: region.longitude,
+						radius: 1000, // 1km radius
+						limit: 50,
+					},
+				}
+			);
+			setRestaurants(results);
+			logFrontendEvent({
+				event_name: "restaurant_search_success",
+				error_level: "log",
+				payload: { count: results.length, lat: region.latitude, lng: region.longitude },
+			});
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "restaurant_search_error",
+				error_level: "error",
+				payload: { error, lat: region.latitude, lng: region.longitude },
+			});
+		} finally {
+			setIsLoadingRestaurants(false);
+		}
+	}, [callBackend, isLoadingRestaurants, logFrontendEvent]);
+
 	useEffect(() => {
 		getCurrentLocation().then(({ location }) => {
 			const newRegion = {
@@ -44,8 +83,16 @@ export default function MapScreen() {
 			};
 			setCurrentRegion(newRegion);
 			mapRef.current?.animateToRegion(newRegion, 1000);
+			// Search restaurants at current location
+			searchNearbyRestaurants(newRegion);
 		});
-	}, []);
+	}, [searchNearbyRestaurants]);
+
+	// Handle region change with debouncing
+	const handleRegionChangeComplete = useCallback((region: Region) => {
+		setCurrentRegion(region);
+		searchNearbyRestaurants(region);
+	}, [searchNearbyRestaurants]);
 
 	const handleMarkerPress = (bid: QueryRestaurantsResponse[number]) => {
 		lightImpact();
@@ -99,14 +146,22 @@ export default function MapScreen() {
 	return (
 		<SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
 			{/* Map */}
-			<MapView ref={mapRef} style={styles.map} region={currentRegion} onRegionChangeComplete={setCurrentRegion}>
-				{mockActiveBids.map((bid) => (
+			<MapView 
+				ref={mapRef} 
+				style={styles.map} 
+				region={currentRegion} 
+				onRegionChangeComplete={handleRegionChangeComplete}
+			>
+				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
 					<AvatarBubbleMarker
-						key={bid.restaurant.id}
-						coordinate={{ latitude: bid.restaurant.latitude, longitude: bid.restaurant.longitude }}
-						onPress={() => handleMarkerPress(bid)}
+						key={restaurantData.restaurant.id}
+						coordinate={{ 
+							latitude: restaurantData.restaurant.latitude, 
+							longitude: restaurantData.restaurant.longitude 
+						}}
+						onPress={() => handleMarkerPress(restaurantData)}
 						color="#FFF"
-						uri={bid.restaurant.image_url}
+						uri={restaurantData.restaurant.image_url}
 					/>
 				))}
 			</MapView>

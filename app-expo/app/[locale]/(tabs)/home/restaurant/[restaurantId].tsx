@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
 	View,
 	Text,
@@ -16,127 +16,42 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { ArrowLeft, MapPin, Star, Phone, Clock, Calendar, Camera, Filter, Search, X } from "lucide-react-native";
 import MapView, { Marker, Region } from "@/components/MapView";
+import { RestaurantManager } from "@/features/restaurants/components/RestaurantManager";
+import { FileUploader } from "@/features/uploads/components/FileUploader";
+import type { CreateRestaurantResponse, QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 
 const { width, height } = Dimensions.get("window");
-
-interface RestaurantInfo {
-	id: string;
-	name: string;
-	description: string;
-	rating: number;
-	reviewCount: number;
-	address: string;
-	phone: string;
-	hours: string;
-	image: string;
-	latitude: number;
-	longitude: number;
-}
-
-interface FoodPost {
-	id: string;
-	name: string;
-	image: string;
-	likes: number;
-	comments: number;
-}
 
 interface FilterOptions {
 	priceRange: string;
 	category: string;
 }
 
-const restaurantInfo: RestaurantInfo = {
-	id: "1",
-	name: "Bella Vista Restaurant",
-	description: "本格イタリアンレストラン。新鮮な食材を使用した伝統的な料理をお楽しみください。",
-	rating: 4.5,
-	reviewCount: 127,
-	address: "東京都渋谷区神宮前1-2-3",
-	phone: "03-1234-5678",
-	hours: "11:00 - 22:00",
-	image: "https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=800",
-	latitude: 35.6762,
-	longitude: 139.6503,
-};
-
-const foodPosts: FoodPost[] = [
-	{
-		id: "1",
-		name: "Truffle Pasta",
-		image: "https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 142,
-		comments: 23,
-	},
-	{
-		id: "2",
-		name: "Wagyu Steak",
-		image: "https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 298,
-		comments: 45,
-	},
-	{
-		id: "3",
-		name: "Chocolate Soufflé",
-		image: "https://images.pexels.com/photos/3026804/pexels-photo-3026804.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 186,
-		comments: 31,
-	},
-	{
-		id: "4",
-		name: "Caesar Salad",
-		image: "https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 89,
-		comments: 12,
-	},
-	{
-		id: "5",
-		name: "Lobster Bisque",
-		image: "https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 156,
-		comments: 28,
-	},
-	{
-		id: "6",
-		name: "Margherita Pizza",
-		image: "https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 234,
-		comments: 39,
-	},
-	{
-		id: "7",
-		name: "Tiramisu",
-		image: "https://images.pexels.com/photos/6880219/pexels-photo-6880219.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 178,
-		comments: 25,
-	},
-	{
-		id: "8",
-		name: "Seafood Risotto",
-		image: "https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 203,
-		comments: 34,
-	},
-	{
-		id: "9",
-		name: "Grilled Salmon",
-		image: "https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=711",
-		likes: 167,
-		comments: 22,
-	},
-];
-
 export default function RestaurantScreen() {
 	const { restaurantId } = useLocalSearchParams();
 	const [selectedTab, setSelectedTab] = useState<"posts" | "info">("posts");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showFilter, setShowFilter] = useState(false);
+	const [restaurant, setRestaurant] = useState<CreateRestaurantResponse | null>(null);
+	const [dishMediaData, setDishMediaData] = useState<QueryRestaurantDishMediaResponse["data"]>([]);
 	const [filters, setFilters] = useState<FilterOptions>({
 		priceRange: "",
 		category: "",
 	});
 	const scrollViewRef = useRef<ScrollView>(null);
+
+	// Get the Google Place ID from restaurantId parameter
+	// In a real app, you might need to fetch this from your restaurant data
+	const googlePlaceId = typeof restaurantId === "string" ? restaurantId : "";
+
+	const handleRestaurantLoaded = useCallback((loadedRestaurant: CreateRestaurantResponse) => {
+		setRestaurant(loadedRestaurant);
+	}, []);
+
+	const handleDishMediaLoaded = useCallback((loadedDishMedia: QueryRestaurantDishMediaResponse["data"]) => {
+		setDishMediaData(loadedDishMedia);
+	}, []);
 
 	const priceRanges = [
 		i18n.t("Restaurant.filter.priceRanges.under1000", { currency: i18n.t("Search.currencySuffix") }),
@@ -180,13 +95,13 @@ export default function RestaurantScreen() {
 		// router.push(`/(tabs)/(home)/food?startIndex=${index}`);
 	};
 
-	const renderFoodPost = ({ item, index }: { item: FoodPost; index: number }) => (
+	const renderFoodPost = ({ item, index }: { item: QueryRestaurantDishMediaResponse["data"][number]; index: number }) => (
 		<TouchableOpacity style={styles.foodPost} onPress={() => handleFoodPostPress(index)}>
-			<Image source={{ uri: item.image }} style={styles.foodPostImage} />
+			<Image source={{ uri: item.signedUrl }} style={styles.foodPostImage} />
 			<View style={styles.foodPostOverlay}>
 				<View style={styles.foodPostStats}>
-					<Text style={styles.foodPostLikes}>{formatLikeCount(item.likes)}</Text>
-					<Text style={styles.foodPostComments}>{item.comments}</Text>
+					<Text style={styles.foodPostLikes}>★ {item.dish?.averageRating?.toFixed(1) || "0.0"}</Text>
+					<Text style={styles.foodPostComments}>{item.dish?.reviewCount || 0}</Text>
 				</View>
 			</View>
 		</TouchableOpacity>
@@ -198,7 +113,18 @@ export default function RestaurantScreen() {
 
 	const handlePostReview = () => {
 		console.log("Post review with media...");
+		// This would integrate with the file upload and review posting workflow
 	};
+
+	const handleFileUploadComplete = useCallback((objectPath: string) => {
+		console.log("File uploaded successfully:", objectPath);
+		// Here you would typically create a dish media record
+		// and then create a review that references it
+	}, []);
+
+	const handleFileUploadError = useCallback((error: string) => {
+		console.error("File upload failed:", error);
+	}, []);
 
 	const handleApplyFilters = () => {
 		console.log("Applying filters:", filters);
@@ -213,8 +139,8 @@ export default function RestaurantScreen() {
 	};
 
 	const handleOpenMaps = () => {
-		if (Platform.OS === "web") {
-			const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantInfo.address)}`;
+		if (Platform.OS === "web" && restaurant) {
+			const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`;
 			if (typeof window !== "undefined") {
 				window.open(mapsUrl, "_blank");
 			}
@@ -228,22 +154,24 @@ export default function RestaurantScreen() {
 		<View style={styles.container}>
 			{/* Map Section */}
 			<View style={styles.mapContainer}>
-				<MapView
-					initialRegion={{
-						latitude: restaurantInfo.latitude,
-						longitude: restaurantInfo.longitude,
-						latitudeDelta: 0.01,
-						longitudeDelta: 0.01,
-					}}>
-					<Marker
-						coordinate={{
-							latitude: restaurantInfo.latitude,
-							longitude: restaurantInfo.longitude,
-						}}
-						title={restaurantInfo.name}
-						description={restaurantInfo.address}
-					/>
-				</MapView>
+				{restaurant && (
+					<MapView
+						initialRegion={{
+							latitude: restaurant.latitude,
+							longitude: restaurant.longitude,
+							latitudeDelta: 0.01,
+							longitudeDelta: 0.01,
+						}}>
+						<Marker
+							coordinate={{
+								latitude: restaurant.latitude,
+								longitude: restaurant.longitude,
+							}}
+							title={restaurant.name}
+							description={restaurant.address}
+						/>
+					</MapView>
+				)}
 
 				{/* Header with Back Button, Search, and Filter */}
 				<View style={styles.headerContainer}>
@@ -274,18 +202,20 @@ export default function RestaurantScreen() {
 				<View style={styles.handle} />
 
 				{/* Restaurant Header */}
-				<View style={styles.restaurantHeader}>
-					<Image source={{ uri: restaurantInfo.image }} style={styles.restaurantImage} />
-					<View style={styles.restaurantInfo}>
-						<Text style={styles.restaurantName}>{restaurantInfo.name}</Text>
-						<View style={styles.ratingContainer}>
-							{renderStars(restaurantInfo.rating)}
-							<Text style={styles.ratingText}>{restaurantInfo.rating}</Text>
-							<Text style={styles.reviewCount}>({restaurantInfo.reviewCount})</Text>
+				{restaurant && (
+					<View style={styles.restaurantHeader}>
+						<Image source={{ uri: restaurant.image_url }} style={styles.restaurantImage} />
+						<View style={styles.restaurantInfo}>
+							<Text style={styles.restaurantName}>{restaurant.name}</Text>
+							<View style={styles.ratingContainer}>
+								{renderStars(restaurant.averageRating || 0)}
+								<Text style={styles.ratingText}>{restaurant.averageRating?.toFixed(1) || "0.0"}</Text>
+								<Text style={styles.reviewCount}>({restaurant.reviewCount || 0})</Text>
+							</View>
+							<Text style={styles.restaurantDescription}>{restaurant.description || ""}</Text>
 						</View>
-						<Text style={styles.restaurantDescription}>{restaurantInfo.description}</Text>
 					</View>
-				</View>
+				)}
 
 				{/* Action Buttons */}
 				<View style={styles.actionButtons}>
@@ -299,13 +229,24 @@ export default function RestaurantScreen() {
 					</TouchableOpacity>
 				</View>
 
+				{/* File Upload Section (for demo purposes) */}
+				<View style={styles.uploadSection}>
+					<Text style={styles.uploadSectionTitle}>Upload Dish Photo</Text>
+					<FileUploader
+						contentType="image/jpeg"
+						identifier={`dish-photo-${Date.now()}`}
+						onUploadComplete={handleFileUploadComplete}
+						onUploadError={handleFileUploadError}
+					/>
+				</View>
+
 				{/* Tab Navigation */}
 				<View style={styles.tabContainer}>
 					<TouchableOpacity
 						style={[styles.tab, selectedTab === "posts" && styles.activeTab]}
 						onPress={() => setSelectedTab("posts")}>
 						<Text style={[styles.tabText, selectedTab === "posts" && styles.activeTabText]}>
-							{i18n.t("Restaurant.tabs.posts", { count: foodPosts.length })}
+							{i18n.t("Restaurant.tabs.posts", { count: dishMediaData.length })}
 						</Text>
 					</TouchableOpacity>
 					<TouchableOpacity
@@ -320,28 +261,42 @@ export default function RestaurantScreen() {
 				{/* Content */}
 				<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 					{selectedTab === "posts" ? (
-						<FlatList
-							data={foodPosts}
-							renderItem={renderFoodPost}
-							numColumns={3}
-							scrollEnabled={false}
-							contentContainerStyle={styles.postsGrid}
-							columnWrapperStyle={styles.postsRow}
-						/>
+						googlePlaceId ? (
+							<RestaurantManager
+								googlePlaceId={googlePlaceId}
+								languageCode="ja"
+								onRestaurantLoaded={handleRestaurantLoaded}
+								onDishMediaLoaded={handleDishMediaLoaded}
+							/>
+						) : (
+							<FlatList
+								data={dishMediaData}
+								renderItem={renderFoodPost}
+								numColumns={3}
+								scrollEnabled={false}
+								contentContainerStyle={styles.postsGrid}
+								columnWrapperStyle={styles.postsRow}
+								keyExtractor={(item) => item.id}
+							/>
+						)
 					) : (
 						<View style={styles.infoContent}>
-							<View style={styles.infoItem}>
-								<MapPin size={20} color="#666" />
-								<Text style={styles.infoText}>{restaurantInfo.address}</Text>
-							</View>
-							<View style={styles.infoItem}>
-								<Phone size={20} color="#666" />
-								<Text style={styles.infoText}>{restaurantInfo.phone}</Text>
-							</View>
-							<View style={styles.infoItem}>
-								<Clock size={20} color="#666" />
-								<Text style={styles.infoText}>{restaurantInfo.hours}</Text>
-							</View>
+							{restaurant && (
+								<>
+									<View style={styles.infoItem}>
+										<MapPin size={20} color="#666" />
+										<Text style={styles.infoText}>{restaurant.address}</Text>
+									</View>
+									<View style={styles.infoItem}>
+										<Phone size={20} color="#666" />
+										<Text style={styles.infoText}>{restaurant.phone || "N/A"}</Text>
+									</View>
+									<View style={styles.infoItem}>
+										<Clock size={20} color="#666" />
+										<Text style={styles.infoText}>{restaurant.opening_hours || "N/A"}</Text>
+									</View>
+								</>
+							)}
 						</View>
 					)}
 				</ScrollView>
@@ -554,6 +509,20 @@ const styles = StyleSheet.create({
 		color: "#007AFF",
 		marginLeft: 8,
 		fontWeight: "500",
+	},
+	uploadSection: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderTopWidth: 1,
+		borderTopColor: "#E5E5E5",
+		borderBottomWidth: 1,
+		borderBottomColor: "#E5E5E5",
+	},
+	uploadSectionTitle: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#333",
+		marginBottom: 8,
 	},
 	tabContainer: {
 		flexDirection: "row",
