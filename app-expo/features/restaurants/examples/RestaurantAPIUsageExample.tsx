@@ -68,7 +68,7 @@ export function ExampleCreateRestaurant() {
 					"v1/restaurants",
 					{
 						method: "POST",
-						requestPayload: { googlePlaceId },
+						requestPayload: { googlePlaceId, languageCode: "ja" },
 					},
 				);
 				return restaurant;

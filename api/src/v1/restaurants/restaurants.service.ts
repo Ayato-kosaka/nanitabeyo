@@ -104,7 +104,7 @@ export class RestaurantsService {
         const placeDetail = await this.externalApi.callPlaceDetails(
           fieldMask,
           dto.googlePlaceId,
-          'ja', // Japanese priority
+          dto.languageCode, // Use dynamic language code from request
         );
 
 
