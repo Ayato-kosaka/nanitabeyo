@@ -14,7 +14,7 @@ import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { AppLoggerService } from '../logger/logger.service';
 import {
-  DISH_CATEGORY_TOOL_SCHEMA,
+  buildDishCategoryToolSchema,
   extractDishCategoryItems,
   DishCategoryItem,
 } from './tool-schema';
@@ -86,6 +86,9 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
 
     const fullPrompt = `${systemPrompt}\n\n${variablePromptPart}`;
 
+    // Build language-specific tool schema
+    const toolSchema = buildDishCategoryToolSchema(params.languageTag);
+
     // Claude API request with tool calling
     const requestPayload: ClaudeMessageRequest = {
       model: 'claude-3-haiku-20240307',
@@ -98,10 +101,10 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
           content: variablePromptPart,
         },
       ],
-      tools: [DISH_CATEGORY_TOOL_SCHEMA],
+      tools: [toolSchema],
       tool_choice: {
         type: 'tool',
-        name: DISH_CATEGORY_TOOL_SCHEMA.name,
+        name: toolSchema.name,
       },
       stream: false, // Non-streaming by default as requested
     };
@@ -182,7 +185,7 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
         'ClaudeToolResponseSuccess',
         'generateDishCategoryRecommendations',
         {
-          toolName: DISH_CATEGORY_TOOL_SCHEMA.name,
+          toolName: toolSchema.name,
           itemCount: extractedItems.length,
           retryMetrics: retryResult.metrics,
           responseId: lastResponse.id,
