@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { SavePostTab } from "./save/SavePostTab";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
-import { useCursorPagination } from "@/features/profile/hooks/useCursorPagination";
+import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
