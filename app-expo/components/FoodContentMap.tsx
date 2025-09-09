@@ -15,12 +15,16 @@ const CAROUSEL_HEIGHT = height * 0.8;
 const PARALLAX_SCALE = 0.85;
 
 interface FoodContentMapProps {
-	itemsPromise: Promise<DishMediaEntry[]>;
-	initialIndex?: number;
-	onIndexChange?: (index: number) => void;
+        itemsPromise: Promise<DishMediaEntry[]>;
+        initialIndex?: number;
+        onIndexChange?: (index: number) => void;
+        initialLocation?: {
+                latitude: number;
+                longitude: number;
+        };
 }
 
-export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndexChange }: FoodContentMapProps) {
+export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndexChange, initialLocation }: FoodContentMapProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
@@ -36,15 +40,15 @@ export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndex
 		});
 	}, [itemsPromise]);
 
-	const getMapRegion = useCallback((): Region => {
-		if (coordinates.length === 0) {
-			return {
-				latitude: 35.6762, // TODO searchParams を引き継ぐ
-				longitude: 139.6503,
-				latitudeDelta: 0.01,
-				longitudeDelta: 0.01,
-			};
-		}
+        const getMapRegion = useCallback((): Region => {
+                if (coordinates.length === 0) {
+                        return {
+                                latitude: initialLocation?.latitude ?? 35.6762,
+                                longitude: initialLocation?.longitude ?? 139.6503,
+                                latitudeDelta: 0.01,
+                                longitudeDelta: 0.01,
+                        };
+                }
 
 		// マップのアスペクト比
 		const aspectRatio = width / height;
@@ -76,7 +80,7 @@ export default function FoodContentMap({ itemsPromise, initialIndex = 0, onIndex
 			latitudeDelta: latDelta,
 			longitudeDelta: lngDelta,
 		};
-	}, [coordinates]);
+        }, [coordinates, initialLocation]);
 
 	useEffect(() => {
 		// 初期位置設定
