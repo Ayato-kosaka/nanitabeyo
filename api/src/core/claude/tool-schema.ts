@@ -16,41 +16,44 @@ export interface DishCategoryItem {
 /**
  * Language-specific text patterns for constraining tool outputs
  */
-const LANGUAGE_PATTERNS: Record<string, { pattern: string; description: string }> = {
+const LANGUAGE_PATTERNS: Record<
+  string,
+  { pattern: string; description: string }
+> = {
   // Japanese: exclude ASCII letters but allow other characters (hiragana, katakana, kanji, punctuation, numbers)
-  'ja': {
+  ja: {
     pattern: '^[^A-Za-z]*$',
-    description: 'Text must not contain ASCII letters (A-Z, a-z)'
+    description: 'Text must not contain ASCII letters (A-Z, a-z)',
   },
   'ja-JP': {
-    pattern: '^[^A-Za-z]*$', 
-    description: 'Text must not contain ASCII letters (A-Z, a-z)'
+    pattern: '^[^A-Za-z]*$',
+    description: 'Text must not contain ASCII letters (A-Z, a-z)',
   },
   // English: ASCII characters only
-  'en': {
+  en: {
     pattern: '^[\x00-\x7F]*$',
-    description: 'Text must contain only ASCII characters'
+    description: 'Text must contain only ASCII characters',
   },
   'en-US': {
     pattern: '^[\x00-\x7F]*$',
-    description: 'Text must contain only ASCII characters'
+    description: 'Text must contain only ASCII characters',
   },
   'en-GB': {
     pattern: '^[\x00-\x7F]*$',
-    description: 'Text must contain only ASCII characters'
+    description: 'Text must contain only ASCII characters',
   },
   // Chinese: exclude ASCII letters but allow other characters
-  'zh': {
+  zh: {
     pattern: '^[^A-Za-z]*$',
-    description: 'Text must not contain ASCII letters (A-Z, a-z)'
+    description: 'Text must not contain ASCII letters (A-Z, a-z)',
   },
   'zh-CN': {
     pattern: '^[^A-Za-z]*$',
-    description: 'Text must not contain ASCII letters (A-Z, a-z)'
+    description: 'Text must not contain ASCII letters (A-Z, a-z)',
   },
   'zh-TW': {
     pattern: '^[^A-Za-z]*$',
-    description: 'Text must not contain ASCII letters (A-Z, a-z)'
+    description: 'Text must not contain ASCII letters (A-Z, a-z)',
   },
 };
 
@@ -62,26 +65,27 @@ const LANGUAGE_PATTERNS: Record<string, { pattern: string; description: string }
 export function buildDishCategoryToolSchema(languageTag: string) {
   // Extract primary language code (e.g., 'ja' from 'ja-JP')
   const primaryLanguage = languageTag.split('-')[0];
-  
+
   // Try exact match first, then fall back to primary language
-  const languagePattern = LANGUAGE_PATTERNS[languageTag] || LANGUAGE_PATTERNS[primaryLanguage];
-  
+  const languagePattern =
+    LANGUAGE_PATTERNS[languageTag] || LANGUAGE_PATTERNS[primaryLanguage];
+
   // Base properties for topicTitle and reason
   const baseTopicTitleProps = {
     type: 'string' as const,
     description: 'Catchy topic title for the recommendation',
   };
-  
+
   const baseReasonProps = {
     type: 'string' as const,
     description: 'Brief reason why this category is recommended',
   };
-  
+
   // Add pattern constraint if language pattern is available
   const topicTitleProps = languagePattern
     ? { ...baseTopicTitleProps, pattern: languagePattern.pattern }
     : baseTopicTitleProps;
-    
+
   const reasonProps = languagePattern
     ? { ...baseReasonProps, pattern: languagePattern.pattern }
     : baseReasonProps;

@@ -9,8 +9,4 @@ export class SaveDishMediaParamsDto {
 	/** dish_media.id */
 	@IsUUID()
 	id!: string;
-
-	/** users.id */
-	@IsUUID()
-	userId!: string;
 }
