@@ -41,7 +41,7 @@ import { DishReviewsService } from './dish-reviews.service';
 @ApiTags('DishReviews')
 @Controller('v1/dish-reviews')
 export class DishReviewsController {
-  constructor(private readonly dishReviewsService: DishReviewsService) {}
+  constructor(private readonly dishReviewsService: DishReviewsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/dish-reviews (認証必須)                */
@@ -63,7 +63,7 @@ export class DishReviewsController {
   /*            POST /v1/dish-reviews/:id/likes                         */
   /* ------------------------------------------------------------------ */
   @Post(':id/likes')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レビューいいね追加' })

@@ -59,7 +59,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -119,7 +119,7 @@ export class DishMediaController {
   /*                POST /v1/dish-media/:id/likes                       */
   /* ------------------------------------------------------------------ */
   @Post(':id/likes')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '料理メディアにいいね' })
@@ -134,7 +134,7 @@ export class DishMediaController {
 
   /* -------------------- DELETE /v1/dish-media/:id/likes ------------------- */
   @Delete(':id/likes')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '料理メディアのいいね解除' })
@@ -149,7 +149,7 @@ export class DishMediaController {
 
   /* -------------------- POST /v1/dish-media/:id/save ---------------------- */
   @Post(':id/save')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '料理メディアを保存' })
