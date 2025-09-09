@@ -32,7 +32,7 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                    Restaurant search queries (nearby + bidding status)                    */
@@ -58,9 +58,18 @@ export class RestaurantsRepository {
       })[]
     >`
       SELECT 
-        r.*,
+        r.id,
+        r.google_place_id,
+        r.name,
+        r.name_language_code,
+        r.latitude,
+        r.longitude,
+        r.image_url,
+        r.address_components,
+        r.plus_code,
+        r.created_at,
         COALESCE(SUM(rb.amount_cents), 0) as total_cents,
-        MAX(rb.end_date) as max_end_date,
+        MAX(rb.end_date) as max_end_date
       FROM restaurants r
       LEFT JOIN restaurant_bids rb ON r.id = rb.restaurant_id 
         AND rb.start_date <= CURRENT_DATE 
