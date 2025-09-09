@@ -342,5 +342,25 @@
 			"messageLength": "يجب أن تكون الرسالة بين 10 و 2000 حرف",
 			"submitFailed": "فشل في إرسال الملاحظات. يرجى المحاولة مرة أخرى."
 		}
+	},
+	"auth": {
+		"login_title": "تسجيل الدخول",
+		"create_title": "إنشاء حساب",
+		"field_phone": "الهاتف",
+		"field_name": "الاسم",
+		"hint_sms": "سنرسل لك رمز لمرة واحدة عبر الرسائل النصية لتسجيل الدخول.",
+		"btn_login": "تسجيل الدخول",
+		"btn_create": "إنشاء حساب",
+		"divider_or": "أو تسجيل الدخول باستخدام",
+		"agree_tos": "أوافق على شروط الخدمة",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "أدخل الرمز",
+		"otp_send_again": "إعادة إرسال الرمز",
+		"error_required": "هذا الحقل مطلوب",
+		"error_invalid_phone": "رقم الهاتف غير صحيح",
+		"tos_link_text": "شروط الخدمة"
 	}
 }

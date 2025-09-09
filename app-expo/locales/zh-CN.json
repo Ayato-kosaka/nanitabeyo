@@ -342,5 +342,25 @@
 			"messageLength": "消息必须在10到2000个字符之间",
 			"submitFailed": "提交反馈失败。请重试。"
 		}
+	},
+	"auth": {
+		"login_title": "登录",
+		"create_title": "创建账户",
+		"field_phone": "电话",
+		"field_name": "姓名",
+		"hint_sms": "我们将通过短信向您发送一次性验证码以进行登录。",
+		"btn_login": "登录",
+		"btn_create": "创建账户",
+		"divider_or": "或使用以下方式登录",
+		"agree_tos": "我同意服务条款",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "输入验证码",
+		"otp_send_again": "重新发送验证码",
+		"error_required": "此字段为必填项",
+		"error_invalid_phone": "无效的电话号码",
+		"tos_link_text": "服务条款"
 	}
 }

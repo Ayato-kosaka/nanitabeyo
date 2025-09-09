@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session, User, Provider } from "@supabase/supabase-js";
+import * as Linking from "expo-linking";
 import { useLogger } from "@/hooks/useLogger";
 
 type AuthContextType = {
@@ -12,6 +13,10 @@ type AuthContextType = {
 	logout: () => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
 	signInWithOAuth: (provider: Provider) => Promise<void>;
+	signInWithOtp: (phone: string) => Promise<void>;
+	verifyOtp: (phone: string, token: string) => Promise<void>;
+	linkIdentity: (provider: Provider) => Promise<void>;
+	createUserProfile: (displayName?: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -147,8 +152,105 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const signInWithOAuth = async (provider: Provider) => {
-		const { error } = await supabase.auth.signInWithOAuth({ provider });
+		const redirectUrl = Linking.createURL("/auth/callback");
+		const { error } = await supabase.auth.signInWithOAuth({ 
+			provider,
+			options: { redirectTo: redirectUrl }
+		});
 		if (error) throw error;
+	};
+
+	/**
+	 * 電話番号でOTPを送信する（ログイン/サインアップ兼用）
+	 * @param phone - E.164フォーマットの電話番号
+	 */
+	const signInWithOtp = async (phone: string) => {
+		const { error } = await supabase.auth.signInWithOtp({ phone });
+		if (error) throw error;
+	};
+
+	/**
+	 * OTPを検証してログインする
+	 * @param phone - E.164フォーマットの電話番号
+	 * @param token - 6桁のOTPコード
+	 */
+	const verifyOtp = async (phone: string, token: string): Promise<void> => {
+		const { data, error } = await supabase.auth.verifyOtp({
+			phone,
+			token,
+			type: 'sms'
+		});
+		if (error) throw error;
+		
+		// ユーザープロフィールを作成（存在しなければ）
+		if (data.user) {
+			await createUserProfile();
+		}
+	};
+
+	/**
+	 * 匿名ユーザーにOAuthアイデンティティをリンクする
+	 * @param provider - 'google' などのOAuthプロバイダー名
+	 */
+	const linkIdentity = async (provider: Provider): Promise<void> => {
+		const redirectUrl = Linking.createURL("/auth/callback");
+		const { data, error } = await supabase.auth.linkIdentity({ 
+			provider,
+			options: { redirectTo: redirectUrl }
+		});
+		if (error) throw error;
+	};
+
+	/**
+	 * ユーザープロフィールを作成する（存在しなければ）
+	 * @param displayName - 表示名（オプション）
+	 */
+	const createUserProfile = async (displayName?: string) => {
+		if (!user) return;
+
+		try {
+			// 既存のユーザープロフィールをチェック
+			const { data: existingProfile, error: fetchError } = await supabase
+				.from('users')
+				.select('id')
+				.eq('id', user.id)
+				.single();
+
+			if (fetchError && fetchError.code !== 'PGRST116') {
+				// PGRST116 = not found, それ以外のエラーは投げる
+				throw fetchError;
+			}
+
+			if (!existingProfile) {
+				// ユーザープロフィールが存在しない場合のみ作成
+				const timestamp = Date.now();
+				const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+				const username = `user${(timestamp + parseInt(randomSuffix)).toString().slice(0, 13)}`;
+				
+				const { error: insertError } = await supabase
+					.from('users')
+					.insert({
+						id: user.id,
+						username,
+						display_name: displayName || 'nickname'
+					});
+
+				if (insertError) throw insertError;
+
+				logFrontendEvent({
+					event_name: "user_profile_created",
+					error_level: "log",
+					payload: { user_id: user.id, username }
+				});
+			}
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "user_profile_creation_error",
+				error_level: "error",
+				payload: { user_id: user.id, error: (error as Error).message }
+			});
+			// プロフィール作成エラーは致命的ではないので、ログのみ
+		}
 	};
 
 	/**
@@ -168,6 +270,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		signUpWithEmail,
 		logout,
 		signInWithOAuth,
+		signInWithOtp,
+		verifyOtp,
+		linkIdentity,
+		createUserProfile,
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

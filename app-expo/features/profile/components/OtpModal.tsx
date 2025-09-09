@@ -1,0 +1,240 @@
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import {
+	View,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	StyleSheet,
+	KeyboardAvoidingView,
+	Platform,
+	Alert,
+} from "react-native";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import i18n from "@/lib/i18n";
+
+interface OtpModalProps {
+	onClose: () => void;
+	onVerify: (otp: string) => Promise<void>;
+	onResend: () => Promise<void>;
+	phone: string;
+}
+
+export function OtpModal({ onClose, onVerify, onResend, phone }: OtpModalProps) {
+	const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+	const [isLoading, setIsLoading] = useState(false);
+	const [isResending, setIsResending] = useState(false);
+	const inputRefs = useRef<(TextInput | null)[]>([]);
+
+	const handleOtpChange = useCallback((value: string, index: number) => {
+		// Only allow numbers
+		const numericValue = value.replace(/[^0-9]/g, "");
+		
+		if (numericValue.length > 1) {
+			// If multiple characters are pasted, split them across inputs
+			const digits = numericValue.slice(0, 6).split("");
+			const newOtp = [...otp];
+			
+			digits.forEach((digit, i) => {
+				if (index + i < 6) {
+					newOtp[index + i] = digit;
+				}
+			});
+			
+			setOtp(newOtp);
+			
+			// Focus on the next available input or the last one
+			const nextIndex = Math.min(index + digits.length, 5);
+			inputRefs.current[nextIndex]?.focus();
+		} else {
+			// Single character input
+			const newOtp = [...otp];
+			newOtp[index] = numericValue;
+			setOtp(newOtp);
+			
+			// Auto-focus next input if digit was entered
+			if (numericValue && index < 5) {
+				inputRefs.current[index + 1]?.focus();
+			}
+		}
+	}, [otp]);
+
+	const handleKeyPress = useCallback((key: string, index: number) => {
+		if (key === "Backspace" && !otp[index] && index > 0) {
+			// Focus previous input on backspace if current is empty
+			inputRefs.current[index - 1]?.focus();
+		}
+	}, [otp]);
+
+	const handleVerify = useCallback(async () => {
+		const otpString = otp.join("");
+		
+		if (otpString.length !== 6) {
+			Alert.alert(i18n.t("Common.error"), "Please enter all 6 digits");
+			return;
+		}
+
+		setIsLoading(true);
+		try {
+			await onVerify(otpString);
+		} catch (error: any) {
+			Alert.alert(i18n.t("Common.error"), error.message);
+		} finally {
+			setIsLoading(false);
+		}
+	}, [otp, onVerify]);
+
+	const handleResend = useCallback(async () => {
+		setIsResending(true);
+		try {
+			await onResend();
+			// Clear current OTP inputs
+			setOtp(["", "", "", "", "", ""]);
+			// Focus first input
+			inputRefs.current[0]?.focus();
+		} catch (error: any) {
+			Alert.alert(i18n.t("Common.error"), error.message);
+		} finally {
+			setIsResending(false);
+		}
+	}, [onResend]);
+
+	// Auto-verify when all digits are entered
+	useEffect(() => {
+		const otpString = otp.join("");
+		if (otpString.length === 6 && !isLoading) {
+			handleVerify();
+		}
+	}, [otp, isLoading, handleVerify]);
+
+	return (
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			style={styles.container}
+			keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}>
+			<View style={styles.content}>
+				<View style={styles.header}>
+					<Text style={styles.title}>{i18n.t("auth.otp_title")}</Text>
+					<Text style={styles.subtitle}>
+						{i18n.t("auth.hint_sms")} {"\n"}
+						<Text style={styles.phoneNumber}>{phone}</Text>
+					</Text>
+				</View>
+
+				<View style={styles.form}>
+					{/* OTP Input */}
+					<View style={styles.otpContainer}>
+						{otp.map((digit, index) => (
+							<TextInput
+								key={index}
+								ref={(ref) => {
+									inputRefs.current[index] = ref;
+								}}
+								style={[styles.otpInput, digit && styles.otpInputFilled]}
+								value={digit}
+								onChangeText={(value) => handleOtpChange(value, index)}
+								onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+								maxLength={1}
+								keyboardType="number-pad"
+								textContentType="oneTimeCode"
+								selectTextOnFocus
+								editable={!isLoading}
+							/>
+						))}
+					</View>
+
+					{/* Verify Button */}
+					<PrimaryButton
+						onPress={handleVerify}
+						label={i18n.t("auth.btn_login")}
+						disabled={isLoading || otp.join("").length !== 6}
+						loading={isLoading}
+						style={styles.verifyButton}
+					/>
+
+					{/* Resend Button */}
+					<TouchableOpacity
+						onPress={handleResend}
+						disabled={isResending || isLoading}
+						style={styles.resendButton}>
+						<Text style={[styles.resendText, (isResending || isLoading) && styles.resendTextDisabled]}>
+							{isResending ? i18n.t("Common.processing") : i18n.t("auth.otp_send_again")}
+						</Text>
+					</TouchableOpacity>
+				</View>
+			</View>
+		</KeyboardAvoidingView>
+	);
+}
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+	},
+	content: {
+		flex: 1,
+		paddingHorizontal: 24,
+		paddingVertical: 32,
+	},
+	header: {
+		alignItems: "center",
+		marginBottom: 48,
+	},
+	title: {
+		fontSize: 28,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		textAlign: "center",
+		marginBottom: 16,
+	},
+	subtitle: {
+		fontSize: 16,
+		color: "#6B7280",
+		textAlign: "center",
+		lineHeight: 24,
+	},
+	phoneNumber: {
+		fontWeight: "600",
+		color: "#1A1A1A",
+	},
+	form: {
+		flex: 1,
+		justifyContent: "center",
+	},
+	otpContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		marginBottom: 32,
+		paddingHorizontal: 16,
+	},
+	otpInput: {
+		width: 48,
+		height: 56,
+		borderWidth: 2,
+		borderColor: "#D1D5DB",
+		borderRadius: 12,
+		textAlign: "center",
+		fontSize: 24,
+		fontWeight: "600",
+		color: "#1A1A1A",
+		backgroundColor: "#F9FAFB",
+	},
+	otpInputFilled: {
+		borderColor: "#5EA2FF",
+		backgroundColor: "#EFF6FF",
+	},
+	verifyButton: {
+		marginBottom: 24,
+	},
+	resendButton: {
+		alignItems: "center",
+		paddingVertical: 12,
+	},
+	resendText: {
+		fontSize: 16,
+		fontWeight: "600",
+		color: "#5EA2FF",
+	},
+	resendTextDisabled: {
+		color: "#9CA3AF",
+	},
+});

@@ -342,5 +342,25 @@
 			"messageLength": "El mensaje debe tener entre 10 y 2000 caracteres",
 			"submitFailed": "Error al enviar comentarios. Por favor, inténtelo de nuevo."
 		}
+	},
+	"auth": {
+		"login_title": "Iniciar Sesión",
+		"create_title": "Crear Cuenta",
+		"field_phone": "Teléfono",
+		"field_name": "Nombre",
+		"hint_sms": "Te enviaremos un código único por SMS para iniciar sesión.",
+		"btn_login": "Iniciar Sesión",
+		"btn_create": "Crear una Cuenta",
+		"divider_or": "O Inicia sesión con",
+		"agree_tos": "Acepto los Términos de Servicio",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "Introducir Código",
+		"otp_send_again": "Reenviar Código",
+		"error_required": "Este campo es obligatorio",
+		"error_invalid_phone": "Número de teléfono inválido",
+		"tos_link_text": "Términos de Servicio"
 	}
 }

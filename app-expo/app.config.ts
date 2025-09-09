@@ -24,6 +24,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		associatedDomains: [`applinks:food-scroll.web.app`],
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
+			CFBundleURLTypes: [
+				{
+					CFBundleURLName: "nanitabeyo",
+					CFBundleURLSchemes: ["nanitabeyo"]
+				}
+			],
 			CFBundleAllowMixedLocalizations: true,
 			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],
 			CFBundleDisplayName: "$(CFBundleDisplayName)",
@@ -48,6 +54,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 						scheme: "https",
 						host: "food-scroll.web.app",
 						pathPrefix: "/",
+					},
+					{
+						scheme: "https",
+						host: "*.supabase.co",
+					},
+					{
+						scheme: "nanitabeyo",
 					},
 				],
 				category: ["BROWSABLE", "DEFAULT"],

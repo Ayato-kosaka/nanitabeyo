@@ -342,5 +342,25 @@
 			"messageLength": "メッセージは10文字以上2000文字以下で入力してください",
 			"submitFailed": "送信に失敗しました。もう一度お試しください。"
 		}
+	},
+	"auth": {
+		"login_title": "ログイン",
+		"create_title": "アカウント作成",
+		"field_phone": "電話番号",
+		"field_name": "名前",
+		"hint_sms": "SMSでワンタイムコードを送信します。",
+		"btn_login": "ログイン",
+		"btn_create": "アカウントを作成",
+		"divider_or": "または次でサインイン",
+		"agree_tos": "利用規約に同意します",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "コードを入力",
+		"otp_send_again": "コードを再送",
+		"error_required": "必須項目です",
+		"error_invalid_phone": "電話番号が正しくありません",
+		"tos_link_text": "利用規約"
 	}
 }
