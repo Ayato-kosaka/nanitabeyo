@@ -1,5 +1,5 @@
-import React, { useState, useCallback, use, useEffect } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, LayoutChangeEvent } from "react-native";
+import React, { useState, useCallback, useEffect } from "react";
+import { View, Text, StyleSheet, Image, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Camera, DollarSign } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
