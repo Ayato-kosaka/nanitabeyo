@@ -245,7 +245,8 @@
 		"buttons": {
 			"postReview": "리뷰 게시",
 			"placeBid": "입찰하기",
-			"bid": "입찰"
+			"bid": "입찰",
+			"searchNearby": "이 지역에서 검색"
 		},
 		"inputs": {
 			"price": "가격",

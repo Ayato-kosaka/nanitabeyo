@@ -245,7 +245,8 @@
 		"buttons": {
 			"postReview": "نشر مراجعة",
 			"placeBid": "تقديم عرض",
-			"bid": "عرض"
+			"bid": "عرض",
+			"searchNearby": "ابحث في هذه المنطقة"
 		},
 		"inputs": {
 			"price": "السعر",

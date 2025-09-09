@@ -245,7 +245,8 @@
 		"buttons": {
 			"postReview": "Publier un avis",
 			"placeBid": "Placer une enchère",
-			"bid": "Enchérir"
+			"bid": "Enchérir",
+			"searchNearby": "Rechercher dans cette zone"
 		},
 		"inputs": {
 			"price": "Prix",

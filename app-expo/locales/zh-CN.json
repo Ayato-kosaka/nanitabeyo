@@ -244,7 +244,8 @@
 		"buttons": {
 			"postReview": "发布评论",
 			"placeBid": "出价",
-			"bid": "出价"
+			"bid": "出价",
+			"searchNearby": "在此区域搜索"
 		},
 		"inputs": {
 			"price": "价格",

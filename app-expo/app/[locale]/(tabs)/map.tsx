@@ -11,6 +11,7 @@ import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
+import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 
@@ -203,6 +204,17 @@ export default function MapScreen() {
 				<Navigation size={24} color="#FFF" />
 			</TouchableOpacity>
 
+			{/* Search This Area Button */}
+			<View style={styles.bottomActionContainer}>
+				<PrimaryButton
+					label={i18n.t("Map.buttons.searchNearby")}
+					onPress={() => searchNearbyRestaurants(currentRegion)}
+					colors={["#ffffff", "#ffffff"]}
+					labelStyle={{ color: "#000" }}
+					loading={isLoadingRestaurants}
+				/>
+			</View>
+
 			{/* Bottom Sheet */}
 			<RestaurantBlurModal>
 				{selectedPlace && (
@@ -273,6 +285,13 @@ const styles = StyleSheet.create({
 		marginLeft: 8,
 		fontSize: 14,
 		color: "#333",
+	},
+	bottomActionContainer: {
+		position: "absolute",
+		bottom: 20,
+		left: 16,
+		right: 16,
+		zIndex: 10,
 	},
 	fab: {
 		position: "absolute",
