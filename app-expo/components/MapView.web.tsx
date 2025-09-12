@@ -54,22 +54,47 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 		const innerMapRef = useRef<google.maps.Map | null>(null);
 
 		/* Google Maps 読み込み完了時 */
-		const handleLoad = useCallback((map: google.maps.Map) => {
-			innerMapRef.current = map;
-		}, []);
+		const handleLoad = useCallback(
+			(map: google.maps.Map) => {
+				innerMapRef.current = map;
+
+				const div = map.getDiv();
+				const width = div?.offsetWidth ?? 0;
+				if (region?.longitudeDelta && width > 0) {
+					const z = Math.log2((360 * width) / (256 * region.longitudeDelta));
+					map.setZoom(Math.max(0, Math.min(21, z)));
+				} else if (region?.latitudeDelta) {
+					// ざっくり初期値（緯度方向は近似でOK）
+					const z = Math.log2(360 / region.latitudeDelta);
+					map.setZoom(Math.max(0, Math.min(21, z)));
+				}
+			},
+			[region],
+		);
 
 		/* パン／ズーム完了時に Region を返す */
 		const handleIdle = useCallback(() => {
 			if (!onRegionChangeComplete || !innerMapRef.current) return;
-			const center = innerMapRef.current.getCenter();
-			if (!center) return;
+			const map = innerMapRef.current;
+			const center = map.getCenter();
+			const bounds = map.getBounds();
+			if (!center || !bounds) return;
+
+			const ne = bounds.getNorthEast();
+			const sw = bounds.getSouthWest();
+
+			// 経度差は日付変更線跨ぎに注意
+			let longitudeDelta = ne.lng() - sw.lng();
+			if (longitudeDelta < 0) longitudeDelta += 360;
+
+			const latitudeDelta = ne.lat() - sw.lat();
 
 			onRegionChangeComplete(
 				{
 					latitude: center.lat(),
 					longitude: center.lng(),
-					latitudeDelta: region?.latitudeDelta ?? 0,
-					longitudeDelta: region?.longitudeDelta ?? 0,
+					latitudeDelta,
+					longitudeDelta,
 				},
 				{ isGesture: false } as any,
 			);
@@ -138,8 +163,6 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 		return (
 			<GoogleMap
 				onLoad={handleLoad}
-				center={{ lat: region?.latitude ?? 0, lng: region?.longitude ?? 0 }}
-				zoom={region ? deltaToZoom(region.latitudeDelta) : 17}
 				mapContainerStyle={containerStyle}
 				onClick={handleClick}
 				onIdle={handleIdle}

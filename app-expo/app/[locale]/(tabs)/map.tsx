@@ -183,6 +183,18 @@ export default function MapScreen() {
 				/>
 			</View>
 
+			{/* Search This Area Button */}
+			<View style={styles.bottomActionContainer}>
+				<PrimaryButton
+					label={i18n.t("Map.buttons.searchNearby")}
+					onPress={() => searchNearbyRestaurants(currentRegion)}
+					colors={["#ffffff", "#ffffff"]}
+					shadowColor={"#000000"}
+					labelStyle={{ color: "#1A1A1A" }}
+					loading={isLoadingRestaurants}
+				/>
+			</View>
+
 			<RestaurantBlurModal>
 				{selectedPlace && (
 					<SelectedRestaurantDetails
@@ -207,6 +219,13 @@ const styles = StyleSheet.create({
 	searchContainer: {
 		position: "absolute",
 		top: 50,
+		left: 16,
+		right: 16,
+		zIndex: 10,
+	},
+	bottomActionContainer: {
+		position: "absolute",
+		bottom: 20,
 		left: 16,
 		right: 16,
 		zIndex: 10,

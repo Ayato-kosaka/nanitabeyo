@@ -245,7 +245,8 @@
 		"buttons": {
 			"postReview": "Publicar Reseña",
 			"placeBid": "Hacer Oferta",
-			"bid": "Ofertar"
+			"bid": "Ofertar",
+			"searchNearby": "Buscar en esta área"
 		},
 		"inputs": {
 			"price": "Precio",
