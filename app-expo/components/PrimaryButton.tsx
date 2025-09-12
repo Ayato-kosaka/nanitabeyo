@@ -23,6 +23,8 @@ export interface PrimaryButtonProps {
 	icon?: ReactElement;
 	/** グラデーション用カラー配列。デフォルトは青系 */
 	colors?: readonly [ColorValue, ColorValue, ...ColorValue[]];
+	/** 影の色 */
+	shadowColor?: ColorValue;
 	/** 角丸 */
 	borderRadius?: number;
 	/** 読み込み状態でインジケータ表示 */
@@ -37,6 +39,7 @@ export interface PrimaryButtonProps {
 	labelStyle?: StyleProp<TextStyle>;
 	/** testID / a11y */
 	testID?: string;
+	/** アクセシビリティラベル */
 	accessibilityLabel?: string;
 }
 
@@ -45,6 +48,7 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 	onPress,
 	icon,
 	colors = ["#5EA2FF", "#357AFF"],
+	shadowColor = "#5EA2FF",
 	borderRadius = 24,
 	loading = false,
 	disabled = false,
@@ -70,6 +74,14 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 	const getWrapperStyle = useCallback(
 		({ pressed }: PressableStateCallbackType) => [
 			styles.wrapper,
+			{
+				// 影
+				shadowColor,
+				shadowOffset: { width: 0, height: 0 },
+				shadowOpacity: 0.4,
+				shadowRadius: 32,
+				elevation: 12,
+			},
 			{ borderRadius },
 			pressed && !isDisabled && styles.pressed,
 			isDisabled && styles.disabled,
@@ -88,14 +100,10 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 			style={getWrapperStyle}
 			android_ripple={{ color: "rgba(255,255,255,0.12)", borderless: true }}>
 			<LinearGradient colors={colors} style={[styles.gradient, { borderRadius }, contentStyle]}>
-				{loading ? (
-					<ActivityIndicator color="#FFFFFF" />
-				) : (
-					<>
-						{icon}
-						<Text style={[styles.label, labelStyle]}>{label}</Text>
-					</>
-				)}
+				<>
+					{loading ? <ActivityIndicator color="#FFFFFF" /> : icon}
+					<Text style={[styles.label, labelStyle]}>{label}</Text>
+				</>
 			</LinearGradient>
 		</Pressable>
 	);
@@ -105,12 +113,6 @@ export const PrimaryButton = memo(PrimaryButtonComponent);
 
 const styles = StyleSheet.create({
 	wrapper: {
-		// 影
-		shadowColor: "#5EA2FF",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.4,
-		shadowRadius: 32,
-		elevation: 12,
 		overflow: "hidden",
 	},
 	gradient: {

@@ -189,7 +189,8 @@ export default function MapScreen() {
 					label={i18n.t("Map.buttons.searchNearby")}
 					onPress={() => searchNearbyRestaurants(currentRegion)}
 					colors={["#ffffff", "#ffffff"]}
-					labelStyle={{ color: "#000" }}
+					shadowColor={"#000000"}
+					labelStyle={{ color: "#1A1A1A" }}
 					loading={isLoadingRestaurants}
 				/>
 			</View>
