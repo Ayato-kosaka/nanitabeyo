@@ -1,5 +1,5 @@
 import { usePathname } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import * as Crypto from "expo-crypto";
 import { getRemoteConfig } from "../lib/remoteConfig";
@@ -38,7 +38,12 @@ type FrontendEventLogInput = DeepNonNullable<
  * @returns `logFrontendEvent()` ログ送信関数
  */
 export const useLogger = () => {
-	const path_name = usePathname();
+	const pathname = usePathname();
+
+	const pathRef = useRef(pathname);
+	useEffect(() => {
+		pathRef.current = pathname;
+	}, [pathname]);
 
 	/**
 	 * Supabase にフロントエンドイベントログを送信する。
@@ -47,51 +52,48 @@ export const useLogger = () => {
 	 * @param error_level - エラーレベル（"verbose", "debug", "log", "warn", "error" のいずれか）
 	 * @param payload - 任意の付加情報（オブジェクト形式）
 	 */
+	const logFrontendEvent = useCallback(async ({ event_name, error_level, payload }: FrontendEventLogInput) => {
+		const path_name = pathRef.current;
+		try {
+			const remoteConfig = getRemoteConfig();
+			const currentLevel = remoteConfig?.v1_min_frontend_log_level ?? "debug";
 
-	const logFrontendEvent = useCallback(
-		async ({ event_name, error_level, payload }: FrontendEventLogInput) => {
-			try {
-				const remoteConfig = getRemoteConfig();
-				const currentLevel = remoteConfig?.v1_min_frontend_log_level ?? "debug";
-
-				// ログレベルが現在の閾値よりも低ければ記録しない
-				if (errorLevelPriority[error_level] < errorLevelPriority[currentLevel]) {
-					return;
-				}
-
-				const {
-					data: { session },
-				} = await supabase.auth.getSession();
-				const user = session?.user;
-
-				const now = new Date().toISOString();
-
-				await supabase.from("frontend_event_logs").insert({
-					id: Crypto.randomUUID(),
-					user_id: user?.id,
-					event_name,
-					path_name,
-					payload: JSON.stringify(payload),
-					error_level,
-					created_at: now,
-					created_app_version: Env.APP_VERSION,
-					created_commit_id: Env.COMMIT_ID,
-				});
-
-				if (Env.NODE_ENV === "development") {
-					console.log(`📤 [${error_level}] [${path_name}] ${event_name}`, payload);
-				}
-			} catch (err: any) {
-				if (Env.NODE_ENV === "development") {
-					console.error(`🚨 Failed to log event [${event_name}] on screen [${path_name}]`, {
-						message: err.message,
-						full: err,
-					});
-				}
+			// ログレベルが現在の閾値よりも低ければ記録しない
+			if (errorLevelPriority[error_level] < errorLevelPriority[currentLevel]) {
+				return;
 			}
-		},
-		[path_name],
-	);
+
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+			const user = session?.user;
+
+			const now = new Date().toISOString();
+
+			await supabase.from("frontend_event_logs").insert({
+				id: Crypto.randomUUID(),
+				user_id: user?.id,
+				event_name,
+				path_name,
+				payload: JSON.stringify(payload),
+				error_level,
+				created_at: now,
+				created_app_version: Env.APP_VERSION,
+				created_commit_id: Env.COMMIT_ID,
+			});
+
+			if (Env.NODE_ENV === "development") {
+				console.log(`📤 [${error_level}] [${path_name}] ${event_name}`, payload);
+			}
+		} catch (err: any) {
+			if (Env.NODE_ENV === "development") {
+				console.error(`🚨 Failed to log event [${event_name}] on screen [${path_name}]`, {
+					message: err.message,
+					full: err,
+				});
+			}
+		}
+	}, []);
 
 	return { logFrontendEvent };
 };

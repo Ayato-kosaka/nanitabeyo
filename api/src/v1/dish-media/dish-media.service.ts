@@ -123,9 +123,9 @@ export class DishMediaService {
   }
 
   /* ------------------------------------------------------------------ */
-  /*            POST /v1/dish-media/:id/likes/:userId (いいね)           */
+  /*            POST /v1/dish-media/:id/likes (いいね)                   */
   /* ------------------------------------------------------------------ */
-  async likeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
+  async likeDishMedia({ id }: LikeDishMediaParamsDto, userId: string) {
     this.logger.verbose('LikeDishMedia', 'likeDishMedia', { id, userId });
     await this.repo.likeDishMedia(id, userId);
 
@@ -138,14 +138,14 @@ export class DishMediaService {
     // );
   }
 
-  /* --------------------- DELETE /v1/dish-media/:id/likes/:userId ------------------ */
-  async unlikeDishMedia({ id, userId }: LikeDishMediaParamsDto) {
+  /* --------------------- DELETE /v1/dish-media/:id/likes ------------------ */
+  async unlikeDishMedia({ id }: LikeDishMediaParamsDto, userId: string) {
     this.logger.verbose('UnlikeDishMedia', 'unlikeDishMedia', { id, userId });
     await this.repo.unlikeDishMedia(id, userId);
   }
 
-  /* --------------------- POST /v1/dish-media/:id/save/:userId --------------------- */
-  async saveDishMedia({ id, userId }: SaveDishMediaParamsDto) {
+  /* --------------------- POST /v1/dish-media/:id/save --------------------- */
+  async saveDishMedia({ id }: SaveDishMediaParamsDto, userId: string) {
     this.logger.verbose('SaveDishMedia', 'saveDishMedia', { id, userId });
     await this.repo.saveDishMedia(id, userId);
 

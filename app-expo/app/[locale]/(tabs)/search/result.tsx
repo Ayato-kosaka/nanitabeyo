@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -9,9 +9,19 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 
 export default function ResultScreen() {
-	const { topicId } = useLocalSearchParams<{ topicId: string }>();
-	const { lightImpact } = useHaptics();
-	const { logFrontendEvent } = useLogger();
+        const { topicId, location } = useLocalSearchParams<{ topicId: string; location?: string }>();
+        const initialLocation = useMemo(() => {
+                if (typeof location === "string") {
+                        try {
+                                return JSON.parse(location) as { latitude: number; longitude: number };
+                        } catch {
+                                return undefined;
+                        }
+                }
+                return undefined;
+        }, [location]);
+        const { lightImpact } = useHaptics();
+        const { logFrontendEvent } = useLogger();
 
 	const { currentIndex, showCompletionModal, dishesPromise, handleIndexChange, handleClose, handleReturnToCards } =
 		useSearchResult(topicId as string);
@@ -49,10 +59,14 @@ export default function ResultScreen() {
 			</View>
 
 			{/* Feed Content */}
-			{/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-			<FoodContentMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} />
-		</LinearGradient>
-	);
+                        {/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
+                        <FoodContentMap
+                                itemsPromise={dishesPromise}
+                                onIndexChange={handleIndexChange}
+                                initialLocation={initialLocation}
+                        />
+                </LinearGradient>
+        );
 }
 
 const styles = StyleSheet.create({
