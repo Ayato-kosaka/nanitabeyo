@@ -20,11 +20,13 @@ import { ProfileEditForm } from "../components/ProfileEditForm";
 import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
+import { useAuth } from "@/contexts/AuthProvider";
 
 export function ProfileTabsLayout() {
 	const { userId } = useLocalSearchParams();
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { user } = useAuth();
 
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const {
@@ -40,7 +42,7 @@ export function ProfileTabsLayout() {
 
 	const isOwnProfile = !userId || userId === "me";
 	const profile = isOwnProfile ? userProfile : otherUserProfile;
-	const isGuest = profile.username === "guest";
+	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
