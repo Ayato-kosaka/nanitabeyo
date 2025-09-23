@@ -21,7 +21,7 @@ import type { BaseResponse } from "@shared/api/v1/res";
 export const useAPICall = () => {
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
-	const { session } = useAuth();
+	const { getSession } = useAuth();
 
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
@@ -53,7 +53,7 @@ export const useAPICall = () => {
 			const endpoint = `${Env.BACKEND_BASE_URL}/${endpointName}${qs}`;
 
 			// 🔐 認証トークンの有無をチェック
-			const accessToken = session?.access_token;
+			const accessToken = getSession()?.access_token;
 			if (!accessToken) {
 				throw new Error("User is not authenticated: Supabase access_token is missing.");
 			}
@@ -215,7 +215,7 @@ export const useAPICall = () => {
 			// data のみを返す
 			return json.data;
 		},
-		[logFrontendEvent, session, showDialog],
+		[logFrontendEvent, getSession, showDialog],
 	);
 
 	return { callBackend };

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session, User, Provider } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
@@ -7,7 +7,7 @@ import { useLocale } from "@/hooks/useLocale";
 
 type AuthContextType = {
 	user: User | null;
-	session: Session | null;
+	getSession: () => Session | null;
 	isAuthenticated: boolean;
 	loading: boolean;
 	loginWithEmail: (email: string, password: string) => Promise<void>;
@@ -30,11 +30,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * - OAuth, メールログイン・サインアップ機能を提供
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-	const [user, setUser] = useState<User | null>(null);
-	const [session, setSession] = useState<Session | null>(null);
-	const [loading, setLoading] = useState(true);
 	const { logFrontendEvent } = useLogger();
+	const [user, setUser] = useState<User | null>(null);
+	const [loading, setLoading] = useState(true);
 	const locale = useLocale();
+	const sessionRef = useRef<Session | null>(null);
+	const getSession = useCallback(() => sessionRef.current, []);
 
 	useEffect(() => {
 		/**
@@ -61,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 						payload: { user_id: restoredSession.user.id },
 					});
 
-					setSession(restoredSession);
+					sessionRef.current = restoredSession;
 					setUser(restoredSession.user);
 				} else {
 					const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					});
 
 					if (anonData?.session) {
-						setSession(anonData.session);
+						sessionRef.current = anonData.session;
 						setUser(anonData.session.user);
 					}
 				}
@@ -119,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			} else if (event === "TOKEN_REFRESHED") {
 				if (!session) return;
 				setUser(session.user);
-				setSession(session);
+				sessionRef.current = session;
 			} else if (event === "USER_UPDATED") {
 				// setUser(session.user);
 				// setSession(session);
@@ -265,7 +266,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 	const value: AuthContextType = {
 		user,
-		session,
+		getSession,
 		isAuthenticated: !!user,
 		loading,
 		loginWithEmail,

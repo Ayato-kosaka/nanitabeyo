@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { ThumbsUp, X } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -21,7 +21,17 @@ import { useLocale } from "@/hooks/useLocale";
 
 export default function TopicsScreen() {
 	const locale = useLocale();
-	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
+        const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
+        const params = useMemo(() => {
+                if (searchParams) {
+                        try {
+                                return JSON.parse(searchParams) as SearchParams;
+                        } catch {
+                                return null;
+                        }
+                }
+                return null;
+        }, [searchParams]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
 	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
@@ -36,30 +46,28 @@ export default function TopicsScreen() {
 		confirmHideCard,
 	} = useHideTopic(topics, hideTopic, showSnackbar);
 
-	useEffect(() => {
-		if (searchParams) {
-			try {
-				const params: SearchParams = JSON.parse(searchParams);
-				searchTopics(params).catch(() => {
-					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
-				});
-			} catch (error) {
-				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
-				router.back();
-			}
-		}
-	}, [searchParams]);
+        useEffect(() => {
+                if (params) {
+                        searchTopics(params).catch(() => {
+                                showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+                        });
+                } else {
+                        showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
+                        router.back();
+                }
+        }, [params, searchTopics, showSnackbar]);
 
-	const handleViewDetails = (topic: Topic) => {
-		setDishes(topic.categoryId, topic.dishItemsPromise);
-		router.push({
-			pathname: "/[locale]/(tabs)/search/result",
-			params: {
-				locale,
-				topicId: topic.categoryId,
-			},
-		});
-	};
+        const handleViewDetails = (topic: Topic) => {
+                setDishes(topic.categoryId, topic.dishItemsPromise);
+                router.push({
+                        pathname: "/[locale]/(tabs)/search/result",
+                        params: {
+                                locale,
+                                topicId: topic.categoryId,
+                                ...(params && { location: JSON.stringify(params.location) }),
+                        },
+                });
+        };
 
 	const handleBack = () => {
 		router.back();
