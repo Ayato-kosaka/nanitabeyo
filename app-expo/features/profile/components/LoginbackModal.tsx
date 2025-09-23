@@ -193,30 +193,38 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 
 					{/* OAuth Buttons */}
 					<View style={styles.oauthContainer}>
-						<TouchableOpacity
-							style={styles.oauthButton}
+						<PrimaryButton
+							label={i18n.t("auth.provider_google")}
 							onPress={() => handleOAuthSignIn("google")}
-							disabled={isLoading}>
-							<Text style={styles.oauthButtonText}>{i18n.t("auth.provider_google")}</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.oauthButton}
+							style={{ width: "100%" }}
+							colors={["#ffffff", "#ffffff"]}
+							shadowColor={"#000000"}
+							labelStyle={{ color: "#1A1A1A" }}
+						/>
+						<PrimaryButton
+							label={i18n.t("auth.provider_facebook")}
 							onPress={() => handleOAuthSignIn("facebook")}
-							disabled={isLoading}>
-							<Text style={styles.oauthButtonText}>{i18n.t("auth.provider_facebook")}</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.oauthButton}
+							style={{ width: "100%" }}
+							colors={["#ffffff", "#ffffff"]}
+							shadowColor={"#000000"}
+							labelStyle={{ color: "#1A1A1A" }}
+						/>
+						<PrimaryButton
+							label={i18n.t("auth.provider_twitter")}
 							onPress={() => handleOAuthSignIn("twitter")}
-							disabled={isLoading}>
-							<Text style={styles.oauthButtonText}>{i18n.t("auth.provider_twitter")}</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.oauthButton}
+							style={{ width: "100%" }}
+							colors={["#ffffff", "#ffffff"]}
+							shadowColor={"#000000"}
+							labelStyle={{ color: "#1A1A1A" }}
+						/>
+						<PrimaryButton
+							label={i18n.t("auth.provider_apple")}
 							onPress={() => handleOAuthSignIn("apple")}
-							disabled={isLoading}>
-							<Text style={styles.oauthButtonText}>{i18n.t("auth.provider_apple")}</Text>
-						</TouchableOpacity>
+							style={{ width: "100%" }}
+							colors={["#ffffff", "#ffffff"]}
+							shadowColor={"#000000"}
+							labelStyle={{ color: "#1A1A1A" }}
+						/>
 					</View>
 				</View>
 
@@ -319,18 +327,10 @@ const styles = StyleSheet.create({
 		marginHorizontal: 16,
 	},
 	oauthContainer: {
-		flexDirection: "row",
 		flexWrap: "wrap",
-		gap: 12,
+		gap: 30,
 		justifyContent: "center",
-	},
-	oauthButton: {
 		width: "100%",
-		paddingVertical: 12,
-		paddingHorizontal: 20,
-		borderRadius: 12,
-		backgroundColor: "#FFFFFF",
-		alignItems: "center",
 	},
 	oauthButtonText: {
 		fontSize: 14,
