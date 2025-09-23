@@ -1,3 +1,10 @@
+/*
+責務:
+- 電話番号によるログイン用モーダルUIを提供する。
+- E.164形式での電話番号入力とバリデーションを行う。
+- onSubmit でOTP送信を開始し、onOAuthSignIn で各種OAuthサインインをトリガーする。
+- ローディング/エラー状態、i18n、キーボード回避、アラート通知を扱う。
+*/
 import React, { useState, useCallback } from "react";
 import {
 	View,

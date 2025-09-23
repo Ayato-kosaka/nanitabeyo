@@ -1,3 +1,10 @@
+/*
+責務:
+- アカウント作成用のモーダルUIを提供する。
+- ユーザー名と電話番号の入力、E.164形式のバリデーション、利用規約同意の状態管理を行う。
+- onSubmit で作成フローを開始し、onOAuthSignIn で各種OAuthサインインをトリガーする。
+- ローディング/エラー表示、i18n、キーボード回避、アラート通知を扱う。
+*/
 import React, { useState, useCallback } from "react";
 import {
 	View,
@@ -140,8 +147,7 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 						</TouchableOpacity>
 						<View style={styles.checkboxTextContainer}>
 							<Text style={styles.checkboxText}>
-								{i18n.t("auth.agree_tos")}{" "}
-								<Text style={styles.tosLink}>{i18n.t("auth.tos_link_text")}</Text>
+								{i18n.t("auth.agree_tos")} <Text style={styles.tosLink}>{i18n.t("auth.tos_link_text")}</Text>
 							</Text>
 						</View>
 					</View>

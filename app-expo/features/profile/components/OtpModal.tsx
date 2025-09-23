@@ -1,3 +1,11 @@
+/*
+責務:
+- 6桁OTPの入力・検証を行うモーダルUIを提供する。
+- 入力欄の自動フォーカス移動/貼り付け分配/削除時の戻りフォーカスを制御する。
+- onVerify で検証、onResend で再送要求をトリガーする。
+- ローディング/再送中状態、i18n、アラート通知、キーボード回避を扱う。
+*/
+
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
 	View,
@@ -25,49 +33,55 @@ export function OtpModal({ onClose, onVerify, onResend, phone }: OtpModalProps) 
 	const [isResending, setIsResending] = useState(false);
 	const inputRefs = useRef<(TextInput | null)[]>([]);
 
-	const handleOtpChange = useCallback((value: string, index: number) => {
-		// Only allow numbers
-		const numericValue = value.replace(/[^0-9]/g, "");
-		
-		if (numericValue.length > 1) {
-			// If multiple characters are pasted, split them across inputs
-			const digits = numericValue.slice(0, 6).split("");
-			const newOtp = [...otp];
-			
-			digits.forEach((digit, i) => {
-				if (index + i < 6) {
-					newOtp[index + i] = digit;
-				}
-			});
-			
-			setOtp(newOtp);
-			
-			// Focus on the next available input or the last one
-			const nextIndex = Math.min(index + digits.length, 5);
-			inputRefs.current[nextIndex]?.focus();
-		} else {
-			// Single character input
-			const newOtp = [...otp];
-			newOtp[index] = numericValue;
-			setOtp(newOtp);
-			
-			// Auto-focus next input if digit was entered
-			if (numericValue && index < 5) {
-				inputRefs.current[index + 1]?.focus();
-			}
-		}
-	}, [otp]);
+	const handleOtpChange = useCallback(
+		(value: string, index: number) => {
+			// Only allow numbers
+			const numericValue = value.replace(/[^0-9]/g, "");
 
-	const handleKeyPress = useCallback((key: string, index: number) => {
-		if (key === "Backspace" && !otp[index] && index > 0) {
-			// Focus previous input on backspace if current is empty
-			inputRefs.current[index - 1]?.focus();
-		}
-	}, [otp]);
+			if (numericValue.length > 1) {
+				// If multiple characters are pasted, split them across inputs
+				const digits = numericValue.slice(0, 6).split("");
+				const newOtp = [...otp];
+
+				digits.forEach((digit, i) => {
+					if (index + i < 6) {
+						newOtp[index + i] = digit;
+					}
+				});
+
+				setOtp(newOtp);
+
+				// Focus on the next available input or the last one
+				const nextIndex = Math.min(index + digits.length, 5);
+				inputRefs.current[nextIndex]?.focus();
+			} else {
+				// Single character input
+				const newOtp = [...otp];
+				newOtp[index] = numericValue;
+				setOtp(newOtp);
+
+				// Auto-focus next input if digit was entered
+				if (numericValue && index < 5) {
+					inputRefs.current[index + 1]?.focus();
+				}
+			}
+		},
+		[otp],
+	);
+
+	const handleKeyPress = useCallback(
+		(key: string, index: number) => {
+			if (key === "Backspace" && !otp[index] && index > 0) {
+				// Focus previous input on backspace if current is empty
+				inputRefs.current[index - 1]?.focus();
+			}
+		},
+		[otp],
+	);
 
 	const handleVerify = useCallback(async () => {
 		const otpString = otp.join("");
-		
+
 		if (otpString.length !== 6) {
 			Alert.alert(i18n.t("Common.error"), "Please enter all 6 digits");
 			return;
@@ -152,10 +166,7 @@ export function OtpModal({ onClose, onVerify, onResend, phone }: OtpModalProps) 
 					/>
 
 					{/* Resend Button */}
-					<TouchableOpacity
-						onPress={handleResend}
-						disabled={isResending || isLoading}
-						style={styles.resendButton}>
+					<TouchableOpacity onPress={handleResend} disabled={isResending || isLoading} style={styles.resendButton}>
 						<Text style={[styles.resendText, (isResending || isLoading) && styles.resendTextDisabled]}>
 							{isResending ? i18n.t("Common.processing") : i18n.t("auth.otp_send_again")}
 						</Text>
