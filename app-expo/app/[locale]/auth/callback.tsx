@@ -19,25 +19,28 @@ export default function AuthCallbackScreen() {
 		const handleAuthCallback = async () => {
 			try {
 				// セッション状態を確認
-				const { data: { session }, error } = await supabase.auth.getSession();
-				
+				const {
+					data: { session },
+					error,
+				} = await supabase.auth.getSession();
+
 				if (error) {
 					logFrontendEvent({
 						event_name: "oauth_callback_error",
 						error_level: "error",
-						payload: { error: error.message }
+						payload: { error: error.message },
 					});
 					throw error;
 				}
 
 				if (session?.user) {
 					// ユーザープロフィールを作成（存在しなければ）
-					await createUserProfile();
-					
+					await createUserProfile(session.user.user_metadata.name);
+
 					logFrontendEvent({
 						event_name: "oauth_callback_success",
 						error_level: "log",
-						payload: { user_id: session.user.id }
+						payload: { user_id: session.user.id },
 					});
 
 					// プロフィール画面にリダイレクト
@@ -50,9 +53,9 @@ export default function AuthCallbackScreen() {
 				logFrontendEvent({
 					event_name: "oauth_callback_error",
 					error_level: "error",
-					payload: { error: (error as Error).message }
+					payload: { error: (error as Error).message },
 				});
-				
+
 				// エラーの場合もプロフィール画面に戻る
 				router.replace("/(tabs)/profile");
 			}

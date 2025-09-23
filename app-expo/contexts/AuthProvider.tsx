@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Session, User, Provider } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { useLogger } from "@/hooks/useLogger";
+import { useLocale } from "@/hooks/useLocale";
 
 type AuthContextType = {
 	user: User | null;
@@ -33,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const [session, setSession] = useState<Session | null>(null);
 	const [loading, setLoading] = useState(true);
 	const { logFrontendEvent } = useLogger();
+	const locale = useLocale();
 
 	useEffect(() => {
 		/**
@@ -152,10 +154,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const signInWithOAuth = async (provider: Provider) => {
-		const redirectUrl = Linking.createURL("/auth/callback");
-		const { error } = await supabase.auth.signInWithOAuth({ 
+		const redirectUrl = Linking.createURL(`/${locale}/auth/callback`);
+		const { error } = await supabase.auth.signInWithOAuth({
 			provider,
-			options: { redirectTo: redirectUrl }
+			options: { redirectTo: redirectUrl },
 		});
 		if (error) throw error;
 	};
@@ -178,10 +180,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		const { data, error } = await supabase.auth.verifyOtp({
 			phone,
 			token,
-			type: 'sms'
+			type: "sms",
 		});
 		if (error) throw error;
-		
+
 		// ユーザープロフィールを作成（存在しなければ）
 		if (data.user) {
 			await createUserProfile();
@@ -193,10 +195,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const linkIdentity = async (provider: Provider): Promise<void> => {
-		const redirectUrl = Linking.createURL("/auth/callback");
-		const { data, error } = await supabase.auth.linkIdentity({ 
+		const redirectUrl = Linking.createURL(`/${locale}/auth/callback`);
+		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
-			options: { redirectTo: redirectUrl }
+			options: { redirectTo: redirectUrl },
 		});
 		if (error) throw error;
 	};
@@ -211,12 +213,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		try {
 			// 既存のユーザープロフィールをチェック
 			const { data: existingProfile, error: fetchError } = await supabase
-				.from('users')
-				.select('id')
-				.eq('id', user.id)
+				.from("users")
+				.select("id")
+				.eq("id", user.id)
 				.single();
 
-			if (fetchError && fetchError.code !== 'PGRST116') {
+			if (fetchError && fetchError.code !== "PGRST116") {
 				// PGRST116 = not found, それ以外のエラーは投げる
 				throw fetchError;
 			}
@@ -224,30 +226,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			if (!existingProfile) {
 				// ユーザープロフィールが存在しない場合のみ作成
 				const timestamp = Date.now();
-				const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+				const randomSuffix = Math.floor(Math.random() * 1000)
+					.toString()
+					.padStart(3, "0");
 				const username = `user${(timestamp + parseInt(randomSuffix)).toString().slice(0, 13)}`;
-				
-				const { error: insertError } = await supabase
-					.from('users')
-					.insert({
-						id: user.id,
-						username,
-						display_name: displayName || 'nickname'
-					});
+
+				const { error: insertError } = await supabase.from("users").insert({
+					id: user.id,
+					username,
+					display_name: displayName || "nickname",
+				});
 
 				if (insertError) throw insertError;
 
 				logFrontendEvent({
 					event_name: "user_profile_created",
 					error_level: "log",
-					payload: { user_id: user.id, username }
+					payload: { user_id: user.id, username },
 				});
 			}
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "user_profile_creation_error",
 				error_level: "error",
-				payload: { user_id: user.id, error: (error as Error).message }
+				payload: { user_id: user.id, error: (error as Error).message },
 			});
 			// プロフィール作成エラーは致命的ではないので、ログのみ
 		}
