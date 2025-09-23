@@ -2,7 +2,7 @@
 責務:
 - 6桁OTPの入力・検証を行うモーダルUIを提供する。
 - 入力欄の自動フォーカス移動/貼り付け分配/削除時の戻りフォーカスを制御する。
-- onVerify で検証、onResend で再送要求をトリガーする。
+- 検証、onResend で再送要求をトリガーする。
 - ローディング/再送中状態、i18n、アラート通知、キーボード回避を扱う。
 */
 
@@ -19,19 +19,23 @@ import {
 } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { useLogger } from "@/hooks/useLogger";
+import { useAuth } from "@/contexts/AuthProvider";
 
 interface OtpModalProps {
 	onClose: () => void;
-	onVerify: (otp: string) => Promise<void>;
-	onResend: () => Promise<void>;
 	phone: string;
 }
 
-export function OtpModal({ onClose, onVerify, onResend, phone }: OtpModalProps) {
+export function OtpModal({ onClose, phone }: OtpModalProps) {
 	const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isResending, setIsResending] = useState(false);
 	const inputRefs = useRef<(TextInput | null)[]>([]);
+	const [pendingDisplayName, setPendingDisplayName] = useState("");
+
+	const { signInWithOtp, verifyOtp, createUserProfile } = useAuth();
+	const { logFrontendEvent } = useLogger();
 
 	const handleOtpChange = useCallback(
 		(value: string, index: number) => {
@@ -89,18 +93,58 @@ export function OtpModal({ onClose, onVerify, onResend, phone }: OtpModalProps) 
 
 		setIsLoading(true);
 		try {
-			await onVerify(otpString);
+			try {
+				await verifyOtp(phone, otpString);
+
+				// Create user profile if display name was provided
+				if (pendingDisplayName) {
+					await createUserProfile(pendingDisplayName);
+				}
+
+				onClose();
+				setPendingDisplayName("");
+
+				logFrontendEvent({
+					event_name: "authentication_success",
+					error_level: "log",
+					payload: { phone, method: "sms" },
+				});
+
+				Alert.alert(i18n.t("Common.success"), "Successfully logged in!");
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "otp_verify_error",
+					error_level: "error",
+					payload: { phone, error: (error as Error).message },
+				});
+				throw error;
+			}
 		} catch (error: any) {
 			Alert.alert(i18n.t("Common.error"), error.message);
 		} finally {
 			setIsLoading(false);
 		}
-	}, [otp, onVerify]);
+	}, [otp, phone, verifyOtp, logFrontendEvent, onClose, pendingDisplayName, createUserProfile]);
 
 	const handleResend = useCallback(async () => {
 		setIsResending(true);
 		try {
-			await onResend();
+			try {
+				await signInWithOtp(phone);
+
+				logFrontendEvent({
+					event_name: "otp_resent",
+					error_level: "log",
+					payload: { phone },
+				});
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "otp_resend_error",
+					error_level: "error",
+					payload: { phone, error: (error as Error).message },
+				});
+				throw error;
+			}
 			// Clear current OTP inputs
 			setOtp(["", "", "", "", "", ""]);
 			// Focus first input
@@ -110,7 +154,7 @@ export function OtpModal({ onClose, onVerify, onResend, phone }: OtpModalProps) 
 		} finally {
 			setIsResending(false);
 		}
-	}, [onResend]);
+	}, [logFrontendEvent]);
 
 	// Auto-verify when all digits are entered
 	useEffect(() => {

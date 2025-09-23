@@ -2,7 +2,7 @@
 責務:
 - 電話番号によるログイン用モーダルUIを提供する。
 - E.164形式での電話番号入力とバリデーションを行う。
-- onSubmit でOTP送信を開始し、onOAuthSignIn で各種OAuthサインインをトリガーする。
+- OTP送信を開始し、onOAuthSignIn で各種OAuthサインインをトリガーする。
 - ローディング/エラー状態、i18n、キーボード回避、アラート通知を扱う。
 */
 import React, { useState, useCallback } from "react";
@@ -20,17 +20,23 @@ import {
 import { User, Mail, Phone } from "lucide-react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { useLogger } from "@/hooks/useLogger";
+import { useAuth } from "@/contexts/AuthProvider";
+import { useBlurModal } from "@/hooks/useBlurModal";
+import { OtpModal } from "./OtpModal";
 
 interface LoginbackModalProps {
 	onClose: () => void;
-	onSubmit: (data: { phone: string }) => Promise<void>;
-	onOAuthSignIn: (provider: "google" | "facebook" | "twitter" | "apple") => Promise<void>;
 }
 
-export function LoginbackModal({ onClose, onSubmit, onOAuthSignIn }: LoginbackModalProps) {
+export function LoginbackModal({ onClose }: LoginbackModalProps) {
 	const [phone, setPhone] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [errors, setErrors] = useState<{ phone?: string }>({});
+
+	const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
+	const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
+	const { logFrontendEvent } = useLogger();
 
 	const validatePhone = useCallback((phoneNumber: string): boolean => {
 		// E.164 format validation (simplified)
@@ -55,26 +61,84 @@ export function LoginbackModal({ onClose, onSubmit, onOAuthSignIn }: LoginbackMo
 
 		setIsLoading(true);
 		try {
-			await onSubmit({ phone: phone.trim() });
+			try {
+				await signInWithOtp(phone);
+				onClose();
+				openOtpModal();
+
+				logFrontendEvent({
+					event_name: "otp_sent",
+					error_level: "log",
+					payload: { phone, flow: "login" },
+				});
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "otp_send_error",
+					error_level: "error",
+					payload: { phone, error: (error as Error).message },
+				});
+				throw error;
+			}
 		} catch (error: any) {
 			Alert.alert(i18n.t("Common.error"), error.message);
 		} finally {
 			setIsLoading(false);
 		}
-	}, [phone, validatePhone, onSubmit]);
+	}, [phone, validatePhone, logFrontendEvent]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
 			setIsLoading(true);
 			try {
-				await onOAuthSignIn(provider);
+				try {
+					// Check if user is anonymous and try to link identity first
+					const isAnonymous = user?.is_anonymous;
+
+					if (isAnonymous) {
+						await linkIdentity(provider);
+					} else {
+						await signInWithOAuth(provider);
+					}
+
+					logFrontendEvent({
+						event_name: "oauth_signin_success",
+						error_level: "log",
+						payload: { provider, isUpgrade: isAnonymous },
+					});
+				} catch (error) {
+					// If linking fails, try regular OAuth sign in
+					if (user?.is_anonymous) {
+						try {
+							await signInWithOAuth(provider);
+							logFrontendEvent({
+								event_name: "oauth_signin_fallback_success",
+								error_level: "log",
+								payload: { provider },
+							});
+						} catch (fallbackError) {
+							logFrontendEvent({
+								event_name: "oauth_signin_error",
+								error_level: "error",
+								payload: { provider, error: (fallbackError as Error).message },
+							});
+							throw fallbackError;
+						}
+					} else {
+						logFrontendEvent({
+							event_name: "oauth_signin_error",
+							error_level: "error",
+							payload: { provider, error: (error as Error).message },
+						});
+						throw error;
+					}
+				}
 			} catch (error: any) {
 				Alert.alert(i18n.t("Common.error"), error.message);
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[onOAuthSignIn],
+		[user, linkIdentity, signInWithOAuth, logFrontendEvent],
 	);
 
 	return (
@@ -89,7 +153,7 @@ export function LoginbackModal({ onClose, onSubmit, onOAuthSignIn }: LoginbackMo
 
 				<View style={styles.form}>
 					{/* Phone Input */}
-					<View style={styles.inputContainer}>
+					{/* <View style={styles.inputContainer}>
 						<Text style={styles.label}>{i18n.t("auth.field_phone")}</Text>
 						<View style={[styles.inputWrapper, errors.phone && styles.inputError]}>
 							<Phone size={20} color="#6B7280" style={styles.inputIcon} />
@@ -106,26 +170,26 @@ export function LoginbackModal({ onClose, onSubmit, onOAuthSignIn }: LoginbackMo
 							/>
 						</View>
 						{errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-					</View>
+					</View> */}
 
 					{/* SMS Hint */}
-					<Text style={styles.hint}>{i18n.t("auth.hint_sms")}</Text>
+					{/* <Text style={styles.hint}>{i18n.t("auth.hint_sms")}</Text> */}
 
 					{/* Login Button */}
-					<PrimaryButton
+					{/* <PrimaryButton
 						onPress={handleSubmit}
 						label={i18n.t("auth.btn_login")}
 						disabled={isLoading}
 						loading={isLoading}
 						style={styles.loginButton}
-					/>
+					/> */}
 
 					{/* Divider */}
-					<View style={styles.divider}>
+					{/* <View style={styles.divider}>
 						<View style={styles.dividerLine} />
 						<Text style={styles.dividerText}>{i18n.t("auth.divider_or")}</Text>
 						<View style={styles.dividerLine} />
-					</View>
+					</View> */}
 
 					{/* OAuth Buttons */}
 					<View style={styles.oauthContainer}>
@@ -155,6 +219,18 @@ export function LoginbackModal({ onClose, onSubmit, onOAuthSignIn }: LoginbackMo
 						</TouchableOpacity>
 					</View>
 				</View>
+
+				<OtpModalComponent>
+					{({ close }) => (
+						<OtpModal
+							onClose={() => {
+								close();
+								setPhone("");
+							}}
+							phone={phone}
+						/>
+					)}
+				</OtpModalComponent>
 			</ScrollView>
 		</KeyboardAvoidingView>
 	);
@@ -249,12 +325,10 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	oauthButton: {
-		minWidth: 120,
+		width: "100%",
 		paddingVertical: 12,
 		paddingHorizontal: 20,
 		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
 		backgroundColor: "#FFFFFF",
 		alignItems: "center",
 	},

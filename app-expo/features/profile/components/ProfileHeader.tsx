@@ -30,7 +30,6 @@ interface ProfileHeaderProps {
 	onMessage?: () => void;
 	onFeedback?: () => void;
 	onLogin?: () => void;
-	onCreateAccount?: () => void;
 }
 
 const formatNumber = (num: number): string => {
@@ -57,7 +56,6 @@ export function ProfileHeader({
 	onMessage,
 	onFeedback,
 	onLogin,
-	onCreateAccount,
 }: ProfileHeaderProps) {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
@@ -130,18 +128,7 @@ export function ProfileHeader({
 								icon={<Edit3 size={16} color="#FFFFFF" />}
 							/>
 						) : isGuest && isOwnProfile ? (
-							<>
-								<PrimaryButton
-									style={{ flex: 1 }}
-									onPress={onLogin || (() => {})}
-									label={i18n.t("auth.btn_login")}
-								/>
-								<PrimaryButton
-									style={{ flex: 1, backgroundColor: "#6B7280" }}
-									onPress={onCreateAccount || (() => {})}
-									label={i18n.t("auth.btn_create")}
-								/>
-							</>
+							<PrimaryButton style={{ flex: 1 }} onPress={onLogin || (() => {})} label={i18n.t("auth.btn_login")} />
 						) : isGuest ? (
 							<PrimaryButton
 								style={{ flex: 1 }}
