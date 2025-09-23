@@ -108,8 +108,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// initializeAuth で処理済
 			} else if (event === "SIGNED_IN") {
 				if (!session) return;
-				// setUser(session.user);
-				// setSession(session);
+				setUser(session.user);
+				sessionRef.current = session;
 				// router.replace('/');
 			} else if (event === "SIGNED_OUT") {
 				// setUser(null);
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 */
 	const signInWithOAuth = async (provider: Provider) => {
 		const redirectUrl = Linking.createURL(`/${locale}/auth/callback`);
-		const { error } = await supabase.auth.signInWithOAuth({
+		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
 			options: { redirectTo: redirectUrl },
 		});
