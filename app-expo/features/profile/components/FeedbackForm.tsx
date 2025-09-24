@@ -27,8 +27,6 @@ interface FeedbackFormProps {
 	}) => void;
 	/** Called when user cancels */
 	onCancel: () => void;
-	/** Profile ID for logging */
-	profileId: string;
 }
 
 /**
@@ -41,7 +39,6 @@ export function FeedbackForm({
 	initialMessage = "",
 	onSubmit,
 	onCancel,
-	profileId,
 }: FeedbackFormProps) {
 	// Internal state - isolated from parent re-renders
 	const [feedbackType, setFeedbackType] = useState<"request" | "bug">(initialType);

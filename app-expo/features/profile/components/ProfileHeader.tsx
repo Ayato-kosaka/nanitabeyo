@@ -6,18 +6,10 @@ import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "luci
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { SupabaseUsers } from "@shared/converters/convert_users";
 
 interface ProfileHeaderProps {
-	profile: {
-		id: string;
-		username: string;
-		displayName: string;
-		bio: string;
-		avatar: string;
-		followingCount: number;
-		followersCount: number;
-		totalLikes: number;
-	};
+	profile: SupabaseUsers;
 	isOwnProfile: boolean;
 	isGuest?: boolean;
 	isFollowing?: boolean;
@@ -87,10 +79,10 @@ export function ProfileHeader({
 							style={styles.avatar}
 							contentFit="cover"
 							transition={0}
-							cachePolicy={"memory-disk"}
+							cachePolicy={"disk"}
 						/>
 
-						{!isGuest && (
+						{/* {!isGuest && (
 							<View style={styles.statsContainer}>
 								<View style={styles.statColumn}>
 									<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
@@ -105,12 +97,12 @@ export function ProfileHeader({
 									<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
 								</View>
 							</View>
-						)}
+						)} */}
 					</View>
 
 					{/* Display Name */}
 					<Text style={[styles.displayName]} pointerEvents="none">
-						{profile.displayName}
+						{profile.display_name}
 					</Text>
 
 					{/* Bio */}

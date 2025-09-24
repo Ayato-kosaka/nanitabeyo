@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { View, StyleSheet, LayoutChangeEvent, Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
@@ -14,13 +14,15 @@ import { LoginbackModal } from "../components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/hooks/useBlurModal";
-import { userProfile, otherUserProfile } from "@/data/profileData";
 import { mockBids, mockEarnings } from "../constants";
 import { ProfileEditForm } from "../components/ProfileEditForm";
 import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
+import { supabase } from "@/lib/supabase";
+import { Image } from "expo-image";
+import { SupabaseUsers } from "@shared/converters/convert_users";
 
 export function ProfileTabsLayout() {
 	const { userId } = useLocalSearchParams();
@@ -38,11 +40,31 @@ export function ProfileTabsLayout() {
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
-	const [editedBio, setEditedBio] = useState("");
+	const [profile, setProfile] = useState<SupabaseUsers | null>(null);
 
-	const isOwnProfile = !userId || userId === "me";
-	const profile = isOwnProfile ? userProfile : otherUserProfile;
+	const isOwnProfile = useMemo(() => !userId || userId === "me", [userId]);
 	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
+
+	useEffect(() => {
+		const loadOwnProfile = async () => {
+			const { data, error } = await supabase
+				.from("users")
+				.select("*")
+				.eq("id", userId ?? user?.id)
+				.single();
+			if (error) {
+				logFrontendEvent({
+					event_name: "load_own_profile_error",
+					error_level: "error",
+					payload: { error: error.message },
+				});
+			} else if (data) {
+				await Image.prefetch(data.avatar);
+				setProfile(data);
+			}
+		};
+		loadOwnProfile();
+	}, [userId, user?.id, logFrontendEvent]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
@@ -76,6 +98,7 @@ export function ProfileTabsLayout() {
 	}, []);
 
 	const handleShareProfile = useCallback(() => {
+		if (!profile) return;
 		lightImpact();
 		logFrontendEvent({
 			event_name: "profile_shared",
@@ -85,6 +108,7 @@ export function ProfileTabsLayout() {
 	}, [lightImpact, logFrontendEvent, profile]);
 
 	const handleFollow = useCallback(() => {
+		if (!profile) return;
 		mediumImpact();
 		const newFollowState = !isFollowing;
 		setIsFollowing(newFollowState);
@@ -94,31 +118,35 @@ export function ProfileTabsLayout() {
 			payload: {
 				targetUserId: profile.id,
 				targetUsername: profile.username,
-				followersCount: profile.followersCount,
 			},
 		});
 	}, [mediumImpact, isFollowing, logFrontendEvent, profile]);
 
 	const handleEditProfile = useCallback(() => {
 		lightImpact();
-		setEditedBio(profile.bio);
 		openEditModal();
 		logFrontendEvent({
 			event_name: "profile_edit_started",
 			error_level: "log",
-			payload: { currentBioLength: profile.bio.length },
+			payload: {},
 		});
-	}, [lightImpact, profile.bio, openEditModal, logFrontendEvent]);
+	}, [lightImpact, openEditModal, logFrontendEvent]);
 
-	const handleSaveProfile = useCallback(() => {
-		mediumImpact();
-		closeEditModal();
-		logFrontendEvent({
-			event_name: "profile_edit_saved",
-			error_level: "log",
-			payload: { oldBioLength: profile.bio.length, newBioLength: editedBio.length },
-		});
-	}, [mediumImpact, closeEditModal, logFrontendEvent, profile.bio.length, editedBio.length]);
+	const handleSaveProfile = useCallback(
+		async (bio: string) => {
+			if (!profile) return;
+			mediumImpact();
+			setProfile((prev) => (prev ? { ...prev, bio } : null));
+			await supabase.from("users").update({ bio }).eq("id", profile.id);
+			closeEditModal();
+			logFrontendEvent({
+				event_name: "profile_edit_saved",
+				error_level: "log",
+				payload: { newBioLength: bio.length },
+			});
+		},
+		[mediumImpact, closeEditModal, logFrontendEvent],
+	);
 
 	const handleFeedback = useCallback(() => {
 		lightImpact();
@@ -126,9 +154,9 @@ export function ProfileTabsLayout() {
 		logFrontendEvent({
 			event_name: "feedback_modal_opened",
 			error_level: "log",
-			payload: { userId: profile.id },
+			payload: { userId: user?.id },
 		});
-	}, [lightImpact, openFeedbackModal, logFrontendEvent, profile.id]);
+	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
 
 	const handleFeedbackSubmit = useCallback(
 		(data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
@@ -144,9 +172,9 @@ export function ProfileTabsLayout() {
 		logFrontendEvent({
 			event_name: "login_modal_opened",
 			error_level: "log",
-			payload: { userId: profile.id },
+			payload: { userId: user?.id },
 		});
-	}, [lightImpact, openLoginModal, logFrontendEvent, profile.id]);
+	}, [lightImpact, openLoginModal, logFrontendEvent, user?.id]);
 
 	const handleTabChange = useCallback(
 		(index: number) => {
@@ -154,13 +182,16 @@ export function ProfileTabsLayout() {
 			logFrontendEvent({
 				event_name: "profile_tab_changed",
 				error_level: "log",
-				payload: { tabName, userId: profile.id },
+				payload: { tabName, userId: user?.id },
 			});
 		},
-		[tabRoutes, logFrontendEvent, profile.id],
+		[tabRoutes, logFrontendEvent, user?.id],
 	);
 
 	const renderHeader = useCallback(() => {
+		if (!profile) {
+			return null;
+		}
 		return (
 			<ProfileHeader
 				profile={profile}
@@ -264,10 +295,9 @@ export function ProfileTabsLayout() {
 			<BlurModal>
 				{({ close }) => (
 					<ProfileEditForm
-						initialValue={profile.bio}
+						initialValue={profile?.bio || ""}
 						onSubmit={(value) => {
-							setEditedBio(value);
-							handleSaveProfile();
+							handleSaveProfile(value);
 							close();
 						}}
 						onCancel={close}
@@ -283,7 +313,6 @@ export function ProfileTabsLayout() {
 							close();
 						}}
 						onCancel={close}
-						profileId={profile.id}
 					/>
 				)}
 			</FeedbackModal>
