@@ -17,7 +17,7 @@ type AuthContextType = {
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
 	linkIdentity: (provider: Provider) => Promise<void>;
-	createUserProfile: (displayName?: string) => Promise<void>;
+	createUserProfile: (user: { displayName?: string; avatar?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -187,7 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 		// ユーザープロフィールを作成（存在しなければ）
 		if (data.user) {
-			await createUserProfile();
+			await createUserProfile({});
 		}
 	};
 
@@ -208,7 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * ユーザープロフィールを作成する（存在しなければ）
 	 * @param displayName - 表示名（オプション）
 	 */
-	const createUserProfile = async (displayName?: string) => {
+	const createUserProfile = async ({ displayName, avatar }: { displayName?: string; avatar?: string }) => {
 		if (!user) return;
 
 		try {
@@ -236,6 +236,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					id: user.id,
 					username,
 					display_name: displayName || "nickname",
+					avatar,
 				});
 
 				if (insertError) throw insertError;

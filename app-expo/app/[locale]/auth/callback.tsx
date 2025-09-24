@@ -49,7 +49,10 @@ export default function AuthCallbackScreen() {
 
 					// 必要ならプロフィール作成
 					if (user) {
-						await createUserProfile(user.user_metadata?.name);
+						await createUserProfile({
+							displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
+							avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
+						});
 					}
 
 					router.replace("/(tabs)/profile");
@@ -83,7 +86,7 @@ export default function AuthCallbackScreen() {
 		};
 
 		handleAuthCallback();
-	}, [router, createUserProfile, logFrontendEvent]);
+	}, [router, logFrontendEvent]);
 
 	return (
 		<View style={styles.container}>

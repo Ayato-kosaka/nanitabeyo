@@ -98,7 +98,7 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 
 				// Create user profile if display name was provided
 				if (pendingDisplayName) {
-					await createUserProfile(pendingDisplayName);
+					await createUserProfile({ displayName: pendingDisplayName });
 				}
 
 				onClose();
