@@ -142,18 +142,14 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 	);
 
 	return (
-		<KeyboardAvoidingView
-			behavior={Platform.OS === "ios" ? "padding" : "height"}
-			style={styles.container}
-			keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}>
-			<ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-				<View style={styles.header}>
-					<Text style={styles.title}>{i18n.t("auth.login_title")}</Text>
-				</View>
+		<View style={styles.container}>
+			<View style={styles.header}>
+				<Text style={styles.title}>{i18n.t("auth.login_title")}</Text>
+			</View>
 
-				<View style={styles.form}>
-					{/* Phone Input */}
-					{/* <View style={styles.inputContainer}>
+			{/* <View style={styles.form}> */}
+			{/* Phone Input */}
+			{/* <View style={styles.inputContainer}>
 						<Text style={styles.label}>{i18n.t("auth.field_phone")}</Text>
 						<View style={[styles.inputWrapper, errors.phone && styles.inputError]}>
 							<Phone size={20} color="#6B7280" style={styles.inputIcon} />
@@ -172,11 +168,11 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 						{errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 					</View> */}
 
-					{/* SMS Hint */}
-					{/* <Text style={styles.hint}>{i18n.t("auth.hint_sms")}</Text> */}
+			{/* SMS Hint */}
+			{/* <Text style={styles.hint}>{i18n.t("auth.hint_sms")}</Text> */}
 
-					{/* Login Button */}
-					{/* <PrimaryButton
+			{/* Login Button */}
+			{/* <PrimaryButton
 						onPress={handleSubmit}
 						label={i18n.t("auth.btn_login")}
 						disabled={isLoading}
@@ -184,76 +180,71 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 						style={styles.loginButton}
 					/> */}
 
-					{/* Divider */}
-					{/* <View style={styles.divider}>
+			{/* Divider */}
+			{/* <View style={styles.divider}>
 						<View style={styles.dividerLine} />
 						<Text style={styles.dividerText}>{i18n.t("auth.divider_or")}</Text>
 						<View style={styles.dividerLine} />
 					</View> */}
 
-					{/* OAuth Buttons */}
-					<View style={styles.oauthContainer}>
-						<PrimaryButton
-							label={i18n.t("auth.provider_google")}
-							onPress={() => handleOAuthSignIn("google")}
-							style={{ width: "100%" }}
-							colors={["#ffffff", "#ffffff"]}
-							shadowColor={"#000000"}
-							labelStyle={{ color: "#1A1A1A" }}
-							loading={isLoading}
-						/>
-						<PrimaryButton
-							label={i18n.t("auth.provider_facebook")}
-							onPress={() => handleOAuthSignIn("facebook")}
-							style={{ width: "100%" }}
-							colors={["#ffffff", "#ffffff"]}
-							shadowColor={"#000000"}
-							labelStyle={{ color: "#1A1A1A" }}
-							loading={isLoading}
-						/>
-						<PrimaryButton
-							label={i18n.t("auth.provider_twitter")}
-							onPress={() => handleOAuthSignIn("twitter")}
-							style={{ width: "100%" }}
-							colors={["#ffffff", "#ffffff"]}
-							shadowColor={"#000000"}
-							labelStyle={{ color: "#1A1A1A" }}
-							loading={isLoading}
-						/>
-						<PrimaryButton
-							label={i18n.t("auth.provider_apple")}
-							onPress={() => handleOAuthSignIn("apple")}
-							style={{ width: "100%" }}
-							colors={["#ffffff", "#ffffff"]}
-							shadowColor={"#000000"}
-							labelStyle={{ color: "#1A1A1A" }}
-							loading={isLoading}
-						/>
-					</View>
-				</View>
+			{/* OAuth Buttons */}
+			<View style={styles.oauthContainer}>
+				<PrimaryButton
+					label={i18n.t("auth.provider_google")}
+					onPress={() => handleOAuthSignIn("google")}
+					style={{ width: "100%" }}
+					colors={["#ffffff", "#ffffff"]}
+					shadowColor={"#000000"}
+					labelStyle={{ color: "#1A1A1A" }}
+					loading={isLoading}
+				/>
+				<PrimaryButton
+					label={i18n.t("auth.provider_facebook")}
+					onPress={() => handleOAuthSignIn("facebook")}
+					style={{ width: "100%" }}
+					colors={["#ffffff", "#ffffff"]}
+					shadowColor={"#000000"}
+					labelStyle={{ color: "#1A1A1A" }}
+					loading={isLoading}
+				/>
+				<PrimaryButton
+					label={i18n.t("auth.provider_twitter")}
+					onPress={() => handleOAuthSignIn("twitter")}
+					style={{ width: "100%" }}
+					colors={["#ffffff", "#ffffff"]}
+					shadowColor={"#000000"}
+					labelStyle={{ color: "#1A1A1A" }}
+					loading={isLoading}
+				/>
+				<PrimaryButton
+					label={i18n.t("auth.provider_apple")}
+					onPress={() => handleOAuthSignIn("apple")}
+					style={{ width: "100%" }}
+					colors={["#ffffff", "#ffffff"]}
+					shadowColor={"#000000"}
+					labelStyle={{ color: "#1A1A1A" }}
+					loading={isLoading}
+				/>
+			</View>
+			{/* </View> */}
 
-				<OtpModalComponent>
-					{({ close }) => (
-						<OtpModal
-							onClose={() => {
-								close();
-								setPhone("");
-							}}
-							phone={phone}
-						/>
-					)}
-				</OtpModalComponent>
-			</ScrollView>
-		</KeyboardAvoidingView>
+			<OtpModalComponent>
+				{({ close }) => (
+					<OtpModal
+						onClose={() => {
+							close();
+							setPhone("");
+						}}
+						phone={phone}
+					/>
+				)}
+			</OtpModalComponent>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
-		flex: 1,
-	},
-	scrollContent: {
-		flexGrow: 1,
 		paddingHorizontal: 24,
 		paddingVertical: 32,
 	},
