@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { Image } from "expo-image";
 import { SupabaseUsers } from "@shared/converters/convert_users";
+import { userProfile } from "@/data/profileData";
 
 export function ProfileTabsLayout() {
 	const { userId } = useLocalSearchParams();
@@ -47,6 +48,10 @@ export function ProfileTabsLayout() {
 
 	useEffect(() => {
 		const loadOwnProfile = async () => {
+			if (isGuest) {
+				setProfile(userProfile);
+				return;
+			}
 			const { data, error } = await supabase
 				.from("users")
 				.select("*")
@@ -64,7 +69,7 @@ export function ProfileTabsLayout() {
 			}
 		};
 		loadOwnProfile();
-	}, [userId, user?.id, logFrontendEvent]);
+	}, [isGuest, userId, user?.id, logFrontendEvent]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
