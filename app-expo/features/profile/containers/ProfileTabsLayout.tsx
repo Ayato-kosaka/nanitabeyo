@@ -61,7 +61,7 @@ export function ProfileTabsLayout() {
 				logFrontendEvent({
 					event_name: "load_own_profile_error",
 					error_level: "error",
-					payload: { error: error.message },
+					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest, data },
 				});
 			} else if (data) {
 				await Image.prefetch(data.avatar);

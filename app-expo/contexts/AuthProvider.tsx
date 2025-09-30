@@ -4,6 +4,9 @@ import { Session, User, Provider } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
+import { Platform } from "react-native";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
 
 type AuthContextType = {
 	user: User | null;
@@ -155,12 +158,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const signInWithOAuth = async (provider: Provider) => {
-		const redirectUrl = Linking.createURL(`/${locale}/auth/callback`);
+		const redirectTo =
+			Platform.OS === "web"
+				? Linking.createURL(`/${locale}/auth/callback`)
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
-			options: { redirectTo: redirectUrl },
+			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
 		});
 		if (error) throw error;
+		if (Platform.OS !== "web" && data?.url) {
+			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+			if (result.type === "success") {
+				const user = await handleOAuthResultUrl(result.url);
+				user &&
+					(await createUserProfile({
+						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
+						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
+					}));
+			}
+		}
 	};
 
 	/**
@@ -196,12 +213,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const linkIdentity = async (provider: Provider): Promise<void> => {
-		const redirectUrl = Linking.createURL(`/${locale}/auth/callback`);
+		const redirectTo =
+			Platform.OS === "web"
+				? Linking.createURL(`/${locale}/auth/callback`)
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
-			options: { redirectTo: redirectUrl },
+			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
 		});
 		if (error) throw error;
+		if (Platform.OS !== "web" && data?.url) {
+			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+			if (result.type === "success") {
+				const user = await handleOAuthResultUrl(result.url);
+				user &&
+					(await createUserProfile({
+						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
+						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
+					}));
+			}
+		}
 	};
 
 	/**
@@ -294,4 +325,49 @@ export const useAuth = (): AuthContextType => {
 		throw new Error("useAuth must be used within an AuthProvider");
 	}
 	return context;
+};
+
+/* ヘルパー関数群 */
+
+/** OAuthのリダイレクトURIを構築する
+ * - WebではアプリのURLに対応するURIを生成
+ * - ネイティブではカスタムスキームURIを生成
+ */
+export const buildRedirectTo = (locale?: string) => {
+	// 画面を使わないので、ネイティブは固定でOK（ロケールなし推奨）
+	if (Platform.OS === "web") return Linking.createURL("/auth/callback"); // Webは任意
+	return AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
+};
+
+/** OAuthのリダイレクトURIから認証結果を処理する
+ * - PKCE (codeフロー) と 旧インプリシット (#access_token) の両方に対応
+ */
+export const handleOAuthResultUrl = async (url?: string | null) => {
+	if (!url) return;
+
+	// 1) PKCE (codeフロー)
+	const parsed = Linking.parse(url);
+	const code = parsed.queryParams?.code as string | undefined;
+	if (code) {
+		const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+		if (error) throw error;
+		return data.user;
+	}
+
+	// 2) 旧: インプリシット（#access_token）
+	const hash = url.split("#")[1] ?? "";
+	if (hash) {
+		const params = new URLSearchParams(hash);
+		const access_token = params.get("access_token");
+		const refresh_token = params.get("refresh_token");
+		const expires_at = params.get("expires_at");
+		if (access_token && refresh_token) {
+			await supabase.auth.setSession({ access_token, refresh_token });
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			return user ?? null;
+		}
+	}
+	return null;
 };
