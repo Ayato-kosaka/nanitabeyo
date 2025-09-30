@@ -5,6 +5,8 @@ import * as Localization from "expo-localization";
 import * as SplashScreen from "expo-splash-screen";
 import { Env } from "@/constants/Env";
 import { getResolvedLocale } from "@/lib/i18n";
+import * as WebBrowser from "expo-web-browser";
+WebBrowser.maybeCompleteAuthSession();
 
 // 初回表示中はスプラッシュ画面を保持（明示的に後で解除するまで表示）
 SplashScreen.preventAutoHideAsync();

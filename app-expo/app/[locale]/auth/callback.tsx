@@ -1,8 +1,22 @@
+/*
+このファイルの責務
+- Supabase の OAuth 認証コールバックを処理する画面。
+- Deep Link / Web リダイレクトで遷移してきた URL を解析し、セッション確立後に必要であればユーザープロフィールを作成し、プロフィールタブへ遷移する。
+- 処理中はスピナーのみを表示し、ユーザー操作は不要。
+
+Web 専用フォールバックについて
+- Web 向けのフォールバック（リダイレクト受け口）として機能します。
+- ネイティブ（iOS/Android）では Linking のリスナーによって処理されますが、Web ではこのルートが認証プロバイダからの戻り先になります。
+
+補足
+- 初期 URL は Linking.getInitialURL()（expo-router からの遷移でも保持）で取得します。
+- 成功/失敗をフロントエンドログに記録し、いずれの場合も /(tabs)/profile に遷移します。
+*/
 import { useEffect } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthProvider";
+import { handleOAuthResultUrl, useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 
@@ -18,61 +32,33 @@ export default function AuthCallbackScreen() {
 	useEffect(() => {
 		const handleAuthCallback = async () => {
 			try {
-				// 1) 初回URL（フラグメント含む）を取得
+				// 初回URL（フラグメント含む）を取得
 				const initialUrl = await Linking.getInitialURL();
 				const url = initialUrl ?? ""; // expo-routerで遷移してきた場合も getInitialURL が持っています
 
-				// 2) フラグメント(#...)をパースしてアクセストークン類を取得
-				const hash = url.split("#")[1] ?? "";
-				const params = new URLSearchParams(hash);
-				const access_token = params.get("access_token");
-				const refresh_token = params.get("refresh_token");
-				const expires_at = params.get("expires_at");
+				// URLから認証結果を処理
+				await handleOAuthResultUrl(url);
 
-				if (access_token && refresh_token) {
-					// 3) セッションを Supabase にセット（ここで匿名→本ユーザーへ切替）
-					await supabase.auth.setSession({
-						access_token,
-						refresh_token,
-					});
-
-					// 4) 念のためユーザーを取得してログを出す
-					const {
-						data: { user },
-					} = await supabase.auth.getUser();
-
-					logFrontendEvent({
-						event_name: "oauth_callback_success",
-						error_level: "log",
-						payload: { user_id: user?.id, from: "setSession" },
-					});
-
-					// 必要ならプロフィール作成
-					if (user) {
-						await createUserProfile({
-							displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
-							avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
-						});
-					}
-
-					router.replace("/(tabs)/profile");
-					return;
-				}
-
-				// 5) もし # に access_token が無い場合（コードフローなど）は fallback:
-				//    ここでは getSession() を確認（既に別所で exchange 済みのケース）
 				const {
-					data: { session },
-					error,
-				} = await supabase.auth.getSession();
-				if (error) throw error;
+					data: { user },
+				} = await supabase.auth.getUser();
 
-				if (session?.user) {
-					await createUserProfile(session.user.user_metadata?.name);
-					router.replace("/(tabs)/profile");
-				} else {
-					router.replace("/(tabs)/profile");
+				logFrontendEvent({
+					event_name: "oauth_callback_success",
+					error_level: "log",
+					payload: { user_id: user?.id, from: "setSession" },
+				});
+
+				// 必要ならプロフィール作成
+				if (user) {
+					await createUserProfile({
+						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
+						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
+					});
 				}
+
+				router.replace("/(tabs)/profile");
+				return;
 			} catch (error) {
 				logFrontendEvent({
 					event_name: "oauth_callback_error",
