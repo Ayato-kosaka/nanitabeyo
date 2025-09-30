@@ -24,6 +24,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
+import { Image } from "expo-image";
 
 interface LoginbackModalProps {
 	onClose: () => void;
@@ -191,20 +192,27 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 			<View style={styles.oauthContainer}>
 				<PrimaryButton
 					label={i18n.t("auth.provider_google")}
+					icon={
+						<Image
+							source={require("@/assets/images/logo_google_g_icon.png")}
+							style={{ width: 30, height: 30 }}
+							cachePolicy="memory-disk"
+						/>
+					}
 					onPress={() => handleOAuthSignIn("google")}
 					style={{ width: "100%" }}
 					colors={["#ffffff", "#ffffff"]}
 					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A" }}
+					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
 				/>
-				<PrimaryButton
+				{/* <PrimaryButton
 					label={i18n.t("auth.provider_facebook")}
 					onPress={() => handleOAuthSignIn("facebook")}
 					style={{ width: "100%" }}
 					colors={["#ffffff", "#ffffff"]}
 					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A" }}
+					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
 				/>
 				<PrimaryButton
@@ -213,16 +221,23 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					style={{ width: "100%" }}
 					colors={["#ffffff", "#ffffff"]}
 					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A" }}
+					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
-				/>
+				/> */}
 				<PrimaryButton
 					label={i18n.t("auth.provider_apple")}
+					icon={
+						<Image
+							source={require("@/assets/images/logo_apple_icon.png")}
+							style={{ width: 30, height: 30 }}
+							cachePolicy="memory-disk"
+						/>
+					}
 					onPress={() => handleOAuthSignIn("apple")}
 					style={{ width: "100%" }}
 					colors={["#ffffff", "#ffffff"]}
 					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A" }}
+					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
 				/>
 			</View>
