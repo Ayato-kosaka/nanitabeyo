@@ -1,33 +1,30 @@
-import { UserProfile, UserPost } from "@/types";
-import i18n from "@/lib/i18n";
+import { UserPost } from "@/types";
+import { SupabaseUsers } from "@shared/converters/convert_users";
 
-const getGuestProfile = (): UserProfile => ({
+const getGuestProfile = (): SupabaseUsers => ({
 	id: "guest",
 	username: "guest",
-	displayName: "Guest",
+	display_name: "Guest",
 	avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200", // Fixed logo will be updated later
 	bio: "",
-	totalLikes: 0,
-	followersCount: 0,
-	followingCount: 0,
-	postsCount: 0,
-	isOwnProfile: true,
+	created_at: new Date().toISOString(),
+	last_login_at: null,
+	lock_no: 0,
+	updated_at: new Date().toISOString(),
 });
 
-export const userProfile: UserProfile = getGuestProfile();
+export const userProfile: SupabaseUsers = getGuestProfile();
 
-export const otherUserProfile: UserProfile = {
+export const otherUserProfile: SupabaseUsers = {
 	id: "user_456",
 	username: "chef_master",
-	displayName: "Chef Master",
+	display_name: "Chef Master",
 	avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200&h=200",
 	bio: "👨‍🍳 Professional chef & food creator\n🏆 Michelin starred restaurant owner\n📚 Sharing recipes & cooking tips",
-	totalLikes: 890000,
-	followersCount: 128000,
-	followingCount: 234,
-	postsCount: 89,
-	isOwnProfile: false,
-	isFollowing: false,
+	created_at: new Date().toISOString(),
+	last_login_at: null,
+	lock_no: 0,
+	updated_at: new Date().toISOString(),
 };
 
 export const userPosts: UserPost[] = [

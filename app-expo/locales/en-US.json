@@ -343,5 +343,25 @@
 			"messageLength": "Message must be between 10 and 2000 characters",
 			"submitFailed": "Failed to submit feedback. Please try again."
 		}
+	},
+	"auth": {
+		"login_title": "Log In",
+		"create_title": "Create Account",
+		"field_phone": "Phone",
+		"field_name": "Name",
+		"hint_sms": "We will send you a one-time code via SMS to log in.",
+		"btn_login": "Login",
+		"btn_create": "Create an Account",
+		"divider_or": "Or Sign in with",
+		"agree_tos": "I agree to the Terms of Service",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "Enter Code",
+		"otp_send_again": "Resend Code",
+		"error_required": "This field is required",
+		"error_invalid_phone": "Invalid phone number",
+		"tos_link_text": "Terms of Service"
 	}
 }

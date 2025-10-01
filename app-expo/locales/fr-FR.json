@@ -343,5 +343,25 @@
 			"messageLength": "Le message doit contenir entre 10 et 2000 caractères",
 			"submitFailed": "Échec de l'envoi des commentaires. Veuillez réessayer."
 		}
+	},
+	"auth": {
+		"login_title": "Se connecter",
+		"create_title": "Créer un compte",
+		"field_phone": "Téléphone",
+		"field_name": "Nom",
+		"hint_sms": "Nous vous enverrons un code unique par SMS pour vous connecter.",
+		"btn_login": "Se connecter",
+		"btn_create": "Créer un compte",
+		"divider_or": "Ou se connecter avec",
+		"agree_tos": "J'accepte les Conditions de Service",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "Entrer le code",
+		"otp_send_again": "Renvoyer le code",
+		"error_required": "Ce champ est obligatoire",
+		"error_invalid_phone": "Numéro de téléphone invalide",
+		"tos_link_text": "Conditions de Service"
 	}
 }

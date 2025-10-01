@@ -343,5 +343,25 @@
 			"messageLength": "संदेश 10 से 2000 वर्णों के बीच होना चाहिए",
 			"submitFailed": "फीडबैक भेजने में विफल। कृपया पुनः प्रयास करें।"
 		}
+	},
+	"auth": {
+		"login_title": "लॉग इन करें",
+		"create_title": "खाता बनाएं",
+		"field_phone": "फोन",
+		"field_name": "नाम",
+		"hint_sms": "हम आपको लॉग इन करने के लिए SMS के माध्यम से एक वन-टाइम कोड भेजेंगे।",
+		"btn_login": "लॉग इन करें",
+		"btn_create": "खाता बनाएं",
+		"divider_or": "या इसके साथ साइन इन करें",
+		"agree_tos": "मैं सेवा की शर्तों से सहमत हूं",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "कोड दर्ज करें",
+		"otp_send_again": "कोड पुनः भेजें",
+		"error_required": "यह फ़ील्ड आवश्यक है",
+		"error_invalid_phone": "अमान्य फोन नंबर",
+		"tos_link_text": "सेवा की शर्तें"
 	}
 }

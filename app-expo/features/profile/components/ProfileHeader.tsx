@@ -6,18 +6,10 @@ import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "luci
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { SupabaseUsers } from "@shared/converters/convert_users";
 
 interface ProfileHeaderProps {
-	profile: {
-		id: string;
-		username: string;
-		displayName: string;
-		bio: string;
-		avatar: string;
-		followingCount: number;
-		followersCount: number;
-		totalLikes: number;
-	};
+	profile: SupabaseUsers;
 	isOwnProfile: boolean;
 	isGuest?: boolean;
 	isFollowing?: boolean;
@@ -29,6 +21,7 @@ interface ProfileHeaderProps {
 	onFollow?: () => void;
 	onMessage?: () => void;
 	onFeedback?: () => void;
+	onLogin?: () => void;
 }
 
 const formatNumber = (num: number): string => {
@@ -54,6 +47,7 @@ export function ProfileHeader({
 	onFollow,
 	onMessage,
 	onFeedback,
+	onLogin,
 }: ProfileHeaderProps) {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
@@ -66,9 +60,9 @@ export function ProfileHeader({
 				)}
 				<Text style={styles.headerTitle}>{profile.username}</Text>
 				<View style={{ flexDirection: "row", gap: 8 }}>
-					<TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
+					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
-					</TouchableOpacity>
+					</TouchableOpacity> */}
 					<TouchableOpacity style={styles.settingButton} onPress={onSettings || (() => {})}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
@@ -85,10 +79,10 @@ export function ProfileHeader({
 							style={styles.avatar}
 							contentFit="cover"
 							transition={0}
-							cachePolicy={"memory-disk"}
+							cachePolicy={"disk"}
 						/>
 
-						{!isGuest && (
+						{/* {!isGuest && (
 							<View style={styles.statsContainer}>
 								<View style={styles.statColumn}>
 									<Text style={styles.statNumber}>{formatNumber(profile.followingCount)}</Text>
@@ -103,12 +97,12 @@ export function ProfileHeader({
 									<Text style={styles.statLabel}>{i18n.t("Profile.stats.likes")}</Text>
 								</View>
 							</View>
-						)}
+						)} */}
 					</View>
 
 					{/* Display Name */}
 					<Text style={[styles.displayName]} pointerEvents="none">
-						{profile.displayName}
+						{profile.display_name}
 					</Text>
 
 					{/* Bio */}
@@ -125,6 +119,8 @@ export function ProfileHeader({
 								label={i18n.t("Profile.buttons.editProfile")}
 								icon={<Edit3 size={16} color="#FFFFFF" />}
 							/>
+						) : isGuest && isOwnProfile ? (
+							<PrimaryButton style={{ flex: 1 }} onPress={onLogin || (() => {})} label={i18n.t("auth.btn_login")} />
 						) : isGuest ? (
 							<PrimaryButton
 								style={{ flex: 1 }}

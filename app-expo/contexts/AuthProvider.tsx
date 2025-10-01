@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session, User, Provider } from "@supabase/supabase-js";
+import * as Linking from "expo-linking";
 import { useLogger } from "@/hooks/useLogger";
+import { useLocale } from "@/hooks/useLocale";
+import { Platform } from "react-native";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
 
 type AuthContextType = {
 	user: User | null;
@@ -12,6 +17,10 @@ type AuthContextType = {
 	logout: () => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
 	signInWithOAuth: (provider: Provider) => Promise<void>;
+	signInWithOtp: (phone: string) => Promise<void>;
+	verifyOtp: (phone: string, token: string) => Promise<void>;
+	linkIdentity: (provider: Provider) => Promise<void>;
+	createUserProfile: (user: { displayName?: string; avatar?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const { logFrontendEvent } = useLogger();
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
+	const locale = useLocale();
 	const sessionRef = useRef<Session | null>(null);
 	const getSession = useCallback(() => sessionRef.current, []);
 
@@ -101,8 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// initializeAuth で処理済
 			} else if (event === "SIGNED_IN") {
 				if (!session) return;
-				// setUser(session.user);
-				// setSession(session);
+				setUser(session.user);
+				sessionRef.current = session;
 				// router.replace('/');
 			} else if (event === "SIGNED_OUT") {
 				// setUser(null);
@@ -148,8 +158,134 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const signInWithOAuth = async (provider: Provider) => {
-		const { error } = await supabase.auth.signInWithOAuth({ provider });
+		const redirectTo =
+			Platform.OS === "web"
+				? Linking.createURL(`/${locale}/auth/callback`)
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
+		const { data, error } = await supabase.auth.signInWithOAuth({
+			provider,
+			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
+		});
 		if (error) throw error;
+		if (Platform.OS !== "web" && data?.url) {
+			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+			if (result.type === "success") {
+				const user = await handleOAuthResultUrl(result.url);
+				user &&
+					(await createUserProfile({
+						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
+						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
+					}));
+			}
+		}
+	};
+
+	/**
+	 * 電話番号でOTPを送信する（ログイン/サインアップ兼用）
+	 * @param phone - E.164フォーマットの電話番号
+	 */
+	const signInWithOtp = async (phone: string) => {
+		const { error } = await supabase.auth.signInWithOtp({ phone });
+		if (error) throw error;
+	};
+
+	/**
+	 * OTPを検証してログインする
+	 * @param phone - E.164フォーマットの電話番号
+	 * @param token - 6桁のOTPコード
+	 */
+	const verifyOtp = async (phone: string, token: string): Promise<void> => {
+		const { data, error } = await supabase.auth.verifyOtp({
+			phone,
+			token,
+			type: "sms",
+		});
+		if (error) throw error;
+
+		// ユーザープロフィールを作成（存在しなければ）
+		if (data.user) {
+			await createUserProfile({});
+		}
+	};
+
+	/**
+	 * 匿名ユーザーにOAuthアイデンティティをリンクする
+	 * @param provider - 'google' などのOAuthプロバイダー名
+	 */
+	const linkIdentity = async (provider: Provider): Promise<void> => {
+		const redirectTo =
+			Platform.OS === "web"
+				? Linking.createURL(`/${locale}/auth/callback`)
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
+		const { data, error } = await supabase.auth.linkIdentity({
+			provider,
+			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
+		});
+		if (error) throw error;
+		if (Platform.OS !== "web" && data?.url) {
+			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+			if (result.type === "success") {
+				const user = await handleOAuthResultUrl(result.url);
+				user &&
+					(await createUserProfile({
+						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
+						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
+					}));
+			}
+		}
+	};
+
+	/**
+	 * ユーザープロフィールを作成する（存在しなければ）
+	 * @param displayName - 表示名（オプション）
+	 */
+	const createUserProfile = async ({ displayName, avatar }: { displayName?: string; avatar?: string }) => {
+		if (!user) return;
+
+		try {
+			// 既存のユーザープロフィールをチェック
+			const { data: existingProfile, error: fetchError } = await supabase
+				.from("users")
+				.select("id")
+				.eq("id", user.id)
+				.single();
+
+			if (fetchError && fetchError.code !== "PGRST116") {
+				// PGRST116 = not found, それ以外のエラーは投げる
+				throw fetchError;
+			}
+
+			if (!existingProfile) {
+				// ユーザープロフィールが存在しない場合のみ作成
+				const timestamp = Date.now();
+				const randomSuffix = Math.floor(Math.random() * 1000)
+					.toString()
+					.padStart(3, "0");
+				const username = `user${(timestamp + parseInt(randomSuffix)).toString().slice(0, 13)}`;
+
+				const { error: insertError } = await supabase.from("users").insert({
+					id: user.id,
+					username,
+					display_name: displayName || "nickname",
+					avatar,
+				});
+
+				if (insertError) throw insertError;
+
+				logFrontendEvent({
+					event_name: "user_profile_created",
+					error_level: "log",
+					payload: { user_id: user.id, username },
+				});
+			}
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "user_profile_creation_error",
+				error_level: "error",
+				payload: { user_id: user.id, error: (error as Error).message },
+			});
+			// プロフィール作成エラーは致命的ではないので、ログのみ
+		}
 	};
 
 	/**
@@ -169,6 +305,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		signUpWithEmail,
 		logout,
 		signInWithOAuth,
+		signInWithOtp,
+		verifyOtp,
+		linkIdentity,
+		createUserProfile,
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -185,4 +325,49 @@ export const useAuth = (): AuthContextType => {
 		throw new Error("useAuth must be used within an AuthProvider");
 	}
 	return context;
+};
+
+/* ヘルパー関数群 */
+
+/** OAuthのリダイレクトURIを構築する
+ * - WebではアプリのURLに対応するURIを生成
+ * - ネイティブではカスタムスキームURIを生成
+ */
+export const buildRedirectTo = (locale?: string) => {
+	// 画面を使わないので、ネイティブは固定でOK（ロケールなし推奨）
+	if (Platform.OS === "web") return Linking.createURL("/auth/callback"); // Webは任意
+	return AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
+};
+
+/** OAuthのリダイレクトURIから認証結果を処理する
+ * - PKCE (codeフロー) と 旧インプリシット (#access_token) の両方に対応
+ */
+export const handleOAuthResultUrl = async (url?: string | null) => {
+	if (!url) return;
+
+	// 1) PKCE (codeフロー)
+	const parsed = Linking.parse(url);
+	const code = parsed.queryParams?.code as string | undefined;
+	if (code) {
+		const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+		if (error) throw error;
+		return data.user;
+	}
+
+	// 2) 旧: インプリシット（#access_token）
+	const hash = url.split("#")[1] ?? "";
+	if (hash) {
+		const params = new URLSearchParams(hash);
+		const access_token = params.get("access_token");
+		const refresh_token = params.get("refresh_token");
+		const expires_at = params.get("expires_at");
+		if (access_token && refresh_token) {
+			await supabase.auth.setSession({ access_token, refresh_token });
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			return user ?? null;
+		}
+	}
+	return null;
 };
