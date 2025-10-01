@@ -11,6 +11,7 @@ dotenv.config();
 const envSchema = z.object({
   API_COMMIT_ID: z.string(),
   API_NODE_ENV: z.string(),
+  NODE_ENV: z.string().default(process.env.NODE_ENV ?? 'development'),
   CORS_ORIGIN: z.string(),
   DB_SCHEMA: z.string(),
   SUPABASE_JWT_SECRET: z.string(),
@@ -50,6 +51,10 @@ const envSchema = z.object({
   GITHUB_TOKEN: z.string().optional(),
   GITHUB_REPO_OWNER: z.string().default('Ayato-kosaka'),
   GITHUB_REPO_NAME: z.string().default('nanitabeyo'),
+  DEV_AUTH_IS_ANONYMOUS: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 /**

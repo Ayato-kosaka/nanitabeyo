@@ -1,17 +1,31 @@
 /**
- * Supabase JWT ペイロード仕様 (最低限)
+ * Supabase JWT ペイロード仕様 (一部抜粋)
  * https://supabase.com/docs/guides/auth#jwt
  */
 export interface JwtPayload {
-  sub: string; // ← UserId (UUID)
+  /** User ID (UUID) */
+  sub: string;
+  /** 匿名ログインかどうか */
+  is_anonymous: boolean;
+  /** 任意の追加クレーム */
   aud?: string;
   exp?: number;
   iat?: number;
-  // 他クレームは必要に応じて追加
+  email?: string;
+  role?: string | string[];
+  provider?: string;
+  [key: string]: unknown;
 }
 
-/** Nest Request にマージする user オブジェクト */
+/** Express Request にマージされる user オブジェクト */
 export interface RequestUser {
-  userId: string;
-  token: string; // Raw JWT (必要なら)
+  /** User ID */
+  id: string;
+  /** 匿名ユーザーかどうか */
+  isAnonymous: boolean;
+  email?: string;
+  roles?: string[];
+  provider?: string;
+  /** 生のクレーム */
+  rawClaims?: JwtPayload;
 }

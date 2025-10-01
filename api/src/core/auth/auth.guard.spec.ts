@@ -1,155 +1,193 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { ClsService } from 'nestjs-cls';
-import { JwtAuthGuard, OptionalJwtAuthGuard } from './auth.guard';
+import {
+  ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CLS_KEY_USER_ID } from '../cls/cls.constants';
 
-describe('Auth Guards CLS User ID Fix', () => {
-  let jwtAuthGuard: JwtAuthGuard;
-  let optionalJwtAuthGuard: OptionalJwtAuthGuard;
-  let clsService: jest.Mocked<ClsService>;
+// helper to create mock execution context with headers
+const createCtx = (headers: Record<string, string> = {}): ExecutionContext =>
+  ({
+    switchToHttp: () => ({
+      getRequest: () => ({ headers }),
+    }),
+  }) as unknown as ExecutionContext;
+
+// set minimal env variables required by env.ts
+const setEnv = (nodeEnv = 'test') => {
+  process.env.API_COMMIT_ID = 'test';
+  process.env.API_NODE_ENV = nodeEnv;
+  process.env.NODE_ENV = nodeEnv;
+  process.env.CORS_ORIGIN = '*';
+  process.env.DB_SCHEMA = 'public';
+  process.env.SUPABASE_JWT_SECRET = 'secret';
+  process.env.GOOGLE_PLACE_API_KEY = 'key';
+  process.env.GCS_BUCKET_NAME = 'bucket';
+  process.env.GCS_STATIC_MASTER_DIR_PATH = 'path';
+  process.env.CLAUDE_API_KEY = 'key';
+  process.env.GOOGLE_API_KEY = 'key';
+  process.env.GOOGLE_SEARCH_ENGINE_ID = 'id';
+  process.env.GCP_PROJECT = 'proj';
+  process.env.TASKS_LOCATION = 'loc';
+  process.env.CLOUD_RUN_URL = 'url';
+  process.env.TASKS_INVOKER_SA = 'sa';
+};
+
+describe('Auth Guards', () => {
+  let ClsService: any;
+  let JwtAuthGuard: any;
+  let OptionalJwtAuthGuard: any;
+  let AppLoggerService: any;
+  let jwtAuthGuard: any;
+  let optionalJwtAuthGuard: any;
+  let clsService: any;
 
   beforeEach(async () => {
-    const mockClsService = {
-      set: jest.fn(),
-      get: jest.fn(),
-    };
+    setEnv('test');
+    jest.resetModules();
+    jest.doMock('../logger/logger.service', () => ({
+      AppLoggerService: class {
+        log = jest.fn();
+        warn = jest.fn();
+      },
+    }));
+    ({ ClsService } = await import('nestjs-cls'));
+    ({ JwtAuthGuard, OptionalJwtAuthGuard } = await import('./auth.guard'));
+    ({ AppLoggerService } = await import('../logger/logger.service'));
 
+    const mockCls = { set: jest.fn(), get: jest.fn() };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JwtAuthGuard,
         OptionalJwtAuthGuard,
-        {
-          provide: ClsService,
-          useValue: mockClsService,
-        },
+        { provide: ClsService, useValue: mockCls },
+        { provide: AppLoggerService, useValue: { log: jest.fn(), warn: jest.fn() } },
       ],
     }).compile();
 
-    jwtAuthGuard = module.get<JwtAuthGuard>(JwtAuthGuard);
-    optionalJwtAuthGuard =
-      module.get<OptionalJwtAuthGuard>(OptionalJwtAuthGuard);
-    clsService = module.get(ClsService);
+    jwtAuthGuard = module.get(JwtAuthGuard);
+    optionalJwtAuthGuard = module.get(OptionalJwtAuthGuard);
+    clsService = mockCls;
   });
 
   describe('JwtAuthGuard', () => {
-    it('should set CLS user ID using user.userId (not user.id)', () => {
-      const mockUser = {
-        userId: 'test-user-123',
-        token: 'test-token',
-      };
-
-      const result = jwtAuthGuard.handleRequest(
-        null, // err
-        mockUser, // user
-        null, // info
-        {} as ExecutionContext, // ctx
-      );
-
-      expect(clsService.set).toHaveBeenCalledWith(
-        CLS_KEY_USER_ID,
-        'test-user-123',
-      );
-      expect(result).toBe(mockUser);
+    it('passes when user is fully logged in', () => {
+      const user = { id: 'uid', isAnonymous: false };
+      const res = jwtAuthGuard.handleRequest(null, user, null, createCtx());
+      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'uid');
+      expect(res).toBe(user);
     });
 
-    it('should throw UnauthorizedException when user is null', () => {
-      expect(() => {
-        jwtAuthGuard.handleRequest(
-          null, // err
-          null, // user
-          'Token invalid', // info
-          {} as ExecutionContext, // ctx
-        );
-      }).toThrow(UnauthorizedException);
-
-      expect(clsService.set).not.toHaveBeenCalled();
+    it('throws ForbiddenException when user is anonymous', () => {
+      const user = { id: 'anon', isAnonymous: true };
+      expect(() =>
+        jwtAuthGuard.handleRequest(null, user, null, createCtx()),
+      ).toThrow(ForbiddenException);
     });
 
-    it('should throw error when err is provided', () => {
-      const error = new Error('JWT error');
-
-      expect(() => {
-        jwtAuthGuard.handleRequest(
-          error, // err
-          { userId: 'test' }, // user
-          null, // info
-          {} as ExecutionContext, // ctx
-        );
-      }).toThrow(error);
-
-      expect(clsService.set).not.toHaveBeenCalled();
+    it('throws UnauthorizedException when user is missing', () => {
+      expect(() =>
+        jwtAuthGuard.handleRequest(null, undefined, null, createCtx()),
+      ).toThrow(UnauthorizedException);
     });
   });
 
-  describe('OptionalJwtAuthGuard', () => {
-    it('should set CLS user ID when user is present with userId', () => {
-      const mockUser = {
-        userId: 'anonymous-user-456',
-        token: 'test-token',
-      };
+  describe('OptionalJwtAuthGuard in production', () => {
+    beforeEach(async () => {
+      setEnv('production');
+      jest.resetModules();
+      jest.doMock('../logger/logger.service', () => ({
+        AppLoggerService: class {
+          log = jest.fn();
+          warn = jest.fn();
+        },
+      }));
+      ({ ClsService } = await import('nestjs-cls'));
+      ({ OptionalJwtAuthGuard } = await import('./auth.guard'));
+      ({ AppLoggerService } = await import('../logger/logger.service'));
 
-      const result = optionalJwtAuthGuard.handleRequest(
-        null, // err
-        mockUser, // user
-        null, // info
-        {} as ExecutionContext, // ctx
-      );
+      const mockCls = { set: jest.fn(), get: jest.fn() };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          OptionalJwtAuthGuard,
+          { provide: ClsService, useValue: mockCls },
+          { provide: AppLoggerService, useValue: { log: jest.fn(), warn: jest.fn() } },
+        ],
+      }).compile();
 
-      expect(clsService.set).toHaveBeenCalledWith(
-        CLS_KEY_USER_ID,
-        'anonymous-user-456',
-      );
-      expect(result).toBe(mockUser);
+      optionalJwtAuthGuard = module.get(OptionalJwtAuthGuard);
+      clsService = mockCls;
     });
 
-    it('should not set CLS when user is null', () => {
-      const result = optionalJwtAuthGuard.handleRequest(
-        null, // err
-        null, // user
-        null, // info
-        {} as ExecutionContext, // ctx
-      );
-
-      expect(clsService.set).not.toHaveBeenCalled();
-      expect(result).toBeNull();
+    it('throws UnauthorizedException when token is missing', () => {
+      expect(() =>
+        optionalJwtAuthGuard.handleRequest(null, undefined, null, createCtx()),
+      ).toThrow(UnauthorizedException);
     });
 
-    it('should not set CLS when user exists but has no userId', () => {
-      const mockUserWithoutUserId = {
-        token: 'test-token',
-        // no userId property
-      };
-
-      const result = optionalJwtAuthGuard.handleRequest(
-        null, // err
-        mockUserWithoutUserId, // user
-        null, // info
-        {} as ExecutionContext, // ctx
-      );
-
-      expect(clsService.set).not.toHaveBeenCalled();
-      expect(result).toBe(mockUserWithoutUserId);
-    });
-
-    it('should handle Supabase anonymous user correctly', () => {
-      const supabaseAnonymousUser = {
-        userId: 'anonymous-user-uuid-123',
-        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-      };
-
-      const result = optionalJwtAuthGuard.handleRequest(
+    it('allows anonymous users with valid token', () => {
+      const user = { id: 'anon', isAnonymous: true };
+      const res = optionalJwtAuthGuard.handleRequest(
         null,
-        supabaseAnonymousUser,
+        user,
         null,
-        {} as ExecutionContext,
+        createCtx({ authorization: 'Bearer token' }),
       );
+      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'anon');
+      expect(res).toBe(user);
+    });
+  });
 
-      expect(clsService.set).toHaveBeenCalledWith(
-        CLS_KEY_USER_ID,
-        'anonymous-user-uuid-123',
+  describe('OptionalJwtAuthGuard in development', () => {
+    beforeEach(async () => {
+      setEnv('development');
+      jest.resetModules();
+      jest.doMock('../logger/logger.service', () => ({
+        AppLoggerService: class {
+          log = jest.fn();
+          warn = jest.fn();
+        },
+      }));
+      ({ ClsService } = await import('nestjs-cls'));
+      ({ OptionalJwtAuthGuard } = await import('./auth.guard'));
+      ({ AppLoggerService } = await import('../logger/logger.service'));
+
+      const mockCls = { set: jest.fn(), get: jest.fn() };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          OptionalJwtAuthGuard,
+          { provide: ClsService, useValue: mockCls },
+          { provide: AppLoggerService, useValue: { log: jest.fn(), warn: jest.fn() } },
+        ],
+      }).compile();
+
+      optionalJwtAuthGuard = module.get(OptionalJwtAuthGuard);
+      clsService = mockCls;
+    });
+
+    it('returns mock user when token is missing', () => {
+      const res = optionalJwtAuthGuard.handleRequest(
+        null,
+        undefined,
+        null,
+        createCtx(),
       );
-      expect(result).toBe(supabaseAnonymousUser);
+      expect(res.id).toBe('dev-mock-user');
+      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'dev-mock-user');
+    });
+
+    it('returns real user when token is provided', () => {
+      const user = { id: 'real', isAnonymous: false };
+      const res = optionalJwtAuthGuard.handleRequest(
+        null,
+        user,
+        null,
+        createCtx({ authorization: 'Bearer token' }),
+      );
+      expect(res).toBe(user);
+      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'real');
     });
   });
 });
+
