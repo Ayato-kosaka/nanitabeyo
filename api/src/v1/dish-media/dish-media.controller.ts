@@ -59,7 +59,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -81,7 +81,7 @@ export class DishMediaController {
   ): Promise<QueryDishMediaByIdsResponse> {
     const { items, notFound } = await this.dishMediaService.findByIds(
       query.ids,
-      user?.userId,
+      user?.id,
     );
     return {
       items: this.dishMediaMapper.toSearchDishMediaResponse(items),
@@ -110,7 +110,7 @@ export class DishMediaController {
   ): Promise<SearchDishMediaResponse> {
     const items = await this.dishMediaService.findByCriteria(
       query,
-      user?.userId,
+      user?.id,
     );
     return this.dishMediaMapper.toSearchDishMediaResponse(items);
   }
@@ -174,6 +174,6 @@ export class DishMediaController {
     @Body() dto: CreateDishMediaDto,
     @CurrentUser() user: RequestUser,
   ): Promise<CreateDishMediaResponse> {
-    return this.dishMediaService.createDishMedia(dto, user.userId);
+    return this.dishMediaService.createDishMedia(dto, user.id);
   }
 }

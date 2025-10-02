@@ -58,7 +58,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
@@ -97,13 +97,10 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '取得成功' })
   async getMeLikedDishMedia(
     @Query() query: QueryMeLikedDishMediaDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<QueryMeLikedDishMediaResponse> {
-    if (!user?.userId) {
-      return { data: [], nextCursor: null };
-    }
     const items = await this.usersService.getMeLikedDishMedia(
-      user.userId,
+      user.id,
       query,
     );
     return this.usersMapper.toMeLikedDishMediaResponse(items);
@@ -127,7 +124,7 @@ export class UsersController {
     @Query() query: QueryMePayoutsDto,
     @CurrentUser() user: RequestUser,
   ): Promise<QueryMePayoutsResponse> {
-    const items = await this.usersService.getMePayouts(user.userId, query);
+    const items = await this.usersService.getMePayouts(user.id, query);
     return this.usersMapper.toMePayoutsResponse(items);
   }
 
@@ -150,7 +147,7 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
   ): Promise<QueryMeRestaurantBidsResponse> {
     const items = await this.usersService.getMeRestaurantBids(
-      user.userId,
+      user.id,
       query,
     );
     return this.usersMapper.toMeRestaurantBidsResponse(items);
@@ -171,13 +168,10 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '取得成功' })
   async getMeSavedDishCategories(
     @Query() query: QueryMeSavedDishCategoriesDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<QueryMeSavedDishCategoriesResponse> {
-    if (!user?.userId) {
-      return { data: [], nextCursor: null };
-    }
     const items = await this.usersService.getMeSavedDishCategories(
-      user.userId,
+      user.id,
       query,
     );
     return this.usersMapper.toMeSavedDishCategoriesResponse(items);
@@ -198,13 +192,10 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '取得成功' })
   async getMeSavedDishMedia(
     @Query() query: QueryMeSavedDishMediaDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<QueryMeSavedDishMediaResponse> {
-    if (!user?.userId) {
-      return { data: [], nextCursor: null };
-    }
     const items = await this.usersService.getMeSavedDishMedia(
-      user.userId,
+      user.id,
       query,
     );
     return this.usersMapper.toMeSavedDishMediaResponse(items);

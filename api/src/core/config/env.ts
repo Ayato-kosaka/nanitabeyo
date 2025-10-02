@@ -50,6 +50,10 @@ const envSchema = z.object({
   GITHUB_TOKEN: z.string().optional(),
   GITHUB_REPO_OWNER: z.string().default('Ayato-kosaka'),
   GITHUB_REPO_NAME: z.string().default('nanitabeyo'),
+  DEV_AUTH_IS_ANONYMOUS: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 /**

@@ -1,5 +1,6 @@
 import {
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -7,49 +8,84 @@ import { AuthGuard } from '@nestjs/passport';
 import { JWT_STRATEGY } from './auth.constants';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_USER_ID } from '../cls/cls.constants';
+import { AppLoggerService } from '../logger/logger.service';
+import { RequestUser } from './auth.types';
+import { extractBearerToken } from './auth.utils';
 
+/** 本ログイン必須ガード */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
-  constructor(private readonly cls: ClsService) {
-    super();
-  }
-
-  // ジェネリックをそのまま残すことがポイント
-  handleRequest<TUser = any>(
-    err: any,
-    user: any,
-    info: any,
-    _ctx: ExecutionContext,
-    _status?: any,
-  ): TUser {
-    if (err || !user) {
-      throw err ?? new UnauthorizedException(info);
-    }
-    this.cls.set(CLS_KEY_USER_ID, user.userId);
-    // 返却型はジェネリックなので `as TUser` で整合
-    return user as TUser;
-  }
-}
-
-@Injectable()
-export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
-  constructor(private readonly cls: ClsService) {
+  constructor(
+    private readonly cls: ClsService,
+    private readonly logger: AppLoggerService,
+  ) {
     super();
   }
 
   override handleRequest<TUser = any>(
-    _err: any,
-    user: any,
-    _info: any,
+    err: any,
+    user: RequestUser | undefined,
+    info: any,
     _ctx: ExecutionContext,
-    _status?: any,
   ): TUser {
-    // Set CLS user ID if user is present
-    if (user?.userId) {
-      this.cls.set(CLS_KEY_USER_ID, user.userId);
+    if (err || !user) {
+      this.logger.warn('AuthGuard', 'JwtAuthGuard', { reason: info?.message ?? err });
+      throw new UnauthorizedException('UNAUTHORIZED');
     }
-    // user が falsy ならそのまま undefined を返却
-    // ただし型は TUser (any) にキャストして整合を取る
+
+    if (user.isAnonymous) {
+      this.logger.warn('AuthGuard', 'JwtAuthGuard', {
+        reason: 'Full login required',
+      });
+      throw new ForbiddenException('FORBIDDEN');
+    }
+
+    this.cls.set(CLS_KEY_USER_ID, user.id);
     return user as TUser;
   }
 }
+
+/** 匿名または本ログイン（DEV はモック可） */
+@Injectable()
+export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
+  constructor(
+    private readonly cls: ClsService,
+    private readonly logger: AppLoggerService,
+  ) {
+    super();
+  }
+
+  override handleRequest<TUser = any>(
+    err: any,
+    user: RequestUser | undefined,
+    info: any,
+    ctx: ExecutionContext,
+  ): TUser {
+    const req = ctx.switchToHttp().getRequest();
+    const token = extractBearerToken(req);
+
+    // token あり & 検証失敗
+    if (err || (token && !user)) {
+      this.logger.warn('AuthGuard', 'OptionalJwtAuthGuard', {
+        reason: info?.message ?? err,
+      });
+      throw new UnauthorizedException('UNAUTHORIZED');
+    }
+
+    // token なし
+    if (!token) {
+      this.logger.warn('AuthGuard', 'OptionalJwtAuthGuard', {
+        reason: 'Authorization header missing',
+      });
+      throw new UnauthorizedException('UNAUTHORIZED');
+    }
+
+    // token あり & 検証成功
+    if (user) {
+      this.cls.set(CLS_KEY_USER_ID, user.id);
+    }
+
+    return user as TUser;
+  }
+}
+
