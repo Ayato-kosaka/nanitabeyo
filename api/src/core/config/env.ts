@@ -11,7 +11,6 @@ dotenv.config();
 const envSchema = z.object({
   API_COMMIT_ID: z.string(),
   API_NODE_ENV: z.string(),
-  NODE_ENV: z.string().default(process.env.NODE_ENV ?? 'development'),
   CORS_ORIGIN: z.string(),
   DB_SCHEMA: z.string(),
   SUPABASE_JWT_SECRET: z.string(),

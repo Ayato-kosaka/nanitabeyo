@@ -9,7 +9,6 @@ import { JWT_STRATEGY } from './auth.constants';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_USER_ID } from '../cls/cls.constants';
 import { AppLoggerService } from '../logger/logger.service';
-import { env } from '../config/env';
 import { RequestUser } from './auth.types';
 import { extractBearerToken } from './auth.utils';
 
@@ -49,8 +48,6 @@ export class JwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
 /** 匿名または本ログイン（DEV はモック可） */
 @Injectable()
 export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
-  private readonly isDev = env.NODE_ENV === 'development';
-
   constructor(
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
@@ -77,20 +74,6 @@ export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
 
     // token なし
     if (!token) {
-      if (this.isDev) {
-        const mockUser: RequestUser = {
-          id: 'dev-mock-user',
-          isAnonymous: env.DEV_AUTH_IS_ANONYMOUS,
-          email: 'dev@example.com',
-          provider: 'mock',
-          rawClaims: undefined,
-        };
-        this.logger.log('AuthGuard', 'OptionalJwtAuthGuard', {
-          message: 'Using dev mock user',
-        });
-        this.cls.set(CLS_KEY_USER_ID, mockUser.id);
-        return mockUser as TUser;
-      }
       this.logger.warn('AuthGuard', 'OptionalJwtAuthGuard', {
         reason: 'Authorization header missing',
       });

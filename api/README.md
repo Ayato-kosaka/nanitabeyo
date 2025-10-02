@@ -60,7 +60,7 @@ $ pnpm run test:cov
 ## Auth Guards
 
 - **JwtAuthGuard**: 署名付き JWT を必須とし、匿名ユーザーは `403` を返します。
-- **OptionalJwtAuthGuard**: 匿名/本会員の両方を許容します。開発環境では `Authorization` ヘッダがなくてもモックユーザーで通過できます。
+- **OptionalJwtAuthGuard**: 匿名/本会員の両方を許容します。
 
 ## Deployment
 

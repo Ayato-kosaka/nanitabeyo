@@ -33,7 +33,7 @@ import { UserUploadsService } from './user-uploads.service';
 @ApiTags('UserUploads')
 @Controller('v1/user-uploads')
 export class UserUploadsController {
-  constructor(private readonly userUploadsService: UserUploadsService) {}
+  constructor(private readonly userUploadsService: UserUploadsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                POST /v1/user-uploads/signed-url                    */
@@ -50,6 +50,6 @@ export class UserUploadsController {
     @CurrentUser() user: RequestUser,
   ): Promise<CreateUserUploadSignedUrlResponse> {
     // 認証済みユーザーのファイルアップロード用署名付きURL生成
-    return this.userUploadsService.createSignedUrl(dto, user.userId);
+    return this.userUploadsService.createSignedUrl(dto, user.id);
   }
 }

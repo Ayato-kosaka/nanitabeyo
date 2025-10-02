@@ -18,7 +18,6 @@ const createCtx = (headers: Record<string, string> = {}): ExecutionContext =>
 const setEnv = (nodeEnv = 'test') => {
   process.env.API_COMMIT_ID = 'test';
   process.env.API_NODE_ENV = nodeEnv;
-  process.env.NODE_ENV = nodeEnv;
   process.env.CORS_ORIGIN = '*';
   process.env.DB_SCHEMA = 'public';
   process.env.SUPABASE_JWT_SECRET = 'secret';
