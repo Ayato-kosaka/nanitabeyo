@@ -17,7 +17,7 @@ import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 
 export type RestaurantWithMeta = {
   restaurant: PrismaRestaurants;
-  meta: { totalCents: number; maxEndDate: string | null };
+  meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
 };
 
 export type RestaurantDishMediaEntry = DishMediaEntryEntity & {
@@ -53,6 +53,8 @@ export class RestaurantsRepository {
 
     const rawResult = await tx.$queryRaw<
       (PrismaRestaurants & {
+        review_count: number;
+        average_rating: number;
         total_cents: number;
         max_end_date: string | null;
       })[]
@@ -69,12 +71,18 @@ export class RestaurantsRepository {
         r.plus_code,
         r.created_at,
         COALESCE(SUM(rb.amount_cents), 0) as total_cents,
-        MAX(rb.end_date) as max_end_date
+        MAX(rb.end_date) as max_end_date,
+        COUNT(dr.id) AS review_count,
+        COALESCE(AVG(dr.rating), 0) AS average_rating
       FROM restaurants r
       LEFT JOIN restaurant_bids rb ON r.id = rb.restaurant_id 
         AND rb.start_date <= CURRENT_DATE 
         AND rb.end_date > CURRENT_DATE 
         AND rb.status = 'paid'
+      LEFT JOIN dishes d 
+        ON d.restaurant_id = r.id
+      LEFT JOIN dish_reviews dr 
+        ON dr.dish_id = d.id
       WHERE 
         r.latitude BETWEEN ${dto.lat - radiusInDegrees} AND ${dto.lat + radiusInDegrees}
         AND r.longitude BETWEEN ${dto.lng - radiusInDegrees} AND ${dto.lng + radiusInDegrees}
@@ -89,6 +97,8 @@ export class RestaurantsRepository {
     return rawResult.map((row) => ({
       restaurant: row,
       meta: {
+        reviewCount: row.review_count,
+        averageRating: row.average_rating,
         totalCents: Number(row.total_cents) || 0,
         maxEndDate: row.max_end_date || null,
       },
@@ -130,6 +140,39 @@ export class RestaurantsRepository {
     return {
       reviewCount,
       averageRating,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        Restaurant bid statistics (totalCents + maxEndDate)         */
+  /* ------------------------------------------------------------------ */
+  async getRestaurantBidStats(
+    tx: Prisma.TransactionClient,
+    restaurant_id: string,
+  ) {
+    this.logger.debug('GetRestaurantBidStats', 'getRestaurantBidStats', {
+      restaurant_id,
+    });
+
+    const result = await tx.restaurant_bids.aggregate({
+      where: {
+        restaurant_id,
+        start_date: { lte: new Date() },
+        end_date: { gt: new Date() },
+        status: 'paid',
+      },
+      _sum: { amount_cents: true }, // total amount
+      _max: { end_date: true },     // latest end date
+    });
+
+    const totalCents = result._sum?.amount_cents
+      ? Number(result._sum.amount_cents)
+      : 0;
+    const maxEndDate = result._max?.end_date ?? null;
+
+    return {
+      totalCents,
+      maxEndDate,
     };
   }
 

@@ -3,8 +3,13 @@ import { QueryRestaurantBidsResponse, QueryRestaurantsResponse } from "@shared/a
 
 // Mock data for active bids
 export const mockActiveBids: QueryRestaurantsResponse = mockDishItems.map((dish) => ({
-	restaurant: { ...dish.restaurant, reviewCount: 120, averageRating: 4.5 },
-	meta: { totalCents: 15000, maxEndDate: "2025-12-31" },
+	restaurant: { ...dish.restaurant },
+	meta: {
+		reviewCount: 120,
+		averageRating: 4.5,
+		totalCents: 15000,
+		maxEndDate: "2025-12-31"
+	},
 }));
 
 // Mock data for bid history

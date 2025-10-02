@@ -74,6 +74,6 @@ export class DishReviewsController {
     @CurrentUser() user: RequestUser,
   ): Promise<LikeDishReviewResponse> {
     const params: LikeDishReviewParamsDto = { id };
-    return this.dishReviewsService.likeDishReview(params, user.userId);
+    return this.dishReviewsService.likeDishReview(params, user.id);
   }
 }

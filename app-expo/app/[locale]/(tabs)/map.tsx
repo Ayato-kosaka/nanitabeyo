@@ -198,7 +198,9 @@ export default function MapScreen() {
 			<RestaurantBlurModal>
 				{selectedPlace && (
 					<SelectedRestaurantDetails
-						id={selectedPlace.restaurant.google_place_id}
+						{...selectedPlace.restaurant}
+						reviewCount={selectedPlace.meta.reviewCount}
+						averageRating={selectedPlace.meta.averageRating}
 						totalCents={selectedPlace.meta.totalCents}
 						maxEndDate={selectedPlace.meta.maxEndDate}
 					/>

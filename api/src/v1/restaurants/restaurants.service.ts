@@ -40,7 +40,7 @@ export class RestaurantsService {
     private readonly dishesRepository: DishesRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -85,15 +85,27 @@ export class RestaurantsService {
       (tx: Prisma.TransactionClient) =>
         this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
     );
-    let restaurantReviewStats = {
+    let restaurantReviewStats: Pick<CreateRestaurantResponse, "reviewCount" | "averageRating"> = {
       reviewCount: 0,
       averageRating: 0,
+    };
+    let restaurantBidStats: Pick<CreateRestaurantResponse, "totalCents" | "maxEndDate"> = {
+      totalCents: 0,
+      maxEndDate: null,
     };
     if (restaurant) {
       restaurantReviewStats = await this.prisma.withTransaction(
         (tx: Prisma.TransactionClient) =>
           this.repo.getRestaurantReviewStats(tx, restaurant!.id),
       );
+      let bidStats = await this.prisma.withTransaction(
+        (tx: Prisma.TransactionClient) =>
+          this.repo.getRestaurantBidStats(tx, restaurant!.id),
+      );
+      restaurantBidStats = {
+        totalCents: bidStats.totalCents,
+        maxEndDate: bidStats.maxEndDate ? bidStats.maxEndDate.toISOString() : null,
+      };
     } else {
       // 2. Call Google Place Details API to get detailed information
       try {
@@ -165,12 +177,6 @@ export class RestaurantsService {
           name: restaurant.name,
           googlePlaceId: restaurant.google_place_id,
         });
-
-        // Fetch review stats for the newly created restaurant
-        restaurantReviewStats = await this.prisma.withTransaction(
-          (tx: Prisma.TransactionClient) =>
-            this.repo.getRestaurantReviewStats(tx, restaurant!.id),
-        );
       } catch (error) {
         this.logger.error('GooglePlaceDetailsFailed', 'createRestaurant', {
           googlePlaceId: dto.googlePlaceId,
@@ -183,6 +189,7 @@ export class RestaurantsService {
     return {
       ...convertPrismaToSupabase_Restaurants(restaurant!),
       ...restaurantReviewStats,
+      ...restaurantBidStats,
     };
   }
 

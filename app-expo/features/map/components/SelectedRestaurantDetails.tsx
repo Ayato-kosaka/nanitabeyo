@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Camera, DollarSign } from "lucide-react-native";
 import { Card } from "@/components/Card";
@@ -7,8 +7,6 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
-import { useAPICall } from "@/hooks/useAPICall";
-import { useLocale } from "@/hooks/useLocale";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { BidForm } from "@/features/map/components/BidForm";
 import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantReviewsTab";
@@ -17,14 +15,7 @@ import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import type { CreateRestaurantResponse } from "@shared/api/v1/res";
-import type { CreateRestaurantDto } from "@shared/api/v1/dto";
 import { useLogger } from "@/hooks/useLogger";
-
-type Props = {
-	id: string;
-	totalCents: number;
-	maxEndDate: string | null;
-};
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -46,12 +37,9 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props) {
+export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { callBackend } = useAPICall();
-	const locale = useLocale();
-	const [selectedRestaurant, setSelectedRestaurant] = useState<CreateRestaurantResponse | null>(null);
 
 	// Modals
 	const {
@@ -68,56 +56,6 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
 
-	useEffect(() => {
-		/**
-		 * レストラン詳細データの初期化処理
-		 *
-		 * Google Place IDを基にPOST /v1/restaurantsを呼び出し、
-		 * レストラン情報（reviewCount, averageRatingを含む）を取得して
-		 * selectedRestaurant状態に設定する。
-		 *
-		 * このAPIは新規レストラン作成または既存レストラン取得の両方に対応し、
-		 * 正規化されたレスポンスを返す。
-		 */
-		const initializeRestaurantData = async () => {
-			if (!id) return;
-
-			try {
-				// POST /v1/restaurants でレストラン情報を取得・作成
-				const restaurantData = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("v1/restaurants", {
-					method: "POST",
-					requestPayload: {
-						googlePlaceId: id,
-						languageCode: locale,
-					},
-				});
-
-				// レスポンスデータを正規化してstateに設定
-				// reviewCountとaverageRatingが含まれた完全なレストラン情報
-				setSelectedRestaurant(restaurantData);
-
-				// 成功ログの記録
-				logFrontendEvent({
-					event_name: "restaurant_data_initialized",
-					error_level: "log",
-					payload: { restaurantId: id, hasData: !!restaurantData },
-				});
-			} catch (error) {
-				// エラーハンドリング：ログ記録とUIエラー状態の設定
-				logFrontendEvent({
-					event_name: "restaurant_data_initialization_failed",
-					error_level: "error",
-					payload: { restaurantId: id, error: String(error) },
-				});
-
-				// エラー時はnullに設定し、UIで適切に処理される
-				setSelectedRestaurant(null);
-			}
-		};
-
-		initializeRestaurantData();
-	}, [id, callBackend, locale, logFrontendEvent]);
-
 	const handleBid = async (bidAmount: string) => {
 		if (!bidAmount) return;
 		mediumImpact();
@@ -127,14 +65,14 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 			logFrontendEvent({
 				event_name: "restaurant_bid_submitted",
 				error_level: "log",
-				payload: { restaurantId: selectedRestaurant?.id, bidAmount: Number(bidAmount) },
+				payload: { restaurantId: restaurant?.id, bidAmount: Number(bidAmount) },
 			});
 			closeBidModal();
 		} catch {
 			logFrontendEvent({
 				event_name: "restaurant_bid_submission_failed",
 				error_level: "error",
-				payload: { restaurantId: selectedRestaurant?.id, bidAmount: Number(bidAmount) },
+				payload: { restaurantId: restaurant?.id, bidAmount: Number(bidAmount) },
 			});
 		} finally {
 			setIsProcessing(false);
@@ -150,14 +88,14 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 			logFrontendEvent({
 				event_name: "restaurant_review_submitted",
 				error_level: "log",
-				payload: { restaurantId: selectedRestaurant?.id, rating: data.rating },
+				payload: { restaurantId: restaurant?.id, rating: data.rating },
 			});
 			closeReviewModal();
 		} catch {
 			logFrontendEvent({
 				event_name: "restaurant_review_submission_failed",
 				error_level: "error",
-				payload: { restaurantId: selectedRestaurant?.id, rating: data.rating },
+				payload: { restaurantId: restaurant?.id, rating: data.rating },
 			});
 		} finally {
 			setIsProcessing(false);
@@ -171,34 +109,34 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 	}, []);
 
 	const renderHeader = useCallback(() => {
-		return selectedRestaurant ? (
+		return restaurant ? (
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image source={{ uri: selectedRestaurant.image_url }} style={styles.restaurantAvatar} />
+						<Image source={{ uri: restaurant.image_url }} style={styles.restaurantAvatar} />
 						<View style={styles.restaurantDetails}>
-							<Text style={styles.restaurantName}>{selectedRestaurant.name}</Text>
+							<Text style={styles.restaurantName}>{restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={selectedRestaurant.averageRating} />
-								<Text style={styles.ratingText}>{selectedRestaurant.averageRating}</Text>
-								<Text style={styles.reviewCount}>({selectedRestaurant.reviewCount})</Text>
+								<Stars rating={restaurant.averageRating} />
+								<Text style={styles.ratingText}>{restaurant.averageRating}</Text>
+								<Text style={styles.reviewCount}>({restaurant.reviewCount})</Text>
 							</View>
 						</View>
 					</View>
 				</Card>
 
-				{maxEndDate && (
+				{restaurant.maxEndDate && (
 					<View style={styles.bidAmountContainer}>
 						<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
 						<Text style={styles.bidAmount}>
 							{i18n.t("Search.currencySuffix")}
-							{totalCents.toLocaleString()}
+							{restaurant.totalCents.toLocaleString()}
 						</Text>
 						<Text style={styles.remainingDays}>
 							{i18n.t("Common.daysRemaining", {
 								count: Math.max(
 									0,
-									Math.ceil((new Date(maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+									Math.ceil((new Date(restaurant.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
 								),
 							})}
 						</Text>
@@ -225,7 +163,7 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 		) : (
 			<Card />
 		);
-	}, [handleHeaderLayout, openReviewModal, openBidModal, selectedRestaurant]);
+	}, [handleHeaderLayout, openReviewModal, openBidModal, restaurant]);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
@@ -243,7 +181,7 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 					既存のGridListレイアウトを完全に維持
 				*/}
 				<Tabs.Tab name="reviews">
-					<RestaurantReviewsTab restaurantId={id} />
+					<RestaurantReviewsTab restaurantId={restaurant.id} />
 				</Tabs.Tab>
 				{/* 
 					入札タブ: RestaurantBidsTabコンポーネントを使用
@@ -251,7 +189,7 @@ export function SelectedRestaurantDetails({ id, totalCents, maxEndDate }: Props)
 					既存のFlatListレイアウトとフィルター機能を完全に維持
 				*/}
 				<Tabs.Tab name="bids">
-					<RestaurantBidsTab restaurantId={id} />
+					<RestaurantBidsTab restaurantId={restaurant.id} />
 				</Tabs.Tab>
 			</Tabs.Container>
 

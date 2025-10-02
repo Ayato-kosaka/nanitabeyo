@@ -129,7 +129,7 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
   ): Promise<LikeDishMediaResponse> {
     const params: LikeDishMediaParamsDto = { id };
-    return this.dishMediaService.likeDishMedia(params, user.userId);
+    return this.dishMediaService.likeDishMedia(params, user.id);
   }
 
   /* -------------------- DELETE /v1/dish-media/:id/likes ------------------- */
@@ -144,7 +144,7 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
   ): Promise<UnlikeDishMediaResponse> {
     const params: LikeDishMediaParamsDto = { id };
-    return this.dishMediaService.unlikeDishMedia(params, user.userId);
+    return this.dishMediaService.unlikeDishMedia(params, user.id);
   }
 
   /* -------------------- POST /v1/dish-media/:id/save ---------------------- */
@@ -159,7 +159,7 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
   ): Promise<SaveDishMediaResponse> {
     const params: SaveDishMediaParamsDto = { id };
-    return this.dishMediaService.saveDishMedia(params, user.userId);
+    return this.dishMediaService.saveDishMedia(params, user.id);
   }
 
   /* ------------------------------------------------------------------ */
