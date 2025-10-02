@@ -58,7 +58,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
@@ -99,10 +99,7 @@ export class UsersController {
     @Query() query: QueryMeLikedDishMediaDto,
     @CurrentUser() user: RequestUser,
   ): Promise<QueryMeLikedDishMediaResponse> {
-    const items = await this.usersService.getMeLikedDishMedia(
-      user.id,
-      query,
-    );
+    const items = await this.usersService.getMeLikedDishMedia(user.id, query);
     return this.usersMapper.toMeLikedDishMediaResponse(items);
   }
 
@@ -146,10 +143,7 @@ export class UsersController {
     @Query() query: QueryMeRestaurantBidsDto,
     @CurrentUser() user: RequestUser,
   ): Promise<QueryMeRestaurantBidsResponse> {
-    const items = await this.usersService.getMeRestaurantBids(
-      user.id,
-      query,
-    );
+    const items = await this.usersService.getMeRestaurantBids(user.id, query);
     return this.usersMapper.toMeRestaurantBidsResponse(items);
   }
 
@@ -194,10 +188,7 @@ export class UsersController {
     @Query() query: QueryMeSavedDishMediaDto,
     @CurrentUser() user: RequestUser,
   ): Promise<QueryMeSavedDishMediaResponse> {
-    const items = await this.usersService.getMeSavedDishMedia(
-      user.id,
-      query,
-    );
+    const items = await this.usersService.getMeSavedDishMedia(user.id, query);
     return this.usersMapper.toMeSavedDishMediaResponse(items);
   }
 }

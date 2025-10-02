@@ -27,8 +27,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			CFBundleURLTypes: [
 				{
 					CFBundleURLName: "nanitabeyo",
-					CFBundleURLSchemes: ["nanitabeyo"]
-				}
+					CFBundleURLSchemes: ["nanitabeyo"],
+				},
 			],
 			CFBundleAllowMixedLocalizations: true,
 			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],

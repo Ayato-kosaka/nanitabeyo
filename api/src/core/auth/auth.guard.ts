@@ -29,7 +29,9 @@ export class JwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
     _ctx: ExecutionContext,
   ): TUser {
     if (err || !user) {
-      this.logger.warn('AuthGuard', 'JwtAuthGuard', { reason: info?.message ?? err });
+      this.logger.warn('AuthGuard', 'JwtAuthGuard', {
+        reason: info?.message ?? err,
+      });
       throw new UnauthorizedException('UNAUTHORIZED');
     }
 
@@ -88,4 +90,3 @@ export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
     return user as TUser;
   }
 }
-

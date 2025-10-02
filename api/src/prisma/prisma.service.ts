@@ -36,10 +36,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const base = new PrismaClient({
       log: enableQueryLogs
         ? ([
-          { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-          'warn',
-          'error',
-        ] as any)
+            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+            'warn',
+            'error',
+          ] as any)
         : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
     });
 
@@ -189,15 +189,18 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
     this.ensureConnected();
     try {
-      const schema = env.DB_SCHEMA
-      const res = await this.prisma.$transaction(async (tx) => {
-        await tx.$queryRaw`SELECT set_config('search_path', ${schema}, true)`;
-        return exec(tx)
-      }, {
-        maxWait: opts?.maxWait ?? env.PRISMA_TX_MAX_WAIT,
-        timeout: opts?.timeout ?? env.PRISMA_TX_TIMEOUT,
-        isolationLevel: opts?.isolationLevel,
-      });
+      const schema = env.DB_SCHEMA;
+      const res = await this.prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT set_config('search_path', ${schema}, true)`;
+          return exec(tx);
+        },
+        {
+          maxWait: opts?.maxWait ?? env.PRISMA_TX_MAX_WAIT,
+          timeout: opts?.timeout ?? env.PRISMA_TX_TIMEOUT,
+          isolationLevel: opts?.isolationLevel,
+        },
+      );
       this.resetCircuit(); // ★ 成功したら回路を閉じる
       return res;
     } catch (error: any) {

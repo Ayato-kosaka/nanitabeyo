@@ -33,7 +33,7 @@ import { UserUploadsService } from './user-uploads.service';
 @ApiTags('UserUploads')
 @Controller('v1/user-uploads')
 export class UserUploadsController {
-  constructor(private readonly userUploadsService: UserUploadsService) { }
+  constructor(private readonly userUploadsService: UserUploadsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                POST /v1/user-uploads/signed-url                    */

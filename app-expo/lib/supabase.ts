@@ -17,7 +17,7 @@ import { Env } from "@/constants/Env";
 export const supabase = createClient(Env.SUPABASE_URL, Env.SUPABASE_ANON_KEY, {
 	auth: {
 		...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
-		flowType: 'pkce',
+		flowType: "pkce",
 		autoRefreshToken: true,
 		persistSession: true,
 		detectSessionInUrl: false,

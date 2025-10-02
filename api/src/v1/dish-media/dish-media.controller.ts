@@ -59,7 +59,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -108,10 +108,7 @@ export class DishMediaController {
     @Query() query: SearchDishMediaDto,
     @CurrentUser() user?: RequestUser,
   ): Promise<SearchDishMediaResponse> {
-    const items = await this.dishMediaService.findByCriteria(
-      query,
-      user?.id,
-    );
+    const items = await this.dishMediaService.findByCriteria(query, user?.id);
     return this.dishMediaMapper.toSearchDishMediaResponse(items);
   }
 

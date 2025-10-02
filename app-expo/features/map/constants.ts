@@ -8,7 +8,7 @@ export const mockActiveBids: QueryRestaurantsResponse = mockDishItems.map((dish)
 		reviewCount: 120,
 		averageRating: 4.5,
 		totalCents: 15000,
-		maxEndDate: "2025-12-31"
+		maxEndDate: "2025-12-31",
 	},
 }));
 

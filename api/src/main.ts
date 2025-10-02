@@ -13,9 +13,11 @@ async function bootstrap() {
   // ★ 計測ミドルウェア（最上流）
   app.use((req: any, _res, next) => {
     const now = Date.now();
-    req._t0 = now;                       // ヘッダ受信時刻
+    req._t0 = now; // ヘッダ受信時刻
     // リクエストボディを受信し終わった時点（body-parser 前でも 'end' は発火する）
-    req.on('end', () => { req._tBodyEnd = Date.now(); });
+    req.on('end', () => {
+      req._tBodyEnd = Date.now();
+    });
     next();
   });
 

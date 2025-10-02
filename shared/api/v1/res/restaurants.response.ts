@@ -6,7 +6,7 @@ import { PaginatedResponse } from "./paginated-response";
 /** GET /v1/restaurants/search のレスポンス型 */
 export type QueryRestaurantsResponse = {
 	restaurant: SupabaseRestaurants;
-	meta: { reviewCount: number; averageRating: number, totalCents: number; maxEndDate: string | null };
+	meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
 }[];
 
 /** POST /v1/restaurants のレスポンス型 */
@@ -14,7 +14,7 @@ export type CreateRestaurantResponse = SupabaseRestaurants & {
 	reviewCount: number;
 	averageRating: number;
 	totalCents: number;
-	maxEndDate: string | null
+	maxEndDate: string | null;
 };
 
 /** POST /v1/restaurants/:id/bids/intents のレスポンス型 */

@@ -9,19 +9,19 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 
 export default function ResultScreen() {
-        const { topicId, location } = useLocalSearchParams<{ topicId: string; location?: string }>();
-        const initialLocation = useMemo(() => {
-                if (typeof location === "string") {
-                        try {
-                                return JSON.parse(location) as { latitude: number; longitude: number };
-                        } catch {
-                                return undefined;
-                        }
-                }
-                return undefined;
-        }, [location]);
-        const { lightImpact } = useHaptics();
-        const { logFrontendEvent } = useLogger();
+	const { topicId, location } = useLocalSearchParams<{ topicId: string; location?: string }>();
+	const initialLocation = useMemo(() => {
+		if (typeof location === "string") {
+			try {
+				return JSON.parse(location) as { latitude: number; longitude: number };
+			} catch {
+				return undefined;
+			}
+		}
+		return undefined;
+	}, [location]);
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
 	const { currentIndex, showCompletionModal, dishesPromise, handleIndexChange, handleClose, handleReturnToCards } =
 		useSearchResult(topicId as string);
@@ -59,14 +59,14 @@ export default function ResultScreen() {
 			</View>
 
 			{/* Feed Content */}
-                        {/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-                        <FoodContentMap
-                                itemsPromise={dishesPromise}
-                                onIndexChange={handleIndexChange}
-                                initialLocation={initialLocation}
-                        />
-                </LinearGradient>
-        );
+			{/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
+			<FoodContentMap
+				itemsPromise={dishesPromise}
+				onIndexChange={handleIndexChange}
+				initialLocation={initialLocation}
+			/>
+		</LinearGradient>
+	);
 }
 
 const styles = StyleSheet.create({

@@ -31,7 +31,7 @@ export class DishMediaService {
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -46,7 +46,8 @@ export class DishMediaService {
 
     const dishMediaIds = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.findDishMediaIds(tx, dto, viewerId));
+        this.repo.findDishMediaIds(tx, dto, viewerId),
+    );
 
     const dishMediaEntryItems = await this.fetchDishMediaEntryItems(
       dishMediaIds,

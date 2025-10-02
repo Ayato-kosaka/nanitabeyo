@@ -17,7 +17,12 @@ import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 
 export type RestaurantWithMeta = {
   restaurant: PrismaRestaurants;
-  meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
+  meta: {
+    reviewCount: number;
+    averageRating: number;
+    totalCents: number;
+    maxEndDate: string | null;
+  };
 };
 
 export type RestaurantDishMediaEntry = DishMediaEntryEntity & {
@@ -32,7 +37,7 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                    Restaurant search queries (nearby + bidding status)                    */
@@ -162,7 +167,7 @@ export class RestaurantsRepository {
         status: 'paid',
       },
       _sum: { amount_cents: true }, // total amount
-      _max: { end_date: true },     // latest end date
+      _max: { end_date: true }, // latest end date
     });
 
     const totalCents = result._sum?.amount_cents

@@ -42,7 +42,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     /* ――― 除外判定 ――― */
@@ -73,10 +73,10 @@ export class ResponseWrapInterceptor implements NestInterceptor {
         /* ---------- バックエンドイベントログ（成功パス） ---------- */
         const t0 = (req as any)._t0 ?? startedAt;
         const tBodyEnd = (req as any)._tBodyEnd ?? startedAt;
-        const queue_ms = startedAt - t0;            // ハンドラに入るまで（ボディ受信＋前段）
-        const upload_ms = Math.max(0, tBodyEnd - t0);// ボディ受信完了まで
-        const app_ms = Date.now() - startedAt;    // ハンドラ処理時間
-        const total_ms = Date.now() - t0;        // ヘッダ受信からレスポンス送出まで
+        const queue_ms = startedAt - t0; // ハンドラに入るまで（ボディ受信＋前段）
+        const upload_ms = Math.max(0, tBodyEnd - t0); // ボディ受信完了まで
+        const app_ms = Date.now() - startedAt; // ハンドラ処理時間
+        const total_ms = Date.now() - t0; // ヘッダ受信からレスポンス送出まで
 
         // Build and send backend event log (success path)
         try {

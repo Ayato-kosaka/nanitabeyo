@@ -61,7 +61,10 @@ describe('Auth Guards', () => {
         JwtAuthGuard,
         OptionalJwtAuthGuard,
         { provide: ClsService, useValue: mockCls },
-        { provide: AppLoggerService, useValue: { log: jest.fn(), warn: jest.fn() } },
+        {
+          provide: AppLoggerService,
+          useValue: { log: jest.fn(), warn: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -111,7 +114,10 @@ describe('Auth Guards', () => {
         providers: [
           OptionalJwtAuthGuard,
           { provide: ClsService, useValue: mockCls },
-          { provide: AppLoggerService, useValue: { log: jest.fn(), warn: jest.fn() } },
+          {
+            provide: AppLoggerService,
+            useValue: { log: jest.fn(), warn: jest.fn() },
+          },
         ],
       }).compile();
 
@@ -157,7 +163,10 @@ describe('Auth Guards', () => {
         providers: [
           OptionalJwtAuthGuard,
           { provide: ClsService, useValue: mockCls },
-          { provide: AppLoggerService, useValue: { log: jest.fn(), warn: jest.fn() } },
+          {
+            provide: AppLoggerService,
+            useValue: { log: jest.fn(), warn: jest.fn() },
+          },
         ],
       }).compile();
 
@@ -173,7 +182,10 @@ describe('Auth Guards', () => {
         createCtx(),
       );
       expect(res.id).toBe('dev-mock-user');
-      expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'dev-mock-user');
+      expect(clsService.set).toHaveBeenCalledWith(
+        CLS_KEY_USER_ID,
+        'dev-mock-user',
+      );
     });
 
     it('returns real user when token is provided', () => {
@@ -189,4 +201,3 @@ describe('Auth Guards', () => {
     });
   });
 });
-
