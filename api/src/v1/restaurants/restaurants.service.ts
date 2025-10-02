@@ -217,11 +217,14 @@ export class RestaurantsService {
     }
 
     // Get dish media by restaurant with pagination
-    const dishMediaByRestaurant =
-      await this.dishMediaRepository.findDishMediaByRestaurant(
-        restaurantId,
-        dto,
-      );
+    const dishMediaByRestaurant = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.dishMediaRepository.findDishMediaByRestaurant(
+          tx,
+          restaurantId,
+          dto,
+        )
+    );
 
     const dishMediaIds = dishMediaByRestaurant.items.map(
       (l) => l.dish_media_id,

@@ -70,10 +70,10 @@ export class RestaurantsRepository {
         r.address_components,
         r.plus_code,
         r.created_at,
-        COALESCE(SUM(rb.amount_cents), 0) as total_cents,
+        COALESCE(SUM(rb.amount_cents), 0)::double precision as total_cents,
         MAX(rb.end_date) as max_end_date,
-        COUNT(dr.id) AS review_count,
-        COALESCE(AVG(dr.rating), 0) AS average_rating
+        COUNT(dr.id)::int AS review_count,
+        COALESCE(AVG(dr.rating), 0)::double precision AS average_rating
       FROM restaurants r
       LEFT JOIN restaurant_bids rb ON r.id = rb.restaurant_id 
         AND rb.start_date <= CURRENT_DATE 
