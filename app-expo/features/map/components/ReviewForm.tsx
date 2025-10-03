@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-native";
 import { Star } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
+import { getCurrencyCodeFromRestaurant, resolveCurrencySymbol } from "@/lib/googlePlaces";
+import { useLocale } from "@/hooks/useLocale";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -27,6 +29,7 @@ interface ReviewFormProps {
  * Japanese IME composition issues. Only communicates final values back to parent.
  */
 export function ReviewForm({
+	restaurant,
 	initialPrice = "",
 	initialReviewText = "",
 	initialRating = 0,
@@ -38,6 +41,14 @@ export function ReviewForm({
 	const [price, setPrice] = useState(initialPrice);
 	const [reviewText, setReviewText] = useState(initialReviewText);
 	const [rating, setRating] = useState(initialRating);
+
+	const locale = useLocale();
+
+	// Get currency symbol from restaurant data
+	const currencySymbol = useMemo(() => {
+		const currencyCode = getCurrencyCodeFromRestaurant(restaurant);
+		return resolveCurrencySymbol(currencyCode, locale);
+	}, [restaurant]);
 
 	const handleSubmit = useCallback(() => {
 		onSubmit({ price, reviewText, rating });
@@ -71,13 +82,26 @@ export function ReviewForm({
 						))}
 					</View>
 				</View>
-				<TextInput
-					style={styles.textInput}
-					placeholder={i18n.t("Map.placeholders.enterPrice")}
-					value={price}
-					onChangeText={setPrice}
-					keyboardType="numeric"
-				/>
+				{currencySymbol ? (
+					<View style={styles.priceInputContainer}>
+						<Text style={styles.currencySymbol}>{currencySymbol}</Text>
+						<TextInput
+							style={[styles.textInput, styles.priceInput]}
+							placeholder={i18n.t("Map.placeholders.enterPrice")}
+							value={price}
+							onChangeText={setPrice}
+							keyboardType="numeric"
+						/>
+					</View>
+				) : (
+					<TextInput
+						style={styles.textInput}
+						placeholder={i18n.t("Map.placeholders.enterPrice")}
+						value={price}
+						onChangeText={setPrice}
+						keyboardType="numeric"
+					/>
+				)}
 			</Card>
 
 			<PrimaryButton
@@ -111,5 +135,22 @@ const styles = StyleSheet.create({
 	ratingInput: {
 		flexDirection: "row",
 		gap: 8,
+	},
+	priceInputContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		borderRadius: 8,
+	},
+	currencySymbol: {
+		fontSize: 16,
+		fontWeight: "600",
+		color: "#666",
+		minWidth: 32,
+		paddingLeft: 12,
+	},
+	priceInput: {
+		flex: 1,
+		paddingLeft: 0,
+		paddingRight: 12,
 	},
 });
