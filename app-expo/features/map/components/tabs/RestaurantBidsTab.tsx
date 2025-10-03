@@ -55,13 +55,14 @@ export function RestaurantBidsTab({ restaurantId }: RestaurantBidsTabProps) {
 		useCallback(
 			async ({ cursor }) => {
 				// レストランIDをパスパラメータに含めてAPIを呼び出し
-				const response = await callBackend<QueryRestaurantBidsDto, QueryRestaurantBidsResponse>(
-					`v1/restaurants/${restaurantId}/restaurant-bids`,
-					{
-						method: "GET",
-						requestPayload: cursor ? { cursor } : {},
-					},
-				);
+				const response = [] as QueryRestaurantBidsResponse;
+				// await callBackend<QueryRestaurantBidsDto, QueryRestaurantBidsResponse>(
+				// 	`v1/restaurants/${restaurantId}/restaurant-bids`,
+				// 	{
+				// 		method: "GET",
+				// 		requestPayload: cursor ? { cursor } : {},
+				// 	},
+				// );
 				// レスポンスは配列形式なので、PaginatedResponseに変換
 				return {
 					data: response || [],
