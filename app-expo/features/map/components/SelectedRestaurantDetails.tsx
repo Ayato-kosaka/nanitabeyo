@@ -195,7 +195,14 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 			{/* Review Modal */}
 			<ReviewBlurModal>
-				{({ close }) => <ReviewForm onSubmit={handleReviewSubmit} onCancel={close} isProcessing={isProcessing} />}
+				{({ close }) => (
+					<ReviewForm
+						restaurant={restaurant}
+						onSubmit={handleReviewSubmit}
+						onCancel={close}
+						isProcessing={isProcessing}
+					/>
+				)}
 			</ReviewBlurModal>
 
 			{/* Bid Modal */}

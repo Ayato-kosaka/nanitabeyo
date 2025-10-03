@@ -4,8 +4,10 @@ import { Star } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 
 interface ReviewFormProps {
+	restaurant: SupabaseRestaurants;
 	/** Initial price value */
 	initialPrice?: string;
 	/** Initial review text */
