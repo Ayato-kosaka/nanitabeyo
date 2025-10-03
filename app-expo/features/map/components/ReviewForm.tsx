@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
+import { InitialMediaPreview, MediaData } from "./InitialMediaPreview";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -14,6 +15,8 @@ interface ReviewFormProps {
 	initialReviewText?: string;
 	/** Initial rating value */
 	initialRating?: number;
+	/** Initial media to display at the top */
+	initialMedia?: MediaData;
 	/** Called when user submits the form */
 	onSubmit: (data: { price: string; reviewText: string; rating: number }) => void;
 	/** Called when user cancels */
@@ -30,6 +33,7 @@ export function ReviewForm({
 	initialPrice = "",
 	initialReviewText = "",
 	initialRating = 0,
+	initialMedia,
 	onSubmit,
 	onCancel,
 	isProcessing = false,
@@ -51,6 +55,7 @@ export function ReviewForm({
 
 	return (
 		<>
+			{initialMedia && <InitialMediaPreview media={initialMedia} />}
 			<Card style={{ gap: 16 }}>
 				<TextInput
 					style={[styles.textInput, styles.textArea]}

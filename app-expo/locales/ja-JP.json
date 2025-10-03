@@ -282,6 +282,15 @@
 			"bidError": "入札に失敗しました",
 			"reviewSuccess": "レビューを投稿しました",
 			"reviewError": "レビューの投稿に失敗しました"
+		},
+		"media": {
+			"videoTooLong": "動画は2分以内のものを選択してください。",
+			"permissionDenied": "メディアにアクセスできません。設定から権限を許可してください。",
+			"thumbnailFailed": "サムネイルの生成に失敗しました。別のファイルをお試しください。",
+			"selectedImage": "選択した画像",
+			"selectedVideoThumbnail": "選択した動画のサムネイル",
+			"playVideo": "動画を再生",
+			"selectingMedia": "メディアを選択中..."
 		}
 	},
 	"Restaurant": {

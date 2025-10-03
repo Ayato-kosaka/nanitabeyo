@@ -16,6 +16,9 @@ import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import type { CreateRestaurantResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { selectMediaForReview } from "@/features/map/utils/mediaSelection";
+import type { MediaData } from "@/features/map/components/InitialMediaPreview";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -40,6 +43,7 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { showSnackbar } = useSnackbar();
 
 	// Modals
 	const {
@@ -55,6 +59,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [selectedMedia, setSelectedMedia] = useState<MediaData | undefined>(undefined);
 
 	const handleBid = async (bidAmount: string) => {
 		if (!bidAmount) return;
@@ -77,6 +82,48 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 		} finally {
 			setIsProcessing(false);
 		}
+	};
+
+	const handleReviewButtonPress = async () => {
+		lightImpact();
+
+		// Show loading state (optional)
+		setIsProcessing(true);
+
+		// Launch media picker
+		const result = await selectMediaForReview();
+
+		setIsProcessing(false);
+
+		if (!result.success) {
+			// Handle errors
+			if (result.error === "cancelled") {
+				// User cancelled, do nothing
+				return;
+			}
+
+			let errorMessage = i18n.t("Common.error");
+			switch (result.error) {
+				case "permission_denied":
+					errorMessage = i18n.t("Map.media.permissionDenied");
+					break;
+				case "video_too_long":
+					errorMessage = i18n.t("Map.media.videoTooLong");
+					break;
+				case "thumbnail_failed":
+					errorMessage = i18n.t("Map.media.thumbnailFailed");
+					break;
+				default:
+					errorMessage = result.errorMessage || i18n.t("Common.error");
+			}
+
+			showSnackbar(errorMessage);
+			return;
+		}
+
+		// Set selected media and open modal
+		setSelectedMedia(result.media);
+		openReviewModal();
 	};
 
 	const handleReviewSubmit = async (data: { price: string; reviewText: string; rating: number }) => {
@@ -145,7 +192,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 				<View style={styles.actionButtons}>
 					<PrimaryButton
-						onPress={openReviewModal}
+						onPress={handleReviewButtonPress}
 						label={i18n.t("Map.buttons.postReview")}
 						icon={<Camera size={20} color="#FFF" />}
 						borderRadius={8}
@@ -163,7 +210,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 		) : (
 			<Card />
 		);
-	}, [handleHeaderLayout, openReviewModal, openBidModal, restaurant]);
+	}, [handleHeaderLayout, handleReviewButtonPress, openBidModal, restaurant]);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
@@ -201,6 +248,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 						onSubmit={handleReviewSubmit}
 						onCancel={close}
 						isProcessing={isProcessing}
+						initialMedia={selectedMedia}
 					/>
 				)}
 			</ReviewBlurModal>
