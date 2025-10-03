@@ -141,12 +141,13 @@ const styles = StyleSheet.create({
 	currencySymbol: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#000",
-		minWidth: 24,
-		paddingHorizontal: 12,
+		color: "#666",
+		minWidth: 32,
+		paddingLeft: 12,
 	},
 	priceInput: {
 		flex: 1,
 		paddingLeft: 0,
+		paddingRight: 12,
 	},
 });
