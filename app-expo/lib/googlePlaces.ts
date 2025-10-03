@@ -23,91 +23,111 @@ export interface IAddressComponent {
 
 /**
  * 国コードから通貨コードへのマッピング表 (ISO-3166-1 → ISO-4217)
- * 主要な国のみを収録。正確性を重視し、不明な場合は null を返す。
+ * 主要/全世界の国と地域を網羅。正確性重視。不明・通貨なしは null。
+ * 例: getCurrencyCode("JP") => "JPY"
+ *     getCurrencySymbol("JP") => "¥"
  */
-const COUNTRY_TO_CURRENCY_MAP: Record<string, string> = {
-	// Major currencies
-	US: "USD", // United States Dollar
-	EU: "EUR", // Euro (多くのEU諸国で使用)
-	JP: "JPY", // Japanese Yen
-	GB: "GBP", // British Pound Sterling
-	CN: "CNY", // Chinese Yuan
-	CA: "CAD", // Canadian Dollar
-	AU: "AUD", // Australian Dollar
-	KR: "KRW", // South Korean Won
-	CH: "CHF", // Swiss Franc
-	SG: "SGD", // Singapore Dollar
-	HK: "HKD", // Hong Kong Dollar
-	TW: "TWD", // Taiwan Dollar
-	TH: "THB", // Thai Baht
-	VN: "VND", // Vietnamese Dong
-	MY: "MYR", // Malaysian Ringgit
-	PH: "PHP", // Philippine Peso
-	ID: "IDR", // Indonesian Rupiah
-	IN: "INR", // Indian Rupee
-	MX: "MXN", // Mexican Peso
-	BR: "BRL", // Brazilian Real
-	AR: "ARS", // Argentine Peso
-	CL: "CLP", // Chilean Peso
-	CO: "COP", // Colombian Peso
-	PE: "PEN", // Peruvian Sol
-	NZ: "NZD", // New Zealand Dollar
-	ZA: "ZAR", // South African Rand
-	NO: "NOK", // Norwegian Krone
-	SE: "SEK", // Swedish Krona
-	DK: "DKK", // Danish Krone
-	PL: "PLN", // Polish Zloty
-	CZ: "CZK", // Czech Koruna
-	HU: "HUF", // Hungarian Forint
-	RU: "RUB", // Russian Ruble
-	TR: "TRY", // Turkish Lira
-	IL: "ILS", // Israeli Shekel
-	AE: "AED", // UAE Dirham
-	SA: "SAR", // Saudi Riyal
-	EG: "EGP", // Egyptian Pound
+export const COUNTRY_TO_CURRENCY_MAP = {
+	// 既存の主要通貨（維持）
+	US: "USD",
+	EU: "EUR", // 例外的に予約コード（EU機関向け）。便宜上残置。
+	GB: "GBP",
+	CL: "CLP",
+	CO: "COP",
+	SE: "SEK",
+	DK: "DKK",
+	PL: "PLN",
+	CZ: "CZK",
+	HU: "HUF",
+	RU: "RUB",
 
-	// Euro zone countries (using EUR)
-	AT: "EUR", // Austria
-	BE: "EUR", // Belgium
-	CY: "EUR", // Cyprus
-	EE: "EUR", // Estonia
-	FI: "EUR", // Finland
-	FR: "EUR", // France
-	DE: "EUR", // Germany
-	GR: "EUR", // Greece
-	IE: "EUR", // Ireland
-	IT: "EUR", // Italy
-	LV: "EUR", // Latvia
-	LT: "EUR", // Lithuania
-	LU: "EUR", // Luxembourg
-	MT: "EUR", // Malta
-	NL: "EUR", // Netherlands
-	PT: "EUR", // Portugal
-	SK: "EUR", // Slovakia
-	SI: "EUR", // Slovenia
-	ES: "EUR", // Spain
+	// ユーロ圏（EUR）
+	AT: "EUR", BE: "EUR", CY: "EUR", EE: "EUR", FI: "EUR", FR: "EUR", DE: "EUR",
+	GR: "EUR", IE: "EUR", IT: "EUR", LV: "EUR", LT: "EUR", LU: "EUR", MT: "EUR",
+	NL: "EUR", PT: "EUR", SK: "EUR", SI: "EUR", ES: "EUR",
+	// 追加：クロアチアは2023年からEUR
+	HR: "EUR",
 
-	// Additional countries
-	IS: "ISK", // Iceland
-	CR: "CRC", // Costa Rica
-	PA: "PAB", // Panama (also uses USD)
-	GT: "GTQ", // Guatemala
-	HN: "HNL", // Honduras
-	NI: "NIO", // Nicaragua
-	SV: "USD", // El Salvador (uses USD)
-	BZ: "BZD", // Belize
-	JM: "JMD", // Jamaica
-	TT: "TTD", // Trinidad and Tobago
-	BS: "BSD", // Bahamas
-	BB: "BBD", // Barbados
-	GY: "GYD", // Guyana
-	SR: "SRD", // Suriname
-	UY: "UYU", // Uruguay
-	PY: "PYG", // Paraguay
-	BO: "BOB", // Bolivia
-	EC: "USD", // Ecuador (uses USD)
-	VE: "VES", // Venezuela
-};
+	// 北米・中南米
+	AG: "XCD", AI: "XCD", AN: null,    // AN(蘭領アンティル)は廃止コード（保持しない場合は削除可）
+	AW: "AWG", BB: "BBD", BL: "EUR", BM: "BMD", BQ: "USD", BS: "BSD", BZ: "BZD",
+	BO: "BOB", BR: "BRL", CA: "CAD", CR: "CRC", CU: "CUP", CW: "ANG",
+	DM: "XCD", DO: "DOP", EC: "USD", SV: "USD", GD: "XCD", GP: "EUR",
+	GT: "GTQ", GY: "GYD", HN: "HNL", HT: "HTG", JM: "JMD", KN: "XCD",
+	KY: "KYD", LC: "XCD", MF: "EUR", MQ: "EUR", MS: "XCD", MX: "MXN",
+	NI: "NIO", PA: "PAB", PE: "PEN", PM: "EUR", PR: "USD", PY: "PYG",
+	SR: "SRD", SX: "ANG", TT: "TTD", UY: "UYU", VC: "XCD", VE: "VES",
+
+	// 欧州その他
+	AD: "EUR", AL: "ALL", AM: "AMD", AX: "EUR", BA: "BAM", BG: "BGN",
+	BY: "BYN", CH: "CHF", GG: "GBP", GI: "GIP", IM: "GBP", IS: "ISK",
+	JE: "GBP", LI: "CHF", MC: "EUR", MD: "MDL", ME: "EUR", MK: "MKD",
+	NO: "NOK", RO: "RON", RS: "RSD", SJ: "NOK", SM: "EUR", UA: "UAH",
+	VA: "EUR",
+
+	// アフリカ
+	AO: "AOA", BF: "XOF", BI: "BIF", BJ: "XOF", BW: "BWP", CD: "CDF",
+	CF: "XAF", CG: "XAF", CI: "XOF", CM: "XAF", CV: "CVE", DJ: "DJF",
+	DZ: "DZD", EG: "EGP", EH: "MAD", ER: "ERN", ET: "ETB", GA: "XAF",
+	GH: "GHS", GM: "GMD", GN: "GNF", GQ: "XAF", GW: "XOF", KE: "KES",
+	KM: "KMF", LR: "LRD", LS: "LSL", LY: "LYD", MA: "MAD", MG: "MGA",
+	ML: "XOF", MR: "MRU", MU: "MUR", MW: "MWK", NA: "NAD", NE: "XOF",
+	NG: "NGN", RE: "EUR", RW: "RWF", SC: "SCR", SD: "SDG", SH: "SHP",
+	SL: "SLE", SN: "XOF", SO: "SOS", SS: "SSP", ST: "STN", SZ: "SZL",
+	TD: "XAF", TG: "XOF", TN: "TND", TZ: "TZS", UG: "UGX", YT: "EUR",
+	ZA: "ZAR", ZM: "ZMW", ZW: "ZWG", // 2024年導入 ZiG (ISO: ZWG)
+
+	// 中東
+	AE: "AED", BH: "BHD", IQ: "IQD", IR: "IRR", IL: "ILS", JO: "JOD",
+	KW: "KWD", LB: "LBP", OM: "OMR", PS: "ILS", QA: "QAR", SA: "SAR",
+	SY: "SYP", TR: "TRY", YE: "YER",
+
+	// アジア
+	AF: "AFN", AZ: "AZN", BD: "BDT", BT: "BTN", BN: "BND", KH: "KHR",
+	CN: "CNY", GE: "GEL", HK: "HKD", IN: "INR", ID: "IDR", JP: "JPY",
+	KZ: "KZT", KG: "KGS", LA: "LAK", MO: "MOP", MY: "MYR", MV: "MVR",
+	MN: "MNT", MM: "MMK", NP: "NPR", PK: "PKR", PH: "PHP", KR: "KRW",
+	KP: "KPW", SG: "SGD", LK: "LKR", TW: "TWD", TH: "THB", TJ: "TJS",
+	TM: "TMT", UZ: "UZS", VN: "VND",
+
+	// 大洋州
+	AS: "USD", AU: "AUD", CC: "AUD", CK: "NZD", CX: "AUD", FJ: "FJD",
+	FM: "USD", KI: "AUD", MH: "USD", MP: "USD", NC: "XPF", NF: "AUD",
+	NR: "AUD", NU: "NZD", NZ: "NZD", PG: "PGK", PN: "NZD", PW: "USD",
+	SB: "SBD", TK: "NZD", TL: "USD", TO: "TOP", TV: "AUD", UM: "USD",
+	VU: "VUV", WF: "XPF", WS: "WST",
+
+	// 英仏などの本国・海外領土（補完）
+	FO: "DKK", GL: "DKK", GF: "EUR",
+	PF: "XPF", TF: "EUR", VG: "USD", VI: "USD", GU: "USD",
+	// 南極は通貨なし
+	AQ: null,
+	// 念のため重複防止
+} as const;
+
+/**	
+ * 通貨コードから通貨記号を取得（Intl API使用版）
+ * @param currencyCode ISO-4217 通貨コード (例: "JPY", "USD")
+ * @param locale ロケールコード (例: "ja-JP", "en-US") - 省略時は "en-US"
+ * @returns 通貨記号 (例: "¥", "$") または通貨コード自体 (Intl未対応やエラー時)
+ */
+export function resolveCurrencySymbol(currencyCode: string | null, locale: string) {
+	try {
+		if (!currencyCode) return null; // 通貨コードが null/空の場合は空文字を返す
+		const parts = new Intl.NumberFormat(locale, {
+			style: "currency",
+			currency: currencyCode,
+			currencyDisplay: "narrowSymbol", // 記号優先。なければコード等に落ちる
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0,
+		}).formatToParts(0);
+
+		const sym = parts.find(p => p.type === "currency")?.value;
+		return sym || currencyCode; // 最終フォールバック
+	} catch {
+		return currencyCode; // Hermes/Intl未対応などの最終フォールバック
+	}
+}
 
 /**
  * addressComponents から国コード (ISO-2) を抽出
@@ -134,7 +154,7 @@ export function getCurrencyCodeFromCountry(countryCode: string | null): string |
 		return null;
 	}
 
-	return COUNTRY_TO_CURRENCY_MAP[countryCode.toUpperCase()] || null;
+	return COUNTRY_TO_CURRENCY_MAP[countryCode.toUpperCase() as keyof typeof COUNTRY_TO_CURRENCY_MAP] || null;
 }
 
 /**
