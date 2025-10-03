@@ -105,191 +105,28 @@ export const COUNTRY_TO_CURRENCY_MAP = {
 	// 念のため重複防止
 } as const;
 
-/**
- * 通貨コードから通貨記号へのマッピング表 (ISO-4217 → Currency Symbol)
- * 主要な通貨記号を収録。記号が不明な場合は通貨コードをそのまま返す。
- */
-const CURRENCY_CODE_TO_SYMBOL_MAP: Record<Exclude<typeof COUNTRY_TO_CURRENCY_MAP[keyof typeof COUNTRY_TO_CURRENCY_MAP], null>, string> = {
-	// Major currencies
-	USD: "$",   // United States Dollar
-	EUR: "€",   // Euro
-	JPY: "¥",   // Japanese Yen
-	GBP: "£",   // British Pound Sterling
-	CNY: "¥",   // Chinese Yuan (same symbol as JPY)
-	CAD: "$",   // Canadian Dollar
-	AUD: "$",   // Australian Dollar
-	KRW: "₩",   // South Korean Won
-	CHF: "CHF", // Swiss Franc (no single-letter symbolが一般的)
-	SGD: "$",   // Singapore Dollar
-	HKD: "$",   // Hong Kong Dollar
-	TWD: "NT$", // Taiwan Dollar（一般的に NT$）
-	THB: "฿",   // Thai Baht
-	VND: "₫",   // Vietnamese Dong
-	MYR: "RM",  // Malaysian Ringgit
-	PHP: "₱",   // Philippine Peso
-	IDR: "Rp",  // Indonesian Rupiah
-	INR: "₹",   // Indian Rupee
-	MXN: "$",   // Mexican Peso
-	BRL: "R$",  // Brazilian Real
-	// ARS: "$",   // Argentine Peso
-	CLP: "$",   // Chilean Peso
-	COP: "$",   // Colombian Peso
-	PEN: "S/",  // Peruvian Sol
-	NZD: "$",   // New Zealand Dollar
-	ZAR: "R",   // South African Rand
-	NOK: "kr",  // Norwegian Krone
-	SEK: "kr",  // Swedish Krona
-	DKK: "kr",  // Danish Krone
-	PLN: "zł",  // Polish Zloty
-	CZK: "Kč",  // Czech Koruna
-	HUF: "Ft",  // Hungarian Forint
-	RUB: "₽",   // Russian Ruble
-	TRY: "₺",   // Turkish Lira
-	ILS: "₪",   // Israeli Shekel
-	AED: "د.إ", // UAE Dirham
-	SAR: "﷼",   // Saudi Riyal
-	EGP: "E£",  // Egyptian Pound（£よりE£が明確）
-
-	// 既存LATAM・カリブなど
-	ISK: "kr",  // Icelandic Krona
-	CRC: "₡",   // Costa Rican Colón
-	PAB: "B/.", // Panamanian Balboa
-	GTQ: "Q",   // Guatemalan Quetzal
-	HNL: "L",   // Honduran Lempira
-	NIO: "C$",  // Nicaraguan Córdoba
-	BZD: "$",   // Belize Dollar
-	JMD: "$",   // Jamaican Dollar
-	TTD: "$",   // Trinidad and Tobago Dollar
-	BSD: "$",   // Bahamian Dollar
-	BBD: "$",   // Barbadian Dollar
-	GYD: "$",   // Guyanese Dollar
-	SRD: "$",   // Surinamese Dollar
-	UYU: "$U",  // Uruguayan Peso
-	PYG: "₲",   // Paraguayan Guaraní
-	BOB: "Bs",  // Bolivian Boliviano
-	VES: "Bs.", // Venezuelan Bolívar
-	AWG: "ƒ",   // Aruban Florin
-	BMD: "$",   // Bermudian Dollar
-	CUP: "$",   // Cuban Peso（$MNと表記されることも）
-	ANG: "ƒ",   // Netherlands Antillean Guilder
-	HTG: "G",   // Haitian Gourde
-	KYD: "$",   // Cayman Islands Dollar
-	DOP: "RD$", // Dominican Peso
-	BWP: "P",   // Botswana Pula
-	CDF: "FC",  // Congolese Franc
-	KPW: "₩",   // North Korean Won
-
-	// ヨーロッパその他
-	ALL: "L",     // Albanian Lek
-	AMD: "֏",     // Armenian Dram
-	BAM: "KM",    // Bosnia and Herzegovina Convertible Mark
-	BGN: "лв",    // Bulgarian Lev
-	BYN: "Br",    // Belarusian Ruble
-	GIP: "£",     // Gibraltar Pound
-	MDL: "L",     // Moldovan Leu
-	MKD: "ден",   // Macedonian Denar
-	RON: "lei",   // Romanian Leu
-	RSD: "дин.",  // Serbian Dinar
-	UAH: "₴",     // Ukrainian Hryvnia
-
-	// アフリカ
-	AOA: "Kz",   // Angolan Kwanza
-	XOF: "CFA",  // West African CFA franc
-	BIF: "FBu",  // Burundian Franc
-	XAF: "FCFA", // Central African CFA franc
-	CVE: "Esc",  // Cape Verdean Escudo
-	DJF: "Fdj",  // Djiboutian Franc
-	DZD: "د.ج",  // Algerian Dinar
-	MAD: "د.م.", // Moroccan Dirham（西サハラ含む）
-	ERN: "Nfk",  // Eritrean Nakfa
-	ETB: "Br",   // Ethiopian Birr
-	GHS: "₵",    // Ghanaian Cedi
-	GMD: "D",    // Gambian Dalasi
-	GNF: "FG",   // Guinean Franc
-	KES: "KSh",  // Kenyan Shilling
-	KMF: "Fr",   // Comorian Franc
-	LRD: "$",    // Liberian Dollar
-	LSL: "L",    // Lesotho Loti
-	LYD: "ل.د",  // Libyan Dinar
-	MGA: "Ar",   // Malagasy Ariary
-	MRU: "UM",   // Mauritanian Ouguiya
-	MUR: "₨",    // Mauritian Rupee
-	MWK: "MK",   // Malawian Kwacha
-	NAD: "$",    // Namibian Dollar
-	NGN: "₦",    // Nigerian Naira
-	RWF: "FRw",  // Rwandan Franc
-	SCR: "₨",    // Seychellois Rupee
-	SDG: "SDG",  // Sudanese Pound
-	SHP: "£",    // Saint Helena Pound
-	SLE: "Le",   // Sierra Leonean Leone（新Leone）
-	SOS: "Sh",   // Somali Shilling
-	SSP: "£",    // South Sudanese Pound
-	STN: "Db",   // São Tomé and Príncipe Dobra
-	SZL: "L",    // Eswatini Lilangeni
-	TND: "د.ت",  // Tunisian Dinar
-	TZS: "TSh",  // Tanzanian Shilling
-	UGX: "USh",  // Ugandan Shilling
-	ZMW: "ZK",   // Zambian Kwacha
-	ZWG: "ZiG",  // Zimbabwe Gold (ZiG, 2024-)
-
-	// 中東
-	BHD: "د.ب",  // Bahraini Dinar
-	IQD: "ع.د",  // Iraqi Dinar
-	IRR: "﷼",    // Iranian Rial
-	JOD: "د.ا",  // Jordanian Dinar
-	KWD: "د.ك",  // Kuwaiti Dinar
-	LBP: "ل.ل",  // Lebanese Pound
-	OMR: "ر.ع.", // Omani Rial
-	QAR: "ر.ق",  // Qatari Riyal
-	SYP: "£",    // Syrian Pound
-	YER: "﷼",    // Yemeni Rial
-
-	// アジア
-	AFN: "؋",    // Afghan Afghani
-	AZN: "₼",    // Azerbaijani Manat
-	BDT: "৳",    // Bangladeshi Taka
-	BTN: "Nu.",  // Bhutanese Ngultrum
-	BND: "$",    // Brunei Dollar
-	KHR: "៛",    // Cambodian Riel
-	GEL: "₾",    // Georgian Lari
-	KZT: "₸",    // Kazakhstani Tenge
-	KGS: "som",  // Kyrgyzstani Som
-	LAK: "₭",    // Lao Kip
-	MOP: "MOP$", // Macanese Pataca
-	MVR: "MVR",  // Maldivian Rufiyaa（記号は一般的でないためISO表記）
-	MNT: "₮",    // Mongolian Tögrög
-	MMK: "Ks",   // Myanmar Kyat
-	NPR: "Rs",   // Nepalese Rupee
-	PKR: "₨",    // Pakistani Rupee
-	LKR: "Rs",   // Sri Lankan Rupee
-	TJS: "SM",   // Tajikistani Somoni
-	TMT: "m",    // Turkmenistan Manat
-	UZS: "so'm", // Uzbekistani So'm
-
-	// 大洋州
-	FJD: "$",   // Fijian Dollar
-	PGK: "K",   // Papua New Guinean Kina
-	SBD: "$",   // Solomon Islands Dollar
-	TOP: "T$",  // Tongan Paʻanga
-	VUV: "Vt",  // Vanuatu Vatu
-	WST: "T",   // Samoan Tālā
-
-	// 準地域通貨・通貨同盟
-	XCD: "$",   // East Caribbean Dollar
-	XPF: "₣",   // CFP Franc
-};
-
-/**
- * 通貨コードから通貨記号を取得
+/**	
+ * 通貨コードから通貨記号を取得（Intl API使用版）
  * @param currencyCode ISO-4217 通貨コード (例: "JPY", "USD")
- * @returns 通貨記号 (例: "¥", "$") または通貨コード自体 (マッピングに存在しない場合)
+ * @param locale ロケールコード (例: "ja-JP", "en-US") - 省略時は "en-US"
+ * @returns 通貨記号 (例: "¥", "$") または通貨コード自体 (Intl未対応やエラー時)
  */
-export function getCurrencySymbol(currencyCode: string | null): string {
-	if (!currencyCode) {
-		return "";
-	}
+export function resolveCurrencySymbol(currencyCode: string | null, locale: string) {
+	try {
+		if (!currencyCode) return null; // 通貨コードが null/空の場合は空文字を返す
+		const parts = new Intl.NumberFormat(locale, {
+			style: "currency",
+			currency: currencyCode,
+			currencyDisplay: "narrowSymbol", // 記号優先。なければコード等に落ちる
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0,
+		}).formatToParts(0);
 
-	return CURRENCY_CODE_TO_SYMBOL_MAP[currencyCode.toUpperCase() as keyof typeof CURRENCY_CODE_TO_SYMBOL_MAP] || currencyCode;
+		const sym = parts.find(p => p.type === "currency")?.value;
+		return sym || currencyCode; // 最終フォールバック
+	} catch {
+		return currencyCode; // Hermes/Intl未対応などの最終フォールバック
+	}
 }
 
 /**

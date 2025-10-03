@@ -5,7 +5,8 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
-import { getCurrencyCodeFromRestaurant, getCurrencySymbol } from "@/lib/googlePlaces";
+import { getCurrencyCodeFromRestaurant, resolveCurrencySymbol } from "@/lib/googlePlaces";
+import { useLocale } from "@/hooks/useLocale";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -41,10 +42,12 @@ export function ReviewForm({
 	const [reviewText, setReviewText] = useState(initialReviewText);
 	const [rating, setRating] = useState(initialRating);
 
+	const locale = useLocale();
+
 	// Get currency symbol from restaurant data
 	const currencySymbol = useMemo(() => {
 		const currencyCode = getCurrencyCodeFromRestaurant(restaurant);
-		return getCurrencySymbol(currencyCode);
+		return resolveCurrencySymbol(currencyCode, locale);
 	}, [restaurant]);
 
 	const handleSubmit = useCallback(() => {
