@@ -27,7 +27,7 @@ interface ReviewFormProps {
 export function ReviewForm({
 	initialPrice = "",
 	initialReviewText = "",
-	initialRating = 5,
+	initialRating = 0,
 	onSubmit,
 	onCancel,
 	isProcessing = false,
@@ -49,30 +49,7 @@ export function ReviewForm({
 
 	return (
 		<>
-			<Card>
-				<Text style={styles.inputLabel}>{i18n.t("Map.inputs.price")}</Text>
-				<TextInput
-					style={styles.textInput}
-					placeholder={i18n.t("Map.placeholders.enterPrice")}
-					value={price}
-					onChangeText={setPrice}
-					keyboardType="numeric"
-				/>
-			</Card>
-
-			<Card>
-				<Text style={styles.inputLabel}>{i18n.t("Map.inputs.rating")}</Text>
-				<View style={styles.ratingInput}>
-					{[1, 2, 3, 4, 5].map((star) => (
-						<TouchableOpacity key={star} onPress={() => setRating(star)}>
-							<Star size={32} color="#FFD700" fill={star <= rating ? "#FFD700" : "transparent"} />
-						</TouchableOpacity>
-					))}
-				</View>
-			</Card>
-
-			<Card>
-				<Text style={styles.inputLabel}>{i18n.t("Map.inputs.comment")}</Text>
+			<Card style={{ gap: 16 }}>
 				<TextInput
 					style={[styles.textInput, styles.textArea]}
 					placeholder={i18n.t("Map.placeholders.enterReview")}
@@ -81,6 +58,23 @@ export function ReviewForm({
 					multiline
 					numberOfLines={4}
 					textAlignVertical="top"
+				/>
+				<View>
+					{/* <Text style={styles.inputLabel}>{i18n.t("Map.inputs.rating")}</Text> */}
+					<View style={styles.ratingInput}>
+						{[1, 2, 3, 4, 5].map((star) => (
+							<TouchableOpacity key={star} onPress={() => setRating(star)}>
+								<Star size={32} color="#FFD700" fill={star <= rating ? "#FFD700" : "transparent"} />
+							</TouchableOpacity>
+						))}
+					</View>
+				</View>
+				<TextInput
+					style={styles.textInput}
+					placeholder={i18n.t("Map.placeholders.enterPrice")}
+					value={price}
+					onChangeText={setPrice}
+					keyboardType="numeric"
 				/>
 			</Card>
 
@@ -102,8 +96,6 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	textInput: {
-		borderWidth: 1,
-		borderColor: "#E5E5E5",
 		borderRadius: 8,
 		paddingHorizontal: 12,
 		paddingVertical: 12,
