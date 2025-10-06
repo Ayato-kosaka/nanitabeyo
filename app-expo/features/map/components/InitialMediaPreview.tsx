@@ -115,11 +115,10 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	mediaWrapper: {
-		width: "100%",
-		aspectRatio: 9 / 16,
+		height: 320,
+		width: 180,
+		alignSelf: "center",
 		overflow: "hidden",
-		borderRadius: 12,
-		backgroundColor: "#F8F9FA",
 		position: "relative",
 	},
 	media: {
