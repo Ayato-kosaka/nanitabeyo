@@ -1,15 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	Image,
-	TouchableOpacity,
-	Dimensions,
-	SafeAreaView,
-	Alert,
-	Platform,
-} from "react-native";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Alert, Platform } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -26,6 +16,7 @@ import { getRemoteConfig } from "@/lib/remoteConfig";
 import { toggleReaction } from "@/lib/reactions";
 import { generateShareUrl, handleShare } from "@/lib/share";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Image } from "expo-image";
 
 const { width, height } = Dimensions.get("window");
 
@@ -101,6 +92,11 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 	const locale = useLocale();
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
+
+	const source = useMemo(
+		() => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
+		[item.dish_media.mediaUrl],
+	);
 
 	useEffect(() => {
 		scrollViewRef.current?.scrollToEnd({ animated: false });
@@ -449,7 +445,13 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Background Image */}
-			<Image source={{ uri: item.dish_media.mediaUrl }} style={styles.backgroundImage} />
+			<Image
+				source={source}
+				cachePolicy="memory-disk"
+				transition={100}
+				style={StyleSheet.absoluteFill}
+				contentFit="cover"
+			/>
 
 			{/* Top Header */}
 			<View style={styles.topHeader}>
@@ -598,12 +600,6 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#000",
-	},
-	backgroundImage: {
-		position: "absolute",
-		width: "100%",
-		height: "100%",
-		resizeMode: "cover",
 	},
 	topHeader: {
 		position: "absolute",
