@@ -63,7 +63,7 @@ export class ResizeImageService {
         const sql = `
         SELECT ${quoteIdent(column)} AS value
         FROM ${quoteIdent(table)}
-        WHERE id = $1
+        WHERE id = $1::uuid
         LIMIT 1
       `;
 
