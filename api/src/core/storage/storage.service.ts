@@ -197,6 +197,22 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
+  /*                           Check File Exists                            */
+  /* ---------------------------------------------------------------------- */
+  async fileExists(path: string): Promise<boolean> {
+    try {
+      const [exists] = await this.bucket.file(path).exists();
+      return exists;
+    } catch (err) {
+      this.logger.error('GcsFileExistsError', 'fileExists', {
+        error_message: (err as Error).message,
+        path,
+      });
+      return false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /*                  Get or Queue Resized Signed URL                       */
   /* ---------------------------------------------------------------------- */
   /**
@@ -213,7 +229,7 @@ export class StorageService {
 
     try {
       // Check if resized image exists
-      const [exists] = await this.bucket.file(resizedPath).exists();
+      const exists = await this.fileExists(resizedPath);
 
       if (exists) {
         // Return resized image signed URL

@@ -163,28 +163,19 @@ export class ResizeImageService {
 
     try {
       // Check if resized image already exists (idempotency)
-      const uploadResult = await this.storage.uploadFileAtPath({
-        buffer: Buffer.alloc(0), // Dummy buffer for existence check
-        mimeType: 'image/webp',
-        fullPath: resizedPath,
-        overwriteIfExists: false,
-        metadata: {
-          table: params.table,
-          column: params.column,
-          recordId: params.recordId,
-          size: params.size.toString(),
-        },
-      });
+      const exists = await this.storage.fileExists(resizedPath);
 
-      // If file already exists, uploadFileAtPath will return existing signed URL
-      const [exists] = await this.storage['bucket'].file(resizedPath).exists();
       if (exists) {
         this.logger.debug('ResizedImageAlreadyExists', 'resizeAndStoreImage', {
           resizedPath,
         });
+
+        // Generate signed URL for existing resized image
+        const signedUrl = await this.storage.generateSignedUrl(resizedPath);
+
         return {
           path: resizedPath,
-          signedUrl: uploadResult.signedUrl,
+          signedUrl,
           alreadyExisted: true,
         };
       }
