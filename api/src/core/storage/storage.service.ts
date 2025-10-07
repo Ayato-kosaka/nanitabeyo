@@ -7,8 +7,15 @@ import {
   UploadFileParams,
   UploadFileAtPathParams,
   UploadResult,
+  GetResizedSignedUrlParams,
 } from './storage.types';
-import { getExt, buildFileName, buildFullPath } from './storage.utils';
+import {
+  getExt,
+  buildFileName,
+  buildFullPath,
+  buildResizedPath,
+} from './storage.utils';
+import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 
 @Injectable()
 export class StorageService {
@@ -18,6 +25,7 @@ export class StorageService {
   constructor(
     @Inject(STORAGE_CLIENT) private readonly storage: Storage,
     private readonly logger: AppLoggerService,
+    private readonly cloudTasks: CloudTasksService,
   ) {
     this.bucket = this.storage.bucket(env.GCS_BUCKET_NAME);
   }
@@ -192,6 +200,79 @@ export class StorageService {
         path,
       });
       throw err;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                           Check File Exists                            */
+  /* ---------------------------------------------------------------------- */
+  async fileExists(path: string): Promise<boolean> {
+    try {
+      const [exists] = await this.bucket.file(path).exists();
+      return exists;
+    } catch (err) {
+      this.logger.error('GcsFileExistsError', 'fileExists', {
+        error_message: (err as Error).message,
+        path,
+      });
+      return false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                  Get or Queue Resized Signed URL                       */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * Get signed URL for resized image, or queue resize if not exists
+   * Returns original signed URL if resize is queued
+   */
+  async getOrQueueResizedSignedUrl(
+    params: GetResizedSignedUrlParams,
+    originalPath: string,
+    expiresInSeconds = 24 * 60 * 60,
+  ): Promise<string> {
+    // Build resized image path following naming convention
+    const resizedPath = buildResizedPath(params);
+
+    try {
+      // Check if resized image exists
+      const exists = await this.fileExists(resizedPath);
+
+      if (exists) {
+        // Return resized image signed URL
+        this.logger.debug('ResizedImageExists', 'getOrQueueResizedSignedUrl', {
+          resizedPath,
+        });
+        return await this.generateSignedUrl(resizedPath, expiresInSeconds);
+      }
+
+      // Resized image doesn't exist, queue async resize
+      this.logger.debug('ResizedImageNotFound', 'getOrQueueResizedSignedUrl', {
+        resizedPath,
+        queueingResize: true,
+      });
+
+      // Queue async resize using CloudTasksService
+      this.cloudTasks.enqueueResizeImage(params).catch((err) => {
+        this.logger.warn('ResizeQueueError', 'getOrQueueResizedSignedUrl', {
+          params,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      });
+
+      // Return original image signed URL for now
+      return await this.generateSignedUrl(originalPath, expiresInSeconds);
+    } catch (err) {
+      this.logger.error(
+        'GetOrQueueResizedSignedUrlError',
+        'getOrQueueResizedSignedUrl',
+        {
+          params,
+          error: (err as Error).message,
+        },
+      );
+      // Fallback to original on error
+      return await this.generateSignedUrl(originalPath, expiresInSeconds);
     }
   }
 }
