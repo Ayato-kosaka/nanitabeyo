@@ -105,10 +105,23 @@ export class DishMediaService {
 
     const dishMediaEntryItems = await Promise.all<DishMediaEntryItem>(
       dishMediaEntries.map(async (rec) => {
-        const mediaUrl = await this.storage.generateSignedUrl(
+        // Use resized images with on-demand generation
+        const mediaUrl = await this.storage.getOrQueueResizedSignedUrl(
+          {
+            table: 'dish_media',
+            column: 'media_path',
+            recordId: rec.dish_media.id,
+            size: 1024,
+          },
           rec.dish_media.media_path,
         );
-        const thumbnailImageUrl = await this.storage.generateSignedUrl(
+        const thumbnailImageUrl = await this.storage.getOrQueueResizedSignedUrl(
+          {
+            table: 'dish_media',
+            column: 'thumbnail_path',
+            recordId: rec.dish_media.id,
+            size: 256,
+          },
           rec.dish_media.thumbnail_path,
         );
         return {

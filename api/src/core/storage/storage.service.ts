@@ -7,6 +7,7 @@ import {
   UploadFileParams,
   UploadFileAtPathParams,
   UploadResult,
+  GetResizedSignedUrlParams,
 } from './storage.types';
 import { getExt, buildFileName, buildFullPath } from './storage.utils';
 
@@ -193,5 +194,95 @@ export class StorageService {
       });
       throw err;
     }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                  Get or Queue Resized Signed URL                       */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * Get signed URL for resized image, or queue resize if not exists
+   * Returns original signed URL if resize is queued
+   */
+  async getOrQueueResizedSignedUrl(
+    params: GetResizedSignedUrlParams,
+    originalPath: string,
+    expiresInSeconds = 24 * 60 * 60,
+  ): Promise<string> {
+    // Build resized image path following naming convention
+    const resizedPath = `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${params.size}.webp`;
+
+    try {
+      // Check if resized image exists
+      const [exists] = await this.bucket.file(resizedPath).exists();
+
+      if (exists) {
+        // Return resized image signed URL
+        this.logger.debug('ResizedImageExists', 'getOrQueueResizedSignedUrl', {
+          resizedPath,
+        });
+        return await this.generateSignedUrl(resizedPath, expiresInSeconds);
+      }
+
+      // Resized image doesn't exist, queue async resize
+      this.logger.debug('ResizedImageNotFound', 'getOrQueueResizedSignedUrl', {
+        resizedPath,
+        queueingResize: true,
+      });
+
+      // Queue async resize (fire and forget, short timeout)
+      this.queueResizeJob(params).catch((err) => {
+        this.logger.warn('ResizeQueueError', 'getOrQueueResizedSignedUrl', {
+          params,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      });
+
+      // Return original image signed URL for now
+      return await this.generateSignedUrl(originalPath, expiresInSeconds);
+    } catch (err) {
+      this.logger.error(
+        'GetOrQueueResizedSignedUrlError',
+        'getOrQueueResizedSignedUrl',
+        {
+          params,
+          error: (err as Error).message,
+        },
+      );
+      // Fallback to original on error
+      return await this.generateSignedUrl(originalPath, expiresInSeconds);
+    }
+  }
+
+  /**
+   * Queue async resize job by calling internal endpoint
+   */
+  private async queueResizeJob(
+    params: GetResizedSignedUrlParams,
+  ): Promise<void> {
+    const url = `${env.CLOUD_RUN_URL}/internal/resize-image`;
+
+    // For localhost, call directly
+    if (env.CLOUD_RUN_URL.startsWith('http://localhost')) {
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+        signal: AbortSignal.timeout(2000), // 2 second timeout
+      });
+      return;
+    }
+
+    // For production, would use Cloud Tasks here
+    // For MVP, just call directly with short timeout
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
   }
 }
