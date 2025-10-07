@@ -9,7 +9,12 @@ import {
   UploadResult,
   GetResizedSignedUrlParams,
 } from './storage.types';
-import { getExt, buildFileName, buildFullPath, buildResizedPath } from './storage.utils';
+import {
+  getExt,
+  buildFileName,
+  buildFullPath,
+  buildResizedPath,
+} from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 
 @Injectable()
@@ -270,5 +275,4 @@ export class StorageService {
       return await this.generateSignedUrl(originalPath, expiresInSeconds);
     }
   }
-
 }

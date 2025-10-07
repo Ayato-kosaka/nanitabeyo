@@ -19,14 +19,14 @@ import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service'; // è¿½åŠ
           env.API_NODE_ENV === 'production'
             ? {}
             : {
-              projectId: env.GCP_PROJECT,
-              credentials: JSON.parse(
-                Buffer.from(
-                  env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
-                  'base64',
-                ).toString('utf-8'),
-              ),
-            };
+                projectId: env.GCP_PROJECT,
+                credentials: JSON.parse(
+                  Buffer.from(
+                    env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
+                    'base64',
+                  ).toString('utf-8'),
+                ),
+              };
         return new Storage(opts);
       },
     },
@@ -35,4 +35,4 @@ import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service'; // è¿½åŠ
   ],
   exports: [StorageService],
 })
-export class StorageModule { }
+export class StorageModule {}

@@ -59,7 +59,10 @@ export class CloudTasksService {
     };
 
     try {
-      const [response] = await this.client.createTask({ parent: queuePath, task });
+      const [response] = await this.client.createTask({
+        parent: queuePath,
+        task,
+      });
       this.logger.log('CloudTaskEnqueued', logAction, {
         taskName: response.name,
         queueName,
