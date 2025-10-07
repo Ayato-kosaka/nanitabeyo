@@ -9,7 +9,7 @@ import {
   UploadResult,
   GetResizedSignedUrlParams,
 } from './storage.types';
-import { getExt, buildFileName, buildFullPath } from './storage.utils';
+import { getExt, buildFileName, buildFullPath, buildResizedPath } from './storage.utils';
 
 @Injectable()
 export class StorageService {
@@ -225,7 +225,7 @@ export class StorageService {
     expiresInSeconds = 24 * 60 * 60,
   ): Promise<string> {
     // Build resized image path following naming convention
-    const resizedPath = `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${params.size}.webp`;
+    const resizedPath = buildResizedPath(params);
 
     try {
       // Check if resized image exists

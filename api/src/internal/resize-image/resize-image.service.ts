@@ -10,6 +10,7 @@ import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { env } from '../../core/config/env';
 import { ResizeImageParams, ResizeImageResult } from './resize-image.interface';
+import { buildResizedPath } from 'src/core/storage/storage.utils';
 
 @Injectable()
 export class ResizeImageService {
@@ -17,15 +18,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
-
-  /**
-   * Build the resized image path based on naming convention
-   * ${env}/resized-image/${table}/${column}/${recordId}/${size}.webp
-   */
-  private buildResizedPath(params: ResizeImageParams): string {
-    return `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${params.size}.webp`;
-  }
+  ) { }
 
   /**
    * Get the original image path from database
@@ -154,7 +147,7 @@ export class ResizeImageService {
   async resizeAndStoreImage(
     params: ResizeImageParams,
   ): Promise<ResizeImageResult> {
-    const resizedPath = this.buildResizedPath(params);
+    const resizedPath = buildResizedPath(params);
 
     this.logger.debug('ResizeImageStarted', 'resizeAndStoreImage', {
       ...params,

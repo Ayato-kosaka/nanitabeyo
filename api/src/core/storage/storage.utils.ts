@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 import { MAX_FILENAME_BYTES } from './storage.constants';
+import { ResizeImageParams } from 'src/internal/resize-image/resize-image.interface';
+import { env } from '../config/env';
 
 /* -------------------------------------------------------------------------- */
 /*                               MIME → ext map                               */
@@ -46,3 +48,11 @@ export const buildFullPath = (params: {
   finalFileName: string;
 }): string =>
   `${params.env}/${params.resourceType}/${params.usageType}/${params.finalFileName}`;
+
+/**
+ * Build the resized image path based on naming convention
+ * ${env}/resized-image/${table}/${column}/${recordId}/${size}.webp
+ */
+export function buildResizedPath(params: ResizeImageParams): string {
+  return `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${params.size}.webp`;
+}
