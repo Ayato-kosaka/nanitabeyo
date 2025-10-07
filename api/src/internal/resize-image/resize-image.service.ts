@@ -8,9 +8,18 @@ import * as sharp from 'sharp';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { env } from '../../core/config/env';
 import { ResizeImageParams, ResizeImageResult } from './resize-image.interface';
 import { buildResizedPath } from 'src/core/storage/storage.utils';
+
+// 識別子の簡易バリデーション（必要に応じて厳しく）
+function isSafeIdentifier(name: string) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
+}
+
+// Postgres の識別子クオート（" を "" にエスケープして二重引用符で囲む）
+function quoteIdent(name: string) {
+  return `"${name.replace(/"/g, '""')}"`;
+}
 
 @Injectable()
 export class ResizeImageService {
@@ -29,35 +38,43 @@ export class ResizeImageService {
     recordId: string,
   ): Promise<string | null> {
     try {
-      // For now, we only support dish_media table
-      if (table !== 'dish_media') {
-        throw new Error(`Unsupported table: ${table}`);
+      // まず識別子をチェック
+      if (!isSafeIdentifier(table) || !isSafeIdentifier(column)) {
+        throw new Error('Invalid table or column name');
       }
 
-      // Only allow specific columns for safety
-      if (column !== 'media_path' && column !== 'thumbnail_path') {
-        throw new Error(`Unsupported column: ${column}`);
-      }
+      const path = await this.prisma.withTransaction(async (tx) => {
+        // information_schema で実在チェック（Postgres）
+        const existsRes = await tx.$queryRaw<
+          Array<{ exists: boolean }>
+        >`SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE 1=1
+            AND table_name = ${table}
+            AND column_name = ${column}
+        ) AS exists`;
 
-      const record = await this.prisma.prisma.dish_media.findUnique({
-        where: { id: recordId },
-        select: {
-          media_path: column === 'media_path',
-          thumbnail_path: column === 'thumbnail_path',
-        },
-      });
+        if (!existsRes?.[0]?.exists) {
+          throw new Error(`Unknown table/column: ${table}.${column}`);
+        }
 
-      if (!record) {
-        this.logger.warn('OriginalPathNotFound', 'getOriginalPath', {
-          table,
-          column,
+        // 識別子はクオートして Unsafe で実行、値はプレースホルダで安全に渡す
+        const sql = `
+        SELECT ${quoteIdent(column)} AS value
+        FROM ${quoteIdent(table)}
+        WHERE id = $1
+        LIMIT 1
+      `;
+
+        const rows = await tx.$queryRawUnsafe<Array<{ value: string }>>(
+          sql,
           recordId,
-        });
-        return null;
-      }
+        );
 
-      const path =
-        column === 'media_path' ? record.media_path : record.thumbnail_path;
+        if (!rows || rows.length === 0) return null;
+        return rows[0]?.value ?? null;
+      });
 
       if (!path) {
         this.logger.warn('OriginalPathEmpty', 'getOriginalPath', {
