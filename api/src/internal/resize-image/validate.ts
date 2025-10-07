@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 /**
  * Simple validation script for image resize implementation
- * 
+ *
  * This script validates:
  * 1. Module imports work correctly
  * 2. Sharp library is properly installed
@@ -21,7 +21,7 @@ function buildResizedPath(
   table: string,
   column: string,
   recordId: string,
-  size: number
+  size: number,
 ): string {
   return `${env}/resized-image/${table}/${column}/${recordId}/${size}.webp`;
 }
@@ -31,10 +31,11 @@ const testPath = buildResizedPath(
   'dish_media',
   'thumbnail_path',
   '5f482536-4aab-4deb-8ab8-f6f36259d4d9',
-  256
+  256,
 );
 
-const expectedPath = 'development/resized-image/dish_media/thumbnail_path/5f482536-4aab-4deb-8ab8-f6f36259d4d9/256.webp';
+const expectedPath =
+  'development/resized-image/dish_media/thumbnail_path/5f482536-4aab-4deb-8ab8-f6f36259d4d9/256.webp';
 
 if (testPath === expectedPath) {
   console.log('✓ Test 2: Path naming convention is correct');
@@ -61,26 +62,28 @@ console.log(`  Valid sizes: ${validSizes.join(', ')}`);
         width: 256,
         height: Math.round((256 * 16) / 9),
         channels: 3,
-        background: { r: 255, g: 0, b: 0 }
-      }
+        background: { r: 255, g: 0, b: 0 },
+      },
     })
-    .webp({ quality: 85 })
-    .toBuffer();
+      .webp({ quality: 85 })
+      .toBuffer();
 
     console.log('✓ Test 4: Sharp can generate WebP images');
     console.log(`  Test image size: ${testBuffer.length} bytes`);
-    
+
     // Test 5: Verify aspect ratio calculation
     const width = 256;
     const height = Math.round((width * 16) / 9);
     const actualRatio = width / height;
     const expectedRatio = 9 / 16;
     const ratioError = Math.abs(actualRatio - expectedRatio);
-    
+
     if (ratioError < 0.01) {
       console.log('✓ Test 5: Aspect ratio calculation is correct');
       console.log(`  Width: ${width}, Height: ${height}`);
-      console.log(`  Ratio: ${actualRatio.toFixed(4)} (expected: ${expectedRatio.toFixed(4)})`);
+      console.log(
+        `  Ratio: ${actualRatio.toFixed(4)} (expected: ${expectedRatio.toFixed(4)})`,
+      );
     } else {
       console.error('✗ Test 5 FAILED: Aspect ratio mismatch');
       console.error(`  Expected ratio: ${expectedRatio}, got: ${actualRatio}`);
@@ -93,7 +96,6 @@ console.log(`  Valid sizes: ${validSizes.join(', ')}`);
     console.log('1. Start the API server');
     console.log('2. Test the /internal/resize-image endpoint');
     console.log('3. Verify resized images in GCS');
-    
   } catch (error) {
     console.error('✗ Test 4 FAILED: Sharp image generation error');
     console.error(error);
