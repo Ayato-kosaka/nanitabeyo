@@ -10,6 +10,7 @@ import {
   GetResizedSignedUrlParams,
 } from './storage.types';
 import { getExt, buildFileName, buildFullPath, buildResizedPath } from './storage.utils';
+import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 
 @Injectable()
 export class StorageService {
@@ -19,6 +20,7 @@ export class StorageService {
   constructor(
     @Inject(STORAGE_CLIENT) private readonly storage: Storage,
     private readonly logger: AppLoggerService,
+    private readonly cloudTasks: CloudTasksService,
   ) {
     this.bucket = this.storage.bucket(env.GCS_BUCKET_NAME);
   }
@@ -245,8 +247,8 @@ export class StorageService {
         queueingResize: true,
       });
 
-      // Queue async resize (fire and forget, short timeout)
-      this.queueResizeJob(params).catch((err) => {
+      // Queue async resize using CloudTasksService
+      this.cloudTasks.enqueueResizeImage(params).catch((err) => {
         this.logger.warn('ResizeQueueError', 'getOrQueueResizedSignedUrl', {
           params,
           error: err instanceof Error ? err.message : 'Unknown error',
@@ -269,36 +271,4 @@ export class StorageService {
     }
   }
 
-  /**
-   * Queue async resize job by calling internal endpoint
-   */
-  private async queueResizeJob(
-    params: GetResizedSignedUrlParams,
-  ): Promise<void> {
-    const url = `${env.CLOUD_RUN_URL}/internal/resize-image`;
-
-    // For localhost, call directly
-    if (env.CLOUD_RUN_URL.startsWith('http://localhost')) {
-      await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params),
-        signal: AbortSignal.timeout(2000), // 2 second timeout
-      });
-      return;
-    }
-
-    // For production, would use Cloud Tasks here
-    // For MVP, just call directly with short timeout
-    await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params),
-      signal: AbortSignal.timeout(5000), // 5 second timeout
-    });
-  }
 }

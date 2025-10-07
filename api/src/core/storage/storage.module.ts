@@ -4,6 +4,7 @@ import { STORAGE_CLIENT } from './storage.constants';
 import { StorageService } from './storage.service';
 import { env } from '../config/env';
 import { LoggerModule } from '../logger/logger.module';
+import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service'; // 追加
 
 @Global()
 @Module({
@@ -18,19 +19,20 @@ import { LoggerModule } from '../logger/logger.module';
           env.API_NODE_ENV === 'production'
             ? {}
             : {
-                projectId: env.GCP_PROJECT,
-                credentials: JSON.parse(
-                  Buffer.from(
-                    env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
-                    'base64',
-                  ).toString('utf-8'),
-                ),
-              };
+              projectId: env.GCP_PROJECT,
+              credentials: JSON.parse(
+                Buffer.from(
+                  env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
+                  'base64',
+                ).toString('utf-8'),
+              ),
+            };
         return new Storage(opts);
       },
     },
     StorageService,
+    CloudTasksService,
   ],
   exports: [StorageService],
 })
-export class StorageModule {}
+export class StorageModule { }
