@@ -235,15 +235,18 @@ export class StorageService {
     const resizedPath = buildResizedPath(params);
 
     try {
-      // Check if resized image exists
-      const exists = await this.fileExists(resizedPath);
+      const [exists, resizedSignedUrl, originalSignedUrl] = await Promise.all([
+        this.fileExists(resizedPath), // ネットワーク
+        this.generateSignedUrl(resizedPath, expiresInSeconds), // ローカル署名
+        this.generateSignedUrl(originalPath, expiresInSeconds), // ローカル署名
+      ]);
 
       if (exists) {
         // Return resized image signed URL
         this.logger.debug('ResizedImageExists', 'getOrQueueResizedSignedUrl', {
           resizedPath,
         });
-        return await this.generateSignedUrl(resizedPath, expiresInSeconds);
+        return resizedSignedUrl;
       }
 
       // Resized image doesn't exist, queue async resize
@@ -261,7 +264,7 @@ export class StorageService {
       });
 
       // Return original image signed URL for now
-      return await this.generateSignedUrl(originalPath, expiresInSeconds);
+      return originalSignedUrl;
     } catch (err) {
       this.logger.error(
         'GetOrQueueResizedSignedUrlError',
@@ -272,7 +275,7 @@ export class StorageService {
         },
       );
       // Fallback to original on error
-      return await this.generateSignedUrl(originalPath, expiresInSeconds);
+      return this.generateSignedUrl(originalPath, expiresInSeconds);
     }
   }
 }

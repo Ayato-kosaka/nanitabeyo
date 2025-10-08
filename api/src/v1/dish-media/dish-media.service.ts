@@ -20,8 +20,8 @@ import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { reverse } from 'dns';
 import { DishMediaEntryItem } from './dish-media.mapper';
+import { mapWithConcurrency } from 'src/core/utils/backend-utils';
 
 @Injectable()
 export class DishMediaService {
@@ -103,27 +103,29 @@ export class DishMediaService {
       option,
     );
 
-    const dishMediaEntryItems = await Promise.all<DishMediaEntryItem>(
-      dishMediaEntries.map(async (rec) => {
-        // Use resized images with on-demand generation
-        const mediaUrl = await this.storage.getOrQueueResizedSignedUrl(
-          {
-            table: 'dish_media',
-            column: 'media_path',
-            recordId: rec.dish_media.id,
-            size: 1024,
-          },
-          rec.dish_media.media_path,
-        );
-        const thumbnailImageUrl = await this.storage.getOrQueueResizedSignedUrl(
-          {
-            table: 'dish_media',
-            column: 'thumbnail_path',
-            recordId: rec.dish_media.id,
-            size: 256,
-          },
-          rec.dish_media.thumbnail_path,
-        );
+    const dishMediaEntryItems = await mapWithConcurrency(
+      dishMediaEntries,
+      async (rec) => {
+        const [mediaUrl, thumbnailImageUrl] = await Promise.all([
+          await this.storage.getOrQueueResizedSignedUrl(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: rec.dish_media.id,
+              size: 1024,
+            },
+            rec.dish_media.media_path,
+          ),
+          await this.storage.getOrQueueResizedSignedUrl(
+            {
+              table: 'dish_media',
+              column: 'thumbnail_path',
+              recordId: rec.dish_media.id,
+              size: 256,
+            },
+            rec.dish_media.thumbnail_path,
+          ),
+        ]);
         return {
           ...rec,
           dish_media: {
@@ -132,7 +134,8 @@ export class DishMediaService {
             thumbnailImageUrl,
           },
         };
-      }),
+      },
+      12, // concurrency
     ).then((list) => list.filter((v): v is NonNullable<typeof v> => !!v));
 
     return dishMediaEntryItems;
