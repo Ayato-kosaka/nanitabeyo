@@ -25,9 +25,9 @@ export class CloudTasksService {
     payload: unknown;
     queueName: string;
     logAction: string; // 例: 'enqueueCreateDishMediaEntry'
-    audience: string; // OIDC audience
   }): Promise<void> {
-    const { url, payload, queueName, logAction, audience } = params;
+    const { url, payload, queueName, logAction } = params;
+    const audience = env.CLOUD_RUN_URL; // OIDC audience
 
     if (env.CLOUD_RUN_URL.startsWith('http://localhost')) {
       // ローカルは直接呼び出し (非同期 fire & forget)
@@ -86,7 +86,6 @@ export class CloudTasksService {
       payload: { ...payload },
       queueName: 'dish-queue',
       logAction: 'enqueueCreateDishMediaEntry',
-      audience: `${env.CLOUD_RUN_URL}/internal/dishes`,
     });
   }
 
@@ -98,7 +97,6 @@ export class CloudTasksService {
       payload: { ...params },
       queueName: 'image-resize-queue',
       logAction: 'enqueueResizeImage',
-      audience: `${env.CLOUD_RUN_URL}/internal/resize-image`,
     });
   }
 }

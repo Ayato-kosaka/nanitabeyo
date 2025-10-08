@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { ResizeImageDto } from './resize-image.dto';
 import { ResizeImageService } from './resize-image.service';
-import { OIDCGuard } from '../dishes/oidc.guard';
+import { OIDCGuard } from '../oidc.guard';
 import { AppLoggerService } from '../../core/logger/logger.service';
 
 /**
@@ -27,7 +27,7 @@ export class ResizeImageController {
   constructor(
     private readonly resizeImageService: ResizeImageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * POST /internal/resize-image

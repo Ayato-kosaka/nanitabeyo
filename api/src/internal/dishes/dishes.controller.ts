@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { CreateDishMediaEntryJobPayload } from './create-dish-media-entry.interface';
 import { CreateDishMediaEntryService } from './create-dish-media-entry.service';
-import { OIDCGuard } from './oidc.guard';
+import { OIDCGuard } from '../oidc.guard';
 import { AppLoggerService } from '../../core/logger/logger.service';
 
 /**
@@ -27,7 +27,7 @@ export class DishesController {
   constructor(
     private readonly createDishMediaEntryService: CreateDishMediaEntryService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * POST /internal/dishes/create
