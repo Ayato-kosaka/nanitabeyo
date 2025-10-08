@@ -4,6 +4,7 @@ import { STORAGE_CLIENT } from './storage.constants';
 import { StorageService } from './storage.service';
 import { env } from '../config/env';
 import { LoggerModule } from '../logger/logger.module';
+import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service'; // 追加
 
 @Global()
 @Module({
@@ -30,6 +31,7 @@ import { LoggerModule } from '../logger/logger.module';
       },
     },
     StorageService,
+    CloudTasksService,
   ],
   exports: [StorageService],
 })

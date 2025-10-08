@@ -78,7 +78,10 @@ function _ImageCard<T extends ImageCardItem>({
 	const { lightImpact } = useHaptics();
 	const { width: widthDimensions } = useWindowDimensions();
 
-	const source = useMemo(() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS }), [item.imageUrl]);
+	const source = useMemo(
+		() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS, cacheKey: item.imageUrl.split("?")[0] }),
+		[item.imageUrl],
+	);
 
 	/** 列数・ギャップ・左右 padding からカード幅を計算 */
 	const width = useMemo(
