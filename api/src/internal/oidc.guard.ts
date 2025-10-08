@@ -12,7 +12,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { env } from '../../core/config/env';
+import { env } from '../core/config/env';
 import { OAuth2Client } from 'google-auth-library';
 
 /**
@@ -72,7 +72,7 @@ export class OIDCGuard implements CanActivate {
    * - email の検証（許可されたサービスアカウントのみ）
    */
   private async verifyOIDCToken(token: string): Promise<void> {
-    const audience = `${env.CLOUD_RUN_URL}/internal/dishes`;
+    const audience = env.CLOUD_RUN_URL;
     const allowedSa = env.TASKS_INVOKER_SA.toLowerCase();
 
     // 1) IDトークン検証（署名/exp/aud/iss）
