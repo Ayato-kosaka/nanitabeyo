@@ -10,6 +10,7 @@ import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
 import { GetResizedSignedUrlParams } from '../storage/storage.types';
+import { TranscodeJobPayload } from '../../internal/transcode/transcode-job.interface';
 
 @Injectable()
 export class CloudTasksService {
@@ -97,6 +98,17 @@ export class CloudTasksService {
       payload: { ...params },
       queueName: 'image-resize-queue',
       logAction: 'enqueueResizeImage',
+    });
+  }
+
+  /** 動画トランスコードジョブをキューに追加 */
+  async enqueueTranscodeJob(payload: TranscodeJobPayload): Promise<void> {
+    const url = `${env.CLOUD_RUN_URL}/internal/transcode`;
+    await this.enqueueJsonPostTask({
+      url,
+      payload: { ...payload },
+      queueName: 'transcode-queue',
+      logAction: 'enqueueTranscodeJob',
     });
   }
 }

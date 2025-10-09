@@ -22,6 +22,9 @@ import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaEntryItem } from './dish-media.mapper';
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
+import { MediaType } from '@shared/v1/dto';
+import { env } from '../../core/config/env';
 
 @Injectable()
 export class DishMediaService {
@@ -31,6 +34,7 @@ export class DishMediaService {
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
+    private readonly cloudTasks: CloudTasksService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -183,6 +187,7 @@ export class DishMediaService {
     this.logger.debug('CreateDishMedia', 'createDishMedia', {
       dishId: dto.dishId,
       userId: creatorId,
+      mediaType: dto.mediaType,
     });
 
     // dishId が存在するか簡易バリデーション
@@ -194,6 +199,20 @@ export class DishMediaService {
       throw new NotFoundException('Dish not found');
     }
 
+    // thumbnailPath の決定
+    let thumbnailPath: string;
+    
+    if (dto.mediaType === MediaType.VIDEO) {
+      // VIDEO の場合: thumbnailPath は必須
+      if (!dto.thumbnailPath) {
+        throw new Error('thumbnailPath is required for VIDEO media type');
+      }
+      thumbnailPath = dto.thumbnailPath;
+    } else {
+      // IMAGE の場合: thumbnailPath が省略されていれば mediaPath を使用
+      thumbnailPath = dto.thumbnailPath || dto.mediaPath;
+    }
+
     // トランザクションで dish_media + 付随レコード作成
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
@@ -201,13 +220,31 @@ export class DishMediaService {
           tx,
           dto,
           creatorId,
-          dto.mediaPath, // TODO: video の場合は差胸を作る
+          thumbnailPath,
         ),
     );
 
     this.logger.log('DishMediaCreated', 'createDishMedia', {
       mediaId: result.id,
       dishId: dto.dishId,
+      mediaType: dto.mediaType,
     });
+
+    // VIDEO の場合のみトランスコードジョブをキューに投入
+    if (dto.mediaType === MediaType.VIDEO) {
+      const outputUri = `gs://${env.GCS_BUCKET_NAME}/transcoded/dish_media/media_path/${result.id}/`;
+      
+      await this.cloudTasks.enqueueTranscodeJob({
+        inputUri: dto.mediaPath,
+        outputUri,
+        recordId: result.id,
+      });
+
+      this.logger.log('TranscodeJobEnqueued', 'createDishMedia', {
+        mediaId: result.id,
+        inputUri: dto.mediaPath,
+        outputUri,
+      });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsUUID } from "class-validator";
+import { IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
 
 /**
  * クライアントがアップロード済みの
@@ -21,4 +21,9 @@ export class CreateDishMediaDto {
 	/** メディア種別 */
 	@IsEnum(MediaType)
 	mediaType!: MediaType;
+
+	/** サムネイルパス（VIDEO の場合は必須、IMAGE の場合は省略可） */
+	@IsOptional()
+	@IsString()
+	thumbnailPath?: string;
 }

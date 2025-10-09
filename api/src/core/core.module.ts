@@ -10,6 +10,7 @@ import { NotifierModule } from './notifier/notifier.module';
 import { ClaudeModule } from './claude/claude.module';
 import { ExternalApiModule } from './external-api/external-api.module';
 import { PromptModule } from './prompt/prompt.module';
+import { TranscoderModule } from './transcoder/transcoder.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PromptModule } from './prompt/prompt.module';
     ClaudeModule,
     ExternalApiModule,
     PromptModule,
+    TranscoderModule,
   ],
   exports: [
     LoggerModule,
@@ -33,6 +35,7 @@ import { PromptModule } from './prompt/prompt.module';
     ClaudeModule,
     ExternalApiModule,
     PromptModule,
+    TranscoderModule,
   ],
 })
 export class CoreModule {}
