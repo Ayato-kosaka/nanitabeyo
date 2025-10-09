@@ -282,6 +282,15 @@
 			"bidError": "فشل في تقديم العرض",
 			"reviewSuccess": "تم نشر المراجعة بنجاح",
 			"reviewError": "فشل في نشر المراجعة"
+		},
+		"media": {
+			"videoTooLong": "يرجى اختيار فيديو أقل من دقيقتين.",
+			"permissionDenied": "لا يمكن الوصول إلى الوسائط. يرجى منح الإذن في الإعدادات.",
+			"thumbnailFailed": "فشل إنشاء الصورة المصغرة. يرجى تجربة ملف آخر.",
+			"selectedImage": "الصورة المحددة",
+			"selectedVideoThumbnail": "الصورة المصغرة للفيديو المحدد",
+			"playVideo": "تشغيل الفيديو",
+			"selectingMedia": "جاري اختيار الوسائط..."
 		}
 	},
 	"Restaurant": {

@@ -282,7 +282,16 @@
 			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
 			"reviewError": "समीक्षा पोस्ट करने में विफल"
 		},
-		"currentLocation": "वर्तमान स्थान"
+		"currentLocation": "वर्तमान स्थान",
+		"media": {
+			"videoTooLong": "कृपया 2 मिनट से कम का वीडियो चुनें।",
+			"permissionDenied": "मीडिया तक पहुंच नहीं हो सकती। कृपया सेटिंग में अनुमति दें।",
+			"thumbnailFailed": "थंबनेल बनाने में विफल। कृपया दूसरी फ़ाइल आज़माएं।",
+			"selectedImage": "चयनित छवि",
+			"selectedVideoThumbnail": "चयनित वीडियो का थंबनेल",
+			"playVideo": "वीडियो चलाएं",
+			"selectingMedia": "मीडिया चयन कर रहे हैं..."
+		}
 	},
 	"Restaurant": {
 		"placeholders": {

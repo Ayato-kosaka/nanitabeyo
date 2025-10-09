@@ -282,6 +282,15 @@
 			"bidError": "입찰 실패",
 			"reviewSuccess": "리뷰 게시 성공",
 			"reviewError": "리뷰 게시 실패"
+		},
+		"media": {
+			"videoTooLong": "2분 이내의 동영상을 선택해주세요.",
+			"permissionDenied": "미디어에 액세스할 수 없습니다. 설정에서 권한을 허용해주세요.",
+			"thumbnailFailed": "썸네일 생성에 실패했습니다. 다른 파일을 시도해주세요.",
+			"selectedImage": "선택한 이미지",
+			"selectedVideoThumbnail": "선택한 동영상의 썸네일",
+			"playVideo": "동영상 재생",
+			"selectingMedia": "미디어 선택 중..."
 		}
 	},
 	"Restaurant": {

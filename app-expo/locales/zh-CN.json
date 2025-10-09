@@ -282,7 +282,16 @@
 			"reviewSuccess": "评论发布成功",
 			"reviewError": "评论发布失败"
 		},
-		"currentLocation": "当前位置"
+		"currentLocation": "当前位置",
+		"media": {
+			"videoTooLong": "请选择2分钟以内的视频。",
+			"permissionDenied": "无法访问媒体。请在设置中授予权限。",
+			"thumbnailFailed": "生成缩略图失败。请尝试其他文件。",
+			"selectedImage": "已选择的图片",
+			"selectedVideoThumbnail": "已选择视频的缩略图",
+			"playVideo": "播放视频",
+			"selectingMedia": "正在选择媒体..."
+		}
 	},
 	"Restaurant": {
 		"placeholders": {
