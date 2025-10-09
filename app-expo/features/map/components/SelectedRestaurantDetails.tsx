@@ -87,13 +87,8 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
 
-		// Show loading state (optional)
-		setIsProcessing(true);
-
 		// Launch media picker
 		const result = await selectMediaForReview();
-
-		setIsProcessing(false);
 
 		if (!result.success) {
 			// Handle errors
@@ -124,29 +119,6 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 		// Set selected media and open modal
 		setSelectedMedia(result.media);
 		openReviewModal();
-	};
-
-	const handleReviewSubmit = async (data: { price: string; reviewText: string; rating: number }) => {
-		if (!data.reviewText || !data.price) return;
-		mediumImpact();
-		setIsProcessing(true);
-		try {
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-			logFrontendEvent({
-				event_name: "restaurant_review_submitted",
-				error_level: "log",
-				payload: { restaurantId: restaurant?.id, rating: data.rating },
-			});
-			closeReviewModal();
-		} catch {
-			logFrontendEvent({
-				event_name: "restaurant_review_submission_failed",
-				error_level: "error",
-				payload: { restaurantId: restaurant?.id, rating: data.rating },
-			});
-		} finally {
-			setIsProcessing(false);
-		}
 	};
 
 	// Collapsible header
@@ -242,15 +214,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 			{/* Review Modal */}
 			<ReviewBlurModal>
-				{({ close }) => (
-					<ReviewForm
-						restaurant={restaurant}
-						onSubmit={handleReviewSubmit}
-						onCancel={close}
-						isProcessing={isProcessing}
-						initialMedia={selectedMedia}
-					/>
-				)}
+				{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} initialMedia={selectedMedia} />}
 			</ReviewBlurModal>
 
 			{/* Bid Modal */}

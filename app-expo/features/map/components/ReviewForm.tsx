@@ -8,6 +8,8 @@ import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview, MediaData } from "./InitialMediaPreview";
 import { getCurrencyCodeFromRestaurant, resolveCurrencySymbol } from "@/lib/googlePlaces";
 import { useLocale } from "@/hooks/useLocale";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -19,12 +21,8 @@ interface ReviewFormProps {
 	initialRating?: number;
 	/** Initial media to display at the top */
 	initialMedia?: MediaData;
-	/** Called when user submits the form */
-	onSubmit: (data: { price: string; reviewText: string; rating: number }) => void;
 	/** Called when user cancels */
 	onCancel: () => void;
-	/** Whether form is processing */
-	isProcessing?: boolean;
 }
 
 /**
@@ -37,11 +35,12 @@ export function ReviewForm({
 	initialReviewText = "",
 	initialRating = 0,
 	initialMedia,
-	onSubmit,
 	onCancel,
-	isProcessing = false,
 }: ReviewFormProps) {
+	const { lightImpact, mediumImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 	// Internal state - isolated from parent re-renders
+	const [isProcessing, setIsProcessing] = useState(false);
 	const [price, setPrice] = useState(initialPrice);
 	const [reviewText, setReviewText] = useState(initialReviewText);
 	const [rating, setRating] = useState(initialRating);
@@ -54,9 +53,28 @@ export function ReviewForm({
 		return resolveCurrencySymbol(currencyCode, locale);
 	}, [restaurant]);
 
-	const handleSubmit = useCallback(() => {
-		onSubmit({ price, reviewText, rating });
-	}, [price, reviewText, rating, onSubmit]);
+	const handleSubmit = useCallback(async () => {
+		if (!reviewText || !price) return;
+		mediumImpact();
+		setIsProcessing(true);
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			logFrontendEvent({
+				event_name: "restaurant_review_submitted",
+				error_level: "log",
+				payload: { restaurantId: restaurant?.id, rating: rating },
+			});
+			onCancel();
+		} catch {
+			logFrontendEvent({
+				event_name: "restaurant_review_submission_failed",
+				error_level: "error",
+				payload: { restaurantId: restaurant?.id, rating: rating },
+			});
+		} finally {
+			setIsProcessing(false);
+		}
+	}, [reviewText, price, rating, restaurant, onCancel]);
 
 	const handleCancel = useCallback(() => {
 		onCancel();
