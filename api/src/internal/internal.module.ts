@@ -6,9 +6,8 @@
 import { Module } from '@nestjs/common';
 import { InternalDishesModule } from './dishes/dishes.module';
 import { ResizeImageModule } from './resize-image/resize-image.module';
-import { TranscodeModule } from './transcode/transcode.module';
 
 @Module({
-  imports: [InternalDishesModule, ResizeImageModule, TranscodeModule],
+  imports: [InternalDishesModule, ResizeImageModule],
 })
 export class InternalModule {}

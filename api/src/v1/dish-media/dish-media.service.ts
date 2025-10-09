@@ -22,7 +22,7 @@ import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaEntryItem } from './dish-media.mapper';
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
-import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
+import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { MediaType } from '@shared/v1/dto';
 import { env } from '../../core/config/env';
 
@@ -34,7 +34,7 @@ export class DishMediaService {
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
-    private readonly cloudTasks: CloudTasksService,
+    private readonly transcoder: TranscoderService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -211,17 +211,17 @@ export class DishMediaService {
       mediaType: dto.mediaType,
     });
 
-    // VIDEO の場合のみトランスコードジョブをキューに投入
+    // VIDEO の場合のみトランスコードジョブを直接作成
     if (dto.mediaType === MediaType.VIDEO) {
       const outputUri = `gs://${env.GCS_BUCKET_NAME}/transcoded/dish_media/media_path/${result.id}/`;
 
-      await this.cloudTasks.enqueueTranscodeJob({
+      await this.transcoder.createTranscodeJob({
         inputUri: dto.mediaPath,
         outputUri,
         recordId: result.id,
       });
 
-      this.logger.log('TranscodeJobEnqueued', 'createDishMedia', {
+      this.logger.log('TranscodeJobCreated', 'createDishMedia', {
         mediaId: result.id,
         inputUri: dto.mediaPath,
         outputUri,
