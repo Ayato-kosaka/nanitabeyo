@@ -282,6 +282,15 @@
 			"bidError": "Error al realizar la oferta",
 			"reviewSuccess": "Reseña publicada exitosamente",
 			"reviewError": "Error al publicar la reseña"
+		},
+		"media": {
+			"videoTooLong": "Por favor selecciona un vídeo de menos de 2 minutos.",
+			"permissionDenied": "No se puede acceder a los medios. Por favor otorga permiso en la configuración.",
+			"thumbnailFailed": "Error al generar miniatura. Por favor intenta con otro archivo.",
+			"selectedImage": "Imagen seleccionada",
+			"selectedVideoThumbnail": "Miniatura del vídeo seleccionado",
+			"playVideo": "Reproducir vídeo",
+			"selectingMedia": "Seleccionando medios..."
 		}
 	},
 	"Restaurant": {

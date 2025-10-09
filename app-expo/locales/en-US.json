@@ -282,7 +282,16 @@
 		"empty": {
 			"bidHistory": "No bid history yet"
 		},
-		"currentLocation": "Current location"
+		"currentLocation": "Current location",
+		"media": {
+			"videoTooLong": "Please select a video under 2 minutes.",
+			"permissionDenied": "Cannot access media. Please grant permission in settings.",
+			"thumbnailFailed": "Failed to generate thumbnail. Please try a different file.",
+			"selectedImage": "Selected image",
+			"selectedVideoThumbnail": "Thumbnail of selected video",
+			"playVideo": "Play video",
+			"selectingMedia": "Selecting media..."
+		}
 	},
 	"Restaurant": {
 		"placeholders": {
