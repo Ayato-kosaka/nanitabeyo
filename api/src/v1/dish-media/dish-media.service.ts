@@ -201,7 +201,7 @@ export class DishMediaService {
 
     // thumbnailPath の決定
     let thumbnailPath: string;
-    
+
     if (dto.mediaType === MediaType.VIDEO) {
       // VIDEO の場合: thumbnailPath は必須
       if (!dto.thumbnailPath) {
@@ -216,12 +216,7 @@ export class DishMediaService {
     // トランザクションで dish_media + 付随レコード作成
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.createDishMedia(
-          tx,
-          dto,
-          creatorId,
-          thumbnailPath,
-        ),
+        this.repo.createDishMedia(tx, dto, creatorId, thumbnailPath),
     );
 
     this.logger.log('DishMediaCreated', 'createDishMedia', {
@@ -233,7 +228,7 @@ export class DishMediaService {
     // VIDEO の場合のみトランスコードジョブをキューに投入
     if (dto.mediaType === MediaType.VIDEO) {
       const outputUri = `gs://${env.GCS_BUCKET_NAME}/transcoded/dish_media/media_path/${result.id}/`;
-      
+
       await this.cloudTasks.enqueueTranscodeJob({
         inputUri: dto.mediaPath,
         outputUri,

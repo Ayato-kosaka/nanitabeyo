@@ -5,7 +5,10 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { TranscoderServiceClient, protos } from '@google-cloud/video-transcoder';
+import {
+  TranscoderServiceClient,
+  protos,
+} from '@google-cloud/video-transcoder';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 
@@ -28,7 +31,7 @@ export class TranscoderService {
 
   /**
    * HLS トランスコードジョブを作成する
-   * 
+   *
    * 出力:
    * - 1080p / 720p / 480p の HLS ストリーム
    * - master.m3u8 プレイリスト
@@ -42,7 +45,10 @@ export class TranscoderService {
       recordId,
     });
 
-    const parent = this.client.locationPath(env.GCP_PROJECT, env.TASKS_LOCATION);
+    const parent = this.client.locationPath(
+      env.GCP_PROJECT,
+      env.TASKS_LOCATION,
+    );
 
     // HLS 形式での出力設定
     const job: protos.google.cloud.video.transcoder.v1.IJob = {
