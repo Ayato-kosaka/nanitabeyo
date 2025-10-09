@@ -199,24 +199,10 @@ export class DishMediaService {
       throw new NotFoundException('Dish not found');
     }
 
-    // thumbnailPath の決定
-    let thumbnailPath: string;
-
-    if (dto.mediaType === MediaType.VIDEO) {
-      // VIDEO の場合: thumbnailPath は必須
-      if (!dto.thumbnailPath) {
-        throw new Error('thumbnailPath is required for VIDEO media type');
-      }
-      thumbnailPath = dto.thumbnailPath;
-    } else {
-      // IMAGE の場合: thumbnailPath が省略されていれば mediaPath を使用
-      thumbnailPath = dto.thumbnailPath || dto.mediaPath;
-    }
-
     // トランザクションで dish_media + 付随レコード作成
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.createDishMedia(tx, dto, creatorId, thumbnailPath),
+        this.repo.createDishMedia(tx, dto, creatorId, dto.thumbnailPath),
     );
 
     this.logger.log('DishMediaCreated', 'createDishMedia', {

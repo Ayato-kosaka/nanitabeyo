@@ -22,8 +22,7 @@ export class CreateDishMediaDto {
 	@IsEnum(MediaType)
 	mediaType!: MediaType;
 
-	/** サムネイルパス（VIDEO の場合は必須、IMAGE の場合は省略可） */
-	@IsOptional()
+	/** サムネイルパス（必須。IMAGE の場合は mediaPath と同じ値を渡す） */
 	@IsString()
-	thumbnailPath?: string;
+	thumbnailPath!: string;
 }

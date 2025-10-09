@@ -77,8 +77,8 @@ This implementation adds video upload and transcoding capabilities to the nanita
 1. UI → Backend: POST /v1/user-uploads/signed-url { baseFileName: "${dishId}-media", mimeType: "image/jpeg" }
 2. Backend → UI: { putUrl, objectPath: mediaPath }
 3. UI → GCS: PUT (image binary)
-4. UI → Backend: POST /v1/dish-media { dishId, mediaType: "IMAGE", mediaPath }
-   (thumbnailPath is optional and defaults to mediaPath)
+4. UI → Backend: POST /v1/dish-media { dishId, mediaType: "IMAGE", mediaPath, thumbnailPath: mediaPath }
+   (thumbnailPath is required, set to same value as mediaPath for images)
 5. Backend: Creates dish_media record with thumbnailPath = mediaPath
 ```
 

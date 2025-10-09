@@ -57,12 +57,12 @@ await createDishMedia({
 // 1. Upload image
 const imagePath = await uploadFile(imageFile, `${dishId}-media`);
 
-// 2. Create dish media
+// 2. Create dish media (thumbnailPath is required, use same path as media)
 await createDishMedia({
   dishId,
   mediaType: 'IMAGE',
-  mediaPath: imagePath
-  // thumbnailPath is optional and defaults to mediaPath
+  mediaPath: imagePath,
+  thumbnailPath: imagePath  // Required: set to same value as mediaPath
 });
 ```
 
