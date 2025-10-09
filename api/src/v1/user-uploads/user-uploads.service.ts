@@ -31,19 +31,19 @@ export class UserUploadsService {
     userId: string,
   ): Promise<CreateUserUploadSignedUrlResponse> {
     this.logger.debug('CreateSignedUrl', 'createSignedUrl', {
-      contentType: dto.contentType,
-      identifier: dto.identifier,
+      mimeType: dto.mimeType,
+      baseFileName: dto.baseFileName,
       userId,
     });
 
     // Use storage utilities for path generation
-    const extension = getExt(dto.contentType);
-    const fullFileName = buildFileName(dto.identifier, extension);
+    const extension = getExt(dto.mimeType);
+    const fullFileName = buildFileName(dto.baseFileName, extension);
 
     const objectPath = buildFullPath({
       env: env.API_NODE_ENV,
       resourceType: 'user-uploads',
-      usageType: dto.contentType.replace(/[^a-zA-Z0-9]/g, '-'),
+      usageType: userId + '/' + dto.mimeType.replace(/[^a-zA-Z0-9]/g, '-'),
       finalFileName: fullFileName,
     });
 
@@ -51,7 +51,7 @@ export class UserUploadsService {
       // GCS 署名付き PUT URL を生成
       const result = await this.storage.generateSignedPutUrl(
         objectPath,
-        dto.contentType,
+        dto.mimeType,
         15 * 60, // 15分間有効
       );
 
@@ -69,8 +69,8 @@ export class UserUploadsService {
     } catch (error) {
       this.logger.error('SignedUrlCreationFailed', 'createSignedUrl', {
         error: (error as Error).message,
-        contentType: dto.contentType,
-        identifier: dto.identifier,
+        mimeType: dto.mimeType,
+        baseFileName: dto.baseFileName,
         userId,
       });
       throw error;

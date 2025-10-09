@@ -8,8 +8,8 @@ import type { CreateUserUploadSignedUrlResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 
 interface FileUploaderProps {
-	contentType: string;
-	identifier: string;
+	mimeType: string;
+	baseFileName: string;
 	onUploadComplete?: (objectPath: string) => void;
 	onUploadError?: (error: string) => void;
 	children?: React.ReactNode;
@@ -25,13 +25,7 @@ interface UploadProgress {
  * FileUploader handles the complete file upload workflow with signed URLs
  * Following the sequence diagram workflow from the user requirements
  */
-export function FileUploader({
-	contentType,
-	identifier,
-	onUploadComplete,
-	onUploadError,
-	children,
-}: FileUploaderProps) {
+export function FileUploader({ mimeType, baseFileName, onUploadComplete, onUploadError, children }: FileUploaderProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 
@@ -50,7 +44,7 @@ export function FileUploader({
 				logFrontendEvent({
 					event_name: "file_upload_signed_url_request",
 					error_level: "debug",
-					payload: { contentType, identifier, fileSize: file.size },
+					payload: { mimeType, baseFileName, fileSize: file.size },
 				});
 
 				const signedUrlResponse = await callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>(
@@ -58,8 +52,8 @@ export function FileUploader({
 					{
 						method: "POST",
 						requestPayload: {
-							contentType,
-							identifier,
+							mimeType,
+							baseFileName,
 						},
 					},
 				);
@@ -162,7 +156,7 @@ export function FileUploader({
 
 					// Start the upload
 					xhr.open("PUT", signedUrlResponse.putUrl);
-					xhr.setRequestHeader("Content-Type", contentType);
+					xhr.setRequestHeader("Content-Type", mimeType);
 					xhr.timeout = 5 * 60 * 1000; // 5 minute timeout
 					xhr.send(file);
 				});
@@ -183,7 +177,7 @@ export function FileUploader({
 				logFrontendEvent({
 					event_name: "file_upload_failed",
 					error_level: "error",
-					payload: { error: errorMessage, contentType, identifier },
+					payload: { error: errorMessage, mimeType, baseFileName },
 				});
 
 				onUploadError?.(errorMessage);
@@ -192,7 +186,7 @@ export function FileUploader({
 				setIsUploading(false);
 			}
 		},
-		[callBackend, contentType, identifier, logFrontendEvent, onUploadComplete, onUploadError],
+		[callBackend, mimeType, baseFileName, logFrontendEvent, onUploadComplete, onUploadError],
 	);
 
 	const handleFileSelect = useCallback(() => {
@@ -200,7 +194,7 @@ export function FileUploader({
 			// Web file selection
 			const input = document.createElement("input");
 			input.type = "file";
-			input.accept = contentType.startsWith("image/") ? "image/*" : contentType;
+			input.accept = mimeType.startsWith("image/") ? "image/*" : mimeType;
 
 			input.onchange = async (event: any) => {
 				const file = event.target.files?.[0];
@@ -221,7 +215,7 @@ export function FileUploader({
 				{ text: i18n.t("Common.ok") },
 			]);
 		}
-	}, [uploadFile, contentType]);
+	}, [uploadFile, mimeType]);
 
 	const clearError = useCallback(() => {
 		setUploadError(null);
@@ -286,9 +280,9 @@ export function FileUploader({
 					</>
 				) : (
 					<>
-						{contentType.startsWith("image/") ? <Camera size={20} color="#FFF" /> : <Upload size={20} color="#FFF" />}
+						{mimeType.startsWith("image/") ? <Camera size={20} color="#FFF" /> : <Upload size={20} color="#FFF" />}
 						<Text style={styles.uploadButtonText}>
-							{contentType.startsWith("image/") ? i18n.t("FileUpload.selectImage") : i18n.t("FileUpload.selectFile")}
+							{mimeType.startsWith("image/") ? i18n.t("FileUpload.selectImage") : i18n.t("FileUpload.selectFile")}
 						</Text>
 					</>
 				)}
