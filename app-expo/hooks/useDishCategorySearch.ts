@@ -25,8 +25,8 @@ export const useDishCategorySearch = () => {
 	 */
 	const searchDishCategories = useCallback(
 		async (query: string) => {
-			// 3文字未満は検索しない
-			if (query.length < 3) {
+			// 2文字未満は検索しない
+			if (query.length < 2) {
 				setSuggestions([]);
 				return;
 			}
@@ -50,7 +50,7 @@ export const useDishCategorySearch = () => {
 						method: "GET",
 						requestPayload: {
 							q: query,
-							lang: locale,
+							lang: locale.split("-")[0], // "ja", "en" など
 						},
 					},
 				);

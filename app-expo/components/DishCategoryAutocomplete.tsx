@@ -81,8 +81,8 @@ export function DishCategoryAutocomplete({
 			// テキストがあり、フォーカス中の場合は候補を表示
 			setShowSuggestions(text.length > 0 && isFocused);
 
-			// 3文字以上でAPI呼び出し（300msデバウンス）
-			if (text.length >= 3) {
+			// 2文字以上でAPI呼び出し（300msデバウンス）
+			if (text.length >= 2) {
 				debounceRef.current = setTimeout(() => {
 					searchDishCategories(text).catch((error) => {
 						console.warn("Dish category search failed:", error);
@@ -167,7 +167,7 @@ export function DishCategoryAutocomplete({
 			const count = suggestions.length;
 			if (count > 0) {
 				AccessibilityInfo.announceForAccessibility(i18n.t("Map.accessibility.dishCategorySuggestionsFound", { count }));
-			} else if (value.length >= 3) {
+			} else if (value.length >= 2) {
 				AccessibilityInfo.announceForAccessibility(i18n.t("Map.accessibility.dishCategoryNoResults"));
 			}
 		}
@@ -245,7 +245,7 @@ export function DishCategoryAutocomplete({
 			)}
 
 			{/* 結果なしメッセージ */}
-			{showSuggestions && !isSearching && suggestions.length === 0 && value.length >= 3 && (
+			{showSuggestions && !isSearching && suggestions.length === 0 && value.length >= 2 && (
 				<View style={styles.noResultsContainer}>
 					<Text style={styles.noResultsText}>{i18n.t("Map.noResultsFound")}</Text>
 				</View>
