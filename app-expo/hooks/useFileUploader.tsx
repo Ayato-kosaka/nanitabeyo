@@ -12,12 +12,12 @@ export interface UploadProgress {
 	percentage: number;
 }
 
-export interface UseFileUploaderOptions {
+export interface FileUploaderOptions {
 	mimeType: string;
 	baseFileName: string;
 }
 
-export function useFileUploader({ mimeType, baseFileName }: UseFileUploaderOptions) {
+export function useFileUploader() {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 
@@ -27,30 +27,34 @@ export function useFileUploader({ mimeType, baseFileName }: UseFileUploaderOptio
 
 	const cancelTokenRef = useRef<{ cancel: () => void } | null>(null);
 
-	const getSignedUrl = useCallback(async () => {
-		return callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>("v1/user-uploads/signed-url", {
-			method: "POST",
-			requestPayload: {
-				mimeType,
-				baseFileName,
-			},
-		});
-	}, [callBackend, mimeType, baseFileName]);
+	const getSignedUrl = useCallback(
+		async (fileUploaderOptions: FileUploaderOptions) => {
+			return callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>(
+				"v1/user-uploads/signed-url",
+				{
+					method: "POST",
+					requestPayload: fileUploaderOptions,
+				},
+			);
+		},
+		[callBackend],
+	);
 
 	/**
 	 * ファイルアップロード（署名付きURL方式）
 	 * @param uri file:// や asset:// のローカルパス
-	 * @param baseFileName 任意：ログ識別用ファイル名
+	 * @param fileUploaderOptions アップロードオプション
 	 */
 	const uploadFile = useCallback(
-		async (uri: string, baseFileName?: string): Promise<string> => {
+		async (uri: string, fileUploaderOptions: FileUploaderOptions): Promise<string> => {
 			setIsUploading(true);
 			setUploadProgress({ loaded: 0, total: 0, percentage: 0 });
 			setUploadError(null);
+			const { mimeType, baseFileName } = fileUploaderOptions;
 
 			try {
 				// ---- Step 1: Get signed URL from backend ----
-				const signedUrlResponse = await getSignedUrl();
+				const signedUrlResponse = await getSignedUrl(fileUploaderOptions);
 
 				// ---- Step 2: Perform upload (streamed, no Blob) ----
 				logFrontendEvent({

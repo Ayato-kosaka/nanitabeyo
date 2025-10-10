@@ -41,19 +41,14 @@ export function ReviewForm({
 	initialMedia,
 	onCancel,
 }: ReviewFormProps) {
-	const [dishId, setDishId] = useState(`dish-${Date.now()}`);
-
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
-	const { uploadFile: mediaUploadFile } = useFileUploader({
-		mimeType: initialMedia.mimeType,
-		baseFileName: `${dishId}-media`,
-	});
-	const { uploadFile: thumbnailUploadFile } = useFileUploader({
-		mimeType: "image/jpeg",
-		baseFileName: `${dishId}-thumbnail`,
-	});
+	const { uploadFile: mediaUploadFile } = useFileUploader();
+	const { uploadFile: thumbnailUploadFile } = useFileUploader();
+
+	// TODO: オートコンプリートを用いて選択するように修正する
+	const [dishId, setDishId] = useState(`dish-${Date.now()}`);
 
 	// Internal state - isolated from parent re-renders
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -72,11 +67,17 @@ export function ReviewForm({
 		mediumImpact();
 		setIsProcessing(true);
 		try {
-			const mediaPath = await mediaUploadFile(initialMedia.uri);
+			const mediaPath = await mediaUploadFile(initialMedia.uri, {
+				mimeType: initialMedia.mimeType,
+				baseFileName: `${dishId}-media`,
+			});
 			let thumbnailPath = mediaPath; // Default to mediaPath for images
 			if (initialMedia.type === "VIDEO") {
 				if (!initialMedia.thumbnailUri) throw new Error("Missing thumbnail for video");
-				thumbnailPath = await thumbnailUploadFile(initialMedia.thumbnailUri);
+				thumbnailPath = await thumbnailUploadFile(initialMedia.thumbnailUri, {
+					mimeType: "image/jpeg",
+					baseFileName: `${dishId}-thumbnail`,
+				});
 			}
 
 			/**
