@@ -4,9 +4,10 @@ import { Image } from "expo-image";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import { Play } from "lucide-react-native";
 import i18n from "@/lib/i18n";
+import { MediaType } from "@shared/api/v1/dto";
 
 export interface MediaData {
-	type: "image" | "video";
+	type: MediaType;
 	uri: string;
 	width?: number;
 	height?: number;
@@ -41,7 +42,7 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 		setIsMuted((prev) => !prev);
 	}, []);
 
-	const displayUri = media.type === "video" ? media.thumbnailUri || media.uri : media.uri;
+	const displayUri = media.type === "VIDEO" ? media.thumbnailUri || media.uri : media.uri;
 
 	return (
 		<>
@@ -52,10 +53,10 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 						style={styles.media}
 						contentFit="cover"
 						accessibilityLabel={
-							media.type === "video" ? i18n.t("Map.media.selectedVideoThumbnail") : i18n.t("Map.media.selectedImage")
+							media.type === "VIDEO" ? i18n.t("Map.media.selectedVideoThumbnail") : i18n.t("Map.media.selectedImage")
 						}
 					/>
-					{media.type === "video" && (
+					{media.type === "VIDEO" && (
 						<TouchableOpacity
 							style={styles.playButton}
 							onPress={handlePlayPress}
@@ -70,7 +71,7 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 			</View>
 
 			{/* Video Preview Modal */}
-			{media.type === "video" && (
+			{media.type === "VIDEO" && (
 				<Modal visible={isVideoModalVisible} animationType="fade" transparent={true} onRequestClose={handleCloseModal}>
 					<View style={styles.modalContainer}>
 						<TouchableOpacity style={styles.modalBackdrop} onPress={handleCloseModal} activeOpacity={1} />

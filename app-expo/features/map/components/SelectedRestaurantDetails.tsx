@@ -213,9 +213,11 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			</Tabs.Container>
 
 			{/* Review Modal */}
-			<ReviewBlurModal>
-				{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} initialMedia={selectedMedia} />}
-			</ReviewBlurModal>
+			{selectedMedia && (
+				<ReviewBlurModal>
+					{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} initialMedia={selectedMedia} />}
+				</ReviewBlurModal>
+			)}
 
 			{/* Bid Modal */}
 			<BidBlurModal>
