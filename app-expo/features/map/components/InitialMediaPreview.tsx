@@ -13,7 +13,7 @@ export interface MediaData {
 	height?: number;
 	durationSec?: number;
 	thumbnailUri?: string;
-	mimeType?: string;
+	mimeType: string;
 }
 
 interface InitialMediaPreviewProps {

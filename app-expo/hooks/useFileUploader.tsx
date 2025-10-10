@@ -1,37 +1,39 @@
-import React, { useCallback, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from "react-native";
+import { useCallback, useState } from "react";
+import { Alert, Platform } from "react-native";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
-import { Camera, Upload, X } from "lucide-react-native";
 import type { CreateUserUploadSignedUrlDto } from "@shared/api/v1/dto";
 import type { CreateUserUploadSignedUrlResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 
-interface FileUploaderProps {
-	mimeType: string;
-	baseFileName: string;
-	onUploadComplete?: (objectPath: string) => void;
-	onUploadError?: (error: string) => void;
-	children?: React.ReactNode;
-}
-
-interface UploadProgress {
+export interface UploadProgress {
 	loaded: number;
 	total: number;
 	percentage: number;
 }
 
-/**
- * FileUploader handles the complete file upload workflow with signed URLs
- * Following the sequence diagram workflow from the user requirements
- */
-export function FileUploader({ mimeType, baseFileName, onUploadComplete, onUploadError, children }: FileUploaderProps) {
+export interface UseFileUploaderOptions {
+	mimeType: string;
+	baseFileName: string;
+}
+
+export function useFileUploader({ mimeType, baseFileName }: UseFileUploaderOptions) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 
 	const [isUploading, setIsUploading] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 	const [uploadError, setUploadError] = useState<string | null>(null);
+
+	const getSignedUrl = useCallback(async () => {
+		return callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>("v1/user-uploads/signed-url", {
+			method: "POST",
+			requestPayload: {
+				mimeType,
+				baseFileName,
+			},
+		});
+	}, [callBackend, mimeType, baseFileName]);
 
 	const uploadFile = useCallback(
 		async (file: Blob | File): Promise<string> => {
@@ -41,36 +43,9 @@ export function FileUploader({ mimeType, baseFileName, onUploadComplete, onUploa
 
 			try {
 				// Step 1: Get signed URL from backend
-				logFrontendEvent({
-					event_name: "file_upload_signed_url_request",
-					error_level: "debug",
-					payload: { mimeType, baseFileName, fileSize: file.size },
-				});
-
-				const signedUrlResponse = await callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>(
-					"v1/user-uploads/signed-url",
-					{
-						method: "POST",
-						requestPayload: {
-							mimeType,
-							baseFileName,
-						},
-					},
-				);
-
-				logFrontendEvent({
-					event_name: "file_upload_signed_url_received",
-					error_level: "log",
-					payload: { objectPath: signedUrlResponse.objectPath, expiresAt: signedUrlResponse.expiresAt },
-				});
+				const signedUrlResponse = await getSignedUrl();
 
 				// Step 2: Upload file directly to GCS using signed URL
-				logFrontendEvent({
-					event_name: "file_upload_to_storage_started",
-					error_level: "debug",
-					payload: { objectPath: signedUrlResponse.objectPath },
-				});
-
 				await new Promise<void>((resolve, reject) => {
 					const xhr = new XMLHttpRequest();
 
@@ -167,8 +142,6 @@ export function FileUploader({ mimeType, baseFileName, onUploadComplete, onUploa
 					error_level: "log",
 					payload: { objectPath: signedUrlResponse.objectPath },
 				});
-
-				onUploadComplete?.(signedUrlResponse.objectPath);
 				return signedUrlResponse.objectPath;
 			} catch (error: any) {
 				const errorMessage = error?.message || "Upload failed";
@@ -180,16 +153,15 @@ export function FileUploader({ mimeType, baseFileName, onUploadComplete, onUploa
 					payload: { error: errorMessage, mimeType, baseFileName },
 				});
 
-				onUploadError?.(errorMessage);
 				throw error;
 			} finally {
 				setIsUploading(false);
 			}
 		},
-		[callBackend, mimeType, baseFileName, logFrontendEvent, onUploadComplete, onUploadError],
+		[callBackend, getSignedUrl, mimeType, baseFileName, logFrontendEvent],
 	);
 
-	const handleFileSelect = useCallback(() => {
+	const selectFile = useCallback(() => {
 		if (Platform.OS === "web") {
 			// Web file selection
 			const input = document.createElement("input");
@@ -233,141 +205,15 @@ export function FileUploader({ mimeType, baseFileName, onUploadComplete, onUploa
 		return `${formatFileSize(progress.loaded)} / ${formatFileSize(progress.total)} (${progress.percentage.toFixed(1)}%)`;
 	};
 
-	if (children) {
-		return (
-			<TouchableOpacity onPress={handleFileSelect} disabled={isUploading}>
-				{children}
-				{isUploading && (
-					<View style={styles.overlay}>
-						<ActivityIndicator size="small" color="#FFF" />
-					</View>
-				)}
-			</TouchableOpacity>
-		);
-	}
-
-	return (
-		<View style={styles.container}>
-			{uploadError && (
-				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{uploadError}</Text>
-					<TouchableOpacity style={styles.clearErrorButton} onPress={clearError}>
-						<X size={16} color="#FF3B30" />
-					</TouchableOpacity>
-				</View>
-			)}
-
-			{isUploading && uploadProgress && (
-				<View style={styles.progressContainer}>
-					<View style={styles.progressHeader}>
-						<Text style={styles.progressTitle}>{i18n.t("FileUpload.uploading")}</Text>
-						<Text style={styles.progressText}>{formatProgress(uploadProgress)}</Text>
-					</View>
-					<View style={styles.progressBar}>
-						<View style={[styles.progressFill, { width: `${uploadProgress.percentage}%` }]} />
-					</View>
-				</View>
-			)}
-
-			<TouchableOpacity
-				style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
-				onPress={handleFileSelect}
-				disabled={isUploading}>
-				{isUploading ? (
-					<>
-						<ActivityIndicator size="small" color="#FFF" />
-						<Text style={styles.uploadButtonText}>{i18n.t("FileUpload.uploading")}</Text>
-					</>
-				) : (
-					<>
-						{mimeType.startsWith("image/") ? <Camera size={20} color="#FFF" /> : <Upload size={20} color="#FFF" />}
-						<Text style={styles.uploadButtonText}>
-							{mimeType.startsWith("image/") ? i18n.t("FileUpload.selectImage") : i18n.t("FileUpload.selectFile")}
-						</Text>
-					</>
-				)}
-			</TouchableOpacity>
-		</View>
-	);
+	return {
+		isUploading,
+		uploadProgress,
+		uploadError,
+		uploadFile,
+		selectFile,
+		clearError,
+		getSignedUrl,
+		formatFileSize,
+		formatProgress,
+	};
 }
-
-const styles = StyleSheet.create({
-	container: {
-		width: "100%",
-	},
-	overlay: {
-		...StyleSheet.absoluteFillObject,
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
-		justifyContent: "center",
-		alignItems: "center",
-		borderRadius: 8,
-	},
-	errorContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#FFEBEE",
-		borderWidth: 1,
-		borderColor: "#FFCDD2",
-		borderRadius: 8,
-		padding: 12,
-		marginBottom: 12,
-	},
-	errorText: {
-		flex: 1,
-		fontSize: 14,
-		color: "#C62828",
-	},
-	clearErrorButton: {
-		padding: 4,
-	},
-	progressContainer: {
-		backgroundColor: "#F5F5F5",
-		borderRadius: 8,
-		padding: 12,
-		marginBottom: 12,
-	},
-	progressHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 8,
-	},
-	progressTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#333",
-	},
-	progressText: {
-		fontSize: 12,
-		color: "#666",
-	},
-	progressBar: {
-		height: 4,
-		backgroundColor: "#E0E0E0",
-		borderRadius: 2,
-		overflow: "hidden",
-	},
-	progressFill: {
-		height: "100%",
-		backgroundColor: "#007AFF",
-		borderRadius: 2,
-	},
-	uploadButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#007AFF",
-		paddingVertical: 12,
-		paddingHorizontal: 16,
-		borderRadius: 8,
-		gap: 8,
-	},
-	uploadButtonDisabled: {
-		backgroundColor: "#A0A0A0",
-	},
-	uploadButtonText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#FFF",
-	},
-});
