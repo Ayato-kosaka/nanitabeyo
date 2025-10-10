@@ -132,7 +132,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 
 		// Launch picker
 		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ImagePicker.MediaTypeOptions.All, // Allow both images and videos
+			mediaTypes: ['images', 'videos'], // Allow both images and videos
 			allowsMultipleSelection: false,
 			quality: 1,
 			videoMaxDuration: MAX_VIDEO_DURATION_SECONDS, // Hint for picker, but we validate anyway
@@ -191,7 +191,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 			height: asset.height,
 			durationSec: isVideo && durationSec ? durationSec : undefined,
 			thumbnailUri: isVideo ? thumbnailUri : undefined,
-			mimeType: asset.mimeType,
+			mimeType: asset.mimeType ?? "application/octet-stream",
 		};
 
 		return {

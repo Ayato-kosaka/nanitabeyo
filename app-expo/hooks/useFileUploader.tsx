@@ -1,10 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import type { CreateUserUploadSignedUrlDto } from "@shared/api/v1/dto";
 import type { CreateUserUploadSignedUrlResponse } from "@shared/api/v1/res";
-import i18n from "@/lib/i18n";
+import * as FileSystem from "expo-file-system";
 
 export interface UploadProgress {
 	loaded: number;
@@ -25,6 +25,8 @@ export function useFileUploader({ mimeType, baseFileName }: UseFileUploaderOptio
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 
+	const cancelTokenRef = useRef<{ cancel: () => void } | null>(null);
+
 	const getSignedUrl = useCallback(async () => {
 		return callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>("v1/user-uploads/signed-url", {
 			method: "POST",
@@ -35,159 +37,100 @@ export function useFileUploader({ mimeType, baseFileName }: UseFileUploaderOptio
 		});
 	}, [callBackend, mimeType, baseFileName]);
 
+	/**
+	 * ファイルアップロード（署名付きURL方式）
+	 * @param uri file:// や asset:// のローカルパス
+	 * @param baseFileName 任意：ログ識別用ファイル名
+	 */
 	const uploadFile = useCallback(
-		async (file: Blob | File): Promise<string> => {
+		async (uri: string, baseFileName?: string): Promise<string> => {
 			setIsUploading(true);
-			setUploadProgress({ loaded: 0, total: file.size, percentage: 0 });
+			setUploadProgress({ loaded: 0, total: 0, percentage: 0 });
 			setUploadError(null);
 
 			try {
-				// Step 1: Get signed URL from backend
+				// ---- Step 1: Get signed URL from backend ----
 				const signedUrlResponse = await getSignedUrl();
 
-				// Step 2: Upload file directly to GCS using signed URL
-				await new Promise<void>((resolve, reject) => {
-					const xhr = new XMLHttpRequest();
-
-					// Track upload progress
-					xhr.upload.addEventListener("progress", (event) => {
-						if (event.lengthComputable) {
-							const percentage = (event.loaded / event.total) * 100;
-							setUploadProgress({
-								loaded: event.loaded,
-								total: event.total,
-								percentage,
-							});
-
-							logFrontendEvent({
-								event_name: "file_upload_progress",
-								error_level: "debug",
-								payload: {
-									percentage: percentage.toFixed(1),
-									loaded: event.loaded,
-									total: event.total,
-								},
-							});
-						}
-					});
-
-					// Handle upload completion
-					xhr.addEventListener("load", () => {
-						if (xhr.status >= 200 && xhr.status < 300) {
-							setUploadProgress({ loaded: file.size, total: file.size, percentage: 100 });
-
-							logFrontendEvent({
-								event_name: "file_upload_to_storage_success",
-								error_level: "log",
-								payload: {
-									objectPath: signedUrlResponse.objectPath,
-									status: xhr.status,
-								},
-							});
-
-							resolve();
-						} else {
-							const errorMessage = `Upload failed with status: ${xhr.status}`;
-
-							logFrontendEvent({
-								event_name: "file_upload_to_storage_error",
-								error_level: "error",
-								payload: {
-									error: errorMessage,
-									status: xhr.status,
-									responseText: xhr.responseText,
-								},
-							});
-
-							reject(new Error(errorMessage));
-						}
-					});
-
-					// Handle network errors
-					xhr.addEventListener("error", () => {
-						const errorMessage = "Network error during upload";
-
-						logFrontendEvent({
-							event_name: "file_upload_network_error",
-							error_level: "error",
-							payload: { error: errorMessage },
-						});
-
-						reject(new Error(errorMessage));
-					});
-
-					// Handle upload timeout
-					xhr.addEventListener("timeout", () => {
-						const errorMessage = "Upload timed out";
-
-						logFrontendEvent({
-							event_name: "file_upload_timeout",
-							error_level: "error",
-							payload: { error: errorMessage },
-						});
-
-						reject(new Error(errorMessage));
-					});
-
-					// Start the upload
-					xhr.open("PUT", signedUrlResponse.putUrl);
-					xhr.setRequestHeader("Content-Type", mimeType);
-					xhr.timeout = 5 * 60 * 1000; // 5 minute timeout
-					xhr.send(file);
-				});
-
-				// Return the object path for further use
+				// ---- Step 2: Perform upload (streamed, no Blob) ----
 				logFrontendEvent({
-					event_name: "file_upload_complete",
+					event_name: "file_upload_started",
 					error_level: "log",
-					payload: { objectPath: signedUrlResponse.objectPath },
+					payload: { uri, mimeType, objectPath: signedUrlResponse.objectPath },
 				});
-				return signedUrlResponse.objectPath;
-			} catch (error: any) {
-				const errorMessage = error?.message || "Upload failed";
+
+				const uploadTask = FileSystem.createUploadTask(
+					signedUrlResponse.putUrl,
+					uri,
+					{
+						httpMethod: "PUT",
+						headers: { "Content-Type": mimeType },
+						uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+					},
+					(progress) => {
+						const percentage = (progress.totalBytesSent / progress.totalBytesExpectedToSend) * 100;
+						setUploadProgress({
+							loaded: progress.totalBytesSent,
+							total: progress.totalBytesExpectedToSend,
+							percentage,
+						});
+
+						logFrontendEvent({
+							event_name: "file_upload_progress",
+							error_level: "debug",
+							payload: {
+								percentage: percentage.toFixed(1),
+								loaded: progress.totalBytesSent,
+								total: progress.totalBytesExpectedToSend,
+							},
+						});
+					},
+				);
+
+				cancelTokenRef.current = { cancel: () => uploadTask.cancelAsync() };
+
+				const result = await uploadTask.uploadAsync();
+
+				if (!result) throw new Error("Upload failed: No response");
+
+				if (result.status >= 200 && result.status < 300) {
+					setUploadProgress((p) => (p ? { ...p, percentage: 100, loaded: p.total, total: p.total } : null));
+
+					logFrontendEvent({
+						event_name: "file_upload_success",
+						error_level: "log",
+						payload: {
+							objectPath: signedUrlResponse.objectPath,
+							status: result.status,
+						},
+					});
+
+					return signedUrlResponse.objectPath;
+				}
+
+				throw new Error(`Upload failed with status ${result.status}`);
+			} catch (err: any) {
+				const errorMessage = err?.message || "Upload failed";
 				setUploadError(errorMessage);
 
 				logFrontendEvent({
 					event_name: "file_upload_failed",
 					error_level: "error",
-					payload: { error: errorMessage, mimeType, baseFileName },
+					payload: { error: errorMessage, baseFileName: baseFileName },
 				});
 
-				throw error;
+				throw err;
 			} finally {
 				setIsUploading(false);
+				cancelTokenRef.current = null;
 			}
 		},
-		[callBackend, getSignedUrl, mimeType, baseFileName, logFrontendEvent],
+		[getSignedUrl, logFrontendEvent],
 	);
 
-	const selectFile = useCallback(() => {
-		if (Platform.OS === "web") {
-			// Web file selection
-			const input = document.createElement("input");
-			input.type = "file";
-			input.accept = mimeType.startsWith("image/") ? "image/*" : mimeType;
-
-			input.onchange = async (event: any) => {
-				const file = event.target.files?.[0];
-				if (file) {
-					try {
-						await uploadFile(file);
-					} catch (error) {
-						console.error("Upload failed:", error);
-					}
-				}
-			};
-
-			input.click();
-		} else {
-			// Native file selection would go here
-			// For now, show a message that this would trigger camera/gallery
-			Alert.alert(i18n.t("FileUpload.title"), i18n.t("FileUpload.nativeNotImplemented"), [
-				{ text: i18n.t("Common.ok") },
-			]);
-		}
-	}, [uploadFile, mimeType]);
+	const cancelUpload = useCallback(() => {
+		cancelTokenRef.current?.cancel();
+	}, []);
 
 	const clearError = useCallback(() => {
 		setUploadError(null);
@@ -210,7 +153,7 @@ export function useFileUploader({ mimeType, baseFileName }: UseFileUploaderOptio
 		uploadProgress,
 		uploadError,
 		uploadFile,
-		selectFile,
+		cancelUpload,
 		clearError,
 		getSignedUrl,
 		formatFileSize,
