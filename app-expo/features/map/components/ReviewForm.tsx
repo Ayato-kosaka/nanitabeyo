@@ -6,13 +6,14 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview, MediaData } from "./InitialMediaPreview";
-import { getCurrencyCodeFromRestaurant, resolveCurrencySymbol } from "@/lib/googlePlaces";
+import { getCurrencyCodeFromRestaurant, getMinorUnitFromCurrency, resolveCurrencySymbol } from "@/lib/googlePlaces";
 import { useLocale } from "@/hooks/useLocale";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
-import type { CreateDishMediaDto } from "@shared/api/v1/dto";
+import type { CreateDishMediaDto, CreateDishReviewDto } from "@shared/api/v1/dto";
 import { useFileUploader } from "@/hooks/useFileUploader";
+import { CreateDishMediaResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -40,8 +41,7 @@ export function ReviewForm({
 	initialMedia,
 	onCancel,
 }: ReviewFormProps) {
-	// Example dishId - in real app, this would come from dish creation
-	const dishId = useMemo(() => `dish-${Date.now()}`, []);
+	const [dishId, setDishId] = useState(`dish-${Date.now()}`);
 
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -63,11 +63,8 @@ export function ReviewForm({
 
 	const locale = useLocale();
 
-	// Get currency symbol from restaurant data
-	const currencySymbol = useMemo(() => {
-		const currencyCode = getCurrencyCodeFromRestaurant(restaurant);
-		return resolveCurrencySymbol(currencyCode, locale);
-	}, [restaurant]);
+	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
+	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
 	const handleSubmit = useCallback(async () => {
 		if (!reviewText || !price || isProcessing) return;
@@ -82,27 +79,31 @@ export function ReviewForm({
 				thumbnailPath = await thumbnailUploadFile(initialMedia.thumbnailUri);
 			}
 
-			// Submit media to backend
-			const payload: CreateDishMediaDto = {
-				dishId,
-				mediaPath,
-				thumbnailPath,
-				mediaType: initialMedia.type,
-			};
-
-			logFrontendEvent({
-				event_name: "dish_media_submit_started",
-				error_level: "log",
-				payload,
-			});
-
 			/**
 			 * Video のアップロードが完了してからでないと、
 			 * transcoer API が失敗する可能性があるため、直列で実行する
 			 */
-			await callBackend("v1/dish-media", {
+			await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
 				method: "POST",
-				requestPayload: payload,
+				requestPayload: {
+					dishId,
+					mediaPath,
+					thumbnailPath,
+					mediaType: initialMedia.type,
+				},
+			});
+
+			await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
+				method: "POST",
+				requestPayload: {
+					dishId,
+					comment: reviewText,
+					languageCode: locale,
+					priceCents: getMinorUnitFromCurrency(currencyCode),
+					currencyCode: currencyCode ?? undefined,
+					rating,
+					createdDishMediaId: dishId, // Using dishId as a placeholder for media ID
+				},
 			});
 
 			logFrontendEvent({

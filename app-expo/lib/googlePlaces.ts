@@ -318,6 +318,94 @@ export function resolveCurrencySymbol(currencyCode: string | null, locale: strin
 }
 
 /**
+ * 通貨の最小単位 (minor units) を返す（ISO-4217 準拠）。
+ * 未定義の通貨は 2 桁を既定とする。
+ *
+ * 参考例:
+ *  - USD/EUR/GBP = 2
+ *  - JPY/KRW/VND/CLP/ISK/XAF/XOF/RWF/GNF = 0
+ *  - KWD/BHD/OMR/JOD/TND/LYD/IQD = 3
+ */
+export function getMinorUnitFromCurrency(currencyCode: string | null | undefined): number {
+	const code = (currencyCode || "").toUpperCase();
+
+	// 0 桁（小数なし）
+	const ZERO = new Set([
+		"JPY", "KRW", "VND", "CLP", "ISK", "XAF", "XOF", "RWF", "GNF", "UGX",
+	]);
+
+	// 3 桁
+	const THREE = new Set([
+		"KWD", "BHD", "OMR", "JOD", "TND", "LYD", "IQD",
+	]);
+
+	// 4 桁（CLFなど。通常は使わない想定）
+	const FOUR = new Set([
+		"CLF",
+	]);
+
+	if (ZERO.has(code)) return 0;
+	if (THREE.has(code)) return 3;
+	if (FOUR.has(code)) return 4;
+
+	// 既知の 2 桁通貨の例を明示（網羅は不要。未列挙は既定 2）
+	// USD/EUR/GBP/AUD/CAD/CHF/CNY/HKD/INR/IDR/NZD/SGD/THB/TWD/BRL/MXN/PLN/SEK/NOK/DKK/RUB/RON/HUF ... → 2
+	return 2;
+}
+
+/**
+ * 文字列入力を数値にパース（ロケール簡易対応）
+ * - "1,234.56" → 1234.56
+ * - "1.234,56" のような欧州表記は、ドットが3桁区切り・カンマが小数と推定して 1234.56 に変換
+ * - 記号や空白は除去（$、¥、€、スペースなど）
+ */
+export function parseAmountString(raw: string): number {
+	// 通貨記号やスペース、全角記号を除去
+	const cleaned = raw
+		.replace(/\s+/g, "")
+		.replace(/[￥¥€$£₩₫₦₱₹₽₪₭₮₲₴₺₼₸₡₵₲₥]/g, "")
+		.replace(/[A-Z]{3}/gi, ""); // 末尾などの "USD" "JPY" を雑に除去
+
+	// 小数と桁区切りの推定
+	// 1) 両方（. と ,）がある場合 → 欧州系 "1.234,56" を想定して、まず桁区切りドットを除去→カンマを小数点に
+	if (cleaned.includes(".") && cleaned.includes(",")) {
+		const noGroupDots = cleaned.replace(/\./g, "");
+		const normalized = noGroupDots.replace(/,/g, ".");
+		return parseFloat(normalized);
+	}
+
+	// 2) 片方のみの場合
+	//   - カンマのみ: "1234,56" → 小数点と見なして '.' に変換
+	//   - ドットのみ: そのまま小数点
+	if (cleaned.includes(",") && !cleaned.includes(".")) {
+		return parseFloat(cleaned.replace(/,/g, "."));
+	}
+
+	// 3) どちらもない or ドットのみ: 桁区切りはない前提でそのまま
+	return parseFloat(cleaned);
+}
+
+/**
+ * 金額（小数）を最小単位の整数に変換。
+ * - minorUnits=2 -> *100
+ * - minorUnits=0 -> *1
+ * - minorUnits=3 -> *1000
+ */
+export function toMinorAmountInteger(amount: number, currencyCode: string | null | undefined): number {
+	const minorUnits = getMinorUnitFromCurrency(currencyCode);
+	const factor = Math.pow(10, minorUnits);
+
+	// 金額×係数を丸めて安全な整数に
+	const value = Math.round(amount * factor);
+
+	// 上限: JS の安全整数範囲を超えないように
+	if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
+		throw new Error("Amount is out of safe integer range");
+	}
+	return value;
+}
+
+/**
  * addressComponents から国コード (ISO-2) を抽出
  * @param addressComponents Google Places API から取得した住所コンポーネント配列
  * @returns 国コード (例: "JP", "US") または null (見つからない場合)
