@@ -1,6 +1,6 @@
 // libs/api-contracts/src/v1/dish-media/dto/search-dish-media.dto.ts
 
-import { IsNumber, IsOptional, IsPositive, Max, Min, Matches, IsUUID } from "class-validator";
+import { IsNumber, IsOptional, IsPositive, Max, Min, Matches, IsUUID, IsString } from "class-validator";
 import { Type } from "class-transformer";
 
 /**
@@ -18,8 +18,9 @@ export class SearchDishMediaDto {
 	 *
 	 * @example "35.68944,139.69167"
 	 */
+	@IsString()
 	@Matches(/^-?\d{1,2}(?:\.\d+)?,-?\d{1,3}(?:\.\d+)?$/, { message: 'location must be "lat,lng" decimal format' })
-	readonly location!: string;
+	location!: string;
 
 	/**
 	 * 検索半径（メートル）
@@ -29,15 +30,15 @@ export class SearchDishMediaDto {
 	@IsNumber()
 	@Min(10)
 	@Max(5000)
-	readonly radius!: number;
+	radius!: number;
 
 	/**
-	 * 絞り込み用ディッシュカテゴリ ID（UUID）
+	 * 絞り込み用ディッシュカテゴリ ID
 	 * 省略時は全カテゴリ
 	 */
 	@IsOptional()
-	@IsUUID()
-	readonly categoryId?: string;
+	@IsString()
+	categoryId?: string;
 
 	/**
 	 * 返却件数（ページサイズ）
@@ -48,13 +49,14 @@ export class SearchDishMediaDto {
 	@IsPositive()
 	@Min(1)
 	@Max(100)
-	readonly limit?: number;
+	limit?: number;
 
 	/**
 	 * 前ページから渡されるカーソル
 	 */
+	@IsString()
 	@IsOptional()
-	readonly cursor?: string;
+	cursor?: string;
 
 	/**
 	 * 並び順
@@ -62,7 +64,8 @@ export class SearchDishMediaDto {
 	 * - "-createdAt" → 新しい順（デフォルト）
 	 * - "distance"   → 近い順
 	 */
+	@IsString()
 	@IsOptional()
 	@Matches(/^-?(createdAt|distance)$/)
-	readonly sort?: string;
+	sort?: string;
 }

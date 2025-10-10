@@ -1,13 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
-
-/**
- * クライアントがアップロード済みの
- * GCS/S3 オブジェクトを参照するタイプ。
- */
-export enum MediaType {
-	IMAGE = "IMAGE",
-	VIDEO = "VIDEO",
-}
+import { IsEnum, IsIn, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class CreateDishMediaDto {
 	/** 紐付ける料理 (dishes.id) */
@@ -19,8 +10,8 @@ export class CreateDishMediaDto {
 	mediaPath!: string;
 
 	/** メディア種別 */
-	@IsEnum(MediaType)
-	mediaType!: MediaType;
+	@IsIn(["IMAGE", "VIDEO"])
+	mediaType!: "IMAGE" | "VIDEO";
 
 	/** サムネイルパス（必須。IMAGE の場合は mediaPath と同じ値を渡す） */
 	@IsString()

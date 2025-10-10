@@ -1,5 +1,5 @@
 import { mockDishItems } from "@/data/searchMockData";
-import { QueryRestaurantBidsResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
+import type { QueryRestaurantBidsResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
 
 // Mock data for active bids
 export const mockActiveBids: QueryRestaurantsResponse = mockDishItems.map((dish) => ({

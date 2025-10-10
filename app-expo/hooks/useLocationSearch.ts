@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef } from "react";
-import { mockPlacePredictions } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
