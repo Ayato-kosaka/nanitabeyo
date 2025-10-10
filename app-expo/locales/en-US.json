@@ -251,13 +251,15 @@
 			"price": "Price",
 			"rating": "Rating",
 			"comment": "Comment",
-			"bidAmount": "Bid Amount"
+			"bidAmount": "Bid Amount",
+			"dishCategory": "Dish Category"
 		},
 		"placeholders": {
 			"searchRestaurants": "Search restaurants",
 			"enterPrice": "Enter price",
 			"enterReview": "Enter review",
-			"enterBidAmount": "Enter bid amount"
+			"enterBidAmount": "Enter bid amount",
+			"enterDishCategory": "Enter dish category (e.g., Ramen, Sushi)"
 		},
 		"labels": {
 			"endDate": "End date:",
@@ -291,6 +293,19 @@
 			"selectedVideoThumbnail": "Thumbnail of selected video",
 			"playVideo": "Play video",
 			"selectingMedia": "Selecting media..."
+		},
+		"noResultsFound": "No results found",
+		"accessibility": {
+			"dishCategoryInputFocused": "Dish category input focused",
+			"dishCategorySelected": "Selected {{category}}",
+			"dishCategorySearching": "Searching for dish categories",
+			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
+			"dishCategoryNoResults": "No matching dish categories found"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Failed to create dish category",
+			"dishCategoryNotFound": "Dish category not found",
+			"dishCategoryInvalidInput": "Invalid dish category name"
 		}
 	},
 	"Restaurant": {

@@ -252,13 +252,15 @@
 			"price": "料金",
 			"rating": "評価",
 			"comment": "コメント",
-			"bidAmount": "入札額"
+			"bidAmount": "入札額",
+			"dishCategory": "料理カテゴリ"
 		},
 		"placeholders": {
 			"searchRestaurants": "レストランを検索",
 			"enterPrice": "料金を入力",
 			"enterReview": "レビューを入力",
-			"enterBidAmount": "入札額を入力"
+			"enterBidAmount": "入札額を入力",
+			"enterDishCategory": "料理カテゴリを入力 (例: ラーメン、寿司)"
 		},
 		"labels": {
 			"endDate": "終了日:",
@@ -291,6 +293,19 @@
 			"selectedVideoThumbnail": "選択した動画のサムネイル",
 			"playVideo": "動画を再生",
 			"selectingMedia": "メディアを選択中..."
+		},
+		"noResultsFound": "結果が見つかりませんでした",
+		"accessibility": {
+			"dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
+			"dishCategorySelected": "{{category}}を選択しました",
+			"dishCategorySearching": "料理カテゴリを検索中",
+			"dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
+			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
+			"dishCategoryNotFound": "料理カテゴリが見つかりません",
+			"dishCategoryInvalidInput": "無効な料理カテゴリ名です"
 		}
 	},
 	"Restaurant": {

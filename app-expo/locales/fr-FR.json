@@ -252,13 +252,15 @@
 			"price": "Prix",
 			"rating": "Évaluation",
 			"comment": "Commentaire",
-			"bidAmount": "Montant de l'enchère"
+			"bidAmount": "Montant de l'enchère",
+			"dishCategory": "Catégorie de plat"
 		},
 		"placeholders": {
 			"searchRestaurants": "Rechercher des restaurants",
 			"enterPrice": "Entrez le prix",
 			"enterReview": "Entrez votre avis",
-			"enterBidAmount": "Entrez le montant de l'enchère"
+			"enterBidAmount": "Entrez le montant de l'enchère",
+			"enterDishCategory": "Entrez la catégorie de plat (ex: Ramen, Sushi)"
 		},
 		"labels": {
 			"endDate": "Date de fin:",
@@ -291,6 +293,19 @@
 			"selectedVideoThumbnail": "Miniature de la vidéo sélectionnée",
 			"playVideo": "Lire la vidéo",
 			"selectingMedia": "Sélection des médias..."
+		},
+		"noResultsFound": "Aucun résultat trouvé",
+		"accessibility": {
+			"dishCategoryInputFocused": "Entrée de catégorie de plat activée",
+			"dishCategorySelected": "Sélectionné {{category}}",
+			"dishCategorySearching": "Recherche de catégories de plats",
+			"dishCategorySuggestionsFound": "{{count}} suggestions trouvées",
+			"dishCategoryNoResults": "Aucune catégorie de plat correspondante trouvée"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Échec de la création de la catégorie de plat",
+			"dishCategoryNotFound": "Catégorie de plat introuvable",
+			"dishCategoryInvalidInput": "Nom de catégorie de plat invalide"
 		}
 	},
 	"Restaurant": {

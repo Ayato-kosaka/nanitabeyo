@@ -252,13 +252,15 @@
 			"price": "السعر",
 			"rating": "التقييم",
 			"comment": "تعليق",
-			"bidAmount": "مبلغ العرض"
+			"bidAmount": "مبلغ العرض",
+			"dishCategory": "فئة الطبق"
 		},
 		"placeholders": {
 			"searchRestaurants": "البحث عن المطاعم",
 			"enterPrice": "أدخل السعر",
 			"enterReview": "أدخل مراجعتك",
-			"enterBidAmount": "أدخل مبلغ العرض"
+			"enterBidAmount": "أدخل مبلغ العرض",
+			"enterDishCategory": "أدخل فئة الطبق (مثال: رامين، سوشي)"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
@@ -291,6 +293,19 @@
 			"selectedVideoThumbnail": "الصورة المصغرة للفيديو المحدد",
 			"playVideo": "تشغيل الفيديو",
 			"selectingMedia": "جاري اختيار الوسائط..."
+		},
+		"noResultsFound": "لم يتم العثور على نتائج",
+		"accessibility": {
+			"dishCategoryInputFocused": "تم التركيز على إدخال فئة الطبق",
+			"dishCategorySelected": "تم اختيار {{category}}",
+			"dishCategorySearching": "البحث عن فئات الأطباق",
+			"dishCategorySuggestionsFound": "تم العثور على {{count}} اقتراحات",
+			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "فشل في إنشاء فئة الطبق",
+			"dishCategoryNotFound": "لم يتم العثور على فئة الطبق",
+			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح"
 		}
 	},
 	"Restaurant": {

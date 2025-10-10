@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from "reac
 import { Star } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { DishCategoryAutocomplete } from "@/components/DishCategoryAutocomplete";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview, MediaData } from "./InitialMediaPreview";
@@ -11,6 +12,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import type { CreateDishMediaDto, CreateDishReviewDto } from "@shared/api/v1/dto";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { CreateDishMediaResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
@@ -46,8 +48,14 @@ export function ReviewForm({
 	const { callBackend } = useAPICall();
 	const { uploadFile: mediaUploadFile } = useFileUploader();
 	const { uploadFile: thumbnailUploadFile } = useFileUploader();
+	const { createDishCategoryVariant } = useDishCategorySearch();
 
-	// TODO: オートコンプリートを用いて選択するように修正する
+	// 料理カテゴリの状態管理
+	const [dishCategoryName, setDishCategoryName] = useState("");
+	const [dishCategoryId, setDishCategoryId] = useState<string | null>(null);
+	const [dishCategoryError, setDishCategoryError] = useState<string | null>(null);
+
+	// TODO: オートコンプリートを用いて選択するように修正する（実装済み）
 	const [dishId, setDishId] = useState(`dish-${Date.now()}`);
 
 	// Internal state - isolated from parent re-renders
@@ -61,12 +69,56 @@ export function ReviewForm({
 	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
+	// 候補選択時のハンドラ: dishCategoryIdを設定
+	const handleDishCategorySelect = useCallback(
+		(suggestion: { dishCategoryId: string; label: string }) => {
+			setDishCategoryId(suggestion.dishCategoryId);
+			setDishCategoryName(suggestion.label);
+			setDishCategoryError(null);
+			logFrontendEvent({
+				event_name: "dish_category_selected",
+				error_level: "log",
+				payload: { dishCategoryId: suggestion.dishCategoryId, label: suggestion.label },
+			});
+		},
+		[logFrontendEvent],
+	);
+
+	// クリア時のハンドラ
+	const handleDishCategoryClear = useCallback(() => {
+		setDishCategoryId(null);
+		setDishCategoryError(null);
+	}, []);
+
 	const handleSubmit = useCallback(async () => {
 		if (!reviewText || !price || isProcessing) return;
 
 		mediumImpact();
 		setIsProcessing(true);
+		setDishCategoryError(null);
+
 		try {
+			// 料理カテゴリが未選択かつ入力がある場合、POSTで作成
+			let finalDishCategoryId = dishCategoryId;
+			if (!finalDishCategoryId && dishCategoryName.trim()) {
+				try {
+					const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
+					finalDishCategoryId = createdCategory.id;
+					setDishCategoryId(finalDishCategoryId);
+					logFrontendEvent({
+						event_name: "dish_category_created_on_submit",
+						error_level: "log",
+						payload: { dishCategoryId: finalDishCategoryId, name: dishCategoryName },
+					});
+				} catch (error: any) {
+					// POSTエラー時はインラインエラー表示
+					const errorMessage = error?.message || i18n.t("Map.errors.dishCategoryCreateFailed");
+					setDishCategoryError(errorMessage);
+					setIsProcessing(false);
+					return;
+				}
+			}
+
 			const mediaPath = await mediaUploadFile(initialMedia.uri, {
 				mimeType: initialMedia.mimeType,
 				baseFileName: `${dishId}-media`,
@@ -110,7 +162,7 @@ export function ReviewForm({
 			logFrontendEvent({
 				event_name: "dish_media_submit_success",
 				error_level: "log",
-				payload: { dishId, initialMedia },
+				payload: { dishId, initialMedia, dishCategoryId: finalDishCategoryId },
 			});
 
 			// Simulate review submission
@@ -133,7 +185,26 @@ export function ReviewForm({
 		} finally {
 			setIsProcessing(false);
 		}
-	}, [reviewText, price, isProcessing, rating, initialMedia, dishId, callBackend, logFrontendEvent, onCancel]);
+	}, [
+		reviewText,
+		price,
+		isProcessing,
+		rating,
+		initialMedia,
+		dishId,
+		dishCategoryId,
+		dishCategoryName,
+		createDishCategoryVariant,
+		callBackend,
+		logFrontendEvent,
+		onCancel,
+		restaurant,
+		locale,
+		currencyCode,
+		mediaUploadFile,
+		thumbnailUploadFile,
+		mediumImpact,
+	]);
 
 	const handleCancel = useCallback(() => {
 		onCancel();
@@ -145,6 +216,22 @@ export function ReviewForm({
 		<>
 			{initialMedia && <InitialMediaPreview media={initialMedia} />}
 			<Card style={{ gap: 16 }}>
+				{/* 料理カテゴリのオートコンプリート */}
+				<View>
+					<DishCategoryAutocomplete
+						value={dishCategoryName}
+						onChangeText={setDishCategoryName}
+						onSelectSuggestion={handleDishCategorySelect}
+						onClear={handleDishCategoryClear}
+						placeholder={i18n.t("Map.placeholders.enterDishCategory")}
+					/>
+					{dishCategoryError && (
+						<Text style={styles.errorText} accessibilityLiveRegion="polite">
+							{dishCategoryError}
+						</Text>
+					)}
+				</View>
+
 				<TextInput
 					style={[styles.textInput, styles.textArea]}
 					placeholder={i18n.t("Map.placeholders.enterReview")}
@@ -234,5 +321,11 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingLeft: 0,
 		paddingRight: 12,
+	},
+	errorText: {
+		color: "#DC2626",
+		fontSize: 14,
+		marginTop: 8,
+		paddingHorizontal: 4,
 	},
 });

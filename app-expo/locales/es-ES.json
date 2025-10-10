@@ -252,13 +252,15 @@
 			"price": "Precio",
 			"rating": "Calificación",
 			"comment": "Comentario",
-			"bidAmount": "Monto de la Oferta"
+			"bidAmount": "Monto de la Oferta",
+			"dishCategory": "Categoría del Plato"
 		},
 		"placeholders": {
 			"searchRestaurants": "Buscar restaurantes",
 			"enterPrice": "Ingresa el precio",
 			"enterReview": "Ingresa tu reseña",
-			"enterBidAmount": "Ingresa el monto de la oferta"
+			"enterBidAmount": "Ingresa el monto de la oferta",
+			"enterDishCategory": "Ingresa categoría del plato (ej: Ramen, Sushi)"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
@@ -291,6 +293,19 @@
 			"selectedVideoThumbnail": "Miniatura del vídeo seleccionado",
 			"playVideo": "Reproducir vídeo",
 			"selectingMedia": "Seleccionando medios..."
+		},
+		"noResultsFound": "No se encontraron resultados",
+		"accessibility": {
+			"dishCategoryInputFocused": "Entrada de categoría de plato enfocada",
+			"dishCategorySelected": "Seleccionado {{category}}",
+			"dishCategorySearching": "Buscando categorías de platos",
+			"dishCategorySuggestionsFound": "Se encontraron {{count}} sugerencias",
+			"dishCategoryNoResults": "No se encontraron categorías de platos coincidentes"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Error al crear categoría de plato",
+			"dishCategoryNotFound": "Categoría de plato no encontrada",
+			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido"
 		}
 	},
 	"Restaurant": {

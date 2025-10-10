@@ -330,19 +330,13 @@ export function getMinorUnitFromCurrency(currencyCode: string | null | undefined
 	const code = (currencyCode || "").toUpperCase();
 
 	// 0 桁（小数なし）
-	const ZERO = new Set([
-		"JPY", "KRW", "VND", "CLP", "ISK", "XAF", "XOF", "RWF", "GNF", "UGX",
-	]);
+	const ZERO = new Set(["JPY", "KRW", "VND", "CLP", "ISK", "XAF", "XOF", "RWF", "GNF", "UGX"]);
 
 	// 3 桁
-	const THREE = new Set([
-		"KWD", "BHD", "OMR", "JOD", "TND", "LYD", "IQD",
-	]);
+	const THREE = new Set(["KWD", "BHD", "OMR", "JOD", "TND", "LYD", "IQD"]);
 
 	// 4 桁（CLFなど。通常は使わない想定）
-	const FOUR = new Set([
-		"CLF",
-	]);
+	const FOUR = new Set(["CLF"]);
 
 	if (ZERO.has(code)) return 0;
 	if (THREE.has(code)) return 3;
