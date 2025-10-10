@@ -251,13 +251,15 @@
 			"price": "मूल्य",
 			"rating": "रेटिंग",
 			"comment": "टिप्पणी",
-			"bidAmount": "बोली राशि"
+			"bidAmount": "बोली राशि",
+			"dishCategory": "Dish Category"
 		},
 		"placeholders": {
 			"searchRestaurants": "रेस्टोरेंट खोजें",
 			"enterPrice": "मूल्य दर्ज करें",
 			"enterReview": "समीक्षा दर्ज करें",
-			"enterBidAmount": "बोली राशि दर्ज करें"
+			"enterBidAmount": "बोली राशि दर्ज करें",
+			"enterDishCategory": "Enter dish category (e.g., Ramen, Sushi)"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
@@ -291,6 +293,19 @@
 			"selectedVideoThumbnail": "चयनित वीडियो का थंबनेल",
 			"playVideo": "वीडियो चलाएं",
 			"selectingMedia": "मीडिया चयन कर रहे हैं..."
+		},
+		"noResultsFound": "No results found",
+		"accessibility": {
+			"dishCategoryInputFocused": "Dish category input focused",
+			"dishCategorySelected": "Selected {{category}}",
+			"dishCategorySearching": "Searching for dish categories",
+			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
+			"dishCategoryNoResults": "No matching dish categories found"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Failed to create dish category",
+			"dishCategoryNotFound": "Dish category not found",
+			"dishCategoryInvalidInput": "Invalid dish category name"
 		}
 	},
 	"Restaurant": {

@@ -23,7 +23,6 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaEntryItem } from './dish-media.mapper';
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
-import { MediaType } from '@shared/v1/dto';
 import { env } from '../../core/config/env';
 
 @Injectable()
@@ -35,7 +34,7 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -212,7 +211,7 @@ export class DishMediaService {
     });
 
     // VIDEO の場合のみトランスコードジョブを直接作成
-    if (dto.mediaType === MediaType.VIDEO) {
+    if (dto.mediaType === "VIDEO") {
       const outputUri = `gs://${env.GCS_BUCKET_NAME}/transcoded/dish_media/media_path/${result.id}/`;
 
       await this.transcoder.createTranscodeJob({

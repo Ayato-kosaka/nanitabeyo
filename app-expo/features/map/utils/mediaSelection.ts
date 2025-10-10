@@ -2,7 +2,6 @@ import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import type { MediaData } from "../components/InitialMediaPreview";
-import { MediaType } from "@shared/api/v1/dto";
 
 const MAX_VIDEO_DURATION_SECONDS = 120; // 2 minutes
 
@@ -132,7 +131,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 
 		// Launch picker
 		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ['images', 'videos'], // Allow both images and videos
+			mediaTypes: ["images", "videos"], // Allow both images and videos
 			allowsMultipleSelection: false,
 			quality: 1,
 			videoMaxDuration: MAX_VIDEO_DURATION_SECONDS, // Hint for picker, but we validate anyway
@@ -185,7 +184,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 		}
 
 		const media: MediaData = {
-			type: isVideo ? MediaType.VIDEO : MediaType.IMAGE,
+			type: isVideo ? "VIDEO" : "IMAGE",
 			uri: asset.uri,
 			width: asset.width,
 			height: asset.height,

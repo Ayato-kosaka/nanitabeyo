@@ -7,27 +7,32 @@ This PR implements the MVP video upload and transcoding architecture as specifie
 ## Key Changes
 
 ### 1. DTO Enhancement
+
 - **File**: `shared/api/v1/dto/dish-media/create-dish-media.dto.ts`
 - Added optional `thumbnailPath` field
 - Exported `MediaType` enum (VIDEO/IMAGE)
 
 ### 2. Video Transcoding Service
+
 - **Directory**: `api/src/core/transcoder/`
 - HLS transcoding with 3 quality levels (1080p, 720p, 480p)
 - Google Cloud Video Transcoder API integration
 - Output: `gs://<bucket>/transcoded/dish_media/media_path/<recordId>/master.m3u8`
 
 ### 3. Cloud Tasks Integration
+
 - **File**: `api/src/core/cloud-tasks/cloud-tasks.service.ts`
 - New method: `enqueueTranscodeJob()`
 - Queue: `transcode-queue`
 
 ### 4. Worker Endpoint
+
 - **Directory**: `api/src/internal/transcode/`
 - Endpoint: `POST /internal/transcode`
 - Protected by OIDC guard for Cloud Tasks
 
 ### 5. Business Logic Update
+
 - **File**: `api/src/v1/dish-media/dish-media.service.ts`
 - Video: Requires thumbnailPath, enqueues transcoding
 - Image: thumbnailPath defaults to mediaPath
@@ -35,6 +40,7 @@ This PR implements the MVP video upload and transcoding architecture as specifie
 ## Usage Example
 
 ### Frontend - Video Upload
+
 ```typescript
 // 1. Upload video
 const videoPath = await uploadFile(videoFile, `${dishId}-media`);
@@ -44,31 +50,33 @@ const thumbnailPath = await uploadFile(thumbnailFile, `${dishId}-thumbnail`);
 
 // 3. Create dish media
 await createDishMedia({
-  dishId,
-  mediaType: 'VIDEO',
-  mediaPath: videoPath,
-  thumbnailPath: thumbnailPath
+	dishId,
+	mediaType: "VIDEO",
+	mediaPath: videoPath,
+	thumbnailPath: thumbnailPath,
 });
 // Backend automatically enqueues transcoding job
 ```
 
 ### Frontend - Image Upload
+
 ```typescript
 // 1. Upload image
 const imagePath = await uploadFile(imageFile, `${dishId}-media`);
 
 // 2. Create dish media (thumbnailPath is required, use same path as media)
 await createDishMedia({
-  dishId,
-  mediaType: 'IMAGE',
-  mediaPath: imagePath,
-  thumbnailPath: imagePath  // Required: set to same value as mediaPath
+	dishId,
+	mediaType: "IMAGE",
+	mediaPath: imagePath,
+	thumbnailPath: imagePath, // Required: set to same value as mediaPath
 });
 ```
 
 ## Infrastructure Setup
 
 ### Create Cloud Tasks Queue
+
 ```bash
 gcloud tasks queues create transcode-queue \
   --location=us-central1 \
@@ -77,6 +85,7 @@ gcloud tasks queues create transcode-queue \
 ```
 
 ### Enable APIs
+
 ```bash
 gcloud services enable videotranscoder.googleapis.com
 gcloud services enable cloudtasks.googleapis.com
@@ -85,6 +94,7 @@ gcloud services enable cloudtasks.googleapis.com
 ## Testing
 
 ### Build & Typecheck (Passing ✅)
+
 ```bash
 pnpm build      # All packages compile successfully
 pnpm typecheck  # No type errors
@@ -92,6 +102,7 @@ pnpm format     # Code formatted
 ```
 
 ### Manual Testing
+
 1. Start API server: `cd api && pnpm dev`
 2. Test image upload flow (should work immediately)
 3. Test video upload flow (requires GCS and Transcoder API access)
@@ -99,6 +110,7 @@ pnpm format     # Code formatted
 ## Architecture Diagrams
 
 ### Video Upload Flow
+
 ```
 ┌─────────┐                  ┌─────────┐                  ┌──────────┐
 │   UI    │                  │ Backend │                  │   GCS    │
@@ -130,9 +142,9 @@ pnpm format     # Code formatted
      │                            │<───────────────┘           │
      │<───────────────────────────┤                            │
      │                            │                            │
-     
+
      Later (async):
-     
+
      ┌─────────────┐              ┌────────────┐
      │ Cloud Tasks │              │ Transcoder │
      └──────┬──────┘              └─────┬──────┘
@@ -147,6 +159,7 @@ pnpm format     # Code formatted
 ```
 
 ### Image Upload Flow
+
 ```
 ┌─────────┐                  ┌─────────┐                  ┌──────────┐
 │   UI    │                  │ Backend │                  │   GCS    │
@@ -173,6 +186,7 @@ pnpm format     # Code formatted
 ## Files Changed
 
 ### New Files
+
 - `api/src/core/transcoder/transcoder.service.ts` - Transcoder API client
 - `api/src/core/transcoder/transcoder.module.ts` - Module definition
 - `api/src/internal/transcode/transcode.controller.ts` - Worker endpoint
@@ -183,6 +197,7 @@ pnpm format     # Code formatted
 - `IMPLEMENTATION_VIDEO_ARCHITECTURE.md` - Detailed documentation
 
 ### Modified Files
+
 - `shared/api/v1/dto/dish-media/create-dish-media.dto.ts` - Added thumbnailPath
 - `shared/api/v1/dto/index.ts` - Export MediaType enum
 - `api/src/v1/dish-media/dish-media.service.ts` - Video/image logic
@@ -202,6 +217,7 @@ pnpm format     # Code formatted
 ## Questions?
 
 See `IMPLEMENTATION_VIDEO_ARCHITECTURE.md` for full documentation including:
+
 - Detailed API specifications
 - Environment configuration
 - Testing strategies

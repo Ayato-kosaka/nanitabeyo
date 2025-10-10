@@ -4,10 +4,9 @@ import { Image } from "expo-image";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import { Play } from "lucide-react-native";
 import i18n from "@/lib/i18n";
-import { MediaType } from "@shared/api/v1/dto";
 
 export interface MediaData {
-	type: MediaType;
+	type: "IMAGE" | "VIDEO";
 	uri: string;
 	width?: number;
 	height?: number;
