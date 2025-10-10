@@ -24,7 +24,7 @@ export class DishCategoryVariantsService {
     private readonly externalApiService: ExternalApiService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 料理カテゴリ表記揺れを検索
@@ -38,29 +38,18 @@ export class DishCategoryVariantsService {
       dto,
     );
 
-    const dishCategories = await this.repo.findDishCategoryVariants(dto.q);
+
+    const dishCategories = await this.prisma.withTransaction(
+      async (tx: Prisma.TransactionClient) => {
+        return await this.repo.findDishCategoryVariants(tx, dto.q);
+      },
+    );
 
     // レスポンス形式に変換 - 最大20件まで
-    const response: QueryDishCategoryVariantsResponse = [];
-
-    for (const category of dishCategories) {
-      if (response.length >= 20) break;
-
-      for (const variant of category.dish_category_variants) {
-        void variant;
-        if (response.length >= 20) break;
-
-        // category.labels[lang] を使用（フォールバックあり）
-        const labels = category.labels as Record<string, string>;
-        const label =
-          dto.lang && labels[dto.lang] ? labels[dto.lang] : category.label_en;
-
-        response.push({
-          dishCategoryId: category.id,
-          label: label,
-        });
-      }
-    }
+    const response: QueryDishCategoryVariantsResponse = dishCategories.map(dc => ({
+      dishCategoryId: dc.id,
+      label: dc.labels ? dc.labels[dto.lang] : dc.label_en
+    }));
 
     this.logger.debug(
       'DishCategoryVariantsReturned',
