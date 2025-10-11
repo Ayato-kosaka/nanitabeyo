@@ -39,19 +39,6 @@ export class DishesRepository {
   }
 
   /**
-   * 料理を作成
-   */
-  async createDish(dish: {
-    restaurant_id: string;
-    category_id: string;
-    name: string;
-  }) {
-    return this.prisma.prisma.dishes.create({
-      data: dish,
-    });
-  }
-
-  /**
    * レストランを作成または取得（Google Place データから）
    */
   async createOrGetRestaurant(
@@ -80,7 +67,15 @@ export class DishesRepository {
    */
   async createOrGetDishForCategory(
     tx: Prisma.TransactionClient,
-    dish: PrismaDishes,
+    dish: {
+      id?: string;
+      restaurant_id: string;
+      category_id: string;
+      name: string | null;
+      created_at?: Date;
+      updated_at?: Date;
+      lock_no?: number;
+    },
   ) {
     const existing = await tx.dishes.findFirst({
       where: {

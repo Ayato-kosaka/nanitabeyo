@@ -218,10 +218,12 @@ export class DishesService {
       dishCategory.labels && dishCategory.labels[languageCode] || dishCategory.label_en;
 
     // 新規作成（推測名を注入。なければフォールバック）
-    const newDish = await this.repo.createDish({
-      restaurant_id: dto.restaurantId,
-      category_id: dto.dishCategoryId,
-      name: dishNameFromLabels,
+    const newDish = await this.prisma.prisma.$transaction(async (tx) => {
+      return this.repo.createOrGetDishForCategory(tx, {
+        restaurant_id: dto.restaurantId,
+        category_id: dto.dishCategoryId,
+        name: dishNameFromLabels,
+      });
     });
 
     this.logger.log('DishCreated', 'createOrGetDish', newDish);
