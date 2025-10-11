@@ -13,9 +13,9 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
-import type { CreateDishMediaDto, CreateDishReviewDto } from "@shared/api/v1/dto";
+import { CreateDishDto, type CreateDishMediaDto, type CreateDishReviewDto } from "@shared/api/v1/dto";
 import { useFileUploader } from "@/hooks/useFileUploader";
-import { CreateDishMediaResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
+import type { CreateDishMediaResponse, CreateDishResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -55,9 +55,6 @@ export function ReviewForm({
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(null);
 	const [dishCategoryError, setDishCategoryError] = useState<string | null>(null);
 
-	// TODO: オートコンプリートを用いて選択するように修正する（実装済み）
-	const [dishId, setDishId] = useState(`dish-${Date.now()}`);
-
 	// Internal state - isolated from parent re-renders
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [price, setPrice] = useState(initialPrice);
@@ -69,7 +66,9 @@ export function ReviewForm({
 	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
-	// 候補選択時のハンドラ: dishCategoryIdを設定
+	const isValid = price.trim() && reviewText.trim() && dishCategoryName.trim();
+
+	// DishCategoryAutocomplete 候補選択時のハンドラ: dishCategoryIdを設定
 	const handleDishCategorySelect = useCallback(
 		(suggestion: { dishCategoryId: string; label: string }) => {
 			setDishCategoryId(suggestion.dishCategoryId);
@@ -84,32 +83,27 @@ export function ReviewForm({
 		[logFrontendEvent],
 	);
 
-	// クリア時のハンドラ
+	// DishCategoryAutocomplete クリア時のハンドラ
 	const handleDishCategoryClear = useCallback(() => {
 		setDishCategoryId(null);
 		setDishCategoryError(null);
 	}, []);
 
 	const handleSubmit = useCallback(async () => {
-		if (!reviewText || !price || isProcessing) return;
+		if (!isValid || isProcessing) return;
 
 		mediumImpact();
 		setIsProcessing(true);
 		setDishCategoryError(null);
 
 		try {
-			// 料理カテゴリが未選択かつ入力がある場合、POSTで作成
+			// 料理カテゴリが未選択の場合、POSTで作成
 			let finalDishCategoryId = dishCategoryId;
-			if (!finalDishCategoryId && dishCategoryName.trim()) {
+			if (!finalDishCategoryId) {
 				try {
 					const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
 					finalDishCategoryId = createdCategory.id;
 					setDishCategoryId(finalDishCategoryId);
-					logFrontendEvent({
-						event_name: "dish_category_created_on_submit",
-						error_level: "log",
-						payload: { dishCategoryId: finalDishCategoryId, name: dishCategoryName },
-					});
 				} catch (error: any) {
 					// POSTエラー時はインラインエラー表示
 					const errorMessage = error?.message || i18n.t("Map.errors.dishCategoryCreateFailed");
@@ -118,6 +112,14 @@ export function ReviewForm({
 					return;
 				}
 			}
+
+			const dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+				method: "POST",
+				requestPayload: {
+					restaurantId: restaurant.id,
+					dishCategoryId: finalDishCategoryId!,
+				},
+			}).then((res) => res.id);
 
 			const mediaPath = await mediaUploadFile(initialMedia.uri, {
 				mimeType: initialMedia.mimeType,
@@ -187,11 +189,10 @@ export function ReviewForm({
 		}
 	}, [
 		reviewText,
-		price,
+		isValid,
 		isProcessing,
 		rating,
 		initialMedia,
-		dishId,
 		dishCategoryId,
 		dishCategoryName,
 		createDishCategoryVariant,
@@ -209,8 +210,6 @@ export function ReviewForm({
 	const handleCancel = useCallback(() => {
 		onCancel();
 	}, [onCancel]);
-
-	const isValid = price.trim() && reviewText.trim();
 
 	return (
 		<>

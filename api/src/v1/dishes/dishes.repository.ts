@@ -21,7 +21,7 @@ export class DishesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * レストランIDとカテゴリIDで料理を検索
@@ -41,13 +41,13 @@ export class DishesRepository {
   /**
    * 料理を作成
    */
-  async createDish(dto: CreateDishDto) {
+  async createDish(dish: {
+    restaurant_id: string;
+    category_id: string;
+    name: string;
+  }) {
     return this.prisma.prisma.dishes.create({
-      data: {
-        restaurant_id: dto.restaurantId,
-        category_id: dto.dishCategoryId,
-        name: dto.dishName,
-      },
+      data: dish,
     });
   }
 

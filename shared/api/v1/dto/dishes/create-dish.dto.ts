@@ -1,16 +1,12 @@
-import { IsString, IsUUID } from "class-validator";
+import { IsString, IsUUID, Length } from "class-validator";
 
 /** POST /v1/dishes のボディ */
 export class CreateDishDto {
-	/** restaurants.id */
+	/** レストランID (UUID v4) */
 	@IsUUID()
 	restaurantId!: string;
 
-	/** dish_categories.id */
+	/** 料理カテゴリID (QID) */
 	@IsString()
 	dishCategoryId!: string;
-
-	/** dishes.name */
-	@IsString()
-	dishName!: string;
 }

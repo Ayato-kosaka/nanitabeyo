@@ -37,7 +37,7 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                    Restaurant search queries (nearby + bidding status)                    */
@@ -111,7 +111,19 @@ export class RestaurantsRepository {
   }
 
   /* ------------------------------------------------------------------ */
-  /*               Restaurant dish media queries (filter by restaurant and category)                    */
+  /*                   Restaurant detail queries (by ID)                    */
+  /* ------------------------------------------------------------------ */
+  async findRestaurantById(
+    tx: Prisma.TransactionClient,
+    id: string,
+  ): Promise<PrismaRestaurants | null> {
+    return tx.restaurants.findUnique({
+      where: { id },
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*               Restaurant detail queries (by Google Place ID)               */
   /* ------------------------------------------------------------------ */
   async findRestaurantByGooglePlaceId(
     tx: Prisma.TransactionClient,
