@@ -305,7 +305,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "Error al crear categoría de plato",
 			"dishCategoryNotFound": "Categoría de plato no encontrada",
-			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido"
+			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido",
+			"reviewSubmitFailed": "Error al publicar la reseña"
 		}
 	},
 	"Restaurant": {

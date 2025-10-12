@@ -305,7 +305,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
 			"dishCategoryNotFound": "料理カテゴリが見つかりません",
-			"dishCategoryInvalidInput": "無効な料理カテゴリ名です"
+			"dishCategoryInvalidInput": "無効な料理カテゴリ名です",
+			"reviewSubmitFailed": "レビューの投稿に失敗しました"
 		}
 	},
 	"Restaurant": {

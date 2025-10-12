@@ -282,7 +282,8 @@
 			"bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
 			"bidError": "बोली लगाने में विफल",
 			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
-			"reviewError": "समीक्षा पोस्ट करने में विफल"
+			"reviewError": "समीक्षा पोस्ट करने में विफल",
+			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
 		},
 		"currentLocation": "वर्तमान स्थान",
 		"media": {
@@ -305,7 +306,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "Failed to create dish category",
 			"dishCategoryNotFound": "Dish category not found",
-			"dishCategoryInvalidInput": "Invalid dish category name"
+			"dishCategoryInvalidInput": "Invalid dish category name",
+			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
 		}
 	},
 	"Restaurant": {

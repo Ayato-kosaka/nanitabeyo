@@ -305,7 +305,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "Failed to create dish category",
 			"dishCategoryNotFound": "Dish category not found",
-			"dishCategoryInvalidInput": "Invalid dish category name"
+			"dishCategoryInvalidInput": "Invalid dish category name",
+			"reviewSubmitFailed": "Failed to post review"
 		}
 	},
 	"Restaurant": {

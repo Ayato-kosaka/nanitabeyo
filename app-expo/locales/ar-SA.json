@@ -305,7 +305,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "فشل في إنشاء فئة الطبق",
 			"dishCategoryNotFound": "لم يتم العثور على فئة الطبق",
-			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح"
+			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح",
+			"reviewSubmitFailed": "فشل في نشر المراجعة"
 		}
 	},
 	"Restaurant": {

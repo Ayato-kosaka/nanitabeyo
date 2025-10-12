@@ -305,7 +305,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "Échec de la création de la catégorie de plat",
 			"dishCategoryNotFound": "Catégorie de plat introuvable",
-			"dishCategoryInvalidInput": "Nom de catégorie de plat invalide"
+			"dishCategoryInvalidInput": "Nom de catégorie de plat invalide",
+			"reviewSubmitFailed": "Échec de la publication de l'avis"
 		}
 	},
 	"Restaurant": {

@@ -305,7 +305,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "创建菜品类别失败",
 			"dishCategoryNotFound": "未找到菜品类别",
-			"dishCategoryInvalidInput": "无效的菜品类别名称"
+			"dishCategoryInvalidInput": "无效的菜品类别名称",
+			"reviewSubmitFailed": "评论发布失败"
 		}
 	},
 	"Restaurant": {
