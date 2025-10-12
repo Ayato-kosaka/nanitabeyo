@@ -259,7 +259,7 @@
 			"enterPrice": "输入价格",
 			"enterReview": "输入评论",
 			"enterBidAmount": "输入出价金额",
-			"enterDishCategory": "输入菜品类别（例如：拉面、寿司）"
+                        "enterDishCategory": "输入菜品类别（例如：火锅、点心）"
 		},
 		"labels": {
 			"endDate": "结束日期:",

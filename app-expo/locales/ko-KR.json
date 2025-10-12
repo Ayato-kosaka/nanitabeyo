@@ -260,7 +260,7 @@
 			"enterPrice": "가격 입력",
 			"enterReview": "리뷰 입력",
 			"enterBidAmount": "입찰 금액 입력",
-			"enterDishCategory": "요리 카테고리 입력 (예: 라멘, 스시)"
+                        "enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)"
 		},
 		"labels": {
 			"endDate": "종료일:",

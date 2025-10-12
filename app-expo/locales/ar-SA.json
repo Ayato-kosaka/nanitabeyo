@@ -260,7 +260,7 @@
 			"enterPrice": "أدخل السعر",
 			"enterReview": "أدخل مراجعتك",
 			"enterBidAmount": "أدخل مبلغ العرض",
-			"enterDishCategory": "أدخل فئة الطبق (مثال: رامين، سوشي)"
+                        "enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
