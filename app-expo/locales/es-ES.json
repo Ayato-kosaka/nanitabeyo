@@ -260,7 +260,7 @@
 			"enterPrice": "Ingresa el precio",
 			"enterReview": "Ingresa tu reseña",
 			"enterBidAmount": "Ingresa el monto de la oferta",
-			"enterDishCategory": "Ingresa categoría del plato (ej: Ramen, Sushi)"
+                        "enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",

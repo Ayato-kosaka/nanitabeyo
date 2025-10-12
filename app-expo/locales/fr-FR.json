@@ -260,7 +260,7 @@
 			"enterPrice": "Entrez le prix",
 			"enterReview": "Entrez votre avis",
 			"enterBidAmount": "Entrez le montant de l'enchère",
-			"enterDishCategory": "Entrez la catégorie de plat (ex: Ramen, Sushi)"
+                        "enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)"
 		},
 		"labels": {
 			"endDate": "Date de fin:",

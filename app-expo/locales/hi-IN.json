@@ -259,7 +259,7 @@
 			"enterPrice": "मूल्य दर्ज करें",
 			"enterReview": "समीक्षा दर्ज करें",
 			"enterBidAmount": "बोली राशि दर्ज करें",
-			"enterDishCategory": "Enter dish category (e.g., Ramen, Sushi)"
+                        "enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
