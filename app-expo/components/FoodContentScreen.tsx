@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Alert, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -17,6 +17,7 @@ import { toggleReaction } from "@/lib/reactions";
 import { generateShareUrl, handleShare } from "@/lib/share";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 const { width, height } = Dimensions.get("window");
 
@@ -91,7 +92,8 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 	const router = useRouter();
 	const locale = useLocale();
 	const insets = useSafeAreaInsets();
-	const [rightActionsWidth, setRightActionsWidth] = useState(0);
+        const [rightActionsWidth, setRightActionsWidth] = useState(0);
+        const { showSnackbar } = useSnackbar();
 
 	const source = useMemo(
 		() => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
@@ -321,10 +323,10 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 		});
 
 		const placeId = item.restaurant.google_place_id;
-		if (!placeId) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
-			return;
-		}
+                if (!placeId) {
+                        showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+                        return;
+                }
 
 		try {
 			const mapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(placeId)}&query=${encodeURIComponent(item.restaurant.name || "")}`;
@@ -336,15 +338,15 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 
 			const canOpen = await Linking.canOpenURL(mapUrl);
 
-			if (canOpen) {
-				await Linking.openURL(mapUrl);
-			} else {
-				Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
-			}
-		} catch (error) {
-			Alert.alert(i18n.t("Common.error"), i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+                        if (canOpen) {
+                                await Linking.openURL(mapUrl);
+                        } else {
+                                showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+                        }
+                } catch (error) {
+                        showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
 
-			logFrontendEvent({
+                        logFrontendEvent({
 				event_name: "map_pin_open_failed",
 				error_level: "error",
 				payload: {
@@ -387,12 +389,12 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 				},
 			});
 
-			await handleShare(
-				shareUrl,
-				i18n.t("FoodContentScreen.share.title", { dishName: item.restaurant.name }),
-				() => {
-					// Success callback
-					logFrontendEvent({
+                        await handleShare(
+                                shareUrl,
+                                i18n.t("FoodContentScreen.share.title", { dishName: item.restaurant.name }),
+                                () => {
+                                        // Success callback
+                                        logFrontendEvent({
 						event_name: "dish_share_success",
 						error_level: "log",
 						payload: {
@@ -401,21 +403,22 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 							shareUrl,
 						},
 					});
-				},
-				(error) => {
-					// Error callback
-					logFrontendEvent({
-						event_name: "dish_share_failed",
-						error_level: "error",
-						payload: {
-							dishMediaId: item.dish_media.id,
-							restaurantId: item.restaurant.id,
-							shareUrl,
-							error,
-						},
-					});
-				},
-			);
+                                },
+                                (error) => {
+                                        // Error callback
+                                        logFrontendEvent({
+                                                event_name: "dish_share_failed",
+                                                error_level: "error",
+                                                payload: {
+                                                        dishMediaId: item.dish_media.id,
+                                                        restaurantId: item.restaurant.id,
+                                                        shareUrl,
+                                                        error,
+                                                },
+                                        });
+                                },
+                                showSnackbar,
+                        );
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "dish_share_error",

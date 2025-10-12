@@ -7,15 +7,14 @@
 */
 import React, { useState, useCallback } from "react";
 import {
-	View,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	StyleSheet,
-	KeyboardAvoidingView,
-	Platform,
-	ScrollView,
-	Alert,
+        View,
+        Text,
+        TextInput,
+        TouchableOpacity,
+        StyleSheet,
+        KeyboardAvoidingView,
+        Platform,
+        ScrollView,
 } from "react-native";
 import { User, Mail, Phone } from "lucide-react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -25,19 +24,21 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { Image } from "expo-image";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface LoginbackModalProps {
 	onClose: () => void;
 }
 
 export function LoginbackModal({ onClose }: LoginbackModalProps) {
-	const [phone, setPhone] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
-	const [errors, setErrors] = useState<{ phone?: string }>({});
+        const [phone, setPhone] = useState("");
+        const [isLoading, setIsLoading] = useState(false);
+        const [errors, setErrors] = useState<{ phone?: string }>({});
 
-	const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
-	const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
-	const { logFrontendEvent } = useLogger();
+        const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
+        const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
+        const { logFrontendEvent } = useLogger();
+        const { showSnackbar } = useSnackbar();
 
 	const validatePhone = useCallback((phoneNumber: string): boolean => {
 		// E.164 format validation (simplified)
@@ -61,11 +62,11 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 		}
 
 		setIsLoading(true);
-		try {
-			try {
-				await signInWithOtp(phone);
-				onClose();
-				openOtpModal();
+                try {
+                        try {
+                                await signInWithOtp(phone);
+                                onClose();
+                                openOtpModal();
 
 				logFrontendEvent({
 					event_name: "otp_sent",
@@ -80,12 +81,16 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				});
 				throw error;
 			}
-		} catch (error: any) {
-			Alert.alert(i18n.t("Common.error"), error.message);
-		} finally {
-			setIsLoading(false);
-		}
-	}, [phone, validatePhone, logFrontendEvent]);
+                } catch (error: unknown) {
+                        const message =
+                                error instanceof Error && error.message
+                                        ? error.message
+                                        : i18n.t("Common.error");
+                        showSnackbar(message);
+                } finally {
+                        setIsLoading(false);
+                }
+        }, [phone, validatePhone, logFrontendEvent, onClose, openOtpModal, showSnackbar, signInWithOtp]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
@@ -133,14 +138,18 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 						throw error;
 					}
 				}
-			} catch (error: any) {
-				Alert.alert(i18n.t("Common.error"), error.message);
-			} finally {
-				setIsLoading(false);
-			}
-		},
-		[user, linkIdentity, signInWithOAuth, logFrontendEvent],
-	);
+                        } catch (error: unknown) {
+                                const message =
+                                        error instanceof Error && error.message
+                                                ? error.message
+                                                : i18n.t("Common.error");
+                                showSnackbar(message);
+                        } finally {
+                                setIsLoading(false);
+                        }
+                },
+                [user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar],
+        );
 
 	return (
 		<View style={styles.container}>
