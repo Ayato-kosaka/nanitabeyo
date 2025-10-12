@@ -98,23 +98,23 @@ export function ReviewForm({
 		setIsProcessing(true);
 		setDishCategoryError(null);
 
-		try {
-			// 料理カテゴリが未選択の場合、POSTで作成
-			let finalDishCategoryId = dishCategoryId;
-			if (!finalDishCategoryId) {
-				try {
-					const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
-					finalDishCategoryId = createdCategory.id;
-					setDishCategoryId(finalDishCategoryId);
-				} catch (error: any) {
-					// POSTエラー時はインラインエラー表示
-					const errorMessage = error?.message || i18n.t("Map.errors.dishCategoryCreateFailed");
-					setDishCategoryError(errorMessage);
-					setIsProcessing(false);
-					return;
-				}
+		// 料理カテゴリが未選択の場合、POSTで作成
+		let finalDishCategoryId = dishCategoryId;
+		if (!finalDishCategoryId) {
+			try {
+				const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
+				finalDishCategoryId = createdCategory.id;
+				setDishCategoryId(finalDishCategoryId);
+			} catch (error: any) {
+				// POSTエラー時はインラインエラー表示
+				const errorMessage = i18n.t("Map.errors.dishCategoryNotFound");
+				setDishCategoryError(errorMessage);
+				setIsProcessing(false);
+				return;
 			}
+		}
 
+		try {
 			const dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
 				method: "POST",
 				requestPayload: {
