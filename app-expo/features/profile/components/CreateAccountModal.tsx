@@ -66,25 +66,27 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 		setIsLoading(true);
 		try {
 			await onSubmit({ name: name.trim(), phone: phone.trim() });
+			onClose();
 		} catch (error: any) {
 			Alert.alert(i18n.t("Common.error"), error.message);
 		} finally {
 			setIsLoading(false);
 		}
-	}, [name, phone, agreeToTerms, validatePhone, onSubmit]);
+	}, [name, phone, agreeToTerms, validatePhone, onSubmit, onClose]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
 			setIsLoading(true);
 			try {
 				await onOAuthSignIn(provider);
+				onClose();
 			} catch (error: any) {
 				Alert.alert(i18n.t("Common.error"), error.message);
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[onOAuthSignIn],
+		[onOAuthSignIn, onClose],
 	);
 
 	return (
