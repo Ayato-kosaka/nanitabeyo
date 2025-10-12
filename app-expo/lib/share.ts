@@ -1,7 +1,8 @@
-import { Platform, Alert } from "react-native";
+import { Platform } from "react-native";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import { Env } from "@/constants/Env";
+import i18n from "@/lib/i18n";
 
 /**
  * Generate a shareable URL based on the current pathname
@@ -23,13 +24,14 @@ export const generateShareUrl = (pathname: string): string => {
  * @param onError Callback for share error
  */
 export const handleShare = async (
-	url: string,
-	title?: string,
-	onSuccess?: () => void,
-	onError?: (error: string) => void,
+        url: string,
+        title?: string,
+        onSuccess?: () => void,
+        onError?: (error: string) => void,
+        showSnackbar?: (message: string) => void,
 ): Promise<void> => {
-	try {
-		if (Platform.OS === "web") {
+        try {
+                if (Platform.OS === "web") {
 			// Web platform - try Web Share API first, fallback to clipboard
 			if (navigator.share) {
 				await navigator.share({
@@ -37,13 +39,13 @@ export const handleShare = async (
 					url: url,
 				});
 				onSuccess?.();
-			} else {
-				// Fallback to clipboard for unsupported browsers
-				await Clipboard.setStringAsync(url);
-				Alert.alert("Copied!", "Link copied to clipboard");
-				onSuccess?.();
-			}
-		} else {
+                        } else {
+                                // Fallback to clipboard for unsupported browsers
+                                await Clipboard.setStringAsync(url);
+                                showSnackbar?.(i18n.t("Common.linkCopied"));
+                                onSuccess?.();
+                        }
+                } else {
 			// iOS/Android - try native sharing first, fallback to clipboard
 			const isAvailable = await Sharing.isAvailableAsync();
 			if (isAvailable) {
@@ -52,23 +54,23 @@ export const handleShare = async (
 					mimeType: "text/plain",
 				});
 				onSuccess?.();
-			} else {
-				// Fallback to clipboard
-				await Clipboard.setStringAsync(url);
-				Alert.alert("Copied!", "Link copied to clipboard");
-				onSuccess?.();
-			}
-		}
-	} catch (error) {
-		// Always fallback to clipboard on any error
-		try {
-			await Clipboard.setStringAsync(url);
-			Alert.alert("Copied!", "Link copied to clipboard");
-			onSuccess?.();
-		} catch (clipboardError) {
-			const errorMessage = "Failed to share content";
-			Alert.alert("Error", errorMessage);
-			onError?.(errorMessage);
-		}
-	}
+                        } else {
+                                // Fallback to clipboard
+                                await Clipboard.setStringAsync(url);
+                                showSnackbar?.(i18n.t("Common.linkCopied"));
+                                onSuccess?.();
+                        }
+                }
+        } catch (error) {
+                // Always fallback to clipboard on any error
+                try {
+                        await Clipboard.setStringAsync(url);
+                        showSnackbar?.(i18n.t("Common.linkCopied"));
+                        onSuccess?.();
+                } catch (clipboardError) {
+                        const errorMessage = i18n.t("Common.shareFailed");
+                        showSnackbar?.(errorMessage);
+                        onError?.(errorMessage);
+                }
+        }
 };
