@@ -67,6 +67,7 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 		setIsLoading(true);
                 try {
                         await onSubmit({ name: name.trim(), phone: phone.trim() });
+			onClose();
                 } catch (error: unknown) {
                         const message =
                                 error instanceof Error && error.message
@@ -83,6 +84,7 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 			setIsLoading(true);
                         try {
                                 await onOAuthSignIn(provider);
+				onClose();
                         } catch (error: unknown) {
                                 const message =
                                         error instanceof Error && error.message

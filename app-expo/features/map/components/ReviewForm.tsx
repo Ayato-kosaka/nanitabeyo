@@ -16,6 +16,7 @@ import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import { CreateDishDto, type CreateDishMediaDto, type CreateDishReviewDto } from "@shared/api/v1/dto";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import type { CreateDishMediaResponse, CreateDishResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -49,6 +50,7 @@ export function ReviewForm({
 	const { uploadFile: mediaUploadFile } = useFileUploader();
 	const { uploadFile: thumbnailUploadFile } = useFileUploader();
 	const { createDishCategoryVariant } = useDishCategorySearch();
+	const { showSnackbar } = useSnackbar();
 
 	// 料理カテゴリの状態管理
 	const [dishCategoryName, setDishCategoryName] = useState("");
@@ -183,7 +185,7 @@ export function ReviewForm({
 				error_level: "error",
 				payload: { restaurantId: restaurant?.id, error: error?.message },
 			});
-			Alert.alert("Error", error?.message || "Failed to submit review");
+			showSnackbar(i18n.t("Map.errors.reviewSubmitFailed"));
 		} finally {
 			setIsProcessing(false);
 		}

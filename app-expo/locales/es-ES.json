@@ -262,7 +262,7 @@
 			"enterPrice": "Ingresa el precio",
 			"enterReview": "Ingresa tu reseña",
 			"enterBidAmount": "Ingresa el monto de la oferta",
-			"enterDishCategory": "Ingresa categoría del plato (ej: Ramen, Sushi)"
+                        "enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
@@ -307,7 +307,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "Error al crear categoría de plato",
 			"dishCategoryNotFound": "Categoría de plato no encontrada",
-			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido"
+			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido",
+			"reviewSubmitFailed": "Error al publicar la reseña"
 		}
 	},
 	"Restaurant": {

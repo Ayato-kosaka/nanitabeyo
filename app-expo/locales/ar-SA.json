@@ -262,7 +262,7 @@
 			"enterPrice": "أدخل السعر",
 			"enterReview": "أدخل مراجعتك",
 			"enterBidAmount": "أدخل مبلغ العرض",
-			"enterDishCategory": "أدخل فئة الطبق (مثال: رامين، سوشي)"
+                        "enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
@@ -307,7 +307,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "فشل في إنشاء فئة الطبق",
 			"dishCategoryNotFound": "لم يتم العثور على فئة الطبق",
-			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح"
+			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح",
+			"reviewSubmitFailed": "فشل في نشر المراجعة"
 		}
 	},
 	"Restaurant": {

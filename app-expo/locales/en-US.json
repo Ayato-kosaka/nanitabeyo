@@ -261,7 +261,7 @@
 			"enterPrice": "Enter price",
 			"enterReview": "Enter review",
 			"enterBidAmount": "Enter bid amount",
-			"enterDishCategory": "Enter dish category (e.g., Ramen, Sushi)"
+                        "enterDishCategory": "Enter dish category (e.g., Burger, BBQ)"
 		},
 		"labels": {
 			"endDate": "End date:",
@@ -307,7 +307,8 @@
 		"errors": {
 			"dishCategoryCreateFailed": "Failed to create dish category",
 			"dishCategoryNotFound": "Dish category not found",
-			"dishCategoryInvalidInput": "Invalid dish category name"
+			"dishCategoryInvalidInput": "Invalid dish category name",
+			"reviewSubmitFailed": "Failed to post review"
 		}
 	},
 	"Restaurant": {
