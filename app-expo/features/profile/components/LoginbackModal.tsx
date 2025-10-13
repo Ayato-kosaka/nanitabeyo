@@ -34,6 +34,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 	const [phone, setPhone] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [errors, setErrors] = useState<{ phone?: string }>({});
+	const [hasExistingAccount, setHasExistingAccount] = useState(false);
 
 	const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
 	const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
@@ -95,35 +96,30 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				// 前提: アプリの初期化時に signInAnonymously() をしているため、auth.userが存在する
 				const isAnonymous = user?.is_anonymous;
 
-				if (isAnonymous) {
-					// 未ログイン状態なら 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
-					// → 成功時は 同一 auth.users.id を維持して昇格可能。
-					// 既に他のユーザーにリンク済みの OAuth であれば失敗する。
-					// 失敗した場合は 通常の OAuth サインイン(signInWithOAuth)を用い、既存ユーザーへログインする。
-					// ただし、失敗しても即座にリダイレクトしてしまうため、ここでは catch しない。
+				if (isAnonymous && !hasExistingAccount) {
+					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
 					await linkIdentity(provider);
 				} else {
-					// 既にログイン済みなら、通常の OAuth サインインを行う。
-					// セッション中のユーザーとは別の auth.users.id でログインする。
+					// チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
 					await signInWithOAuth(provider);
 				}
 				logFrontendEvent({
 					event_name: "oauth_signin_success",
 					error_level: "log",
-					payload: { provider, isUpgrade: isAnonymous },
+					payload: { provider, isUpgrade: isAnonymous && !hasExistingAccount, hasExistingAccount },
 				});
-                        } catch (error: unknown) {
-                                logFrontendEvent({
-                                        event_name: "oauth_signin_error",
-                                        error_level: "error",
-                                        payload: { provider, error: (error as Error).message },
-                                });
-                                showSnackbar(i18n.t("Common.error"));
+			} catch (error: unknown) {
+				logFrontendEvent({
+					event_name: "oauth_signin_error",
+					error_level: "error",
+					payload: { provider, error: (error as Error).message },
+				});
+				showSnackbar(i18n.t("Common.error"));
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar],
+		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount],
 	);
 
 	return (
@@ -171,6 +167,21 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 						<Text style={styles.dividerText}>{i18n.t("auth.divider_or")}</Text>
 						<View style={styles.dividerLine} />
 					</View> */}
+
+			{/* Existing Account Checkbox - Show only for anonymous users */}
+			{user?.is_anonymous && (
+				<View style={styles.checkboxContainer}>
+					<TouchableOpacity
+						style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}
+						onPress={() => setHasExistingAccount(!hasExistingAccount)}
+						disabled={isLoading}>
+						{hasExistingAccount && <Text style={styles.checkboxMark}>✓</Text>}
+					</TouchableOpacity>
+					<View style={styles.checkboxTextContainer}>
+						<Text style={styles.checkboxText}>{i18n.t("auth.existing_account_checkbox")}</Text>
+					</View>
+				</View>
+			)}
 
 			{/* OAuth Buttons */}
 			<View style={styles.oauthContainer}>
@@ -330,5 +341,39 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: "600",
 		color: "#1A1A1A",
+	},
+	checkboxContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 20,
+		paddingHorizontal: 4,
+	},
+	checkbox: {
+		width: 24,
+		height: 24,
+		borderRadius: 6,
+		borderWidth: 2,
+		borderColor: "#D1D5DB",
+		alignItems: "center",
+		justifyContent: "center",
+		marginRight: 12,
+		backgroundColor: "#FFFFFF",
+	},
+	checkboxChecked: {
+		backgroundColor: "#5EA2FF",
+		borderColor: "#5EA2FF",
+	},
+	checkboxMark: {
+		color: "#FFFFFF",
+		fontSize: 14,
+		fontWeight: "700",
+	},
+	checkboxTextContainer: {
+		flex: 1,
+	},
+	checkboxText: {
+		fontSize: 16,
+		color: "#1A1A1A",
+		lineHeight: 22,
 	},
 });

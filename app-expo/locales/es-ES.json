@@ -8,7 +8,7 @@
 		"save": "Guardar",
 		"post": "Publicar",
 		"processing": "Procesando...",
-                "error": "Se produjo un error. Vuelve a intentarlo.",
+		"error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
 		"linkCopied": "Enlace copiado al portapapeles",
 		"shareFailed": "No se pudo compartir el contenido",
@@ -391,6 +391,11 @@
 		"login_success": "¡Inicio de sesión exitoso!",
 		"error_required": "Este campo es obligatorio",
 		"error_invalid_phone": "Número de teléfono inválido",
-		"tos_link_text": "Términos de Servicio"
+		"tos_link_text": "Términos de Servicio",
+		"existing_account_checkbox": "¿Ya tienes una cuenta?",
+		"conflict_dialog_title": "Cuenta Existente Encontrada",
+		"conflict_dialog_message": "Esta cuenta ya está vinculada a otro usuario. Si cambias, los datos creados como invitado no se transferirán. ¿Deseas cambiar a la cuenta existente?",
+		"conflict_dialog_switch": "Cambiar",
+		"conflict_dialog_cancel": "Cancelar"
 	}
 }
