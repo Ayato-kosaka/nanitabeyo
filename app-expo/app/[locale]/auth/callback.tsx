@@ -16,7 +16,7 @@ import { useEffect } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { handleOAuthResultUrl, useAuth } from "@/contexts/AuthProvider";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 
@@ -26,7 +26,7 @@ import i18n from "@/lib/i18n";
  */
 export default function AuthCallbackScreen() {
 	const router = useRouter();
-	const { createUserProfile } = useAuth();
+	const { createUserProfile, handleOAuthResultUrl } = useAuth();
 	const { logFrontendEvent } = useLogger();
 
 	useEffect(() => {

@@ -7,14 +7,14 @@
 */
 import React, { useState, useCallback } from "react";
 import {
-        View,
-        Text,
-        TextInput,
-        TouchableOpacity,
-        StyleSheet,
-        KeyboardAvoidingView,
-        Platform,
-        ScrollView,
+	View,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	StyleSheet,
+	KeyboardAvoidingView,
+	Platform,
+	ScrollView,
 } from "react-native";
 import { User, Mail, Phone } from "lucide-react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -31,14 +31,14 @@ interface LoginbackModalProps {
 }
 
 export function LoginbackModal({ onClose }: LoginbackModalProps) {
-        const [phone, setPhone] = useState("");
-        const [isLoading, setIsLoading] = useState(false);
-        const [errors, setErrors] = useState<{ phone?: string }>({});
+	const [phone, setPhone] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+	const [errors, setErrors] = useState<{ phone?: string }>({});
 
-        const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
-        const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
-        const { logFrontendEvent } = useLogger();
-        const { showSnackbar } = useSnackbar();
+	const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
+	const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
+	const { logFrontendEvent } = useLogger();
+	const { showSnackbar } = useSnackbar();
 
 	const validatePhone = useCallback((phoneNumber: string): boolean => {
 		// E.164 format validation (simplified)
@@ -62,11 +62,11 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 		}
 
 		setIsLoading(true);
-                try {
-                        try {
-                                await signInWithOtp(phone);
-                                onClose();
-                                openOtpModal();
+		try {
+			try {
+				await signInWithOtp(phone);
+				onClose();
+				openOtpModal();
 
 				logFrontendEvent({
 					event_name: "otp_sent",
@@ -81,75 +81,51 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				});
 				throw error;
 			}
-                } catch (error: unknown) {
-                        const message =
-                                error instanceof Error && error.message
-                                        ? error.message
-                                        : i18n.t("Common.error");
-                        showSnackbar(message);
-                } finally {
-                        setIsLoading(false);
-                }
-        }, [phone, validatePhone, logFrontendEvent, onClose, openOtpModal, showSnackbar, signInWithOtp]);
+		} catch (error: unknown) {
+			showSnackbar(i18n.t("Common.error"));
+		} finally {
+			setIsLoading(false);
+		}
+	}, [phone, validatePhone, logFrontendEvent, onClose, openOtpModal, showSnackbar, signInWithOtp]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
 			setIsLoading(true);
 			try {
-				try {
-					// Check if user is anonymous and try to link identity first
-					const isAnonymous = user?.is_anonymous;
+				// 前提: アプリの初期化時に signInAnonymously() をしているため、auth.userが存在する
+				const isAnonymous = user?.is_anonymous;
 
-					if (isAnonymous) {
-						await linkIdentity(provider);
-					} else {
-						await signInWithOAuth(provider);
-					}
-
-					logFrontendEvent({
-						event_name: "oauth_signin_success",
-						error_level: "log",
-						payload: { provider, isUpgrade: isAnonymous },
-					});
-				} catch (error) {
-					// If linking fails, try regular OAuth sign in
-					if (user?.is_anonymous) {
-						try {
-							await signInWithOAuth(provider);
-							logFrontendEvent({
-								event_name: "oauth_signin_fallback_success",
-								error_level: "log",
-								payload: { provider },
-							});
-						} catch (fallbackError) {
-							logFrontendEvent({
-								event_name: "oauth_signin_error",
-								error_level: "error",
-								payload: { provider, error: (fallbackError as Error).message },
-							});
-							throw fallbackError;
-						}
-					} else {
-						logFrontendEvent({
-							event_name: "oauth_signin_error",
-							error_level: "error",
-							payload: { provider, error: (error as Error).message },
-						});
-						throw error;
-					}
+				if (isAnonymous) {
+					// 未ログイン状態なら 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
+					// → 成功時は 同一 auth.users.id を維持して昇格可能。
+					// 既に他のユーザーにリンク済みの OAuth であれば失敗する。
+					// 失敗した場合は 通常の OAuth サインイン(signInWithOAuth)を用い、既存ユーザーへログインする。
+					// ただし、失敗しても即座にリダイレクトしてしまうため、ここでは catch しない。
+					await linkIdentity(provider);
+				} else {
+					// 既にログイン済みなら、通常の OAuth サインインを行う。
+					// セッション中のユーザーとは別の auth.users.id でログインする。
+					await signInWithOAuth(provider);
 				}
-                        } catch (error: unknown) {
-                                const message =
-                                        error instanceof Error && error.message
-                                                ? error.message
-                                                : i18n.t("Common.error");
-                                showSnackbar(message);
-                        } finally {
-                                setIsLoading(false);
-                        }
-                },
-                [user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar],
-        );
+				logFrontendEvent({
+					event_name: "oauth_signin_success",
+					error_level: "log",
+					payload: { provider, isUpgrade: isAnonymous },
+				});
+			} catch (error: unknown) {
+				logFrontendEvent({
+					event_name: "oauth_signin_error",
+					error_level: "error",
+					payload: { provider, error: (error as Error).message },
+				});
+				const message = error instanceof Error && error.message ? error.message : i18n.t("Common.error");
+				showSnackbar(message);
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar],
+	);
 
 	return (
 		<View style={styles.container}>
