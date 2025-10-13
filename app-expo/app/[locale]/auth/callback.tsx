@@ -63,15 +63,16 @@ export default function AuthCallbackScreen() {
 
 				router.replace("/(tabs)/profile");
 				return;
-			} catch (error: any) {
+			} catch (error: unknown) {
 				// linkIdentity による identity_already_exists エラーの場合は警告ダイアログを表示
-				if (error?.error_code === "identity_already_exists" && error?.intent === "link" && error?.provider) {
+				const err = error as any;
+				if (err?.error_code === "identity_already_exists" && err?.intent === "link" && err?.provider) {
 					logFrontendEvent({
 						event_name: "oauth_link_conflict",
 						error_level: "warn",
-						payload: { provider: error.provider, error_code: error.error_code },
+						payload: { provider: err.provider, error_code: err.error_code },
 					});
-					setConflictProvider(error.provider);
+					setConflictProvider(err.provider);
 					setShowConflictDialog(true);
 					return;
 				}
@@ -79,7 +80,7 @@ export default function AuthCallbackScreen() {
 				logFrontendEvent({
 					event_name: "oauth_callback_error",
 					error_level: "error",
-					payload: { error: (error as Error).message },
+					payload: { error: error instanceof Error ? error.message : String(error) },
 				});
 
 				// エラーの場合もプロフィール画面に戻る
