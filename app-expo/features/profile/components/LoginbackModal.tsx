@@ -112,14 +112,13 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					error_level: "log",
 					payload: { provider, isUpgrade: isAnonymous },
 				});
-			} catch (error: unknown) {
-				logFrontendEvent({
-					event_name: "oauth_signin_error",
-					error_level: "error",
-					payload: { provider, error: (error as Error).message },
-				});
-				const message = error instanceof Error && error.message ? error.message : i18n.t("Common.error");
-				showSnackbar(message);
+                        } catch (error: unknown) {
+                                logFrontendEvent({
+                                        event_name: "oauth_signin_error",
+                                        error_level: "error",
+                                        payload: { provider, error: (error as Error).message },
+                                });
+                                showSnackbar(i18n.t("Common.error"));
 			} finally {
 				setIsLoading(false);
 			}

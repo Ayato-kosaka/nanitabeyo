@@ -8,7 +8,7 @@
 		"save": "保存",
 		"post": "发布",
 		"processing": "处理中...",
-		"error": "错误",
+                "error": "发生错误。请重试。",
 		"success": "成功",
 		"linkCopied": "链接已复制到剪贴板",
 		"shareFailed": "分享内容失败",
