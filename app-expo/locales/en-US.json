@@ -8,7 +8,7 @@
 		"save": "Save",
 		"post": "Post",
 		"processing": "Processing...",
-		"error": "Error",
+                "error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
 		"shareFailed": "Failed to share content",

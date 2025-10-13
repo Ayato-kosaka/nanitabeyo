@@ -8,7 +8,7 @@
 		"save": "Guardar",
 		"post": "Publicar",
 		"processing": "Procesando...",
-		"error": "Error",
+                "error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
 		"linkCopied": "Enlace copiado al portapapeles",
 		"shareFailed": "No se pudo compartir el contenido",

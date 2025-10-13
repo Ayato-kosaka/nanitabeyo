@@ -112,9 +112,8 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 				});
 				throw error;
 			}
-		} catch (error: unknown) {
-			const message = error instanceof Error && error.message ? error.message : i18n.t("Common.error");
-			showSnackbar(message);
+                } catch (error: unknown) {
+                        showSnackbar(i18n.t("Common.error"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -143,9 +142,8 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 			setOtp(["", "", "", "", "", ""]);
 			// Focus first input
 			inputRefs.current[0]?.focus();
-		} catch (error: unknown) {
-			const message = error instanceof Error && error.message ? error.message : i18n.t("Common.error");
-			showSnackbar(message);
+                } catch (error: unknown) {
+                        showSnackbar(i18n.t("Common.error"));
 		} finally {
 			setIsResending(false);
 		}

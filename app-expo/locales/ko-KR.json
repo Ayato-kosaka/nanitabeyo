@@ -8,7 +8,7 @@
 		"save": "저장",
 		"post": "게시",
 		"processing": "처리 중...",
-		"error": "오류",
+                "error": "오류가 발생했습니다. 다시 시도해 주세요.",
 		"success": "성공",
 		"linkCopied": "링크가 클립보드에 복사되었습니다",
 		"shareFailed": "콘텐츠를 공유하지 못했습니다",

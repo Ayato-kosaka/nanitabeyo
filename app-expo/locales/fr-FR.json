@@ -8,7 +8,7 @@
 		"save": "Enregistrer",
 		"post": "Publier",
 		"processing": "Traitement...",
-		"error": "Erreur",
+                "error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
 		"linkCopied": "Lien copié dans le presse-papiers",
 		"shareFailed": "Échec du partage du contenu",
