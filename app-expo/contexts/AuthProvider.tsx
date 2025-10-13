@@ -112,6 +112,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// initializeAuth で処理済
 			} else if (event === "SIGNED_IN") {
 				if (!session) return;
+				if (sessionRef.current?.user.id !== session.user.id) {
+					// signInWithOAuth は、未登録なら新規ユーザーを作り、匿名ユーザーから切り替わる可能性がある
+					// そのため、 user.id の変化を検出してログを出す
+					logFrontendEvent({
+						event_name: "userChanged",
+						error_level: "log",
+						payload: { previous_user_id: sessionRef.current?.user.id, new_user_id: session.user.id },
+					});
+				}
 				setUser(session.user);
 				sessionRef.current = session;
 				// router.replace('/');
@@ -159,14 +168,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * 新規ユーザー作成 または 既存ユーザー へのログインを行う。
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
-	const signInWithOAuth = async (provider: Provider) => {
+	const signInWithOAuth = async (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => {
+		const { queryParams } = options || {};
 		const redirectTo =
 			Platform.OS === "web"
 				? `${window.location.origin}/${locale}/auth/callback`
 				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback` });
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
-			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
+			options: { redirectTo, queryParams, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
@@ -260,7 +270,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			if (error_code === "identity_already_exists") {
 				if (!provider) throw new Error("Missing provider for fallback sign-in");
 				// linkIdentity 由来のエラーなら、既存ユーザーでログインを試みる
-				signInWithOAuth(provider);
+				signInWithOAuth(provider, { queryParams: { prompt: "none" } });
 				return user;
 			}
 			throw new Error(error_description ?? error_code ?? error);
