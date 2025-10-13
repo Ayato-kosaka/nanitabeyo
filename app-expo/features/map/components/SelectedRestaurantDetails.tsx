@@ -108,8 +108,6 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 				case "thumbnail_failed":
 					errorMessage = i18n.t("Map.media.thumbnailFailed");
 					break;
-				default:
-					errorMessage = result.errorMessage || i18n.t("Common.error");
 			}
 
 			showSnackbar(errorMessage);
