@@ -29,4 +29,4 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
   ],
   exports: [UsersService, UsersRepository],
 })
-export class UsersModule { }
+export class UsersModule {}

@@ -7,14 +7,14 @@
 */
 import React, { useState, useCallback } from "react";
 import {
-        View,
-        Text,
-        TextInput,
-        TouchableOpacity,
-        StyleSheet,
-        KeyboardAvoidingView,
-        Platform,
-        ScrollView,
+	View,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	StyleSheet,
+	KeyboardAvoidingView,
+	Platform,
+	ScrollView,
 } from "react-native";
 import { User, Phone } from "lucide-react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -28,12 +28,12 @@ interface CreateAccountModalProps {
 }
 
 export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateAccountModalProps) {
-        const [name, setName] = useState("");
-        const [phone, setPhone] = useState("");
-        const [agreeToTerms, setAgreeToTerms] = useState(false);
-        const [isLoading, setIsLoading] = useState(false);
-        const [errors, setErrors] = useState<{ name?: string; phone?: string; terms?: string }>({});
-        const { showSnackbar } = useSnackbar();
+	const [name, setName] = useState("");
+	const [phone, setPhone] = useState("");
+	const [agreeToTerms, setAgreeToTerms] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [errors, setErrors] = useState<{ name?: string; phone?: string; terms?: string }>({});
+	const { showSnackbar } = useSnackbar();
 
 	const validatePhone = useCallback((phoneNumber: string): boolean => {
 		// E.164 format validation (simplified)
@@ -41,8 +41,8 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 		return e164Pattern.test(phoneNumber);
 	}, []);
 
-        const handleSubmit = useCallback(async () => {
-                const newErrors: { name?: string; phone?: string; terms?: string } = {};
+	const handleSubmit = useCallback(async () => {
+		const newErrors: { name?: string; phone?: string; terms?: string } = {};
 
 		if (!name.trim()) {
 			newErrors.name = i18n.t("auth.error_required");
@@ -58,45 +58,39 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 			newErrors.terms = i18n.t("auth.error_required");
 		}
 
-                setErrors(newErrors);
+		setErrors(newErrors);
 
 		if (Object.keys(newErrors).length > 0) {
 			return;
 		}
 
 		setIsLoading(true);
-                try {
-                        await onSubmit({ name: name.trim(), phone: phone.trim() });
+		try {
+			await onSubmit({ name: name.trim(), phone: phone.trim() });
 			onClose();
-                } catch (error: unknown) {
-                        const message =
-                                error instanceof Error && error.message
-                                        ? error.message
-                                        : i18n.t("Common.error");
-                        showSnackbar(message);
-                } finally {
-                        setIsLoading(false);
-                }
-        }, [name, phone, agreeToTerms, validatePhone, onSubmit, showSnackbar]);
+		} catch (error: unknown) {
+			const message = error instanceof Error && error.message ? error.message : i18n.t("Common.error");
+			showSnackbar(message);
+		} finally {
+			setIsLoading(false);
+		}
+	}, [name, phone, agreeToTerms, validatePhone, onSubmit, showSnackbar]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
 			setIsLoading(true);
-                        try {
-                                await onOAuthSignIn(provider);
+			try {
+				await onOAuthSignIn(provider);
 				onClose();
-                        } catch (error: unknown) {
-                                const message =
-                                        error instanceof Error && error.message
-                                                ? error.message
-                                                : i18n.t("Common.error");
-                                showSnackbar(message);
-                        } finally {
-                                setIsLoading(false);
-                        }
-                },
-                [onOAuthSignIn, showSnackbar],
-        );
+			} catch (error: unknown) {
+				const message = error instanceof Error && error.message ? error.message : i18n.t("Common.error");
+				showSnackbar(message);
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[onOAuthSignIn, showSnackbar],
+	);
 
 	return (
 		<KeyboardAvoidingView

@@ -14,21 +14,18 @@ export class DishCategoryVariantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * 料理カテゴリ表記揺れを検索
    */
-  async findDishCategoryVariants(
-    tx: Prisma.TransactionClient, q: string) {
+  async findDishCategoryVariants(tx: Prisma.TransactionClient, q: string) {
     const qNorm = q.trim().toLowerCase();
     this.logger.debug('FindDishCategoryVariants', 'findDishCategoryVariants', {
       qNorm,
     });
 
-    const result = await tx.$queryRaw<
-      PrismaDishCategories[]
-    >`
+    const result = await tx.$queryRaw<PrismaDishCategories[]>`
     WITH candidates AS (
       SELECT
         dc.id AS "dishCategoryId",

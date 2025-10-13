@@ -7,11 +7,11 @@
 		"close": "Close",
 		"save": "Save",
 		"post": "Post",
-                "processing": "Processing...",
-                "error": "Error",
-                "success": "Success",
-                "linkCopied": "Link copied to clipboard",
-                "shareFailed": "Failed to share content",
+		"processing": "Processing...",
+		"error": "Error",
+		"success": "Success",
+		"linkCopied": "Link copied to clipboard",
+		"shareFailed": "Failed to share content",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "Simply tell the app how you feel, and our AI will suggest dishes you'll likely crave. Then browse real food photos and reviews to instantly pick a restaurant that feels right.",
 		"daysRemaining": "Remaining {{count}} days",
@@ -261,7 +261,7 @@
 			"enterPrice": "Enter price",
 			"enterReview": "Enter review",
 			"enterBidAmount": "Enter bid amount",
-                        "enterDishCategory": "Enter dish category (e.g., Burger, BBQ)"
+			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)"
 		},
 		"labels": {
 			"endDate": "End date:",
@@ -385,11 +385,11 @@
 		"provider_facebook": "Facebook",
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
-                "otp_title": "Enter Code",
-                "otp_send_again": "Resend Code",
-                "otp_enter_all_digits": "Please enter all 6 digits",
-                "login_success": "Successfully logged in!",
-                "error_required": "This field is required",
+		"otp_title": "Enter Code",
+		"otp_send_again": "Resend Code",
+		"otp_enter_all_digits": "Please enter all 6 digits",
+		"login_success": "Successfully logged in!",
+		"error_required": "This field is required",
 		"error_invalid_phone": "Invalid phone number",
 		"tos_link_text": "Terms of Service"
 	}

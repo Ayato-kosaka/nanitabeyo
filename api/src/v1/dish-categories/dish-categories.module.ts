@@ -26,4 +26,4 @@ import { ClaudeModule } from '../../core/claude/claude.module';
   providers: [DishCategoriesService, DishCategoriesRepository],
   exports: [DishCategoriesService, DishCategoriesRepository],
 })
-export class DishCategoriesModule { }
+export class DishCategoriesModule {}

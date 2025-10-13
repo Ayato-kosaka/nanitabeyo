@@ -15,6 +15,7 @@ This document summarizes the implementation of the DishCategoryAutocomplete feat
 A custom React hook that manages dish category search and variant creation:
 
 **Features:**
+
 - Debounced search (300ms) with minimum 3 characters
 - AbortController support for request cancellation
 - GET `/v1/dish-category-variants?q&lang` for autocomplete
@@ -23,6 +24,7 @@ A custom React hook that manages dish category search and variant creation:
 - Comprehensive error logging
 
 **Key Functions:**
+
 - `searchDishCategories(query: string)` - Searches for matching dish categories
 - `createDishCategoryVariant(name: string)` - Creates a new dish category variant
 
@@ -31,6 +33,7 @@ A custom React hook that manages dish category search and variant creation:
 A reusable autocomplete component based on `LocationAutocomplete`:
 
 **Features:**
+
 - Text input with real-time suggestions
 - Clear button functionality
 - Loading indicator during search
@@ -39,6 +42,7 @@ A reusable autocomplete component based on `LocationAutocomplete`:
 - Consistent styling with existing components
 
 **Props:**
+
 - `value: string` - Current input value
 - `onChangeText: (text: string) => void` - Text change handler
 - `onSelectSuggestion: (suggestion) => void` - Suggestion selection handler
@@ -51,6 +55,7 @@ A reusable autocomplete component based on `LocationAutocomplete`:
 ### 3. ReviewForm Integration (`app-expo/features/map/components/ReviewForm.tsx`)
 
 **Changes:**
+
 - Added `DishCategoryAutocomplete` component to the form
 - State management for `dishCategoryName` and `dishCategoryId`
 - Suggestion selection updates `dishCategoryId`
@@ -61,6 +66,7 @@ A reusable autocomplete component based on `LocationAutocomplete`:
   - Continue with review submission after successful variant creation
 
 **Error Handling:**
+
 - Inline error messages below the autocomplete input
 - Accessible error announcements (`accessibilityLiveRegion="polite"`)
 - Focus returns to input on error
@@ -71,29 +77,30 @@ A reusable autocomplete component based on `LocationAutocomplete`:
 Added strings to all 8 locale files (en-US, ja-JP, ar-SA, es-ES, fr-FR, hi-IN, ko-KR, zh-CN):
 
 **Map Section Additions:**
+
 ```json
 {
-  "Map": {
-    "inputs": {
-      "dishCategory": "料理カテゴリ / Dish Category"
-    },
-    "placeholders": {
-      "enterDishCategory": "料理カテゴリを入力 (例: ラーメン、寿司)"
-    },
-    "noResultsFound": "結果が見つかりませんでした",
-    "accessibility": {
-      "dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
-      "dishCategorySelected": "{{category}}を選択しました",
-      "dishCategorySearching": "料理カテゴリを検索中",
-      "dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
-      "dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
-    },
-    "errors": {
-      "dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
-      "dishCategoryNotFound": "料理カテゴリが見つかりません",
-      "dishCategoryInvalidInput": "無効な料理カテゴリ名です"
-    }
-  }
+	"Map": {
+		"inputs": {
+			"dishCategory": "料理カテゴリ / Dish Category"
+		},
+		"placeholders": {
+			"enterDishCategory": "料理カテゴリを入力 (例: ラーメン、寿司)"
+		},
+		"noResultsFound": "結果が見つかりませんでした",
+		"accessibility": {
+			"dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
+			"dishCategorySelected": "{{category}}を選択しました",
+			"dishCategorySearching": "料理カテゴリを検索中",
+			"dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
+			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
+			"dishCategoryNotFound": "料理カテゴリが見つかりません",
+			"dishCategoryInvalidInput": "無効な料理カテゴリ名です"
+		}
+	}
 }
 ```
 
@@ -102,6 +109,7 @@ Added strings to all 8 locale files (en-US, ja-JP, ar-SA, es-ES, fr-FR, hi-IN, k
 ### GET `/v1/dish-category-variants`
 
 **Request:**
+
 ```typescript
 {
   q: string,      // Search query (minimum 3 characters)
@@ -110,23 +118,26 @@ Added strings to all 8 locale files (en-US, ja-JP, ar-SA, es-ES, fr-FR, hi-IN, k
 ```
 
 **Response:**
+
 ```typescript
 Array<{
-  dishCategoryId: string,
-  label: string
-}>
+	dishCategoryId: string;
+	label: string;
+}>;
 ```
 
 ### POST `/v1/dish-category-variants`
 
 **Request:**
+
 ```typescript
 {
-  name: string    // Dish category name to create
+	name: string; // Dish category name to create
 }
 ```
 
 **Response:**
+
 ```typescript
 {
   id: string,
@@ -135,6 +146,7 @@ Array<{
 ```
 
 **Error Handling:**
+
 - 404: No matching dish category found (variant creation failed)
 - 422/400: Validation errors
 - 429: Rate limiting
@@ -228,10 +240,12 @@ All errors display inline below the autocomplete input with appropriate error me
 ## Files Changed
 
 **New Files:**
+
 - `app-expo/hooks/useDishCategorySearch.ts` (152 lines)
 - `app-expo/components/DishCategoryAutocomplete.tsx` (330 lines)
 
 **Modified Files:**
+
 - `app-expo/features/map/components/ReviewForm.tsx` (added 60+ lines)
 - `app-expo/locales/*.json` (8 files, added i18n strings)
 
@@ -240,6 +254,7 @@ All errors display inline below the autocomplete input with appropriate error me
 ## Dependencies
 
 No new dependencies added. Uses existing packages:
+
 - React Native core components
 - `lucide-react-native` for icons (ChefHat)
 - Existing custom hooks (useAPICall, useLocale, useLogger, useHaptics)

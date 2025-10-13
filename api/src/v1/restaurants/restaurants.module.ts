@@ -31,7 +31,7 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
   providers: [RestaurantsService, RestaurantsRepository, RestaurantsMapper],
   exports: [
     RestaurantsService, // 他ドメインから利用できるよう export
-    RestaurantsRepository
+    RestaurantsRepository,
   ],
 })
-export class RestaurantsModule { }
+export class RestaurantsModule {}

@@ -66,7 +66,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   /**
    * 写真候補を選択する優先順位ロジック
@@ -189,9 +189,10 @@ export class DishesService {
     }
 
     // DishCategory と Restaurant を取得し、ローカル言語を推測して dishName を決定
-    const dishCategory = await this.dishCategoriesRepository.findDishCategoryById(
-      dto.dishCategoryId,
-    );
+    const dishCategory =
+      await this.dishCategoriesRepository.findDishCategoryById(
+        dto.dishCategoryId,
+      );
     if (!dishCategory) {
       this.logger.error('DishCategoryNotFound', 'createOrGetDish', {
         dishCategoryId: dto.dishCategoryId,
@@ -200,7 +201,10 @@ export class DishesService {
     }
 
     const restaurant = await this.prisma.prisma.$transaction(async (tx) => {
-      return this.restaurantsRepository.findRestaurantById(tx, dto.restaurantId);
+      return this.restaurantsRepository.findRestaurantById(
+        tx,
+        dto.restaurantId,
+      );
     });
     if (!restaurant) {
       this.logger.error('RestaurantNotFound', 'createOrGetDish', {
@@ -211,11 +215,12 @@ export class DishesService {
 
     // レストランの住所情報からローカル言語コードを推測
     let languageCode = this.locationsService.resolveLocalLanguageCode(
-      restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[]
+      restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
     );
 
     const dishNameFromLabels: string =
-      dishCategory.labels && dishCategory.labels[languageCode] || dishCategory.label_en;
+      (dishCategory.labels && dishCategory.labels[languageCode]) ||
+      dishCategory.label_en;
 
     // 新規作成（推測名を注入。なければフォールバック）
     const newDish = await this.prisma.prisma.$transaction(async (tx) => {
