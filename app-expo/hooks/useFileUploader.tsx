@@ -63,6 +63,60 @@ export function useFileUploader() {
 					payload: { uri, mimeType, objectPath: signedUrlResponse.objectPath },
 				});
 
+				if (Platform.OS === "web") {
+					// Expo Web では expo-file-system の createUploadTask（内部の uploadTaskStartAsync）が未実装
+					// そのため、Web 環境では fetch で PUT リクエストを送る
+
+					// ---- Web: fetch PUT（進捗は完了時に100%へ）----
+					const controller = new AbortController();
+					cancelTokenRef.current = { cancel: () => controller.abort() };
+
+					// uri は blob:, data:, https: などを想定
+					const src = await fetch(uri);
+					const blob = await src.blob();
+
+					try {
+						const resp = await fetch(signedUrlResponse.putUrl, {
+							method: "PUT",
+							mode: "cors", // 明示
+							credentials: "omit", // 署名URLはCookie不要
+							referrerPolicy: "no-referrer",
+							headers: { "Content-Type": mimeType },
+							body: blob,
+							signal: controller.signal,
+							cache: "no-store",
+						});
+
+						if (!resp.ok) {
+							// ここに来る＝CORSは通過している。ステータスをログ出し
+							const text = await resp.text().catch(() => "");
+							throw new Error(`Upload failed: ${resp.status} ${resp.statusText} ${text}`);
+						}
+
+						setUploadProgress({ loaded: blob.size, total: blob.size, percentage: 100 });
+
+						logFrontendEvent({
+							event_name: "file_upload_success",
+							error_level: "log",
+							payload: { objectPath: signedUrlResponse.objectPath, status: resp.status },
+						});
+
+						return signedUrlResponse.objectPath;
+					} catch (e: any) {
+						// CORS で弾かれた場合はここに来て "TypeError: Failed to fetch"
+						logFrontendEvent({
+							event_name: "file_upload_failed",
+							error_level: "error",
+							payload: {
+								error: e?.message || "Failed to fetch",
+								name: e?.name,
+								baseFileName: baseFileName,
+							},
+						});
+						throw e;
+					}
+				}
+
 				const uploadTask = FileSystem.createUploadTask(
 					signedUrlResponse.putUrl,
 					uri,
