@@ -75,6 +75,7 @@ export function ProfileHeader({
 					{/* Avatar and Stats */}
 					<View style={[styles.profileHeader]} pointerEvents="none">
 						<Image
+							key={profile.avatar || "placeholder"}
 							source={isGuest ? require("@/assets/images/icon.png") : { uri: profile.avatar }}
 							style={styles.avatar}
 							contentFit="cover"
