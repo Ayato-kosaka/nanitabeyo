@@ -35,9 +35,13 @@ This implementation adds CDN signed cookie authentication for video media playba
 ## Cookie Format
 
 ### Cookie Structure
+
+The cookie name is `Cloud-CDN-Cookie` and the value contains colon-separated fields:
 ```
 Cloud-CDN-Cookie=URLPrefix=<url>:Expires=<timestamp>:KeyName=<key>:Signature=<sig>; Domain=<cdn-host>; Path=<path>; Max-Age=<ttl>; HttpOnly; Secure; SameSite=None
 ```
+
+Note: The signature is computed over the URL parameter format (`URLPrefix=<url>&Expires=<timestamp>&KeyName=<key>`), but the cookie value uses colon separators.
 
 ### Example
 ```
@@ -239,12 +243,38 @@ export CDN_KEY_SECRET_B64=$(cat cdn-signing-key.txt)
 
 ### Cookie Verification Script
 
+Create a test script to verify cookie generation:
+
 ```javascript
-// See /tmp/test-cdn-cookies.js for full script
 const crypto = require('crypto');
 
+const env = {
+  CDN_HOST: 'cdn.example.com',
+  CDN_KEY_NAME: 'test-key',
+  CDN_KEY_SECRET_B64: Buffer.from('test-secret').toString('base64'),
+  CDN_SIGNED_COOKIE_TTL_SECONDS: 600,
+};
+
 function generateCdnSignedCookies(urlPrefix, recordId) {
-  // Implementation from StorageService
+  const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, 'base64');
+  const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
+  
+  // Create signature - note this uses & separators
+  const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
+  const signature = crypto
+    .createHmac('sha1', keySecret)
+    .update(toSign)
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  const urlObj = new URL(urlPrefix);
+  const cookiePath = urlObj.pathname;
+
+  // Cookie value uses : separators
+  return [
+    `Cloud-CDN-Cookie=URLPrefix=${urlPrefix}:Expires=${expires}:KeyName=${env.CDN_KEY_NAME}:Signature=${signature}; Domain=${env.CDN_HOST}; Path=${cookiePath}; Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; HttpOnly; Secure; SameSite=None`,
+  ];
 }
 
 // Test cookie generation
@@ -316,7 +346,7 @@ All cookie operations are logged via `AppLoggerService`:
 
 ## Future Enhancements
 
-1. **Cookie Rotation**: Refresh cookies before expiration
+1. **Proactive Cookie Refresh**: Client-side renewal before expiration
 2. **Batch Optimization**: Reduce cookie count via shared paths
 3. **Analytics**: Track cookie usage and expiration patterns
 4. **Rate Limiting**: Limit cookie generation per user/IP
