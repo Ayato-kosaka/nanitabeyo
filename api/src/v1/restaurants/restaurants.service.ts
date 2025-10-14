@@ -208,7 +208,10 @@ export class RestaurantsService {
     restaurantId: string,
     dto: QueryRestaurantDishMediaDto,
     userId?: string,
-  ): Promise<QueryRestaurantDishMediaResponse> {
+  ): Promise<{
+    response: QueryRestaurantDishMediaResponse;
+    cdnCookies?: string[];
+  }> {
     this.logger.debug('GetRestaurantDishMedia', 'getRestaurantDishMedia', {
       restaurantId,
       cursor: dto.cursor,
@@ -238,7 +241,7 @@ export class RestaurantsService {
       (l) => l.dish_media_id,
     );
 
-    const dishMediaEntries =
+    const result =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
       });
@@ -247,14 +250,18 @@ export class RestaurantsService {
       'GetRestaurantDishMediaResult',
       'getRestaurantDishMedia',
       {
-        count: dishMediaEntries.length,
+        count: result.items.length,
+        hasCookies: !!result.cdnCookies,
       },
     );
 
-    return this.mapper.toRestaurantDishMediaResponse({
-      data: dishMediaEntries,
-      nextCursor: dishMediaByRestaurant.nextCursor,
-    });
+    return {
+      response: this.mapper.toRestaurantDishMediaResponse({
+        data: result.items,
+        nextCursor: dishMediaByRestaurant.nextCursor,
+      }),
+      cdnCookies: result.cdnCookies,
+    };
   }
 
   /* ------------------------------------------------------------------ */

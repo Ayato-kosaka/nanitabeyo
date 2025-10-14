@@ -12,10 +12,12 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiOperation,
   ApiParam,
@@ -133,12 +135,22 @@ export class RestaurantsController {
     @Param() params: RestaurantIdParamsDto,
     @Query() query: QueryRestaurantDishMediaDto,
     @CurrentUser() user: RequestUser,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<QueryRestaurantDishMediaResponse> {
     // レストランの料理投稿一覧を取得
-    return this.restaurantsService.getRestaurantDishMedia(
+    const result = await this.restaurantsService.getRestaurantDishMedia(
       params.id,
       query,
       user.id,
     );
+    
+    // Set CDN signed cookies if present (for video media)
+    if (result.cdnCookies && result.cdnCookies.length > 0) {
+      result.cdnCookies.forEach((cookie) => {
+        res.setHeader('Set-Cookie', cookie);
+      });
+    }
+    
+    return result.response;
   }
 }

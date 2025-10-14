@@ -16,6 +16,7 @@ import {
   buildResizedPath,
 } from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class StorageService {
@@ -276,6 +277,72 @@ export class StorageService {
       );
       // Fallback to original on error
       return this.generateSignedUrl(originalPath, expiresInSeconds);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                      CDN Signed Cookie Generation                      */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * Generate CDN signed cookies for URL prefix-based authentication
+   * Used for HLS video playback where multiple files need to be accessed
+   * 
+   * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
+   * @param recordId - The record ID for cookie path scoping
+   * @returns Array of cookie strings ready for Set-Cookie headers
+   */
+  generateCdnSignedCookies(
+    urlPrefix: string,
+    recordId: string,
+  ): string[] | null {
+    // Return null if CDN configuration is not available
+    if (!env.CDN_HOST || !env.CDN_KEY_NAME || !env.CDN_KEY_SECRET_B64) {
+      this.logger.warn('CdnConfigMissing', 'generateCdnSignedCookies', {
+        urlPrefix,
+        recordId,
+      });
+      return null;
+    }
+
+    try {
+      const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, 'base64');
+      const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
+      
+      // Create signature for Cloud CDN signed cookies
+      // Format: URLPrefix=<prefix>&Expires=<timestamp>&KeyName=<keyname>
+      const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
+      
+      const signature = crypto
+        .createHmac('sha1', keySecret)
+        .update(toSign)
+        .digest('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+
+      // Build cookie path from URL prefix
+      const urlObj = new URL(urlPrefix);
+      const cookiePath = urlObj.pathname;
+
+      // Create the three required cookies for Cloud CDN signed URLs
+      const cookies = [
+        `Cloud-CDN-Cookie=URLPrefix=${urlPrefix}:Expires=${expires}:KeyName=${env.CDN_KEY_NAME}:Signature=${signature}; Domain=${env.CDN_HOST}; Path=${cookiePath}; Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; HttpOnly; Secure; SameSite=None`,
+      ];
+
+      this.logger.debug('CdnSignedCookiesGenerated', 'generateCdnSignedCookies', {
+        urlPrefix,
+        recordId,
+        expires: new Date(expires * 1000).toISOString(),
+        cookieCount: cookies.length,
+      });
+
+      return cookies;
+    } catch (err) {
+      this.logger.error('CdnSignedCookieError', 'generateCdnSignedCookies', {
+        error_message: (err as Error).message,
+        urlPrefix,
+        recordId,
+      });
+      return null;
     }
   }
 }

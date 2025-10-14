@@ -15,10 +15,12 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -77,15 +79,24 @@ export class DishMediaController {
   @ApiResponse({ status: 200, description: '取得成功' })
   async queryDishMediaByIds(
     @Query() query: QueryDishMediaByIdsDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<QueryDishMediaByIdsResponse> {
-    const { items, notFound } = await this.dishMediaService.findByIds(
+    const result = await this.dishMediaService.findByIds(
       query.ids,
       user?.id,
     );
+    
+    // Set CDN signed cookies if present (for video media)
+    if (result.cdnCookies && result.cdnCookies.length > 0) {
+      result.cdnCookies.forEach((cookie) => {
+        res.setHeader('Set-Cookie', cookie);
+      });
+    }
+    
     return {
-      items: this.dishMediaMapper.toSearchDishMediaResponse(items),
-      notFound,
+      items: this.dishMediaMapper.toSearchDishMediaResponse(result.items),
+      notFound: result.notFound,
     };
   }
 
@@ -106,10 +117,19 @@ export class DishMediaController {
   @ApiResponse({ status: 200, description: '取得成功' })
   async searchDishMedia(
     @Query() query: SearchDishMediaDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<SearchDishMediaResponse> {
-    const items = await this.dishMediaService.findByCriteria(query, user?.id);
-    return this.dishMediaMapper.toSearchDishMediaResponse(items);
+    const result = await this.dishMediaService.findByCriteria(query, user?.id);
+    
+    // Set CDN signed cookies if present (for video media)
+    if (result.cdnCookies && result.cdnCookies.length > 0) {
+      result.cdnCookies.forEach((cookie) => {
+        res.setHeader('Set-Cookie', cookie);
+      });
+    }
+    
+    return this.dishMediaMapper.toSearchDishMediaResponse(result.items);
   }
 
   /* ------------------------------------------------------------------ */
