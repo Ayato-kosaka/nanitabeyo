@@ -184,7 +184,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 		}
 
 		const media: MediaData = {
-			type: isVideo ? "VIDEO" : "IMAGE",
+			type: isVideo ? "video" : "image",
 			uri: asset.uri,
 			width: asset.width,
 			height: asset.height,

@@ -34,7 +34,7 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -210,8 +210,8 @@ export class DishMediaService {
       mediaType: dto.mediaType,
     });
 
-    // VIDEO の場合のみトランスコードジョブを直接作成
-    if (dto.mediaType === 'VIDEO') {
+    // video の場合のみトランスコードジョブを直接作成
+    if (dto.mediaType === 'video') {
       const outputUri = `gs://${env.GCS_BUCKET_NAME}/transcoded/dish_media/media_path/${result.id}/`;
 
       await this.transcoder.createTranscodeJob({

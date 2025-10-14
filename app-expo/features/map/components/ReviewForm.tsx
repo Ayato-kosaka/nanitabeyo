@@ -128,7 +128,7 @@ export function ReviewForm({
 				baseFileName: `${dishId}-media`,
 			});
 			let thumbnailPath = mediaPath; // Default to mediaPath for images
-			if (initialMedia.type === "VIDEO") {
+			if (initialMedia.type === "video") {
 				if (!initialMedia.thumbnailUri) throw new Error("Missing thumbnail for video");
 				thumbnailPath = await thumbnailUploadFile(initialMedia.thumbnailUri, {
 					mimeType: "image/jpeg",

@@ -10,8 +10,8 @@ export class CreateDishMediaDto {
 	mediaPath!: string;
 
 	/** メディア種別 */
-	@IsIn(["IMAGE", "VIDEO"])
-	mediaType!: "IMAGE" | "VIDEO";
+	@IsIn(["image", "video"])
+	mediaType!: "image" | "video";
 
 	/** サムネイルパス（必須。IMAGE の場合は mediaPath と同じ値を渡す） */
 	@IsString()
