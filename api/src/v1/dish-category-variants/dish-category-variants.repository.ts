@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { PrismaDishCategories } from '../../../../shared/converters/convert_dish_categories';
 
 @Injectable()
 export class DishCategoryVariantsRepository {
@@ -18,32 +19,35 @@ export class DishCategoryVariantsRepository {
   /**
    * 料理カテゴリ表記揺れを検索
    */
-  async findDishCategoryVariants(q: string) {
+  async findDishCategoryVariants(tx: Prisma.TransactionClient, q: string) {
+    const qNorm = q.trim().toLowerCase();
     this.logger.debug('FindDishCategoryVariants', 'findDishCategoryVariants', {
-      q,
+      qNorm,
     });
 
-    const result = await this.prisma.prisma.dish_categories.findMany({
-      where: {
-        dish_category_variants: {
-          some: {
-            surface_form: {
-              startsWith: q.toLowerCase(), // Ensure case-insensitive search
-            },
-          },
-        },
-      },
-      include: {
-        dish_category_variants: {
-          where: {
-            surface_form: {
-              startsWith: q.toLowerCase(), // Ensure case-insensitive search
-            },
-          },
-        },
-      },
-      take: 20, // limit 20
-    });
+    const result = await tx.$queryRaw<PrismaDishCategories[]>`
+    WITH candidates AS (
+      SELECT
+        dc.id AS "dishCategoryId",
+        MIN(CASE WHEN dcv.surface_form = ${qNorm} THEN 0 ELSE 1 END) AS exact_rank,
+        MIN(ABS(char_length(dcv.surface_form) - char_length(${qNorm}))) AS len_diff
+      FROM dish_category_variants dcv
+      JOIN dish_categories dc
+        ON dc.id = dcv.dish_category_id
+      WHERE dcv.surface_form LIKE (${qNorm} || '%')
+      GROUP BY dc.id
+    )
+    SELECT
+      dc.*
+    FROM candidates c
+    JOIN dish_categories dc
+      ON dc.id = c."dishCategoryId"
+    ORDER BY
+      c.exact_rank ASC,
+      c.len_diff ASC,
+      c."dishCategoryId" ASC
+    LIMIT 20;
+  `;
 
     this.logger.debug('DishCategoryVariantsFound', 'findDishCategoryVariants', {
       count: result.length,

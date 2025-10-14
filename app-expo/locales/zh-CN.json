@@ -8,8 +8,10 @@
 		"save": "保存",
 		"post": "发布",
 		"processing": "处理中...",
-		"error": "错误",
+		"error": "发生错误。请重试。",
 		"success": "成功",
+		"linkCopied": "链接已复制到剪贴板",
+		"shareFailed": "分享内容失败",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "只需告诉应用你的心情，我们的 AI 就会推荐你可能想吃的菜。然后浏览真实的美食照片和评论，立即选择一个合适的餐厅。",
 		"daysRemaining": "剩余{{count}}天",
@@ -251,13 +253,15 @@
 			"price": "价格",
 			"rating": "评分",
 			"comment": "评论",
-			"bidAmount": "出价金额"
+			"bidAmount": "出价金额",
+			"dishCategory": "菜品类别"
 		},
 		"placeholders": {
 			"searchRestaurants": "搜索餐厅",
 			"enterPrice": "输入价格",
 			"enterReview": "输入评论",
-			"enterBidAmount": "输入出价金额"
+			"enterBidAmount": "输入出价金额",
+			"enterDishCategory": "输入菜品类别（例如：火锅、点心）"
 		},
 		"labels": {
 			"endDate": "结束日期:",
@@ -291,6 +295,20 @@
 			"selectedVideoThumbnail": "已选择视频的缩略图",
 			"playVideo": "播放视频",
 			"selectingMedia": "正在选择媒体..."
+		},
+		"noResultsFound": "未找到结果",
+		"accessibility": {
+			"dishCategoryInputFocused": "菜品类别输入已获得焦点",
+			"dishCategorySelected": "已选择 {{category}}",
+			"dishCategorySearching": "正在搜索菜品类别",
+			"dishCategorySuggestionsFound": "找到{{count}}条建议",
+			"dishCategoryNoResults": "未找到匹配的菜品类别"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "创建菜品类别失败",
+			"dishCategoryNotFound": "未找到菜品类别",
+			"dishCategoryInvalidInput": "无效的菜品类别名称",
+			"reviewSubmitFailed": "评论发布失败"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +387,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "输入验证码",
 		"otp_send_again": "重新发送验证码",
+		"otp_enter_all_digits": "请输入全部6位数字",
+		"login_success": "登录成功！",
 		"error_required": "此字段为必填项",
 		"error_invalid_phone": "无效的电话号码",
-		"tos_link_text": "服务条款"
+		"tos_link_text": "服务条款",
+		"existing_account_checkbox": "您已经有账户了吗？",
+		"conflict_dialog_title": "找到现有账户",
+		"conflict_dialog_message": "此账户已链接到另一个用户。如果您切换，作为访客创建的数据将不会被转移。您要切换到现有账户吗？",
+		"conflict_dialog_switch": "切换",
+		"conflict_dialog_cancel": "取消"
 	}
 }

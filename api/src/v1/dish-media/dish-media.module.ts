@@ -18,12 +18,16 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { StorageModule } from '../../core/storage/storage.module'; // 署名 URL 発行用
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
+import { TranscoderModule } from '../../core/transcoder/transcoder.module';
+import { NotifierModule } from '../../core/notifier/notifier.module';
 
 @Module({
   imports: [
     PrismaModule, // DB アクセス（@Global でも明示的 import が可読性↑）
     LoggerModule, // アプリ共通 Logger
     StorageModule, // 画像用 GCS / S3 署名 URL ユーティリティ
+    TranscoderModule, // Video transcoding service
+    NotifierModule, // 通知サービス
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishMediaController],

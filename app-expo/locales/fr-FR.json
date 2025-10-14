@@ -8,8 +8,10 @@
 		"save": "Enregistrer",
 		"post": "Publier",
 		"processing": "Traitement...",
-		"error": "Erreur",
+		"error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
+		"linkCopied": "Lien copié dans le presse-papiers",
+		"shareFailed": "Échec du partage du contenu",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "Indique simplement à l’application ce que vous ressentez, et notre IA vous proposera des plats que vous aurez probablement envie de déguster. Parcourez ensuite de vraies photos de plats et des avis pour choisir instantanément le restaurant qui vous convient.",
 		"daysRemaining": "Il reste {{count}} jours",
@@ -252,13 +254,15 @@
 			"price": "Prix",
 			"rating": "Évaluation",
 			"comment": "Commentaire",
-			"bidAmount": "Montant de l'enchère"
+			"bidAmount": "Montant de l'enchère",
+			"dishCategory": "Catégorie de plat"
 		},
 		"placeholders": {
 			"searchRestaurants": "Rechercher des restaurants",
 			"enterPrice": "Entrez le prix",
 			"enterReview": "Entrez votre avis",
-			"enterBidAmount": "Entrez le montant de l'enchère"
+			"enterBidAmount": "Entrez le montant de l'enchère",
+			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)"
 		},
 		"labels": {
 			"endDate": "Date de fin:",
@@ -291,6 +295,20 @@
 			"selectedVideoThumbnail": "Miniature de la vidéo sélectionnée",
 			"playVideo": "Lire la vidéo",
 			"selectingMedia": "Sélection des médias..."
+		},
+		"noResultsFound": "Aucun résultat trouvé",
+		"accessibility": {
+			"dishCategoryInputFocused": "Entrée de catégorie de plat activée",
+			"dishCategorySelected": "Sélectionné {{category}}",
+			"dishCategorySearching": "Recherche de catégories de plats",
+			"dishCategorySuggestionsFound": "{{count}} suggestions trouvées",
+			"dishCategoryNoResults": "Aucune catégorie de plat correspondante trouvée"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Échec de la création de la catégorie de plat",
+			"dishCategoryNotFound": "Catégorie de plat introuvable",
+			"dishCategoryInvalidInput": "Nom de catégorie de plat invalide",
+			"reviewSubmitFailed": "Échec de la publication de l'avis"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +387,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "Entrer le code",
 		"otp_send_again": "Renvoyer le code",
+		"otp_enter_all_digits": "Veuillez saisir les 6 chiffres",
+		"login_success": "Connexion réussie !",
 		"error_required": "Ce champ est obligatoire",
 		"error_invalid_phone": "Numéro de téléphone invalide",
-		"tos_link_text": "Conditions de Service"
+		"tos_link_text": "Conditions de Service",
+		"existing_account_checkbox": "Avez-vous déjà un compte?",
+		"conflict_dialog_title": "Compte Existant Trouvé",
+		"conflict_dialog_message": "Ce compte est déjà lié à un autre utilisateur. Si vous changez, les données créées en tant qu'invité ne seront pas transférées. Voulez-vous passer au compte existant?",
+		"conflict_dialog_switch": "Changer",
+		"conflict_dialog_cancel": "Annuler"
 	}
 }

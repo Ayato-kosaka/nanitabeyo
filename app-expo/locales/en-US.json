@@ -8,8 +8,10 @@
 		"save": "Save",
 		"post": "Post",
 		"processing": "Processing...",
-		"error": "Error",
+		"error": "An error occurred. Please try again.",
 		"success": "Success",
+		"linkCopied": "Link copied to clipboard",
+		"shareFailed": "Failed to share content",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "Simply tell the app how you feel, and our AI will suggest dishes you'll likely crave. Then browse real food photos and reviews to instantly pick a restaurant that feels right.",
 		"daysRemaining": "Remaining {{count}} days",
@@ -251,13 +253,15 @@
 			"price": "Price",
 			"rating": "Rating",
 			"comment": "Comment",
-			"bidAmount": "Bid Amount"
+			"bidAmount": "Bid Amount",
+			"dishCategory": "Dish Category"
 		},
 		"placeholders": {
 			"searchRestaurants": "Search restaurants",
 			"enterPrice": "Enter price",
 			"enterReview": "Enter review",
-			"enterBidAmount": "Enter bid amount"
+			"enterBidAmount": "Enter bid amount",
+			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)"
 		},
 		"labels": {
 			"endDate": "End date:",
@@ -291,6 +295,20 @@
 			"selectedVideoThumbnail": "Thumbnail of selected video",
 			"playVideo": "Play video",
 			"selectingMedia": "Selecting media..."
+		},
+		"noResultsFound": "No results found",
+		"accessibility": {
+			"dishCategoryInputFocused": "Dish category input focused",
+			"dishCategorySelected": "Selected {{category}}",
+			"dishCategorySearching": "Searching for dish categories",
+			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
+			"dishCategoryNoResults": "No matching dish categories found"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Failed to create dish category",
+			"dishCategoryNotFound": "Dish category not found",
+			"dishCategoryInvalidInput": "Invalid dish category name",
+			"reviewSubmitFailed": "Failed to post review"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +387,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "Enter Code",
 		"otp_send_again": "Resend Code",
+		"otp_enter_all_digits": "Please enter all 6 digits",
+		"login_success": "Successfully logged in!",
 		"error_required": "This field is required",
 		"error_invalid_phone": "Invalid phone number",
-		"tos_link_text": "Terms of Service"
+		"tos_link_text": "Terms of Service",
+		"existing_account_checkbox": "Do you already have an account?",
+		"conflict_dialog_title": "Existing Account Found",
+		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
+		"conflict_dialog_switch": "Switch",
+		"conflict_dialog_cancel": "Cancel"
 	}
 }

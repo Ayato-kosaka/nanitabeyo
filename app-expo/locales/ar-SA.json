@@ -8,8 +8,10 @@
 		"save": "حفظ",
 		"post": "نشر",
 		"processing": "معالجة...",
-		"error": "خطأ",
+		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
+		"linkCopied": "تم نسخ الرابط إلى الحافظة",
+		"shareFailed": "فشل في مشاركة المحتوى",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "ما عليك سوى إخبار التطبيق بما تشعر به، وسيقترح لك ذكاؤنا الاصطناعي الأطباق التي قد تشتهيها. ثم تصفح صور الطعام الحقيقية والمراجعات لاختيار المطعم الذي يبدو مناسبًا على الفور.",
 		"daysRemaining": "متبقي {{count}} يومًا",
@@ -252,13 +254,15 @@
 			"price": "السعر",
 			"rating": "التقييم",
 			"comment": "تعليق",
-			"bidAmount": "مبلغ العرض"
+			"bidAmount": "مبلغ العرض",
+			"dishCategory": "فئة الطبق"
 		},
 		"placeholders": {
 			"searchRestaurants": "البحث عن المطاعم",
 			"enterPrice": "أدخل السعر",
 			"enterReview": "أدخل مراجعتك",
-			"enterBidAmount": "أدخل مبلغ العرض"
+			"enterBidAmount": "أدخل مبلغ العرض",
+			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
@@ -291,6 +295,20 @@
 			"selectedVideoThumbnail": "الصورة المصغرة للفيديو المحدد",
 			"playVideo": "تشغيل الفيديو",
 			"selectingMedia": "جاري اختيار الوسائط..."
+		},
+		"noResultsFound": "لم يتم العثور على نتائج",
+		"accessibility": {
+			"dishCategoryInputFocused": "تم التركيز على إدخال فئة الطبق",
+			"dishCategorySelected": "تم اختيار {{category}}",
+			"dishCategorySearching": "البحث عن فئات الأطباق",
+			"dishCategorySuggestionsFound": "تم العثور على {{count}} اقتراحات",
+			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "فشل في إنشاء فئة الطبق",
+			"dishCategoryNotFound": "لم يتم العثور على فئة الطبق",
+			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح",
+			"reviewSubmitFailed": "فشل في نشر المراجعة"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +387,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "أدخل الرمز",
 		"otp_send_again": "إعادة إرسال الرمز",
+		"otp_enter_all_digits": "يرجى إدخال الأرقام الستة كاملة",
+		"login_success": "تم تسجيل الدخول بنجاح!",
 		"error_required": "هذا الحقل مطلوب",
 		"error_invalid_phone": "رقم الهاتف غير صحيح",
-		"tos_link_text": "شروط الخدمة"
+		"tos_link_text": "شروط الخدمة",
+		"existing_account_checkbox": "هل لديك حساب بالفعل؟",
+		"conflict_dialog_title": "تم العثور على حساب موجود",
+		"conflict_dialog_message": "هذا الحساب مرتبط بالفعل بمستخدم آخر. إذا قمت بالتبديل، لن يتم نقل البيانات التي تم إنشاؤها كضيف. هل تريد التبديل إلى الحساب الموجود؟",
+		"conflict_dialog_switch": "تبديل",
+		"conflict_dialog_cancel": "إلغاء"
 	}
 }

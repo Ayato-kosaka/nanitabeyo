@@ -554,8 +554,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 6.16.2
-   * Query Engine version: 1c57fdcd7e44b29b9313256c76699e91c3ac3c43
+   * Prisma Client JS version: 6.17.1
+   * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
    */
   export type PrismaVersion = {
     client: string
@@ -24201,6 +24201,7 @@ export namespace Prisma {
 
   export type dishesWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    restaurant_id_category_id?: dishesRestaurant_idCategory_idCompoundUniqueInput
     AND?: dishesWhereInput | dishesWhereInput[]
     OR?: dishesWhereInput[]
     NOT?: dishesWhereInput | dishesWhereInput[]
@@ -24214,7 +24215,7 @@ export namespace Prisma {
     dish_reviews?: Dish_reviewsListRelationFilter
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
     restaurants?: XOR<RestaurantsScalarRelationFilter, restaurantsWhereInput>
-  }, "id">
+  }, "id" | "restaurant_id_category_id">
 
   export type dishesOrderByWithAggregationInput = {
     id?: SortOrder
@@ -27262,6 +27263,11 @@ export namespace Prisma {
 
   export type dish_reviewsOrderByRelationAggregateInput = {
     _count?: SortOrder
+  }
+
+  export type dishesRestaurant_idCategory_idCompoundUniqueInput = {
+    restaurant_id: string
+    category_id: string
   }
 
   export type dishesCountOrderByAggregateInput = {

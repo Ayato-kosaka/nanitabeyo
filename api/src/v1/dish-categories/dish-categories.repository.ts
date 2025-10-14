@@ -14,6 +14,16 @@ export class DishCategoriesRepository {
     private readonly logger: AppLoggerService,
   ) {}
 
+  async findDishCategoryById(id: string) {
+    this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
+
+    const result = await this.prisma.prisma.dish_categories.findUnique({
+      where: { id },
+    });
+
+    return result;
+  }
+
   /**
    * カテゴリ名リストから料理カテゴリを検索
    */

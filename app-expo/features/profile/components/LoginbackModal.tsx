@@ -15,7 +15,6 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
-	Alert,
 } from "react-native";
 import { User, Mail, Phone } from "lucide-react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -25,6 +24,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { Image } from "expo-image";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface LoginbackModalProps {
 	onClose: () => void;
@@ -34,10 +34,12 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 	const [phone, setPhone] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [errors, setErrors] = useState<{ phone?: string }>({});
+	const [hasExistingAccount, setHasExistingAccount] = useState(false);
 
 	const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
 	const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
 	const { logFrontendEvent } = useLogger();
+	const { showSnackbar } = useSnackbar();
 
 	const validatePhone = useCallback((phoneNumber: string): boolean => {
 		// E.164 format validation (simplified)
@@ -80,66 +82,44 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				});
 				throw error;
 			}
-		} catch (error: any) {
-			Alert.alert(i18n.t("Common.error"), error.message);
+		} catch (error: unknown) {
+			showSnackbar(i18n.t("Common.error"));
 		} finally {
 			setIsLoading(false);
 		}
-	}, [phone, validatePhone, logFrontendEvent]);
+	}, [phone, validatePhone, logFrontendEvent, onClose, openOtpModal, showSnackbar, signInWithOtp]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
 			setIsLoading(true);
 			try {
-				try {
-					// Check if user is anonymous and try to link identity first
-					const isAnonymous = user?.is_anonymous;
+				// 前提: アプリの初期化時に signInAnonymously() をしているため、auth.userが存在する
+				const isAnonymous = user?.is_anonymous;
 
-					if (isAnonymous) {
-						await linkIdentity(provider);
-					} else {
-						await signInWithOAuth(provider);
-					}
-
-					logFrontendEvent({
-						event_name: "oauth_signin_success",
-						error_level: "log",
-						payload: { provider, isUpgrade: isAnonymous },
-					});
-				} catch (error) {
-					// If linking fails, try regular OAuth sign in
-					if (user?.is_anonymous) {
-						try {
-							await signInWithOAuth(provider);
-							logFrontendEvent({
-								event_name: "oauth_signin_fallback_success",
-								error_level: "log",
-								payload: { provider },
-							});
-						} catch (fallbackError) {
-							logFrontendEvent({
-								event_name: "oauth_signin_error",
-								error_level: "error",
-								payload: { provider, error: (fallbackError as Error).message },
-							});
-							throw fallbackError;
-						}
-					} else {
-						logFrontendEvent({
-							event_name: "oauth_signin_error",
-							error_level: "error",
-							payload: { provider, error: (error as Error).message },
-						});
-						throw error;
-					}
+				if (isAnonymous && !hasExistingAccount) {
+					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
+					await linkIdentity(provider);
+				} else {
+					// チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
+					await signInWithOAuth(provider);
 				}
-			} catch (error: any) {
-				Alert.alert(i18n.t("Common.error"), error.message);
+				logFrontendEvent({
+					event_name: "oauth_signin_success",
+					error_level: "log",
+					payload: { provider, isUpgrade: isAnonymous && !hasExistingAccount, hasExistingAccount },
+				});
+			} catch (error: unknown) {
+				logFrontendEvent({
+					event_name: "oauth_signin_error",
+					error_level: "error",
+					payload: { provider, error: (error as Error).message },
+				});
+				showSnackbar(i18n.t("Common.error"));
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[user, linkIdentity, signInWithOAuth, logFrontendEvent],
+		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount],
 	);
 
 	return (
@@ -187,6 +167,21 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 						<Text style={styles.dividerText}>{i18n.t("auth.divider_or")}</Text>
 						<View style={styles.dividerLine} />
 					</View> */}
+
+			{/* Existing Account Checkbox - Show only for anonymous users */}
+			{user?.is_anonymous && (
+				<View style={styles.checkboxContainer}>
+					<TouchableOpacity
+						style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}
+						onPress={() => setHasExistingAccount(!hasExistingAccount)}
+						disabled={isLoading}>
+						{hasExistingAccount && <Text style={styles.checkboxMark}>✓</Text>}
+					</TouchableOpacity>
+					<View style={styles.checkboxTextContainer}>
+						<Text style={styles.checkboxText}>{i18n.t("auth.existing_account_checkbox")}</Text>
+					</View>
+				</View>
+			)}
 
 			{/* OAuth Buttons */}
 			<View style={styles.oauthContainer}>
@@ -346,5 +341,42 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: "600",
 		color: "#1A1A1A",
+	},
+	checkboxContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 20,
+		paddingHorizontal: 4,
+	},
+	checkbox: {
+		width: 24,
+		height: 24,
+		borderRadius: 6,
+		alignItems: "center",
+		justifyContent: "center",
+		marginRight: 12,
+		backgroundColor: "#FFFFFF",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.5,
+		shadowRadius: 16,
+		elevation: 4,
+	},
+	checkboxChecked: {
+		backgroundColor: "#5EA2FF",
+		borderColor: "#5EA2FF",
+	},
+	checkboxMark: {
+		color: "#FFFFFF",
+		fontSize: 14,
+		fontWeight: "700",
+	},
+	checkboxTextContainer: {
+		flex: 1,
+	},
+	checkboxText: {
+		fontSize: 16,
+		color: "#1A1A1A",
+		lineHeight: 22,
 	},
 });

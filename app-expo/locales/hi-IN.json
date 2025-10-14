@@ -8,8 +8,10 @@
 		"save": "सेव करें",
 		"post": "पोस्ट करें",
 		"processing": "प्रसंस्करण...",
-		"error": "त्रुटि",
+		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
 		"success": "सफलता",
+		"linkCopied": "लिंक क्लिपबोर्ड पर कॉपी किया गया",
+		"shareFailed": "सामग्री साझा करने में विफल",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "बस ऐप को बताएं कि आप कैसा महसूस कर रहे हैं और हमारी AI आपको वे व्यंजन सुझाएगी जिन्हें आप शायद पसंद करेंगे। फिर असली भोजन की तस्वीरें और समीक्षाएँ देखकर तुरंत वह रेस्तरां चुनें जो आपको सही लगे।",
 		"daysRemaining": "{{count}} दिन शेष",
@@ -251,13 +253,15 @@
 			"price": "मूल्य",
 			"rating": "रेटिंग",
 			"comment": "टिप्पणी",
-			"bidAmount": "बोली राशि"
+			"bidAmount": "बोली राशि",
+			"dishCategory": "Dish Category"
 		},
 		"placeholders": {
 			"searchRestaurants": "रेस्टोरेंट खोजें",
 			"enterPrice": "मूल्य दर्ज करें",
 			"enterReview": "समीक्षा दर्ज करें",
-			"enterBidAmount": "बोली राशि दर्ज करें"
+			"enterBidAmount": "बोली राशि दर्ज करें",
+			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
@@ -280,7 +284,8 @@
 			"bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
 			"bidError": "बोली लगाने में विफल",
 			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
-			"reviewError": "समीक्षा पोस्ट करने में विफल"
+			"reviewError": "समीक्षा पोस्ट करने में विफल",
+			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
 		},
 		"currentLocation": "वर्तमान स्थान",
 		"media": {
@@ -291,6 +296,20 @@
 			"selectedVideoThumbnail": "चयनित वीडियो का थंबनेल",
 			"playVideo": "वीडियो चलाएं",
 			"selectingMedia": "मीडिया चयन कर रहे हैं..."
+		},
+		"noResultsFound": "No results found",
+		"accessibility": {
+			"dishCategoryInputFocused": "Dish category input focused",
+			"dishCategorySelected": "Selected {{category}}",
+			"dishCategorySearching": "Searching for dish categories",
+			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
+			"dishCategoryNoResults": "No matching dish categories found"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Failed to create dish category",
+			"dishCategoryNotFound": "Dish category not found",
+			"dishCategoryInvalidInput": "Invalid dish category name",
+			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +388,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "कोड दर्ज करें",
 		"otp_send_again": "कोड पुनः भेजें",
+		"otp_enter_all_digits": "कृपया सभी 6 अंक दर्ज करें",
+		"login_success": "सफलतापूर्वक लॉग इन हो गया!",
 		"error_required": "यह फ़ील्ड आवश्यक है",
 		"error_invalid_phone": "अमान्य फोन नंबर",
-		"tos_link_text": "सेवा की शर्तें"
+		"tos_link_text": "सेवा की शर्तें",
+		"existing_account_checkbox": "क्या आपके पास पहले से खाता है?",
+		"conflict_dialog_title": "मौजूदा खाता मिला",
+		"conflict_dialog_message": "यह खाता पहले से ही किसी अन्य उपयोगकर्ता से जुड़ा हुआ है। यदि आप स्विच करते हैं, तो अतिथि के रूप में बनाया गया डेटा स्थानांतरित नहीं होगा। क्या आप मौजूदा खाते पर स्विच करना चाहते हैं?",
+		"conflict_dialog_switch": "स्विच करें",
+		"conflict_dialog_cancel": "रद्द करें"
 	}
 }

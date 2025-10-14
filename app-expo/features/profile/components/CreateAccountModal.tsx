@@ -15,11 +15,11 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
-	Alert,
 } from "react-native";
 import { User, Phone } from "lucide-react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface CreateAccountModalProps {
 	onClose: () => void;
@@ -33,6 +33,7 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 	const [agreeToTerms, setAgreeToTerms] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [errors, setErrors] = useState<{ name?: string; phone?: string; terms?: string }>({});
+	const { showSnackbar } = useSnackbar();
 
 	const validatePhone = useCallback((phoneNumber: string): boolean => {
 		// E.164 format validation (simplified)
@@ -66,25 +67,27 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 		setIsLoading(true);
 		try {
 			await onSubmit({ name: name.trim(), phone: phone.trim() });
-		} catch (error: any) {
-			Alert.alert(i18n.t("Common.error"), error.message);
+			onClose();
+		} catch (error: unknown) {
+			showSnackbar(i18n.t("Common.error"));
 		} finally {
 			setIsLoading(false);
 		}
-	}, [name, phone, agreeToTerms, validatePhone, onSubmit]);
+	}, [name, phone, agreeToTerms, validatePhone, onSubmit, showSnackbar]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
 			setIsLoading(true);
 			try {
 				await onOAuthSignIn(provider);
-			} catch (error: any) {
-				Alert.alert(i18n.t("Common.error"), error.message);
+				onClose();
+			} catch (error: unknown) {
+				showSnackbar(i18n.t("Common.error"));
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[onOAuthSignIn],
+		[onOAuthSignIn, showSnackbar],
 	);
 
 	return (

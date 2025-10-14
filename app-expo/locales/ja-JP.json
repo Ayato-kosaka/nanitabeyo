@@ -8,8 +8,10 @@
 		"save": "保存",
 		"post": "投稿",
 		"processing": "処理中...",
-		"error": "エラー",
+		"error": "エラーが発生しました。もう一度お試しください。",
 		"success": "成功",
+		"linkCopied": "リンクをクリップボードにコピーしました",
+		"shareFailed": "コンテンツの共有に失敗しました",
 		"defaultTitle": "なに食べよ ~食べたい料理が見つかる新感覚グルメアプリ~",
 		"defaultDesc": "あなたの気分を入力すると、AIが「これ食べたいでしょ！」という料理を提案してくれます。提案された料理写真やレビューを見ながら、直感的にお店を選べます。",
 		"daysRemaining": "残り{{count}}日",
@@ -252,13 +254,15 @@
 			"price": "料金",
 			"rating": "評価",
 			"comment": "コメント",
-			"bidAmount": "入札額"
+			"bidAmount": "入札額",
+			"dishCategory": "料理カテゴリ"
 		},
 		"placeholders": {
 			"searchRestaurants": "レストランを検索",
 			"enterPrice": "料金を入力",
 			"enterReview": "レビューを入力",
-			"enterBidAmount": "入札額を入力"
+			"enterBidAmount": "入札額を入力",
+			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)"
 		},
 		"labels": {
 			"endDate": "終了日:",
@@ -291,6 +295,20 @@
 			"selectedVideoThumbnail": "選択した動画のサムネイル",
 			"playVideo": "動画を再生",
 			"selectingMedia": "メディアを選択中..."
+		},
+		"noResultsFound": "結果が見つかりませんでした",
+		"accessibility": {
+			"dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
+			"dishCategorySelected": "{{category}}を選択しました",
+			"dishCategorySearching": "料理カテゴリを検索中",
+			"dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
+			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
+			"dishCategoryNotFound": "料理カテゴリが見つかりません",
+			"dishCategoryInvalidInput": "無効な料理カテゴリ名です",
+			"reviewSubmitFailed": "レビューの投稿に失敗しました"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +387,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "コードを入力",
 		"otp_send_again": "コードを再送",
+		"otp_enter_all_digits": "6桁すべてを入力してください",
+		"login_success": "ログインに成功しました！",
 		"error_required": "必須項目です",
 		"error_invalid_phone": "電話番号が正しくありません",
-		"tos_link_text": "利用規約"
+		"tos_link_text": "利用規約",
+		"existing_account_checkbox": "既にアカウントをお持ちですか？",
+		"conflict_dialog_title": "既存アカウントが見つかりました",
+		"conflict_dialog_message": "対象のアカウントは既に別ユーザーに紐づいています。切り替えるとゲストで作成したデータは引き継がれません。既存アカウントに切り替えますか？",
+		"conflict_dialog_switch": "切り替える",
+		"conflict_dialog_cancel": "キャンセル"
 	}
 }

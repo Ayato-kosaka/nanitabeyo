@@ -70,6 +70,7 @@ model dish_category_variants {
   created_at       DateTime        @default(now()) @db.Timestamptz(6)
   dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([surface_form, dish_category_id], map: "idx_dcv_surface_form_prefix_cover")
   @@index([dish_category_id], map: "idx_dish_category_variants_dish_category_id")
   @@schema("dev")
 }
@@ -153,6 +154,7 @@ model dishes {
   dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   restaurants     restaurants     @relation(fields: [restaurant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@unique([restaurant_id, category_id], map: "dishes_restaurant_category_unique")
   @@index([category_id], map: "idx_dishes_category")
   @@index([restaurant_id], map: "idx_dishes_restaurant")
   @@schema("dev")

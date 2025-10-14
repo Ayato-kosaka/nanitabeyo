@@ -1,7 +1,8 @@
-import { Platform, Alert } from "react-native";
+import { Platform } from "react-native";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import { Env } from "@/constants/Env";
+import i18n from "@/lib/i18n";
 
 /**
  * Generate a shareable URL based on the current pathname
@@ -27,6 +28,7 @@ export const handleShare = async (
 	title?: string,
 	onSuccess?: () => void,
 	onError?: (error: string) => void,
+	showSnackbar?: (message: string) => void,
 ): Promise<void> => {
 	try {
 		if (Platform.OS === "web") {
@@ -40,7 +42,7 @@ export const handleShare = async (
 			} else {
 				// Fallback to clipboard for unsupported browsers
 				await Clipboard.setStringAsync(url);
-				Alert.alert("Copied!", "Link copied to clipboard");
+				showSnackbar?.(i18n.t("Common.linkCopied"));
 				onSuccess?.();
 			}
 		} else {
@@ -55,7 +57,7 @@ export const handleShare = async (
 			} else {
 				// Fallback to clipboard
 				await Clipboard.setStringAsync(url);
-				Alert.alert("Copied!", "Link copied to clipboard");
+				showSnackbar?.(i18n.t("Common.linkCopied"));
 				onSuccess?.();
 			}
 		}
@@ -63,11 +65,11 @@ export const handleShare = async (
 		// Always fallback to clipboard on any error
 		try {
 			await Clipboard.setStringAsync(url);
-			Alert.alert("Copied!", "Link copied to clipboard");
+			showSnackbar?.(i18n.t("Common.linkCopied"));
 			onSuccess?.();
 		} catch (clipboardError) {
-			const errorMessage = "Failed to share content";
-			Alert.alert("Error", errorMessage);
+			const errorMessage = i18n.t("Common.shareFailed");
+			showSnackbar?.(errorMessage);
 			onError?.(errorMessage);
 		}
 	}

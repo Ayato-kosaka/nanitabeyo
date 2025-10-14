@@ -1,18 +1,19 @@
 import React, { useState, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, Platform, Modal } from "react-native";
 import { Image } from "expo-image";
-import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
+import { Video, ResizeMode } from "expo-av";
 import { Play } from "lucide-react-native";
 import i18n from "@/lib/i18n";
+import type { CreateDishMediaDto } from "@shared/api/v1/dto";
 
 export interface MediaData {
-	type: "image" | "video";
+	type: CreateDishMediaDto["mediaType"];
 	uri: string;
 	width?: number;
 	height?: number;
 	durationSec?: number;
 	thumbnailUri?: string;
-	mimeType?: string;
+	mimeType: string;
 }
 
 interface InitialMediaPreviewProps {

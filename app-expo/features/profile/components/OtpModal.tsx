@@ -7,20 +7,12 @@
 */
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import {
-	View,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	StyleSheet,
-	KeyboardAvoidingView,
-	Platform,
-	Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface OtpModalProps {
 	onClose: () => void;
@@ -36,6 +28,7 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 
 	const { signInWithOtp, verifyOtp, createUserProfile } = useAuth();
 	const { logFrontendEvent } = useLogger();
+	const { showSnackbar } = useSnackbar();
 
 	const handleOtpChange = useCallback(
 		(value: string, index: number) => {
@@ -87,7 +80,7 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 		const otpString = otp.join("");
 
 		if (otpString.length !== 6) {
-			Alert.alert(i18n.t("Common.error"), "Please enter all 6 digits");
+			showSnackbar(i18n.t("auth.otp_enter_all_digits"));
 			return;
 		}
 
@@ -110,7 +103,7 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 					payload: { phone, method: "sms" },
 				});
 
-				Alert.alert(i18n.t("Common.success"), "Successfully logged in!");
+				showSnackbar(i18n.t("auth.login_success"));
 			} catch (error) {
 				logFrontendEvent({
 					event_name: "otp_verify_error",
@@ -119,12 +112,12 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 				});
 				throw error;
 			}
-		} catch (error: any) {
-			Alert.alert(i18n.t("Common.error"), error.message);
+		} catch (error: unknown) {
+			showSnackbar(i18n.t("Common.error"));
 		} finally {
 			setIsLoading(false);
 		}
-	}, [otp, phone, verifyOtp, logFrontendEvent, onClose, pendingDisplayName, createUserProfile]);
+	}, [otp, phone, verifyOtp, logFrontendEvent, onClose, pendingDisplayName, createUserProfile, showSnackbar]);
 
 	const handleResend = useCallback(async () => {
 		setIsResending(true);
@@ -149,12 +142,12 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 			setOtp(["", "", "", "", "", ""]);
 			// Focus first input
 			inputRefs.current[0]?.focus();
-		} catch (error: any) {
-			Alert.alert(i18n.t("Common.error"), error.message);
+		} catch (error: unknown) {
+			showSnackbar(i18n.t("Common.error"));
 		} finally {
 			setIsResending(false);
 		}
-	}, [logFrontendEvent]);
+	}, [logFrontendEvent, phone, showSnackbar, signInWithOtp]);
 
 	// Auto-verify when all digits are entered
 	useEffect(() => {

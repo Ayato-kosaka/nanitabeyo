@@ -8,8 +8,10 @@
 		"save": "Guardar",
 		"post": "Publicar",
 		"processing": "Procesando...",
-		"error": "Error",
+		"error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
+		"linkCopied": "Enlace copiado al portapapeles",
+		"shareFailed": "No se pudo compartir el contenido",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "Simplemente dile a la app cómo te sientes y nuestra IA te sugerirá los platos que probablemente se te antojen. Luego, explora fotos reales de comida y reseñas para elegir al instante el restaurante que te parezca adecuado.",
 		"daysRemaining": "Quedan {{count}} días",
@@ -252,13 +254,15 @@
 			"price": "Precio",
 			"rating": "Calificación",
 			"comment": "Comentario",
-			"bidAmount": "Monto de la Oferta"
+			"bidAmount": "Monto de la Oferta",
+			"dishCategory": "Categoría del Plato"
 		},
 		"placeholders": {
 			"searchRestaurants": "Buscar restaurantes",
 			"enterPrice": "Ingresa el precio",
 			"enterReview": "Ingresa tu reseña",
-			"enterBidAmount": "Ingresa el monto de la oferta"
+			"enterBidAmount": "Ingresa el monto de la oferta",
+			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
@@ -291,6 +295,20 @@
 			"selectedVideoThumbnail": "Miniatura del vídeo seleccionado",
 			"playVideo": "Reproducir vídeo",
 			"selectingMedia": "Seleccionando medios..."
+		},
+		"noResultsFound": "No se encontraron resultados",
+		"accessibility": {
+			"dishCategoryInputFocused": "Entrada de categoría de plato enfocada",
+			"dishCategorySelected": "Seleccionado {{category}}",
+			"dishCategorySearching": "Buscando categorías de platos",
+			"dishCategorySuggestionsFound": "Se encontraron {{count}} sugerencias",
+			"dishCategoryNoResults": "No se encontraron categorías de platos coincidentes"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "Error al crear categoría de plato",
+			"dishCategoryNotFound": "Categoría de plato no encontrada",
+			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido",
+			"reviewSubmitFailed": "Error al publicar la reseña"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +387,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "Introducir Código",
 		"otp_send_again": "Reenviar Código",
+		"otp_enter_all_digits": "Por favor ingresa los 6 dígitos",
+		"login_success": "¡Inicio de sesión exitoso!",
 		"error_required": "Este campo es obligatorio",
 		"error_invalid_phone": "Número de teléfono inválido",
-		"tos_link_text": "Términos de Servicio"
+		"tos_link_text": "Términos de Servicio",
+		"existing_account_checkbox": "¿Ya tienes una cuenta?",
+		"conflict_dialog_title": "Cuenta Existente Encontrada",
+		"conflict_dialog_message": "Esta cuenta ya está vinculada a otro usuario. Si cambias, los datos creados como invitado no se transferirán. ¿Deseas cambiar a la cuenta existente?",
+		"conflict_dialog_switch": "Cambiar",
+		"conflict_dialog_cancel": "Cancelar"
 	}
 }

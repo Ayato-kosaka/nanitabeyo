@@ -20,7 +20,7 @@
 ### 3. サムネイル生成
 
 - **画像**: 選択した画像をそのまま使用
-- **動画**: 
+- **動画**:
   - 0.1秒の位置からサムネイルを生成（黒フレーム回避）
   - ネイティブ: `expo-video-thumbnails`を使用
   - Web: HTMLVideoElement + Canvas で生成
@@ -46,6 +46,7 @@
 ### 6. 国際化対応
 
 8つの言語で完全な翻訳を提供:
+
 - 日本語 (ja-JP)
 - 英語 (en-US)
 - 韓国語 (ko-KR)
@@ -100,13 +101,13 @@
 
 ```typescript
 interface MediaData {
-  type: "image" | "video";
-  uri: string;
-  width?: number;
-  height?: number;
-  durationSec?: number;      // 動画のみ
-  thumbnailUri?: string;     // 動画のみ
-  mimeType?: string;
+	type: "image" | "video";
+	uri: string;
+	width?: number;
+	height?: number;
+	durationSec?: number; // 動画のみ
+	thumbnailUri?: string; // 動画のみ
+	mimeType?: string;
 }
 ```
 
@@ -114,30 +115,32 @@ interface MediaData {
 
 ```typescript
 const styles = StyleSheet.create({
-  mediaWrapper: {
-    width: "100%",
-    aspectRatio: 9 / 16,
-    overflow: "hidden",
-    borderRadius: 12,
-    backgroundColor: "#F8F9FA",
-  },
-  media: {
-    width: "100%",
-    height: "100%",
-  },
+	mediaWrapper: {
+		width: "100%",
+		aspectRatio: 9 / 16,
+		overflow: "hidden",
+		borderRadius: 12,
+		backgroundColor: "#F8F9FA",
+	},
+	media: {
+		width: "100%",
+		height: "100%",
+	},
 });
 ```
 
 ### プラットフォーム別サムネイル生成
 
 **ネイティブ (iOS/Android):**
+
 ```typescript
 const { uri: thumbnailUri } = await VideoThumbnails.getThumbnailAsync(uri, {
-  time: 100, // 100ms = 0.1秒
+	time: 100, // 100ms = 0.1秒
 });
 ```
 
 **Web:**
+
 ```typescript
 const video = document.createElement("video");
 video.src = uri;
@@ -157,17 +160,17 @@ video.currentTime = 0.1;
 
 ## エラーケース対応
 
-| エラー | 対応 |
-|--------|------|
-| 権限拒否 | `Map.media.permissionDenied` メッセージを表示 |
-| 動画2分超過 | `Map.media.videoTooLong` メッセージを表示 |
-| サムネイル生成失敗 | `Map.media.thumbnailFailed` メッセージを表示 |
-| ユーザーキャンセル | 何も表示せず元の画面に戻る |
-| その他のエラー | 一般エラーメッセージを表示 |
+| エラー             | 対応                                          |
+| ------------------ | --------------------------------------------- |
+| 権限拒否           | `Map.media.permissionDenied` メッセージを表示 |
+| 動画2分超過        | `Map.media.videoTooLong` メッセージを表示     |
+| サムネイル生成失敗 | `Map.media.thumbnailFailed` メッセージを表示  |
+| ユーザーキャンセル | 何も表示せず元の画面に戻る                    |
+| その他のエラー     | 一般エラーメッセージを表示                    |
 
 ## パフォーマンス考慮事項
 
-1. **メモリ管理**: 
+1. **メモリ管理**:
    - Web版のサムネイルはdataURL（メモリ保持）
    - 画面離脱時に自動解放
 
@@ -182,6 +185,7 @@ video.currentTime = 0.1;
 ## テスト推奨事項
 
 ### 機能テスト
+
 - [ ] iOS/Android/Webで画像選択が正常動作
 - [ ] iOS/Android/Webで動画選択が正常動作
 - [ ] 119秒、120秒、121秒の動画で境界値テスト
@@ -190,6 +194,7 @@ video.currentTime = 0.1;
 - [ ] MP4/MOV形式の動画対応確認
 
 ### UIテスト
+
 - [ ] 9:16アスペクト比が正しく表示される
 - [ ] 画像の中央揃えが正しい
 - [ ] 動画再生アイコンが中央に表示される
@@ -197,11 +202,13 @@ video.currentTime = 0.1;
 - [ ] ミュート/ミュート解除が動作
 
 ### エラーハンドリングテスト
+
 - [ ] 権限拒否時のメッセージ表示
 - [ ] 2分超動画選択時のメッセージ表示
 - [ ] キャンセル時の適切な処理
 
 ### アクセシビリティテスト
+
 - [ ] VoiceOverでラベルが読み上げられる
 - [ ] TalkBackでラベルが読み上げられる
 - [ ] キーボードナビゲーションが機能

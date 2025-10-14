@@ -8,8 +8,10 @@
 		"save": "저장",
 		"post": "게시",
 		"processing": "처리 중...",
-		"error": "오류",
+		"error": "오류가 발생했습니다. 다시 시도해 주세요.",
 		"success": "성공",
+		"linkCopied": "링크가 클립보드에 복사되었습니다",
+		"shareFailed": "콘텐츠를 공유하지 못했습니다",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "앱에 지금 기분을 말하면 AI가 당신이 먹고 싶어 할 만한 요리를 추천해 줍니다. 그런 다음 실제 음식 사진과 리뷰를 보며 마음에 드는 식당을 바로 선택하세요.",
 		"daysRemaining": "남은 {{count}}일",
@@ -252,13 +254,15 @@
 			"price": "가격",
 			"rating": "평점",
 			"comment": "댓글",
-			"bidAmount": "입찰 금액"
+			"bidAmount": "입찰 금액",
+			"dishCategory": "요리 카테고리"
 		},
 		"placeholders": {
 			"searchRestaurants": "레스토랑 검색",
 			"enterPrice": "가격 입력",
 			"enterReview": "리뷰 입력",
-			"enterBidAmount": "입찰 금액 입력"
+			"enterBidAmount": "입찰 금액 입력",
+			"enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)"
 		},
 		"labels": {
 			"endDate": "종료일:",
@@ -291,6 +295,20 @@
 			"selectedVideoThumbnail": "선택한 동영상의 썸네일",
 			"playVideo": "동영상 재생",
 			"selectingMedia": "미디어 선택 중..."
+		},
+		"noResultsFound": "결과를 찾을 수 없습니다",
+		"accessibility": {
+			"dishCategoryInputFocused": "요리 카테고리 입력이 포커스되었습니다",
+			"dishCategorySelected": "{{category}}를 선택했습니다",
+			"dishCategorySearching": "요리 카테고리 검색 중",
+			"dishCategorySuggestionsFound": "{{count}}개의 제안을 찾았습니다",
+			"dishCategoryNoResults": "일치하는 요리 카테고리를 찾을 수 없습니다"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "요리 카테고리 생성 실패",
+			"dishCategoryNotFound": "요리 카테고리를 찾을 수 없습니다",
+			"dishCategoryInvalidInput": "잘못된 요리 카테고리 이름",
+			"reviewSubmitFailed": "리뷰 게시 실패"
 		}
 	},
 	"Restaurant": {
@@ -369,8 +387,15 @@
 		"provider_apple": "Apple",
 		"otp_title": "코드 입력",
 		"otp_send_again": "코드 재전송",
+		"otp_enter_all_digits": "6자리 모두 입력해 주세요",
+		"login_success": "성공적으로 로그인되었습니다!",
 		"error_required": "필수 입력 항목입니다",
 		"error_invalid_phone": "유효하지 않은 전화번호입니다",
-		"tos_link_text": "서비스 약관"
+		"tos_link_text": "서비스 약관",
+		"existing_account_checkbox": "이미 계정이 있으신가요?",
+		"conflict_dialog_title": "기존 계정을 찾았습니다",
+		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
+		"conflict_dialog_switch": "전환",
+		"conflict_dialog_cancel": "취소"
 	}
 }

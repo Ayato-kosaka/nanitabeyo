@@ -16,10 +16,11 @@ type AuthContextType = {
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
-	signInWithOAuth: (provider: Provider) => Promise<void>;
+	signInWithOAuth: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
 	linkIdentity: (provider: Provider) => Promise<void>;
+	handleOAuthResultUrl: (url?: string | null) => Promise<User | null | undefined>;
 	createUserProfile: (user: { displayName?: string; avatar?: string }) => Promise<void>;
 };
 
@@ -111,6 +112,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// initializeAuth で処理済
 			} else if (event === "SIGNED_IN") {
 				if (!session) return;
+				if (sessionRef.current?.user.id && sessionRef.current?.user.id !== session.user.id) {
+					// signInWithOAuth は、未登録なら新規ユーザーを作り、匿名ユーザーから切り替わる可能性がある
+					// そのため、 user.id の変化を検出してログを出す
+					logFrontendEvent({
+						event_name: "userChanged",
+						error_level: "log",
+						payload: { previous_user_id: sessionRef.current?.user.id, new_user_id: session.user.id },
+					});
+				}
 				setUser(session.user);
 				sessionRef.current = session;
 				// router.replace('/');
@@ -155,16 +165,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 	/**
 	 * OAuthプロバイダーでログインする。
+	 * 新規ユーザー作成 または 既存ユーザー へのログインを行う。
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
-	const signInWithOAuth = async (provider: Provider) => {
+	const signInWithOAuth = async (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => {
+		const { queryParams } = options || {};
 		const redirectTo =
 			Platform.OS === "web"
-				? Linking.createURL(`/${locale}/auth/callback`)
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
+				? `${window.location.origin}/${locale}/auth/callback?intent=signin`
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback?intent=signin` });
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
-			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
+			options: { redirectTo, queryParams, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
@@ -210,13 +222,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 	/**
 	 * 匿名ユーザーにOAuthアイデンティティをリンクする
+	 * 成功時は 同一 auth.users.id を維持して昇格可能。
+	 * ただし、既に他のユーザーにリンク済みの OAuth であれば失敗する。
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const linkIdentity = async (provider: Provider): Promise<void> => {
 		const redirectTo =
 			Platform.OS === "web"
-				? Linking.createURL(`/${locale}/auth/callback`)
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
+				? // linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
+					`${window.location.origin}/${locale}/auth/callback?intent=link&provider=${provider}`
+				: AuthSession.makeRedirectUri({
+						scheme: "nanitabeyo",
+						path: `${locale}/auth/callback?intent=link&provider=${provider}`,
+					});
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
 			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
@@ -233,6 +251,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					}));
 			}
 		}
+	};
+
+	/** OAuthのリダイレクトURIから認証結果を処理する
+	 * - PKCE (codeフロー) と 旧インプリシット (#access_token) の両方に対応
+	 */
+	const handleOAuthResultUrl = async (url?: string | null) => {
+		if (!url) return;
+
+		const parsed = Linking.parse(url);
+		const code = parsed.queryParams?.code as string | undefined;
+		const intent = parsed.queryParams?.intent as string | undefined;
+		const provider = parsed.queryParams?.provider as Provider | undefined;
+		const error = parsed.queryParams?.error as string | undefined;
+		const error_code = parsed.queryParams?.error_code as string | undefined;
+		const error_description = parsed.queryParams?.error_description as string | undefined;
+
+		// エラーがある場合は、そのまま例外として throw する
+		// callback.tsx 側で処理するため、ここでは自動フォールバックしない
+		if (error) {
+			const errorObj = new Error(error_description ?? error_code ?? error) as any;
+			errorObj.error_code = error_code;
+			errorObj.intent = intent;
+			errorObj.provider = provider;
+			throw errorObj;
+		}
+
+		// 1) PKCE (codeフロー)
+		if (code) {
+			const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+			if (error) throw error;
+			return data.user;
+		}
+
+		// 2) 旧: インプリシット（#access_token）
+		const hash = url.split("#")[1] ?? "";
+		if (hash) {
+			const params = new URLSearchParams(hash);
+			const access_token = params.get("access_token");
+			const refresh_token = params.get("refresh_token");
+			const expires_at = params.get("expires_at");
+			if (access_token && refresh_token) {
+				await supabase.auth.setSession({ access_token, refresh_token });
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
+				return user ?? null;
+			}
+		}
+		return null;
 	};
 
 	/**
@@ -308,6 +375,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		signInWithOtp,
 		verifyOtp,
 		linkIdentity,
+		handleOAuthResultUrl,
 		createUserProfile,
 	};
 
@@ -335,39 +403,6 @@ export const useAuth = (): AuthContextType => {
  */
 export const buildRedirectTo = (locale?: string) => {
 	// 画面を使わないので、ネイティブは固定でOK（ロケールなし推奨）
-	if (Platform.OS === "web") return Linking.createURL("/auth/callback"); // Webは任意
+	if (Platform.OS === "web") return `${window.location.origin}/${locale}/auth/callback`; // Webは任意
 	return AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: "auth/callback" });
-};
-
-/** OAuthのリダイレクトURIから認証結果を処理する
- * - PKCE (codeフロー) と 旧インプリシット (#access_token) の両方に対応
- */
-export const handleOAuthResultUrl = async (url?: string | null) => {
-	if (!url) return;
-
-	// 1) PKCE (codeフロー)
-	const parsed = Linking.parse(url);
-	const code = parsed.queryParams?.code as string | undefined;
-	if (code) {
-		const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-		if (error) throw error;
-		return data.user;
-	}
-
-	// 2) 旧: インプリシット（#access_token）
-	const hash = url.split("#")[1] ?? "";
-	if (hash) {
-		const params = new URLSearchParams(hash);
-		const access_token = params.get("access_token");
-		const refresh_token = params.get("refresh_token");
-		const expires_at = params.get("expires_at");
-		if (access_token && refresh_token) {
-			await supabase.auth.setSession({ access_token, refresh_token });
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			return user ?? null;
-		}
-	}
-	return null;
 };

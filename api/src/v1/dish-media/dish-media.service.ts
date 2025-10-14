@@ -22,6 +22,9 @@ import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaEntryItem } from './dish-media.mapper';
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
+import { TranscoderService } from '../../core/transcoder/transcoder.service';
+import { env } from '../../core/config/env';
+import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 
 @Injectable()
 export class DishMediaService {
@@ -31,7 +34,8 @@ export class DishMediaService {
     private readonly prisma: PrismaService,
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
-  ) {}
+    private readonly transcoder: TranscoderService,
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -183,6 +187,7 @@ export class DishMediaService {
     this.logger.debug('CreateDishMedia', 'createDishMedia', {
       dishId: dto.dishId,
       userId: creatorId,
+      mediaType: dto.mediaType,
     });
 
     // dishId が存在するか簡易バリデーション
@@ -197,17 +202,33 @@ export class DishMediaService {
     // トランザクションで dish_media + 付随レコード作成
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.createDishMedia(
-          tx,
-          dto,
-          creatorId,
-          dto.mediaPath, // TODO: video の場合は差胸を作る
-        ),
+        this.repo.createDishMedia(tx, dto, creatorId, dto.thumbnailPath),
     );
 
     this.logger.log('DishMediaCreated', 'createDishMedia', {
       mediaId: result.id,
       dishId: dto.dishId,
+      mediaType: dto.mediaType,
     });
+
+    // video の場合のみトランスコードジョブを直接作成
+    if (dto.mediaType === 'video') {
+      const inputUri = `gs://${env.GCS_BUCKET_NAME}/${dto.mediaPath}`;
+      const outputUri = `gs://${env.GCS_BUCKET_NAME}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${result.id}/`;
+
+      await this.transcoder.createTranscodeJob({
+        inputUri,
+        outputUri,
+        recordId: result.id,
+      });
+
+      this.logger.log('TranscodeJobCreated', 'createDishMedia', {
+        mediaId: result.id,
+        inputUri: dto.mediaPath,
+        outputUri,
+      });
+    }
+
+    return convertPrismaToSupabase_DishMedia(result);
   }
 }

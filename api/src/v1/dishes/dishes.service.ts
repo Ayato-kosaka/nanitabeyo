@@ -15,6 +15,9 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { LocationsService } from '../locations/locations.service';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
+import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
+import { RestaurantsRepository } from '../restaurants/restaurants.repository';
+import { PrismaService } from '../../prisma/prisma.service';
 
 // Import converters
 import {
@@ -44,7 +47,7 @@ import { randomUUID } from 'node:crypto';
 import { log } from 'node:console';
 
 // Google Maps types for photo handling
-import { google } from '@googlemaps/places/build/protos/protos';
+import { protos } from '@googlemaps/places';
 
 interface PhotoCandidate {
   name?: string | null;
@@ -60,6 +63,9 @@ export class DishesService {
     private readonly locationsService: LocationsService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
+    private readonly dishCategoriesRepository: DishCategoriesRepository,
+    private readonly restaurantsRepository: RestaurantsRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -167,10 +173,7 @@ export class DishesService {
   /*                     POST /v1/dishes (作成 or 取得)                 */
   /* ------------------------------------------------------------------ */
   async createOrGetDish(dto: CreateDishDto): Promise<CreateDishResponse> {
-    this.logger.debug('CreateOrGetDish', 'createOrGetDish', {
-      restaurantId: dto.restaurantId,
-      dishCategoryId: dto.dishCategoryId,
-    });
+    this.logger.debug('CreateOrGetDish', 'createOrGetDish', dto);
 
     // 既存のdishを検索
     const existingDish = await this.repo.findDishByRestaurantAndCategory(
@@ -185,14 +188,50 @@ export class DishesService {
       return convertPrismaToSupabase_Dishes(existingDish);
     }
 
-    // 新規作成
-    const newDish = await this.repo.createDish(dto);
+    // DishCategory と Restaurant を取得し、ローカル言語を推測して dishName を決定
+    const dishCategory =
+      await this.dishCategoriesRepository.findDishCategoryById(
+        dto.dishCategoryId,
+      );
+    if (!dishCategory) {
+      this.logger.error('DishCategoryNotFound', 'createOrGetDish', {
+        dishCategoryId: dto.dishCategoryId,
+      });
+      throw new Error('Dish category not found');
+    }
 
-    this.logger.log('DishCreated', 'createOrGetDish', {
-      dishId: newDish.id,
-      restaurantId: dto.restaurantId,
-      categoryId: dto.dishCategoryId,
+    const restaurant = await this.prisma.prisma.$transaction(async (tx) => {
+      return this.restaurantsRepository.findRestaurantById(
+        tx,
+        dto.restaurantId,
+      );
     });
+    if (!restaurant) {
+      this.logger.error('RestaurantNotFound', 'createOrGetDish', {
+        restaurantId: dto.restaurantId,
+      });
+      throw new Error('Restaurant not found');
+    }
+
+    // レストランの住所情報からローカル言語コードを推測
+    let languageCode = this.locationsService.resolveLocalLanguageCode(
+      restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
+    );
+
+    const dishNameFromLabels: string =
+      (dishCategory.labels && dishCategory.labels[languageCode]) ||
+      dishCategory.label_en;
+
+    // 新規作成（推測名を注入。なければフォールバック）
+    const newDish = await this.prisma.prisma.$transaction(async (tx) => {
+      return this.repo.createOrGetDishForCategory(tx, {
+        restaurant_id: dto.restaurantId,
+        category_id: dto.dishCategoryId,
+        name: dishNameFromLabels,
+      });
+    });
+
+    this.logger.log('DishCreated', 'createOrGetDish', newDish);
 
     return convertPrismaToSupabase_Dishes(newDish);
   }

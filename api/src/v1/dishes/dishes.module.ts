@@ -19,6 +19,8 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
 import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module'; // Cloud Tasks サービス
 import { LocationsModule } from '../locations/locations.module'; // Google Places API 連携
 import { RemoteConfigModule } from '../../core/remote-config/remote-config.module';
+import { DishCategoriesModule } from '../dish-categories/dish-categories.module';
+import { RestaurantsModule } from '../restaurants/restaurants.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { RemoteConfigModule } from '../../core/remote-config/remote-config.modul
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
     LocationsModule, // Google Places API 連携
     RemoteConfigModule, // Remote Config サービス
+    DishCategoriesModule, // 料理カテゴリ管理
+    RestaurantsModule, // レストラン管理
   ],
   controllers: [DishesController],
   providers: [DishesService, DishesRepository],

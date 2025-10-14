@@ -120,7 +120,7 @@ export class LocationsService {
   /**
    * addressComponents から最適な言語コードを解決
    */
-  private resolveLocalLanguageCode(
+  resolveLocalLanguageCode(
     addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[],
   ): string {
     const { countryCode, subterritoryCode } =

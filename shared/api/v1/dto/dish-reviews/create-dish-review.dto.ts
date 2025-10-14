@@ -11,7 +11,7 @@ export class CreateDishReviewDto {
 	@IsString()
 	comment!: string;
 
-	/** 言語コード */
+	/** 言語コード  (例: 'en', 'ja') */
 	@IsString()
 	languageCode!: string;
 
