@@ -47,7 +47,7 @@ export class TranscoderService {
 
     const parent = this.client.locationPath(
       env.GCP_PROJECT,
-      env.TASKS_LOCATION,
+      env.TRANSCODER_LOCATION,
     );
 
     // HLS 形式での出力設定

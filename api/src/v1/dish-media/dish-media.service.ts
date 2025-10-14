@@ -213,10 +213,11 @@ export class DishMediaService {
 
     // video の場合のみトランスコードジョブを直接作成
     if (dto.mediaType === 'video') {
+      const inputUri = `gs://${env.GCS_BUCKET_NAME}/${dto.mediaPath}`;
       const outputUri = `gs://${env.GCS_BUCKET_NAME}/transcoded/dish_media/media_path/${result.id}/`;
 
       await this.transcoder.createTranscodeJob({
-        inputUri: dto.mediaPath,
+        inputUri,
         outputUri,
         recordId: result.id,
       });
