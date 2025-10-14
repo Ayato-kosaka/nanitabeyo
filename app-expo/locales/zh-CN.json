@@ -8,7 +8,7 @@
 		"save": "保存",
 		"post": "发布",
 		"processing": "处理中...",
-                "error": "发生错误。请重试。",
+		"error": "发生错误。请重试。",
 		"success": "成功",
 		"linkCopied": "链接已复制到剪贴板",
 		"shareFailed": "分享内容失败",
@@ -391,6 +391,11 @@
 		"login_success": "登录成功！",
 		"error_required": "此字段为必填项",
 		"error_invalid_phone": "无效的电话号码",
-		"tos_link_text": "服务条款"
+		"tos_link_text": "服务条款",
+		"existing_account_checkbox": "您已经有账户了吗？",
+		"conflict_dialog_title": "找到现有账户",
+		"conflict_dialog_message": "此账户已链接到另一个用户。如果您切换，作为访客创建的数据将不会被转移。您要切换到现有账户吗？",
+		"conflict_dialog_switch": "切换",
+		"conflict_dialog_cancel": "取消"
 	}
 }

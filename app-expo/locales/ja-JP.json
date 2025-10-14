@@ -8,7 +8,7 @@
 		"save": "保存",
 		"post": "投稿",
 		"processing": "処理中...",
-                "error": "エラーが発生しました。もう一度お試しください。",
+		"error": "エラーが発生しました。もう一度お試しください。",
 		"success": "成功",
 		"linkCopied": "リンクをクリップボードにコピーしました",
 		"shareFailed": "コンテンツの共有に失敗しました",
@@ -391,6 +391,11 @@
 		"login_success": "ログインに成功しました！",
 		"error_required": "必須項目です",
 		"error_invalid_phone": "電話番号が正しくありません",
-		"tos_link_text": "利用規約"
+		"tos_link_text": "利用規約",
+		"existing_account_checkbox": "既にアカウントをお持ちですか？",
+		"conflict_dialog_title": "既存アカウントが見つかりました",
+		"conflict_dialog_message": "対象のアカウントは既に別ユーザーに紐づいています。切り替えるとゲストで作成したデータは引き継がれません。既存アカウントに切り替えますか？",
+		"conflict_dialog_switch": "切り替える",
+		"conflict_dialog_cancel": "キャンセル"
 	}
 }

@@ -16,7 +16,7 @@ type AuthContextType = {
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
-	signInWithOAuth: (provider: Provider) => Promise<void>;
+	signInWithOAuth: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
 	linkIdentity: (provider: Provider) => Promise<void>;
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// initializeAuth で処理済
 			} else if (event === "SIGNED_IN") {
 				if (!session) return;
-				if (sessionRef.current?.user.id !== session.user.id) {
+				if (sessionRef.current?.user.id && sessionRef.current?.user.id !== session.user.id) {
 					// signInWithOAuth は、未登録なら新規ユーザーを作り、匿名ユーザーから切り替わる可能性がある
 					// そのため、 user.id の変化を検出してログを出す
 					logFrontendEvent({
@@ -172,8 +172,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		const { queryParams } = options || {};
 		const redirectTo =
 			Platform.OS === "web"
-				? `${window.location.origin}/${locale}/auth/callback`
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback` });
+				? `${window.location.origin}/${locale}/auth/callback?intent=signin`
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback?intent=signin` });
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
 			options: { redirectTo, queryParams, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
@@ -229,11 +229,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const linkIdentity = async (provider: Provider): Promise<void> => {
 		const redirectTo =
 			Platform.OS === "web"
-				? // linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?linking=1` を付与
-					`${window.location.origin}/${locale}/auth/callback?linking=1&provider=${provider}`
+				? // linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
+					`${window.location.origin}/${locale}/auth/callback?intent=link&provider=${provider}`
 				: AuthSession.makeRedirectUri({
 						scheme: "nanitabeyo",
-						path: `${locale}/auth/callback?linking=1&provider=${provider}`,
+						path: `${locale}/auth/callback?intent=link&provider=${provider}`,
 					});
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
@@ -261,28 +261,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 		const parsed = Linking.parse(url);
 		const code = parsed.queryParams?.code as string | undefined;
-		const isLinking = parsed.queryParams?.linking === "1";
+		const intent = parsed.queryParams?.intent as string | undefined;
 		const provider = parsed.queryParams?.provider as Provider | undefined;
 		const error = parsed.queryParams?.error as string | undefined;
 		const error_code = parsed.queryParams?.error_code as string | undefined;
 		const error_description = parsed.queryParams?.error_description as string | undefined;
+
+		// エラーがある場合は、そのまま例外として throw する
+		// callback.tsx 側で処理するため、ここでは自動フォールバックしない
 		if (error) {
-			if (error_code === "identity_already_exists") {
-				if (!provider) throw new Error("Missing provider for fallback sign-in");
-				// linkIdentity 由来のエラーなら、既存ユーザーでログインを試みる
-				signInWithOAuth(provider, { queryParams: { prompt: "none" } });
-				return user;
-			}
-			throw new Error(error_description ?? error_code ?? error);
+			const errorObj = new Error(error_description ?? error_code ?? error) as any;
+			errorObj.error_code = error_code;
+			errorObj.intent = intent;
+			errorObj.provider = provider;
+			throw errorObj;
 		}
 
 		// 1) PKCE (codeフロー)
-		if (isLinking) {
-			if (code) {
-				const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-				if (error) throw error;
-				return data.user;
-			}
+		if (code) {
+			const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+			if (error) throw error;
+			return data.user;
 		}
 
 		// 2) 旧: インプリシット（#access_token）

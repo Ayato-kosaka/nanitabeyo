@@ -8,7 +8,7 @@
 		"save": "Save",
 		"post": "Post",
 		"processing": "Processing...",
-                "error": "An error occurred. Please try again.",
+		"error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
 		"shareFailed": "Failed to share content",
@@ -391,6 +391,11 @@
 		"login_success": "Successfully logged in!",
 		"error_required": "This field is required",
 		"error_invalid_phone": "Invalid phone number",
-		"tos_link_text": "Terms of Service"
+		"tos_link_text": "Terms of Service",
+		"existing_account_checkbox": "Do you already have an account?",
+		"conflict_dialog_title": "Existing Account Found",
+		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
+		"conflict_dialog_switch": "Switch",
+		"conflict_dialog_cancel": "Cancel"
 	}
 }

@@ -8,7 +8,7 @@
 		"save": "저장",
 		"post": "게시",
 		"processing": "처리 중...",
-                "error": "오류가 발생했습니다. 다시 시도해 주세요.",
+		"error": "오류가 발생했습니다. 다시 시도해 주세요.",
 		"success": "성공",
 		"linkCopied": "링크가 클립보드에 복사되었습니다",
 		"shareFailed": "콘텐츠를 공유하지 못했습니다",
@@ -391,6 +391,11 @@
 		"login_success": "성공적으로 로그인되었습니다!",
 		"error_required": "필수 입력 항목입니다",
 		"error_invalid_phone": "유효하지 않은 전화번호입니다",
-		"tos_link_text": "서비스 약관"
+		"tos_link_text": "서비스 약관",
+		"existing_account_checkbox": "이미 계정이 있으신가요?",
+		"conflict_dialog_title": "기존 계정을 찾았습니다",
+		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
+		"conflict_dialog_switch": "전환",
+		"conflict_dialog_cancel": "취소"
 	}
 }

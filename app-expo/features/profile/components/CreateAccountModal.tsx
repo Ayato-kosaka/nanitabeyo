@@ -68,8 +68,8 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 		try {
 			await onSubmit({ name: name.trim(), phone: phone.trim() });
 			onClose();
-                } catch (error: unknown) {
-                        showSnackbar(i18n.t("Common.error"));
+		} catch (error: unknown) {
+			showSnackbar(i18n.t("Common.error"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -81,8 +81,8 @@ export function CreateAccountModal({ onClose, onSubmit, onOAuthSignIn }: CreateA
 			try {
 				await onOAuthSignIn(provider);
 				onClose();
-                        } catch (error: unknown) {
-                                showSnackbar(i18n.t("Common.error"));
+			} catch (error: unknown) {
+				showSnackbar(i18n.t("Common.error"));
 			} finally {
 				setIsLoading(false);
 			}

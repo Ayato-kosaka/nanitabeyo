@@ -8,7 +8,7 @@
 		"save": "حفظ",
 		"post": "نشر",
 		"processing": "معالجة...",
-                "error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
+		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
 		"linkCopied": "تم نسخ الرابط إلى الحافظة",
 		"shareFailed": "فشل في مشاركة المحتوى",
@@ -391,6 +391,11 @@
 		"login_success": "تم تسجيل الدخول بنجاح!",
 		"error_required": "هذا الحقل مطلوب",
 		"error_invalid_phone": "رقم الهاتف غير صحيح",
-		"tos_link_text": "شروط الخدمة"
+		"tos_link_text": "شروط الخدمة",
+		"existing_account_checkbox": "هل لديك حساب بالفعل؟",
+		"conflict_dialog_title": "تم العثور على حساب موجود",
+		"conflict_dialog_message": "هذا الحساب مرتبط بالفعل بمستخدم آخر. إذا قمت بالتبديل، لن يتم نقل البيانات التي تم إنشاؤها كضيف. هل تريد التبديل إلى الحساب الموجود؟",
+		"conflict_dialog_switch": "تبديل",
+		"conflict_dialog_cancel": "إلغاء"
 	}
 }
