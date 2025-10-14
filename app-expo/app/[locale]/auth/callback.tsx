@@ -104,7 +104,7 @@ export default function AuthCallbackScreen() {
 			});
 
 			// 既存アカウントに切り替え（prompt=none でサイレント認証）
-			await signInWithOAuth(conflictProvider, { queryParams: { prompt: "none" } });
+			await signInWithOAuth(conflictProvider);
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "oauth_conflict_switch_error",

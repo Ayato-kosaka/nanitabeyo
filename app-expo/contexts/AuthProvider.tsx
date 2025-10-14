@@ -16,7 +16,7 @@ type AuthContextType = {
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
-	signInWithOAuth: (provider: Provider) => Promise<void>;
+	signInWithOAuth: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
 	linkIdentity: (provider: Provider) => Promise<void>;
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// initializeAuth で処理済
 			} else if (event === "SIGNED_IN") {
 				if (!session) return;
-				if (sessionRef.current?.user.id !== session.user.id) {
+				if (sessionRef.current?.user.id && sessionRef.current?.user.id !== session.user.id) {
 					// signInWithOAuth は、未登録なら新規ユーザーを作り、匿名ユーザーから切り替わる可能性がある
 					// そのため、 user.id の変化を検出してログを出す
 					logFrontendEvent({
@@ -278,12 +278,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		}
 
 		// 1) PKCE (codeフロー)
-		if (intent === "link") {
-			if (code) {
-				const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-				if (error) throw error;
-				return data.user;
-			}
+		if (code) {
+			const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+			if (error) throw error;
+			return data.user;
 		}
 
 		// 2) 旧: インプリシット（#access_token）
