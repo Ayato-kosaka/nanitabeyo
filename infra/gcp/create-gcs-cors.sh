@@ -34,6 +34,7 @@ cat > "$CORS_FILE" <<EOF
   {
     "origin": ["*"],
     "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type"],
     "maxAgeSeconds": 3600
   }
 ]
