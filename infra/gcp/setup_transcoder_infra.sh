@@ -61,14 +61,24 @@ gcloud services enable \
   pubsub.googleapis.com \
   --project="${PROJECT_ID}" --quiet
 
-# --- 2) プロジェクト番号 & Transcoder Service Agent -------------------------
+# --- 2) Transcoder のサービスエージェントを明示作成（冪等）--------------------
+echo "👤 Ensuring Transcoder service identity…"
+gcloud beta services identity create \
+  --service=transcoder.googleapis.com \
+  --project="${PROJECT_ID}" >/dev/null || true
+
+PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
+TRANSCODER_SA="service-${PROJECT_NUMBER}@gcp-sa-transcoder.iam.gserviceaccount.com"
+echo "ℹ️  Transcoder Service SA : ${TRANSCODER_SA}"
+
+# --- 3) プロジェクト番号 & Transcoder Service Agent -------------------------
 PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
 TRANSCODER_SA="service-${PROJECT_NUMBER}@gcp-sa-transcoder.iam.gserviceaccount.com"
 
 echo "ℹ️  Project Number        : ${PROJECT_NUMBER}"
 echo "ℹ️  Transcoder Service SA : ${TRANSCODER_SA}"
 
-# --- 3) 呼び出し元（Cloud Run の実行 SA）に Transcoder ジョブ作成権限 --------
+# --- 4) 呼び出し元（Cloud Run の実行 SA）に Transcoder ジョブ作成権限 --------
 # 最速なら admin を付与。後で最小権限に絞る運用でもOK
 echo "🔗 Granting Transcoder role to runner SA…"
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
@@ -76,7 +86,7 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --role="roles/transcoder.admin" \
   --quiet
 
-# --- 4) Transcoder Service Agent に GCS 権限付与 -----------------------------
+# --- 5) Transcoder Service Agent に GCS 権限付与 -----------------------------
 # 入力: 読み取り / 出力: 書き込み
 # gcloud storage の新コマンドを使用（gsutil でも可）
 echo "🔗 Granting GCS IAM to Transcoder Service Agent…"
@@ -90,7 +100,7 @@ gcloud storage buckets add-iam-policy-binding "gs://${OUTPUT_BUCKET}" \
   --role="roles/storage.objectAdmin" \
   --quiet || true
 
-# --- 5) Pub/Sub 通知（任意） -------------------------------------------------
+# --- 6) Pub/Sub 通知（任意） -------------------------------------------------
 # if [[ -n "${PUBSUB_TOPIC}" ]]; then
 #   echo "🔔 Ensuring Pub/Sub topic & publisher binding…"
 
@@ -111,7 +121,7 @@ gcloud storage buckets add-iam-policy-binding "gs://${OUTPUT_BUCKET}" \
 #   echo "ℹ️  Pub/Sub topic is not specified. Skipping Pub/Sub bindings."
 # fi
 
-# --- 6) 動作チェックのための軽い出力 -----------------------------------------
+# --- 7) 動作チェックのための軽い出力 -----------------------------------------
 echo "✅ Setup completed."
 echo "────────────────────────────────────────────────────────"
 echo "🔎 Quick verify checklist:"
