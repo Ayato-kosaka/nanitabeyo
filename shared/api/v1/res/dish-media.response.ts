@@ -31,7 +31,7 @@ export type QueryDishMediaByIdsResponse = {
 };
 
 /** POST /v1/dish-media のレスポンス型 */
-export type CreateDishMediaResponse = void;
+export type CreateDishMediaResponse = SupabaseDishMedia;
 
 /** POST /v1/dish-media/:id/likes/:userId のレスポンス型 */
 export type LikeDishMediaResponse = void;

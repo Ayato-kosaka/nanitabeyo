@@ -24,6 +24,7 @@ import { DishMediaEntryItem } from './dish-media.mapper';
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { env } from '../../core/config/env';
+import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 
 @Injectable()
 export class DishMediaService {
@@ -226,5 +227,7 @@ export class DishMediaService {
         outputUri,
       });
     }
+
+    return convertPrismaToSupabase_DishMedia(result);
   }
 }

@@ -140,7 +140,7 @@ export function ReviewForm({
 			 * Video のアップロードが完了してからでないと、
 			 * transcoer API が失敗する可能性があるため、直列で実行する
 			 */
-			await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
+			const dishMedia = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
 				method: "POST",
 				requestPayload: {
 					dishId,
@@ -159,7 +159,7 @@ export function ReviewForm({
 					priceCents: getMinorUnitFromCurrency(currencyCode),
 					currencyCode: currencyCode ?? undefined,
 					rating,
-					createdDishMediaId: dishId, // Using dishId as a placeholder for media ID
+					createdDishMediaId: dishMedia.id,
 				},
 			});
 
