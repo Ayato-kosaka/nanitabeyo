@@ -294,24 +294,15 @@ export class StorageService {
   generateCdnSignedCookies(
     urlPrefix: string,
     recordId: string,
-  ): string[] | null {
-    // Return null if CDN configuration is not available
-    if (!env.CDN_HOST || !env.CDN_KEY_NAME || !env.CDN_KEY_SECRET_B64) {
-      this.logger.warn('CdnConfigMissing', 'generateCdnSignedCookies', {
-        urlPrefix,
-        recordId,
-      });
-      return null;
-    }
-
+  ): string[] {
     try {
       const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, 'base64');
       const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
-      
+
       // Create signature for Cloud CDN signed cookies
       // Format: URLPrefix=<prefix>&Expires=<timestamp>&KeyName=<keyname>
       const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
-      
+
       const signature = crypto
         .createHmac('sha1', keySecret)
         .update(toSign)
@@ -342,7 +333,7 @@ export class StorageService {
         urlPrefix,
         recordId,
       });
-      return null;
+      throw err;
     }
   }
 }

@@ -114,18 +114,12 @@ export class DishMediaService {
     const dishMediaEntryItems = await mapWithConcurrency(
       dishMediaEntries,
       async (rec) => {
-        let mediaUrl: string;
-        
-        // For video media, generate CDN URL and collect cookies
-        if (rec.dish_media.media_type === 'video') {
-          // Build CDN URL for master.m3u8
-          const cdnUrlPrefix = env.CDN_HOST
-            ? `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${rec.dish_media.id}/`
-            : null;
-          
-          if (cdnUrlPrefix) {
-            mediaUrl = `${cdnUrlPrefix}master.m3u8`;
-            
+        const getMediaUrl = async () => {
+          // For video media, generate CDN URL and collect cookies
+          if (rec.dish_media.media_type === 'video') {
+            // Build CDN URL for master.m3u8
+            const cdnUrlPrefix = `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${rec.dish_media.id}/`;
+
             // Generate and collect signed cookies
             const cookies = this.storage.generateCdnSignedCookies(
               cdnUrlPrefix,
@@ -134,34 +128,32 @@ export class DishMediaService {
             if (cookies) {
               cdnCookies.push(...cookies);
             }
+
+            return `${cdnUrlPrefix}master.m3u8`;
           } else {
-            // Fallback to GCS signed URL if CDN is not configured
-            mediaUrl = await this.storage.generateSignedUrl(
-              `${env.API_NODE_ENV}/transcoded/dish_media/media_path/${rec.dish_media.id}/master.m3u8`,
+            // For images, use existing resized image logic
+            return await this.storage.getOrQueueResizedSignedUrl(
+              {
+                table: 'dish_media',
+                column: 'media_path',
+                recordId: rec.dish_media.id,
+                size: 1024,
+              },
+              rec.dish_media.media_path,
             );
           }
-        } else {
-          // For images, use existing resized image logic
-          mediaUrl = await this.storage.getOrQueueResizedSignedUrl(
+        }
+        const [mediaUrl, thumbnailImageUrl] = await Promise.all([
+          getMediaUrl(),
+          this.storage.getOrQueueResizedSignedUrl(
             {
               table: 'dish_media',
-              column: 'media_path',
+              column: 'thumbnail_path',
               recordId: rec.dish_media.id,
-              size: 1024,
+              size: 256,
             },
-            rec.dish_media.media_path,
-          );
-        }
-
-        const thumbnailImageUrl = await this.storage.getOrQueueResizedSignedUrl(
-          {
-            table: 'dish_media',
-            column: 'thumbnail_path',
-            recordId: rec.dish_media.id,
-            size: 256,
-          },
-          rec.dish_media.thumbnail_path,
-        );
+            rec.dish_media.thumbnail_path,
+          )]);
 
         return {
           ...rec,

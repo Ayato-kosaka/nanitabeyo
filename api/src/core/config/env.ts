@@ -55,9 +55,9 @@ const envSchema = z.object({
     .string()
     .default('false')
     .transform((v) => v === 'true'),
-  CDN_HOST: z.string().optional(),
-  CDN_KEY_NAME: z.string().optional(),
-  CDN_KEY_SECRET_B64: z.string().optional(),
+  CDN_HOST: z.string(),
+  CDN_KEY_NAME: z.string(),
+  CDN_KEY_SECRET_B64: z.string(),
   CDN_SIGNED_COOKIE_TTL_SECONDS: z
     .string()
     .default('600')
