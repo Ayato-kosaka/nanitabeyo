@@ -18,6 +18,7 @@ import { generateShareUrl, handleShare } from "@/lib/share";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { VideoPlayer } from "./VideoPlayer";
 
 const { width, height } = Dimensions.get("window");
 
@@ -447,14 +448,18 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 
 	return (
 		<SafeAreaView style={styles.container}>
-			{/* Background Image */}
-			<Image
-				source={source}
-				cachePolicy="memory-disk"
-				transition={100}
-				style={StyleSheet.absoluteFill}
-				contentFit="cover"
-			/>
+			{/* Background Media (Image or Video) */}
+			{item.dish_media.media_type === "video" ? (
+				<VideoPlayer uri={item.dish_media.mediaUrl} style={StyleSheet.absoluteFill} shouldPlay={true} />
+			) : (
+				<Image
+					source={source}
+					cachePolicy="memory-disk"
+					transition={100}
+					style={StyleSheet.absoluteFill}
+					contentFit="cover"
+				/>
+			)}
 
 			{/* Top Header */}
 			<View style={styles.topHeader}>
