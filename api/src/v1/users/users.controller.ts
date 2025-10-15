@@ -60,7 +60,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
@@ -82,14 +82,17 @@ export class UsersController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryUserDishReviewsResponse> {
     const result = await this.usersService.getUserDishReviews(params.id, query);
-    
+
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
-      result.cdnCookies.forEach((cookie) => {
-        res.setHeader('Set-Cookie', cookie);
-      });
+      const existing = res.getHeader('Set-Cookie');
+      const merged = [
+        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...result.cdnCookies,
+      ];
+      res.setHeader('Set-Cookie', merged);
     }
-    
+
     return this.usersMapper.toUserDishReviewsResponse(result);
   }
 
@@ -112,14 +115,17 @@ export class UsersController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeLikedDishMediaResponse> {
     const result = await this.usersService.getMeLikedDishMedia(user.id, query);
-    
+
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
-      result.cdnCookies.forEach((cookie) => {
-        res.setHeader('Set-Cookie', cookie);
-      });
+      const existing = res.getHeader('Set-Cookie');
+      const merged = [
+        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...result.cdnCookies,
+      ];
+      res.setHeader('Set-Cookie', merged);
     }
-    
+
     return this.usersMapper.toMeLikedDishMediaResponse(result);
   }
 
@@ -210,14 +216,17 @@ export class UsersController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeSavedDishMediaResponse> {
     const result = await this.usersService.getMeSavedDishMedia(user.id, query);
-    
+
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
-      result.cdnCookies.forEach((cookie) => {
-        res.setHeader('Set-Cookie', cookie);
-      });
+      const existing = res.getHeader('Set-Cookie');
+      const merged = [
+        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...result.cdnCookies,
+      ];
+      res.setHeader('Set-Cookie', merged);
     }
-    
+
     return this.usersMapper.toMeSavedDishMediaResponse(result);
   }
 }

@@ -7,6 +7,7 @@ Successfully implemented CDN signed cookie authentication for video media playba
 ## Problem Solved
 
 **Original Issue**: Video files use HLS (HTTP Live Streaming) which requires accessing multiple files:
+
 - `master.m3u8` (master playlist)
 - Multiple variant playlists (e.g., `720p.m3u8`, `480p.m3u8`)
 - Hundreds of `.ts` video segments
@@ -20,6 +21,7 @@ Successfully implemented CDN signed cookie authentication for video media playba
 ### 1. Environment Configuration (`api/src/core/config/env.ts`)
 
 Added four new optional environment variables:
+
 ```typescript
 CDN_HOST: z.string().optional(),
 CDN_KEY_NAME: z.string().optional(),
@@ -30,20 +32,23 @@ CDN_SIGNED_COOKIE_TTL_SECONDS: z.string().default('600').transform((v) => Number
 ### 2. Storage Service (`api/src/core/storage/storage.service.ts`)
 
 Added new method `generateCdnSignedCookies()`:
+
 - Generates Cloud CDN signed cookies using HMAC-SHA1
 - Returns cookies with proper security attributes
 - Handles missing configuration gracefully
 - Logs all operations for debugging
 
 Key implementation details:
+
 - Signature format: `URLPrefix=<url>&Expires=<timestamp>&KeyName=<key>`
 - Cookie format: `URLPrefix=<url>:Expires=<timestamp>:KeyName=<key>:Signature=<sig>`
-- Base64 URL-safe encoding (replaces +/ with -_)
+- Base64 URL-safe encoding (replaces +/ with -\_)
 - Cookie attributes: HttpOnly, Secure, SameSite=None
 
 ### 3. Dish Media Service (`api/src/v1/dish-media/dish-media.service.ts`)
 
 Modified `fetchDishMediaEntryItems()`:
+
 - Detects `media_type === 'video'`
 - Generates CDN URL: `https://{CDN_HOST}/{env}/transcoded/dish_media/media_path/{recordId}/master.m3u8`
 - Collects signed cookies for all videos
@@ -51,18 +56,21 @@ Modified `fetchDishMediaEntryItems()`:
 - Falls back to GCS signed URLs when CDN not configured
 
 Return type changed from:
+
 ```typescript
-Promise<DishMediaEntryItem[]>
+Promise<DishMediaEntryItem[]>;
 ```
 
 To:
+
 ```typescript
-Promise<{ items: DishMediaEntryItem[]; cdnCookies?: string[] }>
+Promise<{ items: DishMediaEntryItem[]; cdnCookies?: string[] }>;
 ```
 
 ### 4. Service Layer Updates
 
 Updated all methods that call `fetchDishMediaEntryItems()`:
+
 - `DishMediaService.findByCriteria()` - Search endpoint
 - `DishMediaService.findByIds()` - Query by IDs endpoint
 - `UsersService.getUserDishReviews()` - User reviews endpoint
@@ -77,18 +85,22 @@ All now return cookies alongside data.
 Updated six controllers to set `Set-Cookie` headers:
 
 **UsersController** (`api/src/v1/users/users.controller.ts`):
+
 - `GET /v1/users/:id/dish-reviews`
 - `GET /v1/users/me/liked-dish-media`
 - `GET /v1/users/me/saved-dish-media`
 
 **DishMediaController** (`api/src/v1/dish-media/dish-media.controller.ts`):
+
 - `GET /v1/dish-media?ids=...`
 - `GET /v1/dish-media/search`
 
 **RestaurantsController** (`api/src/v1/restaurants/restaurants.controller.ts`):
+
 - `GET /v1/restaurants/:id/dish-media`
 
 Implementation pattern (all controllers):
+
 ```typescript
 async getEndpoint(
   @Query() query: QueryDto,
@@ -96,14 +108,17 @@ async getEndpoint(
   @Res({ passthrough: true }) res: Response,
 ): Promise<ResponseType> {
   const result = await this.service.getMethod(user.id, query);
-  
+
   // Set CDN signed cookies if present
   if (result.cdnCookies && result.cdnCookies.length > 0) {
-    result.cdnCookies.forEach((cookie) => {
-      res.setHeader('Set-Cookie', cookie);
-    });
+    const existing = res.getHeader('Set-Cookie');
+    const merged = [
+      ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+      ...result.cdnCookies,
+    ];
+    res.setHeader('Set-Cookie', merged);
   }
-  
+
   return this.mapper.toResponse(result);
 }
 ```
@@ -111,6 +126,7 @@ async getEndpoint(
 ## Security Implementation
 
 ### Cookie Attributes
+
 - **HttpOnly**: Prevents JavaScript access (XSS protection)
 - **Secure**: HTTPS only
 - **SameSite=None**: Allows cross-origin playback (required with Secure)
@@ -119,12 +135,14 @@ async getEndpoint(
 - **Max-Age**: Short TTL (default 10 minutes)
 
 ### Signature Security
+
 - HMAC-SHA1 with secret key
 - Base64 URL-safe encoding
 - Covers: URLPrefix + Expires + KeyName
 - Invalid signatures → 403 from CDN
 
 ### Path Isolation
+
 - Each cookie scoped to: `/{env}/transcoded/dish_media/media_path/{recordId}/`
 - Users can only access videos in their response
 - No cross-record access possible
@@ -132,6 +150,7 @@ async getEndpoint(
 ## Backward Compatibility
 
 ✅ **No Breaking Changes**:
+
 - CDN configuration is optional
 - Falls back to existing GCS signed URLs
 - Image media unchanged
@@ -141,6 +160,7 @@ async getEndpoint(
 ## Testing
 
 ### Build Verification
+
 ```bash
 cd /home/runner/work/nanitabeyo/nanitabeyo
 pnpm build --filter=api
@@ -148,6 +168,7 @@ pnpm build --filter=api
 ```
 
 ### TypeScript Compilation
+
 ```bash
 cd /home/runner/work/nanitabeyo/nanitabeyo/api
 npx tsc --noEmit
@@ -155,7 +176,9 @@ npx tsc --noEmit
 ```
 
 ### Manual Cookie Generation Test
+
 Created and ran test script:
+
 ```bash
 node /tmp/test-cdn-cookies.js
 # ✅ Cookie generation verified
@@ -166,6 +189,7 @@ node /tmp/test-cdn-cookies.js
 ## Documentation
 
 Created comprehensive documentation:
+
 - `CDN_SIGNED_COOKIE_IMPLEMENTATION.md` (10KB)
 - Architecture overview
 - API endpoint documentation
@@ -186,6 +210,7 @@ Created comprehensive documentation:
 ## Configuration Required for Production
 
 ### Environment Variables
+
 ```bash
 # Production .env
 CDN_HOST=cdn.example.com
@@ -195,6 +220,7 @@ CDN_SIGNED_COOKIE_TTL_SECONDS=600
 ```
 
 ### CDN Setup (if not already done)
+
 1. Configure Cloud CDN with signed URL/cookie support
 2. Generate and store signing key
 3. Set cache max age (600s recommended)
@@ -215,12 +241,14 @@ From original issue:
 ## Deployment Notes
 
 ### For Development Environment
+
 1. Create `.env` file in `api/` directory
 2. Add CDN configuration (or leave empty for GCS fallback)
 3. Start API: `cd api && pnpm dev`
 4. Test endpoints with video media
 
 ### For Production Deployment
+
 1. Configure CDN if not already done
 2. Set environment variables in Cloud Run
 3. Deploy API with new code
@@ -230,27 +258,30 @@ From original issue:
 ## Monitoring
 
 All cookie operations logged:
+
 - `CdnSignedCookiesGenerated`: Success
 - `CdnConfigMissing`: Configuration warning
 - `CdnSignedCookieError`: Generation errors
 
 Example log:
+
 ```json
 {
-  "event": "CdnSignedCookiesGenerated",
-  "context": "generateCdnSignedCookies",
-  "data": {
-    "urlPrefix": "https://cdn.example.com/prod/.../",
-    "recordId": "abc123",
-    "expires": "2025-10-14T23:17:23.000Z",
-    "cookieCount": 1
-  }
+	"event": "CdnSignedCookiesGenerated",
+	"context": "generateCdnSignedCookies",
+	"data": {
+		"urlPrefix": "https://cdn.example.com/prod/.../",
+		"recordId": "abc123",
+		"expires": "2025-10-14T23:17:23.000Z",
+		"cookieCount": 1
+	}
 }
 ```
 
 ## Summary
 
 Successfully implemented CDN signed cookie authentication for video media with:
+
 - ✅ 8 files modified
 - ✅ 0 breaking changes
 - ✅ Comprehensive documentation

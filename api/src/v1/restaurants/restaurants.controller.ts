@@ -51,7 +51,7 @@ import { RestaurantsService } from './restaurants.service';
 @ApiTags('Restaurants')
 @Controller('v1/restaurants')
 export class RestaurantsController {
-  constructor(private readonly restaurantsService: RestaurantsService) {}
+  constructor(private readonly restaurantsService: RestaurantsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/restaurants/search                        */
@@ -143,14 +143,17 @@ export class RestaurantsController {
       query,
       user.id,
     );
-    
+
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
-      result.cdnCookies.forEach((cookie) => {
-        res.setHeader('Set-Cookie', cookie);
-      });
+      const existing = res.getHeader('Set-Cookie');
+      const merged = [
+        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...result.cdnCookies,
+      ];
+      res.setHeader('Set-Cookie', merged);
     }
-    
+
     return result.response;
   }
 }
