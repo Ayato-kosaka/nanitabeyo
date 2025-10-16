@@ -18,7 +18,7 @@ import { generateShareUrl, handleShare } from "@/lib/share";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { VideoPlayer } from "./VideoPlayer";
+import VideoPlayer from "./VideoPlayer";
 
 const { width, height } = Dimensions.get("window");
 

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Platform, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 
-interface VideoPlayerProps {
+export interface VideoPlayerProps {
 	uri: string;
 	style?: any;
 	shouldPlay?: boolean;
@@ -12,16 +12,14 @@ interface VideoPlayerProps {
 
 /**
  * VideoPlayer component for HLS video playback
- * 
+ *
  * Supports:
  * - iOS/Android: Uses expo-av Video component with automatic cookie handling
- * - Web: Uses native video element for Safari, hls.js for other browsers (if needed)
- * 
+ *
  * The CDN signed cookies are automatically sent by the platform:
  * - iOS/Android: expo-av automatically includes cookies in HLS requests
- * - Web: Browser automatically includes cookies for same-origin requests
  */
-export function VideoPlayer({
+function VideoPlayer({
 	uri,
 	style,
 	shouldPlay = false,
@@ -40,37 +38,6 @@ export function VideoPlayer({
 			setError(status.error);
 		}
 	};
-
-	if (Platform.OS === "web") {
-		// For web, use native video element
-		// Safari supports HLS natively, other browsers may need hls.js (future enhancement)
-		return (
-			<View style={[styles.container, style]}>
-				{isLoading && (
-					<View style={styles.loadingOverlay}>
-						<ActivityIndicator size="large" color="#fff" />
-					</View>
-				)}
-				<video
-					src={uri}
-					controls
-					autoPlay={shouldPlay}
-					loop={isLooping}
-					style={{
-						width: "100%",
-						height: "100%",
-						objectFit: resizeMode === ResizeMode.COVER ? "cover" : "contain",
-					}}
-					onLoadStart={() => setIsLoading(true)}
-					onCanPlay={() => setIsLoading(false)}
-					onError={(e) => {
-						setIsLoading(false);
-						setError("Video playback error");
-					}}
-				/>
-			</View>
-		);
-	}
 
 	// For iOS/Android, use expo-av Video
 	return (
@@ -92,6 +59,7 @@ export function VideoPlayer({
 		</View>
 	);
 }
+export default VideoPlayer;
 
 const styles = StyleSheet.create({
 	container: {

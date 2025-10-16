@@ -57,6 +57,7 @@
 		"expo-updates": "~0.28.17",
 		"expo-video-thumbnails": "^10.0.7",
 		"expo-web-browser": "~14.2.0",
+		"hls.js": "^1.6.13",
 		"i18n-js": "^4.5.1",
 		"lucide-react-native": "^0.475.0",
 		"react": "19.0.0",
