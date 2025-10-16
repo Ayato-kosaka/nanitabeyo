@@ -38,6 +38,7 @@
 #   - 証明書/ターゲットプロキシ/HTTP(S) フロントは別リソースで管理（本ファイルは URL マップのみ）。
 
 name: cdn-url-map
+defaultService: global/backendBuckets/backend-bucket-cdn
 hostRules:
   - hosts:
       - cdn.nanitabeyo.net
