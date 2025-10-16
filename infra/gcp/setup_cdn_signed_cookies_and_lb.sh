@@ -54,19 +54,28 @@ fi
 DATE_TAG="$(date +%Y%m%d-%H%M%S)"
 KEY_NAME="${KEY_NAME_INPUT:-cdn-key-${DATE_TAG}}"
 
-# リソース名（変更したい場合はここを編集）
-IP_NAME="cdn-ip"
-CERT_NAME="cdn-cert"
-BACKEND_BUCKET_NAME="backend-bucket"
-URL_MAP_NAME="cdn-url-map"
-PROXY_NAME="cdn-https-proxy"
-FWD_RULE_NAME="cdn-https-forwarding-rule"
+# リソース名
+HOST_PREFIX="${CDN_HOST%%.*}"
+
+IP_NAME="${HOST_PREFIX}-ip"
+CERT_NAME="${HOST_PREFIX}-cert"
+BACKEND_BUCKET_NAME="backend-bucket-${HOST_PREFIX}"
+URL_MAP_NAME="${HOST_PREFIX}-url-map"
+PROXY_NAME="${HOST_PREFIX}-https-proxy"
+FWD_RULE_NAME="${HOST_PREFIX}-https-forwarding-rule"
 
 echo "▶️  PROJECT_ID     : ${PROJECT_ID}"
 echo "▶️  CDN_HOST       : ${CDN_HOST}"
 echo "▶️  OUTPUT_BUCKET  : gs://${OUTPUT_BUCKET}"
 echo "▶️  KEY_NAME       : ${KEY_NAME}"
 echo "▶️  TTL_SECONDS    : ${TTL_SECONDS}"
+echo "▶️  リソース名一覧:"
+echo "   - Global IP            : ${IP_NAME}"
+echo "   - SSL Certificate      : ${CERT_NAME}"
+echo "   - Backend Bucket       : ${BACKEND_BUCKET_NAME}"
+echo "   - URL Map              : ${URL_MAP_NAME}"
+echo "   - Target HTTPS Proxy   : ${PROXY_NAME}"
+echo "   - Forwarding Rule      : ${FWD_RULE_NAME}"
 echo "────────────────────────────────────────────────────────"
 
 gcloud config set project "${PROJECT_ID}" >/dev/null
