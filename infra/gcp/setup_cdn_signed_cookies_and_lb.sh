@@ -126,6 +126,19 @@ else
   gcloud compute backend-buckets update "${BACKEND_BUCKET_NAME}" --enable-cdn --quiet
 fi
 
+# --- 4.5) Cloud CDN キャッシュフィル SA に GCS 読取を付与（バケットは非公開のまま） ----
+echo "🔐 Granting Storage read to Cloud CDN fill service account (idempotent)…"
+PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
+CDN_FILL_SA="service-${PROJECT_NUMBER}@cloud-cdn-fill.iam.gserviceaccount.com"
+
+# まだ SA が自動作成されていなくても問題ありません（IAM は先付け可）
+gcloud storage buckets add-iam-policy-binding "gs://${OUTPUT_BUCKET}" \
+  --member="serviceAccount:${CDN_FILL_SA}" \
+  --role="roles/storage.objectViewer" \
+  --quiet
+
+echo "   → Granted roles/storage.objectViewer to ${CDN_FILL_SA} on gs://${OUTPUT_BUCKET}"
+
 # --- 5) URL Map / HTTPS Proxy / Forwarding Rule -------------------------------
 if ! gcloud compute url-maps describe "${URL_MAP_NAME}" >/dev/null 2>&1; then
   echo "🗺  Creating URL map: ${URL_MAP_NAME}"
