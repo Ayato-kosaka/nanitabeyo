@@ -1,3 +1,42 @@
+# このファイルについて
+# - 目的: Google Cloud External HTTPS Load Balancer の URL マップ定義（cdn.nanitabeyo.net 用）。
+#   Backend は Cloud Storage Backend Bucket（Cloud CDN 前提）を参照します。
+# - 構成: hostRules → pathMatchers → routeRules（priority 低い数値が最優先）→ routeAction/headerAction。
+# - CORS 方針:
+#   - /development/ は http://localhost:8083 を許可。
+#   - /production/ は https://app.nanitabeyo.net を許可。
+#   - Allow-Credentials: true の場合、Allow-Origin にワイルドカード（*）は使用不可。
+#   - Vary: Origin を必ず付与し、オリジン混在キャッシュ汚染を防止。
+#   - Allow-Methods は GET, HEAD, OPTIONS。プリフライト（OPTIONS）応答はバックエンドが返す必要があります。
+#     GCS バケット側の CORS と二重管理にならないよう、どちらで出すかを統一してください（原則は LB 側に寄せつつ、
+#     バケットの CORS は必要最小限に）。
+#   - Allow-Headers は実際にクライアントが送るヘッダ（例: Range, Content-Type, Authorization 等）を網羅すること。
+#     現状 Range のみ。必要に応じて追加してください。
+# - キャッシュ/パフォーマンス:
+#   - キャッシュ方針はオブジェクトの Cache-Control/ETag/Last-Modified に準拠。動的に分岐するヘッダ値を増やしすぎない。
+#   - Vary の増加はキャッシュ分割を招くため最小限に。CORS では Origin のみを基本とするのが安全。
+# - セキュリティ:
+#   - 許可オリジンは最小化。開発用と本番用を明確に分離（既に /development, /production で分離済）。
+#   - X-Content-Type-Options: nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy 等の追加も検討（必要に応じて headerAction で追加）。
+# - 運用/デプロイ手順（例）:
+#   1) 検証: gcloud compute url-maps validate --source urlmap-cdn.nanitabeyo.net.yaml
+#   2) 反映:  gcloud compute url-maps import cdn-url-map --global --source urlmap-cdn.nanitabeyo.net.yaml --quiet
+#   3) 確認:  gcloud compute url-maps describe cdn-url-map
+# - 動作確認（例）:
+#   - CORS 本番: curl -I -H "Origin: https://app.nanitabeyo.net" https://cdn.nanitabeyo.net/production/path/to.obj
+#   - CORS 開発: curl -I -H "Origin: http://localhost:8083" https://cdn.nanitabeyo.net/development/path/to.obj
+#   - プリフライト: curl -i -X OPTIONS \
+#       -H "Origin: http://localhost:8083" \
+#       -H "Access-Control-Request-Method: GET" \
+#       https://cdn.nanitabeyo.net/development/path/to.obj
+# - トラブルシュート:
+#   - 期待する CORS ヘッダが欠如: ルール優先度、パス接頭辞、Host ヘッダ、キャッシュヒット有無を確認。
+#   - Cloud CDN 経由でヘッダが消える: Edge キャッシュの HIT/MISS を見て、オブジェクト再配信やキャッシュ無効化を検討。
+# - 注意:
+#   - priority はユニークで、数値が小さいほど優先。defaultRouteAction は最後のフォールバック。
+#   - BackendBucket 名や URL は既存リソースと一致させること。
+#   - 証明書/ターゲットプロキシ/HTTP(S) フロントは別リソースで管理（本ファイルは URL マップのみ）。
+
 name: cdn-url-map
 hostRules:
   - hosts:
