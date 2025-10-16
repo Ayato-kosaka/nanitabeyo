@@ -33,7 +33,7 @@
 #   - 期待する CORS ヘッダが欠如: ルール優先度、パス接頭辞、Host ヘッダ、キャッシュヒット有無を確認。
 #   - Cloud CDN 経由でヘッダが消える: Edge キャッシュの HIT/MISS を見て、オブジェクト再配信やキャッシュ無効化を検討。
 # - 注意:
-#   - priority はユニークで、数値が小さいほど優先。defaultRouteAction は最後のフォールバック。
+#   - priority はユニークで、数値が小さいほど優先。defaultService は最後のフォールバック。
 #   - BackendBucket 名や URL は既存リソースと一致させること。
 #   - 証明書/ターゲットプロキシ/HTTP(S) フロントは別リソースで管理（本ファイルは URL マップのみ）。
 
@@ -44,7 +44,7 @@ hostRules:
     pathMatcher: matcher1
 pathMatchers:
   - name: matcher1
-    defaultRouteAction: global/backendBuckets/backend-bucket-cdn
+    defaultService: global/backendBuckets/backend-bucket-cdn
 
     routeRules:
       - priority: 0
