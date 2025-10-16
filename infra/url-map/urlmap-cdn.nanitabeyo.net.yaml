@@ -44,62 +44,55 @@ hostRules:
     pathMatcher: matcher1
 pathMatchers:
   - name: matcher1
-    defaultRouteAction:
-      weightedBackendServices:
-        - backendBucket: global/backendBuckets/backend-bucket-cdn
-          weight: 100
+    defaultRouteAction: global/backendBuckets/backend-bucket-cdn
+
     routeRules:
       - priority: 0
         matchRules:
           - prefixMatch: /development/
-        routeAction:
-          weightedBackendServices:
-            - backendBucket: global/backendBuckets/backend-bucket-cdn
-              weight: 100
-          headerAction:
-            responseHeadersToAdd:
-              - headerName: Access-Control-Allow-Origin
-                headerValue: "http://localhost:8083"
-                replace: true
-              - headerName: Access-Control-Allow-Credentials
-                headerValue: "true"
-                replace: true
-              - headerName: Vary
-                headerValue: "Origin"
-                replace: true
-              - headerName: Access-Control-Allow-Methods
-                headerValue: "GET, HEAD, OPTIONS"
-                replace: true
-              - headerName: Access-Control-Allow-Headers
-                headerValue: "Range"
-                replace: true
-              - headerName: Access-Control-Max-Age
-                headerValue: "86400"
-                replace: true
+        service: global/backendBuckets/backend-bucket-cdn
+        headerAction:
+          responseHeadersToAdd:
+            - headerName: Access-Control-Allow-Origin
+              headerValue: "http://localhost:8083"
+              replace: true
+            - headerName: Access-Control-Allow-Credentials
+              headerValue: "true"
+              replace: true
+            - headerName: Vary
+              headerValue: "Origin"
+              replace: true
+            - headerName: Access-Control-Allow-Methods
+              headerValue: "GET, HEAD, OPTIONS"
+              replace: true
+            - headerName: Access-Control-Allow-Headers
+              headerValue: "Range"
+              replace: true
+            - headerName: Access-Control-Max-Age
+              headerValue: "86400"
+              replace: true
+
       - priority: 1
         matchRules:
           - prefixMatch: /production/
-        routeAction:
-          weightedBackendServices:
-            - backendBucket: global/backendBuckets/backend-bucket-cdn
-              weight: 100
-          headerAction:
-            responseHeadersToAdd:
-              - headerName: Access-Control-Allow-Origin
-                headerValue: "https://app.nanitabeyo.net"
-                replace: true
-              - headerName: Access-Control-Allow-Credentials
-                headerValue: "true"
-                replace: true
-              - headerName: Vary
-                headerValue: "Origin"
-                replace: true
-              - headerName: Access-Control-Allow-Methods
-                headerValue: "GET, HEAD, OPTIONS"
-                replace: true
-              - headerName: Access-Control-Allow-Headers
-                headerValue: "Range"
-                replace: true
-              - headerName: Access-Control-Max-Age
-                headerValue: "86400"
-                replace: true
+        service: global/backendBuckets/backend-bucket-cdn
+        headerAction:
+          responseHeadersToAdd:
+            - headerName: Access-Control-Allow-Origin
+              headerValue: "https://app.nanitabeyo.net"
+              replace: true
+            - headerName: Access-Control-Allow-Credentials
+              headerValue: "true"
+              replace: true
+            - headerName: Vary
+              headerValue: "Origin"
+              replace: true
+            - headerName: Access-Control-Allow-Methods
+              headerValue: "GET, HEAD, OPTIONS"
+              replace: true
+            - headerName: Access-Control-Allow-Headers
+              headerValue: "Range"
+              replace: true
+            - headerName: Access-Control-Max-Age
+              headerValue: "86400"
+              replace: true
