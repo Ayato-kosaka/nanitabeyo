@@ -330,7 +330,7 @@ export class StorageService {
 
       const cookie =
         `Cloud-CDN-Cookie=${cookieValue}; ` +
-        `Domain=${u.hostname}; ` +
+        `Domain=.${u.hostname.includes('.') ? u.hostname.split('.').slice(1).join('.') : u.hostname}; ` +
         `Path=${cookiePath}; ` +
         `Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; ` +
         `HttpOnly; Secure; SameSite=None`;
