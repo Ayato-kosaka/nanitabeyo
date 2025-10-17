@@ -77,7 +77,7 @@ fi
 # --- 2) 既存ドメインマッピングの有無 ------------------------------------------
 echo "🔎 Checking domain mapping…"
 MAPPING_EXISTS="false"
-if gcloud run domain-mappings describe --domain "${DOMAIN}" --region "${REGION}" >/dev/null 2>&1; then
+if gcloud beta run domain-mappings describe --domain "${DOMAIN}" --region "${REGION}" >/dev/null 2>&1; then
   MAPPING_EXISTS="true"
 fi
 
@@ -86,8 +86,8 @@ if [[ "${MAPPING_EXISTS}" == "true" ]]; then
   echo "ℹ️  Domain mapping already exists for ${DOMAIN}."
 else
   echo "🔗 Creating domain mapping: ${DOMAIN} → ${SERVICE_NAME}"
-  # Google 管理証明書が自動で発行・紐付けされます（DNS 設定が通れば自動で ACTIVE へ）
-  gcloud run domain-mappings create \
+  # Google 管理証明書は DNS が正しく向いていれば自動で ACTIVE になります
+  gcloud beta run domain-mappings create \
     --service "${SERVICE_NAME}" \
     --domain "${DOMAIN}" \
     --region "${REGION}" \
@@ -96,17 +96,15 @@ fi
 
 # --- 4) DNS レコードの案内 ----------------------------------------------------
 echo "📡 Fetching required DNS records…"
-# resourceRecords に必要な A/AAAA/CNAME/TXT などが並ぶ
-DM_DESC="$(gcloud run domain-mappings describe --domain "${DOMAIN}" --region "${REGION}" --format='yaml(resourceRecords, status, certificate)')"
+DM_DESC="$(gcloud beta run domain-mappings describe --domain "${DOMAIN}" --region "${REGION}" --format='yaml(resourceRecords, status, certificate)')"
 
 echo "────────────────────────────────────────────────────────"
 echo "🧾 Domain Mapping status (for reference):"
 echo "${DM_DESC}"
 echo "────────────────────────────────────────────────────────"
 
-# レコードだけ抜粋表示（見やすさ用）
 echo "📌 追加・確認が必要な DNS レコード（抜粋）:"
-gcloud run domain-mappings describe \
+gcloud beta run domain-mappings describe \
   --domain "${DOMAIN}" --region "${REGION}" \
   --format='table(resourceRecords.type, resourceRecords.name, resourceRecords.rrdata)'
 
