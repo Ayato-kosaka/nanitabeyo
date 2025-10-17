@@ -30,6 +30,25 @@
 # ベストプラクティス:
 #   - set -euo pipefail
 #   - 冪等性: 既存なら describe して DNS 案内のみ
+#
+# ------------------------------------------------------------------------------
+# 🧩 トラブルシュート: 
+#   ❌ ERROR: (gcloud.beta.run.domain-mappings.create)
+#       The provided domain does not appear to be verified for the current account
+#
+#   このエラーは、指定したドメインが **現在の Google アカウントで「所有権確認」されていない**
+#   ために発生します。Cloud Run のカスタムドメインは、Search Console または
+#   Cloud Console の「ドメインの確認」で所有権を確認済みである必要があります。
+#
+#   対応手順:
+#     1. https://search.google.com/search-console/welcome を開く
+#     2. 「ドメイン」プロパティで <root-domain>（例: nanitabeyo.net）を追加
+#     3. 表示された TXT レコードを DNS に追加（Squarespace 管理画面なら以下）
+#          - Type: TXT
+#          - Name/Host: @
+#          - Value: google-site-verification=xxxxxxxxxxxxxxxxxxxxxxx
+#     4. Search Console で「確認」をクリック → VERIFIED になるまで待つ
+#     5. 再度本スクリプト（または gcloud コマンド）を実行
 # ------------------------------------------------------------------------------
 
 set -euo pipefail
