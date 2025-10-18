@@ -333,7 +333,7 @@ export class StorageService {
         `Domain=.${u.hostname.includes('.') ? u.hostname.split('.').slice(1).join('.') : u.hostname}; ` +
         `Path=${cookiePath}; ` +
         `Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; ` +
-        `HttpOnly; Secure; SameSite=None`;
+        `HttpOnly; Secure; SameSite=None; Partitioned`;
 
       this.logger.debug('CdnSignedCookiesGenerated', 'generateCdnSignedCookies', {
         urlPrefix: normalizedPrefix,
