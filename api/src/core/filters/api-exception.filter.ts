@@ -13,16 +13,18 @@ import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
 import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
 import { AppLoggerService } from '../logger/logger.service';
+import { maskSensitiveFields } from '../interceptors/response-wrap.utils';
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
   constructor(
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
+    const req = ctx.getRequest<Request>();
     const res = ctx.getResponse<Response>();
 
     /* ---------- Request-ID をヘッダへ ---------- */
@@ -33,6 +35,16 @@ export class ApiExceptionFilter implements ExceptionFilter {
     let code: ErrorCode = ErrorCode.INTERNAL_ERROR;
     let message = 'Internal server error';
 
+    const logException = (eventName: string, error: unknown) => {
+      this.logger.error(eventName, 'ApiExceptionFilter', {
+        method: req?.method,
+        url: req?.url,
+        statusCode: res?.statusCode,
+        payload: maskSensitiveFields(req.body),
+        error: error
+      });
+    }
+
     // JSON パースエラーを詳細に処理
     if (
       exception instanceof SyntaxError &&
@@ -41,11 +53,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       status = HttpStatus.BAD_REQUEST;
       code = ErrorCode.INVALID_REQUEST_BODY;
       message = `Invalid JSON format: ${exception.message}`;
-      this.logger.error(
-        'JSONParseError',
-        'ApiExceptionFilter',
-        exception.stack,
-      );
+      logException('JSONParseError', exception.stack);
     } else if (exception instanceof BadRequestException) {
       // バリデーションエラーの詳細メッセージを処理
       status = exception.getStatus();
@@ -75,7 +83,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
             ? exceptionResponse
             : exception.message;
       }
-      this.logger.error(`ValidationError`, 'ApiExceptionFilter', exception);
+      logException(`ValidationError`, exception);
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const msg = exception.message as ErrorCode;
@@ -83,16 +91,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
         ? msg
         : ErrorCode.INTERNAL_ERROR;
       message = exception.message;
-      this.logger.error(`HttpException`, 'ApiExceptionFilter', exception.stack);
+      logException(`HttpException`, exception.stack);
     } else if (exception instanceof Error) {
       message = exception.message;
-      this.logger.error(
-        `UnhandledException`,
-        'ApiExceptionFilter',
-        exception.stack,
-      );
+      logException(`UnhandledException`, exception.stack);
     } else {
-      this.logger.error('UnknownException:', 'ApiExceptionFilter', exception);
+      logException('UnknownException', exception);
     }
 
     const body: BaseResponse<null> = {
