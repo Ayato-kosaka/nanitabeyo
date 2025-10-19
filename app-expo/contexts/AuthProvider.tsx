@@ -7,6 +7,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { Platform } from "react-native";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
+import { Href, useRouter } from "expo-router";
 
 type AuthContextType = {
 	user: User | null;
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const { logFrontendEvent } = useLogger();
+	const router = useRouter();
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
 	const locale = useLocale();
@@ -181,13 +183,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
 			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-			if (result.type === "success") {
-				const user = await handleOAuthResultUrl(result.url);
-				user &&
-					(await createUserProfile({
-						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
-						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
-					}));
+			if (result.type === "success" && result.url) {
+				const parsed = Linking.parse(result.url);
+				const locale = (parsed.hostname ?? "ja-JP") as string;
+				const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
+				const href: Href = {
+					pathname: "/[locale]/auth/callback",
+					params: { locale, ...qp },
+				};
+				router.replace(href);
 			}
 		}
 	};
@@ -242,13 +246,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
 			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-			if (result.type === "success") {
-				const user = await handleOAuthResultUrl(result.url);
-				user &&
-					(await createUserProfile({
-						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
-						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
-					}));
+			if (result.type === "success" && result.url) {
+				const parsed = Linking.parse(result.url);
+				const locale = (parsed.hostname ?? "ja-JP") as string;
+				const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
+				const href: Href = {
+					pathname: "/[locale]/auth/callback",
+					params: { locale, ...qp },
+				};
+				router.replace(href);
 			}
 		}
 	};
@@ -307,6 +313,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param displayName - 表示名（オプション）
 	 */
 	const createUserProfile = async ({ displayName, avatar }: { displayName?: string; avatar?: string }) => {
+		const user = sessionRef.current?.user;
 		if (!user) return;
 
 		try {
