@@ -5,6 +5,7 @@
 ### Overall Structure
 
 #### BEFORE:
+
 ```
 ┌─────────────────────────────────────┐
 │    InitialMediaPreview (固定)       │
@@ -34,6 +35,7 @@
 ```
 
 #### AFTER:
+
 ```
 ┌─────────────────────────────────────┐
 │ KeyboardAvoidingView (wrapper)      │
@@ -87,6 +89,7 @@ BlurModal (opens when category row tapped):
 ### 1. Dish Category Selection Row
 
 #### BEFORE:
+
 ```
 ┌────────────────────────────────────────┐
 │ DishCategoryAutocomplete               │
@@ -100,6 +103,7 @@ BlurModal (opens when category row tapped):
 ```
 
 #### AFTER:
+
 ```
 Collapsed State (Pressable Row):
 ┌────────────────────────────────────────┐
@@ -124,11 +128,13 @@ Modal State (when tapped):
 ### 2. Rating Input Row
 
 #### BEFORE:
+
 ```
 ★ ★ ★ ★ ★  (32px size, standalone)
 ```
 
 #### AFTER:
+
 ```
 ┌────────────────────────────────────────┐
 │ レビューを入力         ★ ★ ★ ★ ★    │
@@ -139,6 +145,7 @@ Modal State (when tapped):
 ### 3. Price Input Row
 
 #### BEFORE:
+
 ```
 ┌────────────────────────────────────────┐
 │ ¥ [価格を入力してください]              │
@@ -147,6 +154,7 @@ Modal State (when tapped):
 ```
 
 #### AFTER:
+
 ```
 ┌────────────────────────────────────────┐
 │ 価格を入力        ¥ [価格入力]        │
@@ -157,6 +165,7 @@ Modal State (when tapped):
 ## Keyboard Behavior
 
 ### Without Keyboard:
+
 ```
 ┌─────────────────────────────────────┐
 │    InitialMediaPreview              │
@@ -173,6 +182,7 @@ Modal State (when tapped):
 ```
 
 ### With Keyboard (250ms smooth animation):
+
 ```
 ┌─────────────────────────┐
 │  InitialMediaPreview    │
@@ -194,10 +204,12 @@ Modal State (when tapped):
 ## Style Details
 
 ### Row Heights
+
 - **All rows**: `minHeight: 48px` (consistent height)
 - **Review TextArea**: `height: 100px`
 
 ### Color Scheme
+
 - **Background (selectRow)**: `#F8F9FA` (light gray)
 - **Text (primary)**: `#1A1A1A` (dark gray)
 - **Label (secondary)**: `#666` (medium gray)
@@ -206,22 +218,26 @@ Modal State (when tapped):
 - **Stars**: `#FFD700` (gold)
 
 ### Spacing
+
 - **Card gap**: `16px` between elements
 - **Row padding**: `12px` horizontal, `12px` vertical
 - **Rating gap**: `4px` between stars
 - **Input padding**: `12px` (consistent)
 
 ### Icons
+
 - **ChevronRight**: `size={20}` from lucide-react-native
 - **Star**: `size={24}` (reduced from 32)
 
 ### Border Radius
+
 - **All inputs/rows**: `borderRadius: 8px`
 - **Modal**: `borderRadius: 16px`
 
 ## Accessibility Features
 
 ### ARIA Attributes
+
 ```tsx
 // Dish Category Row
 <Pressable
@@ -236,6 +252,7 @@ Modal State (when tapped):
 ```
 
 ### Visual Feedback
+
 - ✅ Pressable row has background color to indicate tappability
 - ✅ ChevronRight icon indicates navigation/action
 - ✅ Error messages displayed inline with red color
@@ -243,21 +260,23 @@ Modal State (when tapped):
 
 ## Animation Timings
 
-| Event | Duration | Easing |
-|-------|----------|--------|
-| Keyboard Show | 250ms | Default (ease-in-out) |
-| Keyboard Hide | 250ms | Default (ease-in-out) |
-| Height: 320 → 180 | 250ms | Default |
-| Height: 180 → 320 | 250ms | Default |
+| Event             | Duration | Easing                |
+| ----------------- | -------- | --------------------- |
+| Keyboard Show     | 250ms    | Default (ease-in-out) |
+| Keyboard Hide     | 250ms    | Default (ease-in-out) |
+| Height: 320 → 180 | 250ms    | Default               |
+| Height: 180 → 320 | 250ms    | Default               |
 
 ## Platform-Specific Behaviors
 
 ### iOS
+
 - KeyboardAvoidingView: `behavior="padding"`
 - Keyboard events: `keyboardWillShow` / `keyboardWillHide`
 - KeyboardVerticalOffset: `0`
 
 ### Android
+
 - KeyboardAvoidingView: `behavior="height"`
 - Keyboard events: `keyboardDidShow` / `keyboardDidHide`
 - KeyboardVerticalOffset: `0`
@@ -265,6 +284,7 @@ Modal State (when tapped):
 ## User Interaction Flow
 
 ### Dish Category Selection:
+
 1. User taps "料理カテゴリを選択" row
 2. BlurModal opens with blur background
 3. DishCategoryAutocomplete auto-focuses
@@ -276,6 +296,7 @@ Modal State (when tapped):
 9. Selected category shown in row
 
 ### Review Input with Keyboard:
+
 1. User taps review text area
 2. Keyboard appears (iOS: ~250ms, Android: instant)
 3. InitialMediaPreview animates from 320px → 180px (250ms)
