@@ -217,6 +217,17 @@ export function ReviewForm({
 		<>
 			{initialMedia && <InitialMediaPreview media={initialMedia} />}
 			<Card style={{ gap: 16 }}>
+				{/* レビュー入力 */}
+				<TextInput
+					style={[styles.textInput, styles.textArea]}
+					placeholder={i18n.t("Map.placeholders.enterReview")}
+					value={reviewText}
+					onChangeText={setReviewText}
+					multiline
+					numberOfLines={4}
+					textAlignVertical="top"
+				/>
+
 				{/* 料理カテゴリのオートコンプリート */}
 				<View>
 					<DishCategoryAutocomplete
@@ -233,15 +244,7 @@ export function ReviewForm({
 					)}
 				</View>
 
-				<TextInput
-					style={[styles.textInput, styles.textArea]}
-					placeholder={i18n.t("Map.placeholders.enterReview")}
-					value={reviewText}
-					onChangeText={setReviewText}
-					multiline
-					numberOfLines={4}
-					textAlignVertical="top"
-				/>
+				{/* 評価入力 */}
 				<View>
 					{/* <Text style={styles.inputLabel}>{i18n.t("Map.inputs.rating")}</Text> */}
 					<View style={styles.ratingInput}>
@@ -252,6 +255,8 @@ export function ReviewForm({
 						))}
 					</View>
 				</View>
+
+				{/* 価格入力 */}
 				{currencySymbol ? (
 					<View style={styles.priceInputContainer}>
 						<Text style={styles.currencySymbol}>{currencySymbol}</Text>
