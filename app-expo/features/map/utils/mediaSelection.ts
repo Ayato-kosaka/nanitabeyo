@@ -12,6 +12,25 @@ interface MediaSelectionResult {
 	errorMessage?: string;
 }
 
+function isVideoAsset(asset: ImagePicker.ImagePickerAsset): boolean {
+	if (asset.type === "video") return true;
+	const mt = asset.mimeType?.toLowerCase() ?? "";
+	if (mt.startsWith("video/")) return true;
+	const ext = asset.fileName?.split(".").pop()?.toLowerCase();
+	return ext === "mp4" || ext === "mov" || ext === "m4v";
+}
+
+// ミリ秒/秒 混在に耐える正規化
+function normalizeToSeconds(raw?: number | null): number | null {
+	if (typeof raw !== "number" || !isFinite(raw) || raw <= 0) return null;
+	// 明らかにミリ秒らしい値 (例: 1,000〜120,000 = 1s〜2m)
+	// 秒として該当しうる値においてもミリ秒換算されてしまう。
+	if (raw > 1000 && raw < 120 * 1000) {
+		return Math.round(raw / 1000);
+	}
+	return Math.round(raw);
+}
+
 /**
  * Request media library permissions
  */
@@ -134,43 +153,31 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 			mediaTypes: ["images", "videos"], // Allow both images and videos
 			allowsMultipleSelection: false,
 			quality: 1,
-			videoMaxDuration: MAX_VIDEO_DURATION_SECONDS, // Hint for picker, but we validate anyway
+			videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
 		});
 
-		if (result.canceled) {
-			return {
-				success: false,
-				error: "cancelled",
-			};
-		}
+		if (result.canceled) { return { success: false, error: "cancelled", }; }
 
 		const asset = result.assets[0];
-		if (!asset) {
-			return {
-				success: false,
-				error: "unknown",
-			};
-		}
+		if (!asset) { return { success: false, error: "unknown", }; }
 
-		const isVideo = asset.type === "video";
+		const isVideo = isVideoAsset(asset);
 
 		// Check video duration
-		let durationSec = asset.duration;
+		let durationSec: number | null = null;
 		if (isVideo) {
+			// iOS: ms のことが多い。Web は別関数で取得。Android は秒のことが多い。
+			durationSec = normalizeToSeconds(asset.duration);
 			// For web, we need to get duration manually
 			if (Platform.OS === "web" && !durationSec) {
-				durationSec = await getVideoDuration(asset.uri);
+				durationSec = normalizeToSeconds(await getVideoDuration(asset.uri));
 			}
-
 			if (durationSec && durationSec > MAX_VIDEO_DURATION_SECONDS) {
-				return {
-					success: false,
-					error: "video_too_long",
-				};
+				return { success: false, error: "video_too_long", };
 			}
 		}
 
-		// Generate thumbnail for video
+		// ---- サムネ生成 ----
 		let thumbnailUri: string | undefined;
 		if (isVideo) {
 			const thumbnail = await generateVideoThumbnail(asset.uri);
