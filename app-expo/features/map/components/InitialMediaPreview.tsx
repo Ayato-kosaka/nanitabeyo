@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity, Platform, Modal } from "react-native";
 import { Image } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
@@ -29,29 +29,43 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 	const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
 	const [isMuted, setIsMuted] = useState(true);
 
-	const player = useVideoPlayer(media.uri, (player) => {
+	// Only create player for video media
+	const isVideo = media.type === "video";
+	const player = useVideoPlayer(isVideo ? media.uri : "", (player) => {
+		if (!isVideo) return;
 		player.loop = false;
-		player.muted = isMuted;
+		player.muted = true;
 	});
 
+	// Update player mute state when isMuted changes
+	useEffect(() => {
+		if (isVideo && player) {
+			player.muted = isMuted;
+		}
+	}, [isMuted, player, isVideo]);
+
 	const handlePlayPress = useCallback(() => {
+		if (!isVideo) return;
 		setIsVideoModalVisible(true);
 		player.play();
-	}, [player]);
+	}, [player, isVideo]);
 
 	const handleCloseModal = useCallback(() => {
 		setIsVideoModalVisible(false);
-		player.pause();
+		if (isVideo && player) {
+			player.pause();
+		}
 		setIsMuted(true);
-	}, [player]);
+	}, [player, isVideo]);
 
 	const handleToggleMute = useCallback(() => {
+		if (!isVideo || !player) return;
 		setIsMuted((prev) => {
 			const newMuted = !prev;
 			player.muted = newMuted;
 			return newMuted;
 		});
-	}, [player]);
+	}, [player, isVideo]);
 
 	const displayUri = media.type === "video" ? media.thumbnailUri || media.uri : media.uri;
 
