@@ -7,6 +7,7 @@
 		"close": "إغلاق",
 		"save": "حفظ",
 		"post": "نشر",
+		"retry": "إعادة المحاولة",
 		"processing": "معالجة...",
 		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
@@ -297,7 +298,10 @@
 			"selectedImage": "الصورة المحددة",
 			"selectedVideoThumbnail": "الصورة المصغرة للفيديو المحدد",
 			"playVideo": "تشغيل الفيديو",
-			"selectingMedia": "جاري اختيار الوسائط..."
+			"selectingMedia": "جاري اختيار الوسائط...",
+			"loadingMedia": "جارٍ تحميل الوسائط...",
+			"mediaSelectionFailed": "فشل تحديد الوسائط",
+			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى."
 		},
 		"noResultsFound": "لم يتم العثور على نتائج",
 		"accessibility": {

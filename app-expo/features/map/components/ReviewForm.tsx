@@ -9,6 +9,7 @@ import {
 	Keyboard,
 	Pressable,
 	Animated,
+	ActivityIndicator,
 } from "react-native";
 import { Star, ChevronRight } from "lucide-react-native";
 import { Card } from "@/components/Card";
@@ -29,6 +30,7 @@ import type { CreateDishMediaResponse, CreateDishResponse, CreateDishReviewRespo
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Dimensions } from "react-native";
+import { selectMediaForReview } from "@/features/map/utils/mediaSelection";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -38,8 +40,6 @@ interface ReviewFormProps {
 	initialReviewText?: string;
 	/** Initial rating value */
 	initialRating?: number;
-	/** Initial media to display at the top */
-	initialMedia: MediaData;
 	/** Called when user cancels */
 	onCancel: () => void;
 }
@@ -49,13 +49,17 @@ const { height } = Dimensions.get("window");
 /**
  * Review form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
+ *
+ * Media selection is handled internally on mount:
+ * - Shows loading spinner while selecting media
+ * - Automatically closes modal on cancellation
+ * - Shows error UI with retry button on failure
  */
 export function ReviewForm({
 	restaurant,
 	initialPrice = "",
 	initialReviewText = "",
 	initialRating = 0,
-	initialMedia,
 	onCancel,
 }: ReviewFormProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
@@ -65,6 +69,12 @@ export function ReviewForm({
 	const { uploadFile: thumbnailUploadFile } = useFileUploader();
 	const { createDishCategoryVariant } = useDishCategorySearch();
 	const { showSnackbar } = useSnackbar();
+
+	// Media selection state
+	const [mediaState, setMediaState] = useState<
+		{ status: "loading" } | { status: "error"; error: string } | { status: "success"; media: MediaData }
+	>({ status: "loading" });
+	const [isMounted, setIsMounted] = useState(true);
 
 	// 料理カテゴリの状態管理
 	const [dishCategoryName, setDishCategoryName] = useState("");
@@ -83,6 +93,104 @@ export function ReviewForm({
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
 	const isValid = price.trim() && reviewText.trim() && dishCategoryName.trim() && !!dishCategoryId;
+
+	// Handle media selection on mount
+	useEffect(() => {
+		let cancelled = false;
+
+		const handleMediaSelection = async () => {
+			try {
+				const result = await selectMediaForReview();
+
+				// Guard against setState on unmounted component
+				if (cancelled || !isMounted) return;
+
+				if (!result.success || result.media === undefined) {
+					// Handle cancellation - close modal automatically
+					if (result.error === "cancelled") {
+						onCancel();
+						return;
+					}
+
+					// Handle other errors
+					let errorMessage = i18n.t("Map.media.mediaSelectionError");
+					switch (result.error) {
+						case "permission_denied":
+							errorMessage = i18n.t("Map.media.permissionDenied");
+							break;
+						case "video_too_long":
+							errorMessage = i18n.t("Map.media.videoTooLong");
+							break;
+						case "thumbnail_failed":
+							errorMessage = i18n.t("Map.media.thumbnailFailed");
+							break;
+					}
+
+					setMediaState({ status: "error", error: errorMessage });
+					return;
+				}
+
+				// Success - set media and show form
+				setMediaState({ status: "success", media: result.media });
+				lightImpact(); // Haptic feedback on success
+			} catch (error) {
+				if (cancelled || !isMounted) return;
+				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
+			}
+		};
+
+		handleMediaSelection();
+
+		return () => {
+			cancelled = true;
+			setIsMounted(false);
+		};
+	}, [onCancel, lightImpact]);
+
+	// Retry media selection
+	const handleRetry = useCallback(() => {
+		setMediaState({ status: "loading" });
+		// Trigger re-selection by updating a key or re-running the effect
+		// Since we can't easily re-trigger the effect, we'll call the function directly
+		const retrySelection = async () => {
+			try {
+				const result = await selectMediaForReview();
+
+				if (!isMounted) return;
+
+				if (!result.success || result.media === undefined) {
+					if (result.error === "cancelled") {
+						onCancel();
+						return;
+					}
+
+					let errorMessage = i18n.t("Map.media.mediaSelectionError");
+					switch (result.error) {
+						case "permission_denied":
+							errorMessage = i18n.t("Map.media.permissionDenied");
+							break;
+						case "video_too_long":
+							errorMessage = i18n.t("Map.media.videoTooLong");
+							break;
+						case "thumbnail_failed":
+							errorMessage = i18n.t("Map.media.thumbnailFailed");
+							break;
+					}
+
+					setMediaState({ status: "error", error: errorMessage });
+					return;
+				}
+
+				setMediaState({ status: "success", media: result.media });
+				lightImpact();
+			} catch (error) {
+				if (!isMounted) return;
+				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
+			}
+		};
+
+		retrySelection();
+	}, [onCancel, lightImpact, isMounted]);
 
 	// Animated height for InitialMediaPreview
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - バッファ
@@ -172,7 +280,7 @@ export function ReviewForm({
 	);
 
 	const handleSubmit = useCallback(async () => {
-		if (!isValid || isProcessing) return;
+		if (!isValid || isProcessing || mediaState.status !== "success") return;
 
 		mediumImpact();
 		setIsProcessing(true);
@@ -187,14 +295,14 @@ export function ReviewForm({
 				},
 			}).then((res) => res.id);
 
-			const mediaPath = await mediaUploadFile(initialMedia.uri, {
-				mimeType: initialMedia.mimeType,
+			const mediaPath = await mediaUploadFile(mediaState.media.uri, {
+				mimeType: mediaState.media.mimeType,
 				baseFileName: `${dishId}-media`,
 			});
 			let thumbnailPath = mediaPath; // Default to mediaPath for images
-			if (initialMedia.type === "video") {
-				if (!initialMedia.thumbnailUri) throw new Error("Missing thumbnail for video");
-				thumbnailPath = await thumbnailUploadFile(initialMedia.thumbnailUri, {
+			if (mediaState.media.type === "video") {
+				if (!mediaState.media.thumbnailUri) throw new Error("Missing thumbnail for video");
+				thumbnailPath = await thumbnailUploadFile(mediaState.media.thumbnailUri, {
 					mimeType: "image/jpeg",
 					baseFileName: `${dishId}-thumbnail`,
 				});
@@ -210,7 +318,7 @@ export function ReviewForm({
 					dishId,
 					mediaPath,
 					thumbnailPath,
-					mediaType: initialMedia.type,
+					mediaType: mediaState.media.type,
 				},
 			});
 
@@ -230,7 +338,7 @@ export function ReviewForm({
 			logFrontendEvent({
 				event_name: "dish_media_submit_success",
 				error_level: "log",
-				payload: { dishId, initialMedia, dishCategoryId },
+				payload: { dishId, media: mediaState.media, dishCategoryId },
 			});
 
 			// Simulate review submission
@@ -258,7 +366,7 @@ export function ReviewForm({
 		isValid,
 		isProcessing,
 		rating,
-		initialMedia,
+		mediaState,
 		dishCategoryId,
 		dishCategoryName,
 		createDishCategoryVariant,
@@ -277,10 +385,38 @@ export function ReviewForm({
 		onCancel();
 	}, [onCancel]);
 
+	// Error state
+	if (mediaState.status === "error") {
+		return (
+			<View style={styles.centeredContainer}>
+				<Card style={styles.errorCard}>
+					<Text style={styles.errorTitle}>{i18n.t("Map.media.mediaSelectionFailed")}</Text>
+					<Text style={styles.errorMessage}>{mediaState.error}</Text>
+					<View style={styles.errorButtons}>
+						<PrimaryButton label={i18n.t("Common.retry")} onPress={handleRetry} style={{ flex: 1 }} borderRadius={8} />
+						<PrimaryButton
+							label={i18n.t("Common.close")}
+							onPress={handleCancel}
+							style={{ flex: 1, backgroundColor: "#6B7280" }}
+							borderRadius={8}
+						/>
+					</View>
+				</Card>
+			</View>
+		);
+	}
+
 	return (
 		<>
 			<Animated.View style={{ height: mediaHeightAnim }}>
-				{initialMedia && <InitialMediaPreview media={initialMedia} />}
+				{mediaState.status === "loading" ? (
+					<View style={styles.loadingContainer}>
+						<ActivityIndicator size="large" color="#007AFF" />
+						<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
+					</View>
+				) : (
+					<InitialMediaPreview media={mediaState.media} />
+				)}
 			</Animated.View>
 			<Card style={{ gap: 16 }}>
 				{/* レビュー入力 */}
@@ -374,6 +510,47 @@ export function ReviewForm({
 }
 
 const styles = StyleSheet.create({
+	centeredContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 16,
+		minHeight: 400,
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	loadingText: {
+		marginTop: 16,
+		fontSize: 16,
+		color: "#666",
+	},
+	errorCard: {
+		padding: 24,
+		alignItems: "center",
+		gap: 16,
+		width: "100%",
+	},
+	errorTitle: {
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#DC2626",
+		textAlign: "center",
+	},
+	errorMessage: {
+		fontSize: 14,
+		color: "#666",
+		textAlign: "center",
+		lineHeight: 20,
+	},
+	errorButtons: {
+		flexDirection: "row",
+		gap: 12,
+		width: "100%",
+		marginTop: 8,
+	},
 	inputLabel: {
 		fontSize: 16,
 		fontWeight: "600",
