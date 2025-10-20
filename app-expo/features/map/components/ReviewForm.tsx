@@ -5,8 +5,6 @@ import {
 	TextInput,
 	StyleSheet,
 	TouchableOpacity,
-	Alert,
-	KeyboardAvoidingView,
 	Platform,
 	Keyboard,
 	Pressable,
@@ -30,6 +28,7 @@ import { useFileUploader } from "@/hooks/useFileUploader";
 import type { CreateDishMediaResponse, CreateDishResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useBlurModal } from "@/hooks/useBlurModal";
+import { Dimensions } from "react-native";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -44,6 +43,8 @@ interface ReviewFormProps {
 	/** Called when user cancels */
 	onCancel: () => void;
 }
+
+const { height } = Dimensions.get("window");
 
 /**
  * Review form component that manages its own internal state to prevent
@@ -81,10 +82,12 @@ export function ReviewForm({
 	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
-	const isValid = price.trim() && reviewText.trim() && dishCategoryName.trim();
+	const isValid = price.trim() && reviewText.trim() && dishCategoryName.trim() && !!dishCategoryId;
 
 	// Animated height for InitialMediaPreview
-	const mediaHeightAnim = useRef(new Animated.Value(320)).current;
+	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - バッファ
+	const mediaHeight = useMemo(() => height - 370 - 60 - 120, []);
+	const mediaHeightAnim = useRef(new Animated.Value(mediaHeight)).current;
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
 	// Keyboard event handlers for animation
@@ -94,7 +97,7 @@ export function ReviewForm({
 			() => {
 				setIsKeyboardVisible(true);
 				Animated.timing(mediaHeightAnim, {
-					toValue: 180, // Reduced height
+					toValue: 100, // Reduced height
 					duration: 250,
 					useNativeDriver: false,
 				}).start();
@@ -106,7 +109,7 @@ export function ReviewForm({
 			() => {
 				setIsKeyboardVisible(false);
 				Animated.timing(mediaHeightAnim, {
-					toValue: 320, // Original height
+					toValue: mediaHeight,
 					duration: 250,
 					useNativeDriver: false,
 				}).start();
@@ -119,12 +122,35 @@ export function ReviewForm({
 		};
 	}, [mediaHeightAnim]);
 
+	// DishCategoryAutocomplete モーダルクローズ時のハンドラ: dishCategoryName から dishCategoryId を取得・設定
+	const onDishCategoryModalClose = useCallback(async () => {
+		if (!dishCategoryName.trim()) return;
+		try {
+			const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
+			setDishCategoryId(createdCategory.id);
+		} catch (error: any) {
+			// POSTエラー時はインラインエラー表示
+			const errorMessage = i18n.t("Map.errors.dishCategoryNotFound");
+			setDishCategoryError(errorMessage);
+			setDishCategoryId(null);
+			setIsProcessing(false);
+			return;
+		}
+	}, [dishCategoryName, createDishCategoryVariant]);
+
+	// DishCategoryAutocomplete クリア時のハンドラ
+	const handleDishCategoryClear = useCallback(() => {
+		setDishCategoryId(null);
+		setDishCategoryError(null);
+	}, []);
+
 	// useBlurModal for dish category selection
 	const {
-		BlurModal,
+		BlurModal: DishCategoryModal,
 		open: openDishCategoryModal,
 		close: closeDishCategoryModal,
 	} = useBlurModal({
+		onClose: onDishCategoryModalClose,
 		keyboardVerticalOffset: Platform.OS === "ios" ? 0 : 0,
 		dismissKeyboardFirst: true,
 	});
@@ -145,12 +171,6 @@ export function ReviewForm({
 		[logFrontendEvent, closeDishCategoryModal],
 	);
 
-	// DishCategoryAutocomplete クリア時のハンドラ
-	const handleDishCategoryClear = useCallback(() => {
-		setDishCategoryId(null);
-		setDishCategoryError(null);
-	}, []);
-
 	const handleSubmit = useCallback(async () => {
 		if (!isValid || isProcessing) return;
 
@@ -158,28 +178,12 @@ export function ReviewForm({
 		setIsProcessing(true);
 		setDishCategoryError(null);
 
-		// 料理カテゴリが未選択の場合、POSTで作成
-		let finalDishCategoryId = dishCategoryId;
-		if (!finalDishCategoryId) {
-			try {
-				const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
-				finalDishCategoryId = createdCategory.id;
-				setDishCategoryId(finalDishCategoryId);
-			} catch (error: any) {
-				// POSTエラー時はインラインエラー表示
-				const errorMessage = i18n.t("Map.errors.dishCategoryNotFound");
-				setDishCategoryError(errorMessage);
-				setIsProcessing(false);
-				return;
-			}
-		}
-
 		try {
 			const dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
 				method: "POST",
 				requestPayload: {
 					restaurantId: restaurant.id,
-					dishCategoryId: finalDishCategoryId!,
+					dishCategoryId: dishCategoryId,
 				},
 			}).then((res) => res.id);
 
@@ -226,7 +230,7 @@ export function ReviewForm({
 			logFrontendEvent({
 				event_name: "dish_media_submit_success",
 				error_level: "log",
-				payload: { dishId, initialMedia, dishCategoryId: finalDishCategoryId },
+				payload: { dishId, initialMedia, dishCategoryId },
 			});
 
 			// Simulate review submission
@@ -274,10 +278,7 @@ export function ReviewForm({
 	}, [onCancel]);
 
 	return (
-		<KeyboardAvoidingView
-			behavior={Platform.OS === "ios" ? "padding" : "height"}
-			style={{ flex: 1 }}
-			keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}>
+		<>
 			<Animated.View style={{ height: mediaHeightAnim }}>
 				{initialMedia && <InitialMediaPreview media={initialMedia} />}
 			</Animated.View>
@@ -293,13 +294,40 @@ export function ReviewForm({
 					textAlignVertical="top"
 				/>
 
+				{/* 価格入力 行 */}
+				<View style={styles.inputRow}>
+					<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
+					{currencySymbol ? (
+						<View style={styles.priceInputContainer}>
+							<Text style={styles.currencySymbol}>{currencySymbol}</Text>
+							<TextInput
+								style={[styles.textInput, styles.priceInput]}
+								placeholder={"0"}
+								value={price}
+								onChangeText={setPrice}
+								keyboardType="numeric"
+							/>
+						</View>
+					) : (
+						<TextInput
+							style={[styles.textInput, styles.priceInputSmall]}
+							placeholder={"0"}
+							value={price}
+							onChangeText={setPrice}
+							keyboardType="numeric"
+						/>
+					)}
+				</View>
+
 				{/* 料理カテゴリ選択 Pressable 行 */}
 				<Pressable
 					style={styles.selectRow}
 					onPress={openDishCategoryModal}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
-					<Text style={styles.selectRowText}>{dishCategoryName || i18n.t("Map.actions.selectDishCategory")}</Text>
+					<Text style={[styles.selectRowText, dishCategoryName ? { color: "#000", fontWeight: "600" } : {}]}>
+						{dishCategoryName || i18n.t("Map.actions.selectDishCategory")}
+					</Text>
 					<ChevronRight size={20} color="#666" />
 				</Pressable>
 				{dishCategoryError && (
@@ -319,31 +347,6 @@ export function ReviewForm({
 						))}
 					</View>
 				</View>
-
-				{/* 価格入力 行 */}
-				<View style={styles.inputRow}>
-					<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
-					{currencySymbol ? (
-						<View style={styles.priceInputContainer}>
-							<Text style={styles.currencySymbol}>{currencySymbol}</Text>
-							<TextInput
-								style={[styles.textInput, styles.priceInput]}
-								placeholder={i18n.t("Map.placeholders.enterPrice")}
-								value={price}
-								onChangeText={setPrice}
-								keyboardType="numeric"
-							/>
-						</View>
-					) : (
-						<TextInput
-							style={[styles.textInput, styles.priceInputSmall]}
-							placeholder={i18n.t("Map.placeholders.enterPrice")}
-							value={price}
-							onChangeText={setPrice}
-							keyboardType="numeric"
-						/>
-					)}
-				</View>
 			</Card>
 
 			<PrimaryButton
@@ -354,7 +357,7 @@ export function ReviewForm({
 			/>
 
 			{/* DishCategoryAutocomplete Modal */}
-			<BlurModal contentContainerStyle={styles.modalContent}>
+			<DishCategoryModal>
 				<View style={styles.autocompleteContainer}>
 					<DishCategoryAutocomplete
 						value={dishCategoryName}
@@ -365,8 +368,8 @@ export function ReviewForm({
 						autofocus={true}
 					/>
 				</View>
-			</BlurModal>
-		</KeyboardAvoidingView>
+			</DishCategoryModal>
+		</>
 	);
 }
 
@@ -392,22 +395,18 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		minHeight: 48,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		borderRadius: 8,
-		backgroundColor: "#F8F9FA",
+		height: 48,
 	},
 	selectRowText: {
-		fontSize: 16,
-		color: "#1A1A1A",
+		fontSize: 14,
+		color: "#666",
 		flex: 1,
 	},
 	inputRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		minHeight: 48,
+		height: 48,
 	},
 	inputRowLabel: {
 		fontSize: 14,
@@ -437,28 +436,21 @@ const styles = StyleSheet.create({
 		paddingLeft: 4,
 		paddingRight: 12,
 		minWidth: 80,
+		textAlign: "right",
 	},
 	priceInputSmall: {
 		minWidth: 120,
 		paddingHorizontal: 12,
 		paddingVertical: 8,
+		textAlign: "right",
 	},
 	errorText: {
 		color: "#DC2626",
-		fontSize: 14,
-		marginTop: 8,
+		fontSize: 12,
 		paddingHorizontal: 4,
 	},
-	modalContent: {
-		width: "90%",
-		maxWidth: 500,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		padding: 20,
-		alignSelf: "center",
-		marginTop: 100,
-	},
 	autocompleteContainer: {
+		marginHorizontal: 16,
 		minHeight: 200,
 	},
 });

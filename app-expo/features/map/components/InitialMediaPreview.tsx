@@ -116,15 +116,14 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	mediaWrapper: {
-		height: 320,
-		width: 180,
+		height: "100%",
+		aspectRatio: 9 / 16,
 		alignSelf: "center",
 		overflow: "hidden",
 		position: "relative",
 	},
 	media: {
-		width: "100%",
-		height: "100%",
+		...StyleSheet.absoluteFillObject,
 	},
 	playButton: {
 		...StyleSheet.absoluteFillObject,
