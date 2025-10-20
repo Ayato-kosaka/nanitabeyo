@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { ResizeMode } from "expo-av";
 import { VideoPlayerProps } from "./VideoPlayer";
 import Hls from "hls.js";
+
+type VideoContentFit = "contain" | "cover" | "fill";
 
 /**
  * VideoPlayer component for HLS video playback
@@ -13,13 +14,7 @@ import Hls from "hls.js";
  * The CDN signed cookies are automatically sent by the platform:
  * - Web: Browser automatically includes cookies for same-origin requests
  */
-function VideoPlayer({
-	uri,
-	style,
-	shouldPlay = false,
-	isLooping = true,
-	resizeMode = ResizeMode.COVER,
-}: VideoPlayerProps) {
+function VideoPlayer({ uri, style, shouldPlay = false, isLooping = true, resizeMode = "cover" }: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -80,7 +75,7 @@ function VideoPlayer({
 				style={{
 					width: "100%",
 					height: "100%",
-					objectFit: resizeMode === ResizeMode.COVER ? "cover" : "contain",
+					objectFit: resizeMode === "cover" ? "cover" : "contain",
 				}}
 				onLoadStart={() => setIsLoading(true)}
 				onCanPlay={() => setIsLoading(false)}
