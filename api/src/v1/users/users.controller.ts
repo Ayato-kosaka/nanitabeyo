@@ -60,7 +60,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
@@ -87,7 +87,11 @@ export class UsersController {
     if (result.cdnCookies && result.cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
-        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...(existing
+          ? Array.isArray(existing)
+            ? existing
+            : [String(existing)]
+          : []),
         ...result.cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);
@@ -120,7 +124,11 @@ export class UsersController {
     if (result.cdnCookies && result.cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
-        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...(existing
+          ? Array.isArray(existing)
+            ? existing
+            : [String(existing)]
+          : []),
         ...result.cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);
@@ -221,7 +229,11 @@ export class UsersController {
     if (result.cdnCookies && result.cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
-        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...(existing
+          ? Array.isArray(existing)
+            ? existing
+            : [String(existing)]
+          : []),
         ...result.cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);

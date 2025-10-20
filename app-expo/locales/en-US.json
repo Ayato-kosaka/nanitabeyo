@@ -249,6 +249,9 @@
 			"bid": "Bid",
 			"searchNearby": "Search in this area"
 		},
+		"actions": {
+			"selectDishCategory": "Select dish category"
+		},
 		"inputs": {
 			"price": "Price",
 			"rating": "Rating",

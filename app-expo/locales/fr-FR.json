@@ -250,6 +250,9 @@
 			"bid": "Enchérir",
 			"searchNearby": "Rechercher dans cette zone"
 		},
+		"actions": {
+			"selectDishCategory": "Sélectionner la catégorie du plat"
+		},
 		"inputs": {
 			"price": "Prix",
 			"rating": "Évaluation",

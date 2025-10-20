@@ -35,7 +35,7 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -53,12 +53,9 @@ export class DishMediaService {
         this.repo.findDishMediaIds(tx, dto, viewerId),
     );
 
-    const result = await this.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
-        userId: viewerId,
-      },
-    );
+    const result = await this.fetchDishMediaEntryItems(dishMediaIds, {
+      userId: viewerId,
+    });
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
       count: result.items.length,
@@ -142,7 +139,7 @@ export class DishMediaService {
               rec.dish_media.media_path,
             );
           }
-        }
+        };
         const [mediaUrl, thumbnailImageUrl] = await Promise.all([
           getMediaUrl(),
           this.storage.getOrQueueResizedSignedUrl(
@@ -153,7 +150,8 @@ export class DishMediaService {
               size: 256,
             },
             rec.dish_media.thumbnail_path,
-          )]);
+          ),
+        ]);
 
         return {
           ...rec,

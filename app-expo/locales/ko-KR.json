@@ -250,6 +250,9 @@
 			"bid": "입찰",
 			"searchNearby": "이 지역에서 검색"
 		},
+		"actions": {
+			"selectDishCategory": "요리 카테고리 선택"
+		},
 		"inputs": {
 			"price": "가격",
 			"rating": "평점",

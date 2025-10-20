@@ -250,6 +250,9 @@
 			"bid": "入札",
 			"searchNearby": "このエリアで探す"
 		},
+		"actions": {
+			"selectDishCategory": "料理カテゴリを選択"
+		},
 		"inputs": {
 			"price": "料金",
 			"rating": "評価",

@@ -249,6 +249,9 @@
 			"bid": "बोली",
 			"searchNearby": "इस क्षेत्र में खोजें"
 		},
+		"actions": {
+			"selectDishCategory": "डिश श्रेणी चुनें"
+		},
 		"inputs": {
 			"price": "मूल्य",
 			"rating": "रेटिंग",
