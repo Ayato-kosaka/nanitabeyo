@@ -7,6 +7,7 @@
 		"close": "Fermer",
 		"save": "Enregistrer",
 		"post": "Publier",
+		"retry": "Réessayer",
 		"processing": "Traitement...",
 		"error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
@@ -297,7 +298,10 @@
 			"selectedImage": "Image sélectionnée",
 			"selectedVideoThumbnail": "Miniature de la vidéo sélectionnée",
 			"playVideo": "Lire la vidéo",
-			"selectingMedia": "Sélection des médias..."
+			"selectingMedia": "Sélection des médias...",
+			"loadingMedia": "Chargement des médias...",
+			"mediaSelectionFailed": "Échec de la sélection des médias",
+			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer."
 		},
 		"noResultsFound": "Aucun résultat trouvé",
 		"accessibility": {

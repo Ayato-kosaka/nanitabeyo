@@ -156,10 +156,14 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 			videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
 		});
 
-		if (result.canceled) { return { success: false, error: "cancelled", }; }
+		if (result.canceled) {
+			return { success: false, error: "cancelled" };
+		}
 
 		const asset = result.assets[0];
-		if (!asset) { return { success: false, error: "unknown", }; }
+		if (!asset) {
+			return { success: false, error: "unknown" };
+		}
 
 		const isVideo = isVideoAsset(asset);
 
@@ -173,7 +177,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 				durationSec = normalizeToSeconds(await getVideoDuration(asset.uri));
 			}
 			if (durationSec && durationSec > MAX_VIDEO_DURATION_SECONDS) {
-				return { success: false, error: "video_too_long", };
+				return { success: false, error: "video_too_long" };
 			}
 		}
 

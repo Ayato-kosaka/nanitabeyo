@@ -7,6 +7,7 @@
 		"close": "बंद करें",
 		"save": "सेव करें",
 		"post": "पोस्ट करें",
+		"retry": "पुनः प्रयास करें",
 		"processing": "प्रसंस्करण...",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
 		"success": "सफलता",
@@ -298,7 +299,10 @@
 			"selectedImage": "चयनित छवि",
 			"selectedVideoThumbnail": "चयनित वीडियो का थंबनेल",
 			"playVideo": "वीडियो चलाएं",
-			"selectingMedia": "मीडिया चयन कर रहे हैं..."
+			"selectingMedia": "मीडिया चयन कर रहे हैं...",
+			"loadingMedia": "मीडिया लोड हो रहा है...",
+			"mediaSelectionFailed": "मीडिया चयन विफल रहा",
+			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {

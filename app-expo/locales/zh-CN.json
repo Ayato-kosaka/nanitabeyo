@@ -7,6 +7,7 @@
 		"close": "关闭",
 		"save": "保存",
 		"post": "发布",
+		"retry": "重试",
 		"processing": "处理中...",
 		"error": "发生错误。请重试。",
 		"success": "成功",
@@ -297,7 +298,10 @@
 			"selectedImage": "已选择的图片",
 			"selectedVideoThumbnail": "已选择视频的缩略图",
 			"playVideo": "播放视频",
-			"selectingMedia": "正在选择媒体..."
+			"selectingMedia": "正在选择媒体...",
+			"loadingMedia": "正在加载媒体...",
+			"mediaSelectionFailed": "媒体选择失败",
+			"mediaSelectionError": "选择媒体时发生错误。请重试。"
 		},
 		"noResultsFound": "未找到结果",
 		"accessibility": {
