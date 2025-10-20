@@ -286,15 +286,12 @@ export class StorageService {
   /**
    * Generate CDN signed cookies for URL prefix-based authentication
    * Used for HLS video playback where multiple files need to be accessed
-   * 
+   *
    * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
    * @param recordId - The record ID for cookie path scoping
    * @returns Array of cookie strings ready for Set-Cookie headers
    */
-  generateCdnSignedCookies(
-    urlPrefix: string,
-    recordId: string,
-  ): string[] {
+  generateCdnSignedCookies(urlPrefix: string, recordId: string): string[] {
     try {
       // ---- normalize prefix -------------------------------------------------
       const u = new URL(urlPrefix);
@@ -311,7 +308,8 @@ export class StorageService {
       // 1) base64url(URLPrefix)  ※パディングなし
       const urlPrefixB64url = b64url(Buffer.from(normalizedPrefix, 'utf8'));
 
-      const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
+      const expires =
+        Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
       const keyName = env.CDN_KEY_NAME;
 
       // 2) Cloud CDN 形式は "URLPrefix=<b64url>:Expires=<ts>:KeyName=<name>"
@@ -335,12 +333,16 @@ export class StorageService {
         `Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; ` +
         `HttpOnly; Secure; SameSite=None; Partitioned`;
 
-      this.logger.debug('CdnSignedCookiesGenerated', 'generateCdnSignedCookies', {
-        urlPrefix: normalizedPrefix,
-        recordId,
-        expires: new Date(expires * 1000).toISOString(),
-        cookiePreview: cookie.slice(0, 200) + '...',
-      });
+      this.logger.debug(
+        'CdnSignedCookiesGenerated',
+        'generateCdnSignedCookies',
+        {
+          urlPrefix: normalizedPrefix,
+          recordId,
+          expires: new Date(expires * 1000).toISOString(),
+          cookiePreview: cookie.slice(0, 200) + '...',
+        },
+      );
 
       // 1枚クッキー方式（Cloud-CDN-Cookie）で返す。
       // ※運用が「3分割クッキー」なら、Policy/Signature/KeyName を別々に出す実装を追加してください。
@@ -357,8 +359,18 @@ export class StorageService {
 }
 
 function b64url(buf: Buffer) {
-  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return buf
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 function fromB64url(s: string) {
-  return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '='), 'base64');
+  return Buffer.from(
+    s
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(s.length / 4) * 4, '='),
+    'base64',
+  );
 }

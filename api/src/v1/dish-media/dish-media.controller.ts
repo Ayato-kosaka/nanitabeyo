@@ -61,7 +61,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -82,16 +82,17 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryDishMediaByIdsResponse> {
-    const result = await this.dishMediaService.findByIds(
-      query.ids,
-      user?.id,
-    );
+    const result = await this.dishMediaService.findByIds(query.ids, user?.id);
 
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
-        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...(existing
+          ? Array.isArray(existing)
+            ? existing
+            : [String(existing)]
+          : []),
         ...result.cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);
@@ -129,7 +130,11 @@ export class DishMediaController {
     if (result.cdnCookies && result.cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
-        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...(existing
+          ? Array.isArray(existing)
+            ? existing
+            : [String(existing)]
+          : []),
         ...result.cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);

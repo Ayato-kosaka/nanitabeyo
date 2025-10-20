@@ -241,10 +241,12 @@ export class RestaurantsService {
       (l) => l.dish_media_id,
     );
 
-    const result =
-      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
+    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+      dishMediaIds,
+      {
         userId,
-      });
+      },
+    );
 
     this.logger.debug(
       'GetRestaurantDishMediaResult',

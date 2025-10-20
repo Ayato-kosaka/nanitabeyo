@@ -46,11 +46,10 @@ export class UsersService {
       dto.cursor,
     );
 
-    const result =
-      await this.dishMediaService.fetchDishMediaEntryItems(
-        reviews.map((review) => review.created_dish_media_id),
-        { userId, reviewLimit: 0 },
-      );
+    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+      reviews.map((review) => review.created_dish_media_id),
+      { userId, reviewLimit: 0 },
+    );
 
     const nextCursor =
       reviews.length > 0
@@ -95,10 +94,12 @@ export class UsersService {
 
     const dishMediaIds = likes.map((l) => l.dish_media_id);
 
-    const result =
-      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
+    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+      dishMediaIds,
+      {
         userId,
-      });
+      },
+    );
 
     const nextCursor =
       likes.length > 0
@@ -228,10 +229,12 @@ export class UsersService {
 
     const dishMediaIds = saves.map((s) => s.dish_media_id);
 
-    const result =
-      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
+    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+      dishMediaIds,
+      {
         userId,
-      });
+      },
+    );
 
     const nextCursor =
       saves.length > 0

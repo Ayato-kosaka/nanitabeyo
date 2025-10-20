@@ -249,6 +249,9 @@
 			"bid": "出价",
 			"searchNearby": "在此区域搜索"
 		},
+		"actions": {
+			"selectDishCategory": "选择菜品类别"
+		},
 		"inputs": {
 			"price": "价格",
 			"rating": "评分",

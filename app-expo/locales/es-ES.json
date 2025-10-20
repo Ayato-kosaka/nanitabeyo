@@ -250,6 +250,9 @@
 			"bid": "Ofertar",
 			"searchNearby": "Buscar en esta área"
 		},
+		"actions": {
+			"selectDishCategory": "Seleccionar categoría de plato"
+		},
 		"inputs": {
 			"price": "Precio",
 			"rating": "Calificación",

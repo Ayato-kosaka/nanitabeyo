@@ -20,7 +20,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
   constructor(
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -41,9 +41,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
         url: req?.url,
         statusCode: res?.statusCode,
         payload: maskSensitiveFields(req.body),
-        error: error
+        error: error,
       });
-    }
+    };
 
     // JSON パースエラーを詳細に処理
     if (

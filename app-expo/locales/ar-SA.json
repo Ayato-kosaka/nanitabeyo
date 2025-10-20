@@ -250,6 +250,9 @@
 			"bid": "عرض",
 			"searchNearby": "ابحث في هذه المنطقة"
 		},
+		"actions": {
+			"selectDishCategory": "اختر فئة الطبق"
+		},
 		"inputs": {
 			"price": "السعر",
 			"rating": "التقييم",

@@ -37,6 +37,7 @@ This implementation adds CDN signed cookie authentication for video media playba
 ### Cookie Structure
 
 The cookie name is `Cloud-CDN-Cookie` and the value contains colon-separated fields:
+
 ```
 Cloud-CDN-Cookie=URLPrefix=<url>:Expires=<timestamp>:KeyName=<key>:Signature=<sig>; Domain=<cdn-host>; Path=<path>; Max-Age=<ttl>; HttpOnly; Secure; SameSite=None
 ```
@@ -44,6 +45,7 @@ Cloud-CDN-Cookie=URLPrefix=<url>:Expires=<timestamp>:KeyName=<key>:Signature=<si
 Note: The signature is computed over the URL parameter format (`URLPrefix=<url>&Expires=<timestamp>&KeyName=<key>`), but the cookie value uses colon separators.
 
 ### Example
+
 ```
 Cloud-CDN-Cookie=URLPrefix=https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/:Expires=1760483243:KeyName=my-key:Signature=BnNrXpMt4ul7kQciSaqt1dUOoG4=; Domain=cdn.example.com; Path=/prod/transcoded/dish_media/media_path/abc123/; Max-Age=600; HttpOnly; Secure; SameSite=None
 ```
@@ -60,6 +62,7 @@ Cloud-CDN-Cookie=URLPrefix=https://cdn.example.com/prod/transcoded/dish_media/me
 ## URL Path Structure
 
 ### Video Files
+
 ```
 https://cdn.example.com/{env}/transcoded/dish_media/media_path/{recordId}/
 ├── master.m3u8          # Master playlist (returned as mediaUrl)
@@ -72,7 +75,9 @@ https://cdn.example.com/{env}/transcoded/dish_media/media_path/{recordId}/
 ```
 
 ### Cookie Scope
+
 The cookie's `Path` attribute is set to the directory path, allowing access to:
+
 - `master.m3u8`
 - All variant playlists (e.g., `720p.m3u8`)
 - All video segments under the path
@@ -133,7 +138,7 @@ All endpoints that return dish media with videos will set signed cookies:
 
 - Uses HMAC-SHA1 with secret key
 - Signature covers: URLPrefix + Expires + KeyName
-- Base64 URL-safe encoding (+/= → -/_)
+- Base64 URL-safe encoding (+/= → -/\_)
 - Invalid signatures result in 403 responses from CDN
 
 ### Path Scoping
@@ -157,6 +162,7 @@ CDN_SIGNED_COOKIE_TTL_SECONDS=600
 ### Production Environment
 
 Set via environment variables in deployment:
+
 - Google Cloud Run secrets
 - GitHub Actions workflow variables
 - Configured per environment (dev/staging/prod)
@@ -167,18 +173,18 @@ Set via environment variables in deployment:
 
 ```typescript
 // Fetch with credentials to receive cookies
-const response = await fetch('/v1/users/me/saved-dish-media', {
-  credentials: 'include'
+const response = await fetch("/v1/users/me/saved-dish-media", {
+	credentials: "include",
 });
 
 const data = await response.json();
 
 // Use mediaUrl directly with HLS player
-data.items.forEach(item => {
-  if (item.dish_media.media_type === 'video') {
-    // Browser automatically sends cookies with HLS requests
-    player.src = item.dish_media.mediaUrl;
-  }
+data.items.forEach((item) => {
+	if (item.dish_media.media_type === "video") {
+		// Browser automatically sends cookies with HLS requests
+		player.src = item.dish_media.mediaUrl;
+	}
 });
 ```
 
@@ -206,6 +212,7 @@ data.items.forEach(item => {
 ### Cloud CDN Setup
 
 1. Create signing key:
+
 ```bash
 # Generate key
 openssl rand -base64 32 > cdn-signing-key.txt
@@ -216,6 +223,7 @@ gcloud secrets create cdn-signing-key \
 ```
 
 2. Configure Cloud CDN with signed cookies:
+
 ```bash
 # Enable signed URL/cookie support
 gcloud compute backend-services update BACKEND_SERVICE \
@@ -223,6 +231,7 @@ gcloud compute backend-services update BACKEND_SERVICE \
 ```
 
 3. Add key to environment:
+
 ```bash
 # Set environment variables
 export CDN_HOST=cdn.example.com
@@ -246,39 +255,39 @@ export CDN_KEY_SECRET_B64=$(cat cdn-signing-key.txt)
 Create a test script to verify cookie generation:
 
 ```javascript
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 const env = {
-  CDN_HOST: 'cdn.example.com',
-  CDN_KEY_NAME: 'test-key',
-  CDN_KEY_SECRET_B64: Buffer.from('test-secret').toString('base64'),
-  CDN_SIGNED_COOKIE_TTL_SECONDS: 600,
+	CDN_HOST: "cdn.example.com",
+	CDN_KEY_NAME: "test-key",
+	CDN_KEY_SECRET_B64: Buffer.from("test-secret").toString("base64"),
+	CDN_SIGNED_COOKIE_TTL_SECONDS: 600,
 };
 
 function generateCdnSignedCookies(urlPrefix, recordId) {
-  const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, 'base64');
-  const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
-  
-  // Create signature - note this uses & separators
-  const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
-  const signature = crypto
-    .createHmac('sha1', keySecret)
-    .update(toSign)
-    .digest('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
+	const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, "base64");
+	const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
 
-  const urlObj = new URL(urlPrefix);
-  const cookiePath = urlObj.pathname;
+	// Create signature - note this uses & separators
+	const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
+	const signature = crypto
+		.createHmac("sha1", keySecret)
+		.update(toSign)
+		.digest("base64")
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_");
 
-  // Cookie value uses : separators
-  return [
-    `Cloud-CDN-Cookie=URLPrefix=${urlPrefix}:Expires=${expires}:KeyName=${env.CDN_KEY_NAME}:Signature=${signature}; Domain=${env.CDN_HOST}; Path=${cookiePath}; Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; HttpOnly; Secure; SameSite=None`,
-  ];
+	const urlObj = new URL(urlPrefix);
+	const cookiePath = urlObj.pathname;
+
+	// Cookie value uses : separators
+	return [
+		`Cloud-CDN-Cookie=URLPrefix=${urlPrefix}:Expires=${expires}:KeyName=${env.CDN_KEY_NAME}:Signature=${signature}; Domain=${env.CDN_HOST}; Path=${cookiePath}; Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; HttpOnly; Secure; SameSite=None`,
+	];
 }
 
 // Test cookie generation
-const testRecordId = '123e4567-e89b-12d3-a456-426614174000';
+const testRecordId = "123e4567-e89b-12d3-a456-426614174000";
 const testUrl = `https://cdn.example.com/prod/transcoded/dish_media/media_path/${testRecordId}/`;
 const cookies = generateCdnSignedCookies(testUrl, testRecordId);
 console.log(cookies);
@@ -296,6 +305,7 @@ console.log(cookies);
 ### Logging
 
 All cookie operations are logged via `AppLoggerService`:
+
 - `CdnSignedCookiesGenerated`: Successful generation
 - `CdnConfigMissing`: Missing CDN configuration
 - `CdnSignedCookieError`: Generation errors
@@ -304,14 +314,14 @@ All cookie operations are logged via `AppLoggerService`:
 
 ```json
 {
-  "event": "CdnSignedCookiesGenerated",
-  "context": "generateCdnSignedCookies",
-  "data": {
-    "urlPrefix": "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/",
-    "recordId": "abc123",
-    "expires": "2025-10-14T23:17:23.000Z",
-    "cookieCount": 1
-  }
+	"event": "CdnSignedCookiesGenerated",
+	"context": "generateCdnSignedCookies",
+	"data": {
+		"urlPrefix": "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/",
+		"recordId": "abc123",
+		"expires": "2025-10-14T23:17:23.000Z",
+		"cookieCount": 1
+	}
 }
 ```
 
