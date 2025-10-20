@@ -7,6 +7,7 @@
 		"close": "Cerrar",
 		"save": "Guardar",
 		"post": "Publicar",
+		"retry": "Reintentar",
 		"processing": "Procesando...",
 		"error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
@@ -297,7 +298,10 @@
 			"selectedImage": "Imagen seleccionada",
 			"selectedVideoThumbnail": "Miniatura del vídeo seleccionado",
 			"playVideo": "Reproducir vídeo",
-			"selectingMedia": "Seleccionando medios..."
+			"selectingMedia": "Seleccionando medios...",
+			"loadingMedia": "Cargando medios...",
+			"mediaSelectionFailed": "Error al seleccionar medios",
+			"mediaSelectionError": "Ocurrió un error al seleccionar medios. Por favor intenta de nuevo."
 		},
 		"noResultsFound": "No se encontraron resultados",
 		"accessibility": {
