@@ -26,6 +26,7 @@ import { BaseResponse } from '@shared/v1/res';
 import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
 import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
 import { AppLoggerService } from '../logger/logger.service';
+import { maskSensitiveFields } from './response-wrap.utils';
 
 /* -------------------------------------------------------------------------- */
 /*                           Skip Decorator (Opt‐in)                           */
@@ -42,7 +43,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     /* ――― 除外判定 ――― */
@@ -80,10 +81,14 @@ export class ResponseWrapInterceptor implements NestInterceptor {
 
         // Build and send backend event log (success path)
         try {
+          const payload = maskSensitiveFields(req.body);
+          const responsePayload = maskSensitiveFields(payload);
           const info = {
             method: req?.method,
             url: req?.originalUrl ?? req?.url,
             statusCode: res?.statusCode,
+            payload,
+            responsePayload,
             wrapped: !alreadyWrapped,
             queue_ms,
             upload_ms,

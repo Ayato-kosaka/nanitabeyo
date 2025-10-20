@@ -74,14 +74,16 @@ export function ProfileHeader({
 				<Card style={styles.card} pointerEvents="box-none">
 					{/* Avatar and Stats */}
 					<View style={[styles.profileHeader]} pointerEvents="none">
-						<Image
-							key={profile.avatar || "placeholder"}
-							source={isGuest ? require("@/assets/images/icon.png") : { uri: profile.avatar }}
-							style={styles.avatar}
-							contentFit="cover"
-							transition={0}
-							cachePolicy={"disk"}
-						/>
+						{(isGuest || profile.avatar) && (
+							<Image
+								key={profile.avatar || "placeholder"}
+								source={isGuest ? require("@/assets/images/icon.png") : { uri: profile.avatar }}
+								style={styles.avatar}
+								contentFit="cover"
+								transition={0}
+								cachePolicy={"disk"}
+							/>
+						)}
 
 						{/* {!isGuest && (
 							<View style={styles.statsContainer}>

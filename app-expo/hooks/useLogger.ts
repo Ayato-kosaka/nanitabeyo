@@ -75,7 +75,7 @@ export const useLogger = () => {
 				user_id: user?.id,
 				event_name,
 				path_name,
-				payload: JSON.stringify(payload),
+				payload,
 				error_level,
 				created_at: now,
 				created_app_version: Env.APP_VERSION,

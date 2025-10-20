@@ -12,10 +12,12 @@ import {
   Param,
   ParseUUIDPipe,
   Query,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -58,7 +60,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
@@ -77,9 +79,21 @@ export class UsersController {
   async getUserDishReviews(
     @Param() params: UserIdParamsDto,
     @Query() query: QueryUserDishReviewsDto,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<QueryUserDishReviewsResponse> {
-    const items = await this.usersService.getUserDishReviews(params.id, query);
-    return this.usersMapper.toUserDishReviewsResponse(items);
+    const result = await this.usersService.getUserDishReviews(params.id, query);
+
+    // Set CDN signed cookies if present (for video media)
+    if (result.cdnCookies && result.cdnCookies.length > 0) {
+      const existing = res.getHeader('Set-Cookie');
+      const merged = [
+        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...result.cdnCookies,
+      ];
+      res.setHeader('Set-Cookie', merged);
+    }
+
+    return this.usersMapper.toUserDishReviewsResponse(result);
   }
 
   /* ------------------------------------------------------------------ */
@@ -98,9 +112,21 @@ export class UsersController {
   async getMeLikedDishMedia(
     @Query() query: QueryMeLikedDishMediaDto,
     @CurrentUser() user: RequestUser,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeLikedDishMediaResponse> {
-    const items = await this.usersService.getMeLikedDishMedia(user.id, query);
-    return this.usersMapper.toMeLikedDishMediaResponse(items);
+    const result = await this.usersService.getMeLikedDishMedia(user.id, query);
+
+    // Set CDN signed cookies if present (for video media)
+    if (result.cdnCookies && result.cdnCookies.length > 0) {
+      const existing = res.getHeader('Set-Cookie');
+      const merged = [
+        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...result.cdnCookies,
+      ];
+      res.setHeader('Set-Cookie', merged);
+    }
+
+    return this.usersMapper.toMeLikedDishMediaResponse(result);
   }
 
   /* ------------------------------------------------------------------ */
@@ -187,8 +213,20 @@ export class UsersController {
   async getMeSavedDishMedia(
     @Query() query: QueryMeSavedDishMediaDto,
     @CurrentUser() user: RequestUser,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeSavedDishMediaResponse> {
-    const items = await this.usersService.getMeSavedDishMedia(user.id, query);
-    return this.usersMapper.toMeSavedDishMediaResponse(items);
+    const result = await this.usersService.getMeSavedDishMedia(user.id, query);
+
+    // Set CDN signed cookies if present (for video media)
+    if (result.cdnCookies && result.cdnCookies.length > 0) {
+      const existing = res.getHeader('Set-Cookie');
+      const merged = [
+        ...(existing ? (Array.isArray(existing) ? existing : [String(existing)]) : []),
+        ...result.cdnCookies,
+      ];
+      res.setHeader('Set-Cookie', merged);
+    }
+
+    return this.usersMapper.toMeSavedDishMediaResponse(result);
   }
 }

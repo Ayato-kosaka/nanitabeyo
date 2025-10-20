@@ -14,13 +14,14 @@ Web 専用フォールバックについて
 - 成功/失敗をフロントエンドログに記録し、いずれの場合も /(tabs)/profile に遷移します。
 */
 import { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, StyleSheet, Linking, Modal, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Text, ActivityIndicator, StyleSheet, Linking, Modal, TouchableOpacity, Platform } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { Provider } from "@supabase/supabase-js";
+import * as AuthSession from "expo-auth-session";
 
 /**
  * OAuth認証のコールバック画面
@@ -30,6 +31,7 @@ export default function AuthCallbackScreen() {
 	const router = useRouter();
 	const { createUserProfile, handleOAuthResultUrl, signInWithOAuth } = useAuth();
 	const { logFrontendEvent } = useLogger();
+	const { locale, ...rest } = useLocalSearchParams<{ locale: string; [k: string]: string }>();
 	const [showConflictDialog, setShowConflictDialog] = useState(false);
 	const [conflictProvider, setConflictProvider] = useState<Provider | null>(null);
 
@@ -38,7 +40,12 @@ export default function AuthCallbackScreen() {
 			try {
 				// 初回URL（フラグメント含む）を取得
 				const initialUrl = await Linking.getInitialURL();
-				const url = initialUrl ?? ""; // expo-routerで遷移してきた場合も getInitialURL が持っています
+				const qs = new URLSearchParams(Object.entries(rest).map(([k, v]) => [k, String(v)])).toString();
+				const redirectBase =
+					Platform.OS === "web"
+						? `${window.location.origin}/${locale}/auth/callback`
+						: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback` });
+				const url = initialUrl || `${redirectBase}?${qs}`; // expo-routerで遷移してきた場合も getInitialURL が持っています
 
 				// URLから認証結果を処理
 				await handleOAuthResultUrl(url);
@@ -61,7 +68,7 @@ export default function AuthCallbackScreen() {
 					});
 				}
 
-				router.replace("/(tabs)/profile");
+				router.replace({ pathname: "/[locale]/profile", params: { locale } });
 				return;
 			} catch (error: unknown) {
 				// linkIdentity による identity_already_exists エラーの場合は警告ダイアログを表示

@@ -62,8 +62,8 @@ export class TranscoderService {
             key: 'video-1080p',
             videoStream: {
               h264: {
+                // heightPixels だけ指定 → 入力比率を保って widthPixels を自動算出
                 heightPixels: 1080,
-                widthPixels: 1920,
                 bitrateBps: 8000000,
                 frameRate: 30,
               },
@@ -75,7 +75,6 @@ export class TranscoderService {
             videoStream: {
               h264: {
                 heightPixels: 720,
-                widthPixels: 1280,
                 bitrateBps: 5000000,
                 frameRate: 30,
               },
@@ -87,7 +86,6 @@ export class TranscoderService {
             videoStream: {
               h264: {
                 heightPixels: 480,
-                widthPixels: 854,
                 bitrateBps: 2500000,
                 frameRate: 30,
               },

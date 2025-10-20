@@ -16,6 +16,7 @@ import {
   buildResizedPath,
 } from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class StorageService {
@@ -278,4 +279,86 @@ export class StorageService {
       return this.generateSignedUrl(originalPath, expiresInSeconds);
     }
   }
+
+  /* ---------------------------------------------------------------------- */
+  /*                      CDN Signed Cookie Generation                      */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * Generate CDN signed cookies for URL prefix-based authentication
+   * Used for HLS video playback where multiple files need to be accessed
+   * 
+   * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
+   * @param recordId - The record ID for cookie path scoping
+   * @returns Array of cookie strings ready for Set-Cookie headers
+   */
+  generateCdnSignedCookies(
+    urlPrefix: string,
+    recordId: string,
+  ): string[] {
+    try {
+      // ---- normalize prefix -------------------------------------------------
+      const u = new URL(urlPrefix);
+      if (u.protocol !== 'https:') {
+        throw new Error(`urlPrefix must be https: got ${u.protocol}`);
+      }
+      // ensure trailing slash for a clean prefix match
+      if (!u.pathname.endsWith('/')) u.pathname = `${u.pathname}/`;
+      u.search = '';
+      u.hash = '';
+      const normalizedPrefix = u.toString(); // https://cdn.../<path>/
+
+      // ---- build policy -----------------------------------------------------
+      // 1) base64url(URLPrefix)  ※パディングなし
+      const urlPrefixB64url = b64url(Buffer.from(normalizedPrefix, 'utf8'));
+
+      const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
+      const keyName = env.CDN_KEY_NAME;
+
+      // 2) Cloud CDN 形式は "URLPrefix=<b64url>:Expires=<ts>:KeyName=<name>"
+      const policy = `URLPrefix=${urlPrefixB64url}:Expires=${expires}:KeyName=${keyName}`;
+
+      // ---- sign (HMAC-SHA1 with RAW key bytes) -----------------------------
+      // env.CDN_KEY_SECRET_B64 は「Cloud CDN に登録した鍵」＝base64url 文字列を想定
+      const keyRaw = fromB64url(env.CDN_KEY_SECRET_B64);
+
+      const sigRaw = crypto.createHmac('sha1', keyRaw).update(policy).digest();
+      const signature = b64url(sigRaw); // base64url (no padding)
+
+      // ---- build Set-Cookie -------------------------------------------------
+      const cookieValue = `${policy}:Signature=${signature}`;
+      const cookiePath = u.pathname; // cookie の Path は prefix のパス部分
+
+      const cookie =
+        `Cloud-CDN-Cookie=${cookieValue}; ` +
+        `Domain=.${u.hostname.includes('.') ? u.hostname.split('.').slice(1).join('.') : u.hostname}; ` +
+        `Path=${cookiePath}; ` +
+        `Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; ` +
+        `HttpOnly; Secure; SameSite=None; Partitioned`;
+
+      this.logger.debug('CdnSignedCookiesGenerated', 'generateCdnSignedCookies', {
+        urlPrefix: normalizedPrefix,
+        recordId,
+        expires: new Date(expires * 1000).toISOString(),
+        cookiePreview: cookie.slice(0, 200) + '...',
+      });
+
+      // 1枚クッキー方式（Cloud-CDN-Cookie）で返す。
+      // ※運用が「3分割クッキー」なら、Policy/Signature/KeyName を別々に出す実装を追加してください。
+      return [cookie];
+    } catch (err) {
+      this.logger.error('CdnSignedCookieError', 'generateCdnSignedCookies', {
+        error_message: (err as Error).message,
+        urlPrefix,
+        recordId,
+      });
+      throw err;
+    }
+  }
+}
+
+function b64url(buf: Buffer) {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function fromB64url(s: string) {
+  return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '='), 'base64');
 }

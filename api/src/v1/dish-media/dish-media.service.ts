@@ -53,7 +53,7 @@ export class DishMediaService {
         this.repo.findDishMediaIds(tx, dto, viewerId),
     );
 
-    const dishMediaEntryItems = await this.fetchDishMediaEntryItems(
+    const result = await this.fetchDishMediaEntryItems(
       dishMediaIds,
       {
         userId: viewerId,
@@ -61,9 +61,10 @@ export class DishMediaService {
     );
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
-      count: dishMediaEntryItems.length,
+      count: result.items.length,
+      hasCookies: !!result.cdnCookies,
     });
-    return dishMediaEntryItems;
+    return result;
   }
 
   /* ------------------------------------------------------------------ */
@@ -75,19 +76,20 @@ export class DishMediaService {
       viewer: viewerId ?? 'anon',
     });
 
-    const items = await this.fetchDishMediaEntryItems(ids, {
+    const result = await this.fetchDishMediaEntryItems(ids, {
       userId: viewerId,
     });
 
-    const foundSet = new Set(items.map((item) => item.dish_media.id));
+    const foundSet = new Set(result.items.map((item) => item.dish_media.id));
     const notFound = ids.filter((id) => !foundSet.has(id));
 
     this.logger.debug('FindByIdsResult', 'findByIds', {
-      count: items.length,
+      count: result.items.length,
       notFound: notFound.length,
+      hasCookies: !!result.cdnCookies,
     });
 
-    return { items, notFound };
+    return { items: result.items, notFound, cdnCookies: result.cdnCookies };
   }
 
   /**
@@ -99,28 +101,51 @@ export class DishMediaService {
       userId?: string;
       reviewLimit?: number;
     },
-  ): Promise<DishMediaEntryItem[]> {
-    if (!dishMediaIds.length) return [];
+  ): Promise<{ items: DishMediaEntryItem[]; cdnCookies?: string[] }> {
+    if (!dishMediaIds.length) return { items: [] };
 
     const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(
       dishMediaIds,
       option,
     );
 
+    const cdnCookies: string[] = [];
+
     const dishMediaEntryItems = await mapWithConcurrency(
       dishMediaEntries,
       async (rec) => {
+        const getMediaUrl = async () => {
+          // For video media, generate CDN URL and collect cookies
+          if (rec.dish_media.media_type === 'video') {
+            // Build CDN URL for master.m3u8
+            const cdnUrlPrefix = `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${rec.dish_media.id}/`;
+
+            // Generate and collect signed cookies
+            const cookies = this.storage.generateCdnSignedCookies(
+              cdnUrlPrefix,
+              rec.dish_media.id,
+            );
+            if (cookies) {
+              cdnCookies.push(...cookies);
+            }
+
+            return `${cdnUrlPrefix}master.m3u8`;
+          } else {
+            // For images, use existing resized image logic
+            return await this.storage.getOrQueueResizedSignedUrl(
+              {
+                table: 'dish_media',
+                column: 'media_path',
+                recordId: rec.dish_media.id,
+                size: 1024,
+              },
+              rec.dish_media.media_path,
+            );
+          }
+        }
         const [mediaUrl, thumbnailImageUrl] = await Promise.all([
-          await this.storage.getOrQueueResizedSignedUrl(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: rec.dish_media.id,
-              size: 1024,
-            },
-            rec.dish_media.media_path,
-          ),
-          await this.storage.getOrQueueResizedSignedUrl(
+          getMediaUrl(),
+          this.storage.getOrQueueResizedSignedUrl(
             {
               table: 'dish_media',
               column: 'thumbnail_path',
@@ -128,8 +153,8 @@ export class DishMediaService {
               size: 256,
             },
             rec.dish_media.thumbnail_path,
-          ),
-        ]);
+          )]);
+
         return {
           ...rec,
           dish_media: {
@@ -142,7 +167,10 @@ export class DishMediaService {
       12, // concurrency
     ).then((list) => list.filter((v): v is NonNullable<typeof v> => !!v));
 
-    return dishMediaEntryItems;
+    return {
+      items: dishMediaEntryItems,
+      cdnCookies: cdnCookies.length > 0 ? cdnCookies : undefined,
+    };
   }
 
   /* ------------------------------------------------------------------ */

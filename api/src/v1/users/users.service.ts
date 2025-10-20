@@ -46,7 +46,7 @@ export class UsersService {
       dto.cursor,
     );
 
-    const dishMediaEntries =
+    const result =
       await this.dishMediaService.fetchDishMediaEntryItems(
         reviews.map((review) => review.created_dish_media_id),
         { userId, reviewLimit: 0 },
@@ -60,10 +60,11 @@ export class UsersService {
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: reviews.length,
       nextCursor,
+      hasCookies: !!result.cdnCookies,
     });
 
     return {
-      data: dishMediaEntries.map((list) => ({
+      data: result.items.map((list) => ({
         ...list,
         dish_media: {
           ...list.dish_media,
@@ -74,6 +75,7 @@ export class UsersService {
         ),
       })),
       nextCursor,
+      cdnCookies: result.cdnCookies,
     };
   }
 
@@ -93,7 +95,7 @@ export class UsersService {
 
     const dishMediaIds = likes.map((l) => l.dish_media_id);
 
-    const dishMediaEntries =
+    const result =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
       });
@@ -104,13 +106,15 @@ export class UsersService {
         : null;
 
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
-      count: dishMediaEntries.length,
+      count: result.items.length,
       nextCursor,
+      hasCookies: !!result.cdnCookies,
     });
 
     return {
-      data: dishMediaEntries,
+      data: result.items,
       nextCursor,
+      cdnCookies: result.cdnCookies,
     };
   }
 
@@ -224,7 +228,7 @@ export class UsersService {
 
     const dishMediaIds = saves.map((s) => s.dish_media_id);
 
-    const dishMediaEntries =
+    const result =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
       });
@@ -235,13 +239,15 @@ export class UsersService {
         : null;
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
-      count: dishMediaEntries.length,
+      count: result.items.length,
       nextCursor,
+      hasCookies: !!result.cdnCookies,
     });
 
     return {
-      data: dishMediaEntries,
+      data: result.items,
       nextCursor,
+      cdnCookies: result.cdnCookies,
     };
   }
 }

@@ -85,6 +85,8 @@ export const useAPICall = () => {
 				headers,
 				body:
 					method === "POST" ? (isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload)) : undefined,
+				// Include credentials for web to receive CDN signed cookies
+				credentials: Platform.OS === "web" ? "include" : "same-origin",
 			});
 
 			const requestId = response.headers.get("x-request-id");
