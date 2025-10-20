@@ -177,7 +177,6 @@ This functionality remains in `expo-av` as it's separate from video playback.
 
 - [Expo Video Documentation](https://docs.expo.dev/versions/latest/sdk/video/)
 - [expo-av to expo-video Migration Guide](https://docs.expo.dev/versions/latest/sdk/video/#migration-from-expo-av)
-- [Issue #【開発】expo-av の Video コンポーネントを expo-video に移行する](https://github.com/Ayato-kosaka/nanitabeyo/issues/[issue-number])
 
 ## Notes
 
