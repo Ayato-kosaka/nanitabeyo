@@ -105,7 +105,7 @@ export function ReviewForm({
 				// Guard against setState on unmounted component
 				if (cancelled || !isMounted) return;
 
-				if (!result.success) {
+				if (!result.success || result.media === undefined) {
 					// Handle cancellation - close modal automatically
 					if (result.error === "cancelled") {
 						onCancel();
@@ -158,7 +158,7 @@ export function ReviewForm({
 
 				if (!isMounted) return;
 
-				if (!result.success) {
+				if (!result.success || result.media === undefined) {
 					if (result.error === "cancelled") {
 						onCancel();
 						return;
@@ -191,8 +191,6 @@ export function ReviewForm({
 
 		retrySelection();
 	}, [onCancel, lightImpact, isMounted]);
-
-	const isValid = price.trim() && reviewText.trim() && dishCategoryName.trim() && !!dishCategoryId;
 
 	// Animated height for InitialMediaPreview
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - バッファ
@@ -387,16 +385,6 @@ export function ReviewForm({
 		onCancel();
 	}, [onCancel]);
 
-	// Loading state
-	if (mediaState.status === "loading") {
-		return (
-			<View style={styles.centeredContainer}>
-				<ActivityIndicator size="large" color="#007AFF" />
-				<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
-			</View>
-		);
-	}
-
 	// Error state
 	if (mediaState.status === "error") {
 		return (
@@ -418,13 +406,17 @@ export function ReviewForm({
 		);
 	}
 
-	// Success state - show form with media
-	const { media } = mediaState;
-
 	return (
 		<>
 			<Animated.View style={{ height: mediaHeightAnim }}>
-				{media && <InitialMediaPreview media={media} />}
+				{mediaState.status === "loading" ? (
+					<View style={styles.loadingContainer}>
+						<ActivityIndicator size="large" color="#007AFF" />
+						<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
+					</View>
+				) : (
+					<InitialMediaPreview media={mediaState.media} />
+				)}
 			</Animated.View>
 			<Card style={{ gap: 16 }}>
 				{/* レビュー入力 */}
@@ -524,6 +516,11 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		padding: 16,
 		minHeight: 400,
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	loadingText: {
 		marginTop: 16,
