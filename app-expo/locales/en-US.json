@@ -7,6 +7,7 @@
 		"close": "Close",
 		"save": "Save",
 		"post": "Post",
+		"retry": "Retry",
 		"processing": "Processing...",
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
@@ -297,7 +298,10 @@
 			"selectedImage": "Selected image",
 			"selectedVideoThumbnail": "Thumbnail of selected video",
 			"playVideo": "Play video",
-			"selectingMedia": "Selecting media..."
+			"selectingMedia": "Selecting media...",
+			"loadingMedia": "Loading media...",
+			"mediaSelectionFailed": "Failed to select media",
+			"mediaSelectionError": "An error occurred while selecting media. Please try again."
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {

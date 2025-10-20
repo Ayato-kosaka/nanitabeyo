@@ -16,9 +16,6 @@ import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import type { CreateRestaurantResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
-import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { selectMediaForReview } from "@/features/map/utils/mediaSelection";
-import type { MediaData } from "@/features/map/components/InitialMediaPreview";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -43,7 +40,6 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { showSnackbar } = useSnackbar();
 
 	// Modals
 	const {
@@ -59,7 +55,6 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
-	const [selectedMedia, setSelectedMedia] = useState<MediaData | undefined>(undefined);
 
 	const handleBid = async (bidAmount: string) => {
 		if (!bidAmount) return;
@@ -86,36 +81,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
-
-		// Launch media picker
-		const result = await selectMediaForReview();
-
-		if (!result.success) {
-			// Handle errors
-			if (result.error === "cancelled") {
-				// User cancelled, do nothing
-				return;
-			}
-
-			let errorMessage = i18n.t("Common.error");
-			switch (result.error) {
-				case "permission_denied":
-					errorMessage = i18n.t("Map.media.permissionDenied");
-					break;
-				case "video_too_long":
-					errorMessage = i18n.t("Map.media.videoTooLong");
-					break;
-				case "thumbnail_failed":
-					errorMessage = i18n.t("Map.media.thumbnailFailed");
-					break;
-			}
-
-			showSnackbar(errorMessage);
-			return;
-		}
-
-		// Set selected media and open modal
-		setSelectedMedia(result.media);
+		// Open modal immediately - media selection will happen inside ReviewForm
 		openReviewModal();
 	};
 
@@ -211,11 +177,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			</Tabs.Container>
 
 			{/* Review Modal */}
-			{selectedMedia && (
-				<ReviewBlurModal>
-					{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} initialMedia={selectedMedia} />}
-				</ReviewBlurModal>
-			)}
+			<ReviewBlurModal>{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} />}</ReviewBlurModal>
 
 			{/* Bid Modal */}
 			<BidBlurModal>
