@@ -14,7 +14,6 @@ import {
 import { Star, ChevronRight } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { DishCategoryAutocomplete } from "@/components/DishCategoryAutocomplete";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview, MediaData } from "./InitialMediaPreview";
@@ -31,6 +30,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useBlurModal } from "@/hooks/useBlurModal";
 import { Dimensions } from "react-native";
 import { selectMediaForReview } from "@/features/map/utils/mediaSelection";
+import { DishCategorySearchForm } from "./DishCategorySearchForm";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -93,6 +93,16 @@ export function ReviewForm({
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
 	const isValid = price.trim() && reviewText.trim() && dishCategoryName.trim() && !!dishCategoryId;
+
+	// useBlurModal for dish category selection
+	const {
+		BlurModal: DishCategoryModal,
+		open: openDishCategoryModal,
+		close: closeDishCategoryModal,
+	} = useBlurModal({
+		keyboardVerticalOffset: Platform.OS === "ios" ? 0 : 0,
+		dismissKeyboardFirst: true,
+	});
 
 	// Handle media selection on mount
 	useEffect(() => {
@@ -230,45 +240,39 @@ export function ReviewForm({
 		};
 	}, [mediaHeightAnim]);
 
-	// DishCategoryAutocomplete モーダルクローズ時のハンドラ: dishCategoryName から dishCategoryId を取得・設定
-	const onDishCategoryModalClose = useCallback(async () => {
-		if (!dishCategoryName.trim()) return;
-		try {
-			const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
-			setDishCategoryId(createdCategory.id);
-		} catch (error: any) {
-			// POSTエラー時はインラインエラー表示
-			const errorMessage = i18n.t("Map.errors.dishCategoryNotFound");
-			setDishCategoryError(errorMessage);
-			setDishCategoryId(null);
-			setIsProcessing(false);
-			return;
-		}
-	}, [dishCategoryName, createDishCategoryVariant]);
-
-	// DishCategoryAutocomplete クリア時のハンドラ
-	const handleDishCategoryClear = useCallback(() => {
+	// DishCategoryModal が開かれたときの初期化処理
+	const onDishCategoryModalMount = useCallback(() => {
 		setDishCategoryId(null);
+		setDishCategoryName("");
 		setDishCategoryError(null);
 	}, []);
 
-	// useBlurModal for dish category selection
-	const {
-		BlurModal: DishCategoryModal,
-		open: openDishCategoryModal,
-		close: closeDishCategoryModal,
-	} = useBlurModal({
-		onClose: onDishCategoryModalClose,
-		keyboardVerticalOffset: Platform.OS === "ios" ? 0 : 0,
-		dismissKeyboardFirst: true,
-	});
+	// DishCategoryModal が閉じられたときの処理: dishCategoryNameを受け取り、存在しなければ新規作成
+	const onDishCategoryModalUnmmount = useCallback(
+		async (dishCategoryName: string) => {
+			if (!dishCategoryName.trim()) return;
+			setIsProcessing(true);
+			try {
+				const createdCategory = await createDishCategoryVariant(dishCategoryName.trim());
+				setDishCategoryId(createdCategory.id);
+			} catch (error: any) {
+				// POSTエラー時はインラインエラー表示
+				const errorMessage = i18n.t("Map.errors.dishCategoryNotFound");
+				setDishCategoryError(errorMessage);
+				return;
+			} finally {
+				setDishCategoryName(dishCategoryName.trim());
+				setIsProcessing(false);
+			}
+		},
+		[dishCategoryName, createDishCategoryVariant],
+	);
 
 	// DishCategoryAutocomplete 候補選択時のハンドラ: dishCategoryIdを設定
 	const handleDishCategorySelect = useCallback(
 		(suggestion: { dishCategoryId: string; label: string }) => {
 			setDishCategoryId(suggestion.dishCategoryId);
 			setDishCategoryName(suggestion.label);
-			setDishCategoryError(null);
 			logFrontendEvent({
 				event_name: "dish_category_selected",
 				error_level: "log",
@@ -494,16 +498,12 @@ export function ReviewForm({
 
 			{/* DishCategoryAutocomplete Modal */}
 			<DishCategoryModal>
-				<View style={styles.autocompleteContainer}>
-					<DishCategoryAutocomplete
-						value={dishCategoryName}
-						onChangeText={setDishCategoryName}
-						onSelectSuggestion={handleDishCategorySelect}
-						onClear={handleDishCategoryClear}
-						placeholder={i18n.t("Map.placeholders.enterDishCategory")}
-						autofocus={true}
-					/>
-				</View>
+				<DishCategorySearchForm
+					onSubmit={handleDishCategorySelect}
+					onMount={onDishCategoryModalMount}
+					onUnmount={onDishCategoryModalUnmmount}
+					testID="dish-category-search"
+				/>
 			</DishCategoryModal>
 		</>
 	);
@@ -625,9 +625,5 @@ const styles = StyleSheet.create({
 		color: "#DC2626",
 		fontSize: 12,
 		paddingHorizontal: 4,
-	},
-	autocompleteContainer: {
-		marginHorizontal: 16,
-		minHeight: 200,
 	},
 });
