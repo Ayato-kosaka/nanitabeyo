@@ -249,7 +249,8 @@
 			"postReview": "Publier un avis",
 			"placeBid": "Placer une enchère",
 			"bid": "Enchérir",
-			"searchNearby": "Rechercher dans cette zone"
+			"searchNearby": "Rechercher dans cette zone",
+			"openInGoogle": "Ouvrir dans Google"
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat"

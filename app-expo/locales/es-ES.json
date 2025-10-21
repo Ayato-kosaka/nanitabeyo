@@ -249,7 +249,8 @@
 			"postReview": "Publicar Reseña",
 			"placeBid": "Hacer Oferta",
 			"bid": "Ofertar",
-			"searchNearby": "Buscar en esta área"
+			"searchNearby": "Buscar en esta área",
+			"openInGoogle": "Abrir en Google"
 		},
 		"actions": {
 			"selectDishCategory": "Seleccionar categoría de plato"

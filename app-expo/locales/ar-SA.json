@@ -249,7 +249,8 @@
 			"postReview": "نشر مراجعة",
 			"placeBid": "تقديم عرض",
 			"bid": "عرض",
-			"searchNearby": "ابحث في هذه المنطقة"
+			"searchNearby": "ابحث في هذه المنطقة",
+			"openInGoogle": "فتح في Google"
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق"

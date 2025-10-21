@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, LayoutChangeEvent } from "react-native";
-import { Camera, DollarSign } from "lucide-react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
+import { Camera, DollarSign, ExternalLink } from "lucide-react-native";
+import * as Linking from "expo-linking";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -16,6 +17,8 @@ import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import type { CreateRestaurantResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
+import { getGoogleMapsLink } from "@/lib/googlePlaces";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -40,6 +43,7 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { showSnackbar } = useSnackbar();
 
 	// Modals
 	const {
@@ -83,6 +87,44 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 		lightImpact();
 		// Open modal immediately - media selection will happen inside ReviewForm
 		openReviewModal();
+	};
+
+	const handleOpenGoogleMaps = async () => {
+		lightImpact();
+
+		logFrontendEvent({
+			event_name: "restaurant_google_maps_clicked",
+			error_level: "log",
+			payload: {
+				restaurantId: restaurant.id,
+				restaurantName: restaurant.name,
+				googlePlaceId: restaurant.google_place_id,
+			},
+		});
+
+		try {
+			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
+			if (Platform.OS === "web") {
+				window.open(mapUrl, "_blank", "noopener,noreferrer");
+				return;
+			}
+			if (canOpen) {
+				await Linking.openURL(mapUrl);
+			} else {
+				showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+			}
+		} catch (error) {
+			showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+			logFrontendEvent({
+				event_name: "restaurant_google_maps_open_failed",
+				error_level: "error",
+				payload: {
+					restaurantId: restaurant.id,
+					googlePlaceId: restaurant.google_place_id,
+					error: error instanceof Error ? error.message : "Unknown error",
+				},
+			});
+		}
 	};
 
 	// Collapsible header
@@ -142,11 +184,21 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 						style={{ flex: 1 }}
 					/>
 				</View>
+
+				<View style={styles.googleMapsButtonContainer}>
+					<PrimaryButton
+						onPress={handleOpenGoogleMaps}
+						label={i18n.t("Map.buttons.openInGoogle")}
+						icon={<ExternalLink size={20} color="#FFF" />}
+						borderRadius={8}
+						colors={["#4285F4", "#4285F4"]}
+					/>
+				</View>
 			</View>
 		) : (
 			<Card />
 		);
-	}, [handleHeaderLayout, handleReviewButtonPress, openBidModal, restaurant]);
+	}, [handleHeaderLayout, handleReviewButtonPress, openBidModal, handleOpenGoogleMaps, restaurant]);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
@@ -252,6 +304,10 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: 12,
 		margin: 16,
+	},
+	googleMapsButtonContainer: {
+		marginHorizontal: 16,
+		marginBottom: 16,
 	},
 	tabContainer: {
 		flexDirection: "row",
