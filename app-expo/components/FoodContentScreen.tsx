@@ -25,6 +25,8 @@ const { width, height } = Dimensions.get("window");
 interface FoodContentScreenProps {
 	item: DishMediaEntry;
 	carouselRef?: React.RefObject<any>;
+	/** Whether this content is currently active (for video playback control) */
+	isActive?: boolean;
 }
 
 // Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
@@ -60,7 +62,7 @@ const formatLikeCount = (count: number): string => {
 	return count.toString();
 };
 
-export default function FoodContentScreen({ item, carouselRef }: FoodContentScreenProps) {
+export default function FoodContentScreen({ item, carouselRef, isActive }: FoodContentScreenProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -450,7 +452,12 @@ export default function FoodContentScreen({ item, carouselRef }: FoodContentScre
 		<SafeAreaView style={styles.container}>
 			{/* Background Media (Image or Video) */}
 			{item.dish_media.media_type === "video" ? (
-				<VideoPlayer uri={item.dish_media.mediaUrl} style={StyleSheet.absoluteFill} shouldPlay={true} />
+				<VideoPlayer
+					uri={item.dish_media.mediaUrl}
+					style={StyleSheet.absoluteFill}
+					shouldPlay={true}
+					isActive={isActive}
+				/>
 			) : (
 				<Image
 					source={source}

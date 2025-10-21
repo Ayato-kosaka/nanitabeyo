@@ -12,6 +12,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo } from "react-native";
+import { useFocusEffect } from "expo-router";
 import FoodContentScreen from "./FoodContentScreen";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -51,6 +52,21 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	useEffect(() => {
 		currentIndexRef.current = currentIndex;
 	}, [currentIndex]);
+
+	// Track screen focus to pause videos when screen loses focus
+	const [isScreenFocused, setIsScreenFocused] = useState(true);
+
+	useFocusEffect(
+		useCallback(() => {
+			// Screen is focused
+			setIsScreenFocused(true);
+
+			return () => {
+				// Screen is unfocused - this will cause all videos to pause
+				setIsScreenFocused(false);
+			};
+		}, []),
+	);
 
 	// items の参照も最新をミラー（onViewableItemsChanged内で安定参照するため）
 	const itemsRef = useRef(items);
@@ -144,13 +160,13 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 
 	// --- renderItem（再レンダを抑制：pageHeight にのみ依存） -------------------
 	const renderItem = useCallback(
-		({ item }: ListRenderItemInfo<DishMediaEntry>) => (
+		({ item, index }: ListRenderItemInfo<DishMediaEntry>) => (
 			// 各ページは厳密に画面高に合わせる
 			<View style={{ height: Math.max(1, pageHeight) }}>
-				<FoodContentScreen item={item} />
+				<FoodContentScreen item={item} isActive={isScreenFocused && index === currentIndex} />
 			</View>
 		),
-		[pageHeight],
+		[pageHeight, currentIndex, isScreenFocused],
 	);
 
 	// --- 早期リターン：空リスト ----------------------------------------------
