@@ -146,6 +146,14 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 								<Text style={styles.ratingText}>{restaurant.averageRating}</Text>
 								<Text style={styles.reviewCount}>({restaurant.reviewCount})</Text>
 							</View>
+							<PrimaryButton
+								onPress={handleOpenGoogleMaps}
+								label={i18n.t("Map.buttons.openInGoogle")}
+								labelStyle={{ color: "#5EA2FF" }}
+								colors={["#F0F8FF", "#F0F8FF"]}
+								shadowColor="transparent"
+								borderRadius={8}
+							/>
 						</View>
 					</View>
 				</Card>
@@ -182,16 +190,6 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 						icon={<DollarSign size={20} color="#FFF" />}
 						borderRadius={8}
 						style={{ flex: 1 }}
-					/>
-				</View>
-
-				<View style={styles.googleMapsButtonContainer}>
-					<PrimaryButton
-						onPress={handleOpenGoogleMaps}
-						label={i18n.t("Map.buttons.openInGoogle")}
-						icon={<ExternalLink size={20} color="#FFF" />}
-						borderRadius={8}
-						colors={["#4285F4", "#4285F4"]}
 					/>
 				</View>
 			</View>
@@ -245,7 +243,7 @@ const styles = StyleSheet.create({
 	restaurantInfo: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginVertical: 12,
+		marginVertical: 4,
 	},
 	restaurantAvatar: {
 		width: 60,
@@ -304,10 +302,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: 12,
 		margin: 16,
-	},
-	googleMapsButtonContainer: {
-		marginHorizontal: 16,
-		marginBottom: 16,
 	},
 	tabContainer: {
 		flexDirection: "row",
