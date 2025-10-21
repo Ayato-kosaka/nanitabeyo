@@ -465,5 +465,4 @@ export const getGoogleMapsLink = async (restaurant: SupabaseRestaurants) => {
 	const mapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(placeId)}&query=${encodeURIComponent(restaurant.name || "")}`;
 	const canOpen = await Linking.canOpenURL(mapUrl);
 	return { mapUrl, canOpen };
-}
-
+};

@@ -252,7 +252,8 @@
 			"postReview": "Post Review",
 			"placeBid": "Place Bid",
 			"bid": "Bid",
-			"searchNearby": "Search in this area"
+			"searchNearby": "Search in this area",
+			"openInGoogle": "Open in Google"
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category"

@@ -252,7 +252,8 @@
 			"postReview": "समीक्षा पोस्ट करें",
 			"placeBid": "बोली लगाएं",
 			"bid": "बोली",
-			"searchNearby": "इस क्षेत्र में खोजें"
+			"searchNearby": "इस क्षेत्र में खोजें",
+			"openInGoogle": "Google में खोलें"
 		},
 		"actions": {
 			"selectDishCategory": "डिश श्रेणी चुनें"

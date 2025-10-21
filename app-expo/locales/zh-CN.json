@@ -252,7 +252,8 @@
 			"postReview": "发布评论",
 			"placeBid": "出价",
 			"bid": "出价",
-			"searchNearby": "在此区域搜索"
+			"searchNearby": "在此区域搜索",
+			"openInGoogle": "在 Google 中打开"
 		},
 		"actions": {
 			"selectDishCategory": "选择菜品类别"

@@ -253,7 +253,8 @@
 			"postReview": "レビュー投稿",
 			"placeBid": "入札する",
 			"bid": "入札",
-			"searchNearby": "このエリアで探す"
+			"searchNearby": "このエリアで探す",
+			"openInGoogle": "Google で開く"
 		},
 		"actions": {
 			"selectDishCategory": "料理カテゴリを選択"

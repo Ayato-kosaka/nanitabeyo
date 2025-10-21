@@ -253,7 +253,8 @@
 			"postReview": "리뷰 게시",
 			"placeBid": "입찰하기",
 			"bid": "입찰",
-			"searchNearby": "이 지역에서 검색"
+			"searchNearby": "이 지역에서 검색",
+			"openInGoogle": "Google에서 열기"
 		},
 		"actions": {
 			"selectDishCategory": "요리 카테고리 선택"
