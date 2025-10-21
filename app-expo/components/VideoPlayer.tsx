@@ -62,6 +62,8 @@ function VideoPlayer({ uri, style, shouldPlay = false, isLooping = true, resizeM
 			player.play();
 		} else {
 			player.pause();
+			// Reset video position when paused to ensure fresh start on next play
+			player.currentTime = 0;
 		}
 	}, [shouldPlay, player]);
 

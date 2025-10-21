@@ -9,18 +9,23 @@ Successfully migrated from `expo-av` Video component to `expo-video` VideoView c
 ### 1. Package Management
 
 #### Added
+
 - `expo-video@~2.2.2` - New video playback library
 
 #### Retained
+
 - `expo-av@~15.1.7` - Kept for Audio functionality (Audio.setAudioModeAsync)
 
 #### Configuration
+
 - Added `"expo-video"` plugin to `app-expo/app.config.ts`
 
 ### 2. Component Migrations
 
 #### VideoPlayer.tsx (iOS/Android)
+
 **Before:**
+
 ```typescript
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 
@@ -34,6 +39,7 @@ import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 ```
 
 **After:**
+
 ```typescript
 import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 
@@ -54,6 +60,7 @@ const player = useVideoPlayer(uri, (player) => {
 ```
 
 **Key Changes:**
+
 - Replaced `Video` component with `VideoView`
 - Introduced `useVideoPlayer` hook for player management
 - Replaced `ResizeMode` enum with `VideoContentFit` type (`"cover"` | `"contain"` | `"fill"`)
@@ -62,7 +69,9 @@ const player = useVideoPlayer(uri, (player) => {
 - Changed `useNativeControls` to `nativeControls` prop
 
 #### InitialMediaPreview.tsx
+
 **Before:**
+
 ```typescript
 import { Video, ResizeMode } from "expo-av";
 
@@ -76,6 +85,7 @@ import { Video, ResizeMode } from "expo-av";
 ```
 
 **After:**
+
 ```typescript
 import { VideoView, useVideoPlayer } from "expo-video";
 
@@ -92,44 +102,50 @@ const player = useVideoPlayer(media.uri, (player) => {
 ```
 
 **Key Changes:**
+
 - Replaced `Video` component with `VideoView` and `useVideoPlayer` hook
 - Player state managed through `useVideoPlayer` hook instead of component props
 - Mute state controlled via `player.muted = newMuted` instead of `isMuted` prop
 - Play/pause controlled via `player.play()` / `player.pause()` methods
 
 #### VideoPlayer.web.tsx
+
 **Before:**
+
 ```typescript
 import { ResizeMode } from "expo-av";
 
-resizeMode = ResizeMode.COVER
+resizeMode = ResizeMode.COVER;
 ```
 
 **After:**
+
 ```typescript
 type VideoContentFit = "contain" | "cover" | "fill";
 
-resizeMode = "cover"
+resizeMode = "cover";
 ```
 
 **Key Changes:**
+
 - Removed dependency on `expo-av` ResizeMode enum
 - Defined local `VideoContentFit` type matching web video's object-fit values
 
 ### 3. Audio Mode Configuration
 
 **Retained from expo-av:**
+
 ```typescript
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 
 await Audio.setAudioModeAsync({
-  allowsRecordingIOS: false,
-  staysActiveInBackground: false,
-  playsInSilentModeIOS: true,
-  interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-  shouldDuckAndroid: true,
-  interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-  playThroughEarpieceAndroid: false,
+	allowsRecordingIOS: false,
+	staysActiveInBackground: false,
+	playsInSilentModeIOS: true,
+	interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+	shouldDuckAndroid: true,
+	interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+	playThroughEarpieceAndroid: false,
 });
 ```
 
@@ -137,17 +153,17 @@ This functionality remains in `expo-av` as it's separate from video playback.
 
 ## API Differences Summary
 
-| expo-av Video | expo-video VideoView |
-|--------------|---------------------|
-| `<Video source={{ uri }} />` | `useVideoPlayer(uri)` + `<VideoView player={player} />` |
-| `shouldPlay` prop | `player.play()` / `player.pause()` methods |
-| `isLooping` prop | `player.loop` property |
-| `isMuted` prop | `player.muted` property |
-| `volume` prop | `player.volume` property |
-| `resizeMode={ResizeMode.COVER}` | `contentFit="cover"` |
-| `useNativeControls` | `nativeControls` |
-| `onPlaybackStatusUpdate` | `player.addListener("statusChange", ...)` |
-| Component-level state | Hook-based player management |
+| expo-av Video                   | expo-video VideoView                                    |
+| ------------------------------- | ------------------------------------------------------- |
+| `<Video source={{ uri }} />`    | `useVideoPlayer(uri)` + `<VideoView player={player} />` |
+| `shouldPlay` prop               | `player.play()` / `player.pause()` methods              |
+| `isLooping` prop                | `player.loop` property                                  |
+| `isMuted` prop                  | `player.muted` property                                 |
+| `volume` prop                   | `player.volume` property                                |
+| `resizeMode={ResizeMode.COVER}` | `contentFit="cover"`                                    |
+| `useNativeControls`             | `nativeControls`                                        |
+| `onPlaybackStatusUpdate`        | `player.addListener("statusChange", ...)`               |
+| Component-level state           | Hook-based player management                            |
 
 ## Testing Checklist
 
