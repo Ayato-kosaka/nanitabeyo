@@ -229,11 +229,15 @@
 			"likes": "Likes"
 		},
 		"labels": {
-			"bio": "Bio"
+			"bio": "Bio",
+			"displayName": "Display Name",
+			"avatar": "Avatar Image URL"
 		},
 		"privateContent": "This content is private",
 		"placeholders": {
-			"enterBio": "Enter your bio..."
+			"enterBio": "Enter your bio...",
+			"enterDisplayName": "Enter your display name...",
+			"enterAvatar": "Enter your avatar image URL..."
 		},
 		"savedCount": "{{count}} saves",
 		"guestBio": "Welcome, Guest 👋\nThank you for using the new gourmet app 'CraveCatch'😊\nAccount features and more updates coming soon!"

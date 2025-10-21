@@ -229,11 +229,15 @@
 			"likes": "좋아요"
 		},
 		"labels": {
-			"bio": "자기소개"
+			"bio": "자기소개",
+			"displayName": "표시 이름",
+			"avatar": "아바타 이미지 URL"
 		},
 		"privateContent": "이 내용은 비공개입니다",
 		"placeholders": {
-			"enterBio": "자기소개를 입력하세요..."
+			"enterBio": "자기소개를 입력하세요...",
+			"enterDisplayName": "표시 이름을 입력하세요...",
+			"enterAvatar": "아바타 이미지 URL을 입력하세요..."
 		},
 		"savedCount": "{{count}}회 저장",
 		"guestBio": "환영합니다, 게스트님 👋\n새로운 미식 앱 'CraveCatch'를 사용해 주셔서 감사합니다😊\n계정 기능을 포함한 업데이트가 곧 진행됩니다!"

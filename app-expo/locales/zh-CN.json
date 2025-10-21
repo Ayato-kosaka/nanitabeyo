@@ -229,11 +229,15 @@
 			"likes": "点赞"
 		},
 		"labels": {
-			"bio": "简介"
+			"bio": "简介",
+			"displayName": "显示名称",
+			"avatar": "头像图片URL"
 		},
 		"privateContent": "此内容为私密",
 		"placeholders": {
-			"enterBio": "请输入您的个人简介..."
+			"enterBio": "请输入您的个人简介...",
+			"enterDisplayName": "请输入您的显示名称...",
+			"enterAvatar": "请输入您的头像图片URL..."
 		},
 		"savedCount": "{{count}} 次收藏",
 		"guestBio": "欢迎，访客 👋\n感谢您使用新概念美食应用《CraveCatch》😊\n账户功能和更多更新即将推出！"
