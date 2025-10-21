@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import VideoPlayer from "./VideoPlayer";
+import { getGoogleMapsLink } from "@/lib/googlePlaces";
 
 const { width, height } = Dimensions.get("window");
 
@@ -324,22 +325,12 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 			},
 		});
 
-		const placeId = item.restaurant.google_place_id;
-		if (!placeId) {
-			showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
-			return;
-		}
-
 		try {
-			const mapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(placeId)}&query=${encodeURIComponent(item.restaurant.name || "")}`;
-
+			const { mapUrl, canOpen } = await getGoogleMapsLink(item.restaurant);
 			if (Platform.OS === "web") {
 				window.open(mapUrl, "_blank", "noopener,noreferrer"); // 別タブで開く
 				return;
 			}
-
-			const canOpen = await Linking.canOpenURL(mapUrl);
-
 			if (canOpen) {
 				await Linking.openURL(mapUrl);
 			} else {
@@ -347,7 +338,6 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 			}
 		} catch (error) {
 			showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
-
 			logFrontendEvent({
 				event_name: "map_pin_open_failed",
 				error_level: "error",

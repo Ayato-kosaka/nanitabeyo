@@ -4,6 +4,9 @@
 // 住所コンポーネントから通貨コードを決定する処理を提供
 //
 
+import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
+import { Linking } from "react-native";
+
 /**
  * Google Places API の IAddressComponent 型定義
  */
@@ -451,3 +454,16 @@ export function getCurrencyCodeFromAddressComponents(
 export function getCurrencyCodeFromRestaurant(restaurant: { address_components?: any }): string | null {
 	return getCurrencyCodeFromAddressComponents(restaurant.address_components);
 }
+
+/**
+ * レストランの Google Maps リンクを生成
+ * @param restaurant レストランデータ (google_place_id と name を含む)
+ * @returns Google Maps URL と開けるかどうかのフラグ
+ */
+export const getGoogleMapsLink = async (restaurant: SupabaseRestaurants) => {
+	const placeId = restaurant.google_place_id;
+	const mapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(placeId)}&query=${encodeURIComponent(restaurant.name || "")}`;
+	const canOpen = await Linking.canOpenURL(mapUrl);
+	return { mapUrl, canOpen };
+}
+
