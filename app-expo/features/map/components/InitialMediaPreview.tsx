@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity, Platform, Modal } from "react-native";
 import { Image } from "expo-image";
-import { Video, ResizeMode } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { Play } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import type { CreateDishMediaDto } from "@shared/api/v1/dto";
@@ -29,18 +29,43 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 	const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
 	const [isMuted, setIsMuted] = useState(true);
 
+	// Only create player for video media
+	const isVideo = media.type === "video";
+	const player = useVideoPlayer(isVideo ? media.uri : "", (player) => {
+		if (!isVideo) return;
+		player.loop = false;
+		player.muted = true;
+	});
+
+	// Update player mute state when isMuted changes
+	useEffect(() => {
+		if (isVideo && player) {
+			player.muted = isMuted;
+		}
+	}, [isMuted, player, isVideo]);
+
 	const handlePlayPress = useCallback(() => {
+		if (!isVideo) return;
 		setIsVideoModalVisible(true);
-	}, []);
+		player.play();
+	}, [player, isVideo]);
 
 	const handleCloseModal = useCallback(() => {
 		setIsVideoModalVisible(false);
+		if (isVideo && player) {
+			player.pause();
+		}
 		setIsMuted(true);
-	}, []);
+	}, [player, isVideo]);
 
 	const handleToggleMute = useCallback(() => {
-		setIsMuted((prev) => !prev);
-	}, []);
+		if (!isVideo || !player) return;
+		setIsMuted((prev) => {
+			const newMuted = !prev;
+			player.muted = newMuted;
+			return newMuted;
+		});
+	}, [player, isVideo]);
 
 	const displayUri = media.type === "video" ? media.thumbnailUri || media.uri : media.uri;
 
@@ -92,14 +117,7 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 								/>
 							) : (
 								<TouchableOpacity onPress={handleToggleMute} activeOpacity={1}>
-									<Video
-										source={{ uri: media.uri }}
-										style={styles.videoPlayer}
-										useNativeControls
-										resizeMode={ResizeMode.CONTAIN}
-										isMuted={isMuted}
-										shouldPlay
-									/>
+									<VideoView player={player} style={styles.videoPlayer} nativeControls contentFit="contain" />
 								</TouchableOpacity>
 							)}
 						</View>
@@ -113,6 +131,7 @@ export function InitialMediaPreview({ media }: InitialMediaPreviewProps) {
 const styles = StyleSheet.create({
 	container: {
 		width: "100%",
+		height: "100%",
 		marginBottom: 16,
 	},
 	mediaWrapper: {

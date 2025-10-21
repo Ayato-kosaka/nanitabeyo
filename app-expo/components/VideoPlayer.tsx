@@ -1,35 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
-import { Video, ResizeMode, AVPlaybackStatus, Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
+import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 
 export interface VideoPlayerProps {
 	uri: string;
 	style?: any;
 	shouldPlay?: boolean;
 	isLooping?: boolean;
-	resizeMode?: ResizeMode;
+	resizeMode?: VideoContentFit;
 }
 
 /**
  * VideoPlayer component for HLS video playback
  *
  * Supports:
- * - iOS/Android: Uses expo-av Video component with automatic cookie handling
+ * - iOS/Android: Uses expo-video VideoView component with automatic cookie handling
  *
  * The CDN signed cookies are automatically sent by the platform:
- * - iOS/Android: expo-av automatically includes cookies in HLS requests
+ * - iOS/Android: expo-video automatically includes cookies in HLS requests
  */
-function VideoPlayer({
-	uri,
-	style,
-	shouldPlay = false,
-	isLooping = true,
-	resizeMode = ResizeMode.COVER,
-}: VideoPlayerProps) {
+function VideoPlayer({ uri, style, shouldPlay = false, isLooping = true, resizeMode = "cover" }: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const { logFrontendEvent } = useLogger();
+
+	const player = useVideoPlayer(uri, (player) => {
+		player.loop = isLooping;
+		player.muted = false;
+		player.volume = 1.0;
+		if (shouldPlay) {
+			player.play();
+		}
+	});
 
 	useEffect(() => {
 		(async () => {
@@ -53,17 +57,35 @@ function VideoPlayer({
 		})();
 	}, []);
 
-	const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-		if (status.isLoaded) {
-			setIsLoading(false);
-			setError(null);
-		} else if ("error" in status && status.error) {
-			setIsLoading(false);
-			setError(status.error);
+	useEffect(() => {
+		if (shouldPlay) {
+			player.play();
+		} else {
+			player.pause();
 		}
-	};
+	}, [shouldPlay, player]);
 
-	// For iOS/Android, use expo-av Video
+	useEffect(() => {
+		player.loop = isLooping;
+	}, [isLooping, player]);
+
+	useEffect(() => {
+		const subscription = player.addListener("statusChange", (status) => {
+			if (status.status === "readyToPlay") {
+				setIsLoading(false);
+				setError(null);
+			} else if (status.status === "error") {
+				setIsLoading(false);
+				setError(status.error?.message || "Video playback error");
+			}
+		});
+
+		return () => {
+			subscription.remove();
+		};
+	}, [player]);
+
+	// For iOS/Android, use expo-video VideoView
 	return (
 		<View style={[styles.container, style]}>
 			{isLoading && (
@@ -71,21 +93,7 @@ function VideoPlayer({
 					<ActivityIndicator size="large" color="#fff" />
 				</View>
 			)}
-			<Video
-				source={{ uri }}
-				style={StyleSheet.absoluteFill}
-				useNativeControls
-				resizeMode={resizeMode}
-				shouldPlay={shouldPlay}
-				isLooping={isLooping}
-				isMuted={false}
-				volume={1.0}
-				onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-				onError={(e) => {
-					setIsLoading(false);
-					setError(String(e));
-				}}
-			/>
+			<VideoView player={player} style={StyleSheet.absoluteFill} nativeControls contentFit={resizeMode} />
 		</View>
 	);
 }

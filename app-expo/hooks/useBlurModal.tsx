@@ -155,7 +155,7 @@ export function useBlurModal({
 									return false; // ← 自分ではレスポンダを奪わない（子要素にタップを渡す）
 								}}>
 								{/* Content (non-blocking layout wrapper) */}
-								<View pointerEvents="box-none" style={[styles.contentContainer, { paddingTop: 32 }]}>
+								<View pointerEvents="box-none" style={[styles.contentContainer]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
 										{renderChildren()}
 									</View>
@@ -197,6 +197,7 @@ export function useBlurModal({
 const styles = StyleSheet.create({
 	contentContainer: {
 		paddingBottom: 32,
+		paddingTop: 32,
 	},
 	closeButton: {
 		position: "absolute",

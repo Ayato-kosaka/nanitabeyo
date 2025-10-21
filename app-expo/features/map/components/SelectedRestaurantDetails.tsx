@@ -156,8 +156,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 				renderHeader={renderHeader}
 				headerHeight={headerHeight}
 				renderTabBar={renderTabBar}
-				headerContainerStyle={{ shadowColor: "transparent" }}
-				containerStyle={{ backgroundColor: "white" }}>
+				headerContainerStyle={{ shadowColor: "transparent", backgroundColor: "transparent" }}>
 				{/* 
 					レビュータブ: RestaurantReviewsTabコンポーネントを使用
 					useCursorPaginationでレストランの料理メディアを取得し、
