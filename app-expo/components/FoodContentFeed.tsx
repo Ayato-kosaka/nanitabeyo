@@ -144,13 +144,13 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 
 	// --- renderItem（再レンダを抑制：pageHeight にのみ依存） -------------------
 	const renderItem = useCallback(
-		({ item }: ListRenderItemInfo<DishMediaEntry>) => (
+		({ item, index }: ListRenderItemInfo<DishMediaEntry>) => (
 			// 各ページは厳密に画面高に合わせる
 			<View style={{ height: Math.max(1, pageHeight) }}>
-				<FoodContentScreen item={item} />
+				<FoodContentScreen item={item} isActive={index === currentIndex} />
 			</View>
 		),
-		[pageHeight],
+		[pageHeight, currentIndex],
 	);
 
 	// --- 早期リターン：空リスト ----------------------------------------------
