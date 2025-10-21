@@ -25,3 +25,16 @@ export async function mapWithConcurrency<T, R>(
   await Promise.all(workers);
   return ret;
 }
+
+/**
+ * Round a number to one decimal place
+ * @param value - The number to round
+ * @returns The rounded number to one decimal place
+ * @example
+ * roundToOneDecimal(3.333) // => 3.3
+ * roundToOneDecimal(4.66)  // => 4.7
+ * roundToOneDecimal(4.0)   // => 4.0
+ */
+export function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10;
+}

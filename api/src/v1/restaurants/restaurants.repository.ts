@@ -14,6 +14,7 @@ import {
   QueryRestaurantDishMediaDto,
 } from '@shared/v1/dto';
 import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
+import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
 export type RestaurantWithMeta = {
   restaurant: PrismaRestaurants;
@@ -103,7 +104,7 @@ export class RestaurantsRepository {
       restaurant: row,
       meta: {
         reviewCount: row.review_count,
-        averageRating: row.average_rating,
+        averageRating: roundToOneDecimal(row.average_rating),
         totalCents: Number(row.total_cents) || 0,
         maxEndDate: row.max_end_date || null,
       },
@@ -152,7 +153,7 @@ export class RestaurantsRepository {
       _avg: { rating: true }, // Average rating
     });
     const reviewCount = result._count?._all ?? 0;
-    const averageRating = result._avg?.rating ?? 0;
+    const averageRating = roundToOneDecimal(result._avg?.rating ?? 0);
 
     return {
       reviewCount,
