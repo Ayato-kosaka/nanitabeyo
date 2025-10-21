@@ -23,6 +23,7 @@ import {
 } from '@shared/v1/dto';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
@@ -400,7 +401,7 @@ export class DishMediaRepository {
         return [
           row.dish_id,
           {
-            averageRating: Math.round(avg * 10) / 10, // ROUND(AVG, 1)
+            averageRating: roundToOneDecimal(avg), // ROUND(AVG, 1)
             reviewCount: row._count.dish_id,
           },
         ];
