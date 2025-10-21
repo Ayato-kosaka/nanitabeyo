@@ -92,7 +92,7 @@ export function ReviewForm({
 	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
 
-	const isValid = price.trim() && reviewText.trim() && dishCategoryName.trim() && !!dishCategoryId;
+	const isValid = price.trim() && reviewText.trim() && rating > 0 && dishCategoryName.trim() && !!dishCategoryId;
 
 	// useBlurModal for dish category selection
 	const {
