@@ -15,6 +15,7 @@ import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRes
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { foodOnlyMapStyle } from "@/constants/mapStyles";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
@@ -152,7 +153,8 @@ export default function MapScreen() {
 				ref={mapRef}
 				style={styles.map}
 				region={currentRegion}
-				onRegionChangeComplete={handleRegionChangeComplete}>
+				onRegionChangeComplete={handleRegionChangeComplete}
+				customMapStyle={foodOnlyMapStyle}>
 				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
 					<AvatarBubbleMarker
 						key={restaurantData.restaurant.id}

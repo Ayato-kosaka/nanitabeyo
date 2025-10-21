@@ -49,7 +49,7 @@ export const Marker: React.FC<MarkerProps> = ({ coordinate, title, onPress, test
 
 /* ─────────────────────────────── MapView ──────────────────────────────── */
 const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
-	({ style, region, onRegionChangeComplete, onPress, onPoiClick, children }, ref) => {
+	({ style, region, onRegionChangeComplete, onPress, onPoiClick, children, customMapStyle }, ref) => {
 		/* Google Maps 本体を保持（外部には晒さない） */
 		const innerMapRef = useRef<google.maps.Map | null>(null);
 
@@ -169,6 +169,7 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 				options={{
 					disableDefaultUI: true, // すべてのデフォルトUIを非表示
 					clickableIcons: !!onPoiClick, // POI アイコンをクリック可能にする
+					styles: customMapStyle, // カスタムマップスタイルを適用
 				}}>
 				{children}
 			</GoogleMap>

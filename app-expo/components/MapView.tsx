@@ -12,8 +12,8 @@ export interface MapViewProps extends RNMapViewProps {
 export type MarkerProps = RNMarkerProps;
 export type { Region };
 
-const MapView = React.forwardRef<MapViewRN, MapViewProps>(({ language, ...props }, ref) => {
-	return <MapViewRN ref={ref} provider={PROVIDER_GOOGLE} {...props} />;
+const MapView = React.forwardRef<MapViewRN, MapViewProps>(({ language, customMapStyle, ...props }, ref) => {
+	return <MapViewRN ref={ref} provider={PROVIDER_GOOGLE} customMapStyle={customMapStyle} {...props} />;
 });
 
 export const Marker = RNMarker;
