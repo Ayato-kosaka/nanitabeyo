@@ -1,81 +1,81 @@
-# Video Upload Architecture - Quick Reference
+# 動画アップロードアーキテクチャ - クイックリファレンス
 
-## What Was Implemented
+## 実装内容
 
-This PR implements the MVP video upload and transcoding architecture as specified in issue 【課題】MVP の動画保存アーキテクチャ.
+このPRでは、課題「【課題】MVP の動画保存アーキテクチャ」で求められたMVPレベルの動画アップロード／トランスコード構成を実装した。
 
-## Key Changes
+## 主な変更点
 
-### 1. DTO Enhancement
+### 1. DTOの拡張
 
-- **File**: `shared/api/v1/dto/dish-media/create-dish-media.dto.ts`
-- Added optional `thumbnailPath` field
-- Exported `MediaType` enum (VIDEO/IMAGE)
+- **対象ファイル**: `shared/api/v1/dto/dish-media/create-dish-media.dto.ts`
+- 任意の `thumbnailPath` フィールドを追加
+- `MediaType` enum（VIDEO/IMAGE）をエクスポート
 
-### 2. Video Transcoding Service
+### 2. 動画トランスコードサービス
 
-- **Directory**: `api/src/core/transcoder/`
-- HLS transcoding with 3 quality levels (1080p, 720p, 480p)
-- Google Cloud Video Transcoder API integration
-- Output: `gs://<bucket>/transcoded/dish_media/media_path/<recordId>/master.m3u8`
+- **ディレクトリ**: `api/src/core/transcoder/`
+- 1080p / 720p / 480p の3品質でHLSを出力
+- Google Cloud Video Transcoder API を統合
+- 出力パス: `gs://<bucket>/transcoded/dish_media/media_path/<recordId>/master.m3u8`
 
-### 3. Cloud Tasks Integration
+### 3. Cloud Tasks との連携
 
-- **File**: `api/src/core/cloud-tasks/cloud-tasks.service.ts`
-- New method: `enqueueTranscodeJob()`
-- Queue: `transcode-queue`
+- **ファイル**: `api/src/core/cloud-tasks/cloud-tasks.service.ts`
+- `enqueueTranscodeJob()` を追加
+- キュー名: `transcode-queue`
 
-### 4. Worker Endpoint
+### 4. ワーカーエンドポイント
 
-- **Directory**: `api/src/internal/transcode/`
-- Endpoint: `POST /internal/transcode`
-- Protected by OIDC guard for Cloud Tasks
+- **ディレクトリ**: `api/src/internal/transcode/`
+- エンドポイント: `POST /internal/transcode`
+- Cloud Tasks 用のOIDCガードで保護
 
-### 5. Business Logic Update
+### 5. ビジネスロジックの更新
 
-- **File**: `api/src/v1/dish-media/dish-media.service.ts`
-- Video: Requires thumbnailPath, enqueues transcoding
-- Image: thumbnailPath defaults to mediaPath
+- **ファイル**: `api/src/v1/dish-media/dish-media.service.ts`
+- 動画: `thumbnailPath` が必須、トランスコードをキューに投入
+- 画像: `thumbnailPath` に `mediaPath` を流用
 
-## Usage Example
+## 使用例
 
-### Frontend - Video Upload
+### フロントエンド - 動画アップロード
 
 ```typescript
-// 1. Upload video
+// 1. 動画をアップロード
 const videoPath = await uploadFile(videoFile, `${dishId}-media`);
 
-// 2. Upload thumbnail
+// 2. サムネイルをアップロード
 const thumbnailPath = await uploadFile(thumbnailFile, `${dishId}-thumbnail`);
 
-// 3. Create dish media
+// 3. dish media を作成
 await createDishMedia({
-	dishId,
-	mediaType: "VIDEO",
-	mediaPath: videoPath,
-	thumbnailPath: thumbnailPath,
+        dishId,
+        mediaType: "VIDEO",
+        mediaPath: videoPath,
+        thumbnailPath: thumbnailPath,
 });
-// Backend automatically enqueues transcoding job
+// バックエンドが自動でトランスコードをキューに投入
 ```
 
-### Frontend - Image Upload
+### フロントエンド - 画像アップロード
 
 ```typescript
-// 1. Upload image
+// 1. 画像をアップロード
 const imagePath = await uploadFile(imageFile, `${dishId}-media`);
 
-// 2. Create dish media (thumbnailPath is required, use same path as media)
+// 2. dish media を作成（thumbnailPath も必須なので同じ値をセット）
 await createDishMedia({
-	dishId,
-	mediaType: "IMAGE",
-	mediaPath: imagePath,
-	thumbnailPath: imagePath, // Required: set to same value as mediaPath
+        dishId,
+        mediaType: "IMAGE",
+        mediaPath: imagePath,
+        thumbnailPath: imagePath, // 必須: mediaPath と同じ値を設定
 });
 ```
 
-## Infrastructure Setup
+## インフラ設定
 
-### Create Cloud Tasks Queue
+### Cloud Tasks キュー作成
 
 ```bash
 gcloud tasks queues create transcode-queue \
@@ -84,32 +84,32 @@ gcloud tasks queues create transcode-queue \
   --max-concurrent-dispatches=5
 ```
 
-### Enable APIs
+### 必要なAPIの有効化
 
 ```bash
 gcloud services enable videotranscoder.googleapis.com
 gcloud services enable cloudtasks.googleapis.com
 ```
 
-## Testing
+## テスト
 
-### Build & Typecheck (Passing ✅)
+### ビルド / 型チェック（✅ 通過済み）
 
 ```bash
-pnpm build      # All packages compile successfully
-pnpm typecheck  # No type errors
-pnpm format     # Code formatted
+pnpm build      # すべてのパッケージがコンパイルに成功
+pnpm typecheck  # 型エラーなし
+pnpm format     # コードを整形
 ```
 
-### Manual Testing
+### 手動テスト
 
-1. Start API server: `cd api && pnpm dev`
-2. Test image upload flow (should work immediately)
-3. Test video upload flow (requires GCS and Transcoder API access)
+1. APIサーバーを起動: `cd api && pnpm dev`
+2. 画像アップロードフローを確認（即時動作）
+3. 動画アップロードフローを確認（GCSとTranscoder APIのアクセスが必要）
 
-## Architecture Diagrams
+## アーキテクチャ図
 
-### Video Upload Flow
+### 動画アップロードフロー
 
 ```
 ┌─────────┐                  ┌─────────┐                  ┌──────────┐
@@ -124,7 +124,7 @@ pnpm format     # Code formatted
      ├─────────────────────────────────────────────────────────>│
      │                            │                            │
      │ 4. Get signed URL (thumb)  │                            │
-     ├───────────────────────────>│                            │
+     ├──────────────────────────>│                            │
      │ 5. Return signed URL        │                            │
      │<───────────────────────────┤                            │
      │ 6. Upload thumbnail binary  │                            │
@@ -143,7 +143,7 @@ pnpm format     # Code formatted
      │<───────────────────────────┤                            │
      │                            │                            │
 
-     Later (async):
+     後続（非同期）:
 
      ┌─────────────┐              ┌────────────┐
      │ Cloud Tasks │              │ Transcoder │
@@ -158,7 +158,7 @@ pnpm format     # Code formatted
             │               │           ├────────────────────>│
 ```
 
-### Image Upload Flow
+### 画像アップロードフロー
 
 ```
 ┌─────────┐                  ┌─────────┐                  ┌──────────┐
@@ -183,42 +183,42 @@ pnpm format     # Code formatted
      │<───────────────────────────┤                            │
 ```
 
-## Files Changed
+## 変更ファイル
 
-### New Files
+### 新規ファイル
 
-- `api/src/core/transcoder/transcoder.service.ts` - Transcoder API client
-- `api/src/core/transcoder/transcoder.module.ts` - Module definition
-- `api/src/internal/transcode/transcode.controller.ts` - Worker endpoint
-- `api/src/internal/transcode/transcode.service.ts` - Worker logic
-- `api/src/internal/transcode/transcode.module.ts` - Module definition
-- `api/src/internal/transcode/transcode.dto.ts` - DTO for worker
-- `api/src/internal/transcode/transcode-job.interface.ts` - Job payload interface
-- `IMPLEMENTATION_VIDEO_ARCHITECTURE.md` - Detailed documentation
+- `api/src/core/transcoder/transcoder.service.ts` — Transcoder API クライアント
+- `api/src/core/transcoder/transcoder.module.ts` — モジュール定義
+- `api/src/internal/transcode/transcode.controller.ts` — ワーカーエンドポイント
+- `api/src/internal/transcode/transcode.service.ts` — トランスコードロジック
+- `api/src/internal/transcode/transcode.module.ts` — モジュール定義
+- `api/src/internal/transcode/transcode.dto.ts` — ワーカー用DTO
+- `api/src/internal/transcode/transcode-job.interface.ts` — ジョブのペイロード定義
+- `IMPLEMENTATION_VIDEO_ARCHITECTURE.md` — 詳細ドキュメント
 
-### Modified Files
+### 変更した既存ファイル
 
-- `shared/api/v1/dto/dish-media/create-dish-media.dto.ts` - Added thumbnailPath
-- `shared/api/v1/dto/index.ts` - Export MediaType enum
-- `api/src/v1/dish-media/dish-media.service.ts` - Video/image logic
-- `api/src/v1/dish-media/dish-media.module.ts` - Added dependencies
-- `api/src/core/cloud-tasks/cloud-tasks.service.ts` - Added transcode queue
-- `api/src/core/core.module.ts` - Added TranscoderModule
-- `api/src/internal/internal.module.ts` - Added TranscodeModule
-- `api/package.json` - Added @google-cloud/video-transcoder
+- `shared/api/v1/dto/dish-media/create-dish-media.dto.ts` — `thumbnailPath` を追加
+- `shared/api/v1/dto/index.ts` — `MediaType` enum をエクスポート
+- `api/src/v1/dish-media/dish-media.service.ts` — 動画/画像ロジックを更新
+- `api/src/v1/dish-media/dish-media.module.ts` — 依存モジュールを追加
+- `api/src/core/cloud-tasks/cloud-tasks.service.ts` — トランスコードキューを追加
+- `api/src/core/core.module.ts` — TranscoderModule を追加
+- `api/src/internal/internal.module.ts` — TranscodeModule を追加
+- `api/package.json` — `@google-cloud/video-transcoder` を追加
 
-## Next Steps
+## 次のステップ
 
-1. **Deploy**: Push to production and create Cloud Tasks queue
-2. **Monitor**: Set up logging/alerting for transcode jobs
-3. **Optimize**: Consider Pub/Sub for status updates
-4. **Enhance**: Add retry logic and error notifications
+1. **デプロイ**: 本番環境へ反映し、Cloud Tasks キューを作成
+2. **監視**: トランスコードジョブのログ／アラートを設定
+3. **最適化**: ステータス更新にPub/Sub利用を検討
+4. **拡張**: リトライやエラー通知を追加
 
-## Questions?
+## 疑問点がある場合
 
-See `IMPLEMENTATION_VIDEO_ARCHITECTURE.md` for full documentation including:
+詳細な情報は `IMPLEMENTATION_VIDEO_ARCHITECTURE.md` を参照。
 
-- Detailed API specifications
-- Environment configuration
-- Testing strategies
-- Future enhancements
+- API仕様
+- 環境変数
+- テスト戦略
+- 将来の拡張案

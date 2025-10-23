@@ -1,99 +1,98 @@
-# MVP Video Storage Architecture - Implementation Summary
+# MVP動画ストレージアーキテクチャ - 実装サマリー
 
-## Overview
+## 概要
 
-This implementation adds video upload and transcoding capabilities to the nanitabeyo food app, following the sequence diagrams specified in the issue.
+課題で提示されたシーケンス図に従い、nanitabeyo アプリに動画アップロードとトランスコード機能を追加した実装内容をまとめる。
 
-## Backend Changes
+## バックエンドの変更点
 
-### 1. DTO Updates (`shared/api/v1/dto/dish-media/create-dish-media.dto.ts`)
+### 1. DTOの更新 (`shared/api/v1/dto/dish-media/create-dish-media.dto.ts`)
 
-- Added optional `thumbnailPath` field to `CreateDishMediaDto`
-- Exported `MediaType` enum (VIDEO/IMAGE) for use across the application
+- `CreateDishMediaDto` に任意の `thumbnailPath` フィールドを追加
+- アプリ全体で利用できるように `MediaType` enum（VIDEO/IMAGE）をエクスポート
 
-### 2. Transcoder Service (`api/src/core/transcoder/`)
+### 2. トランスコーダーサービス (`api/src/core/transcoder/`)
 
-- New `TranscoderService` using Google Cloud Video Transcoder API
-- Generates HLS output with adaptive bitrate streaming:
+- Google Cloud Video Transcoder API を利用する `TranscoderService` を新規追加
+- HLS の可変ビットレート出力を生成
   - 1080p @ 8000 kbps
   - 720p @ 5000 kbps
   - 480p @ 2500 kbps
-  - Audio: AAC @ 128 kbps
-- Outputs to: `gs://<bucket>/transcoded/dish_media/media_path/<recordId>/master.m3u8`
+  - 音声: AAC @ 128 kbps
+- 出力先: `gs://<bucket>/transcoded/dish_media/media_path/<recordId>/master.m3u8`
 
-### 3. Cloud Tasks Integration (`api/src/core/cloud-tasks/cloud-tasks.service.ts`)
+### 3. Cloud Tasks 連携 (`api/src/core/cloud-tasks/cloud-tasks.service.ts`)
 
-- Added `enqueueTranscodeJob()` method
-- Sends jobs to `transcode-queue` for async processing
+- `enqueueTranscodeJob()` を追加し、`transcode-queue` へジョブを送信
 
-### 4. Internal Worker Endpoint (`api/src/internal/transcode/`)
+### 4. 内部ワーカーエンドポイント (`api/src/internal/transcode/`)
 
-- New `/internal/transcode` endpoint protected by OIDC guard
-- Receives transcode jobs from Cloud Tasks
-- Delegates to TranscoderService to create Transcoder API jobs
+- Cloud Tasks から呼び出される `/internal/transcode` エンドポイントを追加
+- OIDCガードで保護
+- 受け取ったペイロードを TranscoderService へ渡してジョブを作成
 
-### 5. DishMedia Service Updates (`api/src/v1/dish-media/dish-media.service.ts`)
+### 5. DishMediaService の更新 (`api/src/v1/dish-media/dish-media.service.ts`)
 
-- Updated `createDishMedia()` to handle VIDEO vs IMAGE:
-  - **VIDEO**: Requires thumbnailPath, enqueues transcoding job
-  - **IMAGE**: thumbnailPath defaults to mediaPath if not provided
-- Logs transcode job enqueueing for monitoring
+- `createDishMedia()` の動画/画像処理を分岐
+  - **VIDEO**: `thumbnailPath` が必須、Cloud Tasks へトランスコードジョブを投入
+  - **IMAGE**: `thumbnailPath` が指定されていなければ `mediaPath` を流用
+- ジョブ投入状況をログ出力
 
-## Frontend Compatibility
+## フロントエンド互換性
 
-### FileUploader Component (`app-expo/features/uploads/components/FileUploader.tsx`)
+### FileUploader コンポーネント (`app-expo/features/uploads/components/FileUploader.tsx`)
 
-**No changes needed** - the component already supports the required flow:
+**変更なし**。既存機能で以下のフローを実現できる。
 
-1. Component handles single file upload with signed URL
-2. Returns `objectPath` via `onUploadComplete` callback
-3. Calling code can use it twice for video upload flow:
-   - First call: Upload video with `baseFileName: "${dishId}-media"`
-   - Second call: Upload thumbnail with `baseFileName: "${dishId}-thumbnail"`
-   - Then call: `POST /v1/dish-media` with both paths
+1. 署名付きURLを取得し、1ファイルずつアップロード
+2. `onUploadComplete` コールバックで `objectPath` を受け取る
+3. 動画フローでは以下のように利用可能
+   - 1回目: `baseFileName: "${dishId}-media"` で動画をアップロード
+   - 2回目: `baseFileName: "${dishId}-thumbnail"` でサムネイルをアップロード
+   - 最後に `POST /v1/dish-media` で両方のパスを送信
 
-## Video Upload Flow (End-to-End)
+## 動画アップロードの全体像
 
-### For Video Media:
+### 動画メディアの場合
 
 ```
 1. UI → Backend: POST /v1/user-uploads/signed-url { baseFileName: "${dishId}-media", mimeType: "video/mp4" }
 2. Backend → UI: { putUrl, objectPath: mediaPath }
-3. UI → GCS: PUT (video binary)
+3. UI → GCS: PUT (動画バイナリ)
 4. UI → Backend: POST /v1/user-uploads/signed-url { baseFileName: "${dishId}-thumbnail", mimeType: "image/jpeg" }
 5. Backend → UI: { putUrl, objectPath: thumbnailPath }
-6. UI → GCS: PUT (thumbnail binary)
+6. UI → GCS: PUT (サムネイルバイナリ)
 7. UI → Backend: POST /v1/dish-media { dishId, mediaType: "VIDEO", mediaPath, thumbnailPath }
-8. Backend: Creates dish_media record
-9. Backend → Cloud Tasks: Enqueue transcode job
+8. Backend: dish_media レコードを作成
+9. Backend → Cloud Tasks: トランスコードジョブをキューに投入
 10. Cloud Tasks → Backend: POST /internal/transcode { inputUri, outputUri, recordId }
-11. Backend → Transcoder API: Create HLS transcode job
-12. Transcoder API: Generates HLS files asynchronously
+11. Backend → Transcoder API: HLS トランスコードジョブを作成
+12. Transcoder API: 非同期でHLSファイルを生成
 ```
 
-### For Image Media:
+### 画像メディアの場合
 
 ```
 1. UI → Backend: POST /v1/user-uploads/signed-url { baseFileName: "${dishId}-media", mimeType: "image/jpeg" }
 2. Backend → UI: { putUrl, objectPath: mediaPath }
-3. UI → GCS: PUT (image binary)
+3. UI → GCS: PUT (画像バイナリ)
 4. UI → Backend: POST /v1/dish-media { dishId, mediaType: "IMAGE", mediaPath, thumbnailPath: mediaPath }
-   (thumbnailPath is required, set to same value as mediaPath for images)
-5. Backend: Creates dish_media record with thumbnailPath = mediaPath
+   (画像の場合は thumbnailPath も必須だが mediaPath と同じ値を設定)
+5. Backend: dish_media レコードを作成（thumbnailPath=mediaPath）
 ```
 
-## Environment Variables
+## 環境変数
 
-No new environment variables required. Uses existing:
+新たな環境変数は不要。既存の以下を利用。
 
-- `GCP_PROJECT`: Google Cloud project ID
-- `TASKS_LOCATION`: Cloud Tasks region (e.g., us-central1)
-- `GCS_BUCKET_NAME`: Storage bucket name
-- `CLOUD_RUN_URL`: Backend URL for Cloud Tasks callbacks
+- `GCP_PROJECT`: Google Cloud プロジェクトID
+- `TASKS_LOCATION`: Cloud Tasks のリージョン（例: us-central1）
+- `GCS_BUCKET_NAME`: ストレージバケット名
+- `CLOUD_RUN_URL`: Cloud Tasks コールバック先のAPI URL
 
-## Cloud Tasks Queue
+## Cloud Tasks キュー
 
-A new queue `transcode-queue` should be created in Google Cloud Tasks:
+`transcode-queue` を新規作成する。
 
 ```bash
 gcloud tasks queues create transcode-queue \
@@ -102,71 +101,71 @@ gcloud tasks queues create transcode-queue \
   --max-concurrent-dispatches=5
 ```
 
-## Database Schema
+## データベーススキーマ
 
-No schema changes required. Existing `dish_media` table fields used:
+新たなスキーマ変更は不要。既存の `dish_media` テーブルを利用。
 
-- `media_path`: Original video URI or image URI
-- `thumbnail_path`: Thumbnail image URI
-- `media_type`: 'IMAGE' or 'VIDEO'
+- `media_path`: 元動画または画像のURI
+- `thumbnail_path`: サムネイル画像のURI
+- `media_type`: 'IMAGE' または 'VIDEO'
 
-Future enhancement could add:
+将来的な拡張案としては以下が考えられる。
 
-- `transcode_status`: PENDING, PROCESSING, READY, FAILED
-- `hls_master_path`: Path to master.m3u8 file
+- `transcode_status`: PENDING / PROCESSING / READY / FAILED
+- `hls_master_path`: `master.m3u8` のパス
 
-## Testing
+## テスト
 
-### Manual Testing Steps:
+### 手動テスト手順
 
-1. **Setup**:
+1. **準備**
 
    ```bash
    cd api
-   # Create .env with all required variables
+   # 必要な環境変数を含む .env を作成
    pnpm dev
    ```
 
-2. **Test Image Upload**:
-   - Upload image via FileUploader
-   - Call POST /v1/dish-media with mediaType: IMAGE
-   - Verify record created with thumbnailPath = mediaPath
+2. **画像アップロードの確認**
+   - FileUploader で画像をアップロード
+   - `mediaType: IMAGE` で `POST /v1/dish-media`
+   - thumbnailPath が mediaPath と同じ値で保存されることを確認
 
-3. **Test Video Upload** (requires GCS and Transcoder API access):
-   - Upload video via FileUploader
-   - Upload thumbnail via FileUploader
-   - Call POST /v1/dish-media with mediaType: VIDEO and both paths
-   - Verify record created
-   - Check Cloud Tasks console for transcode job
-   - Check Transcoder API console for job execution
+3. **動画アップロードの確認**（GCSとTranscoder APIのアクセスが必要）
+   - FileUploader で動画をアップロード
+   - FileUploader でサムネイルをアップロード
+   - `mediaType: VIDEO` と両方のパスで `POST /v1/dish-media`
+   - レコードが作成されることを確認
+   - Cloud Tasks コンソールでジョブ投入を確認
+   - Transcoder API コンソールでジョブ実行を確認
 
-### Build Validation:
+### ビルド確認
 
 ```bash
-pnpm build      # ✅ Passes
-pnpm typecheck  # ✅ Passes
+pnpm build      # ✅ 成功
+pnpm typecheck  # ✅ 成功
 ```
 
-## Future Enhancements
+## 今後の拡張
 
-1. **Status Updates via Pub/Sub**:
-   - Subscribe to Transcoder job completion notifications
-   - Update dish_media.transcode_status when job completes
+1. **Pub/Sub を用いたステータス更新**
+   - Transcoder の完了通知を購読
+   - dish_media.transcode_status を更新
 
-2. **CDN Integration**:
-   - Add signed URL generation for HLS playback
-   - Integrate with Cloud CDN for better performance
+2. **CDN統合**
+   - HLS再生用の署名付きURL生成
+   - Cloud CDN 統合によるパフォーマンス向上
 
-3. **Progress Tracking**:
-   - Real-time transcode progress updates to UI
-   - Webhook endpoint for Transcoder notifications
+3. **進捗トラッキング**
+   - トランスコードの進捗をリアルタイムでUIに表示
+   - Transcoder通知のWebhookエンドポイントを追加
 
-4. **Error Handling**:
-   - Retry logic for failed transcode jobs
-   - User notifications on transcode failure
+4. **エラーハンドリング強化**
+   - 失敗したジョブのリトライ
+   - 失敗時のユーザー通知
 
-## References
+## 参考資料
 
-- Issue: 【課題】MVP の動画保存アーキテクチャ
+- 課題: 【課題】MVP の動画保存アーキテクチャ
 - Google Cloud Video Transcoder API: https://cloud.google.com/transcoder/docs
-- HLS Specification: https://datatracker.ietf.org/doc/html/rfc8216
+- HLS 仕様: https://datatracker.ietf.org/doc/html/rfc8216

@@ -1,150 +1,148 @@
-# Maintenance / Forced Update Control System
+# メンテナンス / 強制アップデート制御システム
 
-This document describes the maintenance and forced update control system implemented for the nanitabeyo app. The system uses GCS configuration to control maintenance mode and app version requirements globally across all APIs.
+このドキュメントでは、GCSの設定ファイルを利用して nanitabeyo アプリ全体のメンテナンスモードおよびアプリの最低サポートバージョンを制御する仕組みを説明する。
 
-## Overview
+## 概要
 
-The system consists of two main components:
+システムは以下の2要素で構成される。
 
-1. **Backend**: Global guard that checks maintenance status and app version requirements
-2. **Frontend**: Health check and error handling for maintenance/version scenarios
+1. **バックエンド**: メンテナンス状態とアプリバージョンを判定するグローバルガード
+2. **フロントエンド**: ヘルスチェックとエラーハンドリングでメンテナンス/バージョン警告を表示
 
-## Backend Implementation
+## バックエンド実装
 
 ### MaintenanceGuard
 
-Located in `api/src/core/guards/maintenance.guard.ts`, this global guard:
+`api/src/core/guards/maintenance.guard.ts` に配置されたグローバルガードで、以下を行う。
 
-- Checks `is_maintenance` and `minimum_supported_version` from GCS configuration
-- Returns HTTP 503 for maintenance mode
-- Returns HTTP 426 for unsupported app versions
-- Allows requests without `X-App-Version` header to pass through
-- Excludes essential paths like `/metrics` from checks
-- Gracefully falls back if GCS configuration is unavailable
+- GCS設定から `is_maintenance` と `minimum_supported_version` を取得
+- メンテナンス中はHTTP 503を返す
+- 最低バージョン未満の場合はHTTP 426を返す
+- `X-App-Version` ヘッダーがないリクエストは許可
+- `/metrics` など重要なパスは除外
+- GCS設定が取得できない場合はフェイルオープンで処理を継続
 
-### Health Endpoint
+### ヘルスチェックエンドポイント
 
-A new `/health` endpoint provides:
+`/health` エンドポイントを新設。
 
-- Lightweight health status check
-- Subject to maintenance/version guard (not exempted)
-- Returns 200 in normal conditions
-- Returns 503/426 when maintenance/version conditions are triggered
+- 軽量なヘルスチェックを提供
+- MaintenanceGuard のチェック対象（例外ではない）
+- 通常時は200を返す
+- メンテナンス/バージョン条件で503/426を返す
 
-### Configuration Cache
+### 設定キャッシュ
 
-The `RemoteConfigService` now includes:
+`RemoteConfigService` にキャッシュ機構を追加。
 
-- 5-minute TTL caching for performance
-- Reduced GCS API calls
-- Automatic cache invalidation
+- TTLは5分
+- GCS API呼び出しを削減
+- 自動的にキャッシュを無効化
 
-## Frontend Implementation
+## フロントエンド実装
 
-### Health Check Hook
+### ヘルスチェックフック
 
-`app-expo/hooks/useHealthCheck.ts` provides:
+`app-expo/hooks/useHealthCheck.ts` が担当。
 
-- Async health check on app startup
-- Non-blocking UI rendering
-- Automatic 503/426 error handling
-- Proper dialog management
+- アプリ起動時に非同期でヘルスチェック
+- UI描画をブロックしない
+- HTTP 503/426 を検出してダイアログを表示
+- ダイアログ状態を適切に管理
 
-### Enhanced API Error Handling
+### APIエラーハンドリング強化
 
-`app-expo/hooks/useAPICall.ts` now handles:
+`app-expo/hooks/useAPICall.ts` の機能。
 
-- HTTP 503: Shows maintenance dialog
-- HTTP 426: Shows forced update dialog with store redirect
-- Backward compatibility with existing 403 error handling
+- HTTP 503: メンテナンスダイアログを表示
+- HTTP 426: 強制アップデートダイアログとストア遷移
+- 既存の403エラーとの互換性を維持
 
-### Integration
+### 統合ポイント
 
-The health check is integrated into the app startup flow via:
+ヘルスチェックは `HealthCheckInitializer` コンポーネント経由でアプリ起動時に実行。
 
-- `HealthCheckInitializer` component
-- Added to app layout without blocking UI
-- Runs after providers are initialized
+- プロバイダー初期化後に実行
+- UIをブロックしない
 
-## Configuration
+## 設定
 
-### GCS Configuration Values
+### GCS構成値
 
-The system reads these values from GCS static master configuration:
+静的マスターデータから以下を読み取る。
 
 ```json
 {
   "is_maintenance": "true" | "false",
-  "minimum_supported_version": "1.0.0" // SemVer format
+  "minimum_supported_version": "1.0.0" // SemVer形式
 }
 ```
 
-### Environment Variables
+### 環境変数
 
-Required environment variables for API:
+APIで必要な環境変数。
 
-- `GCS_BUCKET_NAME`: GCS bucket for static master files
-- `GCS_STATIC_MASTER_DIR_PATH`: Directory path in GCS bucket
+- `GCS_BUCKET_NAME`: 静的マスターファイルを格納するバケット
+- `GCS_STATIC_MASTER_DIR_PATH`: バケット内のディレクトリパス
 
-## Testing the System
+## テスト手順
 
-### 1. Test Maintenance Mode
+### 1. メンテナンスモード
 
-1. Set GCS config: `is_maintenance: "true"`
-2. Make any API call with `X-App-Version` header
-3. Expect HTTP 503 response
-4. Frontend should show maintenance dialog
+1. GCS設定の `is_maintenance` を `"true"` にする
+2. `X-App-Version` ヘッダー付きでAPIを呼び出す
+3. HTTP 503 が返ることを確認
+4. フロントエンドでメンテナンスダイアログが表示されることを確認
 
-### 2. Test Version Control
+### 2. バージョン制御
 
-1. Set GCS config: `minimum_supported_version: "2.0.0"`
-2. Make API call with `X-App-Version: "1.5.0"`
-3. Expect HTTP 426 response
-4. Frontend should show update dialog with store redirect
+1. GCS設定の `minimum_supported_version` を `"2.0.0"` にする
+2. `X-App-Version: "1.5.0"` でAPIを呼び出す
+3. HTTP 426 が返ることを確認
+4. フロントエンドでアップデートダイアログが表示され、ストアへ遷移できることを確認
 
-### 3. Test Health Endpoint
+### 3. ヘルスエンドポイント
 
 ```bash
-# Normal operation
+# 通常
 curl -H "X-App-Version: 2.0.0" http://localhost:3000/health
-# Expected: 200 OK
+# 期待: 200 OK
 
-# Maintenance mode (when is_maintenance: "true")
+# メンテナンス中（is_maintenance: "true"）
 curl -H "X-App-Version: 2.0.0" http://localhost:3000/health
-# Expected: 503 Service Unavailable
+# 期待: 503 Service Unavailable
 
-# Unsupported version (when minimum_supported_version > X-App-Version)
+# 最低バージョン未満（minimum_supported_version > X-App-Version）
 curl -H "X-App-Version: 1.0.0" http://localhost:3000/health
-# Expected: 426 Upgrade Required
+# 期待: 426 Upgrade Required
 
-# No version header (should pass through)
+# バージョンヘッダーなし（許可される）
 curl http://localhost:3000/health
-# Expected: 200 OK (guard allows through)
+# 期待: 200 OK
 ```
 
-### 4. Test Graceful Fallback
+### 4. フェイルオープンの確認
 
-1. Temporarily break GCS access or config format
-2. API should continue working (allows all requests)
-3. Check console for warning messages
+1. GCSアクセスや設定フォーマットを意図的に壊す
+2. APIが引き続き動作し、警告ログのみ出力されることを確認
 
-## Monitoring and Operations
+## 監視と運用
 
-### Allowed Paths
+### 除外パス
 
-These paths bypass maintenance/version checks:
+メンテナンス/バージョンチェックを除外するパス。
 
-- `/metrics` - For monitoring and health checks
+- `/metrics` — 監視用
 
-### Cache Behavior
+### キャッシュ動作
 
-- Configuration is cached for 5 minutes
-- Cache invalidation happens automatically
-- Failed config loads trigger graceful fallback
+- 設定は5分間キャッシュ
+- キャッシュは自動で更新
+- 設定取得に失敗した場合もフェイルオープン
 
-### Error Response Format
+### エラーレスポンス形式
 
-All maintenance/version errors follow the standard API response format:
+すべてのエラーは標準APIレスポンス形式。
 
 ```typescript
 {
@@ -155,37 +153,37 @@ All maintenance/version errors follow the standard API response format:
 }
 ```
 
-## Localization
+## ローカライゼーション
 
-All required error messages are available in all supported locales:
+必要な文言は全サポート言語に翻訳済み。
 
-- `Error.maintenanceMessage`: Maintenance mode message
-- `Error.unsupportedVersion`: Version upgrade required message
-- `Common.goStore`: Store redirect button text
-- `Common.ok`: Dialog confirmation button
+- `Error.maintenanceMessage`: メンテナンス中のメッセージ
+- `Error.unsupportedVersion`: アップデート要求メッセージ
+- `Common.goStore`: ストア遷移ボタン
+- `Common.ok`: ダイアログの確定ボタン
 
-## Development Guidelines
+## 開発ガイドライン
 
-### Adding New Exempted Paths
+### 除外パスの追加
 
-To add paths that should bypass maintenance/version checks:
+メンテナンス/バージョンチェックから除外したいパスを追加する。
 
 ```typescript
-// In MaintenanceGuard
+// MaintenanceGuard 内
 private readonly allowedPaths = ['/metrics', '/new-exempted-path'];
 ```
 
-### Customizing Cache TTL
+### キャッシュTTLの変更
 
-To modify the configuration cache duration:
+キャッシュ期間を変更する。
 
 ```typescript
-// In RemoteConfigService
-private readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+// RemoteConfigService 内
+private readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10分
 ```
 
-### Adding New Configuration Values
+### 新しい設定値の追加
 
-1. Update `shared/remoteConfig/remoteConfig.schema.ts`
-2. Update GCS static master data
-3. Use via `RemoteConfigService.getRemoteConfigValue()`
+1. `shared/remoteConfig/remoteConfig.schema.ts` を更新
+2. GCS静的マスターを更新
+3. `RemoteConfigService.getRemoteConfigValue()` から取得

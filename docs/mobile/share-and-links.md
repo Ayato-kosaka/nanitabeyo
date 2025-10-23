@@ -1,189 +1,190 @@
-# Share Functionality with Universal Links / App Links
+# 共有機能（ユニバーサルリンク / アプリリンク対応）
 
-This document describes the implementation of the Share functionality with Universal Links (iOS) and App Links (Android) support for the nanitabeyo food app.
+このドキュメントでは、nanitabeyo フードアプリの共有機能における iOS のユニバーサルリンクと Android のアプリリンク実装について説明する。
 
-## Overview
+## 概要
 
-The share functionality allows users to share content from the app with URLs that:
+共有機能は以下を満たすURLを生成する。
 
-- Open in web browsers as a fallback
-- Open in the app when it's installed on the device (via Universal Links/App Links)
-- Support all platforms: iOS, Android, and Web
+- Webブラウザで開いた場合はフォールバック表示
+- 対応アプリがインストールされている端末ではアプリを起動（ユニバーサルリンク／アプリリンク）
+- iOS、Android、Webの全プラットフォームをサポート
 
-## Implementation
+## 実装
 
-### 1. Core Share Functionality
+### 1. 共有機能のコア処理
 
-**File**: `app-expo/lib/share.ts`
+**ファイル**: `app-expo/lib/share.ts`
 
-- `generateShareUrl(pathname)`: Generates shareable URLs based on current pathname
-- `handleShare(url, title, onSuccess, onError)`: Platform-specific sharing logic
-  - **Web**: Uses Web Share API if available, falls back to clipboard
-  - **iOS/Android**: Uses native sharing, falls back to clipboard
+- `generateShareUrl(pathname)`: 現在のパスから共有URLを生成
+- `handleShare(url, title, onSuccess, onError)`: プラットフォーム別の共有処理
+  - **Web**: Web Share API を優先し、未対応ブラウザではクリップボードにコピー
+  - **iOS/Android**: ネイティブ共有ダイアログを使用し、失敗時はクリップボードにコピー
 
-### 2. Environment Variables
+### 2. 環境変数
 
-Add these environment variables to your deployment:
+デプロイ時に以下の環境変数を設定。
 
 ```bash
 EXPO_PUBLIC_WEB_BASE_URL=https://your-domain.com
 ```
 
-**Files updated**:
+**更新したファイル:**
 
-- `app-expo/app.config.ts`: Added environment variables to `extra` section
-- `app-expo/constants/Env.ts`: Added `WEB_BASE_URL` and `LINK_HOST` constants
+- `app-expo/app.config.ts`: `extra` セクションに環境変数を追加
+- `app-expo/constants/Env.ts`: `WEB_BASE_URL` と `LINK_HOST` を追加
 
-### 3. App Configuration
+### 3. アプリ設定
 
-**File**: `app-expo/app.config.ts`
+**ファイル**: `app-expo/app.config.ts`
 
-**Changes**:
+**変更点:**
 
-- `scheme`: Changed from "myapp" to "nanitabeyo"
-- `ios.associatedDomains`: Added for Universal Links
-- `android.intentFilters`: Added for App Links
+- `scheme` を `"myapp"` から `"nanitabeyo"` に変更
+- `ios.associatedDomains` にユニバーサルリンク設定を追加
+- `android.intentFilters` にアプリリンク設定を追加
 
-### 4. Universal Links / App Links Files
+### 4. ユニバーサルリンク / アプリリンク用ファイル
 
-**iOS Universal Links**:
+**iOS（ユニバーサルリンク）:**
 
-- **File**: `app-expo/public/apple-app-site-association`
-- **Deployment**: Must be served at `https://your-domain.com/apple-app-site-association`
+- **ファイル**: `app-expo/public/apple-app-site-association`
+- **配置**: `https://your-domain.com/apple-app-site-association` で公開
 - **Content-Type**: `application/json`
-- **Note**: Replace `TEAMID.com.nanitabeyo` with your actual Team ID + Bundle ID
+- **注意**: `TEAMID.com.nanitabeyo` を実際のチームID＋Bundle IDに置き換える
 
-**Android App Links**:
+**Android（アプリリンク）:**
 
-- **File**: `app-expo/public/.well-known/assetlinks.json`
-- **Deployment**: Must be served at `https://your-domain.com/.well-known/assetlinks.json`
-- **Note**: Replace the SHA256 fingerprint with your app's actual certificate fingerprint
+- **ファイル**: `app-expo/public/.well-known/assetlinks.json`
+- **配置**: `https://your-domain.com/.well-known/assetlinks.json`
+- **注意**: SHA256フィンガープリントを実アプリの証明書に置き換える
 
-### 5. FoodContentScreen Integration
+### 5. FoodContentScreen への組み込み
 
-**File**: `app-expo/components/FoodContentScreen.tsx`
+**ファイル**: `app-expo/components/FoodContentScreen.tsx`
 
-**Changes**:
+**変更内容:**
 
-- Added imports for share functionality
-- Added `handleSharePress()` function with comprehensive logging
-- Connected Share button to the new handler
-- Added pathname detection using `usePathname()`
+- 共有機能のインポートを追加
+- 共有ボタン用の `handleSharePress()` と詳細ログを追加
+- Shareボタンから新しいハンドラーを呼び出すように更新
+- `usePathname()` を用いてパスを取得
 
-### 6. Translations
+### 6. 翻訳
 
-**Files**: `app-expo/locales/en-US.json`, `app-expo/locales/ja-JP.json`
+**ファイル**: `app-expo/locales/en-US.json`, `app-expo/locales/ja-JP.json`
 
-Added `FoodContentScreen.share.title` for share dialog titles.
+`FoodContentScreen.share.title` を追加（共有ダイアログのタイトルに使用）。
 
-## Setup Instructions
+## セットアップ手順
 
-### 1. Environment Variables
+### 1. 環境変数
 
-Set these in your deployment environment:
+環境ごとに以下を設定。
 
 ```bash
-# Example for production
+# 本番
 EXPO_PUBLIC_WEB_BASE_URL=https://nanitabeyo.com
 
-# Example for staging
+# ステージング
 EXPO_PUBLIC_WEB_BASE_URL=https://staging.nanitabeyo.com
 ```
 
-### 2. Deploy Universal Links / App Links Files
+### 2. ユニバーサルリンク / アプリリンクファイルの配信
 
-Deploy the following files to your web server:
+以下のファイルをWebサーバーに配置。
 
 - `apple-app-site-association` → `https://your-domain.com/apple-app-site-association`
 - `assetlinks.json` → `https://your-domain.com/.well-known/assetlinks.json`
 
-**Important**:
+**重要事項:**
 
-- Serve `apple-app-site-association` with `Content-Type: application/json`
-- No file extension for the AASA file
-- Update the Team ID and SHA256 fingerprints with your actual values
+- `apple-app-site-association` は `application/json` で配信
+- AASAファイルに拡張子は不要
+- Team IDやSHA256フィンガープリントを実際の値に置き換える
 
-### 3. Update Certificate Information
+### 3. 証明書情報の更新
 
-**For iOS (AASA file)**:
-Replace `TEAMID` in `apple-app-site-association` with your Apple Developer Team ID.
+**iOS（AASAファイル）:**
+`apple-app-site-association` 内の `TEAMID` を自社のApple Developer Team IDに置き換える。
 
-**For Android (assetlinks.json)**:
-Replace the SHA256 fingerprint with your app's certificate fingerprint:
+**Android（assetlinks.json）:**
+アプリの証明書フィンガープリントを設定。
 
 ```bash
-# Get SHA256 fingerprint for debug build
+# デバッグビルドのSHA256フィンガープリント取得
 keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
 
-# Get SHA256 fingerprint for release build
+# リリースビルドのSHA256フィンガープリント取得
 keytool -list -v -keystore /path/to/your/release.keystore -alias your-alias
 ```
 
-## Verification
+## 検証方法
 
-### iOS Universal Links
+### iOS ユニバーサルリンク
 
-1. **AASA Validator**: Use Apple's validator (search for "Apple App Site Association validator")
-2. **Device Testing**:
-   - Install the app on a physical device
-   - Open Safari and navigate to `https://your-domain.com/en/spot/123`
-   - Should show an app banner or automatically open the app
+1. **AASAバリデータ**: Appleが提供するバリデータを使用
+2. **実機テスト**:
+   - 端末にアプリをインストール
+   - Safariで `https://your-domain.com/en/spot/123` を開く
+   - アプリバナーが表示されるか、直接アプリが起動することを確認
 
-### Android App Links
+### Android アプリリンク
 
-1. **Google Validator**: Use [Google's Digital Asset Links validator](https://developers.google.com/digital-asset-links/tools/generator)
-2. **adb Testing**:
+1. **Googleバリデータ**: [Digital Asset Links ツール](https://developers.google.com/digital-asset-links/tools/generator)
+2. **adbテスト**:
+
    ```bash
    adb shell pm verify-app-links com.nanitabeyo
    ```
 
-### Web Testing
+### Webテスト
 
-1. **Chrome/Edge**: Should show native share dialog
-2. **Firefox/Safari**: Should copy to clipboard with notification
+1. **Chrome/Edge**: ネイティブの共有ダイアログが表示されることを確認
+2. **Firefox/Safari**: 共有内容がクリップボードにコピーされ、通知が表示されることを確認
 
-## Troubleshooting
+## トラブルシューティング
 
-### Universal Links Not Working
+### ユニバーサルリンクが動作しない
 
-1. **AASA file issues**:
-   - Ensure it's served with `Content-Type: application/json`
-   - No redirects in the URL path
-   - Check Team ID and Bundle ID are correct
+1. **AASAファイルの問題**:
+   - `Content-Type` が `application/json` になっているか
+   - リダイレクトが挟まっていないか
+   - Team ID / Bundle ID が正しいか
 
-2. **Caching**: Apple caches AASA files aggressively
-   - Wait several hours after deployment
-   - Or deploy to a new path and update the domain
+2. **キャッシュ**: Apple はAASAファイルを長期間キャッシュする
+   - 反映まで数時間待つ
+   - ドメインを変える、またはパスを変更する方法も検討
 
-### App Links Not Working
+### アプリリンクが動作しない
 
-1. **Digital Asset Links issues**:
-   - Verify SHA256 fingerprint is correct
-   - Check package name matches exactly
-   - Ensure assetlinks.json is properly formatted
+1. **Digital Asset Links の問題**:
+   - SHA256フィンガープリントが正しいか
+   - パッケージ名が完全一致しているか
+   - `assetlinks.json` のフォーマットが正しいか
 
-2. **Intent Filter issues**:
-   - Verify the host matches your domain exactly
-   - Check autoVerify is set to true
+2. **インテントフィルターの問題**:
+   - `host` がドメインと一致しているか
+   - `autoVerify` が true になっているか
 
-### Share Functionality Issues
+### 共有機能の問題
 
-1. **URL generation**:
-   - Check environment variables are set correctly
-   - Verify pathname is being captured correctly
+1. **URL生成**:
+   - 環境変数が正しく設定されているか
+   - `pathname` が期待通りに取得できているか
 
-2. **Platform-specific**:
-   - iOS/Android: Ensure expo-sharing is properly installed
-   - Web: Check browser support for Web Share API
+2. **プラットフォーム別の注意点**:
+   - iOS/Android: `expo-sharing` が正しくインストールされているか
+   - Web: ブラウザが Web Share API に対応しているか
 
-## Supported URL Patterns
+## サポートしているURLパターン
 
-The current implementation supports these URL patterns:
+現状は以下のパターンに対応。
 
-- `/[locale]/spot/[id]` - Individual dish/spot pages
-- `/[locale]/restaurant/[id]` - Restaurant pages
-- `/[locale]/profile/[id]` - User profile pages
-- `/[locale]/topic/[id]` - Topic pages
-- `/` - Root page
+- `/[locale]/spot/[id]` — 個別スポットページ
+- `/[locale]/restaurant/[id]` — レストランページ
+- `/[locale]/profile/[id]` — ユーザープロフィール
+- `/[locale]/topic/[id]` — トピックページ
+- `/` — ルートページ
 
-Add more patterns to the AASA and assetlinks.json files as needed.
+必要に応じてAASA／assetlinks.jsonにパターンを追加する。

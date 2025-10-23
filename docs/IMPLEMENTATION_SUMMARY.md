@@ -1,73 +1,73 @@
-# Google Places Currency Mapping Implementation
+# Google Places 通貨マッピング実装
 
-This implementation adds support for storing Google Places `address_components` and `plus_code` data in the `restaurants` table and provides client-side currency code determination functionality.
+この実装では、`restaurants` テーブルに Google Places の `address_components` と `plus_code` を保存し、クライアント側で通貨コードを判定できるようにした。
 
-## Database Changes
+## データベースの変更
 
-### Schema Updates
+### スキーマ更新
 
-- Added `address_components` (jsonb) column to `restaurants` table
-- Added `plus_code` (jsonb) column to `restaurants` table
-- Updated Supabase database types to include new fields
-- Updated Prisma converters to handle the new fields
+- `restaurants` テーブルに `address_components`（jsonb）列を追加
+- `restaurants` テーブルに `plus_code`（jsonb）列を追加
+- Supabase のデータ型を新フィールドに対応
+- Prisma 変換処理を更新し、新フィールドを取り扱い可能に
 
-## API Changes
+## APIの変更
 
-### Google Places Integration
+### Google Places 連携
 
-- Modified field mask in `locations.service.ts` to include `places.addressComponents`
-- Updated `bulkImportFromGoogle` in `dishes.service.ts` to capture and store:
+- `locations.service.ts` のフィールドマスクに `places.addressComponents` を追加
+- `dishes.service.ts` の `bulkImportFromGoogle` を更新し以下を保存:
   - `place.addressComponents` → `restaurant.address_components`
   - `place.plusCode` → `restaurant.plus_code`
 
-## Client-Side Currency Mapping
+## クライアント側の通貨マッピング
 
-### Core Library (`app-expo/lib/googlePlaces.ts`)
+### コアライブラリ (`app-expo/lib/googlePlaces.ts`)
 
-Provides comprehensive currency mapping functionality:
+以下の通貨マッピング機能を提供。
 
-- **`extractCountryCode(addressComponents)`** - Extracts ISO-2 country code from Google Places address components
-- **`getCurrencyCodeFromCountry(countryCode)`** - Maps country code to ISO-4217 currency code
-- **`getCurrencyCodeFromAddressComponents(addressComponents)`** - Main function for currency determination
-- **`getCurrencyCodeFromRestaurant(restaurant)`** - Convenience function for restaurant objects
+- **`extractCountryCode(addressComponents)`** — Google Placesのaddress componentsからISO2国コードを抽出
+- **`getCurrencyCodeFromCountry(countryCode)`** — 国コードからISO 4217通貨コードを取得
+- **`getCurrencyCodeFromAddressComponents(addressComponents)`** — address componentsから通貨コードを判定するメイン関数
+- **`getCurrencyCodeFromRestaurant(restaurant)`** — レストランオブジェクトから簡易に通貨を取得するヘルパー
 
-### Supported Countries/Currencies
+### 対応国/通貨
 
-Includes mapping for 50+ countries including:
+50以上の国をサポート。
 
-- Major currencies: USD, EUR, JPY, GBP, CNY, CAD, AUD, etc.
-- Regional currencies: KRW, SGD, HKD, TWD, THB, etc.
-- European Union countries automatically mapped to EUR
-- Conservative approach: Returns `null` for unknown countries
+- 主要通貨: USD, EUR, JPY, GBP, CNY, CAD, AUD など
+- 地域通貨: KRW, SGD, HKD, TWD, THB など
+- EU加盟国は自動的にEURへマッピング
+- 未知の国コードは安全側に倒して `null` を返す
 
-### Usage Example
+### 使用例
 
 ```typescript
 import { getCurrencyCodeFromRestaurant } from "@/lib/googlePlaces";
 
 const restaurant = {
-	address_components: [{ shortText: "JP", types: ["country", "political"] }],
+        address_components: [{ shortText: "JP", types: ["country", "political"] }],
 };
 
 const currency = getCurrencyCodeFromRestaurant(restaurant);
 // Returns: "JPY"
 ```
 
-## Key Features
+## 主な特徴
 
-1. **Data Preservation**: Full Google Places `address_components` and `plus_code` are stored for future use
-2. **Conservative Mapping**: Only maps known countries to avoid incorrect assumptions
-3. **Type Safety**: Full TypeScript support with proper type definitions
-4. **Extensible**: Easy to add new country-currency mappings
-5. **Error Handling**: Graceful handling of missing or invalid data
+1. **データ保持**: Google Places の `address_components` と `plus_code` を完全に保存
+2. **保守的なマッピング**: 不明な国コードはマッピングしないことで誤判定を防止
+3. **型安全性**: TypeScript で型定義を提供
+4. **拡張性**: 対応国を容易に追加可能
+5. **エラーハンドリング**: 欠損や不正データでも安全に処理
 
-## Impact
+## 影響
 
-This implementation enables:
+この実装により以下が可能になる。
 
-- Consistent currency display in restaurant reviews
-- Automatic currency code determination based on restaurant location
-- Future analysis and processing of restaurant location data
-- Support for international restaurant reviews with proper currency formatting
+- レビュー表示で一貫した通貨表記を実現
+- レストラン所在地に基づく通貨コードの自動判定
+- レストラン位置情報の将来的な分析に活用可能
+- 国際的なレビューでも適切な通貨フォーマットをサポート
 
-All changes are backward compatible and maintain existing functionality while adding the new capabilities.
+すべての変更は後方互換性を維持しつつ、新機能を追加している。
