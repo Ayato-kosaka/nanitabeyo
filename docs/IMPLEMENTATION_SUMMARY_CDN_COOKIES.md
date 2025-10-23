@@ -1,26 +1,26 @@
-# Implementation Summary: CDN Signed Cookie Authentication for Video Media
+# 実装サマリー: 動画メディア向けCDN署名付きCookie認証
 
-## Overview
+## 概要
 
-Successfully implemented CDN signed cookie authentication for video media playback in the nanitabeyo food app. This replaces single-file signed URLs with path-based cookie authentication suitable for HLS video streaming.
+nanitabeyoの動画再生において、HLS配信に適したCDN署名付きCookie認証を実装し、単一ファイルの署名付きURLをパスベース認証へ置き換えた。
 
-## Problem Solved
+## 解決した課題
 
-**Original Issue**: Video files use HLS (HTTP Live Streaming) which requires accessing multiple files:
+**元の問題:** HLS（HTTP Live Streaming）では以下のように多数のファイルへアクセスする必要がある。
 
-- `master.m3u8` (master playlist)
-- Multiple variant playlists (e.g., `720p.m3u8`, `480p.m3u8`)
-- Hundreds of `.ts` video segments
+- `master.m3u8`（マスタープレイリスト）
+- 複数の解像度別プレイリスト（例: `720p.m3u8`, `480p.m3u8`）
+- 数百件の`.ts`セグメントファイル
 
-**Previous Limitation**: Single-file GCS signed URLs only protect one file at a time, making HLS impractical.
+**従来の制約:** GCS署名付きURLは1ファイルずつしか保護できないため、HLSに向かない。
 
-**Solution**: CDN signed cookies provide path-based authentication, allowing access to all files under a specific directory path with a single cookie.
+**解決策:** CDN署名付きCookieにより、特定ディレクトリ配下のすべてのファイルに対して1枚のCookieで認証を付与。
 
-## Changes Made
+## 実施内容
 
-### 1. Environment Configuration (`api/src/core/config/env.ts`)
+### 1. 環境変数設定 (`api/src/core/config/env.ts`)
 
-Added four new optional environment variables:
+以下の4つの任意設定を追加。
 
 ```typescript
 CDN_HOST: z.string().optional(),
@@ -29,77 +29,60 @@ CDN_KEY_SECRET_B64: z.string().optional(),
 CDN_SIGNED_COOKIE_TTL_SECONDS: z.string().default('600').transform((v) => Number(v)),
 ```
 
-### 2. Storage Service (`api/src/core/storage/storage.service.ts`)
+### 2. StorageService (`api/src/core/storage/storage.service.ts`)
 
-Added new method `generateCdnSignedCookies()`:
+`generateCdnSignedCookies()` を追加。
 
-- Generates Cloud CDN signed cookies using HMAC-SHA1
-- Returns cookies with proper security attributes
-- Handles missing configuration gracefully
-- Logs all operations for debugging
+- Cloud CDNの署名付きCookieを生成（HMAC-SHA1）
+- セキュリティ属性を正しく付与
+- 設定が不足している場合は安全にフォールバック
+- すべての操作をログ出力
 
-Key implementation details:
+署名フォーマットやCookieの値は以下の通り。
 
-- Signature format: `URLPrefix=<url>&Expires=<timestamp>&KeyName=<key>`
-- Cookie format: `URLPrefix=<url>:Expires=<timestamp>:KeyName=<key>:Signature=<sig>`
-- Base64 URL-safe encoding (replaces +/ with -\_)
-- Cookie attributes: HttpOnly, Secure, SameSite=None
+- 署名文字列: `URLPrefix=<url>&Expires=<timestamp>&KeyName=<key>`
+- Cookie値: `URLPrefix=<url>:Expires=<timestamp>:KeyName=<key>:Signature=<sig>`
+- Base64はURLセーフ変換（`+`/`/`→`-`/`_`）
+- 属性: HttpOnly, Secure, SameSite=None など
 
-### 3. Dish Media Service (`api/src/v1/dish-media/dish-media.service.ts`)
+### 3. DishMediaService (`api/src/v1/dish-media/dish-media.service.ts`)
 
-Modified `fetchDishMediaEntryItems()`:
+`fetchDishMediaEntryItems()` を更新。
 
-- Detects `media_type === 'video'`
-- Generates CDN URL: `https://{CDN_HOST}/{env}/transcoded/dish_media/media_path/{recordId}/master.m3u8`
-- Collects signed cookies for all videos
-- Returns both data and optional cookies
-- Falls back to GCS signed URLs when CDN not configured
+- `media_type === 'video'` の場合にCDN URLを生成
+- URL形式: `https://{CDN_HOST}/{env}/transcoded/dish_media/media_path/{recordId}/master.m3u8`
+- 動画ごとに署名付きCookieを収集
+- 戻り値を `Promise<{ items: DishMediaEntryItem[]; cdnCookies?: string[] }>` に変更
+- CDN未設定時は従来通りGCSの署名付きURLを返却
 
-Return type changed from:
+### 4. サービス層の更新
 
-```typescript
-Promise<DishMediaEntryItem[]>;
-```
+以下のメソッドがCookie付きレスポンスに対応。
 
-To:
+- `DishMediaService.findByCriteria()`（検索）
+- `DishMediaService.findByIds()`（ID指定）
+- `UsersService.getUserDishReviews()`（ユーザーレビュー）
+- `UsersService.getMeLikedDishMedia()`（いいね済み）
+- `UsersService.getMeSavedDishMedia()`（保存済み）
+- `RestaurantsService.getRestaurantDishMedia()`（店舗メディア）
 
-```typescript
-Promise<{ items: DishMediaEntryItem[]; cdnCookies?: string[] }>;
-```
+### 5. コントローラー更新
 
-### 4. Service Layer Updates
+以下の6エンドポイントで `Set-Cookie` ヘッダーを設定。
 
-Updated all methods that call `fetchDishMediaEntryItems()`:
-
-- `DishMediaService.findByCriteria()` - Search endpoint
-- `DishMediaService.findByIds()` - Query by IDs endpoint
-- `UsersService.getUserDishReviews()` - User reviews endpoint
-- `UsersService.getMeLikedDishMedia()` - Liked media endpoint
-- `UsersService.getMeSavedDishMedia()` - Saved media endpoint
-- `RestaurantsService.getRestaurantDishMedia()` - Restaurant media endpoint
-
-All now return cookies alongside data.
-
-### 5. Controller Updates
-
-Updated six controllers to set `Set-Cookie` headers:
-
-**UsersController** (`api/src/v1/users/users.controller.ts`):
-
+**UsersController** (`api/src/v1/users/users.controller.ts`)
 - `GET /v1/users/:id/dish-reviews`
 - `GET /v1/users/me/liked-dish-media`
 - `GET /v1/users/me/saved-dish-media`
 
-**DishMediaController** (`api/src/v1/dish-media/dish-media.controller.ts`):
-
+**DishMediaController** (`api/src/v1/dish-media/dish-media.controller.ts`)
 - `GET /v1/dish-media?ids=...`
 - `GET /v1/dish-media/search`
 
-**RestaurantsController** (`api/src/v1/restaurants/restaurants.controller.ts`):
-
+**RestaurantsController** (`api/src/v1/restaurants/restaurants.controller.ts`)
 - `GET /v1/restaurants/:id/dish-media`
 
-Implementation pattern (all controllers):
+実装パターン:
 
 ```typescript
 async getEndpoint(
@@ -109,7 +92,6 @@ async getEndpoint(
 ): Promise<ResponseType> {
   const result = await this.service.getMethod(user.id, query);
 
-  // Set CDN signed cookies if present
   if (result.cdnCookies && result.cdnCookies.length > 0) {
     const existing = res.getHeader('Set-Cookie');
     const merged = [
@@ -123,43 +105,40 @@ async getEndpoint(
 }
 ```
 
-## Security Implementation
+## セキュリティ実装
 
-### Cookie Attributes
+### Cookie属性
 
-- **HttpOnly**: Prevents JavaScript access (XSS protection)
-- **Secure**: HTTPS only
-- **SameSite=None**: Allows cross-origin playback (required with Secure)
-- **Domain**: Scoped to CDN domain
-- **Path**: Scoped to specific video directory
-- **Max-Age**: Short TTL (default 10 minutes)
+- **HttpOnly**: JavaScriptからアクセス不可（XSS対策）
+- **Secure**: HTTPS通信のみ
+- **SameSite=None**: クロスオリジン再生に必要
+- **Domain**: CDNドメインに限定
+- **Path**: `/{env}/transcoded/dish_media/media_path/{recordId}/`
+- **Max-Age**: デフォルト10分（短期TTL）
 
-### Signature Security
+### 署名
 
-- HMAC-SHA1 with secret key
-- Base64 URL-safe encoding
-- Covers: URLPrefix + Expires + KeyName
-- Invalid signatures → 403 from CDN
+- HMAC-SHA1 + 秘密鍵
+- Base64 URLセーフエンコード
+- `URLPrefix + Expires + KeyName` をカバー
+- 署名が不正な場合はCDNが403を返却
 
-### Path Isolation
+### パス分離
 
-- Each cookie scoped to: `/{env}/transcoded/dish_media/media_path/{recordId}/`
-- Users can only access videos in their response
-- No cross-record access possible
+- Cookieは各 `recordId` のディレクトリに限定
+- レスポンス内の動画のみアクセス可能
+- 他レコードへのアクセスは不可
 
-## Backward Compatibility
+## 後方互換性
 
-✅ **No Breaking Changes**:
+- ✅ CDN設定は任意（未設定なら従来のGCS署名付きURLを使用）
+- ✅ 画像メディアは従来通り
+- ✅ DTO構造は変更なし（Cookieはヘッダーのみ）
+- ✅ フロントエンドの改修は後続タスクに回しても問題なし
 
-- CDN configuration is optional
-- Falls back to existing GCS signed URLs
-- Image media unchanged
-- DTO structure unchanged (cookies in headers only)
-- Frontend changes not required yet
+## テスト
 
-## Testing
-
-### Build Verification
+### ビルド確認
 
 ```bash
 cd /home/runner/work/nanitabeyo/nanitabeyo
@@ -167,7 +146,7 @@ pnpm build --filter=api
 # ✅ Build successful
 ```
 
-### TypeScript Compilation
+### TypeScriptコンパイル
 
 ```bash
 cd /home/runner/work/nanitabeyo/nanitabeyo/api
@@ -175,9 +154,7 @@ npx tsc --noEmit
 # ✅ No errors
 ```
 
-### Manual Cookie Generation Test
-
-Created and ran test script:
+### Cookie生成の手動テスト
 
 ```bash
 node /tmp/test-cdn-cookies.js
@@ -186,30 +163,28 @@ node /tmp/test-cdn-cookies.js
 # ✅ Signature format correct
 ```
 
-## Documentation
+## ドキュメント
 
-Created comprehensive documentation:
+- `CDN_SIGNED_COOKIE_IMPLEMENTATION.md` を新規作成（約10KB）
+  - アーキテクチャ概要
+  - API仕様
+  - セキュリティの考慮事項
+  - クライアント統合例
+  - CDNセットアップ手順
+  - トラブルシューティング
+  - テスト方法
 
-- `CDN_SIGNED_COOKIE_IMPLEMENTATION.md` (10KB)
-- Architecture overview
-- API endpoint documentation
-- Security considerations
-- Client integration examples
-- CDN setup guide
-- Troubleshooting guide
-- Testing procedures
+## 今後の課題（未対応）
 
-## What's NOT Included (Future Work)
+1. **フロントエンド改修**: クライアントコードは未変更（後続タスクで対応予定）
+2. **CDNインフラ構築**: CDN自体は既存の設定を想定
+3. **Cookie更新ロジック**: TTL切れの再取得は自然失効に任せる
+4. **バッチ最適化**: 現状は動画ごとにCookieを発行
+5. **可視化**: Cookieメトリクスのダッシュボードは未実装
 
-1. **Frontend Changes**: Client code not modified (documented for future)
-2. **CDN Infrastructure**: Assumes CDN already configured
-3. **Cookie Refresh Logic**: Relies on natural TTL expiration
-4. **Batch Optimization**: Each video gets separate cookie
-5. **Analytics Dashboard**: No cookie metrics visualization yet
+## 本番環境の設定
 
-## Configuration Required for Production
-
-### Environment Variables
+### 環境変数
 
 ```bash
 # Production .env
@@ -219,75 +194,69 @@ CDN_KEY_SECRET_B64=<base64-encoded-secret>
 CDN_SIGNED_COOKIE_TTL_SECONDS=600
 ```
 
-### CDN Setup (if not already done)
+### CDNセットアップ（未実施の場合）
 
-1. Configure Cloud CDN with signed URL/cookie support
-2. Generate and store signing key
-3. Set cache max age (600s recommended)
-4. Configure backend bucket
+1. 署名付きURL/Cookie対応でCloud CDNを構成
+2. 署名鍵を生成し安全に保管
+3. キャッシュのmax-ageを600秒程度に設定
+4. バックエンドバケットを設定
 
-## Acceptance Criteria Status
+## 受け入れ条件の達成状況
 
-From original issue:
+- [x] 動画メディアが `Set-Cookie` ヘッダーを返す（レコードIDごとに1枚）
+- [x] `DishMediaEntry.mediaUrl` にCDNの `master.m3u8` URLが入る
+- [x] Cookie属性（Domain/Path/Max-Age/HttpOnly/Secure/SameSite=None）が正しい
+- [x] DTOにCookie文字列を含めずヘッダーのみで返却
+- [ ] iOS/Androidの再生確認（フロント作業、ドキュメント化済み）
+- [ ] Web再生（hls.js）の確認（フロント作業、ドキュメント化済み）
+- [ ] TTL切れ後の403確認（CDN環境が必要）
 
-- [x] Video items return `Set-Cookie` headers (one per recordId)
-- [x] `DishMediaEntry.mediaUrl` contains CDN `master.m3u8` URL
-- [x] Cookie attributes correct (Domain/Path/Max-Age/HttpOnly/Secure/SameSite=None)
-- [x] DTO does not contain cookie strings (headers only)
-- [ ] iOS/Android playback with expo-av (frontend work, documented)
-- [ ] Web playback with hls.js (frontend work, documented)
-- [ ] TTL expiration results in 403 (requires CDN configuration)
+## デプロイメモ
 
-## Deployment Notes
+### 開発環境
 
-### For Development Environment
+1. `api/` 直下に `.env` を用意
+2. 必要に応じてCDN設定を追加（未設定でもGCSで動作）
+3. APIを起動: `cd api && pnpm dev`
+4. 動画を含むエンドポイントで動作確認
 
-1. Create `.env` file in `api/` directory
-2. Add CDN configuration (or leave empty for GCS fallback)
-3. Start API: `cd api && pnpm dev`
-4. Test endpoints with video media
+### 本番環境
 
-### For Production Deployment
+1. CDN設定を事前に完了させる
+2. Cloud Run等に環境変数を設定
+3. 新コードをデプロイ
+4. Cookie生成のログを監視
+5. レスポンスヘッダーに `Set-Cookie` が含まれることを確認
 
-1. Configure CDN if not already done
-2. Set environment variables in Cloud Run
-3. Deploy API with new code
-4. Monitor logs for cookie generation
-5. Verify `Set-Cookie` headers in responses
+## 監視
 
-## Monitoring
+- `CdnSignedCookiesGenerated`: 正常発行
+- `CdnConfigMissing`: 設定不足の警告
+- `CdnSignedCookieError`: 生成時のエラー
 
-All cookie operations logged:
-
-- `CdnSignedCookiesGenerated`: Success
-- `CdnConfigMissing`: Configuration warning
-- `CdnSignedCookieError`: Generation errors
-
-Example log:
+ログ例:
 
 ```json
 {
-	"event": "CdnSignedCookiesGenerated",
-	"context": "generateCdnSignedCookies",
-	"data": {
-		"urlPrefix": "https://cdn.example.com/prod/.../",
-		"recordId": "abc123",
-		"expires": "2025-10-14T23:17:23.000Z",
-		"cookieCount": 1
-	}
+        "event": "CdnSignedCookiesGenerated",
+        "context": "generateCdnSignedCookies",
+        "data": {
+                "urlPrefix": "https://cdn.example.com/prod/.../",
+                "recordId": "abc123",
+                "expires": "2025-10-14T23:17:23.000Z",
+                "cookieCount": 1
+        }
 }
 ```
 
-## Summary
+## まとめ
 
-Successfully implemented CDN signed cookie authentication for video media with:
+- ✅ 8ファイルを変更
+- ✅ 破壊的変更なし
+- ✅ ドキュメントを整備
+- ✅ ビルド/型チェック成功
+- ✅ 後方互換性あり
+- ✅ セキュリティ強化済み
+- ✅ 本番投入可能
 
-- ✅ 8 files modified
-- ✅ 0 breaking changes
-- ✅ Comprehensive documentation
-- ✅ All builds passing
-- ✅ Backward compatible
-- ✅ Security hardened
-- ✅ Production ready
-
-The implementation is minimal, focused, and ready for code review and deployment.
+最小限の変更で動画再生の認証を強化し、デプロイに必要な情報も揃っている。

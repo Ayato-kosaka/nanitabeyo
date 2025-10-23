@@ -1,142 +1,142 @@
-# DishCategoryAutocomplete Implementation Summary
+# DishCategoryAutocomplete 実装サマリー
 
-## Overview
+## 概要
 
-This document summarizes the implementation of the DishCategoryAutocomplete feature that allows users to search and select dish categories when posting reviews, with automatic category variant creation when no match is found.
+本ドキュメントは、レビュー投稿時に料理カテゴリを検索・選択できるようにし、一致する候補が存在しない場合はカテゴリバリアントを自動で作成する DishCategoryAutocomplete 機能の実装内容をまとめたものである。
 
-## Implementation Date
+## 実装日
 
 2025-10-10
 
-## Components Implemented
+## 実装コンポーネント
 
-### 1. `useDishCategorySearch` Hook (`app-expo/hooks/useDishCategorySearch.ts`)
+### 1. `useDishCategorySearch` フック (`app-expo/hooks/useDishCategorySearch.ts`)
 
-A custom React hook that manages dish category search and variant creation:
+料理カテゴリの検索とバリアント作成を管理するカスタム React フック。
 
-**Features:**
+**主な機能:**
 
-- Debounced search (300ms) with minimum 3 characters
-- AbortController support for request cancellation
-- GET `/v1/dish-category-variants?q&lang` for autocomplete
-- POST `/v1/dish-category-variants` for creating new variants
-- Loading state management
-- Comprehensive error logging
+- 300ms のデバウンスと最小3文字条件での検索
+- リクエストキャンセルに対応する AbortController
+- オートコンプリート用の GET `/v1/dish-category-variants?q&lang`
+- 新規バリアント作成用の POST `/v1/dish-category-variants`
+- ローディング状態の管理
+- 詳細なエラーログ
 
-**Key Functions:**
+**主要メソッド:**
 
-- `searchDishCategories(query: string)` - Searches for matching dish categories
-- `createDishCategoryVariant(name: string)` - Creates a new dish category variant
+- `searchDishCategories(query: string)` — 一致する料理カテゴリの検索
+- `createDishCategoryVariant(name: string)` — 新しい料理カテゴリバリアントの作成
 
-### 2. `DishCategoryAutocomplete` Component (`app-expo/components/DishCategoryAutocomplete.tsx`)
+### 2. `DishCategoryAutocomplete` コンポーネント (`app-expo/components/DishCategoryAutocomplete.tsx`)
 
-A reusable autocomplete component based on `LocationAutocomplete`:
+`LocationAutocomplete` をベースにした再利用可能なオートコンプリートコンポーネント。
 
-**Features:**
+**主な機能:**
 
-- Text input with real-time suggestions
-- Clear button functionality
-- Loading indicator during search
-- Accessible with screen reader announcements
-- Keyboard-friendly navigation
-- Consistent styling with existing components
+- テキスト入力とリアルタイムのサジェスト表示
+- クリアボタンの実装
+- 検索中のローディングインジケーター
+- スクリーンリーダー向けアナウンス対応
+- キーボード操作に配慮したナビゲーション
+- 既存コンポーネントと統一したスタイリング
 
-**Props:**
+**プロパティ:**
 
-- `value: string` - Current input value
-- `onChangeText: (text: string) => void` - Text change handler
-- `onSelectSuggestion: (suggestion) => void` - Suggestion selection handler
-- `onClear?: () => void` - Clear button handler
-- `placeholder?: string` - Input placeholder
-- `renderInputRight?: React.ReactNode` - Optional right-side element
-- `autofocus?: boolean` - Auto-focus on mount
-- `testID?: string` - Testing identifier
+- `value: string` — 現在の入力値
+- `onChangeText: (text: string) => void` — 入力変更時のハンドラー
+- `onSelectSuggestion: (suggestion) => void` — サジェスト選択時のハンドラー
+- `onClear?: () => void` — クリアボタン押下時のハンドラー
+- `placeholder?: string` — プレースホルダー
+- `renderInputRight?: React.ReactNode` — 右側に表示する任意要素
+- `autofocus?: boolean` — マウント時に自動フォーカスするか
+- `testID?: string` — テスト用ID
 
-### 3. ReviewForm Integration (`app-expo/features/map/components/ReviewForm.tsx`)
+### 3. ReviewForm への統合 (`app-expo/features/map/components/ReviewForm.tsx`)
 
-**Changes:**
+**変更点:**
 
-- Added `DishCategoryAutocomplete` component to the form
-- State management for `dishCategoryName` and `dishCategoryId`
-- Suggestion selection updates `dishCategoryId`
-- Form submission logic:
-  - If category is selected (has `dishCategoryId`), use it directly
-  - If category name entered but not selected, POST to create variant first
-  - Display inline error if variant creation fails
-  - Continue with review submission after successful variant creation
+- フォームに `DishCategoryAutocomplete` コンポーネントを追加
+- `dishCategoryName` と `dishCategoryId` の状態管理を実装
+- サジェスト選択時に `dishCategoryId` を更新
+- フォーム送信時のロジック:
+  - カテゴリが選択済み（`dishCategoryId` が存在）ならそのまま利用
+  - 名前のみ入力され選択されていない場合は POST でバリアントを作成
+  - バリアント作成に失敗した場合はインラインエラーを表示
+  - 成功時はレビュー投稿処理を継続
 
-**Error Handling:**
+**エラーハンドリング:**
 
-- Inline error messages below the autocomplete input
-- Accessible error announcements (`accessibilityLiveRegion="polite"`)
-- Focus returns to input on error
-- Processing state prevents multiple submissions
+- オートコンプリート入力の直下にインラインエラーを表示
+- `accessibilityLiveRegion="polite"` でスクリーンリーダー通知
+- エラー時は入力欄へフォーカスを戻す
+- 処理中フラグで多重送信を防止
 
-## Internationalization (i18n)
+## 国際化（i18n）
 
-Added strings to all 8 locale files (en-US, ja-JP, ar-SA, es-ES, fr-FR, hi-IN, ko-KR, zh-CN):
+全8言語（en-US, ja-JP, ar-SA, es-ES, fr-FR, hi-IN, ko-KR, zh-CN）へ翻訳文字列を追加。
 
-**Map Section Additions:**
+**Map セクションの追加内容:**
 
 ```json
 {
-	"Map": {
-		"inputs": {
-			"dishCategory": "料理カテゴリ / Dish Category"
-		},
-		"placeholders": {
-			"enterDishCategory": "料理カテゴリを入力 (例: ラーメン、寿司)"
-		},
-		"noResultsFound": "結果が見つかりませんでした",
-		"accessibility": {
-			"dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
-			"dishCategorySelected": "{{category}}を選択しました",
-			"dishCategorySearching": "料理カテゴリを検索中",
-			"dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
-			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
-		},
-		"errors": {
-			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
-			"dishCategoryNotFound": "料理カテゴリが見つかりません",
-			"dishCategoryInvalidInput": "無効な料理カテゴリ名です"
-		}
-	}
+        "Map": {
+                "inputs": {
+                        "dishCategory": "料理カテゴリ / Dish Category"
+                },
+                "placeholders": {
+                        "enterDishCategory": "料理カテゴリを入力 (例: ラーメン、寿司)"
+                },
+                "noResultsFound": "結果が見つかりませんでした",
+                "accessibility": {
+                        "dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
+                        "dishCategorySelected": "{{category}}を選択しました",
+                        "dishCategorySearching": "料理カテゴリを検索中",
+                        "dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
+                        "dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
+                },
+                "errors": {
+                        "dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
+                        "dishCategoryNotFound": "料理カテゴリが見つかりません",
+                        "dishCategoryInvalidInput": "無効な料理カテゴリ名です"
+                }
+        }
 }
 ```
 
-## API Integration
+## API連携
 
 ### GET `/v1/dish-category-variants`
 
-**Request:**
+**リクエスト:**
 
 ```typescript
 {
-  q: string,      // Search query (minimum 3 characters)
-  lang: string    // Language code (e.g., "ja", "en")
+  q: string,      // 検索クエリ（最低3文字）
+  lang: string    // 言語コード（例: "ja", "en"）
 }
 ```
 
-**Response:**
+**レスポンス:**
 
 ```typescript
 Array<{
-	dishCategoryId: string;
-	label: string;
+        dishCategoryId: string;
+        label: string;
 }>;
 ```
 
 ### POST `/v1/dish-category-variants`
 
-**Request:**
+**リクエスト:**
 
 ```typescript
 {
-	name: string; // Dish category name to create
+        name: string; // 新しく作成する料理カテゴリ名
 }
 ```
 
-**Response:**
+**レスポンス:**
 
 ```typescript
 {
@@ -145,120 +145,119 @@ Array<{
 }
 ```
 
-**Error Handling:**
+**エラーハンドリング:**
 
-- 404: No matching dish category found (variant creation failed)
-- 422/400: Validation errors
-- 429: Rate limiting
-- 5xx: Server errors
+- 404: 一致する料理カテゴリが存在せずバリアント作成に失敗
+- 422/400: バリデーションエラー
+- 429: レートリミット
+- 5xx: サーバーエラー
 
-All errors display inline below the autocomplete input with appropriate error messages.
+すべてのエラーはオートコンプリート入力欄の下に適切なメッセージをインライン表示する。
 
-## UX Flow
+## UXフロー
 
-1. **User Types in Autocomplete:**
-   - After 300ms debounce, searches for matching categories (min 3 chars)
-   - Shows loading indicator during search
-   - Displays suggestions in dropdown
-   - Announces results count to screen readers
+1. **ユーザーがオートコンプリートへ入力**
+   - 300ms デバウンス後に（3文字以上で）検索
+   - 検索中インジケーターを表示
+   - ドロップダウンに候補を表示
+   - 検索結果件数をスクリーンリーダーへ通知
 
-2. **User Selects Suggestion:**
-   - Sets `dishCategoryId` and `dishCategoryName`
-   - Closes suggestion dropdown
-   - Announces selection to screen readers
+2. **候補を選択**
+   - `dishCategoryId` と `dishCategoryName` を設定
+   - サジェストを閉じる
+   - 選択内容をスクリーンリーダーへ通知
 
-3. **User Types but Doesn't Select:**
-   - Form submission attempts to create variant via POST
-   - On success: Uses returned `dishCategoryId` for review
-   - On failure: Shows inline error, returns focus to input
+3. **入力のみで選択しなかった場合**
+   - フォーム送信時に POST でバリアント作成を試行
+   - 成功時: 返却された `dishCategoryId` を使用してレビューを送信
+   - 失敗時: インラインエラーを表示しフォーカスを入力欄へ戻す
 
-4. **Clear Button:**
-   - Clears input text and selected category
-   - Returns focus to input
+4. **クリアボタン**
+   - 入力値と選択済みカテゴリを初期化
+   - フォーカスを入力欄へ戻す
 
-## Accessibility Features
+## アクセシビリティ対応
 
-- **Screen Reader Announcements:**
-  - Input focus state
-  - Search progress
-  - Results count
-  - Selection confirmation
-  - Error messages
+- **スクリーンリーダーアナウンス**
+  - 入力フォーカス
+  - 検索進行状況
+  - 結果件数
+  - 候補選択
+  - エラーメッセージ
 
-- **Keyboard Navigation:**
-  - Tab to navigate between fields
-  - Arrow keys for suggestion selection (native behavior)
-  - Enter to select suggestion
-  - Escape to close suggestions
+- **キーボード操作**
+  - Tab でフィールド間を移動
+  - 矢印キーで候補を移動（ネイティブの挙動を利用）
+  - Enter で候補を確定
+  - Escape で候補一覧を閉じる
 
-- **Live Regions:**
-  - Error messages use `accessibilityLiveRegion="polite"`
-  - Status changes announced without interrupting user
+- **ライブリージョン**
+  - エラーメッセージは `accessibilityLiveRegion="polite"` を利用し、ユーザー操作を妨げずに通知
 
-## Code Quality
+## コード品質
 
-- **TypeScript:** Full type safety with shared DTOs and response types
-- **Comments:** Japanese comments throughout for consistency with codebase
-- **Formatting:** Prettier-compliant formatting
-- **Testing:** TypeScript compilation and build verification passed
-- **Patterns:** Follows existing LocationAutocomplete implementation patterns
+- **TypeScript**: 共有DTOとレスポンスタイプを用いた型安全な実装
+- **コメント**: 既存コードベースに合わせ日本語コメントを追加
+- **フォーマット**: Prettierのスタイルに準拠
+- **テスト**: TypeScriptコンパイルおよびビルドを通過済み
+- **設計**: 既存の LocationAutocomplete のパターンに沿って実装
 
-## Future Enhancements
+## 今後の拡張案
 
-1. **Idempotency Key Support:**
-   - Currently removed due to useAPICall hook limitations
-   - Can be added when backend implements idempotency key handling
+1. **Idempotency Key 対応**
+   - 現状は `useAPICall` フックの制約で未対応
+   - バックエンドがidempotency keyをサポートした時点で導入予定
 
-2. **Enhanced Error Handling:**
-   - Retry logic for network failures
-   - Offline support with cached categories
+2. **エラーハンドリング強化**
+   - ネットワーク失敗時のリトライ
+   - オフライン時のカテゴリキャッシュ
 
-3. **Performance:**
-   - Category results caching
-   - Recent selections persistence
+3. **パフォーマンス改善**
+   - 検索結果のキャッシュ
+   - 最近使用したカテゴリの保持
 
-4. **Additional Features:**
-   - Category suggestions based on restaurant type
-   - Popular categories quick-select
+4. **追加機能**
+   - 店舗種別に応じた候補表示
+   - 人気カテゴリのクイックセレクト
 
-## Testing Recommendations
+## テスト推奨事項
 
-1. **Manual Testing:**
-   - Type 3+ characters and verify suggestions appear
-   - Select a suggestion and verify it's stored
-   - Submit form with selected category
-   - Submit form with typed but unselected category
-   - Verify error handling for POST failures
-   - Test clear button functionality
-   - Test accessibility with screen reader
+1. **手動テスト**
+   - 3文字以上入力した際に候補が表示されること
+   - 候補を選択すると値が保持されること
+   - 選択済みカテゴリでフォーム送信が成功すること
+   - 入力のみで送信した場合にバリアントが作成されること
+   - POST 失敗時にエラーが表示されること
+   - クリアボタンが正しく動作すること
+   - スクリーンリーダーでのアナウンスを確認すること
 
-2. **Automated Testing:**
-   - Unit tests for `useDishCategorySearch` hook
-   - Component tests for `DishCategoryAutocomplete`
-   - Integration tests for ReviewForm submission flow
+2. **自動テスト**
+   - `useDishCategorySearch` フックのユニットテスト
+   - `DishCategoryAutocomplete` コンポーネントのテスト
+   - ReviewForm の統合テスト（送信フロー）
 
-## Files Changed
+## 変更ファイル
 
-**New Files:**
+**新規ファイル:**
 
-- `app-expo/hooks/useDishCategorySearch.ts` (152 lines)
-- `app-expo/components/DishCategoryAutocomplete.tsx` (330 lines)
+- `app-expo/hooks/useDishCategorySearch.ts`（152行）
+- `app-expo/components/DishCategoryAutocomplete.tsx`（330行）
 
-**Modified Files:**
+**既存ファイルの変更:**
 
-- `app-expo/features/map/components/ReviewForm.tsx` (added 60+ lines)
-- `app-expo/locales/*.json` (8 files, added i18n strings)
+- `app-expo/features/map/components/ReviewForm.tsx`（約60行追加）
+- `app-expo/locales/*.json`（8ファイルにi18n文字列を追加）
 
-**Total Lines Added:** ~600 lines of code and configuration
+**総追加行数:** 約600行
 
-## Dependencies
+## 依存関係
 
-No new dependencies added. Uses existing packages:
+新規パッケージの追加はなし。既存の以下のパッケージを利用。
 
-- React Native core components
-- `lucide-react-native` for icons (ChefHat)
-- Existing custom hooks (useAPICall, useLocale, useLogger, useHaptics)
+- React Native コアコンポーネント
+- アイコン用の `lucide-react-native`
+- 既存のカスタムフック（useAPICall, useLocale, useLogger, useHaptics）
 
-## Conclusion
+## まとめ
 
-The DishCategoryAutocomplete feature is fully implemented and integrated into the ReviewForm. It follows established patterns from LocationAutocomplete, provides excellent accessibility support, and includes comprehensive error handling. The implementation is production-ready and has passed all type checking and build validation.
+DishCategoryAutocomplete 機能は ReviewForm に統合済みで、LocationAutocomplete の実装パターンを踏襲しつつ高いアクセシビリティと手厚いエラーハンドリングを実現している。TypeScript の型チェックとビルドも完了しており、本番投入可能な状態である。
