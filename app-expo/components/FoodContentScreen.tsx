@@ -224,14 +224,9 @@ export default function FoodContentScreen({
 
 	// ===== Send View on Deactivate or Unmount =====
 	useEffect(() => {
-		const sendView = async () => {
-			if (viewSent || viewSending) return;
-
-			setViewSending(true);
-
-			const isSkipped = watchMs < 1000 && !isCompleted; // Consider skipped if watched less than 1s and not completed
-
-			const success = await sendDishMediaView({
+		const buildViewPayload = () => {
+			const isSkipped = watchMs < 1000 && !isCompleted;
+			return {
 				impression_id: impressionId,
 				dish_media_id: item.dish_media.id,
 				watch_ms: Math.round(watchMs),
@@ -239,7 +234,16 @@ export default function FoodContentScreen({
 				is_skipped: isSkipped,
 				rewatch_count: rewatchCount,
 				started_at: watchStartTime.toISOString(),
-			});
+			};
+		};
+
+		const sendView = async () => {
+			if (viewSent || viewSending) return;
+
+			setViewSending(true);
+
+			const payload = buildViewPayload();
+			const success = await sendDishMediaView(payload);
 
 			if (success) {
 				setViewSent(true);
@@ -249,24 +253,14 @@ export default function FoodContentScreen({
 					payload: {
 						dish_media_id: item.dish_media.id,
 						impression_id: impressionId,
-						watch_ms: Math.round(watchMs),
-						is_completed: isCompleted,
-						is_skipped: isSkipped,
-						rewatch_count: rewatchCount,
+						...payload,
 					},
 				});
 			} else {
 				// Retry once after a delay
 				setTimeout(async () => {
-					const retrySuccess = await sendDishMediaView({
-						impression_id: impressionId,
-						dish_media_id: item.dish_media.id,
-						watch_ms: Math.round(watchMs),
-						is_completed: isCompleted,
-						is_skipped: isSkipped,
-						rewatch_count: rewatchCount,
-						started_at: watchStartTime.toISOString(),
-					});
+					const retryPayload = buildViewPayload();
+					const retrySuccess = await sendDishMediaView(retryPayload);
 
 					if (retrySuccess) {
 						setViewSent(true);
@@ -276,10 +270,7 @@ export default function FoodContentScreen({
 							payload: {
 								dish_media_id: item.dish_media.id,
 								impression_id: impressionId,
-								watch_ms: Math.round(watchMs),
-								is_completed: isCompleted,
-								is_skipped: isSkipped,
-								rewatch_count: rewatchCount,
+								...retryPayload,
 							},
 						});
 					}
@@ -296,7 +287,17 @@ export default function FoodContentScreen({
 		// Also send on unmount
 		return () => {
 			if (impressionSent && !viewSent && !viewSending) {
-				sendView();
+				// Fire and forget - we can't await in cleanup
+				sendView().catch((error) => {
+					logFrontendEvent({
+						event_name: "dish_media_view_send_cleanup_error",
+						error_level: "warn",
+						payload: {
+							error: error instanceof Error ? error.message : String(error),
+							dish_media_id: item.dish_media.id,
+						},
+					});
+				});
 			}
 		};
 	}, [

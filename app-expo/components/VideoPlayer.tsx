@@ -4,6 +4,11 @@ import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 
+// Threshold for detecting video loop (when currentTime returns to near start)
+const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
+// Progress tracking interval in milliseconds
+const PROGRESS_CHECK_INTERVAL_MS = 250;
+
 export interface VideoPlayerProps {
 	uri: string;
 	style?: any;
@@ -105,7 +110,11 @@ function VideoPlayer({
 		const interval = setInterval(() => {
 			if (player.currentTime !== undefined && player.duration > 0) {
 				// Detect loop (when currentTime goes back to near 0)
-				if (onLoop && lastLoopTime > 1 && player.currentTime < 1) {
+				if (
+					onLoop &&
+					lastLoopTime > LOOP_DETECTION_THRESHOLD_SECONDS &&
+					player.currentTime < LOOP_DETECTION_THRESHOLD_SECONDS
+				) {
 					onLoop();
 				}
 				setLastLoopTime(player.currentTime);
@@ -118,7 +127,7 @@ function VideoPlayer({
 					});
 				}
 			}
-		}, 250); // Check every 250ms
+		}, PROGRESS_CHECK_INTERVAL_MS);
 
 		return () => clearInterval(interval);
 	}, [player, onProgress, onLoop, lastLoopTime]);
