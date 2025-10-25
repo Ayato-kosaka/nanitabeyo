@@ -10,6 +10,7 @@ import { Prisma } from '../../../../shared/prisma/client';
 
 import {
   CreateDishMediaDto,
+  CreateDishMediaViewDto,
   LikeDishMediaParamsDto,
   SaveDishMediaParamsDto,
   SearchDishMediaDto,
@@ -35,7 +36,7 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -261,19 +262,10 @@ export class DishMediaService {
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-media/view                       */
   /* ------------------------------------------------------------------ */
-  async createDishMediaView(dto: {
-    impression_id?: string | null;
-    dish_media_id: string;
-    user_id?: string | null;
-    started_at?: string;
-    watch_ms: number;
-    is_completed: boolean;
-    is_skipped: boolean;
-    rewatch_count: number;
-  }) {
+  async createDishMediaView(dish_media_id: string, dto: CreateDishMediaViewDto, user_id: string) {
     this.logger.debug('CreateDishMediaView', 'createDishMediaView', {
-      dish_media_id: dto.dish_media_id,
-      user_id: dto.user_id,
+      dish_media_id,
+      user_id: user_id,
       watch_ms: dto.watch_ms,
       is_completed: dto.is_completed,
       is_skipped: dto.is_skipped,
@@ -288,9 +280,9 @@ export class DishMediaService {
       (tx: Prisma.TransactionClient) =>
         this.repo.createDishMediaView(tx, {
           impression_id: dto.impression_id,
-          dish_media_id: dto.dish_media_id,
-          user_id: dto.user_id,
-          started_at: dto.started_at ? new Date(dto.started_at) : undefined,
+          dish_media_id,
+          user_id,
+          started_at: dto.started_at,
           watch_ms: dto.watch_ms,
           is_completed: dto.is_completed,
           is_skipped: dto.is_skipped,
@@ -300,7 +292,7 @@ export class DishMediaService {
 
     this.logger.log('DishMediaViewCreated', 'createDishMediaView', {
       viewId: result.id,
-      dish_media_id: dto.dish_media_id,
+      dish_media_id,
     });
 
     return {

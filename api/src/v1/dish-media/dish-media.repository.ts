@@ -12,6 +12,7 @@ import { PrismaRestaurants } from '../../../../shared/converters/convert_restaur
 import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish_media_views';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 
 import {
@@ -53,7 +54,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -132,9 +133,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -477,14 +478,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -500,12 +501,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
@@ -592,42 +593,12 @@ export class DishMediaRepository {
   /* ------------------------------------------------------------------ */
   async createDishMediaView(
     tx: Prisma.TransactionClient,
-    data: {
-      impression_id?: string | null;
-      dish_media_id: string;
-      user_id?: string | null;
-      started_at?: Date;
-      watch_ms: number;
-      is_completed: boolean;
-      is_skipped: boolean;
-      rewatch_count: number;
-    },
+    data: Omit<PrismaDishMediaViews, "id">
   ) {
-    // 1. Select dish_media for update to ensure it exists
-    const dishMedia = await tx.dish_media.findUnique({
-      where: { id: data.dish_media_id },
-      select: { id: true },
-    });
+    // 1. dish_media_views を一件挿入
+    const view = await tx.dish_media_views.create({ data });
 
-    if (!dishMedia) {
-      throw new Error(`DishMedia not found: ${data.dish_media_id}`);
-    }
-
-    // 2. Insert dish_media_views
-    const view = await tx.dish_media_views.create({
-      data: {
-        impression_id: data.impression_id,
-        dish_media_id: data.dish_media_id,
-        user_id: data.user_id,
-        started_at: data.started_at || new Date(),
-        watch_ms: data.watch_ms,
-        is_completed: data.is_completed,
-        is_skipped: data.is_skipped,
-        rewatch_count: data.rewatch_count,
-      },
-    });
-
-    // 3. Upsert dish_media_analysis_results
+    // 2. dish_media_analysis_results を更新または挿入
     await tx.dish_media_analysis_results.upsert({
       where: { dish_media_id: data.dish_media_id },
       create: {
@@ -641,6 +612,8 @@ export class DishMediaRepository {
         save_total: BigInt(0),
         like_total: BigInt(0),
         open_map_total: BigInt(0),
+        created_at: new Date(),
+        updated_at: new Date(),
       },
       update: {
         view_total: { increment: BigInt(1) },

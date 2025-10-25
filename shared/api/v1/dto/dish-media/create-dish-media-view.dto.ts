@@ -1,23 +1,15 @@
-import { IsBoolean, IsInt, IsOptional, IsUUID, Min, ValidateIf } from "class-validator";
+import { Type } from "class-transformer";
+import { IsBoolean, IsDate, IsInt, IsUUID, Min, ValidateIf } from "class-validator";
 
 export class CreateDishMediaViewDto {
-	/** impression_id (nullable) */
-	@IsOptional()
+	/** impression_id */
 	@IsUUID()
-	impression_id?: string | null;
+	impression_id!: string;
 
-	/** dish_media_id (required) */
-	@IsUUID()
-	dish_media_id!: string;
-
-	/** user_id (nullable, from auth) */
-	@IsOptional()
-	@IsUUID()
-	user_id?: string | null;
-
-	/** started_at (ISO string, default to now if not provided) */
-	@IsOptional()
-	started_at?: string;
+	/** started_at */
+	@Type(() => Date)
+	@IsDate()
+	started_at!: Date;
 
 	/** watch_ms (required, minimum 0) */
 	@IsInt()
