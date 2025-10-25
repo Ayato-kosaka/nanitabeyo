@@ -13,8 +13,7 @@ CREATE TABLE IF NOT EXISTS dish_media_impressions (
   -- 参照
   dish_media_id uuid NOT NULL
                 REFERENCES dish_media(id) ON DELETE CASCADE,
-  user_id       uuid NULL
-                REFERENCES users(id) ON DELETE SET NULL,
+  user_id       uuid NOT NULL,
 
   -- 同一セッション識別（匿名可）
   session_id    uuid NULL,
