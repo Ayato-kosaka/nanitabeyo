@@ -586,4 +586,73 @@ export class DishMediaRepository {
 
     return newMedia;
   }
+
+  /* ------------------------------------------------------------------ */
+  /*        dish_media_views 作成 + dish_media_analysis_results 更新   */
+  /* ------------------------------------------------------------------ */
+  async createDishMediaView(
+    tx: Prisma.TransactionClient,
+    data: {
+      impression_id?: string | null;
+      dish_media_id: string;
+      user_id?: string | null;
+      started_at?: Date;
+      watch_ms: number;
+      is_completed: boolean;
+      is_skipped: boolean;
+      rewatch_count: number;
+    },
+  ) {
+    // 1. Select dish_media for update to ensure it exists
+    const dishMedia = await tx.dish_media.findUnique({
+      where: { id: data.dish_media_id },
+      select: { id: true },
+    });
+
+    if (!dishMedia) {
+      throw new Error(`DishMedia not found: ${data.dish_media_id}`);
+    }
+
+    // 2. Insert dish_media_views
+    const view = await tx.dish_media_views.create({
+      data: {
+        impression_id: data.impression_id,
+        dish_media_id: data.dish_media_id,
+        user_id: data.user_id,
+        started_at: data.started_at || new Date(),
+        watch_ms: data.watch_ms,
+        is_completed: data.is_completed,
+        is_skipped: data.is_skipped,
+        rewatch_count: data.rewatch_count,
+      },
+    });
+
+    // 3. Upsert dish_media_analysis_results
+    await tx.dish_media_analysis_results.upsert({
+      where: { dish_media_id: data.dish_media_id },
+      create: {
+        dish_media_id: data.dish_media_id,
+        video_duration_ms: 0,
+        impr_total: BigInt(0),
+        view_total: BigInt(1),
+        skip_total: data.is_skipped ? BigInt(1) : BigInt(0),
+        completion_total: data.is_completed ? BigInt(1) : BigInt(0),
+        watch_ms_total: BigInt(data.watch_ms),
+        save_total: BigInt(0),
+        like_total: BigInt(0),
+        open_map_total: BigInt(0),
+      },
+      update: {
+        view_total: { increment: BigInt(1) },
+        skip_total: data.is_skipped ? { increment: BigInt(1) } : undefined,
+        completion_total: data.is_completed
+          ? { increment: BigInt(1) }
+          : undefined,
+        watch_ms_total: { increment: BigInt(data.watch_ms) },
+        updated_at: new Date(),
+      },
+    });
+
+    return view;
+  }
 }

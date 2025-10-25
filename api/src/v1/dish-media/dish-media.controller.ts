@@ -32,6 +32,7 @@ import {
 
 import {
   CreateDishMediaDto,
+  CreateDishMediaViewDto,
   LikeDishMediaParamsDto,
   SaveDishMediaParamsDto,
   QueryDishMediaByIdsDto,
@@ -40,6 +41,7 @@ import {
 import {
   SearchDishMediaResponse,
   CreateDishMediaResponse,
+  CreateDishMediaViewResponse,
   LikeDishMediaResponse,
   UnlikeDishMediaResponse,
   SaveDishMediaResponse,
@@ -203,5 +205,28 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
   ): Promise<CreateDishMediaResponse> {
     return this.dishMediaService.createDishMedia(dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                  POST /v1/dish-media/view                          */
+  /* ------------------------------------------------------------------ */
+  @Post('view')
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({ summary: 'DishMedia 視聴記録' })
+  @ApiResponse({ status: 200, description: '記録成功' })
+  @ApiResponse({ status: 400, description: 'バリデーションエラー' })
+  @ApiResponse({ status: 404, description: 'DishMedia が見つからない' })
+  async createDishMediaView(
+    @Body() dto: CreateDishMediaViewDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<CreateDishMediaViewResponse> {
+    // If user is authenticated, use their ID; otherwise use the one from DTO (if any)
+    const userId = user?.id || dto.user_id;
+
+    return this.dishMediaService.createDishMediaView({
+      ...dto,
+      user_id: userId,
+    });
   }
 }

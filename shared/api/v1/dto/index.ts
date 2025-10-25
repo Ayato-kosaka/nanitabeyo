@@ -1,4 +1,5 @@
 export { CreateDishMediaDto } from "./dish-media/create-dish-media.dto";
+export { CreateDishMediaViewDto } from "./dish-media/create-dish-media-view.dto";
 export { LikeDishMediaParamsDto } from "./dish-media/like-dish-media.dto";
 export { QueryDishMediaByIdsDto } from "./dish-media/query-dish-media-by-ids.dto";
 export { SearchDishMediaDto } from "./dish-media/search-dish-media.dto";

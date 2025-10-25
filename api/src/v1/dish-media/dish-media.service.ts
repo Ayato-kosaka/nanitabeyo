@@ -257,4 +257,58 @@ export class DishMediaService {
 
     return convertPrismaToSupabase_DishMedia(result);
   }
+
+  /* ------------------------------------------------------------------ */
+  /*                     POST /v1/dish-media/view                       */
+  /* ------------------------------------------------------------------ */
+  async createDishMediaView(dto: {
+    impression_id?: string | null;
+    dish_media_id: string;
+    user_id?: string | null;
+    started_at?: string;
+    watch_ms: number;
+    is_completed: boolean;
+    is_skipped: boolean;
+    rewatch_count: number;
+  }) {
+    this.logger.debug('CreateDishMediaView', 'createDishMediaView', {
+      dish_media_id: dto.dish_media_id,
+      user_id: dto.user_id,
+      watch_ms: dto.watch_ms,
+      is_completed: dto.is_completed,
+      is_skipped: dto.is_skipped,
+    });
+
+    // Validation: cannot be both completed and skipped
+    if (dto.is_completed && dto.is_skipped) {
+      throw new Error('View cannot be both completed and skipped');
+    }
+
+    const result = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.createDishMediaView(tx, {
+          impression_id: dto.impression_id,
+          dish_media_id: dto.dish_media_id,
+          user_id: dto.user_id,
+          started_at: dto.started_at ? new Date(dto.started_at) : undefined,
+          watch_ms: dto.watch_ms,
+          is_completed: dto.is_completed,
+          is_skipped: dto.is_skipped,
+          rewatch_count: dto.rewatch_count,
+        }),
+    );
+
+    this.logger.log('DishMediaViewCreated', 'createDishMediaView', {
+      viewId: result.id,
+      dish_media_id: dto.dish_media_id,
+    });
+
+    return {
+      id: result.id,
+      dish_media_id: result.dish_media_id,
+      impression_id: result.impression_id,
+      stored: true,
+      analysis_applied: true,
+    };
+  }
 }
