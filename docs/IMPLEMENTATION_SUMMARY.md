@@ -46,7 +46,7 @@
 import { getCurrencyCodeFromRestaurant } from "@/lib/googlePlaces";
 
 const restaurant = {
-        address_components: [{ shortText: "JP", types: ["country", "political"] }],
+	address_components: [{ shortText: "JP", types: ["country", "political"] }],
 };
 
 const currency = getCurrencyCodeFromRestaurant(restaurant);

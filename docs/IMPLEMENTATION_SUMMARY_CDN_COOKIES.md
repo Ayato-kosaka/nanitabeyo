@@ -71,15 +71,18 @@ CDN_SIGNED_COOKIE_TTL_SECONDS: z.string().default('600').transform((v) => Number
 以下の6エンドポイントで `Set-Cookie` ヘッダーを設定。
 
 **UsersController** (`api/src/v1/users/users.controller.ts`)
+
 - `GET /v1/users/:id/dish-reviews`
 - `GET /v1/users/me/liked-dish-media`
 - `GET /v1/users/me/saved-dish-media`
 
 **DishMediaController** (`api/src/v1/dish-media/dish-media.controller.ts`)
+
 - `GET /v1/dish-media?ids=...`
 - `GET /v1/dish-media/search`
 
 **RestaurantsController** (`api/src/v1/restaurants/restaurants.controller.ts`)
+
 - `GET /v1/restaurants/:id/dish-media`
 
 実装パターン:
@@ -238,14 +241,14 @@ CDN_SIGNED_COOKIE_TTL_SECONDS=600
 
 ```json
 {
-        "event": "CdnSignedCookiesGenerated",
-        "context": "generateCdnSignedCookies",
-        "data": {
-                "urlPrefix": "https://cdn.example.com/prod/.../",
-                "recordId": "abc123",
-                "expires": "2025-10-14T23:17:23.000Z",
-                "cookieCount": 1
-        }
+	"event": "CdnSignedCookiesGenerated",
+	"context": "generateCdnSignedCookies",
+	"data": {
+		"urlPrefix": "https://cdn.example.com/prod/.../",
+		"recordId": "abc123",
+		"expires": "2025-10-14T23:17:23.000Z",
+		"cookieCount": 1
+	}
 }
 ```
 

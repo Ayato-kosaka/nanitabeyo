@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform, AppState } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -20,6 +20,7 @@ import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import VideoPlayer from "./VideoPlayer";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
+import { insertDishMediaImpression, sendDishMediaView } from "@/lib/dishMediaTracking";
 
 const { width, height } = Dimensions.get("window");
 
@@ -27,6 +28,8 @@ interface FoodContentScreenProps {
 	item: DishMediaEntry;
 	carouselRef?: React.RefObject<any>;
 	isActive?: boolean;
+	sessionId?: string;
+	source?: "for_you" | "search" | "profile" | string;
 }
 
 // Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
@@ -62,7 +65,13 @@ const formatLikeCount = (count: number): string => {
 	return count.toString();
 };
 
-export default function FoodContentScreen({ item, carouselRef, isActive = true }: FoodContentScreenProps) {
+export default function FoodContentScreen({
+	item,
+	carouselRef,
+	isActive = true,
+	sessionId,
+	source: sourceParam = "for_you",
+}: FoodContentScreenProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -98,6 +107,19 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 	const { showSnackbar } = useSnackbar();
 
+	// ===== Tracking State =====
+	const [impressionId, setImpressionId] = useState<string | null>(null);
+	const [impressionSent, setImpressionSent] = useState(false);
+	const [viewSent, setViewSent] = useState(false);
+	const [viewSending, setViewSending] = useState(false);
+	const [watchStartTime] = useState(new Date());
+	const [watchMs, setWatchMs] = useState(0);
+	const [isCompleted, setIsCompleted] = useState(false);
+	const [rewatchCount, setRewatchCount] = useState(0);
+	const watchTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const appStateRef = useRef(AppState.currentState);
+	const lastActiveTimeRef = useRef(Date.now());
+
 	const source = useMemo(
 		() => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
 		[item.dish_media.mediaUrl],
@@ -106,6 +128,224 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 	useEffect(() => {
 		scrollViewRef.current?.scrollToEnd({ animated: false });
 	}, [item.dish_reviews.length]);
+
+	// ===== Impression Tracking =====
+	useEffect(() => {
+		if (isActive && !impressionSent) {
+			setImpressionSent(true);
+			insertDishMediaImpression({
+				dish_media_id: item.dish_media.id,
+				session_id: sessionId,
+				source: sourceParam,
+			}).then((id) => {
+				if (id) {
+					setImpressionId(id);
+					logFrontendEvent({
+						event_name: "dish_media_impression_sent",
+						error_level: "log",
+						payload: {
+							dish_media_id: item.dish_media.id,
+							impression_id: id,
+							source: sourceParam,
+						},
+					});
+				}
+			});
+		}
+	}, [isActive, impressionSent, item.dish_media.id, sessionId, sourceParam, logFrontendEvent]);
+
+	// ===== Watch Time Tracking =====
+	useEffect(() => {
+		const remoteConfig = getRemoteConfig();
+		const imageCompletionThresholdMs = parseInt(
+			(remoteConfig as any)?.v1_dish_media_image_completion_threshold_ms || "3000",
+			10,
+		);
+
+		if (isActive && appStateRef.current === "active") {
+			// Start or resume watch timer
+			lastActiveTimeRef.current = Date.now();
+
+			const interval = setInterval(() => {
+				if (appStateRef.current === "active") {
+					const now = Date.now();
+					const elapsed = now - lastActiveTimeRef.current;
+					lastActiveTimeRef.current = now;
+
+					setWatchMs((prev) => {
+						const newWatchMs = prev + elapsed;
+
+						// Check completion for images
+						if (item.dish_media.media_type === "image" && !isCompleted && newWatchMs >= imageCompletionThresholdMs) {
+							setIsCompleted(true);
+							logFrontendEvent({
+								event_name: "dish_media_image_completed",
+								error_level: "log",
+								payload: {
+									dish_media_id: item.dish_media.id,
+									watch_ms: newWatchMs,
+								},
+							});
+						}
+
+						return newWatchMs;
+					});
+				}
+			}, 100); // Update every 100ms
+
+			watchTimerRef.current = interval as any;
+		}
+
+		return () => {
+			if (watchTimerRef.current) {
+				clearInterval(watchTimerRef.current);
+				watchTimerRef.current = null;
+			}
+		};
+	}, [isActive, item.dish_media.id, item.dish_media.media_type, isCompleted, logFrontendEvent]);
+
+	// ===== AppState Tracking =====
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (nextAppState) => {
+			if (appStateRef.current === "active" && nextAppState.match(/inactive|background/)) {
+				// App is going to background - pause watch time tracking
+				appStateRef.current = nextAppState;
+			} else if (appStateRef.current.match(/inactive|background/) && nextAppState === "active") {
+				// App is coming back to foreground - resume from current time
+				appStateRef.current = nextAppState;
+				lastActiveTimeRef.current = Date.now();
+			}
+		});
+
+		return () => {
+			subscription.remove();
+		};
+	}, []);
+
+	// ===== Send View on Deactivate or Unmount =====
+	useEffect(() => {
+		const sendView = async () => {
+			if (viewSent || viewSending) return;
+
+			setViewSending(true);
+
+			const isSkipped = watchMs < 1000 && !isCompleted; // Consider skipped if watched less than 1s and not completed
+
+			const success = await sendDishMediaView({
+				impression_id: impressionId,
+				dish_media_id: item.dish_media.id,
+				watch_ms: Math.round(watchMs),
+				is_completed: isCompleted,
+				is_skipped: isSkipped,
+				rewatch_count: rewatchCount,
+				started_at: watchStartTime.toISOString(),
+			});
+
+			if (success) {
+				setViewSent(true);
+				logFrontendEvent({
+					event_name: "dish_media_view_sent",
+					error_level: "log",
+					payload: {
+						dish_media_id: item.dish_media.id,
+						impression_id: impressionId,
+						watch_ms: Math.round(watchMs),
+						is_completed: isCompleted,
+						is_skipped: isSkipped,
+						rewatch_count: rewatchCount,
+					},
+				});
+			} else {
+				// Retry once after a delay
+				setTimeout(async () => {
+					const retrySuccess = await sendDishMediaView({
+						impression_id: impressionId,
+						dish_media_id: item.dish_media.id,
+						watch_ms: Math.round(watchMs),
+						is_completed: isCompleted,
+						is_skipped: isSkipped,
+						rewatch_count: rewatchCount,
+						started_at: watchStartTime.toISOString(),
+					});
+
+					if (retrySuccess) {
+						setViewSent(true);
+						logFrontendEvent({
+							event_name: "dish_media_view_sent_retry",
+							error_level: "log",
+							payload: {
+								dish_media_id: item.dish_media.id,
+								impression_id: impressionId,
+								watch_ms: Math.round(watchMs),
+								is_completed: isCompleted,
+								is_skipped: isSkipped,
+								rewatch_count: rewatchCount,
+							},
+						});
+					}
+				}, 1000);
+			}
+
+			setViewSending(false);
+		};
+
+		if (!isActive && impressionSent && !viewSent) {
+			sendView();
+		}
+
+		// Also send on unmount
+		return () => {
+			if (impressionSent && !viewSent && !viewSending) {
+				sendView();
+			}
+		};
+	}, [
+		isActive,
+		impressionSent,
+		viewSent,
+		viewSending,
+		impressionId,
+		item.dish_media.id,
+		watchMs,
+		isCompleted,
+		rewatchCount,
+		watchStartTime,
+		logFrontendEvent,
+	]);
+
+	// ===== Video Progress Tracking =====
+	const handleVideoProgress = (progress: { currentTime: number; duration: number }) => {
+		if (item.dish_media.media_type === "video" && progress.duration > 0) {
+			const progressPercent = (progress.currentTime / progress.duration) * 100;
+
+			// Mark as completed when 90% reached
+			if (!isCompleted && progressPercent >= 90) {
+				setIsCompleted(true);
+				logFrontendEvent({
+					event_name: "dish_media_video_completed",
+					error_level: "log",
+					payload: {
+						dish_media_id: item.dish_media.id,
+						progress_percent: progressPercent,
+						current_time: progress.currentTime,
+						duration: progress.duration,
+					},
+				});
+			}
+		}
+	};
+
+	const handleVideoLoop = () => {
+		setRewatchCount((prev) => prev + 1);
+		logFrontendEvent({
+			event_name: "dish_media_video_looped",
+			error_level: "log",
+			payload: {
+				dish_media_id: item.dish_media.id,
+				rewatch_count: rewatchCount + 1,
+			},
+		});
+	};
 
 	const handleCommentLike = async (commentId: string) => {
 		lightImpact();
@@ -441,7 +681,13 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 		<SafeAreaView style={styles.container}>
 			{/* Background Media (Image or Video) */}
 			{item.dish_media.media_type === "video" ? (
-				<VideoPlayer uri={item.dish_media.mediaUrl} style={StyleSheet.absoluteFill} shouldPlay={isActive} />
+				<VideoPlayer
+					uri={item.dish_media.mediaUrl}
+					style={StyleSheet.absoluteFill}
+					shouldPlay={isActive}
+					onProgress={handleVideoProgress}
+					onLoop={handleVideoLoop}
+				/>
 			) : (
 				<Image
 					source={source}
