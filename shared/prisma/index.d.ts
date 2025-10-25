@@ -46,11 +46,30 @@ export type dish_category_variants = $Result.DefaultSelection<Prisma.$dish_categ
  */
 export type dish_media = $Result.DefaultSelection<Prisma.$dish_mediaPayload>
 /**
+ * Model dish_media_analysis_results
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_media_analysis_results = $Result.DefaultSelection<Prisma.$dish_media_analysis_resultsPayload>
+/**
+ * Model dish_media_impressions
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_media_impressions = $Result.DefaultSelection<Prisma.$dish_media_impressionsPayload>
+/**
  * Model dish_media_likes
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
 export type dish_media_likes = $Result.DefaultSelection<Prisma.$dish_media_likesPayload>
+/**
+ * Model dish_media_views
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ */
+export type dish_media_views = $Result.DefaultSelection<Prisma.$dish_media_viewsPayload>
 /**
  * Model dish_reviews
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -368,6 +387,26 @@ export class PrismaClient<
   get dish_media(): Prisma.dish_mediaDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.dish_media_analysis_results`: Exposes CRUD operations for the **dish_media_analysis_results** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_media_analysis_results
+    * const dish_media_analysis_results = await prisma.dish_media_analysis_results.findMany()
+    * ```
+    */
+  get dish_media_analysis_results(): Prisma.dish_media_analysis_resultsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_media_impressions`: Exposes CRUD operations for the **dish_media_impressions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_media_impressions
+    * const dish_media_impressions = await prisma.dish_media_impressions.findMany()
+    * ```
+    */
+  get dish_media_impressions(): Prisma.dish_media_impressionsDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.dish_media_likes`: Exposes CRUD operations for the **dish_media_likes** model.
     * Example usage:
     * ```ts
@@ -376,6 +415,16 @@ export class PrismaClient<
     * ```
     */
   get dish_media_likes(): Prisma.dish_media_likesDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_media_views`: Exposes CRUD operations for the **dish_media_views** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_media_views
+    * const dish_media_views = await prisma.dish_media_views.findMany()
+    * ```
+    */
+  get dish_media_views(): Prisma.dish_media_viewsDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.dish_reviews`: Exposes CRUD operations for the **dish_reviews** model.
@@ -554,8 +603,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 6.17.1
-   * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
+   * Prisma Client JS version: 6.18.0
+   * Query Engine version: 34b5a692b7bd79939a9a2c3ef97d816e749cda2f
    */
   export type PrismaVersion = {
     client: string
@@ -568,6 +617,7 @@ export namespace Prisma {
    */
 
 
+  export import Bytes = runtime.Bytes
   export import JsonObject = runtime.JsonObject
   export import JsonArray = runtime.JsonArray
   export import JsonValue = runtime.JsonValue
@@ -941,7 +991,10 @@ export namespace Prisma {
     dish_categories: 'dish_categories',
     dish_category_variants: 'dish_category_variants',
     dish_media: 'dish_media',
+    dish_media_analysis_results: 'dish_media_analysis_results',
+    dish_media_impressions: 'dish_media_impressions',
     dish_media_likes: 'dish_media_likes',
+    dish_media_views: 'dish_media_views',
     dish_reviews: 'dish_reviews',
     dishes: 'dishes',
     external_api_logs: 'external_api_logs',
@@ -972,7 +1025,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_media" | "dish_media_likes" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "users"
+      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1346,6 +1399,154 @@ export namespace Prisma {
           }
         }
       }
+      dish_media_analysis_results: {
+        payload: Prisma.$dish_media_analysis_resultsPayload<ExtArgs>
+        fields: Prisma.dish_media_analysis_resultsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_media_analysis_resultsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_media_analysis_resultsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_media_analysis_resultsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_media_analysis_resultsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>
+          }
+          findMany: {
+            args: Prisma.dish_media_analysis_resultsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>[]
+          }
+          create: {
+            args: Prisma.dish_media_analysis_resultsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>
+          }
+          createMany: {
+            args: Prisma.dish_media_analysis_resultsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_media_analysis_resultsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_media_analysis_resultsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>
+          }
+          update: {
+            args: Prisma.dish_media_analysis_resultsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_media_analysis_resultsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_media_analysis_resultsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_media_analysis_resultsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_media_analysis_resultsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_analysis_resultsPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_media_analysis_resultsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_media_analysis_results>
+          }
+          groupBy: {
+            args: Prisma.dish_media_analysis_resultsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_analysis_resultsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_media_analysis_resultsCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_analysis_resultsCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_media_impressions: {
+        payload: Prisma.$dish_media_impressionsPayload<ExtArgs>
+        fields: Prisma.dish_media_impressionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_media_impressionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_media_impressionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_media_impressionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_media_impressionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>
+          }
+          findMany: {
+            args: Prisma.dish_media_impressionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>[]
+          }
+          create: {
+            args: Prisma.dish_media_impressionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>
+          }
+          createMany: {
+            args: Prisma.dish_media_impressionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_media_impressionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_media_impressionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>
+          }
+          update: {
+            args: Prisma.dish_media_impressionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_media_impressionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_media_impressionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_media_impressionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_media_impressionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_impressionsPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_media_impressionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_media_impressions>
+          }
+          groupBy: {
+            args: Prisma.dish_media_impressionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_impressionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_media_impressionsCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_impressionsCountAggregateOutputType> | number
+          }
+        }
+      }
       dish_media_likes: {
         payload: Prisma.$dish_media_likesPayload<ExtArgs>
         fields: Prisma.dish_media_likesFieldRefs
@@ -1417,6 +1618,80 @@ export namespace Prisma {
           count: {
             args: Prisma.dish_media_likesCountArgs<ExtArgs>
             result: $Utils.Optional<Dish_media_likesCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_media_views: {
+        payload: Prisma.$dish_media_viewsPayload<ExtArgs>
+        fields: Prisma.dish_media_viewsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_media_viewsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_media_viewsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_media_viewsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_media_viewsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>
+          }
+          findMany: {
+            args: Prisma.dish_media_viewsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>[]
+          }
+          create: {
+            args: Prisma.dish_media_viewsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>
+          }
+          createMany: {
+            args: Prisma.dish_media_viewsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_media_viewsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_media_viewsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>
+          }
+          update: {
+            args: Prisma.dish_media_viewsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_media_viewsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_media_viewsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_media_viewsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_media_viewsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_media_viewsPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_media_viewsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_media_views>
+          }
+          groupBy: {
+            args: Prisma.dish_media_viewsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_viewsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_media_viewsCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_media_viewsCountAggregateOutputType> | number
           }
         }
       }
@@ -2409,7 +2684,10 @@ export namespace Prisma {
     dish_categories?: dish_categoriesOmit
     dish_category_variants?: dish_category_variantsOmit
     dish_media?: dish_mediaOmit
+    dish_media_analysis_results?: dish_media_analysis_resultsOmit
+    dish_media_impressions?: dish_media_impressionsOmit
     dish_media_likes?: dish_media_likesOmit
+    dish_media_views?: dish_media_viewsOmit
     dish_reviews?: dish_reviewsOmit
     dishes?: dishesOmit
     external_api_logs?: external_api_logsOmit
@@ -2542,12 +2820,16 @@ export namespace Prisma {
    */
 
   export type Dish_mediaCountOutputType = {
+    dish_media_impressions: number
     dish_media_likes: number
+    dish_media_views: number
     payouts: number
   }
 
   export type Dish_mediaCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media_impressions?: boolean | Dish_mediaCountOutputTypeCountDish_media_impressionsArgs
     dish_media_likes?: boolean | Dish_mediaCountOutputTypeCountDish_media_likesArgs
+    dish_media_views?: boolean | Dish_mediaCountOutputTypeCountDish_media_viewsArgs
     payouts?: boolean | Dish_mediaCountOutputTypeCountPayoutsArgs
   }
 
@@ -2565,6 +2847,13 @@ export namespace Prisma {
   /**
    * Dish_mediaCountOutputType without action
    */
+  export type Dish_mediaCountOutputTypeCountDish_media_impressionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_impressionsWhereInput
+  }
+
+  /**
+   * Dish_mediaCountOutputType without action
+   */
   export type Dish_mediaCountOutputTypeCountDish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: dish_media_likesWhereInput
   }
@@ -2572,8 +2861,46 @@ export namespace Prisma {
   /**
    * Dish_mediaCountOutputType without action
    */
+  export type Dish_mediaCountOutputTypeCountDish_media_viewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_viewsWhereInput
+  }
+
+  /**
+   * Dish_mediaCountOutputType without action
+   */
   export type Dish_mediaCountOutputTypeCountPayoutsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: payoutsWhereInput
+  }
+
+
+  /**
+   * Count Type Dish_media_impressionsCountOutputType
+   */
+
+  export type Dish_media_impressionsCountOutputType = {
+    dish_media_views: number
+  }
+
+  export type Dish_media_impressionsCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media_views?: boolean | Dish_media_impressionsCountOutputTypeCountDish_media_viewsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * Dish_media_impressionsCountOutputType without action
+   */
+  export type Dish_media_impressionsCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Dish_media_impressionsCountOutputType
+     */
+    select?: Dish_media_impressionsCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * Dish_media_impressionsCountOutputType without action
+   */
+  export type Dish_media_impressionsCountOutputTypeCountDish_media_viewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_viewsWhereInput
   }
 
 
@@ -2725,14 +3052,18 @@ export namespace Prisma {
 
   export type UsersCountOutputType = {
     dish_media: number
+    dish_media_impressions: number
     dish_media_likes: number
+    dish_media_views: number
     dish_reviews: number
     restaurant_bids: number
   }
 
   export type UsersCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_media?: boolean | UsersCountOutputTypeCountDish_mediaArgs
+    dish_media_impressions?: boolean | UsersCountOutputTypeCountDish_media_impressionsArgs
     dish_media_likes?: boolean | UsersCountOutputTypeCountDish_media_likesArgs
+    dish_media_views?: boolean | UsersCountOutputTypeCountDish_media_viewsArgs
     dish_reviews?: boolean | UsersCountOutputTypeCountDish_reviewsArgs
     restaurant_bids?: boolean | UsersCountOutputTypeCountRestaurant_bidsArgs
   }
@@ -2758,8 +3089,22 @@ export namespace Prisma {
   /**
    * UsersCountOutputType without action
    */
+  export type UsersCountOutputTypeCountDish_media_impressionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_impressionsWhereInput
+  }
+
+  /**
+   * UsersCountOutputType without action
+   */
   export type UsersCountOutputTypeCountDish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: dish_media_likesWhereInput
+  }
+
+  /**
+   * UsersCountOutputType without action
+   */
+  export type UsersCountOutputTypeCountDish_media_viewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_viewsWhereInput
   }
 
   /**
@@ -7264,7 +7609,10 @@ export namespace Prisma {
     lock_no?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
+    dish_media_analysis_results?: boolean | dish_media$dish_media_analysis_resultsArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media$dish_media_impressionsArgs<ExtArgs>
     dish_media_likes?: boolean | dish_media$dish_media_likesArgs<ExtArgs>
+    dish_media_views?: boolean | dish_media$dish_media_viewsArgs<ExtArgs>
     payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media"]>
@@ -7313,7 +7661,10 @@ export namespace Prisma {
   export type dish_mediaInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
+    dish_media_analysis_results?: boolean | dish_media$dish_media_analysis_resultsArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media$dish_media_impressionsArgs<ExtArgs>
     dish_media_likes?: boolean | dish_media$dish_media_likesArgs<ExtArgs>
+    dish_media_views?: boolean | dish_media$dish_media_viewsArgs<ExtArgs>
     payouts?: boolean | dish_media$payoutsArgs<ExtArgs>
     _count?: boolean | Dish_mediaCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -7331,7 +7682,10 @@ export namespace Prisma {
     objects: {
       dishes: Prisma.$dishesPayload<ExtArgs>
       users: Prisma.$usersPayload<ExtArgs> | null
+      dish_media_analysis_results: Prisma.$dish_media_analysis_resultsPayload<ExtArgs> | null
+      dish_media_impressions: Prisma.$dish_media_impressionsPayload<ExtArgs>[]
       dish_media_likes: Prisma.$dish_media_likesPayload<ExtArgs>[]
+      dish_media_views: Prisma.$dish_media_viewsPayload<ExtArgs>[]
       payouts: Prisma.$payoutsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -7740,7 +8094,10 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     dishes<T extends dishesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dishesDefaultArgs<ExtArgs>>): Prisma__dishesClient<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     users<T extends dish_media$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    dish_media_analysis_results<T extends dish_media$dish_media_analysis_resultsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_media_analysis_resultsArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    dish_media_impressions<T extends dish_media$dish_media_impressionsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_media_impressionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_media_likes<T extends dish_media$dish_media_likesArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_media_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_media_views<T extends dish_media$dish_media_viewsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$dish_media_viewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     payouts<T extends dish_media$payoutsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$payoutsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -8195,6 +8552,49 @@ export namespace Prisma {
   }
 
   /**
+   * dish_media.dish_media_analysis_results
+   */
+  export type dish_media$dish_media_analysis_resultsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    where?: dish_media_analysis_resultsWhereInput
+  }
+
+  /**
+   * dish_media.dish_media_impressions
+   */
+  export type dish_media$dish_media_impressionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    where?: dish_media_impressionsWhereInput
+    orderBy?: dish_media_impressionsOrderByWithRelationInput | dish_media_impressionsOrderByWithRelationInput[]
+    cursor?: dish_media_impressionsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_media_impressionsScalarFieldEnum | Dish_media_impressionsScalarFieldEnum[]
+  }
+
+  /**
    * dish_media.dish_media_likes
    */
   export type dish_media$dish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8216,6 +8616,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Dish_media_likesScalarFieldEnum | Dish_media_likesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media.dish_media_views
+   */
+  export type dish_media$dish_media_viewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    where?: dish_media_viewsWhereInput
+    orderBy?: dish_media_viewsOrderByWithRelationInput | dish_media_viewsOrderByWithRelationInput[]
+    cursor?: dish_media_viewsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_media_viewsScalarFieldEnum | Dish_media_viewsScalarFieldEnum[]
   }
 
   /**
@@ -8258,6 +8682,2349 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: dish_mediaInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_media_analysis_results
+   */
+
+  export type AggregateDish_media_analysis_results = {
+    _count: Dish_media_analysis_resultsCountAggregateOutputType | null
+    _avg: Dish_media_analysis_resultsAvgAggregateOutputType | null
+    _sum: Dish_media_analysis_resultsSumAggregateOutputType | null
+    _min: Dish_media_analysis_resultsMinAggregateOutputType | null
+    _max: Dish_media_analysis_resultsMaxAggregateOutputType | null
+  }
+
+  export type Dish_media_analysis_resultsAvgAggregateOutputType = {
+    video_duration_ms: number | null
+    impr_total: number | null
+    view_total: number | null
+    skip_total: number | null
+    completion_total: number | null
+    watch_ms_total: number | null
+    save_total: number | null
+    like_total: number | null
+    open_map_total: number | null
+  }
+
+  export type Dish_media_analysis_resultsSumAggregateOutputType = {
+    video_duration_ms: number | null
+    impr_total: bigint | null
+    view_total: bigint | null
+    skip_total: bigint | null
+    completion_total: bigint | null
+    watch_ms_total: bigint | null
+    save_total: bigint | null
+    like_total: bigint | null
+    open_map_total: bigint | null
+  }
+
+  export type Dish_media_analysis_resultsMinAggregateOutputType = {
+    dish_media_id: string | null
+    video_duration_ms: number | null
+    impr_total: bigint | null
+    view_total: bigint | null
+    skip_total: bigint | null
+    completion_total: bigint | null
+    watch_ms_total: bigint | null
+    save_total: bigint | null
+    like_total: bigint | null
+    open_map_total: bigint | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type Dish_media_analysis_resultsMaxAggregateOutputType = {
+    dish_media_id: string | null
+    video_duration_ms: number | null
+    impr_total: bigint | null
+    view_total: bigint | null
+    skip_total: bigint | null
+    completion_total: bigint | null
+    watch_ms_total: bigint | null
+    save_total: bigint | null
+    like_total: bigint | null
+    open_map_total: bigint | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type Dish_media_analysis_resultsCountAggregateOutputType = {
+    dish_media_id: number
+    video_duration_ms: number
+    impr_total: number
+    view_total: number
+    skip_total: number
+    completion_total: number
+    watch_ms_total: number
+    save_total: number
+    like_total: number
+    open_map_total: number
+    created_at: number
+    updated_at: number
+    _all: number
+  }
+
+
+  export type Dish_media_analysis_resultsAvgAggregateInputType = {
+    video_duration_ms?: true
+    impr_total?: true
+    view_total?: true
+    skip_total?: true
+    completion_total?: true
+    watch_ms_total?: true
+    save_total?: true
+    like_total?: true
+    open_map_total?: true
+  }
+
+  export type Dish_media_analysis_resultsSumAggregateInputType = {
+    video_duration_ms?: true
+    impr_total?: true
+    view_total?: true
+    skip_total?: true
+    completion_total?: true
+    watch_ms_total?: true
+    save_total?: true
+    like_total?: true
+    open_map_total?: true
+  }
+
+  export type Dish_media_analysis_resultsMinAggregateInputType = {
+    dish_media_id?: true
+    video_duration_ms?: true
+    impr_total?: true
+    view_total?: true
+    skip_total?: true
+    completion_total?: true
+    watch_ms_total?: true
+    save_total?: true
+    like_total?: true
+    open_map_total?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type Dish_media_analysis_resultsMaxAggregateInputType = {
+    dish_media_id?: true
+    video_duration_ms?: true
+    impr_total?: true
+    view_total?: true
+    skip_total?: true
+    completion_total?: true
+    watch_ms_total?: true
+    save_total?: true
+    like_total?: true
+    open_map_total?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type Dish_media_analysis_resultsCountAggregateInputType = {
+    dish_media_id?: true
+    video_duration_ms?: true
+    impr_total?: true
+    view_total?: true
+    skip_total?: true
+    completion_total?: true
+    watch_ms_total?: true
+    save_total?: true
+    like_total?: true
+    open_map_total?: true
+    created_at?: true
+    updated_at?: true
+    _all?: true
+  }
+
+  export type Dish_media_analysis_resultsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_analysis_results to aggregate.
+     */
+    where?: dish_media_analysis_resultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_analysis_results to fetch.
+     */
+    orderBy?: dish_media_analysis_resultsOrderByWithRelationInput | dish_media_analysis_resultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_media_analysis_resultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_analysis_results from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_analysis_results.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_media_analysis_results
+    **/
+    _count?: true | Dish_media_analysis_resultsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Dish_media_analysis_resultsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Dish_media_analysis_resultsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_media_analysis_resultsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_media_analysis_resultsMaxAggregateInputType
+  }
+
+  export type GetDish_media_analysis_resultsAggregateType<T extends Dish_media_analysis_resultsAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_media_analysis_results]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_media_analysis_results[P]>
+      : GetScalarType<T[P], AggregateDish_media_analysis_results[P]>
+  }
+
+
+
+
+  export type dish_media_analysis_resultsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_analysis_resultsWhereInput
+    orderBy?: dish_media_analysis_resultsOrderByWithAggregationInput | dish_media_analysis_resultsOrderByWithAggregationInput[]
+    by: Dish_media_analysis_resultsScalarFieldEnum[] | Dish_media_analysis_resultsScalarFieldEnum
+    having?: dish_media_analysis_resultsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_media_analysis_resultsCountAggregateInputType | true
+    _avg?: Dish_media_analysis_resultsAvgAggregateInputType
+    _sum?: Dish_media_analysis_resultsSumAggregateInputType
+    _min?: Dish_media_analysis_resultsMinAggregateInputType
+    _max?: Dish_media_analysis_resultsMaxAggregateInputType
+  }
+
+  export type Dish_media_analysis_resultsGroupByOutputType = {
+    dish_media_id: string
+    video_duration_ms: number
+    impr_total: bigint
+    view_total: bigint
+    skip_total: bigint
+    completion_total: bigint
+    watch_ms_total: bigint
+    save_total: bigint
+    like_total: bigint
+    open_map_total: bigint
+    created_at: Date
+    updated_at: Date
+    _count: Dish_media_analysis_resultsCountAggregateOutputType | null
+    _avg: Dish_media_analysis_resultsAvgAggregateOutputType | null
+    _sum: Dish_media_analysis_resultsSumAggregateOutputType | null
+    _min: Dish_media_analysis_resultsMinAggregateOutputType | null
+    _max: Dish_media_analysis_resultsMaxAggregateOutputType | null
+  }
+
+  type GetDish_media_analysis_resultsGroupByPayload<T extends dish_media_analysis_resultsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_media_analysis_resultsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_media_analysis_resultsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_media_analysis_resultsGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_media_analysis_resultsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_media_analysis_resultsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    dish_media_id?: boolean
+    video_duration_ms?: boolean
+    impr_total?: boolean
+    view_total?: boolean
+    skip_total?: boolean
+    completion_total?: boolean
+    watch_ms_total?: boolean
+    save_total?: boolean
+    like_total?: boolean
+    open_map_total?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_analysis_results"]>
+
+  export type dish_media_analysis_resultsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    dish_media_id?: boolean
+    video_duration_ms?: boolean
+    impr_total?: boolean
+    view_total?: boolean
+    skip_total?: boolean
+    completion_total?: boolean
+    watch_ms_total?: boolean
+    save_total?: boolean
+    like_total?: boolean
+    open_map_total?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_analysis_results"]>
+
+  export type dish_media_analysis_resultsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    dish_media_id?: boolean
+    video_duration_ms?: boolean
+    impr_total?: boolean
+    view_total?: boolean
+    skip_total?: boolean
+    completion_total?: boolean
+    watch_ms_total?: boolean
+    save_total?: boolean
+    like_total?: boolean
+    open_map_total?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_analysis_results"]>
+
+  export type dish_media_analysis_resultsSelectScalar = {
+    dish_media_id?: boolean
+    video_duration_ms?: boolean
+    impr_total?: boolean
+    view_total?: boolean
+    skip_total?: boolean
+    completion_total?: boolean
+    watch_ms_total?: boolean
+    save_total?: boolean
+    like_total?: boolean
+    open_map_total?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }
+
+  export type dish_media_analysis_resultsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"dish_media_id" | "video_duration_ms" | "impr_total" | "view_total" | "skip_total" | "completion_total" | "watch_ms_total" | "save_total" | "like_total" | "open_map_total" | "created_at" | "updated_at", ExtArgs["result"]["dish_media_analysis_results"]>
+  export type dish_media_analysis_resultsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+  }
+  export type dish_media_analysis_resultsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+  }
+  export type dish_media_analysis_resultsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+  }
+
+  export type $dish_media_analysis_resultsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_media_analysis_results"
+    objects: {
+      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      dish_media_id: string
+      video_duration_ms: number
+      impr_total: bigint
+      view_total: bigint
+      skip_total: bigint
+      completion_total: bigint
+      watch_ms_total: bigint
+      save_total: bigint
+      like_total: bigint
+      open_map_total: bigint
+      created_at: Date
+      updated_at: Date
+    }, ExtArgs["result"]["dish_media_analysis_results"]>
+    composites: {}
+  }
+
+  type dish_media_analysis_resultsGetPayload<S extends boolean | null | undefined | dish_media_analysis_resultsDefaultArgs> = $Result.GetResult<Prisma.$dish_media_analysis_resultsPayload, S>
+
+  type dish_media_analysis_resultsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_media_analysis_resultsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_media_analysis_resultsCountAggregateInputType | true
+    }
+
+  export interface dish_media_analysis_resultsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_media_analysis_results'], meta: { name: 'dish_media_analysis_results' } }
+    /**
+     * Find zero or one Dish_media_analysis_results that matches the filter.
+     * @param {dish_media_analysis_resultsFindUniqueArgs} args - Arguments to find a Dish_media_analysis_results
+     * @example
+     * // Get one Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_media_analysis_resultsFindUniqueArgs>(args: SelectSubset<T, dish_media_analysis_resultsFindUniqueArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_media_analysis_results that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_media_analysis_resultsFindUniqueOrThrowArgs} args - Arguments to find a Dish_media_analysis_results
+     * @example
+     * // Get one Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_media_analysis_resultsFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_media_analysis_resultsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_analysis_results that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_analysis_resultsFindFirstArgs} args - Arguments to find a Dish_media_analysis_results
+     * @example
+     * // Get one Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_media_analysis_resultsFindFirstArgs>(args?: SelectSubset<T, dish_media_analysis_resultsFindFirstArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_analysis_results that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_analysis_resultsFindFirstOrThrowArgs} args - Arguments to find a Dish_media_analysis_results
+     * @example
+     * // Get one Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_media_analysis_resultsFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_media_analysis_resultsFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_media_analysis_results that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_analysis_resultsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.findMany()
+     * 
+     * // Get first 10 Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.findMany({ take: 10 })
+     * 
+     * // Only select the `dish_media_id`
+     * const dish_media_analysis_resultsWithDish_media_idOnly = await prisma.dish_media_analysis_results.findMany({ select: { dish_media_id: true } })
+     * 
+     */
+    findMany<T extends dish_media_analysis_resultsFindManyArgs>(args?: SelectSubset<T, dish_media_analysis_resultsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_media_analysis_results.
+     * @param {dish_media_analysis_resultsCreateArgs} args - Arguments to create a Dish_media_analysis_results.
+     * @example
+     * // Create one Dish_media_analysis_results
+     * const Dish_media_analysis_results = await prisma.dish_media_analysis_results.create({
+     *   data: {
+     *     // ... data to create a Dish_media_analysis_results
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_media_analysis_resultsCreateArgs>(args: SelectSubset<T, dish_media_analysis_resultsCreateArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_media_analysis_results.
+     * @param {dish_media_analysis_resultsCreateManyArgs} args - Arguments to create many Dish_media_analysis_results.
+     * @example
+     * // Create many Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_media_analysis_resultsCreateManyArgs>(args?: SelectSubset<T, dish_media_analysis_resultsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_media_analysis_results and returns the data saved in the database.
+     * @param {dish_media_analysis_resultsCreateManyAndReturnArgs} args - Arguments to create many Dish_media_analysis_results.
+     * @example
+     * // Create many Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_media_analysis_results and only return the `dish_media_id`
+     * const dish_media_analysis_resultsWithDish_media_idOnly = await prisma.dish_media_analysis_results.createManyAndReturn({
+     *   select: { dish_media_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_media_analysis_resultsCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_media_analysis_resultsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_media_analysis_results.
+     * @param {dish_media_analysis_resultsDeleteArgs} args - Arguments to delete one Dish_media_analysis_results.
+     * @example
+     * // Delete one Dish_media_analysis_results
+     * const Dish_media_analysis_results = await prisma.dish_media_analysis_results.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_media_analysis_results
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_media_analysis_resultsDeleteArgs>(args: SelectSubset<T, dish_media_analysis_resultsDeleteArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_media_analysis_results.
+     * @param {dish_media_analysis_resultsUpdateArgs} args - Arguments to update one Dish_media_analysis_results.
+     * @example
+     * // Update one Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_media_analysis_resultsUpdateArgs>(args: SelectSubset<T, dish_media_analysis_resultsUpdateArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_media_analysis_results.
+     * @param {dish_media_analysis_resultsDeleteManyArgs} args - Arguments to filter Dish_media_analysis_results to delete.
+     * @example
+     * // Delete a few Dish_media_analysis_results
+     * const { count } = await prisma.dish_media_analysis_results.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_media_analysis_resultsDeleteManyArgs>(args?: SelectSubset<T, dish_media_analysis_resultsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_analysis_results.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_analysis_resultsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_media_analysis_resultsUpdateManyArgs>(args: SelectSubset<T, dish_media_analysis_resultsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_analysis_results and returns the data updated in the database.
+     * @param {dish_media_analysis_resultsUpdateManyAndReturnArgs} args - Arguments to update many Dish_media_analysis_results.
+     * @example
+     * // Update many Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_media_analysis_results and only return the `dish_media_id`
+     * const dish_media_analysis_resultsWithDish_media_idOnly = await prisma.dish_media_analysis_results.updateManyAndReturn({
+     *   select: { dish_media_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_media_analysis_resultsUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_media_analysis_resultsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_media_analysis_results.
+     * @param {dish_media_analysis_resultsUpsertArgs} args - Arguments to update or create a Dish_media_analysis_results.
+     * @example
+     * // Update or create a Dish_media_analysis_results
+     * const dish_media_analysis_results = await prisma.dish_media_analysis_results.upsert({
+     *   create: {
+     *     // ... data to create a Dish_media_analysis_results
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_media_analysis_results we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_media_analysis_resultsUpsertArgs>(args: SelectSubset<T, dish_media_analysis_resultsUpsertArgs<ExtArgs>>): Prisma__dish_media_analysis_resultsClient<$Result.GetResult<Prisma.$dish_media_analysis_resultsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_media_analysis_results.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_analysis_resultsCountArgs} args - Arguments to filter Dish_media_analysis_results to count.
+     * @example
+     * // Count the number of Dish_media_analysis_results
+     * const count = await prisma.dish_media_analysis_results.count({
+     *   where: {
+     *     // ... the filter for the Dish_media_analysis_results we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_media_analysis_resultsCountArgs>(
+      args?: Subset<T, dish_media_analysis_resultsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_media_analysis_resultsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_media_analysis_results.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_media_analysis_resultsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_media_analysis_resultsAggregateArgs>(args: Subset<T, Dish_media_analysis_resultsAggregateArgs>): Prisma.PrismaPromise<GetDish_media_analysis_resultsAggregateType<T>>
+
+    /**
+     * Group by Dish_media_analysis_results.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_analysis_resultsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_media_analysis_resultsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_media_analysis_resultsGroupByArgs['orderBy'] }
+        : { orderBy?: dish_media_analysis_resultsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_media_analysis_resultsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_media_analysis_resultsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_media_analysis_results model
+   */
+  readonly fields: dish_media_analysis_resultsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_media_analysis_results.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_media_analysis_resultsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_media_analysis_results model
+   */
+  interface dish_media_analysis_resultsFieldRefs {
+    readonly dish_media_id: FieldRef<"dish_media_analysis_results", 'String'>
+    readonly video_duration_ms: FieldRef<"dish_media_analysis_results", 'Int'>
+    readonly impr_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly view_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly skip_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly completion_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly watch_ms_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly save_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly like_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly open_map_total: FieldRef<"dish_media_analysis_results", 'BigInt'>
+    readonly created_at: FieldRef<"dish_media_analysis_results", 'DateTime'>
+    readonly updated_at: FieldRef<"dish_media_analysis_results", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_media_analysis_results findUnique
+   */
+  export type dish_media_analysis_resultsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_analysis_results to fetch.
+     */
+    where: dish_media_analysis_resultsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_analysis_results findUniqueOrThrow
+   */
+  export type dish_media_analysis_resultsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_analysis_results to fetch.
+     */
+    where: dish_media_analysis_resultsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_analysis_results findFirst
+   */
+  export type dish_media_analysis_resultsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_analysis_results to fetch.
+     */
+    where?: dish_media_analysis_resultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_analysis_results to fetch.
+     */
+    orderBy?: dish_media_analysis_resultsOrderByWithRelationInput | dish_media_analysis_resultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_analysis_results.
+     */
+    cursor?: dish_media_analysis_resultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_analysis_results from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_analysis_results.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_analysis_results.
+     */
+    distinct?: Dish_media_analysis_resultsScalarFieldEnum | Dish_media_analysis_resultsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_analysis_results findFirstOrThrow
+   */
+  export type dish_media_analysis_resultsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_analysis_results to fetch.
+     */
+    where?: dish_media_analysis_resultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_analysis_results to fetch.
+     */
+    orderBy?: dish_media_analysis_resultsOrderByWithRelationInput | dish_media_analysis_resultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_analysis_results.
+     */
+    cursor?: dish_media_analysis_resultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_analysis_results from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_analysis_results.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_analysis_results.
+     */
+    distinct?: Dish_media_analysis_resultsScalarFieldEnum | Dish_media_analysis_resultsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_analysis_results findMany
+   */
+  export type dish_media_analysis_resultsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_analysis_results to fetch.
+     */
+    where?: dish_media_analysis_resultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_analysis_results to fetch.
+     */
+    orderBy?: dish_media_analysis_resultsOrderByWithRelationInput | dish_media_analysis_resultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_media_analysis_results.
+     */
+    cursor?: dish_media_analysis_resultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_analysis_results from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_analysis_results.
+     */
+    skip?: number
+    distinct?: Dish_media_analysis_resultsScalarFieldEnum | Dish_media_analysis_resultsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_analysis_results create
+   */
+  export type dish_media_analysis_resultsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_media_analysis_results.
+     */
+    data: XOR<dish_media_analysis_resultsCreateInput, dish_media_analysis_resultsUncheckedCreateInput>
+  }
+
+  /**
+   * dish_media_analysis_results createMany
+   */
+  export type dish_media_analysis_resultsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_media_analysis_results.
+     */
+    data: dish_media_analysis_resultsCreateManyInput | dish_media_analysis_resultsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_media_analysis_results createManyAndReturn
+   */
+  export type dish_media_analysis_resultsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_media_analysis_results.
+     */
+    data: dish_media_analysis_resultsCreateManyInput | dish_media_analysis_resultsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_analysis_results update
+   */
+  export type dish_media_analysis_resultsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_media_analysis_results.
+     */
+    data: XOR<dish_media_analysis_resultsUpdateInput, dish_media_analysis_resultsUncheckedUpdateInput>
+    /**
+     * Choose, which dish_media_analysis_results to update.
+     */
+    where: dish_media_analysis_resultsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_analysis_results updateMany
+   */
+  export type dish_media_analysis_resultsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_media_analysis_results.
+     */
+    data: XOR<dish_media_analysis_resultsUpdateManyMutationInput, dish_media_analysis_resultsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_analysis_results to update
+     */
+    where?: dish_media_analysis_resultsWhereInput
+    /**
+     * Limit how many dish_media_analysis_results to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_analysis_results updateManyAndReturn
+   */
+  export type dish_media_analysis_resultsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_media_analysis_results.
+     */
+    data: XOR<dish_media_analysis_resultsUpdateManyMutationInput, dish_media_analysis_resultsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_analysis_results to update
+     */
+    where?: dish_media_analysis_resultsWhereInput
+    /**
+     * Limit how many dish_media_analysis_results to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_analysis_results upsert
+   */
+  export type dish_media_analysis_resultsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_media_analysis_results to update in case it exists.
+     */
+    where: dish_media_analysis_resultsWhereUniqueInput
+    /**
+     * In case the dish_media_analysis_results found by the `where` argument doesn't exist, create a new dish_media_analysis_results with this data.
+     */
+    create: XOR<dish_media_analysis_resultsCreateInput, dish_media_analysis_resultsUncheckedCreateInput>
+    /**
+     * In case the dish_media_analysis_results was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_media_analysis_resultsUpdateInput, dish_media_analysis_resultsUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_media_analysis_results delete
+   */
+  export type dish_media_analysis_resultsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+    /**
+     * Filter which dish_media_analysis_results to delete.
+     */
+    where: dish_media_analysis_resultsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_analysis_results deleteMany
+   */
+  export type dish_media_analysis_resultsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_analysis_results to delete
+     */
+    where?: dish_media_analysis_resultsWhereInput
+    /**
+     * Limit how many dish_media_analysis_results to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_analysis_results without action
+   */
+  export type dish_media_analysis_resultsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_analysis_results
+     */
+    select?: dish_media_analysis_resultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_analysis_results
+     */
+    omit?: dish_media_analysis_resultsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_analysis_resultsInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_media_impressions
+   */
+
+  export type AggregateDish_media_impressions = {
+    _count: Dish_media_impressionsCountAggregateOutputType | null
+    _min: Dish_media_impressionsMinAggregateOutputType | null
+    _max: Dish_media_impressionsMaxAggregateOutputType | null
+  }
+
+  export type Dish_media_impressionsMinAggregateOutputType = {
+    id: string | null
+    dish_media_id: string | null
+    user_id: string | null
+    session_id: string | null
+    source: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_media_impressionsMaxAggregateOutputType = {
+    id: string | null
+    dish_media_id: string | null
+    user_id: string | null
+    session_id: string | null
+    source: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_media_impressionsCountAggregateOutputType = {
+    id: number
+    dish_media_id: number
+    user_id: number
+    session_id: number
+    source: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Dish_media_impressionsMinAggregateInputType = {
+    id?: true
+    dish_media_id?: true
+    user_id?: true
+    session_id?: true
+    source?: true
+    created_at?: true
+  }
+
+  export type Dish_media_impressionsMaxAggregateInputType = {
+    id?: true
+    dish_media_id?: true
+    user_id?: true
+    session_id?: true
+    source?: true
+    created_at?: true
+  }
+
+  export type Dish_media_impressionsCountAggregateInputType = {
+    id?: true
+    dish_media_id?: true
+    user_id?: true
+    session_id?: true
+    source?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Dish_media_impressionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_impressions to aggregate.
+     */
+    where?: dish_media_impressionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_impressions to fetch.
+     */
+    orderBy?: dish_media_impressionsOrderByWithRelationInput | dish_media_impressionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_media_impressionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_impressions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_impressions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_media_impressions
+    **/
+    _count?: true | Dish_media_impressionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_media_impressionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_media_impressionsMaxAggregateInputType
+  }
+
+  export type GetDish_media_impressionsAggregateType<T extends Dish_media_impressionsAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_media_impressions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_media_impressions[P]>
+      : GetScalarType<T[P], AggregateDish_media_impressions[P]>
+  }
+
+
+
+
+  export type dish_media_impressionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_impressionsWhereInput
+    orderBy?: dish_media_impressionsOrderByWithAggregationInput | dish_media_impressionsOrderByWithAggregationInput[]
+    by: Dish_media_impressionsScalarFieldEnum[] | Dish_media_impressionsScalarFieldEnum
+    having?: dish_media_impressionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_media_impressionsCountAggregateInputType | true
+    _min?: Dish_media_impressionsMinAggregateInputType
+    _max?: Dish_media_impressionsMaxAggregateInputType
+  }
+
+  export type Dish_media_impressionsGroupByOutputType = {
+    id: string
+    dish_media_id: string
+    user_id: string | null
+    session_id: string | null
+    source: string | null
+    created_at: Date
+    _count: Dish_media_impressionsCountAggregateOutputType | null
+    _min: Dish_media_impressionsMinAggregateOutputType | null
+    _max: Dish_media_impressionsMaxAggregateOutputType | null
+  }
+
+  type GetDish_media_impressionsGroupByPayload<T extends dish_media_impressionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_media_impressionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_media_impressionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_media_impressionsGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_media_impressionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_media_impressionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    session_id?: boolean
+    source?: boolean
+    created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | dish_media_impressions$usersArgs<ExtArgs>
+    dish_media_views?: boolean | dish_media_impressions$dish_media_viewsArgs<ExtArgs>
+    _count?: boolean | Dish_media_impressionsCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_impressions"]>
+
+  export type dish_media_impressionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    session_id?: boolean
+    source?: boolean
+    created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | dish_media_impressions$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_impressions"]>
+
+  export type dish_media_impressionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    session_id?: boolean
+    source?: boolean
+    created_at?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | dish_media_impressions$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_impressions"]>
+
+  export type dish_media_impressionsSelectScalar = {
+    id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    session_id?: boolean
+    source?: boolean
+    created_at?: boolean
+  }
+
+  export type dish_media_impressionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_media_id" | "user_id" | "session_id" | "source" | "created_at", ExtArgs["result"]["dish_media_impressions"]>
+  export type dish_media_impressionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | dish_media_impressions$usersArgs<ExtArgs>
+    dish_media_views?: boolean | dish_media_impressions$dish_media_viewsArgs<ExtArgs>
+    _count?: boolean | Dish_media_impressionsCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type dish_media_impressionsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | dish_media_impressions$usersArgs<ExtArgs>
+  }
+  export type dish_media_impressionsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    users?: boolean | dish_media_impressions$usersArgs<ExtArgs>
+  }
+
+  export type $dish_media_impressionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_media_impressions"
+    objects: {
+      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
+      users: Prisma.$usersPayload<ExtArgs> | null
+      dish_media_views: Prisma.$dish_media_viewsPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      dish_media_id: string
+      user_id: string | null
+      session_id: string | null
+      source: string | null
+      created_at: Date
+    }, ExtArgs["result"]["dish_media_impressions"]>
+    composites: {}
+  }
+
+  type dish_media_impressionsGetPayload<S extends boolean | null | undefined | dish_media_impressionsDefaultArgs> = $Result.GetResult<Prisma.$dish_media_impressionsPayload, S>
+
+  type dish_media_impressionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_media_impressionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_media_impressionsCountAggregateInputType | true
+    }
+
+  export interface dish_media_impressionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_media_impressions'], meta: { name: 'dish_media_impressions' } }
+    /**
+     * Find zero or one Dish_media_impressions that matches the filter.
+     * @param {dish_media_impressionsFindUniqueArgs} args - Arguments to find a Dish_media_impressions
+     * @example
+     * // Get one Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_media_impressionsFindUniqueArgs>(args: SelectSubset<T, dish_media_impressionsFindUniqueArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_media_impressions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_media_impressionsFindUniqueOrThrowArgs} args - Arguments to find a Dish_media_impressions
+     * @example
+     * // Get one Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_media_impressionsFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_media_impressionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_impressions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_impressionsFindFirstArgs} args - Arguments to find a Dish_media_impressions
+     * @example
+     * // Get one Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_media_impressionsFindFirstArgs>(args?: SelectSubset<T, dish_media_impressionsFindFirstArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_impressions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_impressionsFindFirstOrThrowArgs} args - Arguments to find a Dish_media_impressions
+     * @example
+     * // Get one Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_media_impressionsFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_media_impressionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_media_impressions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_impressionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.findMany()
+     * 
+     * // Get first 10 Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dish_media_impressionsWithIdOnly = await prisma.dish_media_impressions.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends dish_media_impressionsFindManyArgs>(args?: SelectSubset<T, dish_media_impressionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_media_impressions.
+     * @param {dish_media_impressionsCreateArgs} args - Arguments to create a Dish_media_impressions.
+     * @example
+     * // Create one Dish_media_impressions
+     * const Dish_media_impressions = await prisma.dish_media_impressions.create({
+     *   data: {
+     *     // ... data to create a Dish_media_impressions
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_media_impressionsCreateArgs>(args: SelectSubset<T, dish_media_impressionsCreateArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_media_impressions.
+     * @param {dish_media_impressionsCreateManyArgs} args - Arguments to create many Dish_media_impressions.
+     * @example
+     * // Create many Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_media_impressionsCreateManyArgs>(args?: SelectSubset<T, dish_media_impressionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_media_impressions and returns the data saved in the database.
+     * @param {dish_media_impressionsCreateManyAndReturnArgs} args - Arguments to create many Dish_media_impressions.
+     * @example
+     * // Create many Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_media_impressions and only return the `id`
+     * const dish_media_impressionsWithIdOnly = await prisma.dish_media_impressions.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_media_impressionsCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_media_impressionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_media_impressions.
+     * @param {dish_media_impressionsDeleteArgs} args - Arguments to delete one Dish_media_impressions.
+     * @example
+     * // Delete one Dish_media_impressions
+     * const Dish_media_impressions = await prisma.dish_media_impressions.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_media_impressions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_media_impressionsDeleteArgs>(args: SelectSubset<T, dish_media_impressionsDeleteArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_media_impressions.
+     * @param {dish_media_impressionsUpdateArgs} args - Arguments to update one Dish_media_impressions.
+     * @example
+     * // Update one Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_media_impressionsUpdateArgs>(args: SelectSubset<T, dish_media_impressionsUpdateArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_media_impressions.
+     * @param {dish_media_impressionsDeleteManyArgs} args - Arguments to filter Dish_media_impressions to delete.
+     * @example
+     * // Delete a few Dish_media_impressions
+     * const { count } = await prisma.dish_media_impressions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_media_impressionsDeleteManyArgs>(args?: SelectSubset<T, dish_media_impressionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_impressions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_impressionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_media_impressionsUpdateManyArgs>(args: SelectSubset<T, dish_media_impressionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_impressions and returns the data updated in the database.
+     * @param {dish_media_impressionsUpdateManyAndReturnArgs} args - Arguments to update many Dish_media_impressions.
+     * @example
+     * // Update many Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_media_impressions and only return the `id`
+     * const dish_media_impressionsWithIdOnly = await prisma.dish_media_impressions.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_media_impressionsUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_media_impressionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_media_impressions.
+     * @param {dish_media_impressionsUpsertArgs} args - Arguments to update or create a Dish_media_impressions.
+     * @example
+     * // Update or create a Dish_media_impressions
+     * const dish_media_impressions = await prisma.dish_media_impressions.upsert({
+     *   create: {
+     *     // ... data to create a Dish_media_impressions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_media_impressions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_media_impressionsUpsertArgs>(args: SelectSubset<T, dish_media_impressionsUpsertArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_media_impressions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_impressionsCountArgs} args - Arguments to filter Dish_media_impressions to count.
+     * @example
+     * // Count the number of Dish_media_impressions
+     * const count = await prisma.dish_media_impressions.count({
+     *   where: {
+     *     // ... the filter for the Dish_media_impressions we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_media_impressionsCountArgs>(
+      args?: Subset<T, dish_media_impressionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_media_impressionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_media_impressions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_media_impressionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_media_impressionsAggregateArgs>(args: Subset<T, Dish_media_impressionsAggregateArgs>): Prisma.PrismaPromise<GetDish_media_impressionsAggregateType<T>>
+
+    /**
+     * Group by Dish_media_impressions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_impressionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_media_impressionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_media_impressionsGroupByArgs['orderBy'] }
+        : { orderBy?: dish_media_impressionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_media_impressionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_media_impressionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_media_impressions model
+   */
+  readonly fields: dish_media_impressionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_media_impressions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_media_impressionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    users<T extends dish_media_impressions$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_media_impressions$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    dish_media_views<T extends dish_media_impressions$dish_media_viewsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media_impressions$dish_media_viewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_media_impressions model
+   */
+  interface dish_media_impressionsFieldRefs {
+    readonly id: FieldRef<"dish_media_impressions", 'String'>
+    readonly dish_media_id: FieldRef<"dish_media_impressions", 'String'>
+    readonly user_id: FieldRef<"dish_media_impressions", 'String'>
+    readonly session_id: FieldRef<"dish_media_impressions", 'String'>
+    readonly source: FieldRef<"dish_media_impressions", 'String'>
+    readonly created_at: FieldRef<"dish_media_impressions", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_media_impressions findUnique
+   */
+  export type dish_media_impressionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_impressions to fetch.
+     */
+    where: dish_media_impressionsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_impressions findUniqueOrThrow
+   */
+  export type dish_media_impressionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_impressions to fetch.
+     */
+    where: dish_media_impressionsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_impressions findFirst
+   */
+  export type dish_media_impressionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_impressions to fetch.
+     */
+    where?: dish_media_impressionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_impressions to fetch.
+     */
+    orderBy?: dish_media_impressionsOrderByWithRelationInput | dish_media_impressionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_impressions.
+     */
+    cursor?: dish_media_impressionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_impressions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_impressions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_impressions.
+     */
+    distinct?: Dish_media_impressionsScalarFieldEnum | Dish_media_impressionsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_impressions findFirstOrThrow
+   */
+  export type dish_media_impressionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_impressions to fetch.
+     */
+    where?: dish_media_impressionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_impressions to fetch.
+     */
+    orderBy?: dish_media_impressionsOrderByWithRelationInput | dish_media_impressionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_impressions.
+     */
+    cursor?: dish_media_impressionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_impressions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_impressions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_impressions.
+     */
+    distinct?: Dish_media_impressionsScalarFieldEnum | Dish_media_impressionsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_impressions findMany
+   */
+  export type dish_media_impressionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_impressions to fetch.
+     */
+    where?: dish_media_impressionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_impressions to fetch.
+     */
+    orderBy?: dish_media_impressionsOrderByWithRelationInput | dish_media_impressionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_media_impressions.
+     */
+    cursor?: dish_media_impressionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_impressions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_impressions.
+     */
+    skip?: number
+    distinct?: Dish_media_impressionsScalarFieldEnum | Dish_media_impressionsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_impressions create
+   */
+  export type dish_media_impressionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_media_impressions.
+     */
+    data: XOR<dish_media_impressionsCreateInput, dish_media_impressionsUncheckedCreateInput>
+  }
+
+  /**
+   * dish_media_impressions createMany
+   */
+  export type dish_media_impressionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_media_impressions.
+     */
+    data: dish_media_impressionsCreateManyInput | dish_media_impressionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_media_impressions createManyAndReturn
+   */
+  export type dish_media_impressionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_media_impressions.
+     */
+    data: dish_media_impressionsCreateManyInput | dish_media_impressionsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_impressions update
+   */
+  export type dish_media_impressionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_media_impressions.
+     */
+    data: XOR<dish_media_impressionsUpdateInput, dish_media_impressionsUncheckedUpdateInput>
+    /**
+     * Choose, which dish_media_impressions to update.
+     */
+    where: dish_media_impressionsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_impressions updateMany
+   */
+  export type dish_media_impressionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_media_impressions.
+     */
+    data: XOR<dish_media_impressionsUpdateManyMutationInput, dish_media_impressionsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_impressions to update
+     */
+    where?: dish_media_impressionsWhereInput
+    /**
+     * Limit how many dish_media_impressions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_impressions updateManyAndReturn
+   */
+  export type dish_media_impressionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_media_impressions.
+     */
+    data: XOR<dish_media_impressionsUpdateManyMutationInput, dish_media_impressionsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_impressions to update
+     */
+    where?: dish_media_impressionsWhereInput
+    /**
+     * Limit how many dish_media_impressions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_impressions upsert
+   */
+  export type dish_media_impressionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_media_impressions to update in case it exists.
+     */
+    where: dish_media_impressionsWhereUniqueInput
+    /**
+     * In case the dish_media_impressions found by the `where` argument doesn't exist, create a new dish_media_impressions with this data.
+     */
+    create: XOR<dish_media_impressionsCreateInput, dish_media_impressionsUncheckedCreateInput>
+    /**
+     * In case the dish_media_impressions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_media_impressionsUpdateInput, dish_media_impressionsUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_media_impressions delete
+   */
+  export type dish_media_impressionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    /**
+     * Filter which dish_media_impressions to delete.
+     */
+    where: dish_media_impressionsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_impressions deleteMany
+   */
+  export type dish_media_impressionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_impressions to delete
+     */
+    where?: dish_media_impressionsWhereInput
+    /**
+     * Limit how many dish_media_impressions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_impressions.users
+   */
+  export type dish_media_impressions$usersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the users
+     */
+    select?: usersSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the users
+     */
+    omit?: usersOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: usersInclude<ExtArgs> | null
+    where?: usersWhereInput
+  }
+
+  /**
+   * dish_media_impressions.dish_media_views
+   */
+  export type dish_media_impressions$dish_media_viewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    where?: dish_media_viewsWhereInput
+    orderBy?: dish_media_viewsOrderByWithRelationInput | dish_media_viewsOrderByWithRelationInput[]
+    cursor?: dish_media_viewsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_media_viewsScalarFieldEnum | Dish_media_viewsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_impressions without action
+   */
+  export type dish_media_impressionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
   }
 
 
@@ -9311,6 +12078,1208 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: dish_media_likesInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_media_views
+   */
+
+  export type AggregateDish_media_views = {
+    _count: Dish_media_viewsCountAggregateOutputType | null
+    _avg: Dish_media_viewsAvgAggregateOutputType | null
+    _sum: Dish_media_viewsSumAggregateOutputType | null
+    _min: Dish_media_viewsMinAggregateOutputType | null
+    _max: Dish_media_viewsMaxAggregateOutputType | null
+  }
+
+  export type Dish_media_viewsAvgAggregateOutputType = {
+    watch_ms: number | null
+    rewatch_count: number | null
+  }
+
+  export type Dish_media_viewsSumAggregateOutputType = {
+    watch_ms: number | null
+    rewatch_count: number | null
+  }
+
+  export type Dish_media_viewsMinAggregateOutputType = {
+    id: string | null
+    impression_id: string | null
+    dish_media_id: string | null
+    user_id: string | null
+    started_at: Date | null
+    watch_ms: number | null
+    is_completed: boolean | null
+    is_skipped: boolean | null
+    rewatch_count: number | null
+  }
+
+  export type Dish_media_viewsMaxAggregateOutputType = {
+    id: string | null
+    impression_id: string | null
+    dish_media_id: string | null
+    user_id: string | null
+    started_at: Date | null
+    watch_ms: number | null
+    is_completed: boolean | null
+    is_skipped: boolean | null
+    rewatch_count: number | null
+  }
+
+  export type Dish_media_viewsCountAggregateOutputType = {
+    id: number
+    impression_id: number
+    dish_media_id: number
+    user_id: number
+    started_at: number
+    watch_ms: number
+    is_completed: number
+    is_skipped: number
+    rewatch_count: number
+    _all: number
+  }
+
+
+  export type Dish_media_viewsAvgAggregateInputType = {
+    watch_ms?: true
+    rewatch_count?: true
+  }
+
+  export type Dish_media_viewsSumAggregateInputType = {
+    watch_ms?: true
+    rewatch_count?: true
+  }
+
+  export type Dish_media_viewsMinAggregateInputType = {
+    id?: true
+    impression_id?: true
+    dish_media_id?: true
+    user_id?: true
+    started_at?: true
+    watch_ms?: true
+    is_completed?: true
+    is_skipped?: true
+    rewatch_count?: true
+  }
+
+  export type Dish_media_viewsMaxAggregateInputType = {
+    id?: true
+    impression_id?: true
+    dish_media_id?: true
+    user_id?: true
+    started_at?: true
+    watch_ms?: true
+    is_completed?: true
+    is_skipped?: true
+    rewatch_count?: true
+  }
+
+  export type Dish_media_viewsCountAggregateInputType = {
+    id?: true
+    impression_id?: true
+    dish_media_id?: true
+    user_id?: true
+    started_at?: true
+    watch_ms?: true
+    is_completed?: true
+    is_skipped?: true
+    rewatch_count?: true
+    _all?: true
+  }
+
+  export type Dish_media_viewsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_views to aggregate.
+     */
+    where?: dish_media_viewsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_views to fetch.
+     */
+    orderBy?: dish_media_viewsOrderByWithRelationInput | dish_media_viewsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_media_viewsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_views from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_views.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_media_views
+    **/
+    _count?: true | Dish_media_viewsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Dish_media_viewsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Dish_media_viewsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_media_viewsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_media_viewsMaxAggregateInputType
+  }
+
+  export type GetDish_media_viewsAggregateType<T extends Dish_media_viewsAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_media_views]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_media_views[P]>
+      : GetScalarType<T[P], AggregateDish_media_views[P]>
+  }
+
+
+
+
+  export type dish_media_viewsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_media_viewsWhereInput
+    orderBy?: dish_media_viewsOrderByWithAggregationInput | dish_media_viewsOrderByWithAggregationInput[]
+    by: Dish_media_viewsScalarFieldEnum[] | Dish_media_viewsScalarFieldEnum
+    having?: dish_media_viewsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_media_viewsCountAggregateInputType | true
+    _avg?: Dish_media_viewsAvgAggregateInputType
+    _sum?: Dish_media_viewsSumAggregateInputType
+    _min?: Dish_media_viewsMinAggregateInputType
+    _max?: Dish_media_viewsMaxAggregateInputType
+  }
+
+  export type Dish_media_viewsGroupByOutputType = {
+    id: string
+    impression_id: string | null
+    dish_media_id: string
+    user_id: string | null
+    started_at: Date
+    watch_ms: number
+    is_completed: boolean
+    is_skipped: boolean
+    rewatch_count: number
+    _count: Dish_media_viewsCountAggregateOutputType | null
+    _avg: Dish_media_viewsAvgAggregateOutputType | null
+    _sum: Dish_media_viewsSumAggregateOutputType | null
+    _min: Dish_media_viewsMinAggregateOutputType | null
+    _max: Dish_media_viewsMaxAggregateOutputType | null
+  }
+
+  type GetDish_media_viewsGroupByPayload<T extends dish_media_viewsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_media_viewsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_media_viewsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_media_viewsGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_media_viewsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_media_viewsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    impression_id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    started_at?: boolean
+    watch_ms?: boolean
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media_views$dish_media_impressionsArgs<ExtArgs>
+    users?: boolean | dish_media_views$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_views"]>
+
+  export type dish_media_viewsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    impression_id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    started_at?: boolean
+    watch_ms?: boolean
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media_views$dish_media_impressionsArgs<ExtArgs>
+    users?: boolean | dish_media_views$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_views"]>
+
+  export type dish_media_viewsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    impression_id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    started_at?: boolean
+    watch_ms?: boolean
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: boolean
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media_views$dish_media_impressionsArgs<ExtArgs>
+    users?: boolean | dish_media_views$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_media_views"]>
+
+  export type dish_media_viewsSelectScalar = {
+    id?: boolean
+    impression_id?: boolean
+    dish_media_id?: boolean
+    user_id?: boolean
+    started_at?: boolean
+    watch_ms?: boolean
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: boolean
+  }
+
+  export type dish_media_viewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "impression_id" | "dish_media_id" | "user_id" | "started_at" | "watch_ms" | "is_completed" | "is_skipped" | "rewatch_count", ExtArgs["result"]["dish_media_views"]>
+  export type dish_media_viewsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media_views$dish_media_impressionsArgs<ExtArgs>
+    users?: boolean | dish_media_views$usersArgs<ExtArgs>
+  }
+  export type dish_media_viewsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media_views$dish_media_impressionsArgs<ExtArgs>
+    users?: boolean | dish_media_views$usersArgs<ExtArgs>
+  }
+  export type dish_media_viewsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
+    dish_media_impressions?: boolean | dish_media_views$dish_media_impressionsArgs<ExtArgs>
+    users?: boolean | dish_media_views$usersArgs<ExtArgs>
+  }
+
+  export type $dish_media_viewsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_media_views"
+    objects: {
+      dish_media: Prisma.$dish_mediaPayload<ExtArgs>
+      dish_media_impressions: Prisma.$dish_media_impressionsPayload<ExtArgs> | null
+      users: Prisma.$usersPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      impression_id: string | null
+      dish_media_id: string
+      user_id: string | null
+      started_at: Date
+      watch_ms: number
+      is_completed: boolean
+      is_skipped: boolean
+      rewatch_count: number
+    }, ExtArgs["result"]["dish_media_views"]>
+    composites: {}
+  }
+
+  type dish_media_viewsGetPayload<S extends boolean | null | undefined | dish_media_viewsDefaultArgs> = $Result.GetResult<Prisma.$dish_media_viewsPayload, S>
+
+  type dish_media_viewsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_media_viewsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_media_viewsCountAggregateInputType | true
+    }
+
+  export interface dish_media_viewsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_media_views'], meta: { name: 'dish_media_views' } }
+    /**
+     * Find zero or one Dish_media_views that matches the filter.
+     * @param {dish_media_viewsFindUniqueArgs} args - Arguments to find a Dish_media_views
+     * @example
+     * // Get one Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_media_viewsFindUniqueArgs>(args: SelectSubset<T, dish_media_viewsFindUniqueArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_media_views that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_media_viewsFindUniqueOrThrowArgs} args - Arguments to find a Dish_media_views
+     * @example
+     * // Get one Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_media_viewsFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_media_viewsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_views that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_viewsFindFirstArgs} args - Arguments to find a Dish_media_views
+     * @example
+     * // Get one Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_media_viewsFindFirstArgs>(args?: SelectSubset<T, dish_media_viewsFindFirstArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_media_views that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_viewsFindFirstOrThrowArgs} args - Arguments to find a Dish_media_views
+     * @example
+     * // Get one Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_media_viewsFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_media_viewsFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_media_views that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_viewsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.findMany()
+     * 
+     * // Get first 10 Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dish_media_viewsWithIdOnly = await prisma.dish_media_views.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends dish_media_viewsFindManyArgs>(args?: SelectSubset<T, dish_media_viewsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_media_views.
+     * @param {dish_media_viewsCreateArgs} args - Arguments to create a Dish_media_views.
+     * @example
+     * // Create one Dish_media_views
+     * const Dish_media_views = await prisma.dish_media_views.create({
+     *   data: {
+     *     // ... data to create a Dish_media_views
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_media_viewsCreateArgs>(args: SelectSubset<T, dish_media_viewsCreateArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_media_views.
+     * @param {dish_media_viewsCreateManyArgs} args - Arguments to create many Dish_media_views.
+     * @example
+     * // Create many Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_media_viewsCreateManyArgs>(args?: SelectSubset<T, dish_media_viewsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_media_views and returns the data saved in the database.
+     * @param {dish_media_viewsCreateManyAndReturnArgs} args - Arguments to create many Dish_media_views.
+     * @example
+     * // Create many Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_media_views and only return the `id`
+     * const dish_media_viewsWithIdOnly = await prisma.dish_media_views.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_media_viewsCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_media_viewsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_media_views.
+     * @param {dish_media_viewsDeleteArgs} args - Arguments to delete one Dish_media_views.
+     * @example
+     * // Delete one Dish_media_views
+     * const Dish_media_views = await prisma.dish_media_views.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_media_views
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_media_viewsDeleteArgs>(args: SelectSubset<T, dish_media_viewsDeleteArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_media_views.
+     * @param {dish_media_viewsUpdateArgs} args - Arguments to update one Dish_media_views.
+     * @example
+     * // Update one Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_media_viewsUpdateArgs>(args: SelectSubset<T, dish_media_viewsUpdateArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_media_views.
+     * @param {dish_media_viewsDeleteManyArgs} args - Arguments to filter Dish_media_views to delete.
+     * @example
+     * // Delete a few Dish_media_views
+     * const { count } = await prisma.dish_media_views.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_media_viewsDeleteManyArgs>(args?: SelectSubset<T, dish_media_viewsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_views.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_viewsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_media_viewsUpdateManyArgs>(args: SelectSubset<T, dish_media_viewsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_media_views and returns the data updated in the database.
+     * @param {dish_media_viewsUpdateManyAndReturnArgs} args - Arguments to update many Dish_media_views.
+     * @example
+     * // Update many Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_media_views and only return the `id`
+     * const dish_media_viewsWithIdOnly = await prisma.dish_media_views.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_media_viewsUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_media_viewsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_media_views.
+     * @param {dish_media_viewsUpsertArgs} args - Arguments to update or create a Dish_media_views.
+     * @example
+     * // Update or create a Dish_media_views
+     * const dish_media_views = await prisma.dish_media_views.upsert({
+     *   create: {
+     *     // ... data to create a Dish_media_views
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_media_views we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_media_viewsUpsertArgs>(args: SelectSubset<T, dish_media_viewsUpsertArgs<ExtArgs>>): Prisma__dish_media_viewsClient<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_media_views.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_viewsCountArgs} args - Arguments to filter Dish_media_views to count.
+     * @example
+     * // Count the number of Dish_media_views
+     * const count = await prisma.dish_media_views.count({
+     *   where: {
+     *     // ... the filter for the Dish_media_views we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_media_viewsCountArgs>(
+      args?: Subset<T, dish_media_viewsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_media_viewsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_media_views.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_media_viewsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_media_viewsAggregateArgs>(args: Subset<T, Dish_media_viewsAggregateArgs>): Prisma.PrismaPromise<GetDish_media_viewsAggregateType<T>>
+
+    /**
+     * Group by Dish_media_views.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_media_viewsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_media_viewsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_media_viewsGroupByArgs['orderBy'] }
+        : { orderBy?: dish_media_viewsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_media_viewsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_media_viewsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_media_views model
+   */
+  readonly fields: dish_media_viewsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_media_views.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_media_viewsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_media<T extends dish_mediaDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_mediaDefaultArgs<ExtArgs>>): Prisma__dish_mediaClient<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    dish_media_impressions<T extends dish_media_views$dish_media_impressionsArgs<ExtArgs> = {}>(args?: Subset<T, dish_media_views$dish_media_impressionsArgs<ExtArgs>>): Prisma__dish_media_impressionsClient<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    users<T extends dish_media_views$usersArgs<ExtArgs> = {}>(args?: Subset<T, dish_media_views$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_media_views model
+   */
+  interface dish_media_viewsFieldRefs {
+    readonly id: FieldRef<"dish_media_views", 'String'>
+    readonly impression_id: FieldRef<"dish_media_views", 'String'>
+    readonly dish_media_id: FieldRef<"dish_media_views", 'String'>
+    readonly user_id: FieldRef<"dish_media_views", 'String'>
+    readonly started_at: FieldRef<"dish_media_views", 'DateTime'>
+    readonly watch_ms: FieldRef<"dish_media_views", 'Int'>
+    readonly is_completed: FieldRef<"dish_media_views", 'Boolean'>
+    readonly is_skipped: FieldRef<"dish_media_views", 'Boolean'>
+    readonly rewatch_count: FieldRef<"dish_media_views", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_media_views findUnique
+   */
+  export type dish_media_viewsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_views to fetch.
+     */
+    where: dish_media_viewsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_views findUniqueOrThrow
+   */
+  export type dish_media_viewsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_views to fetch.
+     */
+    where: dish_media_viewsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_views findFirst
+   */
+  export type dish_media_viewsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_views to fetch.
+     */
+    where?: dish_media_viewsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_views to fetch.
+     */
+    orderBy?: dish_media_viewsOrderByWithRelationInput | dish_media_viewsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_views.
+     */
+    cursor?: dish_media_viewsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_views from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_views.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_views.
+     */
+    distinct?: Dish_media_viewsScalarFieldEnum | Dish_media_viewsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_views findFirstOrThrow
+   */
+  export type dish_media_viewsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_views to fetch.
+     */
+    where?: dish_media_viewsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_views to fetch.
+     */
+    orderBy?: dish_media_viewsOrderByWithRelationInput | dish_media_viewsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_media_views.
+     */
+    cursor?: dish_media_viewsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_views from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_views.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_media_views.
+     */
+    distinct?: Dish_media_viewsScalarFieldEnum | Dish_media_viewsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_views findMany
+   */
+  export type dish_media_viewsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_media_views to fetch.
+     */
+    where?: dish_media_viewsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_media_views to fetch.
+     */
+    orderBy?: dish_media_viewsOrderByWithRelationInput | dish_media_viewsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_media_views.
+     */
+    cursor?: dish_media_viewsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_media_views from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_media_views.
+     */
+    skip?: number
+    distinct?: Dish_media_viewsScalarFieldEnum | Dish_media_viewsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_media_views create
+   */
+  export type dish_media_viewsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_media_views.
+     */
+    data: XOR<dish_media_viewsCreateInput, dish_media_viewsUncheckedCreateInput>
+  }
+
+  /**
+   * dish_media_views createMany
+   */
+  export type dish_media_viewsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_media_views.
+     */
+    data: dish_media_viewsCreateManyInput | dish_media_viewsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_media_views createManyAndReturn
+   */
+  export type dish_media_viewsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_media_views.
+     */
+    data: dish_media_viewsCreateManyInput | dish_media_viewsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_views update
+   */
+  export type dish_media_viewsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_media_views.
+     */
+    data: XOR<dish_media_viewsUpdateInput, dish_media_viewsUncheckedUpdateInput>
+    /**
+     * Choose, which dish_media_views to update.
+     */
+    where: dish_media_viewsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_views updateMany
+   */
+  export type dish_media_viewsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_media_views.
+     */
+    data: XOR<dish_media_viewsUpdateManyMutationInput, dish_media_viewsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_views to update
+     */
+    where?: dish_media_viewsWhereInput
+    /**
+     * Limit how many dish_media_views to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_views updateManyAndReturn
+   */
+  export type dish_media_viewsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_media_views.
+     */
+    data: XOR<dish_media_viewsUpdateManyMutationInput, dish_media_viewsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_media_views to update
+     */
+    where?: dish_media_viewsWhereInput
+    /**
+     * Limit how many dish_media_views to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_media_views upsert
+   */
+  export type dish_media_viewsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_media_views to update in case it exists.
+     */
+    where: dish_media_viewsWhereUniqueInput
+    /**
+     * In case the dish_media_views found by the `where` argument doesn't exist, create a new dish_media_views with this data.
+     */
+    create: XOR<dish_media_viewsCreateInput, dish_media_viewsUncheckedCreateInput>
+    /**
+     * In case the dish_media_views was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_media_viewsUpdateInput, dish_media_viewsUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_media_views delete
+   */
+  export type dish_media_viewsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    /**
+     * Filter which dish_media_views to delete.
+     */
+    where: dish_media_viewsWhereUniqueInput
+  }
+
+  /**
+   * dish_media_views deleteMany
+   */
+  export type dish_media_viewsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_media_views to delete
+     */
+    where?: dish_media_viewsWhereInput
+    /**
+     * Limit how many dish_media_views to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_media_views.dish_media_impressions
+   */
+  export type dish_media_views$dish_media_impressionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    where?: dish_media_impressionsWhereInput
+  }
+
+  /**
+   * dish_media_views.users
+   */
+  export type dish_media_views$usersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the users
+     */
+    select?: usersSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the users
+     */
+    omit?: usersOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: usersInclude<ExtArgs> | null
+    where?: usersWhereInput
+  }
+
+  /**
+   * dish_media_views without action
+   */
+  export type dish_media_viewsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
   }
 
 
@@ -22165,7 +26134,9 @@ export namespace Prisma {
     lock_no?: boolean
     username?: boolean
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
+    dish_media_impressions?: boolean | users$dish_media_impressionsArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
+    dish_media_views?: boolean | users$dish_media_viewsArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
     restaurant_bids?: boolean | users$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
@@ -22210,7 +26181,9 @@ export namespace Prisma {
   export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no" | "username", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
+    dish_media_impressions?: boolean | users$dish_media_impressionsArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
+    dish_media_views?: boolean | users$dish_media_viewsArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
     restaurant_bids?: boolean | users$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
@@ -22222,7 +26195,9 @@ export namespace Prisma {
     name: "users"
     objects: {
       dish_media: Prisma.$dish_mediaPayload<ExtArgs>[]
+      dish_media_impressions: Prisma.$dish_media_impressionsPayload<ExtArgs>[]
       dish_media_likes: Prisma.$dish_media_likesPayload<ExtArgs>[]
+      dish_media_views: Prisma.$dish_media_viewsPayload<ExtArgs>[]
       dish_reviews: Prisma.$dish_reviewsPayload<ExtArgs>[]
       restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>[]
     }
@@ -22631,7 +26606,9 @@ export namespace Prisma {
   export interface Prisma__usersClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     dish_media<T extends users$dish_mediaArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_mediaArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_mediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_media_impressions<T extends users$dish_media_impressionsArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_media_impressionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_impressionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_media_likes<T extends users$dish_media_likesArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_media_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_media_views<T extends users$dish_media_viewsArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_media_viewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_viewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_reviews<T extends users$dish_reviewsArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_reviewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restaurant_bids<T extends users$restaurant_bidsArgs<ExtArgs> = {}>(args?: Subset<T, users$restaurant_bidsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -23084,6 +27061,30 @@ export namespace Prisma {
   }
 
   /**
+   * users.dish_media_impressions
+   */
+  export type users$dish_media_impressionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_impressions
+     */
+    select?: dish_media_impressionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_impressions
+     */
+    omit?: dish_media_impressionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_impressionsInclude<ExtArgs> | null
+    where?: dish_media_impressionsWhereInput
+    orderBy?: dish_media_impressionsOrderByWithRelationInput | dish_media_impressionsOrderByWithRelationInput[]
+    cursor?: dish_media_impressionsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_media_impressionsScalarFieldEnum | Dish_media_impressionsScalarFieldEnum[]
+  }
+
+  /**
    * users.dish_media_likes
    */
   export type users$dish_media_likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -23105,6 +27106,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Dish_media_likesScalarFieldEnum | Dish_media_likesScalarFieldEnum[]
+  }
+
+  /**
+   * users.dish_media_views
+   */
+  export type users$dish_media_viewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_media_views
+     */
+    select?: dish_media_viewsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_media_views
+     */
+    omit?: dish_media_viewsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_media_viewsInclude<ExtArgs> | null
+    where?: dish_media_viewsWhereInput
+    orderBy?: dish_media_viewsOrderByWithRelationInput | dish_media_viewsOrderByWithRelationInput[]
+    cursor?: dish_media_viewsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_media_viewsScalarFieldEnum | Dish_media_viewsScalarFieldEnum[]
   }
 
   /**
@@ -23254,6 +27279,36 @@ export namespace Prisma {
   export type Dish_mediaScalarFieldEnum = (typeof Dish_mediaScalarFieldEnum)[keyof typeof Dish_mediaScalarFieldEnum]
 
 
+  export const Dish_media_analysis_resultsScalarFieldEnum: {
+    dish_media_id: 'dish_media_id',
+    video_duration_ms: 'video_duration_ms',
+    impr_total: 'impr_total',
+    view_total: 'view_total',
+    skip_total: 'skip_total',
+    completion_total: 'completion_total',
+    watch_ms_total: 'watch_ms_total',
+    save_total: 'save_total',
+    like_total: 'like_total',
+    open_map_total: 'open_map_total',
+    created_at: 'created_at',
+    updated_at: 'updated_at'
+  };
+
+  export type Dish_media_analysis_resultsScalarFieldEnum = (typeof Dish_media_analysis_resultsScalarFieldEnum)[keyof typeof Dish_media_analysis_resultsScalarFieldEnum]
+
+
+  export const Dish_media_impressionsScalarFieldEnum: {
+    id: 'id',
+    dish_media_id: 'dish_media_id',
+    user_id: 'user_id',
+    session_id: 'session_id',
+    source: 'source',
+    created_at: 'created_at'
+  };
+
+  export type Dish_media_impressionsScalarFieldEnum = (typeof Dish_media_impressionsScalarFieldEnum)[keyof typeof Dish_media_impressionsScalarFieldEnum]
+
+
   export const Dish_media_likesScalarFieldEnum: {
     id: 'id',
     dish_media_id: 'dish_media_id',
@@ -23262,6 +27317,21 @@ export namespace Prisma {
   };
 
   export type Dish_media_likesScalarFieldEnum = (typeof Dish_media_likesScalarFieldEnum)[keyof typeof Dish_media_likesScalarFieldEnum]
+
+
+  export const Dish_media_viewsScalarFieldEnum: {
+    id: 'id',
+    impression_id: 'impression_id',
+    dish_media_id: 'dish_media_id',
+    user_id: 'user_id',
+    started_at: 'started_at',
+    watch_ms: 'watch_ms',
+    is_completed: 'is_completed',
+    is_skipped: 'is_skipped',
+    rewatch_count: 'rewatch_count'
+  };
+
+  export type Dish_media_viewsScalarFieldEnum = (typeof Dish_media_viewsScalarFieldEnum)[keyof typeof Dish_media_viewsScalarFieldEnum]
 
 
   export const Dish_reviewsScalarFieldEnum: {
@@ -23579,20 +27649,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'frontend_event_logs_error_level'
-   */
-  export type Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level'>
-    
-
-
-  /**
-   * Reference to a field of type 'frontend_event_logs_error_level[]'
-   */
-  export type ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level[]'>
-    
-
-
-  /**
    * Reference to a field of type 'BigInt'
    */
   export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
@@ -23603,6 +27659,27 @@ export namespace Prisma {
    * Reference to a field of type 'BigInt[]'
    */
   export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
+   * Reference to a field of type 'frontend_event_logs_error_level'
+   */
+  export type Enumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level'>
+    
+
+
+  /**
+   * Reference to a field of type 'frontend_event_logs_error_level[]'
+   */
+  export type ListEnumfrontend_event_logs_error_levelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'frontend_event_logs_error_level[]'>
     
 
 
@@ -23948,7 +28025,10 @@ export namespace Prisma {
     lock_no?: IntFilter<"dish_media"> | number
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+    dish_media_analysis_results?: XOR<Dish_media_analysis_resultsNullableScalarRelationFilter, dish_media_analysis_resultsWhereInput> | null
+    dish_media_impressions?: Dish_media_impressionsListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
+    dish_media_views?: Dish_media_viewsListRelationFilter
     payouts?: PayoutsListRelationFilter
   }
 
@@ -23964,7 +28044,10 @@ export namespace Prisma {
     lock_no?: SortOrder
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
+    dish_media_analysis_results?: dish_media_analysis_resultsOrderByWithRelationInput
+    dish_media_impressions?: dish_media_impressionsOrderByRelationAggregateInput
     dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
+    dish_media_views?: dish_media_viewsOrderByRelationAggregateInput
     payouts?: payoutsOrderByRelationAggregateInput
   }
 
@@ -23983,7 +28066,10 @@ export namespace Prisma {
     lock_no?: IntFilter<"dish_media"> | number
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+    dish_media_analysis_results?: XOR<Dish_media_analysis_resultsNullableScalarRelationFilter, dish_media_analysis_resultsWhereInput> | null
+    dish_media_impressions?: Dish_media_impressionsListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
+    dish_media_views?: Dish_media_viewsListRelationFilter
     payouts?: PayoutsListRelationFilter
   }, "id">
 
@@ -24017,6 +28103,164 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"dish_media"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"dish_media"> | Date | string
     lock_no?: IntWithAggregatesFilter<"dish_media"> | number
+  }
+
+  export type dish_media_analysis_resultsWhereInput = {
+    AND?: dish_media_analysis_resultsWhereInput | dish_media_analysis_resultsWhereInput[]
+    OR?: dish_media_analysis_resultsWhereInput[]
+    NOT?: dish_media_analysis_resultsWhereInput | dish_media_analysis_resultsWhereInput[]
+    dish_media_id?: UuidFilter<"dish_media_analysis_results"> | string
+    video_duration_ms?: IntFilter<"dish_media_analysis_results"> | number
+    impr_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    view_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    skip_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    completion_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    watch_ms_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    save_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    like_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    open_map_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    created_at?: DateTimeFilter<"dish_media_analysis_results"> | Date | string
+    updated_at?: DateTimeFilter<"dish_media_analysis_results"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+  }
+
+  export type dish_media_analysis_resultsOrderByWithRelationInput = {
+    dish_media_id?: SortOrder
+    video_duration_ms?: SortOrder
+    impr_total?: SortOrder
+    view_total?: SortOrder
+    skip_total?: SortOrder
+    completion_total?: SortOrder
+    watch_ms_total?: SortOrder
+    save_total?: SortOrder
+    like_total?: SortOrder
+    open_map_total?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    dish_media?: dish_mediaOrderByWithRelationInput
+  }
+
+  export type dish_media_analysis_resultsWhereUniqueInput = Prisma.AtLeast<{
+    dish_media_id?: string
+    AND?: dish_media_analysis_resultsWhereInput | dish_media_analysis_resultsWhereInput[]
+    OR?: dish_media_analysis_resultsWhereInput[]
+    NOT?: dish_media_analysis_resultsWhereInput | dish_media_analysis_resultsWhereInput[]
+    video_duration_ms?: IntFilter<"dish_media_analysis_results"> | number
+    impr_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    view_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    skip_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    completion_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    watch_ms_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    save_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    like_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    open_map_total?: BigIntFilter<"dish_media_analysis_results"> | bigint | number
+    created_at?: DateTimeFilter<"dish_media_analysis_results"> | Date | string
+    updated_at?: DateTimeFilter<"dish_media_analysis_results"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+  }, "dish_media_id">
+
+  export type dish_media_analysis_resultsOrderByWithAggregationInput = {
+    dish_media_id?: SortOrder
+    video_duration_ms?: SortOrder
+    impr_total?: SortOrder
+    view_total?: SortOrder
+    skip_total?: SortOrder
+    completion_total?: SortOrder
+    watch_ms_total?: SortOrder
+    save_total?: SortOrder
+    like_total?: SortOrder
+    open_map_total?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    _count?: dish_media_analysis_resultsCountOrderByAggregateInput
+    _avg?: dish_media_analysis_resultsAvgOrderByAggregateInput
+    _max?: dish_media_analysis_resultsMaxOrderByAggregateInput
+    _min?: dish_media_analysis_resultsMinOrderByAggregateInput
+    _sum?: dish_media_analysis_resultsSumOrderByAggregateInput
+  }
+
+  export type dish_media_analysis_resultsScalarWhereWithAggregatesInput = {
+    AND?: dish_media_analysis_resultsScalarWhereWithAggregatesInput | dish_media_analysis_resultsScalarWhereWithAggregatesInput[]
+    OR?: dish_media_analysis_resultsScalarWhereWithAggregatesInput[]
+    NOT?: dish_media_analysis_resultsScalarWhereWithAggregatesInput | dish_media_analysis_resultsScalarWhereWithAggregatesInput[]
+    dish_media_id?: UuidWithAggregatesFilter<"dish_media_analysis_results"> | string
+    video_duration_ms?: IntWithAggregatesFilter<"dish_media_analysis_results"> | number
+    impr_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    view_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    skip_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    completion_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    watch_ms_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    save_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    like_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    open_map_total?: BigIntWithAggregatesFilter<"dish_media_analysis_results"> | bigint | number
+    created_at?: DateTimeWithAggregatesFilter<"dish_media_analysis_results"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"dish_media_analysis_results"> | Date | string
+  }
+
+  export type dish_media_impressionsWhereInput = {
+    AND?: dish_media_impressionsWhereInput | dish_media_impressionsWhereInput[]
+    OR?: dish_media_impressionsWhereInput[]
+    NOT?: dish_media_impressionsWhereInput | dish_media_impressionsWhereInput[]
+    id?: UuidFilter<"dish_media_impressions"> | string
+    dish_media_id?: UuidFilter<"dish_media_impressions"> | string
+    user_id?: UuidNullableFilter<"dish_media_impressions"> | string | null
+    session_id?: UuidNullableFilter<"dish_media_impressions"> | string | null
+    source?: StringNullableFilter<"dish_media_impressions"> | string | null
+    created_at?: DateTimeFilter<"dish_media_impressions"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+    users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+    dish_media_views?: Dish_media_viewsListRelationFilter
+  }
+
+  export type dish_media_impressionsOrderByWithRelationInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    session_id?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    dish_media?: dish_mediaOrderByWithRelationInput
+    users?: usersOrderByWithRelationInput
+    dish_media_views?: dish_media_viewsOrderByRelationAggregateInput
+  }
+
+  export type dish_media_impressionsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: dish_media_impressionsWhereInput | dish_media_impressionsWhereInput[]
+    OR?: dish_media_impressionsWhereInput[]
+    NOT?: dish_media_impressionsWhereInput | dish_media_impressionsWhereInput[]
+    dish_media_id?: UuidFilter<"dish_media_impressions"> | string
+    user_id?: UuidNullableFilter<"dish_media_impressions"> | string | null
+    session_id?: UuidNullableFilter<"dish_media_impressions"> | string | null
+    source?: StringNullableFilter<"dish_media_impressions"> | string | null
+    created_at?: DateTimeFilter<"dish_media_impressions"> | Date | string
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+    users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+    dish_media_views?: Dish_media_viewsListRelationFilter
+  }, "id">
+
+  export type dish_media_impressionsOrderByWithAggregationInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    session_id?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    _count?: dish_media_impressionsCountOrderByAggregateInput
+    _max?: dish_media_impressionsMaxOrderByAggregateInput
+    _min?: dish_media_impressionsMinOrderByAggregateInput
+  }
+
+  export type dish_media_impressionsScalarWhereWithAggregatesInput = {
+    AND?: dish_media_impressionsScalarWhereWithAggregatesInput | dish_media_impressionsScalarWhereWithAggregatesInput[]
+    OR?: dish_media_impressionsScalarWhereWithAggregatesInput[]
+    NOT?: dish_media_impressionsScalarWhereWithAggregatesInput | dish_media_impressionsScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"dish_media_impressions"> | string
+    dish_media_id?: UuidWithAggregatesFilter<"dish_media_impressions"> | string
+    user_id?: UuidNullableWithAggregatesFilter<"dish_media_impressions"> | string | null
+    session_id?: UuidNullableWithAggregatesFilter<"dish_media_impressions"> | string | null
+    source?: StringNullableWithAggregatesFilter<"dish_media_impressions"> | string | null
+    created_at?: DateTimeWithAggregatesFilter<"dish_media_impressions"> | Date | string
   }
 
   export type dish_media_likesWhereInput = {
@@ -24071,6 +28315,89 @@ export namespace Prisma {
     dish_media_id?: UuidWithAggregatesFilter<"dish_media_likes"> | string
     user_id?: UuidWithAggregatesFilter<"dish_media_likes"> | string
     created_at?: DateTimeWithAggregatesFilter<"dish_media_likes"> | Date | string
+  }
+
+  export type dish_media_viewsWhereInput = {
+    AND?: dish_media_viewsWhereInput | dish_media_viewsWhereInput[]
+    OR?: dish_media_viewsWhereInput[]
+    NOT?: dish_media_viewsWhereInput | dish_media_viewsWhereInput[]
+    id?: UuidFilter<"dish_media_views"> | string
+    impression_id?: UuidNullableFilter<"dish_media_views"> | string | null
+    dish_media_id?: UuidFilter<"dish_media_views"> | string
+    user_id?: UuidNullableFilter<"dish_media_views"> | string | null
+    started_at?: DateTimeFilter<"dish_media_views"> | Date | string
+    watch_ms?: IntFilter<"dish_media_views"> | number
+    is_completed?: BoolFilter<"dish_media_views"> | boolean
+    is_skipped?: BoolFilter<"dish_media_views"> | boolean
+    rewatch_count?: IntFilter<"dish_media_views"> | number
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+    dish_media_impressions?: XOR<Dish_media_impressionsNullableScalarRelationFilter, dish_media_impressionsWhereInput> | null
+    users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+  }
+
+  export type dish_media_viewsOrderByWithRelationInput = {
+    id?: SortOrder
+    impression_id?: SortOrderInput | SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    started_at?: SortOrder
+    watch_ms?: SortOrder
+    is_completed?: SortOrder
+    is_skipped?: SortOrder
+    rewatch_count?: SortOrder
+    dish_media?: dish_mediaOrderByWithRelationInput
+    dish_media_impressions?: dish_media_impressionsOrderByWithRelationInput
+    users?: usersOrderByWithRelationInput
+  }
+
+  export type dish_media_viewsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: dish_media_viewsWhereInput | dish_media_viewsWhereInput[]
+    OR?: dish_media_viewsWhereInput[]
+    NOT?: dish_media_viewsWhereInput | dish_media_viewsWhereInput[]
+    impression_id?: UuidNullableFilter<"dish_media_views"> | string | null
+    dish_media_id?: UuidFilter<"dish_media_views"> | string
+    user_id?: UuidNullableFilter<"dish_media_views"> | string | null
+    started_at?: DateTimeFilter<"dish_media_views"> | Date | string
+    watch_ms?: IntFilter<"dish_media_views"> | number
+    is_completed?: BoolFilter<"dish_media_views"> | boolean
+    is_skipped?: BoolFilter<"dish_media_views"> | boolean
+    rewatch_count?: IntFilter<"dish_media_views"> | number
+    dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
+    dish_media_impressions?: XOR<Dish_media_impressionsNullableScalarRelationFilter, dish_media_impressionsWhereInput> | null
+    users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+  }, "id">
+
+  export type dish_media_viewsOrderByWithAggregationInput = {
+    id?: SortOrder
+    impression_id?: SortOrderInput | SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    started_at?: SortOrder
+    watch_ms?: SortOrder
+    is_completed?: SortOrder
+    is_skipped?: SortOrder
+    rewatch_count?: SortOrder
+    _count?: dish_media_viewsCountOrderByAggregateInput
+    _avg?: dish_media_viewsAvgOrderByAggregateInput
+    _max?: dish_media_viewsMaxOrderByAggregateInput
+    _min?: dish_media_viewsMinOrderByAggregateInput
+    _sum?: dish_media_viewsSumOrderByAggregateInput
+  }
+
+  export type dish_media_viewsScalarWhereWithAggregatesInput = {
+    AND?: dish_media_viewsScalarWhereWithAggregatesInput | dish_media_viewsScalarWhereWithAggregatesInput[]
+    OR?: dish_media_viewsScalarWhereWithAggregatesInput[]
+    NOT?: dish_media_viewsScalarWhereWithAggregatesInput | dish_media_viewsScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"dish_media_views"> | string
+    impression_id?: UuidNullableWithAggregatesFilter<"dish_media_views"> | string | null
+    dish_media_id?: UuidWithAggregatesFilter<"dish_media_views"> | string
+    user_id?: UuidNullableWithAggregatesFilter<"dish_media_views"> | string | null
+    started_at?: DateTimeWithAggregatesFilter<"dish_media_views"> | Date | string
+    watch_ms?: IntWithAggregatesFilter<"dish_media_views"> | number
+    is_completed?: BoolWithAggregatesFilter<"dish_media_views"> | boolean
+    is_skipped?: BoolWithAggregatesFilter<"dish_media_views"> | boolean
+    rewatch_count?: IntWithAggregatesFilter<"dish_media_views"> | number
   }
 
   export type dish_reviewsWhereInput = {
@@ -25003,7 +29330,9 @@ export namespace Prisma {
     lock_no?: IntFilter<"users"> | number
     username?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
+    dish_media_impressions?: Dish_media_impressionsListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
+    dish_media_views?: Dish_media_viewsListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
   }
@@ -25019,7 +29348,9 @@ export namespace Prisma {
     lock_no?: SortOrder
     username?: SortOrder
     dish_media?: dish_mediaOrderByRelationAggregateInput
+    dish_media_impressions?: dish_media_impressionsOrderByRelationAggregateInput
     dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
+    dish_media_views?: dish_media_viewsOrderByRelationAggregateInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
   }
@@ -25038,7 +29369,9 @@ export namespace Prisma {
     lock_no?: IntFilter<"users"> | number
     username?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
+    dish_media_impressions?: Dish_media_impressionsListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
+    dish_media_views?: Dish_media_viewsListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
   }, "id">
@@ -25365,7 +29698,10 @@ export namespace Prisma {
     lock_no?: number
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -25379,7 +29715,10 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -25393,7 +29732,10 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -25407,7 +29749,10 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -25443,6 +29788,175 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_analysis_resultsCreateInput = {
+    video_duration_ms?: number
+    impr_total?: bigint | number
+    view_total?: bigint | number
+    skip_total?: bigint | number
+    completion_total?: bigint | number
+    watch_ms_total?: bigint | number
+    save_total?: bigint | number
+    like_total?: bigint | number
+    open_map_total?: bigint | number
+    created_at?: Date | string
+    updated_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_analysis_resultsInput
+  }
+
+  export type dish_media_analysis_resultsUncheckedCreateInput = {
+    dish_media_id: string
+    video_duration_ms?: number
+    impr_total?: bigint | number
+    view_total?: bigint | number
+    skip_total?: bigint | number
+    completion_total?: bigint | number
+    watch_ms_total?: bigint | number
+    save_total?: bigint | number
+    like_total?: bigint | number
+    open_map_total?: bigint | number
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type dish_media_analysis_resultsUpdateInput = {
+    video_duration_ms?: IntFieldUpdateOperationsInput | number
+    impr_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    view_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    skip_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    completion_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    watch_ms_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    save_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    like_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    open_map_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_analysis_resultsNestedInput
+  }
+
+  export type dish_media_analysis_resultsUncheckedUpdateInput = {
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    video_duration_ms?: IntFieldUpdateOperationsInput | number
+    impr_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    view_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    skip_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    completion_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    watch_ms_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    save_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    like_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    open_map_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_analysis_resultsCreateManyInput = {
+    dish_media_id: string
+    video_duration_ms?: number
+    impr_total?: bigint | number
+    view_total?: bigint | number
+    skip_total?: bigint | number
+    completion_total?: bigint | number
+    watch_ms_total?: bigint | number
+    save_total?: bigint | number
+    like_total?: bigint | number
+    open_map_total?: bigint | number
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type dish_media_analysis_resultsUpdateManyMutationInput = {
+    video_duration_ms?: IntFieldUpdateOperationsInput | number
+    impr_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    view_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    skip_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    completion_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    watch_ms_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    save_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    like_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    open_map_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_analysis_resultsUncheckedUpdateManyInput = {
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    video_duration_ms?: IntFieldUpdateOperationsInput | number
+    impr_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    view_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    skip_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    completion_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    watch_ms_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    save_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    like_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    open_map_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_impressionsCreateInput = {
+    id?: string
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_impressionsInput
+    users?: usersCreateNestedOneWithoutDish_media_impressionsInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_media_impressionsInput
+  }
+
+  export type dish_media_impressionsUncheckedCreateInput = {
+    id?: string
+    dish_media_id: string
+    user_id?: string | null
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_media_impressionsInput
+  }
+
+  export type dish_media_impressionsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_impressionsNestedInput
+    users?: usersUpdateOneWithoutDish_media_impressionsNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_media_impressionsNestedInput
+  }
+
+  export type dish_media_impressionsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_media_impressionsNestedInput
+  }
+
+  export type dish_media_impressionsCreateManyInput = {
+    id?: string
+    dish_media_id: string
+    user_id?: string | null
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+  }
+
+  export type dish_media_impressionsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_impressionsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_media_likesCreateInput = {
@@ -25490,6 +30004,87 @@ export namespace Prisma {
     dish_media_id?: StringFieldUpdateOperationsInput | string
     user_id?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_viewsCreateInput = {
+    id?: string
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_viewsInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedOneWithoutDish_media_viewsInput
+    users?: usersCreateNestedOneWithoutDish_media_viewsInput
+  }
+
+  export type dish_media_viewsUncheckedCreateInput = {
+    id?: string
+    impression_id?: string | null
+    dish_media_id: string
+    user_id?: string | null
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+  }
+
+  export type dish_media_viewsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_viewsNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateOneWithoutDish_media_viewsNestedInput
+    users?: usersUpdateOneWithoutDish_media_viewsNestedInput
+  }
+
+  export type dish_media_viewsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    impression_id?: NullableStringFieldUpdateOperationsInput | string | null
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_viewsCreateManyInput = {
+    id?: string
+    impression_id?: string | null
+    dish_media_id: string
+    user_id?: string | null
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+  }
+
+  export type dish_media_viewsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_viewsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    impression_id?: NullableStringFieldUpdateOperationsInput | string | null
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
   }
 
   export type dish_reviewsCreateInput = {
@@ -26519,7 +31114,9 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
   }
@@ -26535,7 +31132,9 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
   }
@@ -26551,7 +31150,9 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
   }
@@ -26567,7 +31168,9 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
   }
@@ -27058,10 +31661,27 @@ export namespace Prisma {
     isNot?: usersWhereInput | null
   }
 
+  export type Dish_media_analysis_resultsNullableScalarRelationFilter = {
+    is?: dish_media_analysis_resultsWhereInput | null
+    isNot?: dish_media_analysis_resultsWhereInput | null
+  }
+
+  export type Dish_media_impressionsListRelationFilter = {
+    every?: dish_media_impressionsWhereInput
+    some?: dish_media_impressionsWhereInput
+    none?: dish_media_impressionsWhereInput
+  }
+
   export type Dish_media_likesListRelationFilter = {
     every?: dish_media_likesWhereInput
     some?: dish_media_likesWhereInput
     none?: dish_media_likesWhereInput
+  }
+
+  export type Dish_media_viewsListRelationFilter = {
+    every?: dish_media_viewsWhereInput
+    some?: dish_media_viewsWhereInput
+    none?: dish_media_viewsWhereInput
   }
 
   export type PayoutsListRelationFilter = {
@@ -27070,7 +31690,15 @@ export namespace Prisma {
     none?: payoutsWhereInput
   }
 
+  export type dish_media_impressionsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type dish_media_likesOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type dish_media_viewsOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -27122,9 +31750,132 @@ export namespace Prisma {
     lock_no?: SortOrder
   }
 
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
   export type Dish_mediaScalarRelationFilter = {
     is?: dish_mediaWhereInput
     isNot?: dish_mediaWhereInput
+  }
+
+  export type dish_media_analysis_resultsCountOrderByAggregateInput = {
+    dish_media_id?: SortOrder
+    video_duration_ms?: SortOrder
+    impr_total?: SortOrder
+    view_total?: SortOrder
+    skip_total?: SortOrder
+    completion_total?: SortOrder
+    watch_ms_total?: SortOrder
+    save_total?: SortOrder
+    like_total?: SortOrder
+    open_map_total?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type dish_media_analysis_resultsAvgOrderByAggregateInput = {
+    video_duration_ms?: SortOrder
+    impr_total?: SortOrder
+    view_total?: SortOrder
+    skip_total?: SortOrder
+    completion_total?: SortOrder
+    watch_ms_total?: SortOrder
+    save_total?: SortOrder
+    like_total?: SortOrder
+    open_map_total?: SortOrder
+  }
+
+  export type dish_media_analysis_resultsMaxOrderByAggregateInput = {
+    dish_media_id?: SortOrder
+    video_duration_ms?: SortOrder
+    impr_total?: SortOrder
+    view_total?: SortOrder
+    skip_total?: SortOrder
+    completion_total?: SortOrder
+    watch_ms_total?: SortOrder
+    save_total?: SortOrder
+    like_total?: SortOrder
+    open_map_total?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type dish_media_analysis_resultsMinOrderByAggregateInput = {
+    dish_media_id?: SortOrder
+    video_duration_ms?: SortOrder
+    impr_total?: SortOrder
+    view_total?: SortOrder
+    skip_total?: SortOrder
+    completion_total?: SortOrder
+    watch_ms_total?: SortOrder
+    save_total?: SortOrder
+    like_total?: SortOrder
+    open_map_total?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type dish_media_analysis_resultsSumOrderByAggregateInput = {
+    video_duration_ms?: SortOrder
+    impr_total?: SortOrder
+    view_total?: SortOrder
+    skip_total?: SortOrder
+    completion_total?: SortOrder
+    watch_ms_total?: SortOrder
+    save_total?: SortOrder
+    like_total?: SortOrder
+    open_map_total?: SortOrder
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
+  export type dish_media_impressionsCountOrderByAggregateInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    session_id?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_media_impressionsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    session_id?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_media_impressionsMinOrderByAggregateInput = {
+    id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    session_id?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
   }
 
   export type UsersScalarRelationFilter = {
@@ -27156,6 +31907,70 @@ export namespace Prisma {
     dish_media_id?: SortOrder
     user_id?: SortOrder
     created_at?: SortOrder
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type Dish_media_impressionsNullableScalarRelationFilter = {
+    is?: dish_media_impressionsWhereInput | null
+    isNot?: dish_media_impressionsWhereInput | null
+  }
+
+  export type dish_media_viewsCountOrderByAggregateInput = {
+    id?: SortOrder
+    impression_id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    started_at?: SortOrder
+    watch_ms?: SortOrder
+    is_completed?: SortOrder
+    is_skipped?: SortOrder
+    rewatch_count?: SortOrder
+  }
+
+  export type dish_media_viewsAvgOrderByAggregateInput = {
+    watch_ms?: SortOrder
+    rewatch_count?: SortOrder
+  }
+
+  export type dish_media_viewsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    impression_id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    started_at?: SortOrder
+    watch_ms?: SortOrder
+    is_completed?: SortOrder
+    is_skipped?: SortOrder
+    rewatch_count?: SortOrder
+  }
+
+  export type dish_media_viewsMinOrderByAggregateInput = {
+    id?: SortOrder
+    impression_id?: SortOrder
+    dish_media_id?: SortOrder
+    user_id?: SortOrder
+    started_at?: SortOrder
+    watch_ms?: SortOrder
+    is_completed?: SortOrder
+    is_skipped?: SortOrder
+    rewatch_count?: SortOrder
+  }
+
+  export type dish_media_viewsSumOrderByAggregateInput = {
+    watch_ms?: SortOrder
+    rewatch_count?: SortOrder
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -27418,17 +32233,6 @@ export namespace Prisma {
     _max?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
   }
 
-  export type BigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
-  }
-
   export type Enumpayout_statusFilter<$PrismaModel = never> = {
     equals?: $Enums.payout_status | Enumpayout_statusFieldRefInput<$PrismaModel>
     in?: $Enums.payout_status[] | ListEnumpayout_statusFieldRefInput<$PrismaModel>
@@ -27493,22 +32297,6 @@ export namespace Prisma {
   export type payoutsSumOrderByAggregateInput = {
     amount_cents?: SortOrder
     lock_no?: SortOrder
-  }
-
-  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type Enumpayout_statusWithAggregatesFilter<$PrismaModel = never> = {
@@ -28144,11 +32932,31 @@ export namespace Prisma {
     connect?: usersWhereUniqueInput
   }
 
+  export type dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput = {
+    create?: XOR<dish_media_analysis_resultsCreateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedCreateWithoutDish_mediaInput>
+    connectOrCreate?: dish_media_analysis_resultsCreateOrConnectWithoutDish_mediaInput
+    connect?: dish_media_analysis_resultsWhereUniqueInput
+  }
+
+  export type dish_media_impressionsCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutDish_mediaInput, dish_media_impressionsUncheckedCreateWithoutDish_mediaInput> | dish_media_impressionsCreateWithoutDish_mediaInput[] | dish_media_impressionsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutDish_mediaInput | dish_media_impressionsCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_media_impressionsCreateManyDish_mediaInputEnvelope
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+  }
+
   export type dish_media_likesCreateNestedManyWithoutDish_mediaInput = {
     create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
     createMany?: dish_media_likesCreateManyDish_mediaInputEnvelope
     connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+  }
+
+  export type dish_media_viewsCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_mediaInput, dish_media_viewsUncheckedCreateWithoutDish_mediaInput> | dish_media_viewsCreateWithoutDish_mediaInput[] | dish_media_viewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_mediaInput | dish_media_viewsCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_media_viewsCreateManyDish_mediaInputEnvelope
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
   }
 
   export type payoutsCreateNestedManyWithoutDish_mediaInput = {
@@ -28158,11 +32966,31 @@ export namespace Prisma {
     connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
   }
 
+  export type dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput = {
+    create?: XOR<dish_media_analysis_resultsCreateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedCreateWithoutDish_mediaInput>
+    connectOrCreate?: dish_media_analysis_resultsCreateOrConnectWithoutDish_mediaInput
+    connect?: dish_media_analysis_resultsWhereUniqueInput
+  }
+
+  export type dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutDish_mediaInput, dish_media_impressionsUncheckedCreateWithoutDish_mediaInput> | dish_media_impressionsCreateWithoutDish_mediaInput[] | dish_media_impressionsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutDish_mediaInput | dish_media_impressionsCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_media_impressionsCreateManyDish_mediaInputEnvelope
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+  }
+
   export type dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput = {
     create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
     createMany?: dish_media_likesCreateManyDish_mediaInputEnvelope
     connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+  }
+
+  export type dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_mediaInput, dish_media_viewsUncheckedCreateWithoutDish_mediaInput> | dish_media_viewsCreateWithoutDish_mediaInput[] | dish_media_viewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_mediaInput | dish_media_viewsCreateOrConnectWithoutDish_mediaInput[]
+    createMany?: dish_media_viewsCreateManyDish_mediaInputEnvelope
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
   }
 
   export type payoutsUncheckedCreateNestedManyWithoutDish_mediaInput = {
@@ -28190,6 +33018,30 @@ export namespace Prisma {
     update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_mediaInput, usersUpdateWithoutDish_mediaInput>, usersUncheckedUpdateWithoutDish_mediaInput>
   }
 
+  export type dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_analysis_resultsCreateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedCreateWithoutDish_mediaInput>
+    connectOrCreate?: dish_media_analysis_resultsCreateOrConnectWithoutDish_mediaInput
+    upsert?: dish_media_analysis_resultsUpsertWithoutDish_mediaInput
+    disconnect?: dish_media_analysis_resultsWhereInput | boolean
+    delete?: dish_media_analysis_resultsWhereInput | boolean
+    connect?: dish_media_analysis_resultsWhereUniqueInput
+    update?: XOR<XOR<dish_media_analysis_resultsUpdateToOneWithWhereWithoutDish_mediaInput, dish_media_analysis_resultsUpdateWithoutDish_mediaInput>, dish_media_analysis_resultsUncheckedUpdateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutDish_mediaInput, dish_media_impressionsUncheckedCreateWithoutDish_mediaInput> | dish_media_impressionsCreateWithoutDish_mediaInput[] | dish_media_impressionsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutDish_mediaInput | dish_media_impressionsCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_media_impressionsUpsertWithWhereUniqueWithoutDish_mediaInput | dish_media_impressionsUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_media_impressionsCreateManyDish_mediaInputEnvelope
+    set?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    disconnect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    delete?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    update?: dish_media_impressionsUpdateWithWhereUniqueWithoutDish_mediaInput | dish_media_impressionsUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_media_impressionsUpdateManyWithWhereWithoutDish_mediaInput | dish_media_impressionsUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_media_impressionsScalarWhereInput | dish_media_impressionsScalarWhereInput[]
+  }
+
   export type dish_media_likesUpdateManyWithoutDish_mediaNestedInput = {
     create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
@@ -28202,6 +33054,20 @@ export namespace Prisma {
     update?: dish_media_likesUpdateWithWhereUniqueWithoutDish_mediaInput | dish_media_likesUpdateWithWhereUniqueWithoutDish_mediaInput[]
     updateMany?: dish_media_likesUpdateManyWithWhereWithoutDish_mediaInput | dish_media_likesUpdateManyWithWhereWithoutDish_mediaInput[]
     deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
+  }
+
+  export type dish_media_viewsUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_mediaInput, dish_media_viewsUncheckedCreateWithoutDish_mediaInput> | dish_media_viewsCreateWithoutDish_mediaInput[] | dish_media_viewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_mediaInput | dish_media_viewsCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_media_viewsUpsertWithWhereUniqueWithoutDish_mediaInput | dish_media_viewsUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_media_viewsCreateManyDish_mediaInputEnvelope
+    set?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    disconnect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    delete?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    update?: dish_media_viewsUpdateWithWhereUniqueWithoutDish_mediaInput | dish_media_viewsUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_media_viewsUpdateManyWithWhereWithoutDish_mediaInput | dish_media_viewsUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
   }
 
   export type payoutsUpdateManyWithoutDish_mediaNestedInput = {
@@ -28218,6 +33084,30 @@ export namespace Prisma {
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
   }
 
+  export type dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_analysis_resultsCreateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedCreateWithoutDish_mediaInput>
+    connectOrCreate?: dish_media_analysis_resultsCreateOrConnectWithoutDish_mediaInput
+    upsert?: dish_media_analysis_resultsUpsertWithoutDish_mediaInput
+    disconnect?: dish_media_analysis_resultsWhereInput | boolean
+    delete?: dish_media_analysis_resultsWhereInput | boolean
+    connect?: dish_media_analysis_resultsWhereUniqueInput
+    update?: XOR<XOR<dish_media_analysis_resultsUpdateToOneWithWhereWithoutDish_mediaInput, dish_media_analysis_resultsUpdateWithoutDish_mediaInput>, dish_media_analysis_resultsUncheckedUpdateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutDish_mediaInput, dish_media_impressionsUncheckedCreateWithoutDish_mediaInput> | dish_media_impressionsCreateWithoutDish_mediaInput[] | dish_media_impressionsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutDish_mediaInput | dish_media_impressionsCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_media_impressionsUpsertWithWhereUniqueWithoutDish_mediaInput | dish_media_impressionsUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_media_impressionsCreateManyDish_mediaInputEnvelope
+    set?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    disconnect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    delete?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    update?: dish_media_impressionsUpdateWithWhereUniqueWithoutDish_mediaInput | dish_media_impressionsUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_media_impressionsUpdateManyWithWhereWithoutDish_mediaInput | dish_media_impressionsUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_media_impressionsScalarWhereInput | dish_media_impressionsScalarWhereInput[]
+  }
+
   export type dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput = {
     create?: XOR<dish_media_likesCreateWithoutDish_mediaInput, dish_media_likesUncheckedCreateWithoutDish_mediaInput> | dish_media_likesCreateWithoutDish_mediaInput[] | dish_media_likesUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutDish_mediaInput | dish_media_likesCreateOrConnectWithoutDish_mediaInput[]
@@ -28232,6 +33122,20 @@ export namespace Prisma {
     deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
   }
 
+  export type dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_mediaInput, dish_media_viewsUncheckedCreateWithoutDish_mediaInput> | dish_media_viewsCreateWithoutDish_mediaInput[] | dish_media_viewsUncheckedCreateWithoutDish_mediaInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_mediaInput | dish_media_viewsCreateOrConnectWithoutDish_mediaInput[]
+    upsert?: dish_media_viewsUpsertWithWhereUniqueWithoutDish_mediaInput | dish_media_viewsUpsertWithWhereUniqueWithoutDish_mediaInput[]
+    createMany?: dish_media_viewsCreateManyDish_mediaInputEnvelope
+    set?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    disconnect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    delete?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    update?: dish_media_viewsUpdateWithWhereUniqueWithoutDish_mediaInput | dish_media_viewsUpdateWithWhereUniqueWithoutDish_mediaInput[]
+    updateMany?: dish_media_viewsUpdateManyWithWhereWithoutDish_mediaInput | dish_media_viewsUpdateManyWithWhereWithoutDish_mediaInput[]
+    deleteMany?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
+  }
+
   export type payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput = {
     create?: XOR<payoutsCreateWithoutDish_mediaInput, payoutsUncheckedCreateWithoutDish_mediaInput> | payoutsCreateWithoutDish_mediaInput[] | payoutsUncheckedCreateWithoutDish_mediaInput[]
     connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
@@ -28244,6 +33148,100 @@ export namespace Prisma {
     update?: payoutsUpdateWithWhereUniqueWithoutDish_mediaInput | payoutsUpdateWithWhereUniqueWithoutDish_mediaInput[]
     updateMany?: payoutsUpdateManyWithWhereWithoutDish_mediaInput | payoutsUpdateManyWithWhereWithoutDish_mediaInput[]
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
+  }
+
+  export type dish_mediaCreateNestedOneWithoutDish_media_analysis_resultsInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_analysis_resultsInput, dish_mediaUncheckedCreateWithoutDish_media_analysis_resultsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_analysis_resultsInput
+    connect?: dish_mediaWhereUniqueInput
+  }
+
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type dish_mediaUpdateOneRequiredWithoutDish_media_analysis_resultsNestedInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_analysis_resultsInput, dish_mediaUncheckedCreateWithoutDish_media_analysis_resultsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_analysis_resultsInput
+    upsert?: dish_mediaUpsertWithoutDish_media_analysis_resultsInput
+    connect?: dish_mediaWhereUniqueInput
+    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutDish_media_analysis_resultsInput, dish_mediaUpdateWithoutDish_media_analysis_resultsInput>, dish_mediaUncheckedUpdateWithoutDish_media_analysis_resultsInput>
+  }
+
+  export type dish_mediaCreateNestedOneWithoutDish_media_impressionsInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_impressionsInput, dish_mediaUncheckedCreateWithoutDish_media_impressionsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_impressionsInput
+    connect?: dish_mediaWhereUniqueInput
+  }
+
+  export type usersCreateNestedOneWithoutDish_media_impressionsInput = {
+    create?: XOR<usersCreateWithoutDish_media_impressionsInput, usersUncheckedCreateWithoutDish_media_impressionsInput>
+    connectOrCreate?: usersCreateOrConnectWithoutDish_media_impressionsInput
+    connect?: usersWhereUniqueInput
+  }
+
+  export type dish_media_viewsCreateNestedManyWithoutDish_media_impressionsInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput> | dish_media_viewsCreateWithoutDish_media_impressionsInput[] | dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput | dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput[]
+    createMany?: dish_media_viewsCreateManyDish_media_impressionsInputEnvelope
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+  }
+
+  export type dish_media_viewsUncheckedCreateNestedManyWithoutDish_media_impressionsInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput> | dish_media_viewsCreateWithoutDish_media_impressionsInput[] | dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput | dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput[]
+    createMany?: dish_media_viewsCreateManyDish_media_impressionsInputEnvelope
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+  }
+
+  export type dish_mediaUpdateOneRequiredWithoutDish_media_impressionsNestedInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_impressionsInput, dish_mediaUncheckedCreateWithoutDish_media_impressionsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_impressionsInput
+    upsert?: dish_mediaUpsertWithoutDish_media_impressionsInput
+    connect?: dish_mediaWhereUniqueInput
+    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutDish_media_impressionsInput, dish_mediaUpdateWithoutDish_media_impressionsInput>, dish_mediaUncheckedUpdateWithoutDish_media_impressionsInput>
+  }
+
+  export type usersUpdateOneWithoutDish_media_impressionsNestedInput = {
+    create?: XOR<usersCreateWithoutDish_media_impressionsInput, usersUncheckedCreateWithoutDish_media_impressionsInput>
+    connectOrCreate?: usersCreateOrConnectWithoutDish_media_impressionsInput
+    upsert?: usersUpsertWithoutDish_media_impressionsInput
+    disconnect?: usersWhereInput | boolean
+    delete?: usersWhereInput | boolean
+    connect?: usersWhereUniqueInput
+    update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_media_impressionsInput, usersUpdateWithoutDish_media_impressionsInput>, usersUncheckedUpdateWithoutDish_media_impressionsInput>
+  }
+
+  export type dish_media_viewsUpdateManyWithoutDish_media_impressionsNestedInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput> | dish_media_viewsCreateWithoutDish_media_impressionsInput[] | dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput | dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput[]
+    upsert?: dish_media_viewsUpsertWithWhereUniqueWithoutDish_media_impressionsInput | dish_media_viewsUpsertWithWhereUniqueWithoutDish_media_impressionsInput[]
+    createMany?: dish_media_viewsCreateManyDish_media_impressionsInputEnvelope
+    set?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    disconnect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    delete?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    update?: dish_media_viewsUpdateWithWhereUniqueWithoutDish_media_impressionsInput | dish_media_viewsUpdateWithWhereUniqueWithoutDish_media_impressionsInput[]
+    updateMany?: dish_media_viewsUpdateManyWithWhereWithoutDish_media_impressionsInput | dish_media_viewsUpdateManyWithWhereWithoutDish_media_impressionsInput[]
+    deleteMany?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
+  }
+
+  export type dish_media_viewsUncheckedUpdateManyWithoutDish_media_impressionsNestedInput = {
+    create?: XOR<dish_media_viewsCreateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput> | dish_media_viewsCreateWithoutDish_media_impressionsInput[] | dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput | dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput[]
+    upsert?: dish_media_viewsUpsertWithWhereUniqueWithoutDish_media_impressionsInput | dish_media_viewsUpsertWithWhereUniqueWithoutDish_media_impressionsInput[]
+    createMany?: dish_media_viewsCreateManyDish_media_impressionsInputEnvelope
+    set?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    disconnect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    delete?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    update?: dish_media_viewsUpdateWithWhereUniqueWithoutDish_media_impressionsInput | dish_media_viewsUpdateWithWhereUniqueWithoutDish_media_impressionsInput[]
+    updateMany?: dish_media_viewsUpdateManyWithWhereWithoutDish_media_impressionsInput | dish_media_viewsUpdateManyWithWhereWithoutDish_media_impressionsInput[]
+    deleteMany?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
   }
 
   export type dish_mediaCreateNestedOneWithoutDish_media_likesInput = {
@@ -28272,6 +33270,56 @@ export namespace Prisma {
     upsert?: usersUpsertWithoutDish_media_likesInput
     connect?: usersWhereUniqueInput
     update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_media_likesInput, usersUpdateWithoutDish_media_likesInput>, usersUncheckedUpdateWithoutDish_media_likesInput>
+  }
+
+  export type dish_mediaCreateNestedOneWithoutDish_media_viewsInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_viewsInput, dish_mediaUncheckedCreateWithoutDish_media_viewsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_viewsInput
+    connect?: dish_mediaWhereUniqueInput
+  }
+
+  export type dish_media_impressionsCreateNestedOneWithoutDish_media_viewsInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutDish_media_viewsInput, dish_media_impressionsUncheckedCreateWithoutDish_media_viewsInput>
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutDish_media_viewsInput
+    connect?: dish_media_impressionsWhereUniqueInput
+  }
+
+  export type usersCreateNestedOneWithoutDish_media_viewsInput = {
+    create?: XOR<usersCreateWithoutDish_media_viewsInput, usersUncheckedCreateWithoutDish_media_viewsInput>
+    connectOrCreate?: usersCreateOrConnectWithoutDish_media_viewsInput
+    connect?: usersWhereUniqueInput
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
+  export type dish_mediaUpdateOneRequiredWithoutDish_media_viewsNestedInput = {
+    create?: XOR<dish_mediaCreateWithoutDish_media_viewsInput, dish_mediaUncheckedCreateWithoutDish_media_viewsInput>
+    connectOrCreate?: dish_mediaCreateOrConnectWithoutDish_media_viewsInput
+    upsert?: dish_mediaUpsertWithoutDish_media_viewsInput
+    connect?: dish_mediaWhereUniqueInput
+    update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutDish_media_viewsInput, dish_mediaUpdateWithoutDish_media_viewsInput>, dish_mediaUncheckedUpdateWithoutDish_media_viewsInput>
+  }
+
+  export type dish_media_impressionsUpdateOneWithoutDish_media_viewsNestedInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutDish_media_viewsInput, dish_media_impressionsUncheckedCreateWithoutDish_media_viewsInput>
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutDish_media_viewsInput
+    upsert?: dish_media_impressionsUpsertWithoutDish_media_viewsInput
+    disconnect?: dish_media_impressionsWhereInput | boolean
+    delete?: dish_media_impressionsWhereInput | boolean
+    connect?: dish_media_impressionsWhereUniqueInput
+    update?: XOR<XOR<dish_media_impressionsUpdateToOneWithWhereWithoutDish_media_viewsInput, dish_media_impressionsUpdateWithoutDish_media_viewsInput>, dish_media_impressionsUncheckedUpdateWithoutDish_media_viewsInput>
+  }
+
+  export type usersUpdateOneWithoutDish_media_viewsNestedInput = {
+    create?: XOR<usersCreateWithoutDish_media_viewsInput, usersUncheckedCreateWithoutDish_media_viewsInput>
+    connectOrCreate?: usersCreateOrConnectWithoutDish_media_viewsInput
+    upsert?: usersUpsertWithoutDish_media_viewsInput
+    disconnect?: usersWhereInput | boolean
+    delete?: usersWhereInput | boolean
+    connect?: usersWhereUniqueInput
+    update?: XOR<XOR<usersUpdateToOneWithWhereWithoutDish_media_viewsInput, usersUpdateWithoutDish_media_viewsInput>, usersUncheckedUpdateWithoutDish_media_viewsInput>
   }
 
   export type dishesCreateNestedOneWithoutDish_reviewsInput = {
@@ -28438,14 +33486,6 @@ export namespace Prisma {
     create?: XOR<dish_mediaCreateWithoutPayoutsInput, dish_mediaUncheckedCreateWithoutPayoutsInput>
     connectOrCreate?: dish_mediaCreateOrConnectWithoutPayoutsInput
     connect?: dish_mediaWhereUniqueInput
-  }
-
-  export type BigIntFieldUpdateOperationsInput = {
-    set?: bigint | number
-    increment?: bigint | number
-    decrement?: bigint | number
-    multiply?: bigint | number
-    divide?: bigint | number
   }
 
   export type Enumpayout_statusFieldUpdateOperationsInput = {
@@ -28709,11 +33749,25 @@ export namespace Prisma {
     connect?: dish_mediaWhereUniqueInput | dish_mediaWhereUniqueInput[]
   }
 
+  export type dish_media_impressionsCreateNestedManyWithoutUsersInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutUsersInput, dish_media_impressionsUncheckedCreateWithoutUsersInput> | dish_media_impressionsCreateWithoutUsersInput[] | dish_media_impressionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutUsersInput | dish_media_impressionsCreateOrConnectWithoutUsersInput[]
+    createMany?: dish_media_impressionsCreateManyUsersInputEnvelope
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+  }
+
   export type dish_media_likesCreateNestedManyWithoutUsersInput = {
     create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
     createMany?: dish_media_likesCreateManyUsersInputEnvelope
     connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+  }
+
+  export type dish_media_viewsCreateNestedManyWithoutUsersInput = {
+    create?: XOR<dish_media_viewsCreateWithoutUsersInput, dish_media_viewsUncheckedCreateWithoutUsersInput> | dish_media_viewsCreateWithoutUsersInput[] | dish_media_viewsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutUsersInput | dish_media_viewsCreateOrConnectWithoutUsersInput[]
+    createMany?: dish_media_viewsCreateManyUsersInputEnvelope
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
   }
 
   export type dish_reviewsCreateNestedManyWithoutUsersInput = {
@@ -28737,11 +33791,25 @@ export namespace Prisma {
     connect?: dish_mediaWhereUniqueInput | dish_mediaWhereUniqueInput[]
   }
 
+  export type dish_media_impressionsUncheckedCreateNestedManyWithoutUsersInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutUsersInput, dish_media_impressionsUncheckedCreateWithoutUsersInput> | dish_media_impressionsCreateWithoutUsersInput[] | dish_media_impressionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutUsersInput | dish_media_impressionsCreateOrConnectWithoutUsersInput[]
+    createMany?: dish_media_impressionsCreateManyUsersInputEnvelope
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+  }
+
   export type dish_media_likesUncheckedCreateNestedManyWithoutUsersInput = {
     create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
     createMany?: dish_media_likesCreateManyUsersInputEnvelope
     connect?: dish_media_likesWhereUniqueInput | dish_media_likesWhereUniqueInput[]
+  }
+
+  export type dish_media_viewsUncheckedCreateNestedManyWithoutUsersInput = {
+    create?: XOR<dish_media_viewsCreateWithoutUsersInput, dish_media_viewsUncheckedCreateWithoutUsersInput> | dish_media_viewsCreateWithoutUsersInput[] | dish_media_viewsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutUsersInput | dish_media_viewsCreateOrConnectWithoutUsersInput[]
+    createMany?: dish_media_viewsCreateManyUsersInputEnvelope
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
   }
 
   export type dish_reviewsUncheckedCreateNestedManyWithoutUsersInput = {
@@ -28776,6 +33844,20 @@ export namespace Prisma {
     deleteMany?: dish_mediaScalarWhereInput | dish_mediaScalarWhereInput[]
   }
 
+  export type dish_media_impressionsUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutUsersInput, dish_media_impressionsUncheckedCreateWithoutUsersInput> | dish_media_impressionsCreateWithoutUsersInput[] | dish_media_impressionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutUsersInput | dish_media_impressionsCreateOrConnectWithoutUsersInput[]
+    upsert?: dish_media_impressionsUpsertWithWhereUniqueWithoutUsersInput | dish_media_impressionsUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: dish_media_impressionsCreateManyUsersInputEnvelope
+    set?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    disconnect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    delete?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    update?: dish_media_impressionsUpdateWithWhereUniqueWithoutUsersInput | dish_media_impressionsUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: dish_media_impressionsUpdateManyWithWhereWithoutUsersInput | dish_media_impressionsUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: dish_media_impressionsScalarWhereInput | dish_media_impressionsScalarWhereInput[]
+  }
+
   export type dish_media_likesUpdateManyWithoutUsersNestedInput = {
     create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
@@ -28788,6 +33870,20 @@ export namespace Prisma {
     update?: dish_media_likesUpdateWithWhereUniqueWithoutUsersInput | dish_media_likesUpdateWithWhereUniqueWithoutUsersInput[]
     updateMany?: dish_media_likesUpdateManyWithWhereWithoutUsersInput | dish_media_likesUpdateManyWithWhereWithoutUsersInput[]
     deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
+  }
+
+  export type dish_media_viewsUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<dish_media_viewsCreateWithoutUsersInput, dish_media_viewsUncheckedCreateWithoutUsersInput> | dish_media_viewsCreateWithoutUsersInput[] | dish_media_viewsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutUsersInput | dish_media_viewsCreateOrConnectWithoutUsersInput[]
+    upsert?: dish_media_viewsUpsertWithWhereUniqueWithoutUsersInput | dish_media_viewsUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: dish_media_viewsCreateManyUsersInputEnvelope
+    set?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    disconnect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    delete?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    update?: dish_media_viewsUpdateWithWhereUniqueWithoutUsersInput | dish_media_viewsUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: dish_media_viewsUpdateManyWithWhereWithoutUsersInput | dish_media_viewsUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
   }
 
   export type dish_reviewsUpdateManyWithoutUsersNestedInput = {
@@ -28832,6 +33928,20 @@ export namespace Prisma {
     deleteMany?: dish_mediaScalarWhereInput | dish_mediaScalarWhereInput[]
   }
 
+  export type dish_media_impressionsUncheckedUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<dish_media_impressionsCreateWithoutUsersInput, dish_media_impressionsUncheckedCreateWithoutUsersInput> | dish_media_impressionsCreateWithoutUsersInput[] | dish_media_impressionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_impressionsCreateOrConnectWithoutUsersInput | dish_media_impressionsCreateOrConnectWithoutUsersInput[]
+    upsert?: dish_media_impressionsUpsertWithWhereUniqueWithoutUsersInput | dish_media_impressionsUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: dish_media_impressionsCreateManyUsersInputEnvelope
+    set?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    disconnect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    delete?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    connect?: dish_media_impressionsWhereUniqueInput | dish_media_impressionsWhereUniqueInput[]
+    update?: dish_media_impressionsUpdateWithWhereUniqueWithoutUsersInput | dish_media_impressionsUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: dish_media_impressionsUpdateManyWithWhereWithoutUsersInput | dish_media_impressionsUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: dish_media_impressionsScalarWhereInput | dish_media_impressionsScalarWhereInput[]
+  }
+
   export type dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput = {
     create?: XOR<dish_media_likesCreateWithoutUsersInput, dish_media_likesUncheckedCreateWithoutUsersInput> | dish_media_likesCreateWithoutUsersInput[] | dish_media_likesUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_media_likesCreateOrConnectWithoutUsersInput | dish_media_likesCreateOrConnectWithoutUsersInput[]
@@ -28844,6 +33954,20 @@ export namespace Prisma {
     update?: dish_media_likesUpdateWithWhereUniqueWithoutUsersInput | dish_media_likesUpdateWithWhereUniqueWithoutUsersInput[]
     updateMany?: dish_media_likesUpdateManyWithWhereWithoutUsersInput | dish_media_likesUpdateManyWithWhereWithoutUsersInput[]
     deleteMany?: dish_media_likesScalarWhereInput | dish_media_likesScalarWhereInput[]
+  }
+
+  export type dish_media_viewsUncheckedUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<dish_media_viewsCreateWithoutUsersInput, dish_media_viewsUncheckedCreateWithoutUsersInput> | dish_media_viewsCreateWithoutUsersInput[] | dish_media_viewsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: dish_media_viewsCreateOrConnectWithoutUsersInput | dish_media_viewsCreateOrConnectWithoutUsersInput[]
+    upsert?: dish_media_viewsUpsertWithWhereUniqueWithoutUsersInput | dish_media_viewsUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: dish_media_viewsCreateManyUsersInputEnvelope
+    set?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    disconnect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    delete?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    connect?: dish_media_viewsWhereUniqueInput | dish_media_viewsWhereUniqueInput[]
+    update?: dish_media_viewsUpdateWithWhereUniqueWithoutUsersInput | dish_media_viewsUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: dish_media_viewsUpdateManyWithWhereWithoutUsersInput | dish_media_viewsUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
   }
 
   export type dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput = {
@@ -29123,6 +34247,46 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -29167,38 +34331,11 @@ export namespace Prisma {
     _max?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
   }
 
-  export type NestedBigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
-  }
-
   export type NestedEnumpayout_statusFilter<$PrismaModel = never> = {
     equals?: $Enums.payout_status | Enumpayout_statusFieldRefInput<$PrismaModel>
     in?: $Enums.payout_status[] | ListEnumpayout_statusFieldRefInput<$PrismaModel>
     notIn?: $Enums.payout_status[] | ListEnumpayout_statusFieldRefInput<$PrismaModel>
     not?: NestedEnumpayout_statusFilter<$PrismaModel> | $Enums.payout_status
-  }
-
-  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type NestedEnumpayout_statusWithAggregatesFilter<$PrismaModel = never> = {
@@ -29534,7 +34671,9 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
   }
@@ -29549,7 +34688,9 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
   }
@@ -29557,6 +34698,67 @@ export namespace Prisma {
   export type usersCreateOrConnectWithoutDish_mediaInput = {
     where: usersWhereUniqueInput
     create: XOR<usersCreateWithoutDish_mediaInput, usersUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_analysis_resultsCreateWithoutDish_mediaInput = {
+    video_duration_ms?: number
+    impr_total?: bigint | number
+    view_total?: bigint | number
+    skip_total?: bigint | number
+    completion_total?: bigint | number
+    watch_ms_total?: bigint | number
+    save_total?: bigint | number
+    like_total?: bigint | number
+    open_map_total?: bigint | number
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type dish_media_analysis_resultsUncheckedCreateWithoutDish_mediaInput = {
+    video_duration_ms?: number
+    impr_total?: bigint | number
+    view_total?: bigint | number
+    skip_total?: bigint | number
+    completion_total?: bigint | number
+    watch_ms_total?: bigint | number
+    save_total?: bigint | number
+    like_total?: bigint | number
+    open_map_total?: bigint | number
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type dish_media_analysis_resultsCreateOrConnectWithoutDish_mediaInput = {
+    where: dish_media_analysis_resultsWhereUniqueInput
+    create: XOR<dish_media_analysis_resultsCreateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_impressionsCreateWithoutDish_mediaInput = {
+    id?: string
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+    users?: usersCreateNestedOneWithoutDish_media_impressionsInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_media_impressionsInput
+  }
+
+  export type dish_media_impressionsUncheckedCreateWithoutDish_mediaInput = {
+    id?: string
+    user_id?: string | null
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_media_impressionsInput
+  }
+
+  export type dish_media_impressionsCreateOrConnectWithoutDish_mediaInput = {
+    where: dish_media_impressionsWhereUniqueInput
+    create: XOR<dish_media_impressionsCreateWithoutDish_mediaInput, dish_media_impressionsUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_impressionsCreateManyDish_mediaInputEnvelope = {
+    data: dish_media_impressionsCreateManyDish_mediaInput | dish_media_impressionsCreateManyDish_mediaInput[]
+    skipDuplicates?: boolean
   }
 
   export type dish_media_likesCreateWithoutDish_mediaInput = {
@@ -29578,6 +34780,38 @@ export namespace Prisma {
 
   export type dish_media_likesCreateManyDish_mediaInputEnvelope = {
     data: dish_media_likesCreateManyDish_mediaInput | dish_media_likesCreateManyDish_mediaInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_media_viewsCreateWithoutDish_mediaInput = {
+    id?: string
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+    dish_media_impressions?: dish_media_impressionsCreateNestedOneWithoutDish_media_viewsInput
+    users?: usersCreateNestedOneWithoutDish_media_viewsInput
+  }
+
+  export type dish_media_viewsUncheckedCreateWithoutDish_mediaInput = {
+    id?: string
+    impression_id?: string | null
+    user_id?: string | null
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+  }
+
+  export type dish_media_viewsCreateOrConnectWithoutDish_mediaInput = {
+    where: dish_media_viewsWhereUniqueInput
+    create: XOR<dish_media_viewsCreateWithoutDish_mediaInput, dish_media_viewsUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_viewsCreateManyDish_mediaInputEnvelope = {
+    data: dish_media_viewsCreateManyDish_mediaInput | dish_media_viewsCreateManyDish_mediaInput[]
     skipDuplicates?: boolean
   }
 
@@ -29669,7 +34903,9 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
   }
@@ -29684,9 +34920,78 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+  }
+
+  export type dish_media_analysis_resultsUpsertWithoutDish_mediaInput = {
+    update: XOR<dish_media_analysis_resultsUpdateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedUpdateWithoutDish_mediaInput>
+    create: XOR<dish_media_analysis_resultsCreateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedCreateWithoutDish_mediaInput>
+    where?: dish_media_analysis_resultsWhereInput
+  }
+
+  export type dish_media_analysis_resultsUpdateToOneWithWhereWithoutDish_mediaInput = {
+    where?: dish_media_analysis_resultsWhereInput
+    data: XOR<dish_media_analysis_resultsUpdateWithoutDish_mediaInput, dish_media_analysis_resultsUncheckedUpdateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_analysis_resultsUpdateWithoutDish_mediaInput = {
+    video_duration_ms?: IntFieldUpdateOperationsInput | number
+    impr_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    view_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    skip_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    completion_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    watch_ms_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    save_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    like_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    open_map_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_analysis_resultsUncheckedUpdateWithoutDish_mediaInput = {
+    video_duration_ms?: IntFieldUpdateOperationsInput | number
+    impr_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    view_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    skip_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    completion_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    watch_ms_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    save_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    like_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    open_map_total?: BigIntFieldUpdateOperationsInput | bigint | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_impressionsUpsertWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_media_impressionsWhereUniqueInput
+    update: XOR<dish_media_impressionsUpdateWithoutDish_mediaInput, dish_media_impressionsUncheckedUpdateWithoutDish_mediaInput>
+    create: XOR<dish_media_impressionsCreateWithoutDish_mediaInput, dish_media_impressionsUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_impressionsUpdateWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_media_impressionsWhereUniqueInput
+    data: XOR<dish_media_impressionsUpdateWithoutDish_mediaInput, dish_media_impressionsUncheckedUpdateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_impressionsUpdateManyWithWhereWithoutDish_mediaInput = {
+    where: dish_media_impressionsScalarWhereInput
+    data: XOR<dish_media_impressionsUpdateManyMutationInput, dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaInput>
+  }
+
+  export type dish_media_impressionsScalarWhereInput = {
+    AND?: dish_media_impressionsScalarWhereInput | dish_media_impressionsScalarWhereInput[]
+    OR?: dish_media_impressionsScalarWhereInput[]
+    NOT?: dish_media_impressionsScalarWhereInput | dish_media_impressionsScalarWhereInput[]
+    id?: UuidFilter<"dish_media_impressions"> | string
+    dish_media_id?: UuidFilter<"dish_media_impressions"> | string
+    user_id?: UuidNullableFilter<"dish_media_impressions"> | string | null
+    session_id?: UuidNullableFilter<"dish_media_impressions"> | string | null
+    source?: StringNullableFilter<"dish_media_impressions"> | string | null
+    created_at?: DateTimeFilter<"dish_media_impressions"> | Date | string
   }
 
   export type dish_media_likesUpsertWithWhereUniqueWithoutDish_mediaInput = {
@@ -29713,6 +35018,37 @@ export namespace Prisma {
     dish_media_id?: UuidFilter<"dish_media_likes"> | string
     user_id?: UuidFilter<"dish_media_likes"> | string
     created_at?: DateTimeFilter<"dish_media_likes"> | Date | string
+  }
+
+  export type dish_media_viewsUpsertWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_media_viewsWhereUniqueInput
+    update: XOR<dish_media_viewsUpdateWithoutDish_mediaInput, dish_media_viewsUncheckedUpdateWithoutDish_mediaInput>
+    create: XOR<dish_media_viewsCreateWithoutDish_mediaInput, dish_media_viewsUncheckedCreateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_viewsUpdateWithWhereUniqueWithoutDish_mediaInput = {
+    where: dish_media_viewsWhereUniqueInput
+    data: XOR<dish_media_viewsUpdateWithoutDish_mediaInput, dish_media_viewsUncheckedUpdateWithoutDish_mediaInput>
+  }
+
+  export type dish_media_viewsUpdateManyWithWhereWithoutDish_mediaInput = {
+    where: dish_media_viewsScalarWhereInput
+    data: XOR<dish_media_viewsUpdateManyMutationInput, dish_media_viewsUncheckedUpdateManyWithoutDish_mediaInput>
+  }
+
+  export type dish_media_viewsScalarWhereInput = {
+    AND?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
+    OR?: dish_media_viewsScalarWhereInput[]
+    NOT?: dish_media_viewsScalarWhereInput | dish_media_viewsScalarWhereInput[]
+    id?: UuidFilter<"dish_media_views"> | string
+    impression_id?: UuidNullableFilter<"dish_media_views"> | string | null
+    dish_media_id?: UuidFilter<"dish_media_views"> | string
+    user_id?: UuidNullableFilter<"dish_media_views"> | string | null
+    started_at?: DateTimeFilter<"dish_media_views"> | Date | string
+    watch_ms?: IntFilter<"dish_media_views"> | number
+    is_completed?: BoolFilter<"dish_media_views"> | boolean
+    is_skipped?: BoolFilter<"dish_media_views"> | boolean
+    rewatch_count?: IntFilter<"dish_media_views"> | number
   }
 
   export type payoutsUpsertWithWhereUniqueWithoutDish_mediaInput = {
@@ -29747,6 +35083,298 @@ export namespace Prisma {
     lock_no?: IntFilter<"payouts"> | number
   }
 
+  export type dish_mediaCreateWithoutDish_media_analysis_resultsInput = {
+    id?: string
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dishes: dishesCreateNestedOneWithoutDish_mediaInput
+    users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_mediaInput
+    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaUncheckedCreateWithoutDish_media_analysis_resultsInput = {
+    id?: string
+    dish_id: string
+    user_id?: string | null
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
+    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaCreateOrConnectWithoutDish_media_analysis_resultsInput = {
+    where: dish_mediaWhereUniqueInput
+    create: XOR<dish_mediaCreateWithoutDish_media_analysis_resultsInput, dish_mediaUncheckedCreateWithoutDish_media_analysis_resultsInput>
+  }
+
+  export type dish_mediaUpsertWithoutDish_media_analysis_resultsInput = {
+    update: XOR<dish_mediaUpdateWithoutDish_media_analysis_resultsInput, dish_mediaUncheckedUpdateWithoutDish_media_analysis_resultsInput>
+    create: XOR<dish_mediaCreateWithoutDish_media_analysis_resultsInput, dish_mediaUncheckedCreateWithoutDish_media_analysis_resultsInput>
+    where?: dish_mediaWhereInput
+  }
+
+  export type dish_mediaUpdateToOneWithWhereWithoutDish_media_analysis_resultsInput = {
+    where?: dish_mediaWhereInput
+    data: XOR<dish_mediaUpdateWithoutDish_media_analysis_resultsInput, dish_mediaUncheckedUpdateWithoutDish_media_analysis_resultsInput>
+  }
+
+  export type dish_mediaUpdateWithoutDish_media_analysis_resultsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
+    users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_mediaNestedInput
+    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type dish_mediaUncheckedUpdateWithoutDish_media_analysis_resultsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type dish_mediaCreateWithoutDish_media_impressionsInput = {
+    id?: string
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dishes: dishesCreateNestedOneWithoutDish_mediaInput
+    users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_mediaInput
+    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaUncheckedCreateWithoutDish_media_impressionsInput = {
+    id?: string
+    dish_id: string
+    user_id?: string | null
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
+    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaCreateOrConnectWithoutDish_media_impressionsInput = {
+    where: dish_mediaWhereUniqueInput
+    create: XOR<dish_mediaCreateWithoutDish_media_impressionsInput, dish_mediaUncheckedCreateWithoutDish_media_impressionsInput>
+  }
+
+  export type usersCreateWithoutDish_media_impressionsInput = {
+    id?: string
+    display_name?: string | null
+    avatar?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersUncheckedCreateWithoutDish_media_impressionsInput = {
+    id?: string
+    display_name?: string | null
+    avatar?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersCreateOrConnectWithoutDish_media_impressionsInput = {
+    where: usersWhereUniqueInput
+    create: XOR<usersCreateWithoutDish_media_impressionsInput, usersUncheckedCreateWithoutDish_media_impressionsInput>
+  }
+
+  export type dish_media_viewsCreateWithoutDish_media_impressionsInput = {
+    id?: string
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_viewsInput
+    users?: usersCreateNestedOneWithoutDish_media_viewsInput
+  }
+
+  export type dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput = {
+    id?: string
+    dish_media_id: string
+    user_id?: string | null
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+  }
+
+  export type dish_media_viewsCreateOrConnectWithoutDish_media_impressionsInput = {
+    where: dish_media_viewsWhereUniqueInput
+    create: XOR<dish_media_viewsCreateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput>
+  }
+
+  export type dish_media_viewsCreateManyDish_media_impressionsInputEnvelope = {
+    data: dish_media_viewsCreateManyDish_media_impressionsInput | dish_media_viewsCreateManyDish_media_impressionsInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_mediaUpsertWithoutDish_media_impressionsInput = {
+    update: XOR<dish_mediaUpdateWithoutDish_media_impressionsInput, dish_mediaUncheckedUpdateWithoutDish_media_impressionsInput>
+    create: XOR<dish_mediaCreateWithoutDish_media_impressionsInput, dish_mediaUncheckedCreateWithoutDish_media_impressionsInput>
+    where?: dish_mediaWhereInput
+  }
+
+  export type dish_mediaUpdateToOneWithWhereWithoutDish_media_impressionsInput = {
+    where?: dish_mediaWhereInput
+    data: XOR<dish_mediaUpdateWithoutDish_media_impressionsInput, dish_mediaUncheckedUpdateWithoutDish_media_impressionsInput>
+  }
+
+  export type dish_mediaUpdateWithoutDish_media_impressionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
+    users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_mediaNestedInput
+    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type dish_mediaUncheckedUpdateWithoutDish_media_impressionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type usersUpsertWithoutDish_media_impressionsInput = {
+    update: XOR<usersUpdateWithoutDish_media_impressionsInput, usersUncheckedUpdateWithoutDish_media_impressionsInput>
+    create: XOR<usersCreateWithoutDish_media_impressionsInput, usersUncheckedCreateWithoutDish_media_impressionsInput>
+    where?: usersWhereInput
+  }
+
+  export type usersUpdateToOneWithWhereWithoutDish_media_impressionsInput = {
+    where?: usersWhereInput
+    data: XOR<usersUpdateWithoutDish_media_impressionsInput, usersUncheckedUpdateWithoutDish_media_impressionsInput>
+  }
+
+  export type usersUpdateWithoutDish_media_impressionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+  }
+
+  export type usersUncheckedUpdateWithoutDish_media_impressionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+  }
+
+  export type dish_media_viewsUpsertWithWhereUniqueWithoutDish_media_impressionsInput = {
+    where: dish_media_viewsWhereUniqueInput
+    update: XOR<dish_media_viewsUpdateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedUpdateWithoutDish_media_impressionsInput>
+    create: XOR<dish_media_viewsCreateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedCreateWithoutDish_media_impressionsInput>
+  }
+
+  export type dish_media_viewsUpdateWithWhereUniqueWithoutDish_media_impressionsInput = {
+    where: dish_media_viewsWhereUniqueInput
+    data: XOR<dish_media_viewsUpdateWithoutDish_media_impressionsInput, dish_media_viewsUncheckedUpdateWithoutDish_media_impressionsInput>
+  }
+
+  export type dish_media_viewsUpdateManyWithWhereWithoutDish_media_impressionsInput = {
+    where: dish_media_viewsScalarWhereInput
+    data: XOR<dish_media_viewsUpdateManyMutationInput, dish_media_viewsUncheckedUpdateManyWithoutDish_media_impressionsInput>
+  }
+
   export type dish_mediaCreateWithoutDish_media_likesInput = {
     id?: string
     media_path: string
@@ -29757,6 +35385,9 @@ export namespace Prisma {
     lock_no?: number
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -29770,6 +35401,9 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -29789,6 +35423,8 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
   }
@@ -29804,6 +35440,8 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
   }
@@ -29834,6 +35472,9 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -29847,6 +35488,9 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -29872,6 +35516,8 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
   }
@@ -29887,6 +35533,224 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+  }
+
+  export type dish_mediaCreateWithoutDish_media_viewsInput = {
+    id?: string
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dishes: dishesCreateNestedOneWithoutDish_mediaInput
+    users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
+    payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaUncheckedCreateWithoutDish_media_viewsInput = {
+    id?: string
+    dish_id: string
+    user_id?: string | null
+    media_path: string
+    media_type: string
+    thumbnail_path: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
+  }
+
+  export type dish_mediaCreateOrConnectWithoutDish_media_viewsInput = {
+    where: dish_mediaWhereUniqueInput
+    create: XOR<dish_mediaCreateWithoutDish_media_viewsInput, dish_mediaUncheckedCreateWithoutDish_media_viewsInput>
+  }
+
+  export type dish_media_impressionsCreateWithoutDish_media_viewsInput = {
+    id?: string
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_impressionsInput
+    users?: usersCreateNestedOneWithoutDish_media_impressionsInput
+  }
+
+  export type dish_media_impressionsUncheckedCreateWithoutDish_media_viewsInput = {
+    id?: string
+    dish_media_id: string
+    user_id?: string | null
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+  }
+
+  export type dish_media_impressionsCreateOrConnectWithoutDish_media_viewsInput = {
+    where: dish_media_impressionsWhereUniqueInput
+    create: XOR<dish_media_impressionsCreateWithoutDish_media_viewsInput, dish_media_impressionsUncheckedCreateWithoutDish_media_viewsInput>
+  }
+
+  export type usersCreateWithoutDish_media_viewsInput = {
+    id?: string
+    display_name?: string | null
+    avatar?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersUncheckedCreateWithoutDish_media_viewsInput = {
+    id?: string
+    display_name?: string | null
+    avatar?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersCreateOrConnectWithoutDish_media_viewsInput = {
+    where: usersWhereUniqueInput
+    create: XOR<usersCreateWithoutDish_media_viewsInput, usersUncheckedCreateWithoutDish_media_viewsInput>
+  }
+
+  export type dish_mediaUpsertWithoutDish_media_viewsInput = {
+    update: XOR<dish_mediaUpdateWithoutDish_media_viewsInput, dish_mediaUncheckedUpdateWithoutDish_media_viewsInput>
+    create: XOR<dish_mediaCreateWithoutDish_media_viewsInput, dish_mediaUncheckedCreateWithoutDish_media_viewsInput>
+    where?: dish_mediaWhereInput
+  }
+
+  export type dish_mediaUpdateToOneWithWhereWithoutDish_media_viewsInput = {
+    where?: dish_mediaWhereInput
+    data: XOR<dish_mediaUpdateWithoutDish_media_viewsInput, dish_mediaUncheckedUpdateWithoutDish_media_viewsInput>
+  }
+
+  export type dish_mediaUpdateWithoutDish_media_viewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
+    users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
+    payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type dish_mediaUncheckedUpdateWithoutDish_media_viewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    media_path?: StringFieldUpdateOperationsInput | string
+    media_type?: StringFieldUpdateOperationsInput | string
+    thumbnail_path?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
+  }
+
+  export type dish_media_impressionsUpsertWithoutDish_media_viewsInput = {
+    update: XOR<dish_media_impressionsUpdateWithoutDish_media_viewsInput, dish_media_impressionsUncheckedUpdateWithoutDish_media_viewsInput>
+    create: XOR<dish_media_impressionsCreateWithoutDish_media_viewsInput, dish_media_impressionsUncheckedCreateWithoutDish_media_viewsInput>
+    where?: dish_media_impressionsWhereInput
+  }
+
+  export type dish_media_impressionsUpdateToOneWithWhereWithoutDish_media_viewsInput = {
+    where?: dish_media_impressionsWhereInput
+    data: XOR<dish_media_impressionsUpdateWithoutDish_media_viewsInput, dish_media_impressionsUncheckedUpdateWithoutDish_media_viewsInput>
+  }
+
+  export type dish_media_impressionsUpdateWithoutDish_media_viewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_impressionsNestedInput
+    users?: usersUpdateOneWithoutDish_media_impressionsNestedInput
+  }
+
+  export type dish_media_impressionsUncheckedUpdateWithoutDish_media_viewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type usersUpsertWithoutDish_media_viewsInput = {
+    update: XOR<usersUpdateWithoutDish_media_viewsInput, usersUncheckedUpdateWithoutDish_media_viewsInput>
+    create: XOR<usersCreateWithoutDish_media_viewsInput, usersUncheckedCreateWithoutDish_media_viewsInput>
+    where?: usersWhereInput
+  }
+
+  export type usersUpdateToOneWithWhereWithoutDish_media_viewsInput = {
+    where?: usersWhereInput
+    data: XOR<usersUpdateWithoutDish_media_viewsInput, usersUncheckedUpdateWithoutDish_media_viewsInput>
+  }
+
+  export type usersUpdateWithoutDish_media_viewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+  }
+
+  export type usersUncheckedUpdateWithoutDish_media_viewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
   }
@@ -29929,7 +35793,9 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
   }
 
@@ -29944,7 +35810,9 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
   }
 
@@ -30008,7 +35876,9 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
   }
 
@@ -30023,7 +35893,9 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
@@ -30036,7 +35908,10 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -30049,7 +35924,10 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -30357,7 +36235,10 @@ export namespace Prisma {
     lock_no?: number
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
+    dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaUncheckedCreateWithoutPayoutsInput = {
@@ -30370,7 +36251,10 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
   export type dish_mediaCreateOrConnectWithoutPayoutsInput = {
@@ -30442,7 +36326,10 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type dish_mediaUncheckedUpdateWithoutPayoutsInput = {
@@ -30455,7 +36342,10 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
   export type prompt_variantsCreateWithoutPrompt_familiesInput = {
@@ -30641,7 +36531,9 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
   }
 
@@ -30656,7 +36548,9 @@ export namespace Prisma {
     lock_no?: number
     username: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
   }
 
@@ -30742,7 +36636,9 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
   }
 
@@ -30757,7 +36653,9 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
@@ -30895,7 +36793,10 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
+    dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -30908,7 +36809,10 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
+    dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
     payouts?: payoutsUncheckedCreateNestedManyWithoutDish_mediaInput
   }
 
@@ -30919,6 +36823,34 @@ export namespace Prisma {
 
   export type dish_mediaCreateManyUsersInputEnvelope = {
     data: dish_mediaCreateManyUsersInput | dish_mediaCreateManyUsersInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_media_impressionsCreateWithoutUsersInput = {
+    id?: string
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_impressionsInput
+    dish_media_views?: dish_media_viewsCreateNestedManyWithoutDish_media_impressionsInput
+  }
+
+  export type dish_media_impressionsUncheckedCreateWithoutUsersInput = {
+    id?: string
+    dish_media_id: string
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+    dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_media_impressionsInput
+  }
+
+  export type dish_media_impressionsCreateOrConnectWithoutUsersInput = {
+    where: dish_media_impressionsWhereUniqueInput
+    create: XOR<dish_media_impressionsCreateWithoutUsersInput, dish_media_impressionsUncheckedCreateWithoutUsersInput>
+  }
+
+  export type dish_media_impressionsCreateManyUsersInputEnvelope = {
+    data: dish_media_impressionsCreateManyUsersInput | dish_media_impressionsCreateManyUsersInput[]
     skipDuplicates?: boolean
   }
 
@@ -30941,6 +36873,38 @@ export namespace Prisma {
 
   export type dish_media_likesCreateManyUsersInputEnvelope = {
     data: dish_media_likesCreateManyUsersInput | dish_media_likesCreateManyUsersInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_media_viewsCreateWithoutUsersInput = {
+    id?: string
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+    dish_media: dish_mediaCreateNestedOneWithoutDish_media_viewsInput
+    dish_media_impressions?: dish_media_impressionsCreateNestedOneWithoutDish_media_viewsInput
+  }
+
+  export type dish_media_viewsUncheckedCreateWithoutUsersInput = {
+    id?: string
+    impression_id?: string | null
+    dish_media_id: string
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+  }
+
+  export type dish_media_viewsCreateOrConnectWithoutUsersInput = {
+    where: dish_media_viewsWhereUniqueInput
+    create: XOR<dish_media_viewsCreateWithoutUsersInput, dish_media_viewsUncheckedCreateWithoutUsersInput>
+  }
+
+  export type dish_media_viewsCreateManyUsersInputEnvelope = {
+    data: dish_media_viewsCreateManyUsersInput | dish_media_viewsCreateManyUsersInput[]
     skipDuplicates?: boolean
   }
 
@@ -31040,6 +37004,22 @@ export namespace Prisma {
     data: XOR<dish_mediaUpdateManyMutationInput, dish_mediaUncheckedUpdateManyWithoutUsersInput>
   }
 
+  export type dish_media_impressionsUpsertWithWhereUniqueWithoutUsersInput = {
+    where: dish_media_impressionsWhereUniqueInput
+    update: XOR<dish_media_impressionsUpdateWithoutUsersInput, dish_media_impressionsUncheckedUpdateWithoutUsersInput>
+    create: XOR<dish_media_impressionsCreateWithoutUsersInput, dish_media_impressionsUncheckedCreateWithoutUsersInput>
+  }
+
+  export type dish_media_impressionsUpdateWithWhereUniqueWithoutUsersInput = {
+    where: dish_media_impressionsWhereUniqueInput
+    data: XOR<dish_media_impressionsUpdateWithoutUsersInput, dish_media_impressionsUncheckedUpdateWithoutUsersInput>
+  }
+
+  export type dish_media_impressionsUpdateManyWithWhereWithoutUsersInput = {
+    where: dish_media_impressionsScalarWhereInput
+    data: XOR<dish_media_impressionsUpdateManyMutationInput, dish_media_impressionsUncheckedUpdateManyWithoutUsersInput>
+  }
+
   export type dish_media_likesUpsertWithWhereUniqueWithoutUsersInput = {
     where: dish_media_likesWhereUniqueInput
     update: XOR<dish_media_likesUpdateWithoutUsersInput, dish_media_likesUncheckedUpdateWithoutUsersInput>
@@ -31054,6 +37034,22 @@ export namespace Prisma {
   export type dish_media_likesUpdateManyWithWhereWithoutUsersInput = {
     where: dish_media_likesScalarWhereInput
     data: XOR<dish_media_likesUpdateManyMutationInput, dish_media_likesUncheckedUpdateManyWithoutUsersInput>
+  }
+
+  export type dish_media_viewsUpsertWithWhereUniqueWithoutUsersInput = {
+    where: dish_media_viewsWhereUniqueInput
+    update: XOR<dish_media_viewsUpdateWithoutUsersInput, dish_media_viewsUncheckedUpdateWithoutUsersInput>
+    create: XOR<dish_media_viewsCreateWithoutUsersInput, dish_media_viewsUncheckedCreateWithoutUsersInput>
+  }
+
+  export type dish_media_viewsUpdateWithWhereUniqueWithoutUsersInput = {
+    where: dish_media_viewsWhereUniqueInput
+    data: XOR<dish_media_viewsUpdateWithoutUsersInput, dish_media_viewsUncheckedUpdateWithoutUsersInput>
+  }
+
+  export type dish_media_viewsUpdateManyWithWhereWithoutUsersInput = {
+    where: dish_media_viewsScalarWhereInput
+    data: XOR<dish_media_viewsUpdateManyMutationInput, dish_media_viewsUncheckedUpdateManyWithoutUsersInput>
   }
 
   export type dish_reviewsUpsertWithWhereUniqueWithoutUsersInput = {
@@ -31156,10 +37152,29 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
+  export type dish_media_impressionsCreateManyDish_mediaInput = {
+    id?: string
+    user_id?: string | null
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+  }
+
   export type dish_media_likesCreateManyDish_mediaInput = {
     id?: string
     user_id: string
     created_at?: Date | string
+  }
+
+  export type dish_media_viewsCreateManyDish_mediaInput = {
+    id?: string
+    impression_id?: string | null
+    user_id?: string | null
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
   }
 
   export type payoutsCreateManyDish_mediaInput = {
@@ -31172,6 +37187,32 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+  }
+
+  export type dish_media_impressionsUpdateWithoutDish_mediaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    users?: usersUpdateOneWithoutDish_media_impressionsNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_media_impressionsNestedInput
+  }
+
+  export type dish_media_impressionsUncheckedUpdateWithoutDish_mediaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_media_impressionsNestedInput
+  }
+
+  export type dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_media_likesUpdateWithoutDish_mediaInput = {
@@ -31190,6 +37231,39 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     user_id?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_viewsUpdateWithoutDish_mediaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+    dish_media_impressions?: dish_media_impressionsUpdateOneWithoutDish_media_viewsNestedInput
+    users?: usersUpdateOneWithoutDish_media_viewsNestedInput
+  }
+
+  export type dish_media_viewsUncheckedUpdateWithoutDish_mediaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    impression_id?: NullableStringFieldUpdateOperationsInput | string | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_viewsUncheckedUpdateManyWithoutDish_mediaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    impression_id?: NullableStringFieldUpdateOperationsInput | string | null
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
   }
 
   export type payoutsUpdateWithoutDish_mediaInput = {
@@ -31228,6 +37302,50 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
+  export type dish_media_viewsCreateManyDish_media_impressionsInput = {
+    id?: string
+    dish_media_id: string
+    user_id?: string | null
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
+  }
+
+  export type dish_media_viewsUpdateWithoutDish_media_impressionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_viewsNestedInput
+    users?: usersUpdateOneWithoutDish_media_viewsNestedInput
+  }
+
+  export type dish_media_viewsUncheckedUpdateWithoutDish_media_impressionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_viewsUncheckedUpdateManyWithoutDish_media_impressionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableStringFieldUpdateOperationsInput | string | null
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+  }
+
   export type dish_mediaCreateManyDishesInput = {
     id?: string
     user_id?: string | null
@@ -31262,7 +37380,10 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     users?: usersUpdateOneWithoutDish_mediaNestedInput
+    dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31275,7 +37396,10 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31529,10 +37653,29 @@ export namespace Prisma {
     lock_no?: number
   }
 
+  export type dish_media_impressionsCreateManyUsersInput = {
+    id?: string
+    dish_media_id: string
+    session_id?: string | null
+    source?: string | null
+    created_at?: Date | string
+  }
+
   export type dish_media_likesCreateManyUsersInput = {
     id?: string
     dish_media_id: string
     created_at?: Date | string
+  }
+
+  export type dish_media_viewsCreateManyUsersInput = {
+    id?: string
+    impression_id?: string | null
+    dish_media_id: string
+    started_at?: Date | string
+    watch_ms: number
+    is_completed?: boolean
+    is_skipped?: boolean
+    rewatch_count?: number
   }
 
   export type dish_reviewsCreateManyUsersInput = {
@@ -31573,7 +37716,10 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
+    dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31586,7 +37732,10 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
+    dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
     payouts?: payoutsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
@@ -31599,6 +37748,32 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_impressionsUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_impressionsNestedInput
+    dish_media_views?: dish_media_viewsUpdateManyWithoutDish_media_impressionsNestedInput
+  }
+
+  export type dish_media_impressionsUncheckedUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_media_impressionsNestedInput
+  }
+
+  export type dish_media_impressionsUncheckedUpdateManyWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    session_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_media_likesUpdateWithoutUsersInput = {
@@ -31617,6 +37792,39 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     dish_media_id?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_media_viewsUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+    dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_viewsNestedInput
+    dish_media_impressions?: dish_media_impressionsUpdateOneWithoutDish_media_viewsNestedInput
+  }
+
+  export type dish_media_viewsUncheckedUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    impression_id?: NullableStringFieldUpdateOperationsInput | string | null
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_media_viewsUncheckedUpdateManyWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    impression_id?: NullableStringFieldUpdateOperationsInput | string | null
+    dish_media_id?: StringFieldUpdateOperationsInput | string
+    started_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    watch_ms?: IntFieldUpdateOperationsInput | number
+    is_completed?: BoolFieldUpdateOperationsInput | boolean
+    is_skipped?: BoolFieldUpdateOperationsInput | boolean
+    rewatch_count?: IntFieldUpdateOperationsInput | number
   }
 
   export type dish_reviewsUpdateWithoutUsersInput = {
