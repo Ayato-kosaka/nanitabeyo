@@ -303,4 +303,107 @@ export class DishMediaService {
       analysis_applied: true,
     };
   }
+
+  /* ------------------------------------------------------------------ */
+  /*              POST /v1/dish-media/:id/reaction                      */
+  /* ------------------------------------------------------------------ */
+  async addReaction(
+    dishMediaId: string,
+    actionType: 'like' | 'save' | 'open_map',
+    userId: string,
+    isAnonymous: boolean,
+  ) {
+    this.logger.verbose('AddReaction', 'addReaction', {
+      dishMediaId,
+      actionType,
+      userId,
+      isAnonymous,
+    });
+
+    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.repo.addReaction(tx, dishMediaId, userId, actionType, isAnonymous),
+    );
+
+    this.logger.log('ReactionAdded', 'addReaction', {
+      dishMediaId,
+      actionType,
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              DELETE /v1/dish-media/:id/reaction                    */
+  /* ------------------------------------------------------------------ */
+  async removeReaction(
+    dishMediaId: string,
+    actionType: 'like' | 'save' | 'open_map',
+    userId: string,
+    isAnonymous: boolean,
+  ) {
+    this.logger.verbose('RemoveReaction', 'removeReaction', {
+      dishMediaId,
+      actionType,
+      userId,
+      isAnonymous,
+    });
+
+    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.repo.removeReaction(
+        tx,
+        dishMediaId,
+        userId,
+        actionType,
+        isAnonymous,
+      ),
+    );
+
+    this.logger.log('ReactionRemoved', 'removeReaction', {
+      dishMediaId,
+      actionType,
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              POST /v1/dish-media/:id/impression                    */
+  /* ------------------------------------------------------------------ */
+  async addImpression(
+    dishMediaId: string,
+    userId: string,
+    sessionId: string,
+    source: string,
+  ) {
+    this.logger.verbose('AddImpression', 'addImpression', {
+      dishMediaId,
+      userId,
+      sessionId,
+      source,
+    });
+
+    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.repo.addImpression(tx, dishMediaId, userId, sessionId, source),
+    );
+
+    this.logger.log('ImpressionAdded', 'addImpression', {
+      dishMediaId,
+      sessionId,
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              DELETE /v1/dish-media/:id/impression                  */
+  /* ------------------------------------------------------------------ */
+  async removeImpression(dishMediaId: string, sessionId: string) {
+    this.logger.verbose('RemoveImpression', 'removeImpression', {
+      dishMediaId,
+      sessionId,
+    });
+
+    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.repo.removeImpression(tx, dishMediaId, sessionId),
+    );
+
+    this.logger.log('ImpressionRemoved', 'removeImpression', {
+      dishMediaId,
+      sessionId,
+    });
+  }
 }

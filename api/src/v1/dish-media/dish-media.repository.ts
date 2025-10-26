@@ -628,4 +628,275 @@ export class DishMediaRepository {
 
     return view;
   }
+
+  /* ------------------------------------------------------------------ */
+  /*              Reaction エンドポイント（増分更新）                    */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Reaction を追加し、analysis_results を増分更新
+   * @param tx トランザクションクライアント
+   * @param dishMediaId dish_media.id
+   * @param userId ユーザーID
+   * @param actionType "like" | "save" | "open_map"
+   * @param isAnonymous 匿名ユーザーかどうか
+   */
+  async addReaction(
+    tx: Prisma.TransactionClient,
+    dishMediaId: string,
+    userId: string,
+    actionType: 'like' | 'save' | 'open_map',
+    isAnonymous: boolean,
+  ): Promise<void> {
+    // like の場合、認証ユーザーは dish_media_likes、匿名は reactions
+    if (actionType === 'like') {
+      if (isAnonymous) {
+        // 匿名ユーザーは reactions に挿入
+        await tx.reactions.upsert({
+          where: {
+            user_id_target_type_target_id_action_type: {
+              user_id: userId,
+              target_type: 'dish_media',
+              target_id: dishMediaId,
+              action_type: 'like',
+            },
+          },
+          update: {}, // 既存の場合は何もしない（冪等性）
+          create: {
+            user_id: userId,
+            target_type: 'dish_media',
+            target_id: dishMediaId,
+            action_type: 'like',
+            created_at: new Date(),
+            created_version: '1.0',
+            lock_no: 0,
+          },
+        });
+      } else {
+        // 認証ユーザーは dish_media_likes に挿入
+        await tx.dish_media_likes.upsert({
+          where: {
+            dish_media_id_user_id: {
+              dish_media_id: dishMediaId,
+              user_id: userId,
+            },
+          },
+          update: {}, // 既存の場合は何もしない（冪等性）
+          create: {
+            dish_media_id: dishMediaId,
+            user_id: userId,
+          },
+        });
+      }
+
+      // like_total を +1（どちらの場合も）
+      await tx.dish_media_analysis_results.update({
+        where: { dish_media_id: dishMediaId },
+        data: {
+          like_total: { increment: BigInt(1) },
+          updated_at: new Date(),
+        },
+      });
+    } else {
+      // save / open_map の場合は reactions に挿入
+      await tx.reactions.upsert({
+        where: {
+          user_id_target_type_target_id_action_type: {
+            user_id: userId,
+            target_type: 'dish_media',
+            target_id: dishMediaId,
+            action_type: actionType,
+          },
+        },
+        update: {}, // 既存の場合は何もしない（冪等性）
+        create: {
+          user_id: userId,
+          target_type: 'dish_media',
+          target_id: dishMediaId,
+          action_type: actionType,
+          created_at: new Date(),
+          created_version: '1.0',
+          lock_no: 0,
+        },
+      });
+
+      // 対応するカラムを +1
+      const columnMap = {
+        save: 'save_total',
+        open_map: 'open_map_total',
+      } as const;
+
+      await tx.dish_media_analysis_results.update({
+        where: { dish_media_id: dishMediaId },
+        data: {
+          [columnMap[actionType]]: { increment: BigInt(1) },
+          updated_at: new Date(),
+        },
+      });
+    }
+  }
+
+  /**
+   * Reaction を削除し、analysis_results を減分更新
+   * @param tx トランザクションクライアント
+   * @param dishMediaId dish_media.id
+   * @param userId ユーザーID
+   * @param actionType "like" | "save" | "open_map"
+   * @param isAnonymous 匿名ユーザーかどうか
+   */
+  async removeReaction(
+    tx: Prisma.TransactionClient,
+    dishMediaId: string,
+    userId: string,
+    actionType: 'like' | 'save' | 'open_map',
+    isAnonymous: boolean,
+  ): Promise<void> {
+    let deletedCount = 0;
+
+    // like の場合、認証ユーザーは dish_media_likes、匿名は reactions
+    if (actionType === 'like') {
+      if (isAnonymous) {
+        // 匿名ユーザーは reactions から削除
+        const result = await tx.reactions.deleteMany({
+          where: {
+            user_id: userId,
+            target_type: 'dish_media',
+            target_id: dishMediaId,
+            action_type: 'like',
+          },
+        });
+        deletedCount = result.count;
+      } else {
+        // 認証ユーザーは dish_media_likes から削除
+        const result = await tx.dish_media_likes.deleteMany({
+          where: {
+            dish_media_id: dishMediaId,
+            user_id: userId,
+          },
+        });
+        deletedCount = result.count;
+      }
+
+      // 実際に削除された場合のみ like_total を -1
+      if (deletedCount > 0) {
+        await tx.dish_media_analysis_results.update({
+          where: { dish_media_id: dishMediaId },
+          data: {
+            like_total: { decrement: BigInt(1) },
+            updated_at: new Date(),
+          },
+        });
+      }
+    } else {
+      // save / open_map の場合は reactions から削除
+      const result = await tx.reactions.deleteMany({
+        where: {
+          user_id: userId,
+          target_type: 'dish_media',
+          target_id: dishMediaId,
+          action_type: actionType,
+        },
+      });
+      deletedCount = result.count;
+
+      // 実際に削除された場合のみ対応するカラムを -1
+      if (deletedCount > 0) {
+        const columnMap = {
+          save: 'save_total',
+          open_map: 'open_map_total',
+        } as const;
+
+        await tx.dish_media_analysis_results.update({
+          where: { dish_media_id: dishMediaId },
+          data: {
+            [columnMap[actionType]]: { decrement: BigInt(1) },
+            updated_at: new Date(),
+          },
+        });
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              Impression エンドポイント（増分更新）                 */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Impression を追加し、analysis_results を増分更新
+   * @param tx トランザクションクライアント
+   * @param dishMediaId dish_media.id
+   * @param userId ユーザーID
+   * @param sessionId セッションID
+   * @param source ソース
+   */
+  async addImpression(
+    tx: Prisma.TransactionClient,
+    dishMediaId: string,
+    userId: string,
+    sessionId: string,
+    source: string,
+  ): Promise<void> {
+    // dish_media_impressions に挿入（upsert で冪等性を保証）
+    // Note: 既存のスキーマには session_id でのユニーク制約がないため、
+    // ここでは dish_media_id + session_id の組み合わせで重複チェック
+    const existing = await tx.dish_media_impressions.findFirst({
+      where: {
+        dish_media_id: dishMediaId,
+        session_id: sessionId,
+      },
+    });
+
+    if (!existing) {
+      // 新規作成の場合のみ挿入
+      await tx.dish_media_impressions.create({
+        data: {
+          dish_media_id: dishMediaId,
+          user_id: userId,
+          session_id: sessionId,
+          source: source,
+        },
+      });
+
+      // impr_total を +1
+      await tx.dish_media_analysis_results.update({
+        where: { dish_media_id: dishMediaId },
+        data: {
+          impr_total: { increment: BigInt(1) },
+          updated_at: new Date(),
+        },
+      });
+    }
+    // 既存の場合は何もしない（冪等性）
+  }
+
+  /**
+   * Impression を削除し、analysis_results を減分更新
+   * @param tx トランザクションクライアント
+   * @param dishMediaId dish_media.id
+   * @param sessionId セッションID
+   */
+  async removeImpression(
+    tx: Prisma.TransactionClient,
+    dishMediaId: string,
+    sessionId: string,
+  ): Promise<void> {
+    // dish_media_impressions から削除
+    const result = await tx.dish_media_impressions.deleteMany({
+      where: {
+        dish_media_id: dishMediaId,
+        session_id: sessionId,
+      },
+    });
+
+    // 実際に削除された場合のみ impr_total を -1
+    if (result.count > 0) {
+      await tx.dish_media_analysis_results.update({
+        where: { dish_media_id: dishMediaId },
+        data: {
+          impr_total: { decrement: BigInt(1) },
+          updated_at: new Date(),
+        },
+      });
+    }
+  }
 }

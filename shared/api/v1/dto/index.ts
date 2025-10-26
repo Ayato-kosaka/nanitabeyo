@@ -4,6 +4,15 @@ export { LikeDishMediaParamsDto } from "./dish-media/like-dish-media.dto";
 export { QueryDishMediaByIdsDto } from "./dish-media/query-dish-media-by-ids.dto";
 export { SearchDishMediaDto } from "./dish-media/search-dish-media.dto";
 export { SaveDishMediaParamsDto } from "./dish-media/save-dish-media.dto";
+export {
+	DishMediaReactionParamsDto,
+	DishMediaReactionBodyDto,
+	ReactionActionType,
+} from "./dish-media/dish-media-reaction.dto";
+export {
+	DishMediaImpressionParamsDto,
+	DishMediaImpressionBodyDto,
+} from "./dish-media/dish-media-impression.dto";
 
 export { QueryDishCategoryRecommendationsDto } from "./dish-categories/query-dish-category-recommendations.dto";
 export { QueryDishCategoryVariantsDto } from "./dish-category-variants/query-dish-category-variants.dto";
