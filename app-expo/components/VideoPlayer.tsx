@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 
 // Threshold for detecting video loop (when currentTime returns to near start)
-const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
+export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
 // Progress tracking interval in milliseconds
 const PROGRESS_CHECK_INTERVAL_MS = 250;
 
@@ -39,7 +39,7 @@ function VideoPlayer({
 }: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [lastLoopTime, setLastLoopTime] = useState(0);
+	const lastLoopTime = useRef(0);
 	const { logFrontendEvent } = useLogger();
 
 	const player = useVideoPlayer(uri, (player) => {
@@ -112,12 +112,12 @@ function VideoPlayer({
 				// Detect loop (when currentTime goes back to near 0)
 				if (
 					onLoop &&
-					lastLoopTime > LOOP_DETECTION_THRESHOLD_SECONDS &&
+					lastLoopTime.current > LOOP_DETECTION_THRESHOLD_SECONDS &&
 					player.currentTime < LOOP_DETECTION_THRESHOLD_SECONDS
 				) {
 					onLoop();
 				}
-				setLastLoopTime(player.currentTime);
+				lastLoopTime.current = player.currentTime;
 
 				// Report progress
 				if (onProgress) {
@@ -130,7 +130,7 @@ function VideoPlayer({
 		}, PROGRESS_CHECK_INTERVAL_MS);
 
 		return () => clearInterval(interval);
-	}, [player, onProgress, onLoop, lastLoopTime]);
+	}, [player, onProgress, onLoop]);
 
 	// For iOS/Android, use expo-video VideoView
 	return (

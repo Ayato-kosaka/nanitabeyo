@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { VideoPlayerProps } from "./VideoPlayer";
 import Hls from "hls.js";
 
-type VideoContentFit = "contain" | "cover" | "fill";
+const LOOP_HEAD_S = 1; // 先頭近辺
+const LOOP_TAIL_S = 0.7; // 終端近辺
 
 /**
  * VideoPlayer component for HLS video playback
@@ -14,46 +15,205 @@ type VideoContentFit = "contain" | "cover" | "fill";
  * The CDN signed cookies are automatically sent by the platform:
  * - Web: Browser automatically includes cookies for same-origin requests
  */
-function VideoPlayer({ uri, style, shouldPlay = false, isLooping = true, resizeMode = "cover" }: VideoPlayerProps) {
+function VideoPlayer({
+	uri,
+	style,
+	shouldPlay = false,
+	isLooping = true,
+	resizeMode = "cover",
+	onProgress,
+	onLoop,
+}: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [isNativeHls, setIsNativeHls] = useState<boolean | null>(null);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 
+	const hlsRef = useRef<Hls | null>(null);
+
+	// 進捗/ループ検出用
+	const rafId = useRef<number | null>(null);
+	const lastTimeRef = useRef(0);
+
+	// playableDuration（バッファ先端 - 現時刻）
+	const getPlayableDuration = useCallback((video: HTMLVideoElement) => {
+		try {
+			const { buffered, currentTime } = video;
+			if (!buffered || buffered.length === 0) return 0;
+			// 現在位置を含むレンジ、なければ最後のレンジ終端
+			for (let i = 0; i < buffered.length; i++) {
+				const start = buffered.start(i);
+				const end = buffered.end(i);
+				if (currentTime >= start && currentTime <= end) {
+					return Math.max(0, end - currentTime);
+				}
+			}
+			return Math.max(0, buffered.end(buffered.length - 1) - currentTime);
+		} catch {
+			return 0;
+		}
+	}, []);
+
+	// rAF での進捗ポーリング（再生中のみ回す）
+	const startProgressLoop = useCallback(() => {
+		if (rafId.current != null) return; // 既に稼働中
+		const tick = () => {
+			const v = videoRef.current;
+			if (v) {
+				const dur = v.duration;
+				const cur = v.currentTime ?? 0;
+
+				// ループ検出（VOD のみ／duration が有限）
+				if (
+					isLooping &&
+					onLoop &&
+					Number.isFinite(dur) &&
+					dur > 0 &&
+					lastTimeRef.current > Math.max(0, dur - LOOP_TAIL_S) && // 直前が終端近辺
+					cur < LOOP_HEAD_S // 先頭近辺に戻った
+				) {
+					onLoop();
+				}
+				lastTimeRef.current = cur;
+
+				// 進捗通知
+				if (onProgress) {
+					onProgress({
+						currentTime: cur,
+						duration: dur,
+						playableDuration: getPlayableDuration(v),
+					});
+				}
+			}
+			rafId.current = requestAnimationFrame(tick);
+		};
+		rafId.current = requestAnimationFrame(tick);
+	}, [getPlayableDuration, isLooping, onLoop, onProgress]);
+
+	const stopProgressLoop = useCallback(() => {
+		if (rafId.current != null) {
+			cancelAnimationFrame(rafId.current);
+			rafId.current = null;
+		}
+	}, []);
+
+	// 初期化（HLS 判定 & hls.js セットアップ）
 	useEffect(() => {
 		const video = videoRef.current;
 		if (!video) return;
 
-		// Safari (ネイティブ HLS) は hls.js 不要
-		const canPlayNatively = video.canPlayType("application/vnd.apple.mpegurl") !== "";
-		if (canPlayNatively) {
-			video.src = uri; // ネイティブ再生
-			return;
-		}
+		// 先に停止/破棄
+		stopProgressLoop();
+		hlsRef.current?.destroy();
+		hlsRef.current = null;
+		setIsLoading(true);
+		setError(null);
+		lastTimeRef.current = 0;
 
-		if (Hls.isSupported()) {
+		const canPlayNatively = video.canPlayType("application/vnd.apple.mpegurl") !== "";
+		setIsNativeHls(canPlayNatively);
+
+		if (canPlayNatively) {
+			// ネイティブ HLS
+			video.src = uri;
+		} else if (Hls.isSupported()) {
 			const hls = new Hls({
-				// 重要：全リクエストで Cookie を送る
-				xhrSetup: (xhr: XMLHttpRequest, url: string) => {
+				xhrSetup: (xhr) => {
 					xhr.withCredentials = true;
 				},
 			});
-			hls.loadSource(uri);
+			hlsRef.current = hls;
 			hls.attachMedia(video);
-			const onErr = (event: string, data: any) => {
-				if (data?.fatal) {
-					setError(data?.details || "HLS fatal error");
-				}
+			hls.loadSource(uri);
+
+			const onErr = (_: string, data: any) => {
+				if (data?.fatal) setError(data?.details || "HLS fatal error");
 			};
 			hls.on(Hls.Events.ERROR, onErr);
 			return () => {
 				hls.off(Hls.Events.ERROR, onErr);
 				hls.destroy();
+				hlsRef.current = null;
 			};
 		} else {
 			// 非対応ブラウザ（稀）
 			setError("HLS is not supported in this browser");
 		}
-	}, [uri]);
+	}, [uri, stopProgressLoop]);
+
+	// shouldPlay 変更に合わせて再生/一時停止
+	useEffect(() => {
+		const v = videoRef.current;
+		if (!v) return;
+
+		if (shouldPlay) {
+			const p = v.play();
+			// 自動再生ブロック対策
+			if (p && typeof p.catch === "function") {
+				p.catch(() => {
+					/* no-op */
+				});
+			}
+		} else {
+			v.pause();
+			// ここで0戻しはしない（UXのため）。必要なら親側で制御。
+		}
+	}, [shouldPlay]);
+
+	// video イベント購読（ローディング/進捗ループの開始終了）
+	useEffect(() => {
+		const v = videoRef.current;
+		if (!v) return;
+
+		const onLoadStart = () => setIsLoading(true);
+		const onCanPlay = () => setIsLoading(false);
+		const onPlaying = () => {
+			setIsLoading(false);
+			startProgressLoop();
+		};
+		const onPause = () => {
+			stopProgressLoop();
+		};
+		const onEnded = () => {
+			// ループ属性が false の場合は終了で止まる
+			if (!isLooping) stopProgressLoop();
+		};
+		const onError = () => {
+			setIsLoading(false);
+			setError("Video playback error");
+		};
+
+		v.addEventListener("loadstart", onLoadStart);
+		v.addEventListener("canplay", onCanPlay);
+		v.addEventListener("playing", onPlaying);
+		v.addEventListener("pause", onPause);
+		v.addEventListener("ended", onEnded);
+		v.addEventListener("error", onError);
+
+		// ページ非表示/表示での省電力対応
+		const onVis = () => {
+			if (document.hidden) {
+				stopProgressLoop();
+			} else if (!v.paused) {
+				startProgressLoop();
+			}
+		};
+		document.addEventListener("visibilitychange", onVis);
+
+		return () => {
+			v.removeEventListener("loadstart", onLoadStart);
+			v.removeEventListener("canplay", onCanPlay);
+			v.removeEventListener("playing", onPlaying);
+			v.removeEventListener("pause", onPause);
+			v.removeEventListener("ended", onEnded);
+			v.removeEventListener("error", onError);
+			document.removeEventListener("visibilitychange", onVis);
+			stopProgressLoop();
+		};
+	}, [isLooping, startProgressLoop, stopProgressLoop]);
+
+	// NOTE: hls.js 使用時は src を指定しない（attachMedia が管理）
+	const videoSrcProps = isNativeHls ? { src: uri } : {};
 
 	// For web, use native video element
 	// Safari supports HLS natively, other browsers may need hls.js (future enhancement)

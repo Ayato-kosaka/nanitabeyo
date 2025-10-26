@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform, AppState } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
@@ -10,7 +10,7 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import type { DishMediaEntry } from "@shared/api/v1/res";
+import type { CreateDishMediaViewResponse, DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { toggleReaction } from "@/lib/reactions";
@@ -20,16 +20,16 @@ import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import VideoPlayer from "./VideoPlayer";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
-import { insertDishMediaImpression, sendDishMediaView } from "@/lib/dishMediaTracking";
-
-const { width, height } = Dimensions.get("window");
+import { useAPICall } from "@/hooks/useAPICall";
+import type { CreateDishMediaViewDto } from "@shared/api/v1/dto";
+import * as Crypto from "expo-crypto";
 
 interface FoodContentScreenProps {
 	item: DishMediaEntry;
 	carouselRef?: React.RefObject<any>;
-	isActive?: boolean;
-	sessionId?: string;
-	source?: "for_you" | "search" | "profile" | string;
+	isActive: boolean;
+	sessionId: string;
+	source: "for_you" | "search" | "profile" | string;
 }
 
 // Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
@@ -65,13 +65,7 @@ const formatLikeCount = (count: number): string => {
 	return count.toString();
 };
 
-export default function FoodContentScreen({
-	item,
-	carouselRef,
-	isActive = true,
-	sessionId,
-	source: sourceParam = "for_you",
-}: FoodContentScreenProps) {
+export default function FoodContentScreen({ item, carouselRef, isActive, sessionId, source }: FoodContentScreenProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -100,6 +94,7 @@ export default function FoodContentScreen({
 	);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
@@ -108,19 +103,17 @@ export default function FoodContentScreen({
 	const { showSnackbar } = useSnackbar();
 
 	// ===== Tracking State =====
-	const [impressionId, setImpressionId] = useState<string | null>(null);
-	const [impressionSent, setImpressionSent] = useState(false);
-	const [viewSent, setViewSent] = useState(false);
-	const [viewSending, setViewSending] = useState(false);
-	const [watchStartTime] = useState(new Date());
-	const [watchMs, setWatchMs] = useState(0);
-	const [isCompleted, setIsCompleted] = useState(false);
-	const [rewatchCount, setRewatchCount] = useState(0);
-	const watchTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const impressionId = useRef<string | null>(null);
+	const viewSending = useRef(false);
+	const watchStartTime = useRef<Date>(new Date());
+	const watchMs = useRef(0);
+	const isCompleted = useRef(false);
+	const rewatchCount = useRef(0);
+	const watchTimerRef = useRef<NodeJS.Timeout | string | number | null>(null);
 	const appStateRef = useRef(AppState.currentState);
 	const lastActiveTimeRef = useRef(Date.now());
 
-	const source = useMemo(
+	const mediaSource = useMemo(
 		() => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
 		[item.dish_media.mediaUrl],
 	);
@@ -131,39 +124,41 @@ export default function FoodContentScreen({
 
 	// ===== Impression Tracking =====
 	useEffect(() => {
-		if (isActive && !impressionSent) {
-			setImpressionSent(true);
-			insertDishMediaImpression({
-				dish_media_id: item.dish_media.id,
-				session_id: sessionId,
-				source: sourceParam,
-			}).then((id) => {
-				if (id) {
-					setImpressionId(id);
-					logFrontendEvent({
-						event_name: "dish_media_impression_sent",
-						error_level: "log",
-						payload: {
-							dish_media_id: item.dish_media.id,
-							impression_id: id,
-							source: sourceParam,
-						},
-					});
-				}
-			});
+		if (isActive) {
+			const id = Crypto.randomUUID();
+			impressionId.current = id;
+			watchStartTime.current = new Date();
+			watchMs.current = 0;
+			isCompleted.current = false;
+			rewatchCount.current = 0;
+			// TODO: callBackend で実装する。
+			// insertDishMediaImpression({
+			// 	dish_media_id: item.dish_media.id,
+			// 	session_id: sessionId,
+			// 	source,
+			// }).then((id) => {
+			// 	if (id) {
+			// 		logFrontendEvent({
+			// 			event_name: "dish_media_impression_sent",
+			// 			error_level: "log",
+			// 			payload: {
+			// 				dish_media_id: item.dish_media.id,
+			// 				impression_id: id,
+			// 				source,
+			// 			},
+			// 		});
+			// 	}
+			// });
 		}
-	}, [isActive, impressionSent, item.dish_media.id, sessionId, sourceParam, logFrontendEvent]);
+	}, [isActive, item.dish_media.id, sessionId, source, logFrontendEvent]);
 
 	// ===== Watch Time Tracking =====
 	useEffect(() => {
 		const remoteConfig = getRemoteConfig();
-		const imageCompletionThresholdMs = parseInt(
-			(remoteConfig as any)?.v1_dish_media_image_completion_threshold_ms || "3000",
-			10,
-		);
+		const imageCompletionThresholdMs = parseInt(remoteConfig?.v1_dish_media_image_completion_threshold_ms!, 10);
 
-		if (isActive && appStateRef.current === "active") {
-			// Start or resume watch timer
+		if (isActive) {
+			// タイマーのスタート
 			lastActiveTimeRef.current = Date.now();
 
 			const interval = setInterval(() => {
@@ -172,28 +167,28 @@ export default function FoodContentScreen({
 					const elapsed = now - lastActiveTimeRef.current;
 					lastActiveTimeRef.current = now;
 
-					setWatchMs((prev) => {
-						const newWatchMs = prev + elapsed;
-
-						// Check completion for images
-						if (item.dish_media.media_type === "image" && !isCompleted && newWatchMs >= imageCompletionThresholdMs) {
-							setIsCompleted(true);
-							logFrontendEvent({
-								event_name: "dish_media_image_completed",
-								error_level: "log",
-								payload: {
-									dish_media_id: item.dish_media.id,
-									watch_ms: newWatchMs,
-								},
-							});
-						}
-
-						return newWatchMs;
-					});
+					const newWatchMs = watchMs.current + elapsed;
+					// Check completion for images
+					if (
+						item.dish_media.media_type === "image" &&
+						!isCompleted.current &&
+						newWatchMs >= imageCompletionThresholdMs
+					) {
+						isCompleted.current = true;
+						logFrontendEvent({
+							event_name: "dish_media_image_completed",
+							error_level: "log",
+							payload: {
+								dish_media_id: item.dish_media.id,
+								watch_ms: newWatchMs,
+							},
+						});
+					}
+					watchMs.current = newWatchMs;
 				}
 			}, 100); // Update every 100ms
 
-			watchTimerRef.current = interval as any;
+			watchTimerRef.current = interval;
 		}
 
 		return () => {
@@ -202,7 +197,7 @@ export default function FoodContentScreen({
 				watchTimerRef.current = null;
 			}
 		};
-	}, [isActive, item.dish_media.id, item.dish_media.media_type, isCompleted, logFrontendEvent]);
+	}, [isActive, item.dish_media.id, item.dish_media.media_type, logFrontendEvent]);
 
 	// ===== AppState Tracking =====
 	useEffect(() => {
@@ -223,96 +218,53 @@ export default function FoodContentScreen({
 	}, []);
 
 	// ===== Send View on Deactivate or Unmount =====
+	const sendView = useCallback(async () => {
+		if (!impressionId.current || viewSending.current) return;
+
+		const isSkipped = watchMs.current < 1000 && !isCompleted.current;
+		const payload = {
+			impression_id: impressionId.current,
+			dish_media_id: item.dish_media.id,
+			watch_ms: Math.round(watchMs.current),
+			is_completed: isCompleted.current,
+			is_skipped: isSkipped,
+			rewatch_count: rewatchCount.current,
+			started_at: watchStartTime.current,
+		};
+
+		viewSending.current = true;
+		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>("v1/dish-media/views", {
+			method: "POST",
+			requestPayload: payload,
+		});
+		logFrontendEvent({
+			event_name: "dish_media_view_sent",
+			error_level: "log",
+			payload,
+		});
+		impressionId.current = null;
+		viewSending.current = false;
+	}, [item.dish_media.id, callBackend, logFrontendEvent]);
 	useEffect(() => {
-		const buildViewPayload = () => {
-			const isSkipped = watchMs < 1000 && !isCompleted;
-			return {
-				impression_id: impressionId,
-				dish_media_id: item.dish_media.id,
-				watch_ms: Math.round(watchMs),
-				is_completed: isCompleted,
-				is_skipped: isSkipped,
-				rewatch_count: rewatchCount,
-				started_at: watchStartTime.toISOString(),
-			};
-		};
-
-		const sendView = async () => {
-			if (viewSent || viewSending) return;
-
-			setViewSending(true);
-
-			const payload = buildViewPayload();
-			const success = await sendDishMediaView(payload);
-
-			if (success) {
-				setViewSent(true);
-				logFrontendEvent({
-					event_name: "dish_media_view_sent",
-					error_level: "log",
-					payload: {
-						dish_media_id: item.dish_media.id,
-						impression_id: impressionId,
-						...payload,
-					},
-				});
-			} else {
-				// Retry once after a delay
-				setTimeout(async () => {
-					const retryPayload = buildViewPayload();
-					const retrySuccess = await sendDishMediaView(retryPayload);
-
-					if (retrySuccess) {
-						setViewSent(true);
-						logFrontendEvent({
-							event_name: "dish_media_view_sent_retry",
-							error_level: "log",
-							payload: {
-								dish_media_id: item.dish_media.id,
-								impression_id: impressionId,
-								...retryPayload,
-							},
-						});
-					}
-				}, 1000);
-			}
-
-			setViewSending(false);
-		};
-
-		if (!isActive && impressionSent && !viewSent) {
+		if (!isActive) {
 			sendView();
 		}
 
 		// Also send on unmount
 		return () => {
-			if (impressionSent && !viewSent && !viewSending) {
-				// Fire and forget - we can't await in cleanup
-				sendView().catch((error) => {
-					logFrontendEvent({
-						event_name: "dish_media_view_send_cleanup_error",
-						error_level: "warn",
-						payload: {
-							error: error instanceof Error ? error.message : String(error),
-							dish_media_id: item.dish_media.id,
-						},
-					});
+			// Fire and forget - we can't await in cleanup
+			sendView().catch((error) => {
+				logFrontendEvent({
+					event_name: "dish_media_view_send_cleanup_error",
+					error_level: "warn",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						dish_media_id: item.dish_media.id,
+					},
 				});
-			}
+			});
 		};
-	}, [
-		isActive,
-		impressionSent,
-		viewSent,
-		viewSending,
-		impressionId,
-		item.dish_media.id,
-		watchMs,
-		isCompleted,
-		rewatchCount,
-		watchStartTime,
-		logFrontendEvent,
-	]);
+	}, [isActive, sendView, item.dish_media.id, logFrontendEvent]);
 
 	// ===== Video Progress Tracking =====
 	const handleVideoProgress = (progress: { currentTime: number; duration: number }) => {
@@ -320,8 +272,8 @@ export default function FoodContentScreen({
 			const progressPercent = (progress.currentTime / progress.duration) * 100;
 
 			// Mark as completed when 90% reached
-			if (!isCompleted && progressPercent >= 90) {
-				setIsCompleted(true);
+			if (!isCompleted.current && progressPercent >= 90) {
+				isCompleted.current = true;
 				logFrontendEvent({
 					event_name: "dish_media_video_completed",
 					error_level: "log",
@@ -337,13 +289,13 @@ export default function FoodContentScreen({
 	};
 
 	const handleVideoLoop = () => {
-		setRewatchCount((prev) => prev + 1);
+		rewatchCount.current += 1;
 		logFrontendEvent({
 			event_name: "dish_media_video_looped",
 			error_level: "log",
 			payload: {
 				dish_media_id: item.dish_media.id,
-				rewatch_count: rewatchCount + 1,
+				rewatch_count: rewatchCount.current,
 			},
 		});
 	};
@@ -691,7 +643,7 @@ export default function FoodContentScreen({
 				/>
 			) : (
 				<Image
-					source={source}
+					source={mediaSource}
 					cachePolicy="memory-disk"
 					transition={100}
 					style={StyleSheet.absoluteFill}
