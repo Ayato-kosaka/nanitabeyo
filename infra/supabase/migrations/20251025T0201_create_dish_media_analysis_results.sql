@@ -11,9 +11,6 @@ CREATE TABLE IF NOT EXISTS dish_media_analysis_results (
   dish_media_id     uuid PRIMARY KEY
                     REFERENCES dish_media(id) ON DELETE CASCADE,
 
-  -- メディア属性
-  video_duration_ms integer NOT NULL DEFAULT 0 CHECK (video_duration_ms >= 0),
-
   -- 累積カウンタ（負数禁止）
   impr_total        bigint NOT NULL DEFAULT 0 CHECK (impr_total >= 0),
   view_total        bigint NOT NULL DEFAULT 0 CHECK (view_total >= 0),
@@ -38,7 +35,6 @@ COMMENT ON TABLE dish_media_analysis_results IS '各メディアの累積パフ�
 
 -- コメント（カラム）
 COMMENT ON COLUMN dish_media_analysis_results.dish_media_id IS 'dish_media の主キーを参照（削除時 CASCADE）';
-COMMENT ON COLUMN dish_media_analysis_results.video_duration_ms IS '動画長（ms）。画像は 0 を想定';
 COMMENT ON COLUMN dish_media_analysis_results.impr_total IS 'インプレッション累計';
 COMMENT ON COLUMN dish_media_analysis_results.view_total IS '視聴（開始）累計';
 COMMENT ON COLUMN dish_media_analysis_results.skip_total IS 'スキップ累計';

@@ -156,6 +156,7 @@ export type Database = {
           thumbnail_path: string
           updated_at: string
           user_id: string | null
+          video_duration_ms: number | null
         }
         Insert: {
           created_at?: string
@@ -167,6 +168,7 @@ export type Database = {
           thumbnail_path: string
           updated_at?: string
           user_id?: string | null
+          video_duration_ms?: number | null
         }
         Update: {
           created_at?: string
@@ -178,6 +180,7 @@ export type Database = {
           thumbnail_path?: string
           updated_at?: string
           user_id?: string | null
+          video_duration_ms?: number | null
         }
         Relationships: [
           {
@@ -207,7 +210,6 @@ export type Database = {
           save_total: number
           skip_total: number
           updated_at: string
-          video_duration_ms: number
           view_total: number
           watch_ms_total: number
         }
@@ -221,7 +223,6 @@ export type Database = {
           save_total?: number
           skip_total?: number
           updated_at?: string
-          video_duration_ms?: number
           view_total?: number
           watch_ms_total?: number
         }
@@ -235,7 +236,6 @@ export type Database = {
           save_total?: number
           skip_total?: number
           updated_at?: string
-          video_duration_ms?: number
           view_total?: number
           watch_ms_total?: number
         }

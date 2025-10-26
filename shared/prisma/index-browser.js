@@ -168,12 +168,12 @@ exports.Prisma.Dish_mediaScalarFieldEnum = {
   thumbnail_path: 'thumbnail_path',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  lock_no: 'lock_no'
+  lock_no: 'lock_no',
+  video_duration_ms: 'video_duration_ms'
 };
 
 exports.Prisma.Dish_media_analysis_resultsScalarFieldEnum = {
   dish_media_id: 'dish_media_id',
-  video_duration_ms: 'video_duration_ms',
   impr_total: 'impr_total',
   view_total: 'view_total',
   skip_total: 'skip_total',

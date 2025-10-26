@@ -14,7 +14,6 @@ export type SupabaseDishMediaAnalysisResults = TableRow<'dish_media_analysis_res
 export function convertSupabaseToPrisma_DishMediaAnalysisResults(supabase: SupabaseDishMediaAnalysisResults): PrismaDishMediaAnalysisResults {
   return {
     dish_media_id: supabase.dish_media_id,
-    video_duration_ms: supabase.video_duration_ms,
     impr_total: BigInt(supabase.impr_total),
     view_total: BigInt(supabase.view_total),
     skip_total: BigInt(supabase.skip_total),
@@ -36,7 +35,6 @@ export function convertSupabaseToPrisma_DishMediaAnalysisResults(supabase: Supab
 export function convertPrismaToSupabase_DishMediaAnalysisResults(prisma: PrismaDishMediaAnalysisResults): SupabaseDishMediaAnalysisResults {
   return {
     dish_media_id: prisma.dish_media_id,
-    video_duration_ms: prisma.video_duration_ms,
     impr_total: Number(prisma.impr_total),
     view_total: Number(prisma.view_total),
     skip_total: Number(prisma.skip_total),
