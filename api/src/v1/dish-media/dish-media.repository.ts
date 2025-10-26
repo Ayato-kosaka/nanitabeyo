@@ -52,7 +52,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -131,9 +131,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-        likeCount: Number(cursorStr.split('_')[0]),
-        mediaId: cursorStr.split('_')[1],
-      }
+          likeCount: Number(cursorStr.split('_')[0]),
+          mediaId: cursorStr.split('_')[1],
+        }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -476,14 +476,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-        by: ['target_id'],
-        where: {
-          target_type: 'dish_reviews',
-          target_id: { in: reviewIds },
-          action_type: 'like',
-        },
-        _count: { target_id: true },
-      })
+          by: ['target_id'],
+          where: {
+            target_type: 'dish_reviews',
+            target_id: { in: reviewIds },
+            action_type: 'like',
+          },
+          _count: { target_id: true },
+        })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -499,12 +499,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-        where: {
-          user_id: userId,
-          target_id: { in: targetIds },
-        },
-        select: { target_type: true, target_id: true, action_type: true },
-      })
+          where: {
+            user_id: userId,
+            target_id: { in: targetIds },
+          },
+          select: { target_type: true, target_id: true, action_type: true },
+        })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
@@ -559,7 +559,7 @@ export class DishMediaRepository {
   /* ------------------------------------------------------------------ */
   async createDishMediaView(
     tx: Prisma.TransactionClient,
-    data: Omit<PrismaDishMediaViews, "id">
+    data: Omit<PrismaDishMediaViews, 'id'>,
   ) {
     // 1. dish_media_views を一件挿入
     const view = await tx.dish_media_views.create({ data });

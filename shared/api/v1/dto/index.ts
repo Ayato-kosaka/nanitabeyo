@@ -7,10 +7,7 @@ export {
 	DishMediaReactionBodyDto,
 	ReactionActionType,
 } from "./dish-media/dish-media-reaction.dto";
-export {
-	DishMediaImpressionParamsDto,
-	DishMediaImpressionBodyDto,
-} from "./dish-media/dish-media-impression.dto";
+export { DishMediaImpressionParamsDto, DishMediaImpressionBodyDto } from "./dish-media/dish-media-impression.dto";
 
 export { QueryDishCategoryRecommendationsDto } from "./dish-categories/query-dish-category-recommendations.dto";
 export { QueryDishCategoryVariantsDto } from "./dish-category-variants/query-dish-category-variants.dto";

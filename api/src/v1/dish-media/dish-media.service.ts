@@ -34,7 +34,7 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -225,7 +225,11 @@ export class DishMediaService {
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-media/view                       */
   /* ------------------------------------------------------------------ */
-  async createDishMediaView(dish_media_id: string, dto: CreateDishMediaViewDto, user_id: string) {
+  async createDishMediaView(
+    dish_media_id: string,
+    dto: CreateDishMediaViewDto,
+    user_id: string,
+  ) {
     this.logger.debug('CreateDishMediaView', 'createDishMediaView', {
       dish_media_id,
       user_id: user_id,

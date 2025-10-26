@@ -332,11 +332,7 @@ describe('DishMediaRepository - Reaction and Impression', () => {
       mockTx.dish_media_impressions.deleteMany.mockResolvedValue({ count: 1 });
       mockTx.dish_media_analysis_results.update.mockResolvedValue({});
 
-      await repository.removeImpression(
-        mockTx,
-        testDishMediaId,
-        testSessionId,
-      );
+      await repository.removeImpression(mockTx, testDishMediaId, testSessionId);
 
       expect(mockTx.dish_media_impressions.deleteMany).toHaveBeenCalledWith({
         where: {
@@ -358,11 +354,7 @@ describe('DishMediaRepository - Reaction and Impression', () => {
       const mockTx = mockPrismaService.prisma;
       mockTx.dish_media_impressions.deleteMany.mockResolvedValue({ count: 0 });
 
-      await repository.removeImpression(
-        mockTx,
-        testDishMediaId,
-        testSessionId,
-      );
+      await repository.removeImpression(mockTx, testDishMediaId, testSessionId);
 
       expect(mockTx.dish_media_analysis_results.update).not.toHaveBeenCalled();
     });

@@ -63,7 +63,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -176,11 +176,7 @@ export class DishMediaController {
     @Body() dto: CreateDishMediaViewDto,
     @CurrentUser() user: RequestUser,
   ): Promise<CreateDishMediaViewResponse> {
-    return this.dishMediaService.createDishMediaView(
-      id,
-      dto,
-      user.id,
-    );
+    return this.dishMediaService.createDishMediaView(id, dto, user.id);
   }
 
   /* ------------------------------------------------------------------ */
