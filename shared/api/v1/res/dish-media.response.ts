@@ -41,3 +41,12 @@ export type UnlikeDishMediaResponse = void;
 
 /** POST /v1/dish-media/:id/save/:userId のレスポンス型 */
 export type SaveDishMediaResponse = void;
+
+/** POST /v1/dish-media/view のレスポンス型 */
+export type CreateDishMediaViewResponse = {
+	id: string;
+	dish_media_id: string;
+	impression_id: string | null;
+	stored: boolean;
+	analysis_applied: boolean;
+};

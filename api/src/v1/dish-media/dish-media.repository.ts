@@ -12,6 +12,7 @@ import { PrismaRestaurants } from '../../../../shared/converters/convert_restaur
 import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish_media_views';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 
 import {
@@ -53,7 +54,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -132,9 +133,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -477,14 +478,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -500,12 +501,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
@@ -585,5 +586,46 @@ export class DishMediaRepository {
     // });
 
     return newMedia;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        dish_media_views 作成 + dish_media_analysis_results 更新   */
+  /* ------------------------------------------------------------------ */
+  async createDishMediaView(
+    tx: Prisma.TransactionClient,
+    data: Omit<PrismaDishMediaViews, "id">
+  ) {
+    // 1. dish_media_views を一件挿入
+    const view = await tx.dish_media_views.create({ data });
+
+    // 2. dish_media_analysis_results を更新または挿入
+    await tx.dish_media_analysis_results.upsert({
+      where: { dish_media_id: data.dish_media_id },
+      create: {
+        dish_media_id: data.dish_media_id,
+        video_duration_ms: 0,
+        impr_total: BigInt(0),
+        view_total: BigInt(1),
+        skip_total: data.is_skipped ? BigInt(1) : BigInt(0),
+        completion_total: data.is_completed ? BigInt(1) : BigInt(0),
+        watch_ms_total: BigInt(data.watch_ms),
+        save_total: BigInt(0),
+        like_total: BigInt(0),
+        open_map_total: BigInt(0),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      update: {
+        view_total: { increment: BigInt(1) },
+        skip_total: data.is_skipped ? { increment: BigInt(1) } : undefined,
+        completion_total: data.is_completed
+          ? { increment: BigInt(1) }
+          : undefined,
+        watch_ms_total: { increment: BigInt(data.watch_ms) },
+        updated_at: new Date(),
+      },
+    });
+
+    return view;
   }
 }

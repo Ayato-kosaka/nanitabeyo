@@ -30,7 +30,6 @@
    - `UsersController`: 保存済み/いいね済みのディッシュメディアAPIでCookieを設定
    - `DishMediaController`: 検索およびID指定取得のエンドポイントでCookieを設定
    - `RestaurantsController`: 店舗のディッシュメディア取得でCookieを設定
-  
    - NestJSの`@Res({ passthrough: true })`で`Set-Cookie`ヘッダーを付与
 
 ## Cookieの形式
@@ -175,17 +174,17 @@ CDN_SIGNED_COOKIE_TTL_SECONDS=600
 ```typescript
 // Cookieを受け取るためにcredentialsをinclude
 const response = await fetch("/v1/users/me/saved-dish-media", {
-        credentials: "include",
+	credentials: "include",
 });
 
 const data = await response.json();
 
 // HLSプレイヤーでmediaUrlをそのまま利用
 data.items.forEach((item) => {
-        if (item.dish_media.media_type === "video") {
-                // ブラウザがHLSリクエスト時にCookieを自動送信
-                player.src = item.dish_media.mediaUrl;
-        }
+	if (item.dish_media.media_type === "video") {
+		// ブラウザがHLSリクエスト時にCookieを自動送信
+		player.src = item.dish_media.mediaUrl;
+	}
 });
 ```
 
@@ -259,32 +258,32 @@ Cookie生成を検証するスクリプト例:
 const crypto = require("crypto");
 
 const env = {
-        CDN_HOST: "cdn.example.com",
-        CDN_KEY_NAME: "test-key",
-        CDN_KEY_SECRET_B64: Buffer.from("test-secret").toString("base64"),
-        CDN_SIGNED_COOKIE_TTL_SECONDS: 600,
+	CDN_HOST: "cdn.example.com",
+	CDN_KEY_NAME: "test-key",
+	CDN_KEY_SECRET_B64: Buffer.from("test-secret").toString("base64"),
+	CDN_SIGNED_COOKIE_TTL_SECONDS: 600,
 };
 
 function generateCdnSignedCookies(urlPrefix, recordId) {
-        const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, "base64");
-        const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
+	const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, "base64");
+	const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
 
-        // 署名は&区切りの文字列に対して生成
-        const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
-        const signature = crypto
-                .createHmac("sha1", keySecret)
-                .update(toSign)
-                .digest("base64")
-                .replace(/\+/g, "-")
-                .replace(/\//g, "_");
+	// 署名は&区切りの文字列に対して生成
+	const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
+	const signature = crypto
+		.createHmac("sha1", keySecret)
+		.update(toSign)
+		.digest("base64")
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_");
 
-        const urlObj = new URL(urlPrefix);
-        const cookiePath = urlObj.pathname;
+	const urlObj = new URL(urlPrefix);
+	const cookiePath = urlObj.pathname;
 
-        // Cookie値は:区切りで表現
-        return [
-                `Cloud-CDN-Cookie=URLPrefix=${urlPrefix}:Expires=${expires}:KeyName=${env.CDN_KEY_NAME}:Signature=${signature}; Domain=${env.CDN_HOST}; Path=${cookiePath}; Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; HttpOnly; Secure; SameSite=None`,
-        ];
+	// Cookie値は:区切りで表現
+	return [
+		`Cloud-CDN-Cookie=URLPrefix=${urlPrefix}:Expires=${expires}:KeyName=${env.CDN_KEY_NAME}:Signature=${signature}; Domain=${env.CDN_HOST}; Path=${cookiePath}; Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; HttpOnly; Secure; SameSite=None`,
+	];
 }
 
 // テスト実行
@@ -315,14 +314,14 @@ console.log(cookies);
 
 ```json
 {
-        "event": "CdnSignedCookiesGenerated",
-        "context": "generateCdnSignedCookies",
-        "data": {
-                "urlPrefix": "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/",
-                "recordId": "abc123",
-                "expires": "2025-10-14T23:17:23.000Z",
-                "cookieCount": 1
-        }
+	"event": "CdnSignedCookiesGenerated",
+	"context": "generateCdnSignedCookies",
+	"data": {
+		"urlPrefix": "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/",
+		"recordId": "abc123",
+		"expires": "2025-10-14T23:17:23.000Z",
+		"cookieCount": 1
+	}
 }
 ```
 

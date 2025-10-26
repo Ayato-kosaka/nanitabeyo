@@ -128,12 +128,11 @@ model dish_media_analysis_results {
 model dish_media_impressions {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   dish_media_id    String             @db.Uuid
-  user_id          String?            @db.Uuid
+  user_id          String             @db.Uuid
   session_id       String?            @db.Uuid
   source           String?
   created_at       DateTime           @default(now()) @db.Timestamptz(6)
   dish_media       dish_media         @relation(fields: [dish_media_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users            users?             @relation(fields: [user_id], references: [id], onUpdate: NoAction)
   dish_media_views dish_media_views[]
 
   @@index([created_at(sort: Desc)], map: "idx_dmi_created_at")
@@ -164,15 +163,14 @@ model dish_media_views {
   id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   impression_id          String?                 @db.Uuid
   dish_media_id          String                  @db.Uuid
-  user_id                String?                 @db.Uuid
-  started_at             DateTime                @default(now()) @db.Timestamptz(6)
+  user_id                String                  @db.Uuid
+  started_at             DateTime                @db.Timestamptz(6)
   watch_ms               Int
-  is_completed           Boolean                 @default(false)
-  is_skipped             Boolean                 @default(false)
-  rewatch_count          Int                     @default(0)
+  is_completed           Boolean
+  is_skipped             Boolean
+  rewatch_count          Int
   dish_media             dish_media              @relation(fields: [dish_media_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   dish_media_impressions dish_media_impressions? @relation(fields: [impression_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users                  users?                  @relation(fields: [user_id], references: [id], onUpdate: NoAction)
 
   @@index([dish_media_id], map: "idx_dmv_media")
   @@index([user_id, dish_media_id, started_at(sort: Desc)], map: "idx_dmv_user_media_time")
@@ -415,21 +413,19 @@ model restaurants {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
-  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  display_name           String?
-  avatar                 String?
-  bio                    String?
-  last_login_at          DateTime?                @db.Timestamptz(6)
-  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
-  lock_no                Int                      @default(0)
-  username               String                   @db.Citext
-  dish_media             dish_media[]
-  dish_media_impressions dish_media_impressions[]
-  dish_media_likes       dish_media_likes[]
-  dish_media_views       dish_media_views[]
-  dish_reviews           dish_reviews[]
-  restaurant_bids        restaurant_bids[]
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  display_name     String?
+  avatar           String?
+  bio              String?
+  last_login_at    DateTime?          @db.Timestamptz(6)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  lock_no          Int                @default(0)
+  username         String             @db.Citext
+  dish_media       dish_media[]
+  dish_media_likes dish_media_likes[]
+  dish_reviews     dish_reviews[]
+  restaurant_bids  restaurant_bids[]
 
   @@schema("dev")
 }

@@ -18,17 +18,16 @@ CREATE TABLE IF NOT EXISTS dish_media_views (
                  REFERENCES dish_media(id) ON DELETE CASCADE,
 
   -- 視聴者（匿名可）
-  user_id        uuid NULL
-                 REFERENCES users(id) ON DELETE SET NULL,
+  user_id        uuid NOT NULL,
 
   -- 開始時刻
-  started_at     timestamptz(6) NOT NULL DEFAULT now(),
+  started_at     timestamptz(6) NOT NULL,
 
   -- 視聴結果
   watch_ms       integer NOT NULL CHECK (watch_ms >= 0),
-  is_completed   boolean NOT NULL DEFAULT false,
-  is_skipped     boolean NOT NULL DEFAULT false,
-  rewatch_count  integer NOT NULL DEFAULT 0 CHECK (rewatch_count >= 0),
+  is_completed   boolean NOT NULL,
+  is_skipped     boolean NOT NULL,
+  rewatch_count  integer NOT NULL CHECK (rewatch_count >= 0),
 
   -- 互いに排他（同一イベント内で完視聴とスキップの両立は禁止）
   CONSTRAINT chk_view_flags_mutex

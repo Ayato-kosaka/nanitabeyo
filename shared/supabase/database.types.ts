@@ -256,7 +256,7 @@ export type Database = {
           id: string
           session_id: string | null
           source: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -264,7 +264,7 @@ export type Database = {
           id?: string
           session_id?: string | null
           source?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -272,7 +272,7 @@ export type Database = {
           id?: string
           session_id?: string | null
           source?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -280,13 +280,6 @@ export type Database = {
             columns: ["dish_media_id"]
             isOneToOne: false
             referencedRelation: "dish_media"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dish_media_impressions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -336,18 +329,18 @@ export type Database = {
           is_skipped: boolean
           rewatch_count: number
           started_at: string
-          user_id: string | null
+          user_id: string
           watch_ms: number
         }
         Insert: {
           dish_media_id: string
           id?: string
           impression_id?: string | null
-          is_completed?: boolean
-          is_skipped?: boolean
-          rewatch_count?: number
-          started_at?: string
-          user_id?: string | null
+          is_completed: boolean
+          is_skipped: boolean
+          rewatch_count: number
+          started_at: string
+          user_id: string
           watch_ms: number
         }
         Update: {
@@ -358,7 +351,7 @@ export type Database = {
           is_skipped?: boolean
           rewatch_count?: number
           started_at?: string
-          user_id?: string | null
+          user_id?: string
           watch_ms?: number
         }
         Relationships: [
@@ -374,13 +367,6 @@ export type Database = {
             columns: ["impression_id"]
             isOneToOne: false
             referencedRelation: "dish_media_impressions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dish_media_views_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

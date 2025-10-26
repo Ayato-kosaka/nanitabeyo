@@ -80,27 +80,27 @@
 
 ```json
 {
-        "Map": {
-                "inputs": {
-                        "dishCategory": "料理カテゴリ / Dish Category"
-                },
-                "placeholders": {
-                        "enterDishCategory": "料理カテゴリを入力 (例: ラーメン、寿司)"
-                },
-                "noResultsFound": "結果が見つかりませんでした",
-                "accessibility": {
-                        "dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
-                        "dishCategorySelected": "{{category}}を選択しました",
-                        "dishCategorySearching": "料理カテゴリを検索中",
-                        "dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
-                        "dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
-                },
-                "errors": {
-                        "dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
-                        "dishCategoryNotFound": "料理カテゴリが見つかりません",
-                        "dishCategoryInvalidInput": "無効な料理カテゴリ名です"
-                }
-        }
+	"Map": {
+		"inputs": {
+			"dishCategory": "料理カテゴリ / Dish Category"
+		},
+		"placeholders": {
+			"enterDishCategory": "料理カテゴリを入力 (例: ラーメン、寿司)"
+		},
+		"noResultsFound": "結果が見つかりませんでした",
+		"accessibility": {
+			"dishCategoryInputFocused": "料理カテゴリ入力がフォーカスされました",
+			"dishCategorySelected": "{{category}}を選択しました",
+			"dishCategorySearching": "料理カテゴリを検索中",
+			"dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
+			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
+		},
+		"errors": {
+			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
+			"dishCategoryNotFound": "料理カテゴリが見つかりません",
+			"dishCategoryInvalidInput": "無効な料理カテゴリ名です"
+		}
+	}
 }
 ```
 
@@ -121,8 +121,8 @@
 
 ```typescript
 Array<{
-        dishCategoryId: string;
-        label: string;
+	dishCategoryId: string;
+	label: string;
 }>;
 ```
 
@@ -132,7 +132,7 @@ Array<{
 
 ```typescript
 {
-        name: string; // 新しく作成する料理カテゴリ名
+	name: string; // 新しく作成する料理カテゴリ名
 }
 ```
 
