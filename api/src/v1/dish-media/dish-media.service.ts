@@ -11,8 +11,6 @@ import { Prisma } from '../../../../shared/prisma/client';
 import {
   CreateDishMediaDto,
   CreateDishMediaViewDto,
-  LikeDishMediaParamsDto,
-  SaveDishMediaParamsDto,
   SearchDishMediaDto,
 } from '@shared/v1/dto';
 
@@ -170,41 +168,6 @@ export class DishMediaService {
       items: dishMediaEntryItems,
       cdnCookies: cdnCookies.length > 0 ? cdnCookies : undefined,
     };
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*            POST /v1/dish-media/:id/likes (いいね)                   */
-  /* ------------------------------------------------------------------ */
-  async likeDishMedia({ id }: LikeDishMediaParamsDto, userId: string) {
-    this.logger.verbose('LikeDishMedia', 'likeDishMedia', { id, userId });
-    await this.repo.likeDishMedia(id, userId);
-
-    // 非同期通知（失敗してもレスポンスに影響させない）
-    // TODO: 通知系見直し
-    // this.notifier
-    //     .sendPush(id, userId)
-    //     .catch((err) =>
-    //         this.logger.warn(`Push like notification failed: ${err.message}`),
-    // );
-  }
-
-  /* --------------------- DELETE /v1/dish-media/:id/likes ------------------ */
-  async unlikeDishMedia({ id }: LikeDishMediaParamsDto, userId: string) {
-    this.logger.verbose('UnlikeDishMedia', 'unlikeDishMedia', { id, userId });
-    await this.repo.unlikeDishMedia(id, userId);
-  }
-
-  /* --------------------- POST /v1/dish-media/:id/save --------------------- */
-  async saveDishMedia({ id }: SaveDishMediaParamsDto, userId: string) {
-    this.logger.verbose('SaveDishMedia', 'saveDishMedia', { id, userId });
-    await this.repo.saveDishMedia(id, userId);
-
-    // TODO: 通知系見直し
-    // this.notifier
-    //     .pushSaveNotification(id, userId)
-    //     .catch((err) =>
-    //         this.logger.warn(`Push save notification failed: ${err.message}`),
-    //     );
   }
 
   /* ------------------------------------------------------------------ */

@@ -18,8 +18,6 @@ import { AppLoggerService } from 'src/core/logger/logger.service';
 import {
   CreateDishMediaDto,
   SearchDishMediaDto,
-  LikeDishMediaParamsDto,
-  SaveDishMediaParamsDto,
   QueryRestaurantDishMediaDto,
 } from '@shared/v1/dto';
 
@@ -515,38 +513,6 @@ export class DishMediaRepository {
     );
 
     return { reactionSet, reviewLikeCountMap };
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*                     いいね / いいね解除                         */
-  /* ------------------------------------------------------------------ */
-  async likeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.prisma.dish_media_likes.upsert({
-      where: { dish_media_id_user_id: { dish_media_id: id, user_id: userId } },
-      update: {},
-      create: {
-        dish_media_id: id,
-        user_id: userId,
-      },
-    });
-  }
-
-  async unlikeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.prisma.dish_media_likes.deleteMany({
-      where: { dish_media_id: id, user_id: userId },
-    });
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*                     保存（reactions テーブル想定）               */
-  /* ------------------------------------------------------------------ */
-  async saveDishMedia(id: string, userId: string): Promise<void> {
-    // TODO: migration
-    // await this.prisma.prisma.reactions.upsert({
-    //     where: { dish_media_id_user_id: { dish_media_id: id, user_id: userId } },
-    //     update: { type: 'SAVE' },
-    //     create: { dish_media_id: id, user_id: userId, type: 'SAVE' },
-    // });
   }
 
   /* ------------------------------------------------------------------ */

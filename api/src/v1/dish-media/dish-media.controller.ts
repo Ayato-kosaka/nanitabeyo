@@ -33,8 +33,6 @@ import {
 import {
   CreateDishMediaDto,
   CreateDishMediaViewDto,
-  LikeDishMediaParamsDto,
-  SaveDishMediaParamsDto,
   QueryDishMediaByIdsDto,
   SearchDishMediaDto,
   DishMediaReactionParamsDto,
@@ -47,9 +45,6 @@ import {
   SearchDishMediaResponse,
   CreateDishMediaResponse,
   CreateDishMediaViewResponse,
-  LikeDishMediaResponse,
-  UnlikeDishMediaResponse,
-  SaveDishMediaResponse,
   QueryDishMediaByIdsResponse,
 } from '@shared/v1/res';
 
@@ -148,53 +143,6 @@ export class DishMediaController {
     }
 
     return this.dishMediaMapper.toSearchDishMediaResponse(result.items);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*                POST /v1/dish-media/:id/likes                       */
-  /* ------------------------------------------------------------------ */
-  @Post(':id/likes')
-  @UseGuards(OptionalJwtAuthGuard)
-  @ApiBearerAuth()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: '料理メディアにいいね' })
-  @ApiParam({ name: 'id', required: true })
-  async likeDishMedia(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: RequestUser,
-  ): Promise<LikeDishMediaResponse> {
-    const params: LikeDishMediaParamsDto = { id };
-    return this.dishMediaService.likeDishMedia(params, user.id);
-  }
-
-  /* -------------------- DELETE /v1/dish-media/:id/likes ------------------- */
-  @Delete(':id/likes')
-  @UseGuards(OptionalJwtAuthGuard)
-  @ApiBearerAuth()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: '料理メディアのいいね解除' })
-  @ApiParam({ name: 'id', required: true })
-  async unlikeDishMedia(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: RequestUser,
-  ): Promise<UnlikeDishMediaResponse> {
-    const params: LikeDishMediaParamsDto = { id };
-    return this.dishMediaService.unlikeDishMedia(params, user.id);
-  }
-
-  /* -------------------- POST /v1/dish-media/:id/save ---------------------- */
-  @Post(':id/save')
-  @UseGuards(OptionalJwtAuthGuard)
-  @ApiBearerAuth()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: '料理メディアを保存' })
-  @ApiParam({ name: 'id', required: true })
-  async saveDishMedia(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: RequestUser,
-  ): Promise<SaveDishMediaResponse> {
-    const params: SaveDishMediaParamsDto = { id };
-    return this.dishMediaService.saveDishMedia(params, user.id);
   }
 
   /* ------------------------------------------------------------------ */
