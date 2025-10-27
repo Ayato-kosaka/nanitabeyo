@@ -1,18 +1,13 @@
 import { IsNotEmpty, IsString, IsUUID } from "class-validator";
 
 /**
- * Impression エンドポイントのパスパラメータ
- */
-export class DishMediaImpressionParamsDto {
-	/** dish_media.id */
-	@IsUUID()
-	id!: string;
-}
-
-/**
  * Impression エンドポイントのリクエストボディ
  */
 export class DishMediaImpressionBodyDto {
+	/** dish_media_impressions.id */
+	@IsUUID()
+	id!: string;
+
 	/** セッションID */
 	@IsNotEmpty()
 	@IsString()

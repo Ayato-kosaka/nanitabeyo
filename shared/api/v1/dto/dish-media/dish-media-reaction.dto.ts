@@ -1,4 +1,4 @@
-import { IsEnum, IsUUID } from "class-validator";
+import { IsEnum, IsIn, IsUUID } from "class-validator";
 
 /**
  * Reaction エンドポイントのパスパラメータとリクエストボディ
@@ -12,17 +12,14 @@ export class DishMediaReactionParamsDto {
 /**
  * Reaction の種類
  */
-export enum ReactionActionType {
-	LIKE = "like",
-	SAVE = "save",
-	OPEN_MAP = "open_map",
-}
+const ReactionActionTypes = ["like", "save", "open_map"] as const;
+export type ReactionActionType = typeof ReactionActionTypes[number];
 
 /**
  * Reaction エンドポイントのリクエストボディ
  */
 export class DishMediaReactionBodyDto {
 	/** アクションの種類 */
-	@IsEnum(ReactionActionType)
+	@IsIn(ReactionActionTypes)
 	action_type!: ReactionActionType;
 }
