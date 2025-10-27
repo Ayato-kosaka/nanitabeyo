@@ -88,6 +88,7 @@ model dish_media {
   created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
   updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
   lock_no                     Int                          @default(0)
+  video_duration_ms           Int?
   dishes                      dishes                       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                       users?                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   dish_media_analysis_results dish_media_analysis_results?
@@ -104,19 +105,18 @@ model dish_media {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_media_analysis_results {
-  dish_media_id     String     @id @db.Uuid
-  video_duration_ms Int        @default(0)
-  impr_total        BigInt     @default(0)
-  view_total        BigInt     @default(0)
-  skip_total        BigInt     @default(0)
-  completion_total  BigInt     @default(0)
-  watch_ms_total    BigInt     @default(0)
-  save_total        BigInt     @default(0)
-  like_total        BigInt     @default(0)
-  open_map_total    BigInt     @default(0)
-  created_at        DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime   @default(now()) @db.Timestamptz(6)
-  dish_media        dish_media @relation(fields: [dish_media_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dish_media_id    String     @id @db.Uuid
+  impr_total       BigInt     @default(0)
+  view_total       BigInt     @default(0)
+  skip_total       BigInt     @default(0)
+  completion_total BigInt     @default(0)
+  watch_ms_total   BigInt     @default(0)
+  save_total       BigInt     @default(0)
+  like_total       BigInt     @default(0)
+  open_map_total   BigInt     @default(0)
+  created_at       DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime   @default(now()) @db.Timestamptz(6)
+  dish_media       dish_media @relation(fields: [dish_media_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([impr_total(sort: Desc)], map: "idx_dma_results_impr_total")
   @@index([updated_at(sort: Desc)], map: "idx_dma_results_updated_at")

@@ -547,14 +547,9 @@ export class DishMediaRepository {
         media_path: dto.mediaPath,
         media_type: dto.mediaType,
         thumbnail_path: thumbnailPath,
+        video_duration_ms: dto.videoDurationMs,
       },
     });
-
-    // “本人を既読”にするなど副次レコードを入れたければここで
-    // TODO: migration
-    // await tx.user_seen_dish.create({
-    //     data: { user_id: creatorId, dish_media_id: newMedia.id },
-    // });
 
     return newMedia;
   }
@@ -574,7 +569,6 @@ export class DishMediaRepository {
       where: { dish_media_id: data.dish_media_id },
       create: {
         dish_media_id: data.dish_media_id,
-        video_duration_ms: 0,
         impr_total: BigInt(0),
         view_total: BigInt(1),
         skip_total: data.is_skipped ? BigInt(1) : BigInt(0),
