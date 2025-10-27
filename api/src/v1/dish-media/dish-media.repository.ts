@@ -13,18 +13,21 @@ import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish_media_views';
+import { PrismaDishMediaImpressions } from '../../../../shared/converters/convert_dish_media_impressions';
+import { PrismaDishMediaAnalysisResults } from '../../../../shared/converters/convert_dish_media_analysis_results';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 
 import {
   CreateDishMediaDto,
   SearchDishMediaDto,
-  LikeDishMediaParamsDto,
-  SaveDishMediaParamsDto,
   QueryRestaurantDishMediaDto,
+  ReactionActionType,
 } from '@shared/v1/dto';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
+import { log } from 'node:console';
+import { env } from 'src/core/config/env';
 
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
@@ -54,7 +57,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -133,9 +136,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-        likeCount: Number(cursorStr.split('_')[0]),
-        mediaId: cursorStr.split('_')[1],
-      }
+          likeCount: Number(cursorStr.split('_')[0]),
+          mediaId: cursorStr.split('_')[1],
+        }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -478,14 +481,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-        by: ['target_id'],
-        where: {
-          target_type: 'dish_reviews',
-          target_id: { in: reviewIds },
-          action_type: 'like',
-        },
-        _count: { target_id: true },
-      })
+          by: ['target_id'],
+          where: {
+            target_type: 'dish_reviews',
+            target_id: { in: reviewIds },
+            action_type: 'like',
+          },
+          _count: { target_id: true },
+        })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -501,12 +504,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-        where: {
-          user_id: userId,
-          target_id: { in: targetIds },
-        },
-        select: { target_type: true, target_id: true, action_type: true },
-      })
+          where: {
+            user_id: userId,
+            target_id: { in: targetIds },
+          },
+          select: { target_type: true, target_id: true, action_type: true },
+        })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
@@ -515,38 +518,6 @@ export class DishMediaRepository {
     );
 
     return { reactionSet, reviewLikeCountMap };
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*                     いいね / いいね解除                         */
-  /* ------------------------------------------------------------------ */
-  async likeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.prisma.dish_media_likes.upsert({
-      where: { dish_media_id_user_id: { dish_media_id: id, user_id: userId } },
-      update: {},
-      create: {
-        dish_media_id: id,
-        user_id: userId,
-      },
-    });
-  }
-
-  async unlikeDishMedia(id: string, userId: string): Promise<void> {
-    await this.prisma.prisma.dish_media_likes.deleteMany({
-      where: { dish_media_id: id, user_id: userId },
-    });
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*                     保存（reactions テーブル想定）               */
-  /* ------------------------------------------------------------------ */
-  async saveDishMedia(id: string, userId: string): Promise<void> {
-    // TODO: migration
-    // await this.prisma.prisma.reactions.upsert({
-    //     where: { dish_media_id_user_id: { dish_media_id: id, user_id: userId } },
-    //     update: { type: 'SAVE' },
-    //     create: { dish_media_id: id, user_id: userId, type: 'SAVE' },
-    // });
   }
 
   /* ------------------------------------------------------------------ */
@@ -588,7 +559,7 @@ export class DishMediaRepository {
   /* ------------------------------------------------------------------ */
   async createDishMediaView(
     tx: Prisma.TransactionClient,
-    data: Omit<PrismaDishMediaViews, "id">
+    data: Omit<PrismaDishMediaViews, 'id'>,
   ) {
     // 1. dish_media_views を一件挿入
     const view = await tx.dish_media_views.create({ data });
@@ -621,5 +592,176 @@ export class DishMediaRepository {
     });
 
     return view;
+  }
+
+  /**
+   * Reaction の追加・削除を切り替え、analysis_results を増減分更新
+   * @param tx トランザクションクライアント
+   * @param willReact 追加(true) or 削除(false)
+   * @param isAnonymous 匿名ユーザーかどうか
+   * @param reaction Reaction 情報
+   */
+  async toggleReaction(
+    tx: Prisma.TransactionClient,
+    willReact: boolean,
+    isAnonymous: boolean,
+    reaction: {
+      user_id: string;
+      target_id: string;
+      action_type: ReactionActionType;
+    },
+  ): Promise<void> {
+    if (reaction.action_type === 'like' && !isAnonymous) {
+      // like の場合、認証ユーザーは dish_media_likes を操作
+      if (willReact) {
+        // 既に存在する場合はエラーとする。dish_media_analysis_results の冪等性を保証するため。
+        await tx.dish_media_likes.create({
+          data: {
+            dish_media_id: reaction.target_id,
+            user_id: reaction.user_id,
+          },
+        });
+      } else {
+        // 存在しない場合はエラーとする。dish_media_analysis_results の冪等性を保証するため。
+        await tx.dish_media_likes.delete({
+          where: {
+            dish_media_id_user_id: {
+              dish_media_id: reaction.target_id,
+              user_id: reaction.user_id,
+            },
+          },
+        });
+      }
+    } else {
+      // save / open_map の場合、または匿名ユーザーの like は reactions を操作
+      if (willReact) {
+        await tx.reactions.create({
+          data: {
+            user_id: reaction.user_id,
+            target_type: 'dish_media',
+            target_id: reaction.target_id,
+            action_type: reaction.action_type,
+            created_at: new Date(),
+            created_version: env.API_COMMIT_ID,
+            lock_no: 0,
+          },
+        });
+      } else {
+        await tx.reactions.delete({
+          where: {
+            user_id_target_type_target_id_action_type: {
+              user_id: reaction.user_id,
+              target_type: 'dish_media',
+              target_id: reaction.target_id,
+              action_type: reaction.action_type,
+            },
+          },
+        });
+      }
+    }
+
+    // dish_media_analysis_results を更新または挿入
+    const columnMap: Record<
+      ReactionActionType,
+      keyof PrismaDishMediaAnalysisResults
+    > = {
+      save: 'save_total',
+      like: 'like_total',
+      open_map: 'open_map_total',
+    };
+    await tx.dish_media_analysis_results.upsert({
+      where: { dish_media_id: reaction.target_id },
+      create: {
+        dish_media_id: reaction.target_id,
+        [columnMap[reaction.action_type]]: willReact ? BigInt(1) : BigInt(0),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      update: {
+        [columnMap[reaction.action_type]]: willReact
+          ? { increment: BigInt(1) }
+          : { decrement: BigInt(1) },
+        updated_at: new Date(),
+      },
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              Impression エンドポイント（増分更新）                 */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Impression を追加し、analysis_results を増分更新
+   * @param tx トランザクションクライアント
+   * @param dishMediaId dish_media.id
+   * @param userId ユーザーID
+   * @param sessionId セッションID
+   * @param source ソース
+   */
+  async addImpression(
+    tx: Prisma.TransactionClient,
+    dishMediaImpression: Omit<PrismaDishMediaImpressions, 'created_at'>,
+  ): Promise<void> {
+    // dish_media_impressions に挿入（upsert で冪等性を保証）
+    // Note: 既存のスキーマには session_id でのユニーク制約がないため、
+    // ここでは dish_media_id + session_id の組み合わせで重複チェック
+    const existing = await tx.dish_media_impressions.findFirst({
+      where: {
+        dish_media_id: dishMediaImpression.dish_media_id,
+        session_id: dishMediaImpression.session_id,
+      },
+    });
+
+    if (!existing) {
+      // 新規作成の場合のみ挿入
+      await tx.dish_media_impressions.create({ data: dishMediaImpression });
+
+      // impr_total を +1
+      await tx.dish_media_analysis_results.update({
+        where: { dish_media_id: dishMediaImpression.dish_media_id },
+        data: {
+          impr_total: { increment: BigInt(1) },
+          updated_at: new Date(),
+        },
+      });
+    } else {
+      // 既存の場合は何もしない（冪等性）
+      this.logger.debug(
+        'ImpressionAlreadyExists',
+        'addImpression',
+        dishMediaImpression,
+      );
+    }
+  }
+
+  /**
+   * Impression を削除し、analysis_results を減分更新
+   * @param tx トランザクションクライアント
+   * @param dishMediaId dish_media.id
+   * @param sessionId セッションID
+   */
+  async removeImpression(
+    tx: Prisma.TransactionClient,
+    dishMediaId: string,
+    sessionId: string,
+  ): Promise<void> {
+    // dish_media_impressions から削除
+    const result = await tx.dish_media_impressions.deleteMany({
+      where: {
+        dish_media_id: dishMediaId,
+        session_id: sessionId,
+      },
+    });
+
+    // 実際に削除された場合のみ impr_total を -1
+    if (result.count > 0) {
+      await tx.dish_media_analysis_results.update({
+        where: { dish_media_id: dishMediaId },
+        data: {
+          impr_total: { decrement: BigInt(1) },
+          updated_at: new Date(),
+        },
+      });
+    }
   }
 }
