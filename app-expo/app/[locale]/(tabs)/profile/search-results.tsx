@@ -50,7 +50,7 @@ export default function ProfileSearchResultScreen() {
 
 			{/* Feed Content */}
 			{/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-			<FoodContentMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} />
+			<FoodContentMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} source="profile-topic-search" />
 		</LinearGradient>
 	);
 }

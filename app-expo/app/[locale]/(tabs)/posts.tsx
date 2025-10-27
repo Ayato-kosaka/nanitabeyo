@@ -24,7 +24,7 @@ export default function PostsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<FoodContentMap itemsPromise={dishesPromise} />
+			<FoodContentMap itemsPromise={dishesPromise} source="PostsScreen" />
 		</LinearGradient>
 	);
 }

@@ -66,7 +66,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   /**
    * 写真候補を選択する優先順位ロジック
