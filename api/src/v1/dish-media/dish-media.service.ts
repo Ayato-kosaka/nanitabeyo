@@ -36,7 +36,7 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -292,8 +292,8 @@ export class DishMediaService {
         target_id: dishMediaId,
         action_type: actionType,
         user_id: userId,
-      }
-      ));
+      }),
+    );
   }
 
   /* ------------------------------------------------------------------ */

@@ -13,7 +13,7 @@ export class DishMediaReactionParamsDto {
  * Reaction の種類
  */
 const ReactionActionTypes = ["like", "save", "open_map"] as const;
-export type ReactionActionType = typeof ReactionActionTypes[number];
+export type ReactionActionType = (typeof ReactionActionTypes)[number];
 
 /**
  * Reaction エンドポイントのリクエストボディ

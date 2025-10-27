@@ -60,7 +60,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -237,10 +237,6 @@ export class DishMediaController {
     @Body() body: DishMediaImpressionBodyDto,
     @CurrentUser() user: RequestUser,
   ): Promise<void> {
-    await this.dishMediaService.addImpression(
-      id,
-      user.id,
-      body
-    );
+    await this.dishMediaService.addImpression(id, user.id, body);
   }
 }
