@@ -21,7 +21,11 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import VideoPlayer from "./VideoPlayer";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useAPICall } from "@/hooks/useAPICall";
-import type { CreateDishMediaViewDto, DishMediaReactionBodyDto } from "@shared/api/v1/dto";
+import {
+	DishMediaImpressionBodyDto,
+	type CreateDishMediaViewDto,
+	type DishMediaReactionBodyDto,
+} from "@shared/api/v1/dto";
 import * as Crypto from "expo-crypto";
 
 interface FoodContentScreenProps {
@@ -131,24 +135,14 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 			watchMs.current = 0;
 			isCompleted.current = false;
 			rewatchCount.current = 0;
-			// TODO: callBackend で実装する。
-			// insertDishMediaImpression({
-			// 	dish_media_id: item.dish_media.id,
-			// 	session_id: sessionId,
-			// 	source,
-			// }).then((id) => {
-			// 	if (id) {
-			// 		logFrontendEvent({
-			// 			event_name: "dish_media_impression_sent",
-			// 			error_level: "log",
-			// 			payload: {
-			// 				dish_media_id: item.dish_media.id,
-			// 				impression_id: id,
-			// 				source,
-			// 			},
-			// 		});
-			// 	}
-			// });
+			callBackend<DishMediaImpressionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/impression`, {
+				method: "POST",
+				requestPayload: {
+					id,
+					session_id: sessionId,
+					source,
+				},
+			});
 		}
 	}, [isActive, item.dish_media.id, sessionId, source, logFrontendEvent]);
 
@@ -236,11 +230,6 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>("v1/dish-media/views", {
 			method: "POST",
 			requestPayload: payload,
-		});
-		logFrontendEvent({
-			event_name: "dish_media_view_sent",
-			error_level: "log",
-			payload,
 		});
 		impressionId.current = null;
 		viewSending.current = false;
