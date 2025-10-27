@@ -21,7 +21,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import VideoPlayer from "./VideoPlayer";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useAPICall } from "@/hooks/useAPICall";
-import type { CreateDishMediaViewDto } from "@shared/api/v1/dto";
+import type { CreateDishMediaViewDto, DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import * as Crypto from "expo-crypto";
 
 interface FoodContentScreenProps {
@@ -393,12 +393,17 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 		});
 
 		try {
-			await toggleReaction({
-				target_type: "dish_media",
-				target_id: item.dish_media.id,
-				action_type: "like",
-				willReact: willLike,
-			});
+			if (willLike) {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "POST",
+					requestPayload: { action_type: "like" },
+				});
+			} else {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "DELETE",
+					requestPayload: { action_type: "like" },
+				});
+			}
 		} catch (error) {
 			// Revert state on error
 			setIsLiked(!willLike);
@@ -431,12 +436,17 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 		});
 
 		try {
-			await toggleReaction({
-				target_type: "dish_media",
-				target_id: item.dish_media.id,
-				action_type: "save",
-				willReact: willSave,
-			});
+			if (willSave) {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "POST",
+					requestPayload: { action_type: "save" },
+				});
+			} else {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "DELETE",
+					requestPayload: { action_type: "save" },
+				});
+			}
 		} catch (error) {
 			// Revert state on error
 			setIsSaved(!willSave);
@@ -540,6 +550,17 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 					error: error instanceof Error ? error.message : "Unknown error",
 				},
 			});
+		}
+
+		// Reaction を登録する。重複する場合はエラーになるが無視する。
+		try {
+			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+				method: "POST",
+				requestPayload: { action_type: "open_map" },
+			});
+		} catch (error) {
+			// Ignore errors as per the comment
+			console.log("Map open reaction error ignored:", error);
 		}
 	};
 

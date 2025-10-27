@@ -60,7 +60,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -208,15 +208,16 @@ export class DishMediaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'dish_media の Reaction を削除' })
   @ApiParam({ name: 'id', required: true, description: 'dish_media.id' })
+  @ApiQuery({ name: 'action_type', required: true, description: 'リアクション種別' })
   @ApiResponse({ status: 200, description: 'Reaction 削除成功' })
   async removeReaction(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: DishMediaReactionBodyDto,
+    @Query() query: DishMediaReactionBodyDto,
     @CurrentUser() user: RequestUser,
   ): Promise<void> {
     await this.dishMediaService.removeReaction(
       id,
-      body.action_type,
+      query.action_type,
       user.id,
       user.isAnonymous,
     );
