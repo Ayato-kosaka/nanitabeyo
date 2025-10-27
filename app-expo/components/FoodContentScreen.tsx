@@ -29,7 +29,7 @@ interface FoodContentScreenProps {
 	carouselRef?: React.RefObject<any>;
 	isActive: boolean;
 	sessionId: string;
-	source: "for_you" | "search" | "profile" | string;
+	source: string;
 }
 
 // Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
