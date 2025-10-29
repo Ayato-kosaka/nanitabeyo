@@ -36,10 +36,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const base = new PrismaClient({
       log: enableQueryLogs
         ? ([
-            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-            'warn',
-            'error',
-          ] as any)
+          { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+          'warn',
+          'error',
+        ] as any)
         : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
     });
 
@@ -192,7 +192,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       const schema = env.DB_SCHEMA;
       const res = await this.prisma.$transaction(
         async (tx) => {
-          await tx.$queryRaw`SELECT set_config('search_path', ${schema}, true)`;
+          await tx.$queryRaw`SELECT set_config('search_path', ${schema + ", extensions"}, true)`;
           return exec(tx);
         },
         {

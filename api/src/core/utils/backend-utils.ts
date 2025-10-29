@@ -38,3 +38,17 @@ export async function mapWithConcurrency<T, R>(
 export function roundToOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
 }
+
+/**
+ * Shuffle an array using the Fisher-Yates algorithm
+ * @param array - The array to shuffle
+ * @returns A new array with the elements shuffled
+ */
+export function shuffle<T>(array: T[]): T[] {
+  const a = [...array];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}

@@ -123,7 +123,7 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SearchDishMediaResponse> {
-    const result = await this.dishMediaService.findByCriteria(query, user?.id);
+    const result = await this.dishMediaService.findByCriteria(query, user.id);
 
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {

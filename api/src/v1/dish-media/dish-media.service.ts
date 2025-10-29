@@ -36,26 +36,26 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
   /* ------------------------------------------------------------------ */
-  async findByCriteria(dto: SearchDishMediaDto, viewerId?: string) {
+  async findByCriteria(dto: SearchDishMediaDto, userId: string) {
     this.logger.debug('FindByCriteria', 'findByCriteria', {
       location: dto.location,
       radius: dto.radius,
       categoryId: dto.categoryId,
-      viewer: viewerId ?? 'anon',
+      userId
     });
 
     const dishMediaIds = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.findDishMediaIds(tx, dto, viewerId),
+        this.repo.findDishMediaIds(tx, dto, userId),
     );
 
     const result = await this.fetchDishMediaEntryItems(dishMediaIds, {
-      userId: viewerId,
+      userId,
     });
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
