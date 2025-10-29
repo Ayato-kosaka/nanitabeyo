@@ -76,7 +76,6 @@ export class DishMediaRepository {
     // Haversine 距離 (PostgreSQL + PostGIS) の簡易例
     // RAW を使うときはバインド変数で SQL Injection を防止
     const [userLat, userLon] = location.split(',').map(Number);
-    const maxDistanceKm = radius / 1000.0;
     const nowTs = new Date().toISOString();
     const pageSeed = crypto.randomUUID(); // ランダム順序を毎回ランダムにしたい。
 
@@ -116,7 +115,7 @@ export class DishMediaRepository {
         CAST(${userId}  AS uuid)   AS user_id,
         CAST(${userLat}  AS double precision) AS user_lat,
         CAST(${userLon}  AS double precision) AS user_lon,
-        CAST(${maxDistanceKm}  AS double precision) AS max_distance_km,
+        CAST(${radius}  AS double precision) AS radius_m,
         -- CAST(${"openAt"}  AS timestamptz)      AS open_at,
         CAST(${categoryId}  AS text)           AS category_id,
         -- CAST(${"priceMin"}  AS numeric)          AS price_min,
@@ -125,8 +124,12 @@ export class DishMediaRepository {
         CAST(${GUMBLE_TAU}  AS double precision) AS gumbel_tau, -- ランキングに “ゆらぎ（探索）” をどれだけ入れるかの強さ。
         CAST(${pageSeed}  AS text)             AS page_seed,
         CAST(${nowTs}  AS timestamptz)      AS now_ts,
+        -- geography のユーザ位置
+        ST_SetSRID(ST_MakePoint(${userLon}, ${userLat}), 4326)::geography AS user_geog,
         -- 距離減衰パラメタ
-        GREATEST(2.0, 0.3 * CAST(${maxDistanceKm} AS double precision)) AS d0
+        GREATEST(2.0, 0.3 * (${radius}::double precision / 1000.0)) AS d0,
+        -- 最大 KNN 候補数
+        GREATEST(1000, 50 * CAST(${limit} AS integer)) AS knn_limit
     ),
     -- ========== 重み ==========
     weights AS (
@@ -140,6 +143,24 @@ export class DishMediaRepository {
         0.30 AS w_distance,
         0.50 AS w_impr_total
     ),
+    -- ========== 候補集合（Stage0: 地理フィルタ） ==========
+    candidates_radius AS (
+      SELECT
+        r.id AS restaurant_id,
+        r.location AS rest_geog
+      FROM restaurants r
+      WHERE ST_DWithin(
+              r.location,
+              (SELECT user_geog FROM params),
+              (SELECT radius_m FROM params)
+            )
+    ),
+    nearby_restaurants AS (
+      SELECT cr.restaurant_id, cr.rest_geog
+      FROM candidates_radius cr
+      ORDER BY cr.rest_geog <-> (SELECT user_geog FROM params)  -- KNN
+      LIMIT (SELECT knn_limit FROM params)
+    ),
     -- ========== 候補集合（Stage0: ハードフィルタ） ==========
     base_candidates AS (
       SELECT
@@ -147,17 +168,16 @@ export class DishMediaRepository {
         dm.dish_id       AS dish_id,
         d.restaurant_id  AS restaurant_id,
         d.category_id    AS category_id,
-        r.latitude, r.longitude,
-        ST_SetSRID(ST_MakePoint(r.longitude, r.latitude), 4326)::geography AS rest_geog,
+        nr.rest_geog     AS rest_geog,
         dm.created_at    AS media_created_at,
         dm.video_duration_ms
-      FROM dish_media dm
-      JOIN dishes d       ON d.id = dm.dish_id
-      JOIN restaurants r  ON r.id = d.restaurant_id
+      FROM nearby_restaurants nr
+      JOIN dishes d      ON d.restaurant_id = nr.restaurant_id
+      JOIN dish_media dm ON dm.dish_id      = d.id
       -- 価格帯の絞り込みはMVPでは未対応
-      WHERE
+      WHERE 1=1
         -- カテゴリ
-        d.category_id = (SELECT category_id FROM params) 
+        AND d.category_id = (SELECT category_id FROM params) 
     ),
     -- 距離計算
     geo AS (
@@ -165,8 +185,7 @@ export class DishMediaRepository {
         bc.*,
         ST_Distance(
           bc.rest_geog,
-          ST_SetSRID(ST_MakePoint((SELECT user_lon FROM params),
-                                  (SELECT user_lat FROM params)), 4326)::geography
+          (SELECT user_geog FROM params)
         ) / 1000.0 AS distance_km
       FROM base_candidates bc
     ),
@@ -184,7 +203,6 @@ export class DishMediaRepository {
         */
         FALSE AS is_open_at
       FROM geo g
-      WHERE g.distance_km <= (SELECT max_distance_km FROM params)
     ),
     -- 疲労EXISTS除外（同一メディアを直近24h出さない）
     fatigue_filtered AS (
