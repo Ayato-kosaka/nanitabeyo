@@ -291,6 +291,15 @@ export function ReviewForm({
 		setDishCategoryError(null);
 
 		try {
+			if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
+				logFrontendEvent({
+					event_name: "video_duration_missing",
+					error_level: "error",
+					payload: { media: mediaState.media },
+				});
+				throw new Error(i18n.t('errors.videoProcessingFailed'));
+			}
+
 			const dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
 				method: "POST",
 				requestPayload: {
@@ -323,6 +332,7 @@ export function ReviewForm({
 					mediaPath,
 					thumbnailPath,
 					mediaType: mediaState.media.type,
+					videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
 				},
 			});
 

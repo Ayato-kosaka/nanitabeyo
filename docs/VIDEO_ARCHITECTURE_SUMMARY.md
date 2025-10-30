@@ -50,10 +50,10 @@ const thumbnailPath = await uploadFile(thumbnailFile, `${dishId}-thumbnail`);
 
 // 3. dish media を作成
 await createDishMedia({
-        dishId,
-        mediaType: "VIDEO",
-        mediaPath: videoPath,
-        thumbnailPath: thumbnailPath,
+	dishId,
+	mediaType: "VIDEO",
+	mediaPath: videoPath,
+	thumbnailPath: thumbnailPath,
 });
 // バックエンドが自動でトランスコードをキューに投入
 ```
@@ -66,10 +66,10 @@ const imagePath = await uploadFile(imageFile, `${dishId}-media`);
 
 // 2. dish media を作成（thumbnailPath も必須なので同じ値をセット）
 await createDishMedia({
-        dishId,
-        mediaType: "IMAGE",
-        mediaPath: imagePath,
-        thumbnailPath: imagePath, // 必須: mediaPath と同じ値を設定
+	dishId,
+	mediaType: "IMAGE",
+	mediaPath: imagePath,
+	thumbnailPath: imagePath, // 必須: mediaPath と同じ値を設定
 });
 ```
 

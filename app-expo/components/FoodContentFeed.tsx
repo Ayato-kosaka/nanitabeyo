@@ -16,6 +16,7 @@ import FoodContentScreen from "./FoodContentScreen";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
+import * as Crypto from "expo-crypto";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -29,10 +30,12 @@ interface FoodContentFeedProps {
 	initialIndex?: number;
 	// 表示中インデックスが変化した際のコールバック
 	onIndexChange?: (index: number) => void;
+	// 呼び出し元コンテキスト
+	source: string;
 }
 
 // --- 本体 --------------------------------------------------------------------
-export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange }: FoodContentFeedProps) {
+export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange, source }: FoodContentFeedProps) {
 	// 命令的スクロール用の List 参照
 	const listRef = useRef<FlatList<DishMediaEntry>>(null);
 
@@ -61,6 +64,9 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	// 付随機能（ハプティクス・ログ）
 	const { selectionChanged } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+
+	// 一意なセッションID（FoodContentScreen へ伝搬）
+	const sessionId = useRef(Crypto.randomUUID());
 
 	// --- ライフサイクルログ（初回） ------------------------------
 	useEffect(() => {
@@ -147,7 +153,12 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 		({ item, index }: ListRenderItemInfo<DishMediaEntry>) => (
 			// 各ページは厳密に画面高に合わせる
 			<View style={{ height: Math.max(1, pageHeight) }}>
-				<FoodContentScreen item={item} isActive={index === currentIndex} />
+				<FoodContentScreen
+					item={item}
+					isActive={index === currentIndex}
+					sessionId={sessionId.current}
+					source={source}
+				/>
 			</View>
 		),
 		[pageHeight, currentIndex],

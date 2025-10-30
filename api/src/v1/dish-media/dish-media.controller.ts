@@ -32,17 +32,16 @@ import {
 
 import {
   CreateDishMediaDto,
-  LikeDishMediaParamsDto,
-  SaveDishMediaParamsDto,
+  CreateDishMediaViewDto,
   QueryDishMediaByIdsDto,
   SearchDishMediaDto,
+  DishMediaReactionBodyDto,
+  DishMediaImpressionBodyDto,
 } from '@shared/v1/dto';
 import {
   SearchDishMediaResponse,
   CreateDishMediaResponse,
-  LikeDishMediaResponse,
-  UnlikeDishMediaResponse,
-  SaveDishMediaResponse,
+  CreateDishMediaViewResponse,
   QueryDishMediaByIdsResponse,
 } from '@shared/v1/res';
 
@@ -61,7 +60,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -124,7 +123,7 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SearchDishMediaResponse> {
-    const result = await this.dishMediaService.findByCriteria(query, user?.id);
+    const result = await this.dishMediaService.findByCriteria(query, user.id);
 
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
@@ -144,53 +143,6 @@ export class DishMediaController {
   }
 
   /* ------------------------------------------------------------------ */
-  /*                POST /v1/dish-media/:id/likes                       */
-  /* ------------------------------------------------------------------ */
-  @Post(':id/likes')
-  @UseGuards(OptionalJwtAuthGuard)
-  @ApiBearerAuth()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: '料理メディアにいいね' })
-  @ApiParam({ name: 'id', required: true })
-  async likeDishMedia(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: RequestUser,
-  ): Promise<LikeDishMediaResponse> {
-    const params: LikeDishMediaParamsDto = { id };
-    return this.dishMediaService.likeDishMedia(params, user.id);
-  }
-
-  /* -------------------- DELETE /v1/dish-media/:id/likes ------------------- */
-  @Delete(':id/likes')
-  @UseGuards(OptionalJwtAuthGuard)
-  @ApiBearerAuth()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: '料理メディアのいいね解除' })
-  @ApiParam({ name: 'id', required: true })
-  async unlikeDishMedia(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: RequestUser,
-  ): Promise<UnlikeDishMediaResponse> {
-    const params: LikeDishMediaParamsDto = { id };
-    return this.dishMediaService.unlikeDishMedia(params, user.id);
-  }
-
-  /* -------------------- POST /v1/dish-media/:id/save ---------------------- */
-  @Post(':id/save')
-  @UseGuards(OptionalJwtAuthGuard)
-  @ApiBearerAuth()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: '料理メディアを保存' })
-  @ApiParam({ name: 'id', required: true })
-  async saveDishMedia(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: RequestUser,
-  ): Promise<SaveDishMediaResponse> {
-    const params: SaveDishMediaParamsDto = { id };
-    return this.dishMediaService.saveDishMedia(params, user.id);
-  }
-
-  /* ------------------------------------------------------------------ */
   /*                    POST /v1/dish-media  (要認証)                   */
   /* ------------------------------------------------------------------ */
   @Post()
@@ -203,5 +155,89 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
   ): Promise<CreateDishMediaResponse> {
     return this.dishMediaService.createDishMedia(dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                  POST /v1/dish-media/:id/view                          */
+  /* ------------------------------------------------------------------ */
+  @Post(':id/view')
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({ summary: 'DishMedia 視聴記録' })
+  @ApiResponse({ status: 200, description: '記録成功' })
+  @ApiResponse({ status: 400, description: 'バリデーションエラー' })
+  @ApiResponse({ status: 404, description: 'DishMedia が見つからない' })
+  @ApiParam({ name: 'id', required: true })
+  async createDishMediaView(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateDishMediaViewDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<CreateDishMediaViewResponse> {
+    return this.dishMediaService.createDishMediaView(id, dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              POST /v1/dish-media/:id/reaction                      */
+  /* ------------------------------------------------------------------ */
+  @Post(':id/reaction')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'dish_media に Reaction を追加' })
+  @ApiParam({ name: 'id', required: true, description: 'dish_media.id' })
+  @ApiResponse({ status: 200, description: 'Reaction 追加成功' })
+  async addReaction(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: DishMediaReactionBodyDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    await this.dishMediaService.addReaction(
+      id,
+      body.action_type,
+      user.id,
+      user.isAnonymous,
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              DELETE /v1/dish-media/:id/reaction                    */
+  /* ------------------------------------------------------------------ */
+  @Delete(':id/reaction')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'dish_media の Reaction を削除' })
+  @ApiParam({ name: 'id', required: true, description: 'dish_media.id' })
+  @ApiQuery({ name: 'action_type', required: true, description: 'リアクション種別' })
+  @ApiResponse({ status: 200, description: 'Reaction 削除成功' })
+  async removeReaction(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: DishMediaReactionBodyDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    await this.dishMediaService.removeReaction(
+      id,
+      query.action_type,
+      user.id,
+      user.isAnonymous,
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              POST /v1/dish-media/:id/impression                    */
+  /* ------------------------------------------------------------------ */
+  @Post(':id/impression')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'dish_media に Impression を記録' })
+  @ApiParam({ name: 'id', required: true, description: 'dish_media.id' })
+  @ApiResponse({ status: 200, description: 'Impression 記録成功' })
+  async addImpression(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: DishMediaImpressionBodyDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    await this.dishMediaService.addImpression(id, user.id, body);
   }
 }

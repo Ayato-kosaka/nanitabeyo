@@ -1,8 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
+
+// Threshold for detecting video loop (when currentTime returns to near start)
+export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
+// Progress tracking interval in milliseconds
+const PROGRESS_CHECK_INTERVAL_MS = 250;
 
 export interface VideoPlayerProps {
 	uri: string;
@@ -10,6 +15,8 @@ export interface VideoPlayerProps {
 	shouldPlay?: boolean;
 	isLooping?: boolean;
 	resizeMode?: VideoContentFit;
+	onProgress?: (progress: { currentTime: number; duration: number; playableDuration?: number }) => void;
+	onLoop?: () => void;
 }
 
 /**
@@ -21,9 +28,18 @@ export interface VideoPlayerProps {
  * The CDN signed cookies are automatically sent by the platform:
  * - iOS/Android: expo-video automatically includes cookies in HLS requests
  */
-function VideoPlayer({ uri, style, shouldPlay = false, isLooping = true, resizeMode = "cover" }: VideoPlayerProps) {
+function VideoPlayer({
+	uri,
+	style,
+	shouldPlay = false,
+	isLooping = true,
+	resizeMode = "cover",
+	onProgress,
+	onLoop,
+}: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const lastLoopTime = useRef(0);
 	const { logFrontendEvent } = useLogger();
 
 	const player = useVideoPlayer(uri, (player) => {
@@ -86,6 +102,35 @@ function VideoPlayer({ uri, style, shouldPlay = false, isLooping = true, resizeM
 			subscription.remove();
 		};
 	}, [player]);
+
+	// Progress tracking
+	useEffect(() => {
+		if (!onProgress && !onLoop) return;
+
+		const interval = setInterval(() => {
+			if (player.currentTime !== undefined && player.duration > 0) {
+				// Detect loop (when currentTime goes back to near 0)
+				if (
+					onLoop &&
+					lastLoopTime.current > LOOP_DETECTION_THRESHOLD_SECONDS &&
+					player.currentTime < LOOP_DETECTION_THRESHOLD_SECONDS
+				) {
+					onLoop();
+				}
+				lastLoopTime.current = player.currentTime;
+
+				// Report progress
+				if (onProgress) {
+					onProgress({
+						currentTime: player.currentTime,
+						duration: player.duration,
+					});
+				}
+			}
+		}, PROGRESS_CHECK_INTERVAL_MS);
+
+		return () => clearInterval(interval);
+	}, [player, onProgress, onLoop]);
 
 	// For iOS/Android, use expo-video VideoView
 	return (

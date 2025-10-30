@@ -6,6 +6,7 @@ import FoodContentScreen from "./FoodContentScreen";
 import { AvatarBubbleMarker } from "./AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import type { DishMediaEntry } from "@shared/api/v1/res";
+import * as Crypto from "expo-crypto";
 
 const { width, height } = Dimensions.get("window");
 
@@ -22,6 +23,8 @@ interface FoodContentMapProps {
 		latitude: number;
 		longitude: number;
 	};
+	// 呼び出し元コンテキスト
+	source: string;
 }
 
 export default function FoodContentMap({
@@ -29,6 +32,7 @@ export default function FoodContentMap({
 	initialIndex = 0,
 	onIndexChange,
 	initialLocation,
+	source,
 }: FoodContentMapProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
@@ -39,6 +43,10 @@ export default function FoodContentMap({
 		() => items?.map((item) => ({ latitude: item.restaurant.latitude, longitude: item.restaurant.longitude })) || [],
 		[items],
 	);
+
+	// 一意なセッションID（FoodContentScreen へ伝搬）
+	const sessionId = useRef(Crypto.randomUUID());
+
 	useEffect(() => {
 		itemsPromise.then((data) => {
 			setItems(data);
@@ -110,7 +118,13 @@ export default function FoodContentMap({
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: DishMediaEntry; index: number }) => (
 			<View style={styles.carouselItem}>
-				<FoodContentScreen item={item} carouselRef={carouselRef} isActive={index === currentIndex} />
+				<FoodContentScreen
+					item={item}
+					carouselRef={carouselRef}
+					isActive={index === currentIndex}
+					sessionId={sessionId.current}
+					source={source}
+				/>
 			</View>
 		),
 		[currentIndex],

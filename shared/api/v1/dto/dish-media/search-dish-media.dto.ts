@@ -24,21 +24,19 @@ export class SearchDishMediaDto {
 
 	/**
 	 * 検索半径（メートル）
-	 * min = 10 / max = 5 000 / default = 1 000（Controller 側で補完）
+	 * min = 10 / max = 20 000
 	 */
 	@Type(() => Number)
 	@IsNumber()
 	@Min(10)
-	@Max(5000)
+	@Max(20000)
 	radius!: number;
 
 	/**
 	 * 絞り込み用ディッシュカテゴリ ID
-	 * 省略時は全カテゴリ
 	 */
-	@IsOptional()
 	@IsString()
-	categoryId?: string;
+	categoryId!: string;
 
 	/**
 	 * 返却件数（ページサイズ）
@@ -51,21 +49,21 @@ export class SearchDishMediaDto {
 	@Max(100)
 	limit?: number;
 
-	/**
-	 * 前ページから渡されるカーソル
-	 */
-	@IsString()
-	@IsOptional()
-	cursor?: string;
+	// /**
+	//  * 前ページから渡されるカーソル
+	//  */
+	// @IsString()
+	// @IsOptional()
+	// cursor?: string;
 
-	/**
-	 * 並び順
-	 * - "createdAt"  → 古い順
-	 * - "-createdAt" → 新しい順（デフォルト）
-	 * - "distance"   → 近い順
-	 */
-	@IsString()
-	@IsOptional()
-	@Matches(/^-?(createdAt|distance)$/)
-	sort?: string;
+	// /**
+	//  * 並び順
+	//  * - "createdAt"  → 古い順
+	//  * - "-createdAt" → 新しい順（デフォルト）
+	//  * - "distance"   → 近い順
+	//  */
+	// @IsString()
+	// @IsOptional()
+	// @Matches(/^-?(createdAt|distance)$/)
+	// sort?: string;
 }

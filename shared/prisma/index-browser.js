@@ -20,12 +20,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.17.1
- * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
+ * Prisma Client JS version: 6.18.0
+ * Query Engine version: 34b5a692b7bd79939a9a2c3ef97d816e749cda2f
  */
 Prisma.prismaVersion = {
-  client: "6.17.1",
-  engine: "272a37d34178c2894197e17273bf937f25acdeac"
+  client: "6.18.0",
+  engine: "34b5a692b7bd79939a9a2c3ef97d816e749cda2f"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -168,7 +168,31 @@ exports.Prisma.Dish_mediaScalarFieldEnum = {
   thumbnail_path: 'thumbnail_path',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  lock_no: 'lock_no'
+  lock_no: 'lock_no',
+  video_duration_ms: 'video_duration_ms'
+};
+
+exports.Prisma.Dish_media_analysis_resultsScalarFieldEnum = {
+  dish_media_id: 'dish_media_id',
+  impr_total: 'impr_total',
+  view_total: 'view_total',
+  skip_total: 'skip_total',
+  completion_total: 'completion_total',
+  watch_ms_total: 'watch_ms_total',
+  save_total: 'save_total',
+  like_total: 'like_total',
+  open_map_total: 'open_map_total',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Dish_media_impressionsScalarFieldEnum = {
+  id: 'id',
+  dish_media_id: 'dish_media_id',
+  user_id: 'user_id',
+  session_id: 'session_id',
+  source: 'source',
+  created_at: 'created_at'
 };
 
 exports.Prisma.Dish_media_likesScalarFieldEnum = {
@@ -176,6 +200,18 @@ exports.Prisma.Dish_media_likesScalarFieldEnum = {
   dish_media_id: 'dish_media_id',
   user_id: 'user_id',
   created_at: 'created_at'
+};
+
+exports.Prisma.Dish_media_viewsScalarFieldEnum = {
+  id: 'id',
+  impression_id: 'impression_id',
+  dish_media_id: 'dish_media_id',
+  user_id: 'user_id',
+  started_at: 'started_at',
+  watch_ms: 'watch_ms',
+  is_completed: 'is_completed',
+  is_skipped: 'is_skipped',
+  rewatch_count: 'rewatch_count'
 };
 
 exports.Prisma.Dish_reviewsScalarFieldEnum = {
@@ -400,7 +436,10 @@ exports.Prisma.ModelName = {
   dish_categories: 'dish_categories',
   dish_category_variants: 'dish_category_variants',
   dish_media: 'dish_media',
+  dish_media_analysis_results: 'dish_media_analysis_results',
+  dish_media_impressions: 'dish_media_impressions',
   dish_media_likes: 'dish_media_likes',
+  dish_media_views: 'dish_media_views',
   dish_reviews: 'dish_reviews',
   dishes: 'dishes',
   external_api_logs: 'external_api_logs',

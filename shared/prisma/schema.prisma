@@ -79,21 +79,65 @@ model dish_category_variants {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_media {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  dish_id          String             @db.Uuid
-  user_id          String?            @db.Uuid
-  media_path       String
-  media_type       String
-  thumbnail_path   String
-  created_at       DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
-  lock_no          Int                @default(0)
-  dishes           dishes             @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users            users?             @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  dish_media_likes dish_media_likes[]
-  payouts          payouts[]
+  id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id                     String                       @db.Uuid
+  user_id                     String?                      @db.Uuid
+  media_path                  String
+  media_type                  String
+  thumbnail_path              String
+  created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  lock_no                     Int                          @default(0)
+  video_duration_ms           Int?
+  dishes                      dishes                       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                       users?                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_media_analysis_results dish_media_analysis_results?
+  dish_media_impressions      dish_media_impressions[]
+  dish_media_likes            dish_media_likes[]
+  dish_media_views            dish_media_views[]
+  payouts                     payouts[]
 
   @@index([dish_id], map: "idx_dish_media_dish")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_media_analysis_results {
+  dish_media_id    String     @id @db.Uuid
+  impr_total       BigInt     @default(0)
+  view_total       BigInt     @default(0)
+  skip_total       BigInt     @default(0)
+  completion_total BigInt     @default(0)
+  watch_ms_total   BigInt     @default(0)
+  save_total       BigInt     @default(0)
+  like_total       BigInt     @default(0)
+  open_map_total   BigInt     @default(0)
+  created_at       DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime   @default(now()) @db.Timestamptz(6)
+  dish_media       dish_media @relation(fields: [dish_media_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([impr_total(sort: Desc)], map: "idx_dma_results_impr_total")
+  @@index([updated_at(sort: Desc)], map: "idx_dma_results_updated_at")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_media_impressions {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_media_id    String             @db.Uuid
+  user_id          String             @db.Uuid
+  session_id       String?            @db.Uuid
+  source           String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  dish_media       dish_media         @relation(fields: [dish_media_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dish_media_views dish_media_views[]
+
+  @@index([created_at(sort: Desc)], map: "idx_dmi_created_at")
+  @@index([dish_media_id], map: "idx_dmi_media")
+  @@index([user_id, dish_media_id, created_at(sort: Desc)], map: "idx_dmi_user_media_time")
   @@schema("dev")
 }
 
@@ -110,6 +154,26 @@ model dish_media_likes {
   @@unique([dish_media_id, user_id])
   @@index([dish_media_id], map: "idx_dish_media_likes_media")
   @@index([user_id], map: "idx_dish_media_likes_user")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model dish_media_views {
+  id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  impression_id          String?                 @db.Uuid
+  dish_media_id          String                  @db.Uuid
+  user_id                String                  @db.Uuid
+  started_at             DateTime                @db.Timestamptz(6)
+  watch_ms               Int
+  is_completed           Boolean
+  is_skipped             Boolean
+  rewatch_count          Int
+  dish_media             dish_media              @relation(fields: [dish_media_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dish_media_impressions dish_media_impressions? @relation(fields: [impression_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([dish_media_id], map: "idx_dmv_media")
+  @@index([user_id, dish_media_id, started_at(sort: Desc)], map: "idx_dmv_user_media_time")
   @@schema("dev")
 }
 

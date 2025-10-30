@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform } from "react-native";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, AppState } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -10,7 +10,7 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import type { DishMediaEntry } from "@shared/api/v1/res";
+import type { CreateDishMediaViewResponse, DishMediaEntry } from "@shared/api/v1/res";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { toggleReaction } from "@/lib/reactions";
@@ -20,13 +20,20 @@ import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import VideoPlayer from "./VideoPlayer";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
-
-const { width, height } = Dimensions.get("window");
+import { useAPICall } from "@/hooks/useAPICall";
+import {
+	DishMediaImpressionBodyDto,
+	type CreateDishMediaViewDto,
+	type DishMediaReactionBodyDto,
+} from "@shared/api/v1/dto";
+import * as Crypto from "expo-crypto";
 
 interface FoodContentScreenProps {
 	item: DishMediaEntry;
 	carouselRef?: React.RefObject<any>;
-	isActive?: boolean;
+	isActive: boolean;
+	sessionId: string;
+	source: string;
 }
 
 // Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
@@ -62,7 +69,7 @@ const formatLikeCount = (count: number): string => {
 	return count.toString();
 };
 
-export default function FoodContentScreen({ item, carouselRef, isActive = true }: FoodContentScreenProps) {
+export default function FoodContentScreen({ item, carouselRef, isActive, sessionId, source }: FoodContentScreenProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -91,6 +98,7 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 	);
 	const scrollViewRef = useRef<ScrollView>(null);
 	const { lightImpact, mediumImpact } = useHaptics();
+	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
 	const locale = useLocale();
@@ -98,7 +106,18 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 	const { showSnackbar } = useSnackbar();
 
-	const source = useMemo(
+	// ===== Tracking State =====
+	const impressionId = useRef<string | null>(null);
+	const viewSending = useRef(false);
+	const watchStartTime = useRef<Date>(new Date());
+	const watchMs = useRef(0);
+	const isCompleted = useRef(false);
+	const rewatchCount = useRef(0);
+	const watchTimerRef = useRef<NodeJS.Timeout | string | number | null>(null);
+	const appStateRef = useRef(AppState.currentState);
+	const lastActiveTimeRef = useRef(Date.now());
+
+	const mediaSource = useMemo(
 		() => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
 		[item.dish_media.mediaUrl],
 	);
@@ -106,6 +125,168 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 	useEffect(() => {
 		scrollViewRef.current?.scrollToEnd({ animated: false });
 	}, [item.dish_reviews.length]);
+
+	// ===== Impression Tracking =====
+	useEffect(() => {
+		if (isActive) {
+			const id = Crypto.randomUUID();
+			impressionId.current = id;
+			watchStartTime.current = new Date();
+			watchMs.current = 0;
+			isCompleted.current = false;
+			rewatchCount.current = 0;
+			callBackend<DishMediaImpressionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/impression`, {
+				method: "POST",
+				requestPayload: {
+					id,
+					session_id: sessionId,
+					source,
+				},
+			});
+		}
+	}, [isActive, item.dish_media.id, sessionId, source, logFrontendEvent]);
+
+	// ===== Watch Time Tracking =====
+	useEffect(() => {
+		const remoteConfig = getRemoteConfig();
+		const imageCompletionThresholdMs = parseInt(remoteConfig?.v1_dish_media_image_completion_threshold_ms!, 10);
+
+		if (isActive) {
+			// タイマーのスタート
+			lastActiveTimeRef.current = Date.now();
+
+			const interval = setInterval(() => {
+				if (appStateRef.current === "active") {
+					const now = Date.now();
+					const elapsed = now - lastActiveTimeRef.current;
+					lastActiveTimeRef.current = now;
+
+					const newWatchMs = watchMs.current + elapsed;
+					// Check completion for images
+					if (
+						item.dish_media.media_type === "image" &&
+						!isCompleted.current &&
+						newWatchMs >= imageCompletionThresholdMs
+					) {
+						isCompleted.current = true;
+						logFrontendEvent({
+							event_name: "dish_media_image_completed",
+							error_level: "log",
+							payload: {
+								dish_media_id: item.dish_media.id,
+								watch_ms: newWatchMs,
+							},
+						});
+					}
+					watchMs.current = newWatchMs;
+				}
+			}, 100); // Update every 100ms
+
+			watchTimerRef.current = interval;
+		}
+
+		return () => {
+			if (watchTimerRef.current) {
+				clearInterval(watchTimerRef.current);
+				watchTimerRef.current = null;
+			}
+		};
+	}, [isActive, item.dish_media.id, item.dish_media.media_type, logFrontendEvent]);
+
+	// ===== AppState Tracking =====
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (nextAppState) => {
+			if (appStateRef.current === "active" && nextAppState.match(/inactive|background/)) {
+				// App is going to background - pause watch time tracking
+				appStateRef.current = nextAppState;
+			} else if (appStateRef.current.match(/inactive|background/) && nextAppState === "active") {
+				// App is coming back to foreground - resume from current time
+				appStateRef.current = nextAppState;
+				lastActiveTimeRef.current = Date.now();
+			}
+		});
+
+		return () => {
+			subscription.remove();
+		};
+	}, []);
+
+	// ===== Send View on Deactivate or Unmount =====
+	const sendView = useCallback(async () => {
+		if (!impressionId.current || viewSending.current) return;
+
+		const isSkipped = watchMs.current < 1000 && !isCompleted.current;
+		const payload = {
+			impression_id: impressionId.current,
+			started_at: watchStartTime.current,
+			watch_ms: Math.round(watchMs.current),
+			is_completed: isCompleted.current,
+			is_skipped: isSkipped,
+			rewatch_count: rewatchCount.current,
+		};
+
+		viewSending.current = true;
+		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>(`v1/dish-media/${item.dish_media.id}/view`, {
+			method: "POST",
+			requestPayload: payload,
+		});
+		impressionId.current = null;
+		viewSending.current = false;
+	}, [item.dish_media.id, callBackend, logFrontendEvent]);
+	useEffect(() => {
+		if (!isActive) {
+			sendView();
+		}
+
+		// Also send on unmount
+		return () => {
+			// Fire and forget - we can't await in cleanup
+			sendView().catch((error) => {
+				logFrontendEvent({
+					event_name: "dish_media_view_send_cleanup_error",
+					error_level: "warn",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						dish_media_id: item.dish_media.id,
+					},
+				});
+			});
+		};
+	}, [isActive, sendView, item.dish_media.id, logFrontendEvent]);
+
+	// ===== Video Progress Tracking =====
+	const handleVideoProgress = (progress: { currentTime: number; duration: number }) => {
+		if (item.dish_media.media_type === "video" && progress.duration > 0) {
+			const progressPercent = (progress.currentTime / progress.duration) * 100;
+
+			// Mark as completed when 90% reached
+			if (!isCompleted.current && progressPercent >= 90) {
+				isCompleted.current = true;
+				logFrontendEvent({
+					event_name: "dish_media_video_completed",
+					error_level: "log",
+					payload: {
+						dish_media_id: item.dish_media.id,
+						progress_percent: progressPercent,
+						current_time: progress.currentTime,
+						duration: progress.duration,
+					},
+				});
+			}
+		}
+	};
+
+	const handleVideoLoop = () => {
+		rewatchCount.current += 1;
+		logFrontendEvent({
+			event_name: "dish_media_video_looped",
+			error_level: "log",
+			payload: {
+				dish_media_id: item.dish_media.id,
+				rewatch_count: rewatchCount.current,
+			},
+		});
+	};
 
 	const handleCommentLike = async (commentId: string) => {
 		lightImpact();
@@ -200,12 +381,17 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 		});
 
 		try {
-			await toggleReaction({
-				target_type: "dish_media",
-				target_id: item.dish_media.id,
-				action_type: "like",
-				willReact: willLike,
-			});
+			if (willLike) {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "POST",
+					requestPayload: { action_type: "like" },
+				});
+			} else {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "DELETE",
+					requestPayload: { action_type: "like" },
+				});
+			}
 		} catch (error) {
 			// Revert state on error
 			setIsLiked(!willLike);
@@ -238,12 +424,17 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 		});
 
 		try {
-			await toggleReaction({
-				target_type: "dish_media",
-				target_id: item.dish_media.id,
-				action_type: "save",
-				willReact: willSave,
-			});
+			if (willSave) {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "POST",
+					requestPayload: { action_type: "save" },
+				});
+			} else {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+					method: "DELETE",
+					requestPayload: { action_type: "save" },
+				});
+			}
 		} catch (error) {
 			// Revert state on error
 			setIsSaved(!willSave);
@@ -348,6 +539,17 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 				},
 			});
 		}
+
+		// Reaction を登録する。重複する場合はエラーになるが無視する。
+		try {
+			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+				method: "POST",
+				requestPayload: { action_type: "open_map" },
+			});
+		} catch (error) {
+			// Ignore errors as per the comment
+			console.log("Map open reaction error ignored:", error);
+		}
 	};
 
 	const handleMenuOptionPress = (onPress: () => void) => {
@@ -441,10 +643,16 @@ export default function FoodContentScreen({ item, carouselRef, isActive = true }
 		<SafeAreaView style={styles.container}>
 			{/* Background Media (Image or Video) */}
 			{item.dish_media.media_type === "video" ? (
-				<VideoPlayer uri={item.dish_media.mediaUrl} style={StyleSheet.absoluteFill} shouldPlay={isActive} />
+				<VideoPlayer
+					uri={item.dish_media.mediaUrl}
+					style={StyleSheet.absoluteFill}
+					shouldPlay={isActive}
+					onProgress={handleVideoProgress}
+					onLoop={handleVideoLoop}
+				/>
 			) : (
 				<Image
-					source={source}
+					source={mediaSource}
 					cachePolicy="memory-disk"
 					transition={100}
 					style={StyleSheet.absoluteFill}

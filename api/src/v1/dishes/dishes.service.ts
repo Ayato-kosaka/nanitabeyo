@@ -354,6 +354,7 @@ export class DishesService {
           media_path: mediaPath,
           media_type: 'image',
           thumbnail_path: mediaPath,
+          video_duration_ms: null,
           created_at: new Date(),
           updated_at: new Date(),
           lock_no: 0,

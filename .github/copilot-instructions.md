@@ -305,3 +305,29 @@ When using these commands, set explicit timeouts to prevent premature cancellati
 3. Verify both servers run simultaneously without conflicts
 4. Test communication between frontend and backend (if endpoints available)
 5. Verify hot reload works in both API and mobile app
+
+## コーディングスタイル / コメント指針（強制運用）
+
+- **スタイルは既存ファイルに厳密追従**。新規/修正箇所も隣接コードの書きぶり（命名・import順・空行）に合わせること。
+  - 逸脱が必要な場合は「なぜ今だけ違うか」をコメントに残す（設計トレードオフ）。
+
+- **日本語コメントは“読む人に負担をかけない”レベルで簡潔&具体的に**。目的→理由→根拠（チケット）を1行で。
+  - 形式: `// #<TICKET> 【<種別>】<要点>（<理由/根拠があれば簡潔に>）`
+  - 種別: `設計 / 仕様 / バグ / パフォーマンス / セキュリティ / 将来対応`
+  - 例:
+
+    ```ts
+    likeCount: dishMedia._count.dish_media_likes, // #9999 【設計】likeCount に reactionsCount(匿名ユーザー用)は含めない
+    // #292 【バグ】TextInput で日本語が 1 文字確定になるため、IME対策で親側でフォーカス管理
+    ```
+
+- **禁止**: 意図が説明できない TODO、チケット番号なしの仕様変更コメント、英語/日本語の混在。
+- **JSDoc 併用**: 複雑な型/関数は上に JSDoc（日本語）で「入出力」「副作用」「失敗時挙動」を必ず明記。
+
+---
+
+## i18n ポリシー（全言語対応の担保）
+
+- **対象言語**（固定）：`app-expo/locales/`
+  `ar-SA.json, en-US.json, es-ES.json, fr-FR.json, hi-IN.json, ja-JP.json, ko-KR.json, zh-CN.json`
+- **原則**: **UI文字列の直書き禁止**（テスト含む）。**必ずキー参照**。動的キー生成も禁止（静的キーのみ）。

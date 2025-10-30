@@ -64,6 +64,7 @@ export default function ResultScreen() {
 				itemsPromise={dishesPromise}
 				onIndexChange={handleIndexChange}
 				initialLocation={initialLocation}
+				source="search-result"
 			/>
 		</LinearGradient>
 	);

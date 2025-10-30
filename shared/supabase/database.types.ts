@@ -144,6 +144,7 @@ export type Database = {
 					thumbnail_path: string;
 					updated_at: string;
 					user_id: string | null;
+					video_duration_ms: number | null;
 				};
 				Insert: {
 					created_at?: string;
@@ -155,6 +156,7 @@ export type Database = {
 					thumbnail_path: string;
 					updated_at?: string;
 					user_id?: string | null;
+					video_duration_ms?: number | null;
 				};
 				Update: {
 					created_at?: string;
@@ -166,6 +168,7 @@ export type Database = {
 					thumbnail_path?: string;
 					updated_at?: string;
 					user_id?: string | null;
+					video_duration_ms?: number | null;
 				};
 				Relationships: [
 					{
@@ -180,6 +183,91 @@ export type Database = {
 						columns: ["user_id"];
 						isOneToOne: false;
 						referencedRelation: "users";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			dish_media_analysis_results: {
+				Row: {
+					completion_total: number;
+					created_at: string;
+					dish_media_id: string;
+					impr_total: number;
+					like_total: number;
+					open_map_total: number;
+					save_total: number;
+					skip_total: number;
+					updated_at: string;
+					view_total: number;
+					watch_ms_total: number;
+				};
+				Insert: {
+					completion_total?: number;
+					created_at?: string;
+					dish_media_id: string;
+					impr_total?: number;
+					like_total?: number;
+					open_map_total?: number;
+					save_total?: number;
+					skip_total?: number;
+					updated_at?: string;
+					view_total?: number;
+					watch_ms_total?: number;
+				};
+				Update: {
+					completion_total?: number;
+					created_at?: string;
+					dish_media_id?: string;
+					impr_total?: number;
+					like_total?: number;
+					open_map_total?: number;
+					save_total?: number;
+					skip_total?: number;
+					updated_at?: string;
+					view_total?: number;
+					watch_ms_total?: number;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "dish_media_analysis_results_dish_media_id_fkey";
+						columns: ["dish_media_id"];
+						isOneToOne: true;
+						referencedRelation: "dish_media";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			dish_media_impressions: {
+				Row: {
+					created_at: string;
+					dish_media_id: string;
+					id: string;
+					session_id: string | null;
+					source: string | null;
+					user_id: string;
+				};
+				Insert: {
+					created_at?: string;
+					dish_media_id: string;
+					id?: string;
+					session_id?: string | null;
+					source?: string | null;
+					user_id: string;
+				};
+				Update: {
+					created_at?: string;
+					dish_media_id?: string;
+					id?: string;
+					session_id?: string | null;
+					source?: string | null;
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "dish_media_impressions_dish_media_id_fkey";
+						columns: ["dish_media_id"];
+						isOneToOne: false;
+						referencedRelation: "dish_media";
 						referencedColumns: ["id"];
 					},
 				];
@@ -220,10 +308,61 @@ export type Database = {
 					},
 				];
 			};
+			dish_media_views: {
+				Row: {
+					dish_media_id: string;
+					id: string;
+					impression_id: string | null;
+					is_completed: boolean;
+					is_skipped: boolean;
+					rewatch_count: number;
+					started_at: string;
+					user_id: string;
+					watch_ms: number;
+				};
+				Insert: {
+					dish_media_id: string;
+					id?: string;
+					impression_id?: string | null;
+					is_completed: boolean;
+					is_skipped: boolean;
+					rewatch_count: number;
+					started_at: string;
+					user_id: string;
+					watch_ms: number;
+				};
+				Update: {
+					dish_media_id?: string;
+					id?: string;
+					impression_id?: string | null;
+					is_completed?: boolean;
+					is_skipped?: boolean;
+					rewatch_count?: number;
+					started_at?: string;
+					user_id?: string;
+					watch_ms?: number;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "dish_media_views_dish_media_id_fkey";
+						columns: ["dish_media_id"];
+						isOneToOne: false;
+						referencedRelation: "dish_media";
+						referencedColumns: ["id"];
+					},
+					{
+						foreignKeyName: "dish_media_views_impression_id_fkey";
+						columns: ["impression_id"];
+						isOneToOne: false;
+						referencedRelation: "dish_media_impressions";
+						referencedColumns: ["id"];
+					},
+				];
+			};
 			dish_reviews: {
 				Row: {
 					comment: string;
-					comment_tsv: unknown | null;
+					comment_tsv: unknown;
 					created_at: string;
 					created_dish_media_id: string;
 					currency_code: string | null;
@@ -238,7 +377,7 @@ export type Database = {
 				};
 				Insert: {
 					comment: string;
-					comment_tsv?: unknown | null;
+					comment_tsv?: unknown;
 					created_at?: string;
 					created_dish_media_id: string;
 					currency_code?: string | null;
@@ -253,7 +392,7 @@ export type Database = {
 				};
 				Update: {
 					comment?: string;
-					comment_tsv?: unknown | null;
+					comment_tsv?: unknown;
 					created_at?: string;
 					created_dish_media_id?: string;
 					currency_code?: string | null;

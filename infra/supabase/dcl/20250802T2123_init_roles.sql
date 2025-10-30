@@ -6,6 +6,7 @@ CREATE USER prisma_prod_rw WITH PASSWORD '${PRISMA_PROD_RW_PASSWORD}' BYPASSRLS 
 GRANT prisma_prod_rw TO postgres;
 
 GRANT USAGE ON SCHEMA public TO prisma_prod_rw;
+GRANT USAGE ON SCHEMA extensions TO prisma_prod_rw;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO prisma_prod_rw;
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO prisma_prod_rw;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO prisma_prod_rw;
@@ -27,6 +28,7 @@ GRANT prisma_dev TO postgres;
 
 -- SCHEMA: public（read-only）
 GRANT USAGE ON SCHEMA public TO prisma_dev;
+GRANT USAGE ON SCHEMA extensions TO prisma_dev;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO prisma_dev;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO prisma_dev;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO prisma_dev;
@@ -77,6 +79,7 @@ GRANT prisma_dev_cr TO postgres;
 
 -- SCHEMA: public（read-only）
 GRANT USAGE ON SCHEMA public TO prisma_dev_cr;
+GRANT USAGE ON SCHEMA extensions TO prisma_dev_cr;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO prisma_dev_cr;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO prisma_dev_cr;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO prisma_dev_cr;

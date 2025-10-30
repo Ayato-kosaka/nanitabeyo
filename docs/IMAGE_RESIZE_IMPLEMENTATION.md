@@ -34,10 +34,10 @@
 - **リクエストボディ例**:
   ```json
   {
-        "table": "dish_media",
-        "column": "thumbnail_path",
-        "recordId": "uuid",
-        "size": 256
+  	"table": "dish_media",
+  	"column": "thumbnail_path",
+  	"recordId": "uuid",
+  	"size": 256
   }
   ```
 
@@ -64,14 +64,14 @@
 ```typescript
 // 詳細表示用（1024px）
 const mediaUrl = await this.storage.getOrQueueResizedSignedUrl(
-        { table: "dish_media", column: "media_path", recordId: rec.dish_media.id, size: 1024 },
-        rec.dish_media.media_path,
+	{ table: "dish_media", column: "media_path", recordId: rec.dish_media.id, size: 1024 },
+	rec.dish_media.media_path,
 );
 
 // サムネイル（256px）
 const thumbnailImageUrl = await this.storage.getOrQueueResizedSignedUrl(
-        { table: "dish_media", column: "thumbnail_path", recordId: rec.dish_media.id, size: 256 },
-        rec.dish_media.thumbnail_path,
+	{ table: "dish_media", column: "thumbnail_path", recordId: rec.dish_media.id, size: 256 },
+	rec.dish_media.thumbnail_path,
 );
 ```
 
@@ -129,9 +129,9 @@ Cache-Control: public, max-age=31536000, immutable
 
 ### 初回と2回目以降の挙動
 
-| リクエスト | 提供する画像 | バックグラウンド処理 | レスポンス時間             |
-| ---------- | ------------ | -------------------- | -------------------------- |
-| 初回       | オリジナル   | 非同期でジョブ登録   | 従来と同等                 |
+| リクエスト | 提供する画像 | バックグラウンド処理 | レスポンス時間            |
+| ---------- | ------------ | -------------------- | ------------------------- |
+| 初回       | オリジナル   | 非同期でジョブ登録   | 従来と同等                |
 | 2回目以降  | リサイズ済み | すでに完了           | 従来 + ダウンロード高速化 |
 
 ## 実装詳細
@@ -201,15 +201,15 @@ Cache-Control: public, max-age=31536000, immutable
 
 ### 監視・可観測性
 
-| イベント                      | レベル | 内容                                 |
-| ---------------------------- | ------ | ------------------------------------ |
-| `ResizeImageStarted`         | DEBUG  | リサイズジョブの開始                 |
-| `ResizeImageCompleted`       | LOG    | リサイズ完了                         |
-| `ResizeImageAlreadyExists`   | DEBUG  | 既にリサイズ済みであることを検出     |
-| `ResizedImageExists`         | DEBUG  | 既存のリサイズ済み画像を利用         |
-| `ResizedImageNotFound`       | DEBUG  | 新しいリサイズジョブをキューに登録   |
-| `ResizeQueueError`           | WARN   | キュー登録失敗（フォールバックあり） |
-| `ResizeImageError`           | ERROR  | 致命的なリサイズ失敗                 |
+| イベント                   | レベル | 内容                                 |
+| -------------------------- | ------ | ------------------------------------ |
+| `ResizeImageStarted`       | DEBUG  | リサイズジョブの開始                 |
+| `ResizeImageCompleted`     | LOG    | リサイズ完了                         |
+| `ResizeImageAlreadyExists` | DEBUG  | 既にリサイズ済みであることを検出     |
+| `ResizedImageExists`       | DEBUG  | 既存のリサイズ済み画像を利用         |
+| `ResizedImageNotFound`     | DEBUG  | 新しいリサイズジョブをキューに登録   |
+| `ResizeQueueError`         | WARN   | キュー登録失敗（フォールバックあり） |
+| `ResizeImageError`         | ERROR  | 致命的なリサイズ失敗                 |
 
 ## 今後の拡張（MVP以降）
 

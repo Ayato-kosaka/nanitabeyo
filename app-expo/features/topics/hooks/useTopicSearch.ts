@@ -8,12 +8,14 @@ import type {
 	BulkImportDishesDto,
 	CreateDishCategoryVariantDto,
 	QueryDishCategoryRecommendationsDto,
+	SearchDishMediaDto,
 } from "@shared/api/v1/dto";
 import type {
 	BulkImportDishesResponse,
 	DishMediaEntry,
 	QueryDishCategoryRecommendationsResponse,
 	CreateDishCategoryVariantResponse,
+	SearchDishMediaResponse,
 } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
@@ -51,9 +53,19 @@ export const useTopicSearch = () => {
 
 				let dishItems: DishMediaEntry[] = [];
 
-				// TODO: GET /v1/dish-media
+				// まずは、GET /v1/dish-media で既存の料理メディアを検索
+				dishItems = await callBackend<SearchDishMediaDto, SearchDishMediaResponse>("v1/dish-media/search", {
+					method: "GET",
+					requestPayload: {
+						location: `${latitude},${longitude}`,
+						radius: radius,
+						categoryId: categoryId,
+						limit: searchResultRestaurantsNumber,
+					},
+				});
+
 				if (dishItems.length < searchResultRestaurantsNumber) {
-					// if (false) {
+					// 足りない分は、POST /v1/dishes/bulk-import で新規インポート
 
 					// Check if all price levels are selected - if so, don't send priceLevels parameter
 					const allPriceLevels = [
@@ -81,28 +93,28 @@ export const useTopicSearch = () => {
 						method: "POST",
 						requestPayload,
 					});
-
-					// Preload dish media images
-					await Promise.allSettled(
-						dishItems.map(async (dishItem) => {
-							if (dishItem.dish_media.media_type === "image") {
-								try {
-									await Image.prefetch(dishItem.dish_media.mediaUrl);
-								} catch (error) {
-									logFrontendEvent({
-										event_name: "image_preload_failed",
-										error_level: "warn",
-										payload: {
-											imageType: "dish_media",
-											imageUrl: dishItem.dish_media.mediaUrl,
-											error: error instanceof Error ? error.message : String(error),
-										},
-									});
-								}
-							}
-						}),
-					);
 				}
+
+				// Preload dish media images
+				await Promise.allSettled(
+					dishItems.map(async (dishItem) => {
+						if (dishItem.dish_media.media_type === "image") {
+							try {
+								await Image.prefetch(dishItem.dish_media.mediaUrl);
+							} catch (error) {
+								logFrontendEvent({
+									event_name: "image_preload_failed",
+									error_level: "warn",
+									payload: {
+										imageType: "dish_media",
+										imageUrl: dishItem.dish_media.mediaUrl,
+										error: error instanceof Error ? error.message : String(error),
+									},
+								});
+							}
+						}
+					}),
+				);
 				return dishItems.slice(0, searchResultRestaurantsNumber);
 			})();
 		},
@@ -206,8 +218,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												typeof createDishCategoryVariantResponse.labels === "object" &&
+												params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,

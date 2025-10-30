@@ -10,8 +10,9 @@ import { Prisma } from '../../../../shared/prisma/client';
 
 import {
   CreateDishMediaDto,
-  LikeDishMediaParamsDto,
-  SaveDishMediaParamsDto,
+  CreateDishMediaViewDto,
+  DishMediaImpressionBodyDto,
+  ReactionActionType,
   SearchDishMediaDto,
 } from '@shared/v1/dto';
 
@@ -35,26 +36,26 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
   /* ------------------------------------------------------------------ */
-  async findByCriteria(dto: SearchDishMediaDto, viewerId?: string) {
+  async findByCriteria(dto: SearchDishMediaDto, userId: string) {
     this.logger.debug('FindByCriteria', 'findByCriteria', {
       location: dto.location,
       radius: dto.radius,
       categoryId: dto.categoryId,
-      viewer: viewerId ?? 'anon',
+      userId
     });
 
     const dishMediaIds = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.findDishMediaIds(tx, dto, viewerId),
+        this.repo.findDishMediaIds(tx, dto, userId),
     );
 
     const result = await this.fetchDishMediaEntryItems(dishMediaIds, {
-      userId: viewerId,
+      userId,
     });
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
@@ -172,41 +173,6 @@ export class DishMediaService {
   }
 
   /* ------------------------------------------------------------------ */
-  /*            POST /v1/dish-media/:id/likes (いいね)                   */
-  /* ------------------------------------------------------------------ */
-  async likeDishMedia({ id }: LikeDishMediaParamsDto, userId: string) {
-    this.logger.verbose('LikeDishMedia', 'likeDishMedia', { id, userId });
-    await this.repo.likeDishMedia(id, userId);
-
-    // 非同期通知（失敗してもレスポンスに影響させない）
-    // TODO: 通知系見直し
-    // this.notifier
-    //     .sendPush(id, userId)
-    //     .catch((err) =>
-    //         this.logger.warn(`Push like notification failed: ${err.message}`),
-    // );
-  }
-
-  /* --------------------- DELETE /v1/dish-media/:id/likes ------------------ */
-  async unlikeDishMedia({ id }: LikeDishMediaParamsDto, userId: string) {
-    this.logger.verbose('UnlikeDishMedia', 'unlikeDishMedia', { id, userId });
-    await this.repo.unlikeDishMedia(id, userId);
-  }
-
-  /* --------------------- POST /v1/dish-media/:id/save --------------------- */
-  async saveDishMedia({ id }: SaveDishMediaParamsDto, userId: string) {
-    this.logger.verbose('SaveDishMedia', 'saveDishMedia', { id, userId });
-    await this.repo.saveDishMedia(id, userId);
-
-    // TODO: 通知系見直し
-    // this.notifier
-    //     .pushSaveNotification(id, userId)
-    //     .catch((err) =>
-    //         this.logger.warn(`Push save notification failed: ${err.message}`),
-    //     );
-  }
-
-  /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-media (投稿)                     */
   /* ------------------------------------------------------------------ */
   async createDishMedia(dto: CreateDishMediaDto, creatorId: string) {
@@ -256,5 +222,90 @@ export class DishMediaService {
     }
 
     return convertPrismaToSupabase_DishMedia(result);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                     POST /v1/dish-media/view                       */
+  /* ------------------------------------------------------------------ */
+  async createDishMediaView(
+    dish_media_id: string,
+    dto: CreateDishMediaViewDto,
+    user_id: string,
+  ) {
+    // Validation: cannot be both completed and skipped
+    if (dto.is_completed && dto.is_skipped) {
+      throw new Error('View cannot be both completed and skipped');
+    }
+
+    const result = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.createDishMediaView(tx, {
+          impression_id: dto.impression_id,
+          dish_media_id,
+          user_id,
+          started_at: dto.started_at,
+          watch_ms: dto.watch_ms,
+          is_completed: dto.is_completed,
+          is_skipped: dto.is_skipped,
+          rewatch_count: dto.rewatch_count,
+        }),
+    );
+
+    return {
+      id: result.id,
+      dish_media_id: result.dish_media_id,
+      impression_id: result.impression_id,
+      stored: true,
+      analysis_applied: true,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              POST /v1/dish-media/:id/reaction                      */
+  /* ------------------------------------------------------------------ */
+  async addReaction(
+    dishMediaId: string,
+    actionType: ReactionActionType,
+    userId: string,
+    isAnonymous: boolean,
+  ) {
+    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.repo.toggleReaction(tx, true, isAnonymous, {
+        target_id: dishMediaId,
+        action_type: actionType,
+        user_id: userId,
+      }),
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              DELETE /v1/dish-media/:id/reaction                    */
+  /* ------------------------------------------------------------------ */
+  async removeReaction(
+    dishMediaId: string,
+    actionType: ReactionActionType,
+    userId: string,
+    isAnonymous: boolean,
+  ) {
+    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.repo.toggleReaction(tx, false, isAnonymous, {
+        target_id: dishMediaId,
+        action_type: actionType,
+        user_id: userId,
+      }),
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              POST /v1/dish-media/:id/impression                    */
+  /* ------------------------------------------------------------------ */
+  async addImpression(
+    dish_media_id: string,
+    user_id: string,
+    dto: DishMediaImpressionBodyDto,
+  ) {
+    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+      this.repo.addImpression(tx, { ...dto, dish_media_id, user_id }),
+    );
   }
 }
