@@ -12,6 +12,10 @@
 "","Dish","D","DataBase","DB","restaurants","実店舗マスター。Google Place ID、緯度経度 Point、店名などを格納"
 "","Billing","B","DataBase","DB","restaurant_bids","広告入札レコード。金額・期間・決済ステータスを管理"
 "","Billing","B","DataBase","DB","payouts","入札額を投稿者へ分配する支払いレコード。Transfer ID・対象メディアを紐付け"
+"","Notification","N","DataBase","DB","notifications","通知本体。アクション種別（LIKE/SAVE）、対象テーブル/ID、発火ユーザー（actor_id）、i18n_key/i18n_params、集約用 actor_ids/actor_count、idempotency_key、created_at を保持。主キーは UUID（v4）。"
+"","Notification","N","DataBase","DB","notification_recipients","通知の受信者を保持する中間テーブル（notifications × users）。受信日時・既読カーソル算出の基準となる created_at を持つ。"
+"","Notification","N","DataBase","DB","user_notification_cursors","各ユーザの通知既読カーソルを保持するテーブル。最後に既読とした日時（last_read_at）を記録し、未読数算出に利用される。"
+"","Notification","N","DataBase","DB","user_device_tokens","ユーザの Expo Push トークンを保持するテーブル。1ユーザにつき複数端末トークンを保持し、プッシュ通知配信対象を決定する。更新日時・プラットフォーム情報を持つ。"
 "","Common","C","DataBase","DB","reactions","ユーザーによるリアクション（例：いいね、やり直しなど）を記録するテーブル"
 "","Common","C","DataBase","DB","frontend_event_logs","プロンプト育成における思想・トーン・目的ごとのファミリー定義を管理するテーブル
 ※JSON 形式で DBRO とする"

@@ -268,6 +268,26 @@ exports.Prisma.Frontend_event_logsScalarFieldEnum = {
   created_commit_id: 'created_commit_id'
 };
 
+exports.Prisma.Notification_recipientsScalarFieldEnum = {
+  notification_id: 'notification_id',
+  recipient_id: 'recipient_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.NotificationsScalarFieldEnum = {
+  id: 'id',
+  action_type: 'action_type',
+  target_table: 'target_table',
+  target_id: 'target_id',
+  actor_id: 'actor_id',
+  i18n_key: 'i18n_key',
+  i18n_params: 'i18n_params',
+  actor_ids: 'actor_ids',
+  actor_count: 'actor_count',
+  idempotency_key: 'idempotency_key',
+  created_at: 'created_at'
+};
+
 exports.Prisma.PayoutsScalarFieldEnum = {
   id: 'id',
   bid_id: 'bid_id',
@@ -357,6 +377,17 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   created_at: 'created_at'
 };
 
+exports.Prisma.User_device_tokensScalarFieldEnum = {
+  user_id: 'user_id',
+  expo_push_token: 'expo_push_token',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.User_notification_cursorsScalarFieldEnum = {
+  user_id: 'user_id',
+  last_read_at: 'last_read_at'
+};
+
 exports.Prisma.UsersScalarFieldEnum = {
   id: 'id',
   display_name: 'display_name',
@@ -444,6 +475,8 @@ exports.Prisma.ModelName = {
   dishes: 'dishes',
   external_api_logs: 'external_api_logs',
   frontend_event_logs: 'frontend_event_logs',
+  notification_recipients: 'notification_recipients',
+  notifications: 'notifications',
   payouts: 'payouts',
   prompt_families: 'prompt_families',
   prompt_usages: 'prompt_usages',
@@ -451,6 +484,8 @@ exports.Prisma.ModelName = {
   reactions: 'reactions',
   restaurant_bids: 'restaurant_bids',
   restaurants: 'restaurants',
+  user_device_tokens: 'user_device_tokens',
+  user_notification_cursors: 'user_notification_cursors',
   users: 'users'
 };
 
