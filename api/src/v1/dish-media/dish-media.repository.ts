@@ -971,7 +971,7 @@ export class DishMediaRepository {
   /**
    * Impression を追加し、analysis_results を増分更新
    * @param tx トランザクションクライアント
-   * @param dishMediaId dish_media.id
+   * @param dishsMediaId dish_media.id
    * @param userId ユーザーID
    * @param sessionId セッションID
    * @param source ソース
@@ -995,9 +995,15 @@ export class DishMediaRepository {
       await tx.dish_media_impressions.create({ data: dishMediaImpression });
 
       // impr_total を +1
-      await tx.dish_media_analysis_results.update({
+      await tx.dish_media_analysis_results.upsert({
         where: { dish_media_id: dishMediaImpression.dish_media_id },
-        data: {
+        create: {
+          dish_media_id: dishMediaImpression.dish_media_id,
+          impr_total: BigInt(1),
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+        update: {
           impr_total: { increment: BigInt(1) },
           updated_at: new Date(),
         },
@@ -1009,37 +1015,6 @@ export class DishMediaRepository {
         'addImpression',
         dishMediaImpression,
       );
-    }
-  }
-
-  /**
-   * Impression を削除し、analysis_results を減分更新
-   * @param tx トランザクションクライアント
-   * @param dishMediaId dish_media.id
-   * @param sessionId セッションID
-   */
-  async removeImpression(
-    tx: Prisma.TransactionClient,
-    dishMediaId: string,
-    sessionId: string,
-  ): Promise<void> {
-    // dish_media_impressions から削除
-    const result = await tx.dish_media_impressions.deleteMany({
-      where: {
-        dish_media_id: dishMediaId,
-        session_id: sessionId,
-      },
-    });
-
-    // 実際に削除された場合のみ impr_total を -1
-    if (result.count > 0) {
-      await tx.dish_media_analysis_results.update({
-        where: { dish_media_id: dishMediaId },
-        data: {
-          impr_total: { decrement: BigInt(1) },
-          updated_at: new Date(),
-        },
-      });
     }
   }
 }
