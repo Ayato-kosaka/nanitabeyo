@@ -119,14 +119,28 @@ export class NotificationJobService {
 
   /**
    * 通知メッセージを構築
+   * #通知機能 【将来対応】i18n 対応（モバイル側で翻訳キーを使用予定）
    */
   private buildNotificationMessage(
     actionType: string,
     targetTable: string,
   ): { title: string; body: string } {
-    // TODO: i18n 対応（モバイル側で翻訳キーを使うため、ここは簡易的）
+    const NOTIFICATION_MESSAGES = {
+      like: {
+        dish_media: '料理動画',
+        dish_reviews: 'レビュー',
+      },
+      save: {
+        dish_media: '料理動画',
+        dish_reviews: 'レビュー',
+      },
+    };
+
     const actionText = actionType === 'like' ? 'いいね' : '保存';
-    const targetText = targetTable === 'dish_media' ? '料理動画' : 'レビュー';
+    const targetText =
+      NOTIFICATION_MESSAGES[actionType as 'like' | 'save']?.[
+        targetTable as 'dish_media' | 'dish_reviews'
+      ] ?? 'コンテンツ';
 
     return {
       title: '新しい通知',

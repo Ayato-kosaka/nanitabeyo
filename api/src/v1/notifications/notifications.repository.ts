@@ -55,13 +55,19 @@ export class NotificationsRepository {
 
     if (cursor) {
       const parts = cursor.split('_');
-      if (parts.length === 2) {
-        afterCreatedAt = new Date(parts[0]);
-        afterId = parts[1];
+      if (parts.length !== 2) {
+        throw new Error(
+          'Invalid cursor format. Expected: {createdAt}_{notificationId}',
+        );
       }
+      afterCreatedAt = new Date(parts[0]);
+      if (isNaN(afterCreatedAt.getTime())) {
+        throw new Error('Invalid date in cursor');
+      }
+      afterId = parts[1];
     }
 
-    const where: any = {
+    const where: Prisma.notification_recipientsWhereInput = {
       recipient_id: recipientId,
     };
 

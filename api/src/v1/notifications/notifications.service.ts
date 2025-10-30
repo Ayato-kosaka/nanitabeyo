@@ -19,6 +19,9 @@ import {
 } from '@shared/v1/res';
 import { SupabaseNotifications } from '../../../../shared/supabase/database.types';
 
+// #通知機能 【設計】Expo Push チャンク送信の最大サイズ（Expo SDK 推奨値）
+const EXPO_PUSH_CHUNK_SIZE = 100;
+
 @Injectable()
 export class NotificationsService {
   private expo: Expo;
@@ -156,7 +159,7 @@ export class NotificationsService {
     }));
 
     // チャンク送信（100件/チャンク）
-    const chunks = chunk(messages, 100);
+    const chunks = chunk(messages, EXPO_PUSH_CHUNK_SIZE);
     const invalidTokens: string[] = [];
 
     for (const chunkMessages of chunks) {
