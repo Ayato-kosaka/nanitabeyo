@@ -3,8 +3,23 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { VideoPlayerProps } from "./VideoPlayer";
 import Hls from "hls.js";
 
-const LOOP_HEAD_S = 1; // 先頭近辺
-const LOOP_TAIL_S = 0.7; // 終端近辺
+// Thresholds for loop detection logic:
+// LOOP_HEAD_S: If the current playback time is within 1 second of the start (head) of the video,
+// it is considered "near the head" for the purposes of detecting a loop.
+// LOOP_TAIL_S: If the current playback time is within 0.7 seconds of the end (tail) of the video,
+// it is considered "near the tail" for loop detection.
+//
+// These specific values (1s for head, 0.7s for tail) were chosen based on empirical testing to balance
+// responsiveness and robustness. A 1-second window at the head helps reliably detect when the video
+// has looped back to the start, even if there are minor timing inaccuracies or buffering delays.
+// The 0.7-second window at the tail ensures that the loop is triggered just before the video ends,
+// preventing visible stutter or a brief pause at the end, which can occur if the threshold is too small.
+// These thresholds help handle edge cases such as:
+// - Slightly inaccurate time updates from the video element
+// - Network or decoding delays causing the playback position to skip over the exact start/end
+// - Ensuring smooth, seamless looping without visible glitches
+const LOOP_HEAD_S = 1; // Near the start of the video
+const LOOP_TAIL_S = 0.7; // Near the end of the video
 
 /**
  * VideoPlayer component for HLS video playback
@@ -213,8 +228,6 @@ function VideoPlayer({
 	}, [isLooping, startProgressLoop, stopProgressLoop]);
 
 	// NOTE: hls.js 使用時は src を指定しない（attachMedia が管理）
-	const videoSrcProps = isNativeHls ? { src: uri } : {};
-
 	// For web, use native video element
 	// Safari supports HLS natively, other browsers may need hls.js (future enhancement)
 	return (

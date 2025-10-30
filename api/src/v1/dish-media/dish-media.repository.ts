@@ -27,7 +27,6 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
-import { log } from 'node:console';
 import { env } from 'src/core/config/env';
 
 /* -------------------------------------------------------------------------- */

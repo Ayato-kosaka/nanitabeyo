@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform, AppState } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, AppState } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
