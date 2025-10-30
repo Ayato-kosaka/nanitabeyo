@@ -228,8 +228,6 @@ function VideoPlayer({
 	}, [isLooping, startProgressLoop, stopProgressLoop]);
 
 	// NOTE: hls.js 使用時は src を指定しない（attachMedia が管理）
-	const videoSrcProps = isNativeHls ? { src: uri } : {};
-
 	// For web, use native video element
 	// Safari supports HLS natively, other browsers may need hls.js (future enhancement)
 	return (
