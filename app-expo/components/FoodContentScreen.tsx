@@ -218,16 +218,15 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 		const isSkipped = watchMs.current < 1000 && !isCompleted.current;
 		const payload = {
 			impression_id: impressionId.current,
-			dish_media_id: item.dish_media.id,
+			started_at: watchStartTime.current,
 			watch_ms: Math.round(watchMs.current),
 			is_completed: isCompleted.current,
 			is_skipped: isSkipped,
 			rewatch_count: rewatchCount.current,
-			started_at: watchStartTime.current,
 		};
 
 		viewSending.current = true;
-		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>("v1/dish-media/views", {
+		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>(`v1/dish-media/${item.dish_media.id}/view`, {
 			method: "POST",
 			requestPayload: payload,
 		});
