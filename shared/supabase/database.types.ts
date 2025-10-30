@@ -1139,3 +1139,6 @@ export const Constants = {
 		},
 	},
 } as const;
+
+// #通知機能 【設計】notifications テーブルの Row 型エクスポート
+export type SupabaseNotifications = Database["dev"]["Tables"]["notifications"]["Row"];

@@ -42,3 +42,6 @@ export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categ
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
+
+export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
+export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";

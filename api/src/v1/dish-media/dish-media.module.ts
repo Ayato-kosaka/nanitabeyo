@@ -20,6 +20,7 @@ import { StorageModule } from '../../core/storage/storage.module'; // 署名 URL
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
 import { TranscoderModule } from '../../core/transcoder/transcoder.module';
 import { NotifierModule } from '../../core/notifier/notifier.module';
+import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NotifierModule } from '../../core/notifier/notifier.module';
     StorageModule, // 画像用 GCS / S3 署名 URL ユーティリティ
     TranscoderModule, // Video transcoding service
     NotifierModule, // 通知サービス
+    CloudTasksModule, // Cloud Tasks サービス
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishMediaController],
