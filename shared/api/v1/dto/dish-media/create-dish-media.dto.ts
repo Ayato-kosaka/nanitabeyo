@@ -17,7 +17,7 @@ export class CreateDishMediaDto {
 	@IsString()
 	thumbnailPath!: string;
 
-	/** 動画の長さ（秒単位）。mediaType が video の場合に必須 */
+	/** 動画の長さ（ミリ秒単位）。mediaType が video の場合に必須 */
 	@ValidateIf((o) => o.mediaType === "video")
 	@IsInt()
 	@Min(0)
