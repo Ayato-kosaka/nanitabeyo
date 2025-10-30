@@ -58,4 +58,4 @@ COMMENT ON COLUMN dish_media_views.is_skipped IS 'スキップフラグ';
 COMMENT ON COLUMN dish_media_views.rewatch_count IS '同一セッション内の再視聴回数（推定）';
 
 -- RLS 有効化
-ALTER TABLE dish_media_analysis_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dish_media_views ENABLE ROW LEVEL SECURITY;
