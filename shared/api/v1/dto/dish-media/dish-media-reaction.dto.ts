@@ -1,4 +1,4 @@
-import { IsEnum, IsIn, IsUUID } from "class-validator";
+import { IsIn, IsUUID } from "class-validator";
 
 /**
  * Reaction エンドポイントのパスパラメータとリクエストボディ
