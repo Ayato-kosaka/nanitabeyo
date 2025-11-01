@@ -30,7 +30,10 @@ export class NotificationsRepository {
     cursor: string | null,
     limit: number,
   ): Promise<{
-    items: (PrismaNotificationRecipients & { notifications: PrismaNotifications })[];
+    items: (PrismaNotificationRecipients & { 
+      notifications: PrismaNotifications;
+      actors: Array<{ id: string; display_name: string | null; avatar: string | null }>;
+    })[];
     nextCursor: string | null;
   }> {
     let afterCreatedAt: Date | null = null;
@@ -74,13 +77,34 @@ export class NotificationsRepository {
       },
     });
 
+    // #通知機能 【設計】先頭3件のアクター情報を取得
+    const itemsWithActors = await Promise.all(
+      items.map(async (item) => {
+        const actorIds = item.notifications.actor_ids.slice(0, 3);
+        const actors = await this.prisma.prisma.users.findMany({
+          where: { id: { in: actorIds } },
+          select: { id: true, display_name: true, avatar: true },
+        });
+        
+        // #通知機能 【設計】actor_ids の順序を保持
+        const orderedActors = actorIds.map(actorId => 
+          actors.find(actor => actor.id === actorId)
+        ).filter((actor): actor is { id: string; display_name: string | null; avatar: string | null } => actor !== undefined);
+
+        return {
+          ...item,
+          actors: orderedActors,
+        };
+      })
+    );
+
     // 次ページカーソルを生成
     const last = items[items.length - 1];
     const nextCursor = last
       ? `${last.created_at.toISOString()}_${last.notification_id}`
       : null;
 
-    return { items, nextCursor };
+    return { items: itemsWithActors, nextCursor };
   }
 
   /**
@@ -130,11 +154,14 @@ export class NotificationsRepository {
    * デバイストークンを登録/更新
    * @param userId ユーザーID
    * @param expoPushToken Expo Push Token
+   * @param locale デバイスのロケール（オプション、デフォルト: ja-JP）
    */
   async upsertDeviceToken(
     userId: string,
     expoPushToken: string,
+    locale?: string,
   ): Promise<void> {
+    // #通知機能 【設計】locale はスキーマ変更後のフィールド。型アサーションで対応。
     await this.prisma.prisma.user_device_tokens.upsert({
       where: {
         user_id_expo_push_token: {
@@ -144,10 +171,12 @@ export class NotificationsRepository {
       },
       update: {
         updated_at: new Date(),
+        ...(locale && { locale } as any),
       },
       create: {
         user_id: userId,
         expo_push_token: expoPushToken,
+        ...(locale && { locale } as any),
         updated_at: new Date(),
       },
     });
@@ -193,38 +222,30 @@ export class NotificationsRepository {
    */
   async upsertNotification(
     tx: Prisma.TransactionClient,
-    notification: Omit<PrismaNotifications, 'id' | 'created_at' | 'i18n_key' | 'i18n_params' | 'actor_ids' | 'actor_count'>,
+    notification: Omit<PrismaNotifications, 'id' | 'created_at' | 'updated_at' | 'actor_ids'>,
     recipientIds: string[],
+    actorId: string,
   ): Promise<{ notificationId: string; isNew: true } | { notificationId: null; isNew: false }> {
     const {
       action_type,
       target_table,
       target_id,
-      actor_id,
     } = notification;
-
-    // i18n キーを決定
-    const i18nKey = `notification.${action_type}.${target_table}`;
 
     let notificationId: string;
 
     try {
-      // 新規通知を作成
+      // #通知機能 【設計】新規通知を作成（actor_ids は actorId のみを含む配列として初期化）
+      // スキーマ変更後のフィールドのため型アサーションを使用
       const result = await tx.notifications.create({
         data: {
           ...notification,
-          i18n_key: i18nKey,
-          i18n_params: {
-            actorCount: 1,
-            targetId: target_id,
-          },
-          actor_ids: [actor_id],
-          actor_count: 1,
-        },
+          actor_ids: [actorId],
+        } as any,
       });
       notificationId = result.id;
     } catch (e: any) {
-      // 【設計】idempotency_key(${targetTable}:${actionType}:${targetId}) の一意制約違反は、
+      // #通知機能 【設計】idempotency_key(${targetTable}:${actionType}:${targetId}) の一意制約違反は、
       // JOB が連打されたか、再いいね の場合なので、後続処理を終了する
       if (e.code === 'P2002') return { notificationId: null, isNew: false }
       // それ以外のエラーは再スロー

@@ -68,10 +68,10 @@ export class NotificationJobService {
           action_type: actionType,
           target_table: targetTable,
           target_id: targetId,
-          actor_id: actorId,
           idempotency_key: idempotencyKey,
         },
-          [recipientId]),
+          [recipientId],
+          actorId),
     );
 
     this.logger.log('NotificationUpserted', 'processNotificationJob', {

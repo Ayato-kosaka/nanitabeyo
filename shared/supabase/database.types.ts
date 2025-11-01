@@ -559,16 +559,19 @@ export type Database = {
 					created_at: string;
 					notification_id: string;
 					recipient_id: string;
+					thread_updated_at: string;
 				};
 				Insert: {
 					created_at?: string;
 					notification_id: string;
 					recipient_id: string;
+					thread_updated_at?: string;
 				};
 				Update: {
 					created_at?: string;
 					notification_id?: string;
 					recipient_id?: string;
+					thread_updated_at?: string;
 				};
 				Relationships: [
 					{
@@ -583,42 +586,33 @@ export type Database = {
 			notifications: {
 				Row: {
 					action_type: string;
-					actor_count: number;
-					actor_id: string;
 					actor_ids: string[];
 					created_at: string;
-					i18n_key: string;
-					i18n_params: Json;
 					id: string;
 					idempotency_key: string;
 					target_id: string;
 					target_table: string;
+					updated_at: string;
 				};
 				Insert: {
 					action_type: string;
-					actor_count: number;
-					actor_id: string;
 					actor_ids: string[];
 					created_at?: string;
-					i18n_key: string;
-					i18n_params?: Json;
 					id?: string;
 					idempotency_key: string;
 					target_id: string;
 					target_table: string;
+					updated_at?: string;
 				};
 				Update: {
 					action_type?: string;
-					actor_count?: number;
-					actor_id?: string;
 					actor_ids?: string[];
 					created_at?: string;
-					i18n_key?: string;
-					i18n_params?: Json;
 					id?: string;
 					idempotency_key?: string;
 					target_id?: string;
 					target_table?: string;
+					updated_at?: string;
 				};
 				Relationships: [];
 			};
@@ -933,16 +927,19 @@ export type Database = {
 			user_device_tokens: {
 				Row: {
 					expo_push_token: string;
+					locale: string;
 					updated_at: string;
 					user_id: string;
 				};
 				Insert: {
 					expo_push_token: string;
+					locale?: string;
 					updated_at?: string;
 					user_id: string;
 				};
 				Update: {
 					expo_push_token?: string;
+					locale?: string;
 					updated_at?: string;
 					user_id?: string;
 				};

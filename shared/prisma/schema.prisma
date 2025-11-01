@@ -270,13 +270,15 @@ model frontend_event_logs {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model notification_recipients {
-  notification_id String        @db.Uuid
-  recipient_id    String        @db.Uuid
-  created_at      DateTime      @default(now()) @db.Timestamptz(6)
-  notifications   notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  notification_id   String        @db.Uuid
+  recipient_id      String        @db.Uuid
+  created_at        DateTime      @default(now()) @db.Timestamptz(6)
+  thread_updated_at DateTime      @default(now()) @db.Timestamptz(6)
+  notifications     notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([notification_id, recipient_id])
   @@index([recipient_id, created_at(sort: Desc), notification_id(sort: Desc)], map: "idx_nr_recipient_created")
+  @@index([recipient_id, thread_updated_at(sort: Desc)], map: "idx_nr_recipient_thread_updated")
   @@schema("dev")
 }
 
@@ -287,13 +289,10 @@ model notifications {
   action_type             String
   target_table            String
   target_id               String                    @db.Uuid
-  actor_id                String                    @db.Uuid
-  i18n_key                String
-  i18n_params             Json                      @default("{}")
   actor_ids               String[]                  @db.Uuid
-  actor_count             Int
   idempotency_key         String                    @unique
   created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                  @default(now()) @db.Timestamptz(6)
   notification_recipients notification_recipients[]
 
   @@schema("dev")
@@ -449,6 +448,7 @@ model restaurants {
 model user_device_tokens {
   user_id         String   @db.Uuid
   expo_push_token String
+  locale          String   @default("ja-JP")
   updated_at      DateTime @default(now()) @db.Timestamptz(6)
 
   @@id([user_id, expo_push_token])

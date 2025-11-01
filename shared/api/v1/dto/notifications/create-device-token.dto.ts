@@ -1,4 +1,4 @@
-import { IsString, MaxLength, Validate } from "class-validator";
+import { IsString, MaxLength, Validate, IsOptional, IsIn } from "class-validator";
 
 /**
  * Custom validator for Expo Push Token
@@ -26,4 +26,10 @@ export class CreateDeviceTokenDto {
 	@Validate(IsExpoPushToken)
 	@MaxLength(512)
 	expoPushToken!: string;
+
+	/** #通知機能 【設計】デバイスのロケール（Push通知の翻訳に使用） */
+	@IsOptional()
+	@IsString()
+	@IsIn(['ar-SA', 'en-US', 'es-ES', 'fr-FR', 'hi-IN', 'ja-JP', 'ko-KR', 'zh-CN'])
+	locale?: string;
 }
