@@ -62,7 +62,7 @@ export class NotificationJobService {
     }
 
     // 3. トランザクション内で通知を upsert
-    const { notificationId } = await this.prisma.withTransaction(
+    const { notificationId, isNew, isUpdated } = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
         this.repo.upsertNotification(tx, {
           action_type: actionType,
@@ -76,13 +76,15 @@ export class NotificationJobService {
 
     this.logger.log('NotificationUpserted', 'processNotificationJob', {
       notificationId,
-      isNew: !!notificationId,
+      isNew,
+      isUpdated,
       actorId,
       recipientId,
     });
 
     // 4. Expo Push を送信（新規通知の場合のみ）
-    if (!!notificationId) {
+    // #通知機能 【設計】既存通知への追加いいね等では Push を送らない
+    if (isNew) {
       const { title, body } = this.buildNotificationMessage(
         actionType,
         targetTable,
