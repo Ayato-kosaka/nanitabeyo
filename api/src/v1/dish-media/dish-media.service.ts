@@ -38,7 +38,7 @@ export class DishMediaService {
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -281,7 +281,7 @@ export class DishMediaService {
 
     // #通知機能 【設計】like/save 成功時に Cloud Tasks にジョブ投入（匿名ユーザーは除外）
     if (!isAnonymous && (actionType === 'like' || actionType === 'save')) {
-      const idempotencyKey = `${actionType}:dish_media:${dishMediaId}:${userId}`;
+      const idempotencyKey = `dish_media:${actionType}:${dishMediaId}`;
       await this.cloudTasks.enqueueNotification({
         actionType,
         targetTable: 'dish_media',

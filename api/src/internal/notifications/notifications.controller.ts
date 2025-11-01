@@ -27,7 +27,7 @@ export class InternalNotificationsController {
   constructor(
     private readonly notificationJobService: NotificationJobService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * POST /internal/notifications/process
@@ -42,30 +42,6 @@ export class InternalNotificationsController {
   async processNotificationJob(
     @Body() payload: NotificationJobPayload,
   ): Promise<void> {
-    this.logger.debug('NotificationJobStarted', 'processNotificationJob', {
-      actionType: payload.actionType,
-      targetTable: payload.targetTable,
-      targetId: payload.targetId,
-      actorId: payload.actorId,
-      idempotencyKey: payload.idempotencyKey,
-    });
-
-    try {
-      await this.notificationJobService.processNotificationJob(payload);
-
-      this.logger.log('NotificationJobCompleted', 'processNotificationJob', {
-        actionType: payload.actionType,
-        idempotencyKey: payload.idempotencyKey,
-      });
-    } catch (error) {
-      this.logger.error('NotificationJobError', 'processNotificationJob', {
-        actionType: payload.actionType,
-        idempotencyKey: payload.idempotencyKey,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      // Cloud Tasks のリトライに委譲するため例外を再スロー
-      throw error;
-    }
+    await this.notificationJobService.processNotificationJob(payload);
   }
 }

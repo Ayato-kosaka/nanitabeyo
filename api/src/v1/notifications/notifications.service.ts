@@ -6,7 +6,6 @@
 
 import { Injectable } from '@nestjs/common';
 import { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
-import chunk from 'lodash.chunk';
 
 import { NotificationsRepository } from './notifications.repository';
 import { AppLoggerService } from '../../core/logger/logger.service';
@@ -17,10 +16,7 @@ import {
   UnreadCountResponse,
   CreateDeviceTokenResponse,
 } from '@shared/v1/res';
-import { SupabaseNotifications } from '../../../../shared/supabase/database.types';
-
-// #通知機能 【設計】Expo Push チャンク送信の最大サイズ（Expo SDK 推奨値）
-const EXPO_PUSH_CHUNK_SIZE = 100;
+import { convertPrismaToSupabase_Notifications } from '../../../../shared/converters/convert_notifications';
 
 @Injectable()
 export class NotificationsService {
@@ -49,22 +45,10 @@ export class NotificationsService {
     );
 
     // Supabase型に変換
-    const supabaseItems: SupabaseNotifications[] = items.map((item) => ({
-      id: item.notification.id,
-      action_type: item.notification.action_type,
-      target_table: item.notification.target_table,
-      target_id: item.notification.target_id,
-      actor_id: item.notification.actor_id,
-      i18n_key: item.notification.i18n_key,
-      i18n_params: item.notification.i18n_params,
-      actor_ids: item.notification.actor_ids,
-      actor_count: item.notification.actor_count,
-      idempotency_key: item.notification.idempotency_key,
-      created_at: item.notification.created_at.toISOString(),
-    }));
+    const supabaseNotifications = items.map((item) => convertPrismaToSupabase_Notifications(item.notifications));
 
     return {
-      items: supabaseItems,
+      items: supabaseNotifications,
       nextCursor,
     };
   }
@@ -76,7 +60,6 @@ export class NotificationsService {
     const lastReadAt = await this.repo.markAllAsRead(userId);
 
     return {
-      ok: true,
       lastReadAt: lastReadAt.toISOString(),
     };
   }
@@ -110,7 +93,6 @@ export class NotificationsService {
     });
 
     return {
-      ok: true,
       token: expoPushToken,
     };
   }
@@ -118,21 +100,18 @@ export class NotificationsService {
   /**
    * Expo Push通知を送信（チャンク送信）
    * @param recipientId 受信者ID
-   * @param title 通知タイトル
-   * @param body 通知本文
-   * @param data 追加データ
+   * @param expoPushMessage 通知メッセージ内容
+   * @returns void
    */
   async sendPushNotification(
     recipientId: string,
-    title: string,
-    body: string,
-    data?: Record<string, any>,
+    expoPushMessage: Omit<ExpoPushMessage, 'to'>,
   ): Promise<void> {
     // recipientのデバイストークンを全取得
     const tokens = await this.repo.findDeviceTokensByUser(recipientId);
 
     if (tokens.length === 0) {
-      this.logger.debug('NoPushTokensFound', 'sendPushNotification', {
+      this.logger.warn('NoPushTokensFound', 'sendPushNotification', {
         recipientId,
       });
       return;
@@ -152,17 +131,13 @@ export class NotificationsService {
     // メッセージを作成
     const messages: ExpoPushMessage[] = validTokens.map((token) => ({
       to: token,
-      sound: 'default',
-      title,
-      body,
-      data,
+      ...expoPushMessage,
     }));
 
-    // チャンク送信（100件/チャンク）
-    const chunks = chunk(messages, EXPO_PUSH_CHUNK_SIZE);
     const invalidTokens: string[] = [];
 
-    for (const chunkMessages of chunks) {
+    // チャンク送信
+    for (const chunkMessages of this.expo.chunkPushNotifications(messages)) {
       try {
         const tickets =
           await this.expo.sendPushNotificationsAsync(chunkMessages);
@@ -202,17 +177,12 @@ export class NotificationsService {
     // 失効トークンを削除
     if (invalidTokens.length > 0) {
       await this.repo.deleteInvalidTokens(recipientId, invalidTokens);
-
-      this.logger.log('InvalidTokensDeleted', 'sendPushNotification', {
-        recipientId,
-        count: invalidTokens.length,
-      });
     }
 
     this.logger.log('PushNotificationsSent', 'sendPushNotification', {
       recipientId,
       totalMessages: messages.length,
-      chunks: chunks.length,
+      invalidTokens: invalidTokens.length,
     });
   }
 }

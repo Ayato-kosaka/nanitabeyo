@@ -9,32 +9,15 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-
-export interface NotificationWithRecipient {
-  notification_id: string;
-  recipient_id: string;
-  created_at: Date;
-  notification: {
-    id: string;
-    action_type: string;
-    target_table: string;
-    target_id: string;
-    actor_id: string;
-    i18n_key: string;
-    i18n_params: any;
-    actor_ids: string[];
-    actor_count: number;
-    idempotency_key: string;
-    created_at: Date;
-  };
-}
+import { PrismaNotifications } from '../../../../shared/converters/convert_notifications';
+import { PrismaNotificationRecipients } from '../../../../shared/converters/convert_notification_recipients';
 
 @Injectable()
 export class NotificationsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 通知一覧を取得（キーセットページング）
@@ -47,7 +30,7 @@ export class NotificationsRepository {
     cursor: string | null,
     limit: number,
   ): Promise<{
-    items: NotificationWithRecipient[];
+    items: (PrismaNotificationRecipients & { notifications: PrismaNotifications })[];
     nextCursor: string | null;
   }> {
     let afterCreatedAt: Date | null = null;
@@ -97,27 +80,7 @@ export class NotificationsRepository {
       ? `${last.created_at.toISOString()}_${last.notification_id}`
       : null;
 
-    // 型変換
-    const result: NotificationWithRecipient[] = items.map((item) => ({
-      notification_id: item.notification_id,
-      recipient_id: item.recipient_id,
-      created_at: item.created_at,
-      notification: {
-        id: item.notifications.id,
-        action_type: item.notifications.action_type,
-        target_table: item.notifications.target_table,
-        target_id: item.notifications.target_id,
-        actor_id: item.notifications.actor_id,
-        i18n_key: item.notifications.i18n_key,
-        i18n_params: item.notifications.i18n_params,
-        actor_ids: item.notifications.actor_ids,
-        actor_count: item.notifications.actor_count,
-        idempotency_key: item.notifications.idempotency_key,
-        created_at: item.notifications.created_at,
-      },
-    }));
-
-    return { items: result, nextCursor };
+    return { items, nextCursor };
   }
 
   /**
@@ -225,90 +188,57 @@ export class NotificationsRepository {
   /**
    * 通知とrecipientを作成（upsert with aggregation）
    * @param tx トランザクションクライアント
-   * @param payload 通知ペイロード
+   * @param notification 通知ペイロード
+   * @param recipientIds 受信者IDの配列
    */
   async upsertNotification(
     tx: Prisma.TransactionClient,
-    payload: {
-      actionType: 'like' | 'save';
-      targetTable: 'dish_media' | 'dish_reviews';
-      targetId: string;
-      actorId: string;
-      recipientId: string;
-      idempotencyKey: string;
-    },
-  ): Promise<{ notificationId: string; isNew: boolean }> {
+    notification: Omit<PrismaNotifications, 'id' | 'created_at' | 'i18n_key' | 'i18n_params' | 'actor_ids' | 'actor_count'>,
+    recipientIds: string[],
+  ): Promise<{ notificationId: string; isNew: true } | { notificationId: null; isNew: false }> {
     const {
-      actionType,
-      targetTable,
-      targetId,
-      actorId,
-      recipientId,
-      idempotencyKey,
-    } = payload;
+      action_type,
+      target_table,
+      target_id,
+      actor_id,
+    } = notification;
 
     // i18n キーを決定
-    const i18nKey = `notification.${actionType}.${targetTable}`;
-
-    // 既存通知を取得
-    const existing = await tx.notifications.findUnique({
-      where: { idempotency_key: idempotencyKey },
-    });
+    const i18nKey = `notification.${action_type}.${target_table}`;
 
     let notificationId: string;
-    let isNew = false;
 
-    if (existing) {
-      // 既存通知を更新（actor集約）
-      const newActorIds = Array.from(new Set([...existing.actor_ids, actorId]));
-
-      await tx.notifications.update({
-        where: { id: existing.id },
-        data: {
-          actor_ids: newActorIds,
-          actor_count: newActorIds.length,
-          i18n_params: {
-            actorCount: newActorIds.length,
-            targetId,
-          },
-        },
-      });
-
-      notificationId = existing.id;
-    } else {
+    try {
       // 新規通知を作成
-      const notification = await tx.notifications.create({
+      const result = await tx.notifications.create({
         data: {
-          action_type: actionType,
-          target_table: targetTable,
-          target_id: targetId,
-          actor_id: actorId,
+          ...notification,
           i18n_key: i18nKey,
           i18n_params: {
             actorCount: 1,
-            targetId,
+            targetId: target_id,
           },
-          actor_ids: [actorId],
+          actor_ids: [actor_id],
           actor_count: 1,
-          idempotency_key: idempotencyKey,
         },
       });
-
-      notificationId = notification.id;
-      isNew = true;
+      notificationId = result.id;
+    } catch (e: any) {
+      // 【設計】idempotency_key(${targetTable}:${actionType}:${targetId}) の一意制約違反は、
+      // JOB が連打されたか、再いいね の場合なので、後続処理を終了する
+      if (e.code === 'P2002') return { notificationId: null, isNew: false }
+      // それ以外のエラーは再スロー
+      else throw e;
     }
-
     // recipient レコードを追加（on conflict do nothing）
     await tx.notification_recipients.createMany({
-      data: [
-        {
-          notification_id: notificationId,
-          recipient_id: recipientId,
-        },
-      ],
+      data: recipientIds.map((recipientId) => ({
+        notification_id: notificationId,
+        recipient_id: recipientId,
+      })),
       skipDuplicates: true,
     });
 
-    return { notificationId, isNew };
+    return { notificationId, isNew: true };
   }
 }

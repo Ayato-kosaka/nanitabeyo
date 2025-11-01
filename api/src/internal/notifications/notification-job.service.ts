@@ -20,7 +20,7 @@ export class NotificationJobService {
     private readonly service: NotificationsService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 通知ジョブを処理
@@ -38,57 +38,59 @@ export class NotificationJobService {
     });
 
     // 1. recipient を解決（対象の作者ID）
-    const recipientId = await this.resolveRecipient(targetTable, targetId);
+    const recipient = await this.resolveRecipient(targetTable, targetId);
+    if (!recipient) {
+      throw new Error(
+        `RecipientNotFound: Could not resolve recipient for targetTable=${targetTable}, targetId=${targetId}`,
+      );
+    }
 
+    const recipientId = recipient.user_id
+    // 2-1. 作者なしなら skip
     if (!recipientId) {
-      this.logger.warn('RecipientNotFound', 'processNotificationJob', {
-        targetTable,
-        targetId,
+      this.logger.debug('RecipientUserNotFound', 'processNotificationJob', {
+        recipientId,
       });
       return;
     }
-
-    // 2. 自己通知なら skip
+    // 2-2. 自己通知なら skip
     if (recipientId === actorId) {
       this.logger.debug('SelfNotificationSkipped', 'processNotificationJob', {
-        actorId,
         recipientId,
       });
       return;
     }
 
     // 3. トランザクション内で通知を upsert
-    const { notificationId, isNew } = await this.prisma.withTransaction(
+    const { notificationId } = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
         this.repo.upsertNotification(tx, {
-          actionType,
-          targetTable,
-          targetId,
-          actorId,
-          recipientId,
-          idempotencyKey,
-        }),
+          action_type: actionType,
+          target_table: targetTable,
+          target_id: targetId,
+          actor_id: actorId,
+          idempotency_key: idempotencyKey,
+        },
+          [recipientId]),
     );
 
     this.logger.log('NotificationUpserted', 'processNotificationJob', {
       notificationId,
-      isNew,
+      isNew: !!notificationId,
       actorId,
       recipientId,
     });
 
     // 4. Expo Push を送信（新規通知の場合のみ）
-    if (isNew) {
+    if (!!notificationId) {
       const { title, body } = this.buildNotificationMessage(
         actionType,
         targetTable,
       );
 
-      await this.service.sendPushNotification(recipientId, title, body, {
-        notificationId,
-        actionType,
-        targetTable,
-        targetId,
+      await this.service.sendPushNotification(recipientId, {
+        title,
+        body,
       });
     }
   }
@@ -99,19 +101,19 @@ export class NotificationJobService {
   private async resolveRecipient(
     targetTable: string,
     targetId: string,
-  ): Promise<string | null> {
+  ): Promise<{ user_id: string | null } | null> {
     if (targetTable === 'dish_media') {
       const media = await this.prisma.prisma.dish_media.findUnique({
         where: { id: targetId },
         select: { user_id: true },
       });
-      return media?.user_id ?? null;
+      return media ?? null;
     } else if (targetTable === 'dish_reviews') {
       const review = await this.prisma.prisma.dish_reviews.findUnique({
         where: { id: targetId },
         select: { user_id: true },
       });
-      return review?.user_id ?? null;
+      return review ?? null;
     }
 
     return null;
@@ -139,7 +141,7 @@ export class NotificationJobService {
     const actionText = actionType === 'like' ? 'いいね' : '保存';
     const targetText =
       NOTIFICATION_MESSAGES[actionType as 'like' | 'save']?.[
-        targetTable as 'dish_media' | 'dish_reviews'
+      targetTable as 'dish_media' | 'dish_reviews'
       ] ?? 'コンテンツ';
 
     return {

@@ -1,4 +1,4 @@
-import { SupabaseNotifications } from "../../../../supabase/database.types";
+import { SupabaseNotifications } from "../../../../converters/convert_notifications";
 
 /**
  * GET /v1/notifications レスポンス
