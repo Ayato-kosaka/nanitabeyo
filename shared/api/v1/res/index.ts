@@ -9,3 +9,7 @@ export * from "./restaurants.response";
 export * from "./user-uploads.response";
 export * from "./users.response";
 export * from "./feedback.response";
+export * from "./notifications/query-notifications.res";
+export * from "./notifications/mark-all-read.res";
+export * from "./notifications/unread-count.res";
+export * from "./notifications/create-device-token.res";

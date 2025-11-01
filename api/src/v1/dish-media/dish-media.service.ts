@@ -26,6 +26,7 @@ import { mapWithConcurrency } from 'src/core/utils/backend-utils';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { env } from '../../core/config/env';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 
 @Injectable()
 export class DishMediaService {
@@ -36,7 +37,8 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) {}
+    private readonly cloudTasks: CloudTasksService,
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -276,6 +278,25 @@ export class DishMediaService {
         user_id: userId,
       }),
     );
+
+    // #通知機能 【設計】like/save 成功時に Cloud Tasks にジョブ投入（匿名ユーザーは除外）
+    if (!isAnonymous && (actionType === 'like' || actionType === 'save')) {
+      const idempotencyKey = `dish_media:${actionType}:${dishMediaId}`;
+      await this.cloudTasks.enqueueNotification({
+        actionType,
+        targetTable: 'dish_media',
+        targetId: dishMediaId,
+        actorId: userId,
+        idempotencyKey,
+      });
+
+      this.logger.debug('NotificationJobEnqueued', 'addReaction', {
+        actionType,
+        dishMediaId,
+        userId,
+        idempotencyKey,
+      });
+    }
   }
 
   /* ------------------------------------------------------------------ */

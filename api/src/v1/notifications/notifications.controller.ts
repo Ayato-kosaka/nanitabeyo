@@ -1,0 +1,98 @@
+// api/src/v1/notifications/notifications.controller.ts
+//
+// ❶ ルーティングは v1 プレフィクスを含め @Controller レベルで宣言
+// ❷ DTO → ValidationPipe → Service 呼び出しという王道 3 段構え
+// ❸ "認証必須" を Guard で明確化
+// ❹ Swagger / OpenAPI デコレータで自動ドキュメント化
+//
+
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+
+import { QueryNotificationsDto, CreateDeviceTokenDto } from '@shared/v1/dto';
+import {
+  QueryNotificationsResponse,
+  MarkAllReadResponse,
+  UnreadCountResponse,
+  CreateDeviceTokenResponse,
+} from '@shared/v1/res';
+
+import { JwtAuthGuard } from '../../core/auth/auth.guard';
+import { CurrentUser } from '../../core/auth/current-user.decorator';
+import { RequestUser } from '../../core/auth/auth.types';
+import { NotificationsService } from './notifications.service';
+
+@ApiTags('Notifications')
+@Controller('v1/notifications')
+export class NotificationsController {
+  constructor(private readonly notificationsService: NotificationsService) {}
+
+  /* ------------------------------------------------------------------ */
+  /*                      GET /v1/notifications                         */
+  /* ------------------------------------------------------------------ */
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '通知一覧取得（キーセットページング）' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'ページングカーソル（{createdAt}_{notificationId}）',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '取得件数（1–100、デフォルト30）',
+  })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  async getNotifications(
+    @Query() query: QueryNotificationsDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryNotificationsResponse> {
+    return this.notificationsService.getNotifications(user.id, query);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              POST /v1/notifications/mark-all-read                  */
+  /* ------------------------------------------------------------------ */
+  @Post('mark-all-read')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '通知を一括既読（カーソル更新）' })
+  @ApiResponse({ status: 200, description: '既読成功' })
+  async markAllAsRead(
+    @CurrentUser() user: RequestUser,
+  ): Promise<MarkAllReadResponse> {
+    return this.notificationsService.markAllAsRead(user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*              GET /v1/notifications/unread-count                    */
+  /* ------------------------------------------------------------------ */
+  @Get('unread-count')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '未読通知数を取得' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  async getUnreadCount(
+    @CurrentUser() user: RequestUser,
+  ): Promise<UnreadCountResponse> {
+    return this.notificationsService.getUnreadCount(user.id);
+  }
+}
