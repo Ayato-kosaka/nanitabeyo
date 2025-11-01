@@ -49,18 +49,23 @@ export class NotificationsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: '通知一覧取得（キーセットページング）' })
+  @ApiOperation({
+    summary: '通知一覧取得（キーセットページング）- スレッド更新順',
+  })
   @ApiQuery({
     name: 'cursor',
     required: false,
-    description: 'ページングカーソル（{createdAt}_{notificationId}）',
+    description: 'ページングカーソル（{thread_updated_at}_{notificationId}）',
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     description: '取得件数（1–100、デフォルト30）',
   })
-  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({
+    status: 200,
+    description: '取得成功 - 各通知に先頭3件のアクター情報を含む',
+  })
   async getNotifications(
     @Query() query: QueryNotificationsDto,
     @CurrentUser() user: RequestUser,
@@ -88,7 +93,9 @@ export class NotificationsController {
   @Get('unread-count')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '未読通知数を取得' })
+  @ApiOperation({
+    summary: '未読通知数を取得（thread_updated_at > last_read_at）',
+  })
   @ApiResponse({ status: 200, description: '取得成功' })
   async getUnreadCount(
     @CurrentUser() user: RequestUser,

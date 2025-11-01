@@ -20,7 +20,7 @@ export class NotificationJobService {
     private readonly service: NotificationsService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * 通知ジョブを処理
@@ -45,7 +45,7 @@ export class NotificationJobService {
       );
     }
 
-    const recipientId = recipient.user_id
+    const recipientId = recipient.user_id;
     // 2-1. 作者なしなら skip
     if (!recipientId) {
       this.logger.debug('RecipientUserNotFound', 'processNotificationJob', {
@@ -62,17 +62,20 @@ export class NotificationJobService {
     }
 
     // 3. トランザクション内で通知を upsert
-    const { notificationId, isNew, isUpdated } = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) =>
-        this.repo.upsertNotification(tx, {
-          action_type: actionType,
-          target_table: targetTable,
-          target_id: targetId,
-          idempotency_key: idempotencyKey,
-        },
+    const { notificationId, isNew, isUpdated } =
+      await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+        this.repo.upsertNotification(
+          tx,
+          {
+            action_type: actionType,
+            target_table: targetTable,
+            target_id: targetId,
+            idempotency_key: idempotencyKey,
+          },
           [recipientId],
-          actorId),
-    );
+          actorId,
+        ),
+      );
 
     this.logger.log('NotificationUpserted', 'processNotificationJob', {
       notificationId,
@@ -143,7 +146,7 @@ export class NotificationJobService {
     const actionText = actionType === 'like' ? 'いいね' : '保存';
     const targetText =
       NOTIFICATION_MESSAGES[actionType as 'like' | 'save']?.[
-      targetTable as 'dish_media' | 'dish_reviews'
+        targetTable as 'dish_media' | 'dish_reviews'
       ] ?? 'コンテンツ';
 
     return {

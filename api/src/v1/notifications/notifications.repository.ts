@@ -17,7 +17,7 @@ export class NotificationsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * 通知一覧を取得（キーセットページング）
@@ -30,9 +30,13 @@ export class NotificationsRepository {
     cursor: string | null,
     limit: number,
   ): Promise<{
-    items: (PrismaNotificationRecipients & { 
+    items: (PrismaNotificationRecipients & {
       notifications: PrismaNotifications;
-      actors: Array<{ id: string; display_name: string | null; avatar: string | null }>;
+      actors: Array<{
+        id: string;
+        display_name: string | null;
+        avatar: string | null;
+      }>;
     })[];
     nextCursor: string | null;
   }> {
@@ -69,16 +73,19 @@ export class NotificationsRepository {
       ];
     }
 
-    const items = await this.prisma.prisma.notification_recipients.findMany({
+    const items = (await this.prisma.prisma.notification_recipients.findMany({
       where,
       // #通知機能 【設計】thread_updated_at DESC で最新の更新が先頭に来る
       // スキーマ変更後のフィールドのため型アサーションを使用
-      orderBy: [{ thread_updated_at: 'desc' } as any, { notification_id: 'desc' }],
+      orderBy: [
+        { thread_updated_at: 'desc' } as any,
+        { notification_id: 'desc' },
+      ],
       take: limit,
       include: {
         notifications: true,
       },
-    }) as any;
+    })) as any;
 
     // #通知機能 【設計】先頭3件のアクター情報を取得
     const itemsWithActors = await Promise.all(
@@ -88,17 +95,25 @@ export class NotificationsRepository {
           where: { id: { in: actorIds } },
           select: { id: true, display_name: true, avatar: true },
         });
-        
+
         // #通知機能 【設計】actor_ids の順序を保持
-        const orderedActors = actorIds.map(actorId => 
-          actors.find(actor => actor.id === actorId)
-        ).filter((actor): actor is { id: string; display_name: string | null; avatar: string | null } => actor !== undefined);
+        const orderedActors = actorIds
+          .map((actorId) => actors.find((actor) => actor.id === actorId))
+          .filter(
+            (
+              actor,
+            ): actor is {
+              id: string;
+              display_name: string | null;
+              avatar: string | null;
+            } => actor !== undefined,
+          );
 
         return {
           ...item,
           actors: orderedActors,
         };
-      })
+      }),
     );
 
     // 次ページカーソルを生成（thread_updated_at を使用）
@@ -176,12 +191,12 @@ export class NotificationsRepository {
       },
       update: {
         updated_at: new Date(),
-        ...(locale && { locale } as any),
+        ...(locale && ({ locale } as any)),
       },
       create: {
         user_id: userId,
         expo_push_token: expoPushToken,
-        ...(locale && { locale } as any),
+        ...(locale && ({ locale } as any)),
         updated_at: new Date(),
       },
     });
@@ -229,16 +244,18 @@ export class NotificationsRepository {
    */
   async upsertNotification(
     tx: Prisma.TransactionClient,
-    notification: Omit<PrismaNotifications, 'id' | 'created_at' | 'updated_at' | 'actor_ids'>,
+    notification: Omit<
+      PrismaNotifications,
+      'id' | 'created_at' | 'updated_at' | 'actor_ids'
+    >,
     recipientIds: string[],
     actorId: string,
-  ): Promise<{ notificationId: string; isNew: true; isUpdated: false } | { notificationId: string; isNew: false; isUpdated: true }> {
-    const {
-      action_type,
-      target_table,
-      target_id,
-      idempotency_key,
-    } = notification;
+  ): Promise<
+    | { notificationId: string; isNew: true; isUpdated: false }
+    | { notificationId: string; isNew: false; isUpdated: true }
+  > {
+    const { action_type, target_table, target_id, idempotency_key } =
+      notification;
 
     // #通知機能 【設計】既存通知を検索
     const existing = await tx.notifications.findUnique({
@@ -254,7 +271,7 @@ export class NotificationsRepository {
       const currentActorIds = existing.actor_ids as string[];
       const newActorIds = [
         actorId,
-        ...currentActorIds.filter(id => id !== actorId)
+        ...currentActorIds.filter((id) => id !== actorId),
       ].slice(0, 3);
 
       // #通知機能 【設計】updated_at と thread_updated_at を更新
@@ -304,7 +321,7 @@ export class NotificationsRepository {
           const currentActorIds = retry.actor_ids as string[];
           const newActorIds = [
             actorId,
-            ...currentActorIds.filter(id => id !== actorId)
+            ...currentActorIds.filter((id) => id !== actorId),
           ].slice(0, 3);
           const now = new Date();
           await tx.notifications.update({
@@ -326,7 +343,7 @@ export class NotificationsRepository {
       }
       throw e;
     }
-    
+
     // recipient レコードを追加（on conflict do nothing）
     await tx.notification_recipients.createMany({
       data: recipientIds.map((recipientId) => ({
