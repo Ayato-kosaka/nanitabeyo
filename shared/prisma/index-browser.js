@@ -271,6 +271,7 @@ exports.Prisma.Frontend_event_logsScalarFieldEnum = {
 exports.Prisma.Notification_recipientsScalarFieldEnum = {
   notification_id: 'notification_id',
   recipient_id: 'recipient_id',
+  thread_updated_at: 'thread_updated_at',
   created_at: 'created_at'
 };
 
@@ -279,13 +280,10 @@ exports.Prisma.NotificationsScalarFieldEnum = {
   action_type: 'action_type',
   target_table: 'target_table',
   target_id: 'target_id',
-  actor_id: 'actor_id',
-  i18n_key: 'i18n_key',
-  i18n_params: 'i18n_params',
   actor_ids: 'actor_ids',
-  actor_count: 'actor_count',
   idempotency_key: 'idempotency_key',
-  created_at: 'created_at'
+  created_at: 'created_at',
+  updated_at: 'updated_at'
 };
 
 exports.Prisma.PayoutsScalarFieldEnum = {
@@ -397,7 +395,8 @@ exports.Prisma.UsersScalarFieldEnum = {
   created_at: 'created_at',
   updated_at: 'updated_at',
   lock_no: 'lock_no',
-  username: 'username'
+  username: 'username',
+  preferred_locale: 'preferred_locale'
 };
 
 exports.Prisma.SortOrder = {

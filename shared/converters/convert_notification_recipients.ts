@@ -1,10 +1,8 @@
 import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
-// #通知機能 【設計】スキーマ変更後の型定義（thread_updated_at を追加）
-export type PrismaNotificationRecipients = Omit<Prisma.Notification_recipientsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'> & {
-  thread_updated_at?: Date;
-};
+
+export type PrismaNotificationRecipients = Omit<Prisma.Notification_recipientsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
 
 export type SupabaseNotificationRecipients = TableRow<'notification_recipients'>;
 
@@ -17,8 +15,8 @@ export function convertSupabaseToPrisma_NotificationRecipients(supabase: Supabas
   return {
     notification_id: supabase.notification_id,
     recipient_id: supabase.recipient_id,
-    created_at: new Date(supabase.created_at),
     thread_updated_at: new Date(supabase.thread_updated_at),
+    created_at: new Date(supabase.created_at),
   };
 }
 
@@ -31,7 +29,7 @@ export function convertPrismaToSupabase_NotificationRecipients(prisma: PrismaNot
   return {
     notification_id: prisma.notification_id,
     recipient_id: prisma.recipient_id,
-    created_at: prisma.created_at?.toISOString() as string,
-    thread_updated_at: prisma.thread_updated_at?.toISOString() as string,
+    thread_updated_at: prisma.thread_updated_at?.toISOString() ?? null,
+    created_at: prisma.created_at?.toISOString() ?? null,
   };
 }

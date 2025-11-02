@@ -1,13 +1,8 @@
 import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
-// #通知機能 【設計】スキーマ変更後の型定義（actor_id, i18n_key, i18n_params, actor_count を削除、updated_at を追加）
-export type PrismaNotifications = Omit<
-  Prisma.NotificationsGroupByOutputType, 
-  '_count' | '_avg' | '_sum' | '_min' | '_max' | 'actor_id' | 'i18n_key' | 'i18n_params' | 'actor_count'
-> & {
-  updated_at?: Date;
-};
+
+export type PrismaNotifications = Omit<Prisma.NotificationsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
 
 export type SupabaseNotifications = TableRow<'notifications'>;
 
@@ -42,7 +37,7 @@ export function convertPrismaToSupabase_Notifications(prisma: PrismaNotification
     target_id: prisma.target_id,
     actor_ids: prisma.actor_ids,
     idempotency_key: prisma.idempotency_key,
-    created_at: prisma.created_at?.toISOString() as string,
-    updated_at: prisma.updated_at?.toISOString() as string,
+    created_at: prisma.created_at?.toISOString() ?? null,
+    updated_at: prisma.updated_at?.toISOString() ?? null,
   };
 }
