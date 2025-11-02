@@ -20,7 +20,7 @@ export class NotificationJobService {
     private readonly service: NotificationsService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 通知ジョブを処理
@@ -62,7 +62,7 @@ export class NotificationJobService {
     }
 
     // 3. トランザクション内で通知を upsert
-    const { notificationId, isNew, isUpdated } =
+    const { notificationId, isNew } =
       await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
         this.repo.upsertNotification(
           tx,
@@ -80,7 +80,6 @@ export class NotificationJobService {
     this.logger.log('NotificationUpserted', 'processNotificationJob', {
       notificationId,
       isNew,
-      isUpdated,
       actorId,
       recipientId,
     });
@@ -88,9 +87,10 @@ export class NotificationJobService {
     // 4. Expo Push を送信（新規通知の場合のみ）
     // #通知機能 【設計】既存通知への追加いいね等では Push を送らない
     if (isNew) {
-      const { title, body } = this.buildNotificationMessage(
+      const { title, body } = await this.buildNotificationMessage(
         actionType,
         targetTable,
+        actorId,
       );
 
       await this.service.sendPushNotification(recipientId, {
@@ -126,32 +126,75 @@ export class NotificationJobService {
 
   /**
    * 通知メッセージを構築
-   * #通知機能 【将来対応】i18n 対応（モバイル側で翻訳キーを使用予定）
    */
-  private buildNotificationMessage(
+  private async buildNotificationMessage(
     actionType: string,
     targetTable: string,
-  ): { title: string; body: string } {
-    const NOTIFICATION_MESSAGES = {
-      like: {
-        dish_media: '料理動画',
-        dish_reviews: 'レビュー',
+    actorId: string,
+  ): Promise<{ title: string; body: string }> {
+    const SUPPORTED_LOCALES = ['ar', 'en', 'es', 'fr', 'hi', 'ja', 'ko', 'zh'] as const;
+    const NOTIFICATION_MESSAGES: Record<string, Record<string, Record<typeof SUPPORTED_LOCALES[number], string>>> = {
+      dish_media: {
+        like: {
+          ar: 'أعجب بمنشورك',
+          en: 'Liked your post',
+          es: 'Le gustó tu publicación',
+          fr: 'A aimé votre publication',
+          hi: 'आपकी पोस्ट को पसंद किया',
+          ja: 'あなたの投稿にいいねしました',
+          ko: '귀하의 게시물을 좋아합니다',
+          zh: '喜欢了你的帖子',
+        },
+        save: {
+          ar: 'حفظ منشورك',
+          en: 'Saved your post',
+          es: 'Guardó tu publicación',
+          fr: 'A enregistré votre publication',
+          hi: 'आपकी पोस्ट को सहेजा',
+          ja: 'あなたの投稿を保存しました',
+          ko: '귀하의 게시물을 저장했습니다',
+          zh: '保存了你的帖子',
+        },
       },
-      save: {
-        dish_media: '料理動画',
-        dish_reviews: 'レビュー',
+      dish_reviews: {
+        like: {
+          ar: 'أعجب بتقييمك',
+          en: 'Liked your review',
+          es: 'Le gustó tu reseña',
+          fr: 'A aimé votre avis',
+          hi: 'आपकी समीक्षा को पसंद किया',
+          ja: 'あなたのレビューにいいねしました',
+          ko: '귀하의 리뷰를 좋아합니다',
+          zh: '喜欢了你的评论',
+        },
+      },
+      default: {
+        default: {
+          ar: 'إشعار جديد',
+          en: 'New Notification',
+          es: 'Nueva notificación',
+          fr: 'Nouvelle notification',
+          hi: 'नई सूचना',
+          ja: '新しい通知',
+          ko: '새 알림',
+          zh: '新通知',
+        },
       },
     };
 
-    const actionText = actionType === 'like' ? 'いいね' : '保存';
-    const targetText =
-      NOTIFICATION_MESSAGES[actionType as 'like' | 'save']?.[
-        targetTable as 'dish_media' | 'dish_reviews'
-      ] ?? 'コンテンツ';
+    const actionMessages = NOTIFICATION_MESSAGES[targetTable]?.[actionType] ||
+      NOTIFICATION_MESSAGES['default']['default'];
+
+    let locale: typeof SUPPORTED_LOCALES[number] = 'en';
+
+    // TODO: ユーザーのロケールを取得して locale 変数にセット
+
+    const body = actionMessages[locale];
+    const title = 'FoodApp'; // TODO: ユーザー表示名を取得してセット
 
     return {
-      title: '新しい通知',
-      body: `あなたの${targetText}に${actionText}されました`,
+      title,
+      body,
     };
   }
 }

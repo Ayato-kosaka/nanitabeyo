@@ -17,7 +17,7 @@ export class NotificationsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 通知一覧を取得（キーセットページング）
@@ -250,12 +250,8 @@ export class NotificationsRepository {
     >,
     recipientIds: string[],
     actorId: string,
-  ): Promise<
-    | { notificationId: string; isNew: true; isUpdated: false }
-    | { notificationId: string; isNew: false; isUpdated: true }
-  > {
-    const { action_type, target_table, target_id, idempotency_key } =
-      notification;
+  ): Promise<{ notificationId: string; isNew: boolean }> {
+    const { idempotency_key } = notification;
 
     // #通知機能 【設計】既存通知を検索
     const existing = await tx.notifications.findUnique({
@@ -263,12 +259,11 @@ export class NotificationsRepository {
       select: { id: true, actor_ids: true },
     });
 
-    if (existing) {
+    async function updateExistingNotification(id: string, currentActorIds: string[], actorId: string) {
       // #通知機能 【設計】既存通知の場合、actor_ids を更新
       // 1. actorId が既に存在する場合は先頭に移動
       // 2. 存在しない場合は先頭に追加
       // 3. 配列の長さを3に制限
-      const currentActorIds = existing.actor_ids as string[];
       const newActorIds = [
         actorId,
         ...currentActorIds.filter((id) => id !== actorId),
@@ -277,7 +272,7 @@ export class NotificationsRepository {
       // #通知機能 【設計】updated_at と thread_updated_at を更新
       const now = new Date();
       await tx.notifications.update({
-        where: { id: existing.id },
+        where: { id },
         data: {
           actor_ids: newActorIds,
           updated_at: now,
@@ -286,13 +281,16 @@ export class NotificationsRepository {
 
       // notification_recipients の thread_updated_at を更新
       await tx.notification_recipients.updateMany({
-        where: { notification_id: existing.id },
+        where: { notification_id: id },
         data: {
           thread_updated_at: now,
         } as any,
       });
+    }
 
-      return { notificationId: existing.id, isNew: false, isUpdated: true };
+    if (existing) {
+      await updateExistingNotification(existing.id, existing.actor_ids, actorId);
+      return { notificationId: existing.id, isNew: false };
     }
 
     // #通知機能 【設計】新規通知を作成
@@ -318,26 +316,8 @@ export class NotificationsRepository {
           select: { id: true, actor_ids: true },
         });
         if (retry) {
-          const currentActorIds = retry.actor_ids as string[];
-          const newActorIds = [
-            actorId,
-            ...currentActorIds.filter((id) => id !== actorId),
-          ].slice(0, 3);
-          const now = new Date();
-          await tx.notifications.update({
-            where: { id: retry.id },
-            data: {
-              actor_ids: newActorIds,
-              updated_at: now,
-            } as any,
-          });
-          await tx.notification_recipients.updateMany({
-            where: { notification_id: retry.id },
-            data: {
-              thread_updated_at: now,
-            } as any,
-          });
-          return { notificationId: retry.id, isNew: false, isUpdated: true };
+          await updateExistingNotification(retry.id, retry.actor_ids, actorId);
+          return { notificationId: retry.id, isNew: false };
         }
         throw e;
       }
@@ -353,6 +333,6 @@ export class NotificationsRepository {
       skipDuplicates: true,
     });
 
-    return { notificationId, isNew: true, isUpdated: false };
+    return { notificationId, isNew: true };
   }
 }
