@@ -42,7 +42,7 @@ import { Response } from 'express';
 @ApiTags('Notifications')
 @Controller('v1/notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) { }
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/notifications                         */
@@ -73,7 +73,10 @@ export class NotificationsController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryNotificationsResponse> {
-    const result = await this.notificationsService.getNotifications(user.id, query);
+    const result = await this.notificationsService.getNotifications(
+      user.id,
+      query,
+    );
 
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
@@ -92,7 +95,7 @@ export class NotificationsController {
     return {
       items: result.items,
       nextCursor: result.nextCursor,
-    }
+    };
   }
 
   /* ------------------------------------------------------------------ */

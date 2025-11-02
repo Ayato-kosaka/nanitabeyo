@@ -22,7 +22,7 @@ export class NotificationJobService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly userService: UsersService,
-  ) { }
+  ) {}
 
   /**
    * 通知ジョブを処理
@@ -64,8 +64,8 @@ export class NotificationJobService {
     }
 
     // 3. トランザクション内で通知を upsert
-    const { notificationId, isNew } =
-      await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+    const { notificationId, isNew } = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
         this.repo.upsertNotification(
           tx,
           {
@@ -77,7 +77,7 @@ export class NotificationJobService {
           [recipientId],
           actorId,
         ),
-      );
+    );
 
     this.logger.log('NotificationUpserted', 'processNotificationJob', {
       notificationId,
@@ -135,8 +135,20 @@ export class NotificationJobService {
     const actor = (await this.userService.getUserByIds([actorId]))[0];
     const title = actor.display_name ?? undefined;
 
-    const SUPPORTED_LOCALES = ['ar', 'en', 'es', 'fr', 'hi', 'ja', 'ko', 'zh'] as const;
-    const NOTIFICATION_MESSAGES: Record<string, Record<string, Record<typeof SUPPORTED_LOCALES[number], string>>> = {
+    const SUPPORTED_LOCALES = [
+      'ar',
+      'en',
+      'es',
+      'fr',
+      'hi',
+      'ja',
+      'ko',
+      'zh',
+    ] as const;
+    const NOTIFICATION_MESSAGES: Record<
+      string,
+      Record<string, Record<(typeof SUPPORTED_LOCALES)[number], string>>
+    > = {
       dish_media: {
         like: {
           ar: 'أعجب بمنشورك',
@@ -185,14 +197,19 @@ export class NotificationJobService {
       },
     };
 
-    let locale: typeof SUPPORTED_LOCALES[number] = 'en';
+    let locale: (typeof SUPPORTED_LOCALES)[number] = 'en';
     if (SUPPORTED_LOCALES.includes(actor.preferred_locale as any)) {
-      locale = actor.preferred_locale as typeof SUPPORTED_LOCALES[number];
-    } else if (SUPPORTED_LOCALES.includes(actor.preferred_locale.split('-')[0] as any)) {
-      locale = actor.preferred_locale.split('-')[0] as typeof SUPPORTED_LOCALES[number];
+      locale = actor.preferred_locale as (typeof SUPPORTED_LOCALES)[number];
+    } else if (
+      SUPPORTED_LOCALES.includes(actor.preferred_locale.split('-')[0] as any)
+    ) {
+      locale = actor.preferred_locale.split(
+        '-',
+      )[0] as (typeof SUPPORTED_LOCALES)[number];
     }
 
-    const actionMessages = NOTIFICATION_MESSAGES[targetTable]?.[actionType] ||
+    const actionMessages =
+      NOTIFICATION_MESSAGES[targetTable]?.[actionType] ||
       NOTIFICATION_MESSAGES['default']['default'];
     const body = actionMessages[locale];
 

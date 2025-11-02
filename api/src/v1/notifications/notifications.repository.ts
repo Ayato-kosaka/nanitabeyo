@@ -17,7 +17,7 @@ export class NotificationsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * 通知一覧を取得（キーセットページング）
@@ -218,7 +218,11 @@ export class NotificationsRepository {
       select: { id: true, actor_ids: true },
     });
 
-    async function updateExistingNotification(id: string, currentActorIds: string[], actorId: string) {
+    async function updateExistingNotification(
+      id: string,
+      currentActorIds: string[],
+      actorId: string,
+    ) {
       // #通知機能 【設計】既存通知の場合、actor_ids を更新
       // 1. actorId が既に存在する場合は先頭に移動
       // 2. 存在しない場合は先頭に追加
@@ -248,7 +252,11 @@ export class NotificationsRepository {
     }
 
     if (existing) {
-      await updateExistingNotification(existing.id, existing.actor_ids, actorId);
+      await updateExistingNotification(
+        existing.id,
+        existing.actor_ids,
+        actorId,
+      );
       return { notificationId: existing.id, isNew: false };
     }
 
@@ -287,7 +295,7 @@ export class NotificationsRepository {
       data: recipientIds.map((recipientId) => ({
         notification_id: createdNotification.id,
         recipient_id: recipientId,
-        thread_updated_at: createdNotification.updated_at
+        thread_updated_at: createdNotification.updated_at,
       })),
       skipDuplicates: true,
     });

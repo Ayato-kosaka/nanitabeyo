@@ -13,4 +13,4 @@ import { UsersModule } from 'src/v1/users/users.module';
   controllers: [InternalNotificationsController],
   providers: [NotificationJobService],
 })
-export class InternalNotificationsModule { }
+export class InternalNotificationsModule {}

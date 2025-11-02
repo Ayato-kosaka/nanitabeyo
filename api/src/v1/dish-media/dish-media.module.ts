@@ -44,4 +44,4 @@ import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
     DishMediaMapper, // 追加: DishMediaMapper をエクスポート
   ],
 })
-export class DishMediaModule { }
+export class DishMediaModule {}

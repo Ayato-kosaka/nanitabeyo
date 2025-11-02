@@ -27,9 +27,7 @@ export class DishMediaMapper {
    * Repository から取得した `DishMediaEntryEntity[]` を
    * Controller 公開型の `DishMediaEntry[]` へ変換
    */
-  toDishMediaEntry(
-    items: DishMediaEntryItem[],
-  ): DishMediaEntry[] {
+  toDishMediaEntry(items: DishMediaEntryItem[]): DishMediaEntry[] {
     return items.map((src) => {
       // Use convertPrismaToSupabase as base, then add only required additional fields
       const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);

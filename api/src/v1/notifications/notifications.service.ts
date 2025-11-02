@@ -38,10 +38,7 @@ export class NotificationsService {
   /**
    * GET /v1/notifications - 通知一覧取得
    */
-  async getNotifications(
-    userId: string,
-    dto: QueryNotificationsDto,
-  ) {
+  async getNotifications(userId: string, dto: QueryNotificationsDto) {
     const { cursor, limit = 30 } = dto;
 
     const { items, nextCursor } = await this.repo.findNotificationsByRecipient(
@@ -52,16 +49,22 @@ export class NotificationsService {
 
     // actors を一括取得
     const actors = await this.userService.getUserByIds(
-      Array.from(new Set(items.flatMap((item) => item.notifications.actor_ids),),),
+      Array.from(
+        new Set(items.flatMap((item) => item.notifications.actor_ids)),
+      ),
     );
     const actorMap = new Map(actors.map((user) => [user.id, user]));
 
     // dish_media ターゲットのエンティティを一括取得
-    const { items: dishMediaItems, cdnCookies } = await this.dishMediaService.fetchDishMediaEntryItems(
-      items.filter((item) => item.notifications.target_table === 'dish_media').map((item) => item.notifications.target_id),
-      { userId }
-    );
-    const dishMediaEntiries = this.dishMediaMapper.toDishMediaEntry(dishMediaItems);
+    const { items: dishMediaItems, cdnCookies } =
+      await this.dishMediaService.fetchDishMediaEntryItems(
+        items
+          .filter((item) => item.notifications.target_table === 'dish_media')
+          .map((item) => item.notifications.target_id),
+        { userId },
+      );
+    const dishMediaEntiries =
+      this.dishMediaMapper.toDishMediaEntry(dishMediaItems);
     const dishMediaMap = new Map(
       dishMediaEntiries.map((entry) => [entry.dish_media.id, entry]),
     );
@@ -69,7 +72,9 @@ export class NotificationsService {
     // #通知機能 【設計】NotificationItem 形式に変換（actors と notification を含む）
     const notificationItems = items.map((item) => ({
       notification: convertPrismaToSupabase_Notifications(item.notifications),
-      actors: item.notifications.actor_ids.map((actorId) => actorMap.get(actorId)!),
+      actors: item.notifications.actor_ids.map(
+        (actorId) => actorMap.get(actorId)!,
+      ),
       dishMediaEntiries: dishMediaMap.get(item.notifications.target_id),
     }));
 
