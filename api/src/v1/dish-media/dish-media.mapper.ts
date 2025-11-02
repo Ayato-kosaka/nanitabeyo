@@ -7,7 +7,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { DishMediaEntryEntity } from './dish-media.repository';
-import { SearchDishMediaResponse } from '@shared/v1/res';
+import { DishMediaEntry } from '@shared/v1/res';
 
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
@@ -25,11 +25,11 @@ export type DishMediaEntryItem = DishMediaEntryEntity & {
 export class DishMediaMapper {
   /**
    * Repository から取得した `DishMediaEntryEntity[]` を
-   * Controller が返す `SearchDishMediaResponse` に整形する
+   * Controller 公開型の `DishMediaEntry[]` へ変換
    */
-  toSearchDishMediaResponse(
+  toDishMediaEntry(
     items: DishMediaEntryItem[],
-  ): SearchDishMediaResponse {
+  ): DishMediaEntry[] {
     return items.map((src) => {
       // Use convertPrismaToSupabase as base, then add only required additional fields
       const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);

@@ -60,7 +60,7 @@ export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -98,7 +98,7 @@ export class DishMediaController {
     }
 
     return {
-      items: this.dishMediaMapper.toSearchDishMediaResponse(result.items),
+      items: this.dishMediaMapper.toDishMediaEntry(result.items),
       notFound: result.notFound,
     };
   }
@@ -139,7 +139,7 @@ export class DishMediaController {
       res.setHeader('Set-Cookie', merged);
     }
 
-    return this.dishMediaMapper.toSearchDishMediaResponse(result.items);
+    return this.dishMediaMapper.toDishMediaEntry(result.items);
   }
 
   /* ------------------------------------------------------------------ */

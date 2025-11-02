@@ -30,14 +30,7 @@ export class NotificationsRepository {
     cursor: string | null,
     limit: number,
   ): Promise<{
-    items: (PrismaNotificationRecipients & {
-      notifications: PrismaNotifications;
-      actors: Array<{
-        id: string;
-        display_name: string | null;
-        avatar: string | null;
-      }>;
-    })[];
+    items: { notifications: PrismaNotifications }[];
     nextCursor: string | null;
   }> {
     let afterThreadUpdatedAt: Date | null = null;
@@ -73,7 +66,7 @@ export class NotificationsRepository {
       ];
     }
 
-    const items = (await this.prisma.prisma.notification_recipients.findMany({
+    const items = await this.prisma.prisma.notification_recipients.findMany({
       where,
       // #通知機能 【設計】thread_updated_at DESC で最新の更新が先頭に来る
       // スキーマ変更後のフィールドのため型アサーションを使用
@@ -85,36 +78,7 @@ export class NotificationsRepository {
       include: {
         notifications: true,
       },
-    })) as any;
-
-    // #通知機能 【設計】先頭3件のアクター情報を取得
-    const itemsWithActors = await Promise.all(
-      items.map(async (item) => {
-        const actorIds = item.notifications.actor_ids.slice(0, 3);
-        const actors = await this.prisma.prisma.users.findMany({
-          where: { id: { in: actorIds } },
-          select: { id: true, display_name: true, avatar: true },
-        });
-
-        // #通知機能 【設計】actor_ids の順序を保持
-        const orderedActors = actorIds
-          .map((actorId) => actors.find((actor) => actor.id === actorId))
-          .filter(
-            (
-              actor,
-            ): actor is {
-              id: string;
-              display_name: string | null;
-              avatar: string | null;
-            } => actor !== undefined,
-          );
-
-        return {
-          ...item,
-          actors: orderedActors,
-        };
-      }),
-    );
+    });
 
     // 次ページカーソルを生成（thread_updated_at を使用）
     const last = items[items.length - 1];
@@ -122,7 +86,7 @@ export class NotificationsRepository {
       ? `${(last as any).thread_updated_at?.toISOString() ?? last.created_at.toISOString()}_${last.notification_id}`
       : null;
 
-    return { items: itemsWithActors, nextCursor };
+    return { items, nextCursor };
   }
 
   /**
