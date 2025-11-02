@@ -133,6 +133,7 @@ export class NotificationJobService {
     actorId: string,
   ) {
     const actor = (await this.userService.getUserByIds([actorId]))[0];
+    if (!actor) throw new Error(`ActorUserNotFound: actorId=${actorId}`);
     const title = actor.display_name ?? undefined;
 
     const SUPPORTED_LOCALES = [
