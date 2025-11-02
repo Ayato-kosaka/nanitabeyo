@@ -41,6 +41,7 @@ import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
   exports: [
     DishMediaService, // 他ドメインが “いいね数集計” 等で再利用できる
     DishMediaRepository,
+    DishMediaMapper, // 追加: DishMediaMapper をエクスポート
   ],
 })
 export class DishMediaModule {}

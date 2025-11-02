@@ -342,6 +342,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					username,
 					display_name: displayName || "nickname",
 					avatar,
+					preferred_locale: locale,
 				});
 
 				if (insertError) throw insertError;

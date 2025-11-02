@@ -83,4 +83,15 @@ export class UsersRepository {
 
     return result;
   }
+
+  /**
+   * 指定されたIDのユーザーを取得
+   */
+  async getUserByIds(userId: string[]) {
+    return this.prisma.prisma.users.findMany({
+      where: {
+        id: { in: userId },
+      },
+    });
+  }
 }

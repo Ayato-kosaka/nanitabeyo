@@ -9,6 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS notification_recipients (
   notification_id  uuid REFERENCES notifications(id) ON DELETE CASCADE,
   recipient_id     uuid NOT NULL,
+  thread_updated_at timestamptz NOT NULL,
   created_at       timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (notification_id, recipient_id)
 );

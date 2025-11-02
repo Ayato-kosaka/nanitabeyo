@@ -2,9 +2,7 @@ import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
 
-export type PrismaUserDeviceTokens = Omit<Prisma.User_device_tokensGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'> & {
-  locale?: string;
-};
+export type PrismaUserDeviceTokens = Omit<Prisma.User_device_tokensGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
 
 export type SupabaseUserDeviceTokens = TableRow<'user_device_tokens'>;
 
@@ -17,7 +15,6 @@ export function convertSupabaseToPrisma_UserDeviceTokens(supabase: SupabaseUserD
   return {
     user_id: supabase.user_id,
     expo_push_token: supabase.expo_push_token,
-    locale: supabase.locale,
     updated_at: new Date(supabase.updated_at),
   };
 }
@@ -31,7 +28,6 @@ export function convertPrismaToSupabase_UserDeviceTokens(prisma: PrismaUserDevic
   return {
     user_id: prisma.user_id,
     expo_push_token: prisma.expo_push_token,
-    locale: prisma.locale ?? 'ja-JP',
     updated_at: prisma.updated_at?.toISOString() ?? null,
   };
 }

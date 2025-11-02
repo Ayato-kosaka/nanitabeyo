@@ -17,6 +17,9 @@ import {
   CreateDeviceTokenResponse,
 } from '@shared/v1/res';
 import { convertPrismaToSupabase_Notifications } from '../../../../shared/converters/convert_notifications';
+import { UsersService } from '../users/users.service';
+import { DishMediaService } from '../dish-media/dish-media.service';
+import { DishMediaMapper } from '../dish-media/dish-media.mapper';
 
 @Injectable()
 export class NotificationsService {
@@ -25,6 +28,9 @@ export class NotificationsService {
   constructor(
     private readonly repo: NotificationsRepository,
     private readonly logger: AppLoggerService,
+    private readonly userService: UsersService,
+    private readonly dishMediaService: DishMediaService,
+    private readonly dishMediaMapper: DishMediaMapper,
   ) {
     this.expo = new Expo();
   }
@@ -32,10 +38,7 @@ export class NotificationsService {
   /**
    * GET /v1/notifications - 通知一覧取得
    */
-  async getNotifications(
-    userId: string,
-    dto: QueryNotificationsDto,
-  ): Promise<QueryNotificationsResponse> {
+  async getNotifications(userId: string, dto: QueryNotificationsDto) {
     const { cursor, limit = 30 } = dto;
 
     const { items, nextCursor } = await this.repo.findNotificationsByRecipient(
@@ -44,16 +47,41 @@ export class NotificationsService {
       limit,
     );
 
+    // actors を一括取得
+    const actors = await this.userService.getUserByIds(
+      Array.from(
+        new Set(items.flatMap((item) => item.notifications.actor_ids)),
+      ),
+    );
+    const actorMap = new Map(actors.map((user) => [user.id, user]));
+
+    // dish_media ターゲットのエンティティを一括取得
+    const { items: dishMediaItems, cdnCookies } =
+      await this.dishMediaService.fetchDishMediaEntryItems(
+        items
+          .filter((item) => item.notifications.target_table === 'dish_media')
+          .map((item) => item.notifications.target_id),
+        { userId },
+      );
+    const dishMediaEntiries =
+      this.dishMediaMapper.toDishMediaEntry(dishMediaItems);
+    const dishMediaMap = new Map(
+      dishMediaEntiries.map((entry) => [entry.dish_media.id, entry]),
+    );
+
     // #通知機能 【設計】NotificationItem 形式に変換（actors と notification を含む）
     const notificationItems = items.map((item) => ({
       notification: convertPrismaToSupabase_Notifications(item.notifications),
-      actors: item.actors,
-      // TODO: target (DishMediaEntry) の取得は別途実装
+      actors: item.notifications.actor_ids
+        .map((actorId) => actorMap.get(actorId))
+        .filter((actor) => actor !== undefined),
+      dishMediaEntiries: dishMediaMap.get(item.notifications.target_id),
     }));
 
     return {
       items: notificationItems,
       nextCursor,
+      cdnCookies,
     };
   }
 
@@ -83,19 +111,17 @@ export class NotificationsService {
   async createDeviceToken(
     userId: string,
     expoPushToken: string,
-    locale?: string,
   ): Promise<CreateDeviceTokenResponse> {
     // トークンの形式を検証（Expo SDK内部でも検証されるが念のため）
     if (!Expo.isExpoPushToken(expoPushToken)) {
       throw new Error('Invalid Expo push token format');
     }
 
-    await this.repo.upsertDeviceToken(userId, expoPushToken, locale);
+    await this.repo.upsertDeviceToken(userId, expoPushToken);
 
     this.logger.log('DeviceTokenUpserted', 'createDeviceToken', {
       userId,
       token: expoPushToken.substring(0, 20) + '...',
-      locale: locale ?? 'default',
     });
 
     return {
