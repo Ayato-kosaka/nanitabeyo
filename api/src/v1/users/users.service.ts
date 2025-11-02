@@ -30,7 +30,11 @@ export class UsersService {
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
-  ) {}
+  ) { }
+
+  async getUserByIds(userId: string[]) {
+    return this.repo.getUserByIds(userId);
+  }
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */

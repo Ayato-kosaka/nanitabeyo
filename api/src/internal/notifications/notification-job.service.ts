@@ -12,6 +12,7 @@ import { NotificationsRepository } from '../../v1/notifications/notifications.re
 import { NotificationsService } from '../../v1/notifications/notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { UsersService } from 'src/v1/users/users.service';
 
 @Injectable()
 export class NotificationJobService {
@@ -20,6 +21,7 @@ export class NotificationJobService {
     private readonly service: NotificationsService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
+    private readonly userService: UsersService,
   ) { }
 
   /**
@@ -84,20 +86,18 @@ export class NotificationJobService {
       recipientId,
     });
 
-    // 4. Expo Push を送信（新規通知の場合のみ）
-    // #通知機能 【設計】既存通知への追加いいね等では Push を送らない
-    if (isNew) {
-      const { title, body } = await this.buildNotificationMessage(
-        actionType,
-        targetTable,
-        actorId,
-      );
+    // 4. Expo Push を送信
+    // 連打エラーなどは事前にエラーがスローされる想定。
+    const { title, body } = await this.buildNotificationMessage(
+      actionType,
+      targetTable,
+      actorId,
+    );
 
-      await this.service.sendPushNotification(recipientId, {
-        title,
-        body,
-      });
-    }
+    await this.service.sendPushNotification(recipientId, {
+      title,
+      body,
+    });
   }
 
   /**
@@ -131,7 +131,10 @@ export class NotificationJobService {
     actionType: string,
     targetTable: string,
     actorId: string,
-  ): Promise<{ title: string; body: string }> {
+  ) {
+    const actor = (await this.userService.getUserByIds([actorId]))[0];
+    const title = actor.display_name ?? undefined;
+
     const SUPPORTED_LOCALES = ['ar', 'en', 'es', 'fr', 'hi', 'ja', 'ko', 'zh'] as const;
     const NOTIFICATION_MESSAGES: Record<string, Record<string, Record<typeof SUPPORTED_LOCALES[number], string>>> = {
       dish_media: {
@@ -182,15 +185,16 @@ export class NotificationJobService {
       },
     };
 
+    let locale: typeof SUPPORTED_LOCALES[number] = 'en';
+    if (SUPPORTED_LOCALES.includes(actor.preferred_locale as any)) {
+      locale = actor.preferred_locale as typeof SUPPORTED_LOCALES[number];
+    } else if (SUPPORTED_LOCALES.includes(actor.preferred_locale.split('-')[0] as any)) {
+      locale = actor.preferred_locale.split('-')[0] as typeof SUPPORTED_LOCALES[number];
+    }
+
     const actionMessages = NOTIFICATION_MESSAGES[targetTable]?.[actionType] ||
       NOTIFICATION_MESSAGES['default']['default'];
-
-    let locale: typeof SUPPORTED_LOCALES[number] = 'en';
-
-    // TODO: ユーザーのロケールを取得して locale 変数にセット
-
     const body = actionMessages[locale];
-    const title = 'FoodApp'; // TODO: ユーザー表示名を取得してセット
 
     return {
       title,

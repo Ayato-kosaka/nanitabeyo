@@ -12,7 +12,7 @@ export class UsersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * ユーザーの収益一覧を取得
@@ -82,5 +82,16 @@ export class UsersRepository {
     });
 
     return result;
+  }
+
+  /**
+   * 指定されたIDのユーザーを取得
+   */
+  async getUserByIds(userId: string[]) {
+    return this.prisma.prisma.users.findMany({
+      where: {
+        id: { in: userId },
+      },
+    });
   }
 }

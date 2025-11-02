@@ -276,7 +276,7 @@ export class NotificationsRepository {
         data: {
           actor_ids: newActorIds,
           updated_at: now,
-        } as any,
+        },
       });
 
       // notification_recipients の thread_updated_at を更新
@@ -284,7 +284,7 @@ export class NotificationsRepository {
         where: { notification_id: id },
         data: {
           thread_updated_at: now,
-        } as any,
+        },
       });
     }
 
@@ -294,15 +294,14 @@ export class NotificationsRepository {
     }
 
     // #通知機能 【設計】新規通知を作成
-    let notificationId: string;
+    let createdNotification: PrismaNotifications;
     try {
-      const result = await tx.notifications.create({
+      createdNotification = await tx.notifications.create({
         data: {
           ...notification,
           actor_ids: [actorId],
-        } as any,
+        },
       });
-      notificationId = result.id;
     } catch (e: any) {
       // #通知機能 【設計】稀にレースコンディションで重複が発生した場合は再試行せず終了
       if (e.code === 'P2002') {
@@ -327,12 +326,13 @@ export class NotificationsRepository {
     // recipient レコードを追加（on conflict do nothing）
     await tx.notification_recipients.createMany({
       data: recipientIds.map((recipientId) => ({
-        notification_id: notificationId,
+        notification_id: createdNotification.id,
         recipient_id: recipientId,
+        thread_updated_at: createdNotification.updated_at
       })),
       skipDuplicates: true,
     });
 
-    return { notificationId, isNew: true };
+    return { notificationId: createdNotification.id, isNew: true };
   }
 }
