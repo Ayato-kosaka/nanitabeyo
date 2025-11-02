@@ -13,6 +13,7 @@
 		"scripts/**/*",
 		"types/**/*",
 		"api/**/*",
+		"constants/**/*",
 		"converters/**/*",
 		"utils/**/*",
 		"supabase/**/*",

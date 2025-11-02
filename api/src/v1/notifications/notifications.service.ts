@@ -44,11 +44,15 @@ export class NotificationsService {
       limit,
     );
 
-    // Supabase型に変換
-    const supabaseNotifications = items.map((item) => convertPrismaToSupabase_Notifications(item.notifications));
+    // #通知機能 【設計】NotificationItem 形式に変換（actors と notification を含む）
+    const notificationItems = items.map((item) => ({
+      notification: convertPrismaToSupabase_Notifications(item.notifications),
+      actors: item.actors,
+      // TODO: target (DishMediaEntry) の取得は別途実装
+    }));
 
     return {
-      items: supabaseNotifications,
+      items: notificationItems,
       nextCursor,
     };
   }
@@ -79,17 +83,19 @@ export class NotificationsService {
   async createDeviceToken(
     userId: string,
     expoPushToken: string,
+    locale?: string,
   ): Promise<CreateDeviceTokenResponse> {
     // トークンの形式を検証（Expo SDK内部でも検証されるが念のため）
     if (!Expo.isExpoPushToken(expoPushToken)) {
       throw new Error('Invalid Expo push token format');
     }
 
-    await this.repo.upsertDeviceToken(userId, expoPushToken);
+    await this.repo.upsertDeviceToken(userId, expoPushToken, locale);
 
     this.logger.log('DeviceTokenUpserted', 'createDeviceToken', {
       userId,
       token: expoPushToken.substring(0, 20) + '...',
+      locale: locale ?? 'default',
     });
 
     return {

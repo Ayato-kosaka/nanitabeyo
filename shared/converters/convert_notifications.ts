@@ -1,8 +1,13 @@
 import { TableRow } from '../utils/devDB.types';
 import { Prisma } from '../prisma';
 
-
-export type PrismaNotifications = Omit<Prisma.NotificationsGroupByOutputType, '_count' | '_avg' | '_sum' | '_min' | '_max'>;
+// #通知機能 【設計】スキーマ変更後の型定義（actor_id, i18n_key, i18n_params, actor_count を削除、updated_at を追加）
+export type PrismaNotifications = Omit<
+  Prisma.NotificationsGroupByOutputType, 
+  '_count' | '_avg' | '_sum' | '_min' | '_max' | 'actor_id' | 'i18n_key' | 'i18n_params' | 'actor_count'
+> & {
+  updated_at?: Date;
+};
 
 export type SupabaseNotifications = TableRow<'notifications'>;
 
@@ -17,13 +22,10 @@ export function convertSupabaseToPrisma_Notifications(supabase: SupabaseNotifica
     action_type: supabase.action_type,
     target_table: supabase.target_table,
     target_id: supabase.target_id,
-    actor_id: supabase.actor_id,
-    i18n_key: supabase.i18n_key,
-    i18n_params: supabase.i18n_params,
     actor_ids: supabase.actor_ids,
-    actor_count: supabase.actor_count,
     idempotency_key: supabase.idempotency_key,
     created_at: new Date(supabase.created_at),
+    updated_at: new Date(supabase.updated_at),
   };
 }
 
@@ -38,12 +40,9 @@ export function convertPrismaToSupabase_Notifications(prisma: PrismaNotification
     action_type: prisma.action_type,
     target_table: prisma.target_table,
     target_id: prisma.target_id,
-    actor_id: prisma.actor_id,
-    i18n_key: prisma.i18n_key,
-    i18n_params: prisma.i18n_params,
     actor_ids: prisma.actor_ids,
-    actor_count: prisma.actor_count,
     idempotency_key: prisma.idempotency_key,
-    created_at: prisma.created_at?.toISOString() ?? null,
+    created_at: prisma.created_at?.toISOString() as string,
+    updated_at: prisma.updated_at?.toISOString() as string,
   };
 }

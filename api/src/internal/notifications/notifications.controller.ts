@@ -27,7 +27,7 @@ export class InternalNotificationsController {
   constructor(
     private readonly notificationJobService: NotificationJobService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * POST /internal/notifications/process
