@@ -106,19 +106,17 @@ export class NotificationsService {
   async createDeviceToken(
     userId: string,
     expoPushToken: string,
-    locale?: string,
   ): Promise<CreateDeviceTokenResponse> {
     // トークンの形式を検証（Expo SDK内部でも検証されるが念のため）
     if (!Expo.isExpoPushToken(expoPushToken)) {
       throw new Error('Invalid Expo push token format');
     }
 
-    await this.repo.upsertDeviceToken(userId, expoPushToken, locale);
+    await this.repo.upsertDeviceToken(userId, expoPushToken);
 
     this.logger.log('DeviceTokenUpserted', 'createDeviceToken', {
       userId,
       token: expoPushToken.substring(0, 20) + '...',
-      locale: locale ?? 'default',
     });
 
     return {

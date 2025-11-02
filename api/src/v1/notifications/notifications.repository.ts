@@ -138,14 +138,11 @@ export class NotificationsRepository {
    * デバイストークンを登録/更新
    * @param userId ユーザーID
    * @param expoPushToken Expo Push Token
-   * @param locale デバイスのロケール（オプション、デフォルト: ja-JP）
    */
   async upsertDeviceToken(
     userId: string,
     expoPushToken: string,
-    locale?: string,
   ): Promise<void> {
-    // #通知機能 【設計】locale はスキーマ変更後のフィールド。型アサーションで対応。
     await this.prisma.prisma.user_device_tokens.upsert({
       where: {
         user_id_expo_push_token: {
@@ -155,12 +152,10 @@ export class NotificationsRepository {
       },
       update: {
         updated_at: new Date(),
-        ...(locale && ({ locale } as any)),
       },
       create: {
         user_id: userId,
         expo_push_token: expoPushToken,
-        ...(locale && ({ locale } as any)),
         updated_at: new Date(),
       },
     });
