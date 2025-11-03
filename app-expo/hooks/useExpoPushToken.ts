@@ -3,6 +3,7 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 import { useAPICall } from "./useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "./useLogger";
@@ -67,7 +68,8 @@ export const useExpoPushToken = () => {
 
 				// #通知機能 【仕様】Expo Push Token を取得
 				const tokenData = await Notifications.getExpoPushTokenAsync({
-					projectId: "e1bd01e3-7e25-4f44-a12c-a3e6f03c9e1c", // #通知機能 【設計】EAS Project ID を指定
+					// #通知機能 【設計】EAS Project ID は Constants から取得（app.json の extra.eas.projectId）
+					projectId: Constants.expoConfig?.extra?.eas?.projectId || "e1bd01e3-7e25-4f44-a12c-a3e6f03c9e1c",
 				});
 				const token = tokenData.data;
 				setExpoPushToken(token);

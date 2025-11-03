@@ -1,14 +1,5 @@
 import React, { useEffect, useCallback } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	FlatList,
-	TouchableOpacity,
-	SafeAreaView,
-	ActivityIndicator,
-	Platform,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { Heart, Bookmark } from "lucide-react-native";
@@ -40,8 +31,7 @@ export default function NotificationsScreen() {
 			notifications.loadInitial();
 			markAllAsRead();
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isAuthenticated, user?.is_anonymous]);
+	}, [isAuthenticated, user?.is_anonymous, notifications.loadInitial, markAllAsRead]);
 
 	// #通知機能 【仕様】通知タップ時の遷移処理
 	const handleNotificationPress = useCallback(
@@ -54,7 +44,9 @@ export default function NotificationsScreen() {
 
 			if (target_table === "dish_media" && target) {
 				// #通知機能 【仕様】dish_media の場合は FoodContentFeed へ遷移
-				router.push(`/food/${target.dish_media.id}` as any);
+				// TODO: 適切な food コンテンツ画面のルーティングパスを確認する必要がある
+				// 暫定的に文字列として扱う
+				router.push(`/food/${target.dish_media.id}` as `/food/${string}`);
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
@@ -145,10 +137,7 @@ export default function NotificationsScreen() {
 					{/* Right: Post Thumbnail */}
 					{item.target && (
 						<View style={styles.rightContainer}>
-							<Image
-								source={{ uri: item.target.dish_media.thumbnailImageUrl }}
-								style={styles.postThumbnail}
-							/>
+							<Image source={{ uri: item.target.dish_media.thumbnailImageUrl }} style={styles.postThumbnail} />
 						</View>
 					)}
 				</TouchableOpacity>

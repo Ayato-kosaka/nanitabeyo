@@ -3,7 +3,6 @@ import { House as Home, MapPinned, Bell, User, Code, Search } from "lucide-react
 import i18n from "@/lib/i18n";
 import { View, Text, StyleSheet } from "react-native";
 import { useNotificationUnreadCount } from "@/hooks/useNotificationUnreadCount";
-import { useEffect } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 

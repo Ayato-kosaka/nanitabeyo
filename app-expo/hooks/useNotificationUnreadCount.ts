@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAPICall } from "./useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import type { UnreadCountResponse } from "@shared/api/v1/res";
@@ -18,7 +18,7 @@ export const useNotificationUnreadCount = () => {
 	const [unreadCount, setUnreadCount] = useState<number>(0);
 	const [loading, setLoading] = useState(false);
 
-	const refresh = async () => {
+	const refresh = useCallback(async () => {
 		// #通知機能 【設計】匿名ユーザーは未読数を取得しない
 		if (!isAuthenticated || !user || user.is_anonymous) {
 			setUnreadCount(0);
@@ -38,12 +38,11 @@ export const useNotificationUnreadCount = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [isAuthenticated, user, callBackend]);
 
 	useEffect(() => {
 		refresh();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isAuthenticated, user?.is_anonymous]);
+	}, [isAuthenticated, user?.is_anonymous, refresh]);
 
 	return { unreadCount, refresh, loading };
 };
