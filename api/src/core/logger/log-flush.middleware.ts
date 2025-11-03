@@ -11,14 +11,14 @@ import {
   BufferedBackendEventLog,
   BufferedExternalApiLog,
 } from './logger.types';
-import chunk from 'lodash.chunk';
+const chunk = require('lodash.chunk');
 
 @Injectable()
 export class LogFlushMiddleware implements NestMiddleware {
   constructor(
     private readonly cls: ClsService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   use(req: Request, res: Response, next: NextFunction) {
     // Initialize empty buffers at the start of each request
