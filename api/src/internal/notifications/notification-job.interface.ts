@@ -3,9 +3,11 @@
 // Cloud Tasks から渡される通知ジョブのペイロード
 //
 
+import { NotificationResponse } from "@shared/v1/res";
+
 export interface NotificationJobPayload {
-  actionType: 'like' | 'save';
-  targetTable: 'dish_media' | 'dish_reviews';
+  actionType: NotificationResponse['action_type'];
+  targetTable: NotificationResponse['target_table'];
   targetId: string;
   actorId: string;
   idempotencyKey: string;

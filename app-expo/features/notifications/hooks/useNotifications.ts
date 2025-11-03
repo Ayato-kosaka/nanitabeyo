@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useCursorPagination } from "../../../hooks/useCursorPagination";
 import { useAPICall } from "../../../hooks/useAPICall";
 import type { QueryNotificationsResponse, NotificationItem } from "@shared/api/v1/res";
+import type { QueryNotificationsDto } from "@shared/api/v1/dto";
 
 /**
  * 🔔 通知一覧取得フック
@@ -23,7 +24,7 @@ export const useNotifications = () => {
 			}
 			params.limit = "30";
 
-			const response = await callBackend<Record<string, string>, QueryNotificationsResponse>("v1/notifications", {
+			const response = await callBackend<QueryNotificationsDto, QueryNotificationsResponse>("v1/notifications", {
 				method: "GET",
 				requestPayload: params,
 			});
@@ -36,5 +37,5 @@ export const useNotifications = () => {
 		[callBackend],
 	);
 
-	return useCursorPagination<undefined, NotificationItem>(fetcher);
+	return useCursorPagination<QueryNotificationsDto, NotificationItem>(fetcher);
 };

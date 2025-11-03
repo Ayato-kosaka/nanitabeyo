@@ -7,7 +7,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMarkNotificationsRead";
 import { useRouter } from "expo-router";
-import type { NotificationItem } from "@shared/api/v1/res";
+import type { NotificationItem, NotificationResponse } from "@shared/api/v1/res";
 import { useAuth } from "@/contexts/AuthProvider";
 
 /**
@@ -54,7 +54,7 @@ export default function NotificationsScreen() {
 	);
 
 	// #通知機能 【仕様】通知アイテムのアイコンを取得
-	const getNotificationIcon = (actionType: string) => {
+	const getNotificationIcon = (actionType: NotificationResponse["action_type"]) => {
 		const iconProps = { size: 13, color: "#FFFFFF" };
 
 		switch (actionType) {
@@ -68,7 +68,7 @@ export default function NotificationsScreen() {
 	};
 
 	// #通知機能 【仕様】通知アイテムのアイコン背景色を取得
-	const getIconBackgroundColor = (actionType: string) => {
+	const getIconBackgroundColor = (actionType: NotificationResponse["action_type"]) => {
 		switch (actionType) {
 			case "like":
 				return "#FF3040";
@@ -101,7 +101,7 @@ export default function NotificationsScreen() {
 		const key = `Notifications.notification.${target_table}.${action_type}`;
 		const message = i18n.t(key);
 
-		return message || action_type;
+		return message || "";
 	}, []);
 
 	// #通知機能 【仕様】通知アイテムをレンダリング
@@ -165,6 +165,11 @@ export default function NotificationsScreen() {
 			{/* Header */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
+				{unreadCount > 0 && (
+					<View style={styles.unreadBadge}>
+						<Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+					</View>
+				)}
 			</View>
 
 			{/* Notifications List */}
@@ -222,6 +227,26 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		color: "#1A1A1A",
 		letterSpacing: -0.5,
+	},
+	unreadBadge: {
+		position: "absolute",
+		right: 16,
+		backgroundColor: "#5EA2FF",
+		borderRadius: 16,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		minWidth: 24,
+		alignItems: "center",
+		shadowColor: "#5EA2FF",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.3,
+		shadowRadius: 8,
+		elevation: 6,
+	},
+	unreadBadgeText: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#FFFFFF",
 	},
 	notificationContainer: {
 		flex: 1,
