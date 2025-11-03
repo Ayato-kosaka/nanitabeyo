@@ -24,7 +24,7 @@ export interface NotificationActor {
 export interface NotificationItem {
 	notification: NotificationResponse;
 	actors: NotificationActor[];
-	target?: DishMediaEntry;
+	dishMediaEntiries?: DishMediaEntry;
 }
 
 /**

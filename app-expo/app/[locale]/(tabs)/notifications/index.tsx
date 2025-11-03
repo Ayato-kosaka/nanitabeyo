@@ -7,7 +7,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMarkNotificationsRead";
 import { useRouter } from "expo-router";
-import type { NotificationItem, NotificationResponse } from "@shared/api/v1/res";
+import type { DishMediaEntry, NotificationItem, NotificationResponse } from "@shared/api/v1/res";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useFocusEffect } from "expo-router";
 import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
@@ -29,7 +29,7 @@ export default function NotificationsScreen() {
 	const { user } = useAuth();
 	const notifications = useNotifications();
 	const { markAllAsRead } = useMarkNotificationsRead();
-	const { unreadCount, refresh: notificationUnredCountRefresh } = useNotificationUnreadCount();
+	const { unreadCount, refresh: notificationUnreadCountRefresh } = useNotificationUnreadCount();
 	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
@@ -43,7 +43,7 @@ export default function NotificationsScreen() {
 			(async () => {
 				try {
 					await notifications.refresh();
-					await notificationUnredCountRefresh(); // 未読数リフレッシュが先
+					await notificationUnreadCountRefresh(); // 未読数リフレッシュが先
 					await markAllAsRead(); // その後に全件既読
 				} finally {
 					// 少し遅らせて解放すると同一フレームの多重起動を吸収しやすい
@@ -51,6 +51,8 @@ export default function NotificationsScreen() {
 				}
 			})();
 			return () => {};
+			// 依存関係はあえて省略。これらの関数は安定している（各フック内で useCallback されている）ため。
+			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [user?.id]),
 	);
 
@@ -61,15 +63,18 @@ export default function NotificationsScreen() {
 
 			// #通知機能 【設計】target_table に基づいて遷移先を判定
 			const { target_table } = notification.notification;
-			const { target } = notification;
 
-			if (target_table === "dish_media" && target) {
+			if (target_table === "dish_media" && notification.dishMediaEntiries !== undefined) {
 				// #通知機能 【仕様】dish_media の場合は FoodContentFeed へ遷移
-				const dishMediaEntries = notifications.items.map((n) => n.target).filter((t) => t !== undefined);
-				const index = dishMediaEntries.findIndex((d) => d.dish_media.id === target.dish_media.id);
+				const dishMediaEntries = notifications.items
+					.map((n) => n.dishMediaEntiries)
+					.filter((t): t is DishMediaEntry => !!t);
+				const index = dishMediaEntries.findIndex(
+					(d) => d.dish_media.id === notification.dishMediaEntiries?.dish_media.id,
+				);
 				setDishePromises("profile", Promise.resolve(dishMediaEntries));
 				router.push({
-					pathname: "/[locale]/(tabs)/profile/food",
+					pathname: "/[locale]/(tabs)/notifications/food",
 					params: { locale, startIndex: index },
 				});
 			}
@@ -160,9 +165,12 @@ export default function NotificationsScreen() {
 					</View>
 
 					{/* Right: Post Thumbnail */}
-					{item.target && (
+					{item.dishMediaEntiries && (
 						<View style={styles.rightContainer}>
-							<Image source={{ uri: item.target.dish_media.thumbnailImageUrl }} style={styles.postThumbnail} />
+							<Image
+								source={{ uri: item.dishMediaEntiries.dish_media.thumbnailImageUrl }}
+								style={styles.postThumbnail}
+							/>
 						</View>
 					)}
 				</TouchableOpacity>

@@ -40,9 +40,5 @@ export const useNotificationUnreadCount = () => {
 		}
 	}, [user, callBackend]);
 
-	useEffect(() => {
-		refresh();
-	}, [user?.is_anonymous, refresh]);
-
 	return { unreadCount, refresh, loading };
 };
