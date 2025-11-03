@@ -4,6 +4,7 @@ const extra = Constants.expoConfig?.extra ?? {};
 
 export const Env = {
 	APP_VERSION: Constants.expoConfig?.version as string,
+	EAS_PROJECT_ID: extra.eas.projectId as string,
 	COMMIT_ID: extra.EXPO_PUBLIC_COMMIT_ID as string,
 	NODE_ENV: extra.EXPO_PUBLIC_NODE_ENV as string,
 	APP_STORE_URL: extra.EXPO_PUBLIC_APP_STORE_URL as string,
