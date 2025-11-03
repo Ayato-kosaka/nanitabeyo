@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { House as Home, MapPinned, Bell, User, Code, Search } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { View, Text, StyleSheet } from "react-native";
-import { useNotificationUnreadCount } from "@/hooks/useNotificationUnreadCount";
+import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 

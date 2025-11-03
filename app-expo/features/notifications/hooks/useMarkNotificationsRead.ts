@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useAPICall } from "./useAPICall";
+import { useAPICall } from "../../../hooks/useAPICall";
 import type { MarkAllReadResponse } from "@shared/api/v1/res";
 
 /**

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { useCursorPagination } from "./useCursorPagination";
-import { useAPICall } from "./useAPICall";
+import { useCursorPagination } from "../../../hooks/useCursorPagination";
+import { useAPICall } from "../../../hooks/useAPICall";
 import type { QueryNotificationsResponse, NotificationItem } from "@shared/api/v1/res";
 
 /**
