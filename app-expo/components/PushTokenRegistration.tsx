@@ -119,7 +119,7 @@ export function PushTokenRegistration() {
 		};
 
 		registerPushToken();
-	}, [user, callBackend, logFrontendEvent]);
+	}, [user?.id, user?.is_anonymous, callBackend, logFrontendEvent]);
 
 	// #通知機能 【設計】Android では通知チャンネルを設定
 	useEffect(() => {
