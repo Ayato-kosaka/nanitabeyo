@@ -40,11 +40,12 @@ export function PushTokenRegistration() {
 		const registerPushToken = async () => {
 			try {
 				// #通知機能 【設計】物理デバイスのみ Push 通知を有効化
-				if (!Device.isDevice) {
+				// web は、 expo-server-sdk で対応していないため除外
+				if (Platform.OS === "web" || !Device.isDevice) {
 					logFrontendEvent({
-						event_name: "push_token_skipped_simulator",
+						event_name: "push_registration_skipped_not_physical_device",
 						error_level: "log",
-						payload: { reason: "Not a physical device" },
+						payload: { reason: "Skipping push registration: not a mobile device" },
 					});
 					return;
 				}
