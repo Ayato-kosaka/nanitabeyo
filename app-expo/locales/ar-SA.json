@@ -140,7 +140,18 @@
 	},
 	"Notifications": {
 		"title": "الإشعارات",
-		"timeAgo": "قبل {{time}}"
+		"timeAgo": "قبل {{time}}",
+		"empty": "لا توجد إشعارات بعد",
+		"loadingMore": "جارٍ التحميل...",
+		"notification": {
+			"dish_media": {
+				"like": "أعجب بمنشورك",
+				"save": "حفظ منشورك"
+			},
+			"dish_reviews": {
+				"like": "أعجب بمراجعتك"
+			}
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

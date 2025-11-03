@@ -140,7 +140,18 @@
 	},
 	"Notifications": {
 		"title": "通知",
-		"timeAgo": "{{time}}前"
+		"timeAgo": "{{time}}前",
+		"empty": "还没有通知",
+		"loadingMore": "加载中...",
+		"notification": {
+			"dish_media": {
+				"like": "点赞了您的帖子",
+				"save": "保存了您的帖子"
+			},
+			"dish_reviews": {
+				"like": "点赞了您的评论"
+			}
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

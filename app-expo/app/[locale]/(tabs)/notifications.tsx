@@ -1,130 +1,215 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from "react-native";
+import React, { useEffect, useCallback } from "react";
+import {
+	View,
+	Text,
+	StyleSheet,
+	FlatList,
+	TouchableOpacity,
+	SafeAreaView,
+	ActivityIndicator,
+	Platform,
+} from "react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
-import { LinearGradient } from "expo-linear-gradient";
-import { Heart, MessageCircle, UserPlus, AtSign, Share, MoveHorizontal as MoreHorizontal } from "lucide-react-native";
-import { NotificationItem } from "@/types";
-import { notificationsData } from "@/data/notificationsData";
+import { Heart, Bookmark } from "lucide-react-native";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useMarkNotificationsRead } from "@/hooks/useMarkNotificationsRead";
+import { useRouter } from "expo-router";
+import type { NotificationItem } from "@shared/api/v1/res";
+import { useAuth } from "@/contexts/AuthProvider";
 
-const { width } = Dimensions.get("window");
-
+/**
+ * 🔔 通知一覧画面
+ *
+ * - GET /v1/notifications を利用してキーセットページング
+ * - 画面入場時に一括既読処理
+ * - 通知タップ時に対象画面に遷移
+ * - 多言語対応（Intl.ListFormat でアクター名を表示）
+ */
 export default function NotificationsScreen() {
-	const [notifications, setNotifications] = useState<NotificationItem[]>(notificationsData);
+	const router = useRouter();
 	const { lightImpact } = useHaptics();
+	const { isAuthenticated, user } = useAuth();
+	const notifications = useNotifications();
+	const { markAllAsRead } = useMarkNotificationsRead();
 
-	const getNotificationIcon = (type: NotificationItem["type"]) => {
+	// #通知機能 【設計】画面入場時に通知を取得し、既読処理を実行
+	useEffect(() => {
+		if (isAuthenticated && user && !user.is_anonymous) {
+			notifications.loadInitial();
+			markAllAsRead();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthenticated, user?.is_anonymous]);
+
+	// #通知機能 【仕様】通知タップ時の遷移処理
+	const handleNotificationPress = useCallback(
+		(notification: NotificationItem) => {
+			lightImpact();
+
+			// #通知機能 【設計】target_table に基づいて遷移先を判定
+			const { target_table } = notification.notification;
+			const { target } = notification;
+
+			if (target_table === "dish_media" && target) {
+				// #通知機能 【仕様】dish_media の場合は FoodContentFeed へ遷移
+				router.push(`/food/${target.dish_media.id}` as any);
+			}
+			// #通知機能 【設計】他の target_table は今後追加予定
+		},
+		[lightImpact, router],
+	);
+
+	// #通知機能 【仕様】通知アイテムのアイコンを取得
+	const getNotificationIcon = (actionType: string) => {
 		const iconProps = { size: 13, color: "#FFFFFF" };
 
-		switch (type) {
+		switch (actionType) {
 			case "like":
 				return <Heart {...iconProps} fill="#FFFFFF" />;
-			case "comment":
-				return <MessageCircle {...iconProps} />;
-			case "follow":
-				return <UserPlus {...iconProps} />;
-			case "mention":
-				return <AtSign {...iconProps} />;
-			case "share":
-				return <Share {...iconProps} />;
+			case "save":
+				return <Bookmark {...iconProps} fill="#FFFFFF" />;
 			default:
 				return <Heart {...iconProps} />;
 		}
 	};
 
-	const getIconBackgroundColor = (type: NotificationItem["type"]) => {
-		switch (type) {
+	// #通知機能 【仕様】通知アイテムのアイコン背景色を取得
+	const getIconBackgroundColor = (actionType: string) => {
+		switch (actionType) {
 			case "like":
 				return "#FF3040";
-			case "comment":
-				return "#007AFF";
-			case "follow":
-				return "#34C759";
-			case "mention":
-				return "#FF9500";
-			case "share":
+			case "save":
 				return "#5856D6";
 			default:
 				return "#FF3040";
 		}
 	};
 
-	const handleNotificationPress = (notification: NotificationItem) => {
-		lightImpact();
-		// Mark as read
-		setNotifications((prev) => prev.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item)));
+	// #通知機能 【仕様】アクター名を多言語対応で表示（Intl.ListFormat）
+	const formatActorNames = useCallback((actors: NotificationItem["actors"]) => {
+		const names = actors.map((a: NotificationItem["actors"][number]) => a.display_name || "Unknown");
+		const locale = i18n.locale;
 
-		// Navigate to relevant content
-		console.log("Navigate to:", notification);
-	};
+		// #通知機能 【設計】Intl.ListFormat で ja → "A、B、C" / en → "A, B, and C" を作る
+		if (Intl.ListFormat) {
+			const formatter = new Intl.ListFormat(locale, { style: "long", type: "conjunction" });
+			return formatter.format(names);
+		}
+		// Fallback: カンマ区切り
+		return names.join(", ");
+	}, []);
 
-	const renderNotificationItem = (notification: NotificationItem) => {
-		const iconBgColor = getIconBackgroundColor(notification.type);
+	// #通知機能 【仕様】通知メッセージを多言語対応で取得
+	const getNotificationMessage = useCallback((notification: NotificationItem) => {
+		const { target_table, action_type } = notification.notification;
 
-		return (
-			<TouchableOpacity
-				key={notification.id}
-				style={styles.notificationItem}
-				onPress={() => handleNotificationPress(notification)}
-				activeOpacity={0.7}>
-				{/* Left: Avatar with Action Icon */}
-				<View style={styles.avatarContainer}>
-					<Image source={{ uri: notification.user.avatar }} style={styles.avatar} />
-					<View style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
-						{getNotificationIcon(notification.type)}
+		// #通知機能 【設計】i18n key: notification.{target_table}.{action_type}
+		const key = `Notifications.notification.${target_table}.${action_type}`;
+		const message = i18n.t(key);
+
+		return message || action_type;
+	}, []);
+
+	// #通知機能 【仕様】通知アイテムをレンダリング
+	const renderNotificationItem = useCallback(
+		({ item }: { item: NotificationItem }) => {
+			const iconBgColor = getIconBackgroundColor(item.notification.action_type);
+			const actorNames = formatActorNames(item.actors);
+			const message = getNotificationMessage(item);
+			const avatar = item.actors[0]?.avatar || "https://via.placeholder.com/50";
+
+			return (
+				<TouchableOpacity
+					style={styles.notificationItem}
+					onPress={() => handleNotificationPress(item)}
+					activeOpacity={0.7}>
+					{/* Left: Avatar with Action Icon */}
+					<View style={styles.avatarContainer}>
+						<Image source={{ uri: avatar }} style={styles.avatar} />
+						<View style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
+							{getNotificationIcon(item.notification.action_type)}
+						</View>
 					</View>
-				</View>
 
-				{/* Center: Message Content */}
-				<View style={styles.messageContainer}>
-					<Text style={styles.messageText} numberOfLines={2}>
-						<Text style={styles.username}>{notification.user.username}</Text>
-						<Text style={styles.message}> {notification.message}</Text>
-					</Text>
-					<Text style={styles.timestamp}>{i18n.t("Notifications.timeAgo", { time: notification.timestamp })}</Text>
-				</View>
+					{/* Center: Message Content */}
+					<View style={styles.messageContainer}>
+						<Text style={styles.messageText} numberOfLines={2}>
+							<Text style={styles.username}>{actorNames}</Text>
+							<Text style={styles.message}> {message}</Text>
+						</Text>
+						<Text style={styles.timestamp}>{new Date(item.notification.created_at).toLocaleDateString()}</Text>
+					</View>
 
-				{/* Right: Post Thumbnail or More Options */}
-				<View style={styles.rightContainer}>
-					{notification.postThumbnail ? (
-						<Image source={{ uri: notification.postThumbnail }} style={styles.postThumbnail} />
-					) : (
-						<TouchableOpacity style={styles.moreButton}>
-							<MoreHorizontal size={20} color="#666" />
-						</TouchableOpacity>
+					{/* Right: Post Thumbnail */}
+					{item.target && (
+						<View style={styles.rightContainer}>
+							<Image
+								source={{ uri: item.target.dish_media.thumbnailImageUrl }}
+								style={styles.postThumbnail}
+							/>
+						</View>
 					)}
+				</TouchableOpacity>
+			);
+		},
+		[formatActorNames, getNotificationMessage, handleNotificationPress],
+	);
+
+	// #通知機能 【設計】匿名ユーザーまたは未認証ユーザーは空画面を表示
+	if (!isAuthenticated || !user || user.is_anonymous) {
+		return (
+			<SafeAreaView style={styles.container}>
+				<View style={styles.header}>
+					<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
 				</View>
-
-				{/* Unread Indicator */}
-				{!notification.isRead && <View style={styles.unreadDot} />}
-			</TouchableOpacity>
+				<View style={styles.emptyContainer}>
+					<Text style={styles.emptyText}>{i18n.t("Notifications.empty")}</Text>
+				</View>
+			</SafeAreaView>
 		);
-	};
-
-	const unreadCount = notifications.filter((n) => !n.isRead).length;
+	}
 
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Header */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
-				{unreadCount > 0 && (
-					<View style={styles.unreadBadge}>
-						<Text style={styles.unreadBadgeText}>{unreadCount}</Text>
-					</View>
-				)}
 			</View>
 
 			{/* Notifications List */}
 			<View style={styles.notificationContainer}>
 				<View style={styles.sheet}>
-					<ScrollView
-						style={styles.scrollView}
-						showsVerticalScrollIndicator={false}
-						contentContainerStyle={styles.scrollContent}>
-						{notifications.map(renderNotificationItem)}
-					</ScrollView>
+					<FlatList
+						data={notifications.items}
+						renderItem={renderNotificationItem}
+						keyExtractor={(item) => item.notification.id}
+						onEndReached={notifications.loadMore}
+						onEndReachedThreshold={0.5}
+						refreshing={notifications.isLoadingInitial}
+						onRefresh={notifications.refresh}
+						ListEmptyComponent={
+							notifications.isLoadingInitial ? (
+								<View style={styles.loadingContainer}>
+									<ActivityIndicator size="large" color="#5EA2FF" />
+								</View>
+							) : (
+								<View style={styles.emptyContainer}>
+									<Text style={styles.emptyText}>{i18n.t("Notifications.empty")}</Text>
+								</View>
+							)
+						}
+						ListFooterComponent={
+							notifications.isLoadingMore ? (
+								<View style={styles.loadingContainer}>
+									<ActivityIndicator size="small" color="#5EA2FF" />
+									<Text style={styles.loadingText}>{i18n.t("Notifications.loadingMore")}</Text>
+								</View>
+							) : null
+						}
+						contentContainerStyle={styles.scrollContent}
+					/>
 				</View>
 			</View>
 		</SafeAreaView>
@@ -149,26 +234,6 @@ const styles = StyleSheet.create({
 		color: "#1A1A1A",
 		letterSpacing: -0.5,
 	},
-	unreadBadge: {
-		position: "absolute",
-		right: 16,
-		backgroundColor: "#5EA2FF",
-		borderRadius: 16,
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		minWidth: 24,
-		alignItems: "center",
-		shadowColor: "#5EA2FF",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	unreadBadgeText: {
-		fontSize: 13,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
 	notificationContainer: {
 		flex: 1,
 		marginTop: 16,
@@ -185,15 +250,12 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 		borderTopLeftRadius: 32,
 		borderTopRightRadius: 32,
-		overflow: "hidden", // clip children to rounded corners
-		paddingTop: 64, // was on notificationContainer
-	},
-	scrollView: {
-		flex: 1,
+		overflow: "hidden",
+		paddingTop: 24,
 	},
 	scrollContent: {
 		paddingHorizontal: 16,
-		gap: 12,
+		paddingBottom: 32,
 	},
 	notificationItem: {
 		flexDirection: "row",
@@ -201,12 +263,8 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 		borderBottomColor: "#E5E7EB",
 		backgroundColor: "#FFFFFF",
-		paddingVertical: 8,
+		paddingVertical: 12,
 		position: "relative",
-	},
-	notificationContent: {
-		flexDirection: "row",
-		alignItems: "center",
 	},
 	avatarContainer: {
 		position: "relative",
@@ -263,26 +321,24 @@ const styles = StyleSheet.create({
 		height: 50,
 		borderRadius: 12,
 	},
-	moreButton: {
-		width: 50,
-		height: 50,
-		alignItems: "center",
+	emptyContainer: {
+		flex: 1,
 		justifyContent: "center",
-		borderRadius: 12,
-		backgroundColor: "#F8F9FA",
+		alignItems: "center",
+		paddingHorizontal: 32,
 	},
-	unreadDot: {
-		position: "absolute",
-		top: 4,
-		right: 4,
-		width: 16,
-		height: 16,
-		borderRadius: 8,
-		backgroundColor: "#5EA2FF",
-		shadowColor: "#5EA2FF",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.5,
-		shadowRadius: 12,
-		elevation: 8,
+	emptyText: {
+		fontSize: 16,
+		color: "#6B7280",
+		textAlign: "center",
+	},
+	loadingContainer: {
+		paddingVertical: 20,
+		alignItems: "center",
+	},
+	loadingText: {
+		marginTop: 8,
+		fontSize: 14,
+		color: "#6B7280",
 	},
 });

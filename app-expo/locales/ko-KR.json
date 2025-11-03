@@ -140,7 +140,18 @@
 	},
 	"Notifications": {
 		"title": "알림",
-		"timeAgo": "{{time}} 전"
+		"timeAgo": "{{time}} 전",
+		"empty": "아직 알림이 없습니다",
+		"loadingMore": "로딩 중...",
+		"notification": {
+			"dish_media": {
+				"like": "님이 회원님의 게시물을 좋아합니다",
+				"save": "님이 회원님의 게시물을 저장했습니다"
+			},
+			"dish_reviews": {
+				"like": "님이 회원님의 리뷰를 좋아합니다"
+			}
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

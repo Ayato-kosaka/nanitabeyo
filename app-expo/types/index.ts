@@ -1,17 +1,3 @@
-export interface NotificationItem {
-	id: string;
-	type: "like" | "comment" | "follow" | "mention" | "share";
-	user: {
-		id: string;
-		username: string;
-		avatar: string;
-	};
-	message: string;
-	timestamp: string;
-	postThumbnail?: string;
-	isRead: boolean;
-}
-
 export interface UserProfile {
 	id: string;
 	username: string;

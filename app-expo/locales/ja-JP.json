@@ -140,7 +140,18 @@
 	},
 	"Notifications": {
 		"title": "通知",
-		"timeAgo": "{{time}}前"
+		"timeAgo": "{{time}}前",
+		"empty": "通知はまだありません",
+		"loadingMore": "読み込み中...",
+		"notification": {
+			"dish_media": {
+				"like": "があなたの投稿にいいねしました",
+				"save": "があなたの投稿を保存しました"
+			},
+			"dish_reviews": {
+				"like": "があなたのレビューにいいねしました"
+			}
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

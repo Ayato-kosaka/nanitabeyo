@@ -1,0 +1,40 @@
+import { useCallback } from "react";
+import { useCursorPagination } from "./useCursorPagination";
+import { useAPICall } from "./useAPICall";
+import type { QueryNotificationsResponse, NotificationItem } from "@shared/api/v1/res";
+
+/**
+ * 🔔 通知一覧取得フック
+ *
+ * - GET /v1/notifications を利用してキーセットページング
+ * - useCursorPagination でスクロール管理
+ * - 無限スクロールに対応
+ *
+ * @returns CursorPaginationResult - 通知一覧とページング制御
+ */
+export const useNotifications = () => {
+	const { callBackend } = useAPICall();
+
+	const fetcher = useCallback(
+		async ({ cursor }: { cursor?: string | null }) => {
+			const params: Record<string, string> = {};
+			if (cursor) {
+				params.cursor = cursor;
+			}
+			params.limit = "30";
+
+			const response = await callBackend<Record<string, string>, QueryNotificationsResponse>("v1/notifications", {
+				method: "GET",
+				requestPayload: params,
+			});
+
+			return {
+				data: response.items,
+				nextCursor: response.nextCursor ?? null,
+			};
+		},
+		[callBackend],
+	);
+
+	return useCursorPagination<undefined, NotificationItem>(fetcher);
+};

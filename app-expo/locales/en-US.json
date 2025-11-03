@@ -140,7 +140,18 @@
 	},
 	"Notifications": {
 		"title": "Notifications",
-		"timeAgo": "{{time}} ago"
+		"timeAgo": "{{time}} ago",
+		"empty": "No notifications yet",
+		"loadingMore": "Loading more...",
+		"notification": {
+			"dish_media": {
+				"like": "liked your post",
+				"save": "saved your post"
+			},
+			"dish_reviews": {
+				"like": "liked your review"
+			}
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {
