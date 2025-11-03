@@ -140,7 +140,18 @@
 	},
 	"Notifications": {
 		"title": "Notifications",
-		"timeAgo": "il y a {{time}}"
+		"timeAgo": "il y a {{time}}",
+		"empty": "Aucune notification pour le moment",
+		"loadingMore": "Chargement...",
+		"notification": {
+			"dish_media": {
+				"like": "a aimé votre publication",
+				"save": "a enregistré votre publication"
+			},
+			"dish_reviews": {
+				"like": "a aimé votre avis"
+			}
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

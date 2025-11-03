@@ -12,7 +12,6 @@ import { Href, useRouter } from "expo-router";
 type AuthContextType = {
 	user: User | null;
 	getSession: () => Session | null;
-	isAuthenticated: boolean;
 	loading: boolean;
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
@@ -374,7 +373,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const value: AuthContextType = {
 		user,
 		getSession,
-		isAuthenticated: !!user,
 		loading,
 		loginWithEmail,
 		signUpWithEmail,

@@ -447,7 +447,7 @@ export class DishMediaRepository {
           ) AS rn
         FROM media_like_counts mlc
       )
-      SELECTrows
+      SELECT
         ranked.dish_media_id,
         ranked.dish_id,
         ranked.like_count

@@ -2,6 +2,14 @@ import { SupabaseNotifications } from "../../../../converters/convert_notificati
 import { DishMediaEntry } from "../dish-media.response";
 
 /**
+ * 通知レスポンス（SupabaseNotifications から actionType と targetTable を抽出）
+ */
+export type NotificationResponse = Omit<SupabaseNotifications, "action_type" | "target_table"> & {
+	action_type: "like" | "save";
+	target_table: "dish_media" | "dish_reviews";
+};
+
+/**
  * 通知のアクター（先頭3件のユーザー情報）
  */
 export interface NotificationActor {
@@ -14,9 +22,9 @@ export interface NotificationActor {
  * 通知アイテム（アクターとターゲットコンテンツを含む）
  */
 export interface NotificationItem {
-	notification: SupabaseNotifications;
+	notification: NotificationResponse;
 	actors: NotificationActor[];
-	target?: DishMediaEntry;
+	dishMediaEntiries?: DishMediaEntry;
 }
 
 /**
