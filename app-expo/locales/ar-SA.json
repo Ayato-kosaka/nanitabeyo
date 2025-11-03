@@ -140,7 +140,16 @@
 	},
 	"Notifications": {
 		"title": "الإشعارات",
-		"timeAgo": "قبل {{time}}"
+		"timeAgo": "قبل {{time}}",
+		"loginRequired": "يرجى تسجيل الدخول لعرض الإشعارات",
+		"empty": "لا توجد إشعارات",
+		"error": "فشل تحميل الإشعارات"
+	},
+	"notification": {
+		"dish_media": {
+			"like": " أعجب بمنشورك",
+			"save": " حفظ منشورك"
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

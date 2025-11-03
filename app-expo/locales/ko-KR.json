@@ -140,7 +140,16 @@
 	},
 	"Notifications": {
 		"title": "알림",
-		"timeAgo": "{{time}} 전"
+		"timeAgo": "{{time}} 전",
+		"loginRequired": "알림을 보려면 로그인하세요",
+		"empty": "알림이 없습니다",
+		"error": "알림을 불러오지 못했습니다"
+	},
+	"notification": {
+		"dish_media": {
+			"like": "님이 회원님의 게시물을 좋아합니다",
+			"save": "님이 회원님의 게시물을 저장했습니다"
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

@@ -140,7 +140,16 @@
 	},
 	"Notifications": {
 		"title": "Notifications",
-		"timeAgo": "il y a {{time}}"
+		"timeAgo": "il y a {{time}}",
+		"loginRequired": "Veuillez vous connecter pour voir les notifications",
+		"empty": "Aucune notification",
+		"error": "Échec du chargement des notifications"
+	},
+	"notification": {
+		"dish_media": {
+			"like": " a aimé votre publication",
+			"save": " a enregistré votre publication"
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

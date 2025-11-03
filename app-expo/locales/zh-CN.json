@@ -140,7 +140,16 @@
 	},
 	"Notifications": {
 		"title": "通知",
-		"timeAgo": "{{time}}前"
+		"timeAgo": "{{time}}前",
+		"loginRequired": "请登录以查看通知",
+		"empty": "没有通知",
+		"error": "加载通知失败"
+	},
+	"notification": {
+		"dish_media": {
+			"like": "点赞了您的帖子",
+			"save": "收藏了您的帖子"
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

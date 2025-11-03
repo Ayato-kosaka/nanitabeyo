@@ -140,7 +140,16 @@
 	},
 	"Notifications": {
 		"title": "Notifications",
-		"timeAgo": "{{time}} ago"
+		"timeAgo": "{{time}} ago",
+		"loginRequired": "Please log in to view notifications",
+		"empty": "No notifications",
+		"error": "Failed to load notifications"
+	},
+	"notification": {
+		"dish_media": {
+			"like": " liked your post",
+			"save": " saved your post"
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

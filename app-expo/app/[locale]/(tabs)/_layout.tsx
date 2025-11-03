@@ -1,10 +1,23 @@
 import { Tabs } from "expo-router";
 import { House as Home, MapPinned, Bell, User, Code, Search } from "lucide-react-native";
 import i18n from "@/lib/i18n";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
 
 export default function TabLayout() {
+	// #通知機能 【設計】未読通知数を取得してバッジに表示
+	const { unreadCount, refresh } = useUnreadNotifications();
+
+	// #通知機能 【設計】通知タブにフォーカスしたら未読数を更新
+	useFocusEffect(
+		useCallback(() => {
+			refresh();
+		}, [refresh]),
+	);
+
 	return (
 		<Tabs
 			initialRouteName="search"
@@ -55,6 +68,7 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.notifications"),
 					tabBarIcon: ({ size, color }) => <Bell size={ICON_SIZE} color={color} />,
+					tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
 				}}
 			/>
 			<Tabs.Screen

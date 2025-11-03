@@ -18,6 +18,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 import { SeoHead } from "../../components/seo";
+import { NotificationManager } from "@/components/NotificationManager";
 
 /**
  * 🌍 BCP 47 言語タグが妥当な形式かを検証するユーティリティ関数。
@@ -86,6 +87,7 @@ export default function RootLayout() {
 					<SnackbarProvider>
 						<DialogProvider>
 							<AuthProvider>
+								<NotificationManager />
 								<Portal.Host>
 									<SplashHandler>
 										<HealthCheckInitializer>

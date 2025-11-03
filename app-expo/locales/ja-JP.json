@@ -140,7 +140,16 @@
 	},
 	"Notifications": {
 		"title": "通知",
-		"timeAgo": "{{time}}前"
+		"timeAgo": "{{time}}前",
+		"loginRequired": "通知を表示するにはログインしてください",
+		"empty": "通知はありません",
+		"error": "通知の読み込みに失敗しました"
+	},
+	"notification": {
+		"dish_media": {
+			"like": "があなたの投稿をいいねしました",
+			"save": "があなたの投稿を保存しました"
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {

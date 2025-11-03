@@ -140,7 +140,16 @@
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",
-		"timeAgo": "{{time}} पहले"
+		"timeAgo": "{{time}} पहले",
+		"loginRequired": "सूचनाएं देखने के लिए कृपया लॉग इन करें",
+		"empty": "कोई सूचना नहीं",
+		"error": "सूचनाएं लोड करने में विफल"
+	},
+	"notification": {
+		"dish_media": {
+			"like": " ने आपकी पोस्ट को पसंद किया",
+			"save": " ने आपकी पोस्ट को सेव किया"
+		}
 	},
 	"FoodContentScreen": {
 		"numberSuffix": {
