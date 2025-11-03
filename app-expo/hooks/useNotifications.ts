@@ -12,7 +12,8 @@ const EXPO_PUSH_TOKEN_KEY = "expoPushToken";
 // #通知機能 【設計】通知が来たときの表示/動作設定
 Notifications.setNotificationHandler({
 	handleNotification: async () => ({
-		shouldShowAlert: true,
+		shouldShowBanner: true,
+		shouldShowList: true,
 		shouldPlaySound: true,
 		shouldSetBadge: true,
 	}),

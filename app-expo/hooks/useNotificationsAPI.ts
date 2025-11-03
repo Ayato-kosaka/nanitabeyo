@@ -1,11 +1,7 @@
 import { useAPICall } from "@/hooks/useAPICall";
 import { useCallback } from "react";
-import type { QueryNotificationsDto } from "@shared/v1/dto";
-import type {
-	QueryNotificationsResponse,
-	MarkAllReadResponse,
-	UnreadCountResponse,
-} from "@shared/v1/res";
+import type { QueryNotificationsDto } from "@shared/api/v1/dto";
+import type { QueryNotificationsResponse, MarkAllReadResponse, UnreadCountResponse } from "@shared/api/v1/res";
 
 /**
  * 📬 通知 API サービスフック

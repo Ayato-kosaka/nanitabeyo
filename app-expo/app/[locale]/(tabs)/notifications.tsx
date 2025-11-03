@@ -1,20 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	TouchableOpacity,
-	SafeAreaView,
-	FlatList,
-	ActivityIndicator,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, FlatList, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { Heart, BookmarkCheck } from "lucide-react-native";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useNotificationsAPI } from "@/hooks/useNotificationsAPI";
-import type { NotificationItem } from "@shared/v1/res";
+import type { NotificationItem } from "@shared/api/v1/res";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthProvider";
 import FoodContentFeed from "@/components/FoodContentFeed";
@@ -38,10 +30,10 @@ export default function NotificationsScreen() {
 		hasNextPage,
 		error,
 	} = useCursorPagination<{ limit?: number }, NotificationItem>(async ({ cursor }) => {
-		const response = await fetchNotifications({ cursor, limit: 30 });
+		const response = await fetchNotifications({ cursor: cursor ?? undefined, limit: 30 });
 		return {
 			data: response.items,
-			nextCursor: response.nextCursor ?? null,
+			nextCursor: response.nextCursor,
 		};
 	});
 
@@ -104,7 +96,7 @@ export default function NotificationsScreen() {
 			// target_table に基づいて遷移
 			if (notification.notification.target_table === "dish_media" && notification.target) {
 				// FoodContentFeed で表示
-				setSelectedDishMediaId(notification.target.id);
+				setSelectedDishMediaId(notification.target.dish_media.id);
 			}
 		},
 		[lightImpact],
@@ -161,8 +153,8 @@ export default function NotificationsScreen() {
 
 				{/* Right: Post Thumbnail */}
 				<View style={styles.rightContainer}>
-					{item.target?.thumbnail_url && (
-						<Image source={{ uri: item.target.thumbnail_url }} style={styles.postThumbnail} />
+					{item.target?.dish_media.thumbnailImageUrl && (
+						<Image source={{ uri: item.target.dish_media.thumbnailImageUrl }} style={styles.postThumbnail} />
 					)}
 				</View>
 			</TouchableOpacity>
@@ -189,7 +181,7 @@ export default function NotificationsScreen() {
 		const dishMediaItems = notifications
 			.filter((item) => item.target && item.notification.target_table === "dish_media")
 			.map((item) => item.target!);
-		const initialIndex = dishMediaItems.findIndex((item) => item.id === selectedDishMediaId);
+		const initialIndex = dishMediaItems.findIndex((item) => item.dish_media.id === selectedDishMediaId);
 
 		return (
 			<FoodContentFeed
