@@ -50,7 +50,7 @@ export const useUnreadNotifications = () => {
 	// 認証状態が変わったら自動更新
 	useEffect(() => {
 		fetchUnreadCount();
-	}, [isAuthenticated, user?.id]);
+	}, [isAuthenticated, user?.id, user?.is_anonymous]); // #通知機能 【バグ】匿名状態の変化も監視する
 
 	return {
 		unreadCount,

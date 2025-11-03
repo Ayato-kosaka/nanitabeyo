@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { useAPICall } from "./useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -71,14 +72,15 @@ export const useNotifications = () => {
 			}
 
 			// #通知機能 【設計】Expo Push Token を取得
+			const projectId = Constants.expoConfig?.extra?.projectId as string;
 			const tokenData = await Notifications.getExpoPushTokenAsync({
-				projectId: "e7c4e93a-0e45-4cfd-ab0e-bf2ea27ffe87", // EAS project ID from app.config.ts
+				projectId,
 			});
 
 			logFrontendEvent({
 				event_name: "expo_push_token_obtained",
 				error_level: "log",
-				payload: { token: tokenData.data },
+				payload: { tokenPreview: `${tokenData.data.substring(0, 20)}...` }, // #通知機能 【セキュリティ】トークン全体ではなくプレビューのみをログに記録
 			});
 
 			return tokenData.data;
@@ -109,7 +111,7 @@ export const useNotifications = () => {
 				logFrontendEvent({
 					event_name: "device_token_registered",
 					error_level: "log",
-					payload: { token },
+					payload: { tokenPreview: `${token.substring(0, 20)}...` }, // #通知機能 【セキュリティ】トークン全体ではなくプレビューのみをログに記録
 				});
 
 				// #通知機能 【設計】送信成功時は SecureStore にキャッシュ

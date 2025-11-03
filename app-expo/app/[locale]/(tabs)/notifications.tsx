@@ -61,7 +61,7 @@ export default function NotificationsScreen() {
 		};
 
 		initializeNotifications();
-	}, [isAuthenticated, user?.id]);
+	}, [isAuthenticated, user?.id, user?.is_anonymous]); // #通知機能 【バグ】匿名状態の変化も監視する
 
 	// #通知機能 【設計】通知アイコンの取得（action_type に基づく）
 	const getNotificationIcon = (actionType: string) => {
