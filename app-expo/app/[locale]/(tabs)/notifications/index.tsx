@@ -9,29 +9,50 @@ import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMark
 import { useRouter } from "expo-router";
 import type { NotificationItem, NotificationResponse } from "@shared/api/v1/res";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useFocusEffect } from "expo-router";
+import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useLocale } from "@/hooks/useLocale";
 
 /**
  * 🔔 通知一覧画面
  *
  * - GET /v1/notifications を利用してキーセットページング
  * - 画面入場時に一括既読処理
+ * - 未読数バッジ表示
  * - 通知タップ時に対象画面に遷移
  * - 多言語対応（Intl.ListFormat でアクター名を表示）
  */
 export default function NotificationsScreen() {
 	const router = useRouter();
 	const { lightImpact } = useHaptics();
-	const { isAuthenticated, user } = useAuth();
+	const { user } = useAuth();
 	const notifications = useNotifications();
 	const { markAllAsRead } = useMarkNotificationsRead();
+	const { unreadCount, refresh: notificationUnredCountRefresh } = useNotificationUnreadCount();
+	const { setDishePromises } = useDishMediaEntriesStore();
+	const locale = useLocale();
 
-	// #通知機能 【設計】画面入場時に通知を取得し、既読処理を実行
-	useEffect(() => {
-		if (isAuthenticated && user && !user.is_anonymous) {
-			notifications.loadInitial();
-			markAllAsRead();
-		}
-	}, [isAuthenticated, user?.is_anonymous, notifications.loadInitial, markAllAsRead]);
+	// #通知機能 【設計】画面入場時に通知を取得し、未読数をリフレッシュして全件既読にする
+	const inFlightRef = React.useRef(false);
+	useFocusEffect(
+		React.useCallback(() => {
+			if (!user || user.is_anonymous) return;
+			if (inFlightRef.current) return;
+			inFlightRef.current = true;
+			(async () => {
+				try {
+					await notifications.refresh();
+					await notificationUnredCountRefresh(); // 未読数リフレッシュが先
+					await markAllAsRead(); // その後に全件既読
+				} finally {
+					// 少し遅らせて解放すると同一フレームの多重起動を吸収しやすい
+					setTimeout(() => (inFlightRef.current = false), 0);
+				}
+			})();
+			return () => {};
+		}, [user?.id]),
+	);
 
 	// #通知機能 【仕様】通知タップ時の遷移処理
 	const handleNotificationPress = useCallback(
@@ -44,9 +65,13 @@ export default function NotificationsScreen() {
 
 			if (target_table === "dish_media" && target) {
 				// #通知機能 【仕様】dish_media の場合は FoodContentFeed へ遷移
-				// TODO: 適切な food コンテンツ画面のルーティングパスを確認する必要がある
-				// 暫定的に文字列として扱う
-				router.push(`/food/${target.dish_media.id}` as `/food/${string}`);
+				const dishMediaEntries = notifications.items.map((n) => n.target).filter((t) => t !== undefined);
+				const index = dishMediaEntries.findIndex((d) => d.dish_media.id === target.dish_media.id);
+				setDishePromises("profile", Promise.resolve(dishMediaEntries));
+				router.push({
+					pathname: "/[locale]/(tabs)/profile/food",
+					params: { locale, startIndex: index },
+				});
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
@@ -147,7 +172,7 @@ export default function NotificationsScreen() {
 	);
 
 	// #通知機能 【設計】匿名ユーザーまたは未認証ユーザーは空画面を表示
-	if (!isAuthenticated || !user || user.is_anonymous) {
+	if (!user || user.is_anonymous) {
 		return (
 			<SafeAreaView style={styles.container}>
 				<View style={styles.header}>

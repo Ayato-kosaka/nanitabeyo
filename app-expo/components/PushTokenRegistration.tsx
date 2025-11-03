@@ -29,13 +29,13 @@ type PushCache = {
  */
 export function PushTokenRegistration() {
 	const { callBackend } = useAPICall();
-	const { user, isAuthenticated } = useAuth();
+	const { user } = useAuth();
 	const { logFrontendEvent } = useLogger();
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
 		// #通知機能 【設計】匿名ユーザーは Push Token を登録しない
-		if (!isAuthenticated || !user || user.is_anonymous) return;
+		if (!user || user.is_anonymous) return;
 
 		const registerPushToken = async () => {
 			try {
@@ -118,7 +118,7 @@ export function PushTokenRegistration() {
 		};
 
 		registerPushToken();
-	}, [isAuthenticated, user, callBackend, logFrontendEvent]);
+	}, [user, callBackend, logFrontendEvent]);
 
 	// #通知機能 【設計】Android では通知チャンネルを設定
 	useEffect(() => {

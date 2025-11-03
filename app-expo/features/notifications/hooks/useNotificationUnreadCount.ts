@@ -14,13 +14,13 @@ import type { UnreadCountResponse } from "@shared/api/v1/res";
  */
 export const useNotificationUnreadCount = () => {
 	const { callBackend } = useAPICall();
-	const { isAuthenticated, user } = useAuth();
+	const { user } = useAuth();
 	const [unreadCount, setUnreadCount] = useState<number>(0);
 	const [loading, setLoading] = useState(false);
 
 	const refresh = useCallback(async () => {
 		// #通知機能 【設計】匿名ユーザーは未読数を取得しない
-		if (!isAuthenticated || !user || user.is_anonymous) {
+		if (!user || user.is_anonymous) {
 			setUnreadCount(0);
 			return;
 		}
@@ -38,11 +38,11 @@ export const useNotificationUnreadCount = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [isAuthenticated, user, callBackend]);
+	}, [user, callBackend]);
 
 	useEffect(() => {
 		refresh();
-	}, [isAuthenticated, user?.is_anonymous, refresh]);
+	}, [user?.is_anonymous, refresh]);
 
 	return { unreadCount, refresh, loading };
 };
