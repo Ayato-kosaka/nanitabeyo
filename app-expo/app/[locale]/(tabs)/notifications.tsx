@@ -10,6 +10,7 @@ import type { NotificationItem } from "@shared/api/v1/res";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthProvider";
 import FoodContentFeed from "@/components/FoodContentFeed";
+import { formatTimeAgo } from "@/lib/dateUtils";
 
 export default function NotificationsScreen() {
 	const { fetchNotifications, markAllAsRead, getUnreadCount } = useNotificationsAPI();
@@ -106,28 +107,14 @@ export default function NotificationsScreen() {
 		const iconBgColor = getIconBackgroundColor(item.notification.action_type);
 		// #通知機能 【設計】通知メッセージは i18n_key で多言語化（notification.{target_table}.{action_type}）
 		const messageKey = `notification.${item.notification.target_table}.${item.notification.action_type}`;
-		const message = i18n.t(messageKey);
+		const message = i18n.t(messageKey, { defaultValue: i18n.t("Notifications.newNotification") }); // #通知機能 【バグ】翻訳キーがない場合のフォールバック
 
 		// #通知機能 【設計】通知ユーザー名は actors[0].display_name を表示
-		const actorName = item.actors[0]?.display_name || "Unknown";
+		const actorName = item.actors[0]?.display_name || i18n.t("Notifications.unknownUser"); // #通知機能 【i18n】ハードコード文字列を多言語化
 		const actorAvatar = item.actors[0]?.avatar || "";
 
-		// 作成日時を相対時間に変換
-		const createdAt = new Date(item.notification.created_at);
-		const now = new Date();
-		const diffMs = now.getTime() - createdAt.getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMs / 3600000);
-		const diffDays = Math.floor(diffMs / 86400000);
-
-		let timeAgo = "";
-		if (diffMins < 60) {
-			timeAgo = `${diffMins}m`;
-		} else if (diffHours < 24) {
-			timeAgo = `${diffHours}h`;
-		} else {
-			timeAgo = `${diffDays}d`;
-		}
+		// #通知機能 【設計】相対時間をフォーマット
+		const timeAgo = formatTimeAgo(item.notification.created_at);
 
 		return (
 			<TouchableOpacity

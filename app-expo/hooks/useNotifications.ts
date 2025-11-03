@@ -72,7 +72,11 @@ export const useNotifications = () => {
 			}
 
 			// #通知機能 【設計】Expo Push Token を取得
-			const projectId = Constants.expoConfig?.extra?.projectId as string;
+			const projectId = Constants.expoConfig?.extra?.eas?.projectId as string;
+			if (!projectId) {
+				throw new Error("EAS Project ID is not configured in app.config.ts");
+			}
+
 			const tokenData = await Notifications.getExpoPushTokenAsync({
 				projectId,
 			});

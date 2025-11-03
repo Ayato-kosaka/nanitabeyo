@@ -143,7 +143,9 @@
 		"timeAgo": "hace {{time}}",
 		"loginRequired": "Inicie sesión para ver las notificaciones",
 		"empty": "No hay notificaciones",
-		"error": "Error al cargar las notificaciones"
+		"error": "Error al cargar las notificaciones",
+		"unknownUser": "Usuario desconocido",
+		"newNotification": "Nueva notificación"
 	},
 	"notification": {
 		"dish_media": {

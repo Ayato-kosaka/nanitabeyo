@@ -143,7 +143,9 @@
 		"timeAgo": "{{time}} पहले",
 		"loginRequired": "सूचनाएं देखने के लिए कृपया लॉग इन करें",
 		"empty": "कोई सूचना नहीं",
-		"error": "सूचनाएं लोड करने में विफल"
+		"error": "सूचनाएं लोड करने में विफल",
+		"unknownUser": "अज्ञात उपयोगकर्ता",
+		"newNotification": "नई सूचना"
 	},
 	"notification": {
 		"dish_media": {

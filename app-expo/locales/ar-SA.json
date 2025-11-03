@@ -143,7 +143,9 @@
 		"timeAgo": "قبل {{time}}",
 		"loginRequired": "يرجى تسجيل الدخول لعرض الإشعارات",
 		"empty": "لا توجد إشعارات",
-		"error": "فشل تحميل الإشعارات"
+		"error": "فشل تحميل الإشعارات",
+		"unknownUser": "مستخدم غير معروف",
+		"newNotification": "إشعار جديد"
 	},
 	"notification": {
 		"dish_media": {

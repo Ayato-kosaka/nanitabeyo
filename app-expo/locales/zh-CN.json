@@ -143,7 +143,9 @@
 		"timeAgo": "{{time}}前",
 		"loginRequired": "请登录以查看通知",
 		"empty": "没有通知",
-		"error": "加载通知失败"
+		"error": "加载通知失败",
+		"unknownUser": "未知用户",
+		"newNotification": "新通知"
 	},
 	"notification": {
 		"dish_media": {

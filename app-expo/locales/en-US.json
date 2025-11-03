@@ -143,7 +143,9 @@
 		"timeAgo": "{{time}} ago",
 		"loginRequired": "Please log in to view notifications",
 		"empty": "No notifications",
-		"error": "Failed to load notifications"
+		"error": "Failed to load notifications",
+		"unknownUser": "Unknown user",
+		"newNotification": "New notification"
 	},
 	"notification": {
 		"dish_media": {

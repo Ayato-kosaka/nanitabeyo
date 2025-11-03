@@ -143,7 +143,9 @@
 		"timeAgo": "il y a {{time}}",
 		"loginRequired": "Veuillez vous connecter pour voir les notifications",
 		"empty": "Aucune notification",
-		"error": "Échec du chargement des notifications"
+		"error": "Échec du chargement des notifications",
+		"unknownUser": "Utilisateur inconnu",
+		"newNotification": "Nouvelle notification"
 	},
 	"notification": {
 		"dish_media": {
