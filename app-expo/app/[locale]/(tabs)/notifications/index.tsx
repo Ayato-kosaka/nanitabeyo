@@ -75,7 +75,7 @@ export default function NotificationsScreen() {
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
-		[lightImpact, router],
+		[lightImpact, router, notifications.items, setDishePromises, locale],
 	);
 
 	// #通知機能 【仕様】通知アイテムのアイコンを取得
