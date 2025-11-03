@@ -3,7 +3,7 @@
 // Cloud Tasks から渡される通知ジョブのペイロード
 //
 
-import { NotificationResponse } from "@shared/v1/res";
+import { NotificationResponse } from '@shared/v1/res';
 
 export interface NotificationJobPayload {
   actionType: NotificationResponse['action_type'];

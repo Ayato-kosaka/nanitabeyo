@@ -4,9 +4,9 @@ import { DishMediaEntry } from "../dish-media.response";
 /**
  * 通知レスポンス（SupabaseNotifications から actionType と targetTable を抽出）
  */
-export type NotificationResponse = Omit<SupabaseNotifications, 'action_type' | 'target_table'> & {
-	action_type: 'like' | 'save';
-	target_table: 'dish_media' | 'dish_reviews';
+export type NotificationResponse = Omit<SupabaseNotifications, "action_type" | "target_table"> & {
+	action_type: "like" | "save";
+	target_table: "dish_media" | "dish_reviews";
 };
 
 /**

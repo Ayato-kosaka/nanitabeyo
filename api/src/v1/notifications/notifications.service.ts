@@ -72,7 +72,9 @@ export class NotificationsService {
 
     // #通知機能 【設計】NotificationItem 形式に変換（actors と notification を含む）
     const notificationItems = items.map((item) => ({
-      notification: convertPrismaToSupabase_Notifications(item.notifications) as NotificationResponse,
+      notification: convertPrismaToSupabase_Notifications(
+        item.notifications,
+      ) as NotificationResponse,
       actors: item.notifications.actor_ids
         .map((actorId) => actorMap.get(actorId))
         .filter((actor) => actor !== undefined),
