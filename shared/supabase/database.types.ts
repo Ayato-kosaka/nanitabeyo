@@ -565,7 +565,7 @@ export type Database = {
 					created_at?: string;
 					notification_id: string;
 					recipient_id: string;
-					thread_updated_at?: string;
+					thread_updated_at: string;
 				};
 				Update: {
 					created_at?: string;
@@ -927,19 +927,16 @@ export type Database = {
 			user_device_tokens: {
 				Row: {
 					expo_push_token: string;
-					locale: string;
 					updated_at: string;
 					user_id: string;
 				};
 				Insert: {
 					expo_push_token: string;
-					locale?: string;
 					updated_at?: string;
 					user_id: string;
 				};
 				Update: {
 					expo_push_token?: string;
-					locale?: string;
 					updated_at?: string;
 					user_id?: string;
 				};
@@ -969,6 +966,7 @@ export type Database = {
 					id: string;
 					last_login_at: string | null;
 					lock_no: number;
+					preferred_locale: string;
 					updated_at: string;
 					username: string;
 				};
@@ -980,6 +978,7 @@ export type Database = {
 					id?: string;
 					last_login_at?: string | null;
 					lock_no?: number;
+					preferred_locale: string;
 					updated_at?: string;
 					username: string;
 				};
@@ -991,6 +990,7 @@ export type Database = {
 					id?: string;
 					last_login_at?: string | null;
 					lock_no?: number;
+					preferred_locale?: string;
 					updated_at?: string;
 					username?: string;
 				};

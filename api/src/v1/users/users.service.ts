@@ -32,6 +32,10 @@ export class UsersService {
     private readonly dishCategoriesRepo: DishCategoriesRepository,
   ) {}
 
+  async getUserByIds(userId: string[]) {
+    return this.repo.getUserByIds(userId);
+  }
+
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */
   /* ------------------------------------------------------------------ */

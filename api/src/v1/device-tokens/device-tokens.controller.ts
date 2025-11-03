@@ -49,7 +49,6 @@ export class DeviceTokensController {
     return this.notificationsService.createDeviceToken(
       user.id,
       dto.expoPushToken,
-      dto.locale,
     );
   }
 }

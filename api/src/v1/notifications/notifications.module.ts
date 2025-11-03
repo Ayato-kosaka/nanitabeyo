@@ -7,9 +7,11 @@ import { NotificationsRepository } from './notifications.repository';
 import { DeviceTokensController } from '../device-tokens/device-tokens.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { CoreModule } from '../../core/core.module';
+import { UsersModule } from '../users/users.module';
+import { DishMediaModule } from '../dish-media/dish-media.module';
 
 @Module({
-  imports: [PrismaModule, CoreModule],
+  imports: [PrismaModule, CoreModule, UsersModule, DishMediaModule],
   controllers: [NotificationsController, DeviceTokensController],
   providers: [NotificationsService, NotificationsRepository],
   exports: [NotificationsService, NotificationsRepository],

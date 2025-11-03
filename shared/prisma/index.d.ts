@@ -166,6 +166,7 @@ export type user_device_tokens = $Result.DefaultSelection<Prisma.$user_device_to
 export type user_notification_cursors = $Result.DefaultSelection<Prisma.$user_notification_cursorsPayload>
 /**
  * Model users
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
@@ -18211,18 +18212,21 @@ export namespace Prisma {
   export type Notification_recipientsMinAggregateOutputType = {
     notification_id: string | null
     recipient_id: string | null
+    thread_updated_at: Date | null
     created_at: Date | null
   }
 
   export type Notification_recipientsMaxAggregateOutputType = {
     notification_id: string | null
     recipient_id: string | null
+    thread_updated_at: Date | null
     created_at: Date | null
   }
 
   export type Notification_recipientsCountAggregateOutputType = {
     notification_id: number
     recipient_id: number
+    thread_updated_at: number
     created_at: number
     _all: number
   }
@@ -18231,18 +18235,21 @@ export namespace Prisma {
   export type Notification_recipientsMinAggregateInputType = {
     notification_id?: true
     recipient_id?: true
+    thread_updated_at?: true
     created_at?: true
   }
 
   export type Notification_recipientsMaxAggregateInputType = {
     notification_id?: true
     recipient_id?: true
+    thread_updated_at?: true
     created_at?: true
   }
 
   export type Notification_recipientsCountAggregateInputType = {
     notification_id?: true
     recipient_id?: true
+    thread_updated_at?: true
     created_at?: true
     _all?: true
   }
@@ -18322,6 +18329,7 @@ export namespace Prisma {
   export type Notification_recipientsGroupByOutputType = {
     notification_id: string
     recipient_id: string
+    thread_updated_at: Date
     created_at: Date
     _count: Notification_recipientsCountAggregateOutputType | null
     _min: Notification_recipientsMinAggregateOutputType | null
@@ -18345,6 +18353,7 @@ export namespace Prisma {
   export type notification_recipientsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     notification_id?: boolean
     recipient_id?: boolean
+    thread_updated_at?: boolean
     created_at?: boolean
     notifications?: boolean | notificationsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["notification_recipients"]>
@@ -18352,6 +18361,7 @@ export namespace Prisma {
   export type notification_recipientsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     notification_id?: boolean
     recipient_id?: boolean
+    thread_updated_at?: boolean
     created_at?: boolean
     notifications?: boolean | notificationsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["notification_recipients"]>
@@ -18359,6 +18369,7 @@ export namespace Prisma {
   export type notification_recipientsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     notification_id?: boolean
     recipient_id?: boolean
+    thread_updated_at?: boolean
     created_at?: boolean
     notifications?: boolean | notificationsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["notification_recipients"]>
@@ -18366,10 +18377,11 @@ export namespace Prisma {
   export type notification_recipientsSelectScalar = {
     notification_id?: boolean
     recipient_id?: boolean
+    thread_updated_at?: boolean
     created_at?: boolean
   }
 
-  export type notification_recipientsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"notification_id" | "recipient_id" | "created_at", ExtArgs["result"]["notification_recipients"]>
+  export type notification_recipientsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"notification_id" | "recipient_id" | "thread_updated_at" | "created_at", ExtArgs["result"]["notification_recipients"]>
   export type notification_recipientsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     notifications?: boolean | notificationsDefaultArgs<ExtArgs>
   }
@@ -18388,6 +18400,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       notification_id: string
       recipient_id: string
+      thread_updated_at: Date
       created_at: Date
     }, ExtArgs["result"]["notification_recipients"]>
     composites: {}
@@ -18815,6 +18828,7 @@ export namespace Prisma {
   interface notification_recipientsFieldRefs {
     readonly notification_id: FieldRef<"notification_recipients", 'String'>
     readonly recipient_id: FieldRef<"notification_recipients", 'String'>
+    readonly thread_updated_at: FieldRef<"notification_recipients", 'DateTime'>
     readonly created_at: FieldRef<"notification_recipients", 'DateTime'>
   }
     
@@ -19236,18 +19250,8 @@ export namespace Prisma {
 
   export type AggregateNotifications = {
     _count: NotificationsCountAggregateOutputType | null
-    _avg: NotificationsAvgAggregateOutputType | null
-    _sum: NotificationsSumAggregateOutputType | null
     _min: NotificationsMinAggregateOutputType | null
     _max: NotificationsMaxAggregateOutputType | null
-  }
-
-  export type NotificationsAvgAggregateOutputType = {
-    actor_count: number | null
-  }
-
-  export type NotificationsSumAggregateOutputType = {
-    actor_count: number | null
   }
 
   export type NotificationsMinAggregateOutputType = {
@@ -19255,11 +19259,9 @@ export namespace Prisma {
     action_type: string | null
     target_table: string | null
     target_id: string | null
-    actor_id: string | null
-    i18n_key: string | null
-    actor_count: number | null
     idempotency_key: string | null
     created_at: Date | null
+    updated_at: Date | null
   }
 
   export type NotificationsMaxAggregateOutputType = {
@@ -19267,11 +19269,9 @@ export namespace Prisma {
     action_type: string | null
     target_table: string | null
     target_id: string | null
-    actor_id: string | null
-    i18n_key: string | null
-    actor_count: number | null
     idempotency_key: string | null
     created_at: Date | null
+    updated_at: Date | null
   }
 
   export type NotificationsCountAggregateOutputType = {
@@ -19279,35 +19279,22 @@ export namespace Prisma {
     action_type: number
     target_table: number
     target_id: number
-    actor_id: number
-    i18n_key: number
-    i18n_params: number
     actor_ids: number
-    actor_count: number
     idempotency_key: number
     created_at: number
+    updated_at: number
     _all: number
   }
 
-
-  export type NotificationsAvgAggregateInputType = {
-    actor_count?: true
-  }
-
-  export type NotificationsSumAggregateInputType = {
-    actor_count?: true
-  }
 
   export type NotificationsMinAggregateInputType = {
     id?: true
     action_type?: true
     target_table?: true
     target_id?: true
-    actor_id?: true
-    i18n_key?: true
-    actor_count?: true
     idempotency_key?: true
     created_at?: true
+    updated_at?: true
   }
 
   export type NotificationsMaxAggregateInputType = {
@@ -19315,11 +19302,9 @@ export namespace Prisma {
     action_type?: true
     target_table?: true
     target_id?: true
-    actor_id?: true
-    i18n_key?: true
-    actor_count?: true
     idempotency_key?: true
     created_at?: true
+    updated_at?: true
   }
 
   export type NotificationsCountAggregateInputType = {
@@ -19327,13 +19312,10 @@ export namespace Prisma {
     action_type?: true
     target_table?: true
     target_id?: true
-    actor_id?: true
-    i18n_key?: true
-    i18n_params?: true
     actor_ids?: true
-    actor_count?: true
     idempotency_key?: true
     created_at?: true
+    updated_at?: true
     _all?: true
   }
 
@@ -19375,18 +19357,6 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Select which fields to average
-    **/
-    _avg?: NotificationsAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: NotificationsSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
      * Select which fields to find the minimum value
     **/
     _min?: NotificationsMinAggregateInputType
@@ -19417,8 +19387,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: NotificationsCountAggregateInputType | true
-    _avg?: NotificationsAvgAggregateInputType
-    _sum?: NotificationsSumAggregateInputType
     _min?: NotificationsMinAggregateInputType
     _max?: NotificationsMaxAggregateInputType
   }
@@ -19428,16 +19396,11 @@ export namespace Prisma {
     action_type: string
     target_table: string
     target_id: string
-    actor_id: string
-    i18n_key: string
-    i18n_params: JsonValue
     actor_ids: string[]
-    actor_count: number
     idempotency_key: string
     created_at: Date
+    updated_at: Date
     _count: NotificationsCountAggregateOutputType | null
-    _avg: NotificationsAvgAggregateOutputType | null
-    _sum: NotificationsSumAggregateOutputType | null
     _min: NotificationsMinAggregateOutputType | null
     _max: NotificationsMaxAggregateOutputType | null
   }
@@ -19461,13 +19424,10 @@ export namespace Prisma {
     action_type?: boolean
     target_table?: boolean
     target_id?: boolean
-    actor_id?: boolean
-    i18n_key?: boolean
-    i18n_params?: boolean
     actor_ids?: boolean
-    actor_count?: boolean
     idempotency_key?: boolean
     created_at?: boolean
+    updated_at?: boolean
     notification_recipients?: boolean | notifications$notification_recipientsArgs<ExtArgs>
     _count?: boolean | NotificationsCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["notifications"]>
@@ -19477,13 +19437,10 @@ export namespace Prisma {
     action_type?: boolean
     target_table?: boolean
     target_id?: boolean
-    actor_id?: boolean
-    i18n_key?: boolean
-    i18n_params?: boolean
     actor_ids?: boolean
-    actor_count?: boolean
     idempotency_key?: boolean
     created_at?: boolean
+    updated_at?: boolean
   }, ExtArgs["result"]["notifications"]>
 
   export type notificationsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -19491,13 +19448,10 @@ export namespace Prisma {
     action_type?: boolean
     target_table?: boolean
     target_id?: boolean
-    actor_id?: boolean
-    i18n_key?: boolean
-    i18n_params?: boolean
     actor_ids?: boolean
-    actor_count?: boolean
     idempotency_key?: boolean
     created_at?: boolean
+    updated_at?: boolean
   }, ExtArgs["result"]["notifications"]>
 
   export type notificationsSelectScalar = {
@@ -19505,16 +19459,13 @@ export namespace Prisma {
     action_type?: boolean
     target_table?: boolean
     target_id?: boolean
-    actor_id?: boolean
-    i18n_key?: boolean
-    i18n_params?: boolean
     actor_ids?: boolean
-    actor_count?: boolean
     idempotency_key?: boolean
     created_at?: boolean
+    updated_at?: boolean
   }
 
-  export type notificationsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "action_type" | "target_table" | "target_id" | "actor_id" | "i18n_key" | "i18n_params" | "actor_ids" | "actor_count" | "idempotency_key" | "created_at", ExtArgs["result"]["notifications"]>
+  export type notificationsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "action_type" | "target_table" | "target_id" | "actor_ids" | "idempotency_key" | "created_at" | "updated_at", ExtArgs["result"]["notifications"]>
   export type notificationsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     notification_recipients?: boolean | notifications$notification_recipientsArgs<ExtArgs>
     _count?: boolean | NotificationsCountOutputTypeDefaultArgs<ExtArgs>
@@ -19532,13 +19483,10 @@ export namespace Prisma {
       action_type: string
       target_table: string
       target_id: string
-      actor_id: string
-      i18n_key: string
-      i18n_params: Prisma.JsonValue
       actor_ids: string[]
-      actor_count: number
       idempotency_key: string
       created_at: Date
+      updated_at: Date
     }, ExtArgs["result"]["notifications"]>
     composites: {}
   }
@@ -19967,13 +19915,10 @@ export namespace Prisma {
     readonly action_type: FieldRef<"notifications", 'String'>
     readonly target_table: FieldRef<"notifications", 'String'>
     readonly target_id: FieldRef<"notifications", 'String'>
-    readonly actor_id: FieldRef<"notifications", 'String'>
-    readonly i18n_key: FieldRef<"notifications", 'String'>
-    readonly i18n_params: FieldRef<"notifications", 'Json'>
     readonly actor_ids: FieldRef<"notifications", 'String[]'>
-    readonly actor_count: FieldRef<"notifications", 'Int'>
     readonly idempotency_key: FieldRef<"notifications", 'String'>
     readonly created_at: FieldRef<"notifications", 'DateTime'>
+    readonly updated_at: FieldRef<"notifications", 'DateTime'>
   }
     
 
@@ -30392,6 +30337,7 @@ export namespace Prisma {
     updated_at: Date | null
     lock_no: number | null
     username: string | null
+    preferred_locale: string | null
   }
 
   export type UsersMaxAggregateOutputType = {
@@ -30404,6 +30350,7 @@ export namespace Prisma {
     updated_at: Date | null
     lock_no: number | null
     username: string | null
+    preferred_locale: string | null
   }
 
   export type UsersCountAggregateOutputType = {
@@ -30416,6 +30363,7 @@ export namespace Prisma {
     updated_at: number
     lock_no: number
     username: number
+    preferred_locale: number
     _all: number
   }
 
@@ -30438,6 +30386,7 @@ export namespace Prisma {
     updated_at?: true
     lock_no?: true
     username?: true
+    preferred_locale?: true
   }
 
   export type UsersMaxAggregateInputType = {
@@ -30450,6 +30399,7 @@ export namespace Prisma {
     updated_at?: true
     lock_no?: true
     username?: true
+    preferred_locale?: true
   }
 
   export type UsersCountAggregateInputType = {
@@ -30462,6 +30412,7 @@ export namespace Prisma {
     updated_at?: true
     lock_no?: true
     username?: true
+    preferred_locale?: true
     _all?: true
   }
 
@@ -30561,6 +30512,7 @@ export namespace Prisma {
     updated_at: Date
     lock_no: number
     username: string
+    preferred_locale: string
     _count: UsersCountAggregateOutputType | null
     _avg: UsersAvgAggregateOutputType | null
     _sum: UsersSumAggregateOutputType | null
@@ -30592,6 +30544,7 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     username?: boolean
+    preferred_locale?: boolean
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
@@ -30609,6 +30562,7 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     username?: boolean
+    preferred_locale?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -30621,6 +30575,7 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     username?: boolean
+    preferred_locale?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectScalar = {
@@ -30633,9 +30588,10 @@ export namespace Prisma {
     updated_at?: boolean
     lock_no?: boolean
     username?: boolean
+    preferred_locale?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no" | "username", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "avatar" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no" | "username" | "preferred_locale", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
@@ -30664,6 +30620,7 @@ export namespace Prisma {
       updated_at: Date
       lock_no: number
       username: string
+      preferred_locale: string
     }, ExtArgs["result"]["users"]>
     composites: {}
   }
@@ -31100,6 +31057,7 @@ export namespace Prisma {
     readonly updated_at: FieldRef<"users", 'DateTime'>
     readonly lock_no: FieldRef<"users", 'Int'>
     readonly username: FieldRef<"users", 'String'>
+    readonly preferred_locale: FieldRef<"users", 'String'>
   }
     
 
@@ -31806,6 +31764,7 @@ export namespace Prisma {
   export const Notification_recipientsScalarFieldEnum: {
     notification_id: 'notification_id',
     recipient_id: 'recipient_id',
+    thread_updated_at: 'thread_updated_at',
     created_at: 'created_at'
   };
 
@@ -31817,13 +31776,10 @@ export namespace Prisma {
     action_type: 'action_type',
     target_table: 'target_table',
     target_id: 'target_id',
-    actor_id: 'actor_id',
-    i18n_key: 'i18n_key',
-    i18n_params: 'i18n_params',
     actor_ids: 'actor_ids',
-    actor_count: 'actor_count',
     idempotency_key: 'idempotency_key',
-    created_at: 'created_at'
+    created_at: 'created_at',
+    updated_at: 'updated_at'
   };
 
   export type NotificationsScalarFieldEnum = (typeof NotificationsScalarFieldEnum)[keyof typeof NotificationsScalarFieldEnum]
@@ -31965,7 +31921,8 @@ export namespace Prisma {
     created_at: 'created_at',
     updated_at: 'updated_at',
     lock_no: 'lock_no',
-    username: 'username'
+    username: 'username',
+    preferred_locale: 'preferred_locale'
   };
 
   export type UsersScalarFieldEnum = (typeof UsersScalarFieldEnum)[keyof typeof UsersScalarFieldEnum]
@@ -33189,6 +33146,7 @@ export namespace Prisma {
     NOT?: notification_recipientsWhereInput | notification_recipientsWhereInput[]
     notification_id?: UuidFilter<"notification_recipients"> | string
     recipient_id?: UuidFilter<"notification_recipients"> | string
+    thread_updated_at?: DateTimeFilter<"notification_recipients"> | Date | string
     created_at?: DateTimeFilter<"notification_recipients"> | Date | string
     notifications?: XOR<NotificationsScalarRelationFilter, notificationsWhereInput>
   }
@@ -33196,6 +33154,7 @@ export namespace Prisma {
   export type notification_recipientsOrderByWithRelationInput = {
     notification_id?: SortOrder
     recipient_id?: SortOrder
+    thread_updated_at?: SortOrder
     created_at?: SortOrder
     notifications?: notificationsOrderByWithRelationInput
   }
@@ -33207,6 +33166,7 @@ export namespace Prisma {
     NOT?: notification_recipientsWhereInput | notification_recipientsWhereInput[]
     notification_id?: UuidFilter<"notification_recipients"> | string
     recipient_id?: UuidFilter<"notification_recipients"> | string
+    thread_updated_at?: DateTimeFilter<"notification_recipients"> | Date | string
     created_at?: DateTimeFilter<"notification_recipients"> | Date | string
     notifications?: XOR<NotificationsScalarRelationFilter, notificationsWhereInput>
   }, "notification_id_recipient_id">
@@ -33214,6 +33174,7 @@ export namespace Prisma {
   export type notification_recipientsOrderByWithAggregationInput = {
     notification_id?: SortOrder
     recipient_id?: SortOrder
+    thread_updated_at?: SortOrder
     created_at?: SortOrder
     _count?: notification_recipientsCountOrderByAggregateInput
     _max?: notification_recipientsMaxOrderByAggregateInput
@@ -33226,6 +33187,7 @@ export namespace Prisma {
     NOT?: notification_recipientsScalarWhereWithAggregatesInput | notification_recipientsScalarWhereWithAggregatesInput[]
     notification_id?: UuidWithAggregatesFilter<"notification_recipients"> | string
     recipient_id?: UuidWithAggregatesFilter<"notification_recipients"> | string
+    thread_updated_at?: DateTimeWithAggregatesFilter<"notification_recipients"> | Date | string
     created_at?: DateTimeWithAggregatesFilter<"notification_recipients"> | Date | string
   }
 
@@ -33237,13 +33199,10 @@ export namespace Prisma {
     action_type?: StringFilter<"notifications"> | string
     target_table?: StringFilter<"notifications"> | string
     target_id?: UuidFilter<"notifications"> | string
-    actor_id?: UuidFilter<"notifications"> | string
-    i18n_key?: StringFilter<"notifications"> | string
-    i18n_params?: JsonFilter<"notifications">
     actor_ids?: StringNullableListFilter<"notifications">
-    actor_count?: IntFilter<"notifications"> | number
     idempotency_key?: StringFilter<"notifications"> | string
     created_at?: DateTimeFilter<"notifications"> | Date | string
+    updated_at?: DateTimeFilter<"notifications"> | Date | string
     notification_recipients?: Notification_recipientsListRelationFilter
   }
 
@@ -33252,13 +33211,10 @@ export namespace Prisma {
     action_type?: SortOrder
     target_table?: SortOrder
     target_id?: SortOrder
-    actor_id?: SortOrder
-    i18n_key?: SortOrder
-    i18n_params?: SortOrder
     actor_ids?: SortOrder
-    actor_count?: SortOrder
     idempotency_key?: SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
     notification_recipients?: notification_recipientsOrderByRelationAggregateInput
   }
 
@@ -33271,12 +33227,9 @@ export namespace Prisma {
     action_type?: StringFilter<"notifications"> | string
     target_table?: StringFilter<"notifications"> | string
     target_id?: UuidFilter<"notifications"> | string
-    actor_id?: UuidFilter<"notifications"> | string
-    i18n_key?: StringFilter<"notifications"> | string
-    i18n_params?: JsonFilter<"notifications">
     actor_ids?: StringNullableListFilter<"notifications">
-    actor_count?: IntFilter<"notifications"> | number
     created_at?: DateTimeFilter<"notifications"> | Date | string
+    updated_at?: DateTimeFilter<"notifications"> | Date | string
     notification_recipients?: Notification_recipientsListRelationFilter
   }, "id" | "idempotency_key">
 
@@ -33285,18 +33238,13 @@ export namespace Prisma {
     action_type?: SortOrder
     target_table?: SortOrder
     target_id?: SortOrder
-    actor_id?: SortOrder
-    i18n_key?: SortOrder
-    i18n_params?: SortOrder
     actor_ids?: SortOrder
-    actor_count?: SortOrder
     idempotency_key?: SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
     _count?: notificationsCountOrderByAggregateInput
-    _avg?: notificationsAvgOrderByAggregateInput
     _max?: notificationsMaxOrderByAggregateInput
     _min?: notificationsMinOrderByAggregateInput
-    _sum?: notificationsSumOrderByAggregateInput
   }
 
   export type notificationsScalarWhereWithAggregatesInput = {
@@ -33307,13 +33255,10 @@ export namespace Prisma {
     action_type?: StringWithAggregatesFilter<"notifications"> | string
     target_table?: StringWithAggregatesFilter<"notifications"> | string
     target_id?: UuidWithAggregatesFilter<"notifications"> | string
-    actor_id?: UuidWithAggregatesFilter<"notifications"> | string
-    i18n_key?: StringWithAggregatesFilter<"notifications"> | string
-    i18n_params?: JsonWithAggregatesFilter<"notifications">
     actor_ids?: StringNullableListFilter<"notifications">
-    actor_count?: IntWithAggregatesFilter<"notifications"> | number
     idempotency_key?: StringWithAggregatesFilter<"notifications"> | string
     created_at?: DateTimeWithAggregatesFilter<"notifications"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"notifications"> | Date | string
   }
 
   export type payoutsWhereInput = {
@@ -33982,6 +33927,7 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"users"> | Date | string
     lock_no?: IntFilter<"users"> | number
     username?: StringFilter<"users"> | string
+    preferred_locale?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
@@ -33998,6 +33944,7 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     username?: SortOrder
+    preferred_locale?: SortOrder
     dish_media?: dish_mediaOrderByRelationAggregateInput
     dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
@@ -34017,6 +33964,7 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"users"> | Date | string
     lock_no?: IntFilter<"users"> | number
     username?: StringFilter<"users"> | string
+    preferred_locale?: StringFilter<"users"> | string
     dish_media?: Dish_mediaListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
@@ -34033,6 +33981,7 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     username?: SortOrder
+    preferred_locale?: SortOrder
     _count?: usersCountOrderByAggregateInput
     _avg?: usersAvgOrderByAggregateInput
     _max?: usersMaxOrderByAggregateInput
@@ -34053,6 +34002,7 @@ export namespace Prisma {
     updated_at?: DateTimeWithAggregatesFilter<"users"> | Date | string
     lock_no?: IntWithAggregatesFilter<"users"> | number
     username?: StringWithAggregatesFilter<"users"> | string
+    preferred_locale?: StringWithAggregatesFilter<"users"> | string
   }
 
   export type backend_event_logsCreateInput = {
@@ -35120,6 +35070,7 @@ export namespace Prisma {
 
   export type notification_recipientsCreateInput = {
     recipient_id: string
+    thread_updated_at: Date | string
     created_at?: Date | string
     notifications: notificationsCreateNestedOneWithoutNotification_recipientsInput
   }
@@ -35127,11 +35078,13 @@ export namespace Prisma {
   export type notification_recipientsUncheckedCreateInput = {
     notification_id: string
     recipient_id: string
+    thread_updated_at: Date | string
     created_at?: Date | string
   }
 
   export type notification_recipientsUpdateInput = {
     recipient_id?: StringFieldUpdateOperationsInput | string
+    thread_updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     notifications?: notificationsUpdateOneRequiredWithoutNotification_recipientsNestedInput
   }
@@ -35139,23 +35092,27 @@ export namespace Prisma {
   export type notification_recipientsUncheckedUpdateInput = {
     notification_id?: StringFieldUpdateOperationsInput | string
     recipient_id?: StringFieldUpdateOperationsInput | string
+    thread_updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type notification_recipientsCreateManyInput = {
     notification_id: string
     recipient_id: string
+    thread_updated_at: Date | string
     created_at?: Date | string
   }
 
   export type notification_recipientsUpdateManyMutationInput = {
     recipient_id?: StringFieldUpdateOperationsInput | string
+    thread_updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type notification_recipientsUncheckedUpdateManyInput = {
     notification_id?: StringFieldUpdateOperationsInput | string
     recipient_id?: StringFieldUpdateOperationsInput | string
+    thread_updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -35164,13 +35121,10 @@ export namespace Prisma {
     action_type: string
     target_table: string
     target_id: string
-    actor_id: string
-    i18n_key: string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsCreateactor_idsInput | string[]
-    actor_count: number
     idempotency_key: string
     created_at?: Date | string
+    updated_at?: Date | string
     notification_recipients?: notification_recipientsCreateNestedManyWithoutNotificationsInput
   }
 
@@ -35179,13 +35133,10 @@ export namespace Prisma {
     action_type: string
     target_table: string
     target_id: string
-    actor_id: string
-    i18n_key: string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsCreateactor_idsInput | string[]
-    actor_count: number
     idempotency_key: string
     created_at?: Date | string
+    updated_at?: Date | string
     notification_recipients?: notification_recipientsUncheckedCreateNestedManyWithoutNotificationsInput
   }
 
@@ -35194,13 +35145,10 @@ export namespace Prisma {
     action_type?: StringFieldUpdateOperationsInput | string
     target_table?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
-    actor_id?: StringFieldUpdateOperationsInput | string
-    i18n_key?: StringFieldUpdateOperationsInput | string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsUpdateactor_idsInput | string[]
-    actor_count?: IntFieldUpdateOperationsInput | number
     idempotency_key?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     notification_recipients?: notification_recipientsUpdateManyWithoutNotificationsNestedInput
   }
 
@@ -35209,13 +35157,10 @@ export namespace Prisma {
     action_type?: StringFieldUpdateOperationsInput | string
     target_table?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
-    actor_id?: StringFieldUpdateOperationsInput | string
-    i18n_key?: StringFieldUpdateOperationsInput | string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsUpdateactor_idsInput | string[]
-    actor_count?: IntFieldUpdateOperationsInput | number
     idempotency_key?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     notification_recipients?: notification_recipientsUncheckedUpdateManyWithoutNotificationsNestedInput
   }
 
@@ -35224,13 +35169,10 @@ export namespace Prisma {
     action_type: string
     target_table: string
     target_id: string
-    actor_id: string
-    i18n_key: string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsCreateactor_idsInput | string[]
-    actor_count: number
     idempotency_key: string
     created_at?: Date | string
+    updated_at?: Date | string
   }
 
   export type notificationsUpdateManyMutationInput = {
@@ -35238,13 +35180,10 @@ export namespace Prisma {
     action_type?: StringFieldUpdateOperationsInput | string
     target_table?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
-    actor_id?: StringFieldUpdateOperationsInput | string
-    i18n_key?: StringFieldUpdateOperationsInput | string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsUpdateactor_idsInput | string[]
-    actor_count?: IntFieldUpdateOperationsInput | number
     idempotency_key?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type notificationsUncheckedUpdateManyInput = {
@@ -35252,13 +35191,10 @@ export namespace Prisma {
     action_type?: StringFieldUpdateOperationsInput | string
     target_table?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
-    actor_id?: StringFieldUpdateOperationsInput | string
-    i18n_key?: StringFieldUpdateOperationsInput | string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsUpdateactor_idsInput | string[]
-    actor_count?: IntFieldUpdateOperationsInput | number
     idempotency_key?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type payoutsCreateInput = {
@@ -35982,6 +35918,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
@@ -35998,6 +35935,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
@@ -36014,6 +35952,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
@@ -36030,6 +35969,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
@@ -36046,6 +35986,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
   }
 
   export type usersUpdateManyMutationInput = {
@@ -36058,6 +35999,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
   }
 
   export type usersUncheckedUpdateManyInput = {
@@ -36070,6 +36012,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -37107,18 +37050,21 @@ export namespace Prisma {
   export type notification_recipientsCountOrderByAggregateInput = {
     notification_id?: SortOrder
     recipient_id?: SortOrder
+    thread_updated_at?: SortOrder
     created_at?: SortOrder
   }
 
   export type notification_recipientsMaxOrderByAggregateInput = {
     notification_id?: SortOrder
     recipient_id?: SortOrder
+    thread_updated_at?: SortOrder
     created_at?: SortOrder
   }
 
   export type notification_recipientsMinOrderByAggregateInput = {
     notification_id?: SortOrder
     recipient_id?: SortOrder
+    thread_updated_at?: SortOrder
     created_at?: SortOrder
   }
 
@@ -37137,17 +37083,10 @@ export namespace Prisma {
     action_type?: SortOrder
     target_table?: SortOrder
     target_id?: SortOrder
-    actor_id?: SortOrder
-    i18n_key?: SortOrder
-    i18n_params?: SortOrder
     actor_ids?: SortOrder
-    actor_count?: SortOrder
     idempotency_key?: SortOrder
     created_at?: SortOrder
-  }
-
-  export type notificationsAvgOrderByAggregateInput = {
-    actor_count?: SortOrder
+    updated_at?: SortOrder
   }
 
   export type notificationsMaxOrderByAggregateInput = {
@@ -37155,11 +37094,9 @@ export namespace Prisma {
     action_type?: SortOrder
     target_table?: SortOrder
     target_id?: SortOrder
-    actor_id?: SortOrder
-    i18n_key?: SortOrder
-    actor_count?: SortOrder
     idempotency_key?: SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
   }
 
   export type notificationsMinOrderByAggregateInput = {
@@ -37167,15 +37104,9 @@ export namespace Prisma {
     action_type?: SortOrder
     target_table?: SortOrder
     target_id?: SortOrder
-    actor_id?: SortOrder
-    i18n_key?: SortOrder
-    actor_count?: SortOrder
     idempotency_key?: SortOrder
     created_at?: SortOrder
-  }
-
-  export type notificationsSumOrderByAggregateInput = {
-    actor_count?: SortOrder
+    updated_at?: SortOrder
   }
 
   export type Enumpayout_statusFilter<$PrismaModel = never> = {
@@ -37706,6 +37637,7 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     username?: SortOrder
+    preferred_locale?: SortOrder
   }
 
   export type usersAvgOrderByAggregateInput = {
@@ -37722,6 +37654,7 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     username?: SortOrder
+    preferred_locale?: SortOrder
   }
 
   export type usersMinOrderByAggregateInput = {
@@ -37734,6 +37667,7 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     username?: SortOrder
+    preferred_locale?: SortOrder
   }
 
   export type usersSumOrderByAggregateInput = {
@@ -39603,6 +39537,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -39618,6 +39553,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -39829,6 +39765,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -39844,6 +39781,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -40268,6 +40206,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -40283,6 +40222,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -40359,6 +40299,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -40374,6 +40315,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -40552,6 +40494,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -40567,6 +40510,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -40631,6 +40575,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -40646,6 +40591,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -40948,13 +40894,10 @@ export namespace Prisma {
     action_type: string
     target_table: string
     target_id: string
-    actor_id: string
-    i18n_key: string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsCreateactor_idsInput | string[]
-    actor_count: number
     idempotency_key: string
     created_at?: Date | string
+    updated_at?: Date | string
   }
 
   export type notificationsUncheckedCreateWithoutNotification_recipientsInput = {
@@ -40962,13 +40905,10 @@ export namespace Prisma {
     action_type: string
     target_table: string
     target_id: string
-    actor_id: string
-    i18n_key: string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsCreateactor_idsInput | string[]
-    actor_count: number
     idempotency_key: string
     created_at?: Date | string
+    updated_at?: Date | string
   }
 
   export type notificationsCreateOrConnectWithoutNotification_recipientsInput = {
@@ -40992,13 +40932,10 @@ export namespace Prisma {
     action_type?: StringFieldUpdateOperationsInput | string
     target_table?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
-    actor_id?: StringFieldUpdateOperationsInput | string
-    i18n_key?: StringFieldUpdateOperationsInput | string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsUpdateactor_idsInput | string[]
-    actor_count?: IntFieldUpdateOperationsInput | number
     idempotency_key?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type notificationsUncheckedUpdateWithoutNotification_recipientsInput = {
@@ -41006,22 +40943,21 @@ export namespace Prisma {
     action_type?: StringFieldUpdateOperationsInput | string
     target_table?: StringFieldUpdateOperationsInput | string
     target_id?: StringFieldUpdateOperationsInput | string
-    actor_id?: StringFieldUpdateOperationsInput | string
-    i18n_key?: StringFieldUpdateOperationsInput | string
-    i18n_params?: JsonNullValueInput | InputJsonValue
     actor_ids?: notificationsUpdateactor_idsInput | string[]
-    actor_count?: IntFieldUpdateOperationsInput | number
     idempotency_key?: StringFieldUpdateOperationsInput | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type notification_recipientsCreateWithoutNotificationsInput = {
     recipient_id: string
+    thread_updated_at: Date | string
     created_at?: Date | string
   }
 
   export type notification_recipientsUncheckedCreateWithoutNotificationsInput = {
     recipient_id: string
+    thread_updated_at: Date | string
     created_at?: Date | string
   }
 
@@ -41057,6 +40993,7 @@ export namespace Prisma {
     NOT?: notification_recipientsScalarWhereInput | notification_recipientsScalarWhereInput[]
     notification_id?: UuidFilter<"notification_recipients"> | string
     recipient_id?: UuidFilter<"notification_recipients"> | string
+    thread_updated_at?: DateTimeFilter<"notification_recipients"> | Date | string
     created_at?: DateTimeFilter<"notification_recipients"> | Date | string
   }
 
@@ -41406,6 +41343,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
@@ -41421,6 +41359,7 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     username: string
+    preferred_locale: string
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
@@ -41507,6 +41446,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
@@ -41522,6 +41462,7 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
@@ -42240,21 +42181,25 @@ export namespace Prisma {
 
   export type notification_recipientsCreateManyNotificationsInput = {
     recipient_id: string
+    thread_updated_at: Date | string
     created_at?: Date | string
   }
 
   export type notification_recipientsUpdateWithoutNotificationsInput = {
     recipient_id?: StringFieldUpdateOperationsInput | string
+    thread_updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type notification_recipientsUncheckedUpdateWithoutNotificationsInput = {
     recipient_id?: StringFieldUpdateOperationsInput | string
+    thread_updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type notification_recipientsUncheckedUpdateManyWithoutNotificationsInput = {
     recipient_id?: StringFieldUpdateOperationsInput | string
+    thread_updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
