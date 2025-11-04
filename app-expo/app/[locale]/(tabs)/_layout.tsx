@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { House as Home, MapPinned, Bell, User, Search } from "lucide-react-native";
+import { MapPinned, Bell, User, Search } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 
@@ -30,14 +30,6 @@ export default function TabLayout() {
 				tabBarInactiveTintColor: "#6B7280",
 				tabBarShowLabel: false,
 			}}>
-			<Tabs.Screen
-				name="home"
-				options={{
-					title: i18n.t("Tabs.home"),
-					href: null,
-					tabBarIcon: ({ size, color }) => <Home size={ICON_SIZE} color={color} />,
-				}}
-			/>
 			<Tabs.Screen
 				name="search"
 				options={{
