@@ -56,7 +56,7 @@ export function ProfileTabsLayout() {
 				.from("users")
 				.select("*")
 				.eq("id", userId ?? user?.id)
-				.single();
+				.single<SupabaseUsers>();
 			if (error) {
 				logFrontendEvent({
 					event_name: "load_own_profile_error",
@@ -64,7 +64,7 @@ export function ProfileTabsLayout() {
 					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest, data },
 				});
 			} else if (data) {
-				await Image.prefetch(data.avatar);
+				data.avatar && (await Image.prefetch(data.avatar));
 				setProfile(data);
 			}
 		};

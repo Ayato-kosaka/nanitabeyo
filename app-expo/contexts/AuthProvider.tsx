@@ -317,18 +317,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 		try {
 			// 既存のユーザープロフィールをチェック
-			const { data: existingProfile, error: fetchError } = await supabase
+			const { data: existingProfileId, error: fetchError } = await supabase
 				.from("users")
 				.select("id")
 				.eq("id", user.id)
-				.single();
+				.single<string>();
 
 			if (fetchError && fetchError.code !== "PGRST116") {
 				// PGRST116 = not found, それ以外のエラーは投げる
 				throw fetchError;
 			}
 
-			if (!existingProfile) {
+			if (!existingProfileId) {
 				// ユーザープロフィールが存在しない場合のみ作成
 				const timestamp = Date.now();
 				const randomSuffix = Math.floor(Math.random() * 1000)
