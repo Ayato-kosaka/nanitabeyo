@@ -30,7 +30,7 @@ export class UsersService {
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
-  ) {}
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -85,7 +85,7 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   /*                GET /v1/users/me/liked-dish-media                  */
   /* ------------------------------------------------------------------ */
-  async getMeLikedDishMedia(userId: string, dto: QueryMeLikedDishMediaDto) {
+  async getMeLikedDishMedia(userId: string, isAnonymous: boolean, dto: QueryMeLikedDishMediaDto) {
     this.logger.debug('GetMeLikedDishMedia', 'getMeLikedDishMedia', {
       userId,
       cursor: dto.cursor,
@@ -93,6 +93,7 @@ export class UsersService {
 
     const likes = await this.dishMediaRepo.findDishMediaByLikedUser(
       userId,
+      isAnonymous,
       dto.cursor,
     );
 
