@@ -228,17 +228,6 @@ export const useLocationSearch = () => {
 						},
 					});
 
-					logFrontendEvent({
-						event_name: "current_location_reverse_geocoding_success",
-						error_level: "log",
-						payload: {
-							latitude,
-							longitude,
-							address: reverseGeocodingResponse.address,
-							localLanguageCode: reverseGeocodingResponse.localLanguageCode,
-						},
-					});
-
 					const result = {
 						location: reverseGeocodingResponse.location,
 						address: reverseGeocodingResponse.address,
