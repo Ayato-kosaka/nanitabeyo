@@ -88,10 +88,10 @@ export default function RootLayout() {
 						<DialogProvider>
 							<AuthProvider>
 								<PushTokenRegistration />
-								<Portal.Host>
-									<SplashHandler>
-										<HealthCheckInitializer>
-											<GestureHandlerRootView style={{ flex: 1 }}>
+								<GestureHandlerRootView style={{ flex: 1 }}>
+									<Portal.Host>
+										<SplashHandler>
+											<HealthCheckInitializer>
 												<AppProvider>
 													<Stack screenOptions={{ header: () => null }}>
 														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
@@ -99,10 +99,10 @@ export default function RootLayout() {
 													</Stack>
 													<StatusBar style="light" />
 												</AppProvider>
-											</GestureHandlerRootView>
-										</HealthCheckInitializer>
-									</SplashHandler>
-								</Portal.Host>
+											</HealthCheckInitializer>
+										</SplashHandler>
+									</Portal.Host>
+								</GestureHandlerRootView>
 							</AuthProvider>
 						</DialogProvider>
 					</SnackbarProvider>

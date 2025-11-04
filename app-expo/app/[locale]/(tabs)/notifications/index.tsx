@@ -72,9 +72,9 @@ export default function NotificationsScreen() {
 				const index = dishMediaEntries.findIndex(
 					(d) => d.dish_media.id === notification.dishMediaEntiries?.dish_media.id,
 				);
-				setDishePromises("profile", Promise.resolve(dishMediaEntries));
+				setDishePromises("notification", Promise.resolve(dishMediaEntries));
 				router.push({
-					pathname: "/[locale]/(tabs)/notifications/food",
+					pathname: "/[locale]/(tabs)/notifications/feed",
 					params: { locale, startIndex: index },
 				});
 			}

@@ -107,10 +107,12 @@ export function useBlurModal({
 				children,
 				contentContainerStyle,
 				showCloseButton = true,
+				paddingVertical = 32,
 			}: {
 				children: ReactNode | ((props: { close: () => void }) => ReactNode);
 				contentContainerStyle?: StyleProp<ViewStyle>;
 				showCloseButton?: boolean;
+				paddingVertical?: number;
 			}) => {
 				if (!visible) return null;
 
@@ -120,6 +122,10 @@ export function useBlurModal({
 						return (children as (p: { close: () => void }) => ReactNode)({ close });
 					}
 					return children;
+				};
+
+				const contenContinerWrapperStyle: StyleProp<ViewStyle> = {
+					paddingVertical,
 				};
 
 				return (
@@ -155,7 +161,7 @@ export function useBlurModal({
 									return false; // ← 自分ではレスポンダを奪わない（子要素にタップを渡す）
 								}}>
 								{/* Content (non-blocking layout wrapper) */}
-								<View pointerEvents="box-none" style={[styles.contentContainer]}>
+								<View pointerEvents="box-none" style={[contenContinerWrapperStyle]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
 										{renderChildren()}
 									</View>
@@ -195,10 +201,6 @@ export function useBlurModal({
 /*                               スタイル定義                                  */
 /* -------------------------------------------------------------------------- */
 const styles = StyleSheet.create({
-	contentContainer: {
-		paddingBottom: 32,
-		paddingTop: 32,
-	},
 	closeButton: {
 		position: "absolute",
 		backgroundColor: "transparent",

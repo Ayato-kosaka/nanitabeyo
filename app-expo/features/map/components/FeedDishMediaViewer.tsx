@@ -1,25 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { useLocalSearchParams } from "expo-router";
 import FoodContentFeed from "@/components/FoodContentFeed";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import type { DishMediaEntry } from "@shared/api/v1/res";
-// import { mockDishItems } from "@/data/searchMockData";
+import { useSafeAreaFrame } from "react-native-safe-area-context";
 
-export default function NotificationFoodScreen() {
-	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
-	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
+type FeedDishMediaViewerProps = {
+	initialIndex: number;
+	source: string;
+};
+
+export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewerProps) {
 	const { dishPromisesMap } = useDishMediaEntriesStore();
 	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+
+	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 
 	useEffect(() => {
 		const loadData = async () => {
 			setIsLoading(true);
 			setError(null);
 			try {
-				const dishMediaEntries = await dishPromisesMap["profile"];
+				const dishMediaEntries = await dishPromisesMap[source];
 				setItems(dishMediaEntries);
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "Failed to load data");
@@ -56,7 +60,11 @@ export default function NotificationFoodScreen() {
 		);
 	}
 
-	return <FoodContentFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source="notification" />;
+	return (
+		<View style={{ height: frame.height }}>
+			<FoodContentFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source={source} />
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
