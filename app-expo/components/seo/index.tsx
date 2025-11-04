@@ -4,6 +4,6 @@
 
 import { SeoProps } from "./index.web";
 
-export function SeoHead(props: SeoProps) {
+export default function SeoHead(props: SeoProps) {
 	return <></>;
 }

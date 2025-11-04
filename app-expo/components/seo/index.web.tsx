@@ -48,7 +48,7 @@ export type SeoProps = {
 	robots?: string; // 例: 'noindex, nofollow'
 };
 
-export function SeoHead(props: SeoProps) {
+export default function SeoHead(props: SeoProps) {
 	const pathname = usePathname() || "/";
 	const locale = useLocaleFromRoute();
 	const pathNoLocale = stripLocaleFromPath(pathname, locale);
