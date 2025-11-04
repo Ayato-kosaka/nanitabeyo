@@ -170,17 +170,17 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 
 			{/* Existing Account Checkbox - Show only for anonymous users */}
 			{user?.is_anonymous && (
-				<View style={styles.checkboxContainer}>
-					<TouchableOpacity
-						style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}
-						onPress={() => setHasExistingAccount(!hasExistingAccount)}
-						disabled={isLoading}>
+				<TouchableOpacity
+					style={styles.checkboxContainer}
+					onPress={() => setHasExistingAccount(!hasExistingAccount)}
+					disabled={isLoading}>
+					<View style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}>
 						{hasExistingAccount && <Text style={styles.checkboxMark}>✓</Text>}
-					</TouchableOpacity>
+					</View>
 					<View style={styles.checkboxTextContainer}>
 						<Text style={styles.checkboxText}>{i18n.t("auth.existing_account_checkbox")}</Text>
 					</View>
-				</View>
+				</TouchableOpacity>
 			)}
 
 			{/* OAuth Buttons */}
