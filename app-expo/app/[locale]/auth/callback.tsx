@@ -37,17 +37,15 @@ export default function AuthCallbackScreen() {
 
 	useEffect(() => {
 		const handleAuthCallback = async () => {
+			// 初回URL（フラグメント含む）を取得
+			const initialUrl = await Linking.getInitialURL();
+			const qs = new URLSearchParams(Object.entries(rest).map(([k, v]) => [k, String(v)])).toString();
+			const redirectBase =
+				Platform.OS === "web"
+					? `${window.location.origin}/${locale}/auth/callback`
+					: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback` });
+			const url = initialUrl || `${redirectBase}?${qs}`; // expo-routerで遷移してきた場合も getInitialURL が持っています
 			try {
-				// 初回URL（フラグメント含む）を取得
-				const initialUrl = await Linking.getInitialURL();
-				const qs = new URLSearchParams(Object.entries(rest).map(([k, v]) => [k, String(v)])).toString();
-				const redirectBase =
-					Platform.OS === "web"
-						? `${window.location.origin}/${locale}/auth/callback`
-						: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback` });
-				const url = initialUrl || `${redirectBase}?${qs}`; // expo-routerで遷移してきた場合も getInitialURL が持っています
-
-				// URLから認証結果を処理
 				await handleOAuthResultUrl(url);
 
 				const {
@@ -67,9 +65,6 @@ export default function AuthCallbackScreen() {
 						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
 					});
 				}
-
-				router.replace({ pathname: "/[locale]/profile", params: { locale } });
-				return;
 			} catch (error: unknown) {
 				// linkIdentity による identity_already_exists エラーの場合は警告ダイアログを表示
 				const err = error as any;
@@ -87,11 +82,14 @@ export default function AuthCallbackScreen() {
 				logFrontendEvent({
 					event_name: "oauth_callback_error",
 					error_level: "error",
-					payload: { error: error instanceof Error ? error.message : String(error) },
+					payload: { error: error instanceof Error ? error.message : String(error), url },
 				});
-
-				// エラーの場合もプロフィール画面に戻る
-				router.replace("/(tabs)/profile");
+			} finally {
+				// プロフィール画面にリダイレクト
+				if (!showConflictDialog) {
+					router.replace({ pathname: "/[locale]/profile", params: { locale } });
+					return;
+				}
 			}
 		};
 
