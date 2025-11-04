@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
-import { GridList } from "@/components/collapsible-tabs";
+import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import { Text } from "react-native";
 import Stars from "@/components/Stars";

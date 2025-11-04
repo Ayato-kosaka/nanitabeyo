@@ -8,7 +8,7 @@ import {
 	FlatListProps,
 	ListRenderItemInfo,
 } from "react-native";
-import { Tabs } from "react-native-collapsible-tab-view";
+import { Tabs } from "@/components/collapsible-tabs";
 
 interface GridItem {
 	id: string | number;
