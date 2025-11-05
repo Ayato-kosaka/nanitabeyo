@@ -22,7 +22,7 @@ export class NotificationJobService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly userService: UsersService,
-  ) {}
+  ) { }
 
   /**
    * 通知ジョブを処理
@@ -88,11 +88,12 @@ export class NotificationJobService {
 
     // 4. Expo Push を送信
     // 連打エラーなどは事前にエラーがスローされる想定。
-    const { title, body } = await this.buildNotificationMessage(
+    const { title, body } = await this.buildNotificationMessage({
       actionType,
       targetTable,
       recipientId,
-    );
+      actorId,
+    });
 
     await this.service.sendPushNotification(recipientId, {
       title,
@@ -127,14 +128,27 @@ export class NotificationJobService {
   /**
    * 通知メッセージを構築
    */
-  private async buildNotificationMessage(
+  private async buildNotificationMessage({
+    actionType,
+    targetTable,
+    actorId,
+    recipientId,
+  }: {
     actionType: string,
     targetTable: string,
+    actorId: string,
     recipientId: string,
-  ) {
-    const actor = (await this.userService.getUserByIds([recipientId]))[0];
+  }) {
+    // 通知の送信者と受信者を取得
+    const users = await this.userService.getUserByIds([actorId, recipientId]);
+    const actor = users.find((u) => u.id === actorId);
+    const recipient = users.find((u) => u.id === recipientId);
     if (!actor)
-      throw new Error(`ActorUserNotFound: recipientId=${recipientId}`);
+      throw new Error(`ActorUserNotFound: actorId=${actorId}`);
+    if (!recipient)
+      throw new Error(`RecipientUserNotFound: recipientId=${recipientId}`);
+
+    // 通知のタイトルは、送信者の表示名を使う
     const title = actor.display_name ?? undefined;
 
     const SUPPORTED_LOCALES = [
@@ -199,13 +213,14 @@ export class NotificationJobService {
       },
     };
 
+    // 通知の本文は、受信者の言語設定に合わせる
     let locale: (typeof SUPPORTED_LOCALES)[number] = 'en';
-    if (SUPPORTED_LOCALES.includes(actor.preferred_locale as any)) {
-      locale = actor.preferred_locale as (typeof SUPPORTED_LOCALES)[number];
+    if (SUPPORTED_LOCALES.includes(recipient.preferred_locale as any)) {
+      locale = recipient.preferred_locale as (typeof SUPPORTED_LOCALES)[number];
     } else if (
-      SUPPORTED_LOCALES.includes(actor.preferred_locale.split('-')[0] as any)
+      SUPPORTED_LOCALES.includes(recipient.preferred_locale.split('-')[0] as any)
     ) {
-      locale = actor.preferred_locale.split(
+      locale = recipient.preferred_locale.split(
         '-',
       )[0] as (typeof SUPPORTED_LOCALES)[number];
     }
