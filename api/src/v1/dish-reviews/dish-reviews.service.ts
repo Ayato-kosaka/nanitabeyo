@@ -20,7 +20,7 @@ export class DishReviewsService {
     private readonly repo: DishReviewsRepository,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-reviews (投稿)                   */

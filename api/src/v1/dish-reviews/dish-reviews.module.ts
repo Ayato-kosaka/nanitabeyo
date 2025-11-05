@@ -29,4 +29,4 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
     DishReviewsService, // 他ドメインが再利用できる
   ],
 })
-export class DishReviewsModule { }
+export class DishReviewsModule {}

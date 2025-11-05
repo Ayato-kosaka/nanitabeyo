@@ -60,7 +60,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
@@ -118,7 +118,11 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeLikedDishMediaResponse> {
-    const result = await this.usersService.getMeLikedDishMedia(user.id, user.isAnonymous, query);
+    const result = await this.usersService.getMeLikedDishMedia(
+      user.id,
+      user.isAnonymous,
+      query,
+    );
 
     // Set CDN signed cookies if present (for video media)
     if (result.cdnCookies && result.cdnCookies.length > 0) {
