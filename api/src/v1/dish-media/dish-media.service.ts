@@ -19,7 +19,6 @@ import {
 import { DishMediaRepository } from './dish-media.repository';
 import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaEntryItem } from './dish-media.mapper';
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
@@ -34,11 +33,10 @@ export class DishMediaService {
     private readonly repo: DishMediaRepository,
     private readonly storage: StorageService,
     private readonly prisma: PrismaService,
-    private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */

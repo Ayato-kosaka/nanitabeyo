@@ -12,7 +12,6 @@ import { CreateDishReviewDto, LikeDishReviewParamsDto } from '@shared/v1/dto';
 
 import { DishReviewsRepository } from './dish-reviews.repository';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 
 @Injectable()
@@ -20,9 +19,8 @@ export class DishReviewsService {
   constructor(
     private readonly repo: DishReviewsRepository,
     private readonly prisma: PrismaService,
-    private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-reviews (投稿)                   */

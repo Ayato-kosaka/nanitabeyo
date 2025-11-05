@@ -15,14 +15,12 @@ import { DishReviewsRepository } from './dish-reviews.repository';
 // ─── 横串インフラ層 ──────────────────────────────────────────
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
-import { NotifierModule } from '../../core/notifier/notifier.module';
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
 
 @Module({
   imports: [
     PrismaModule, // DB アクセス
     LoggerModule, // アプリ共通 Logger
-    NotifierModule, // プッシュ通知
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishReviewsController],
@@ -31,4 +29,4 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
     DishReviewsService, // 他ドメインが再利用できる
   ],
 })
-export class DishReviewsModule {}
+export class DishReviewsModule { }
