@@ -9,7 +9,7 @@ import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import type { AutocompleteLocation, QueryRestaurantsResponse } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
 import i18n from "@/lib/i18n";

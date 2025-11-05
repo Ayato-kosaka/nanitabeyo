@@ -6,7 +6,7 @@ import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { BidForm } from "@/features/map/components/BidForm";

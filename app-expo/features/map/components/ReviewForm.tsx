@@ -27,7 +27,7 @@ import { CreateDishDto, type CreateDishMediaDto, type CreateDishReviewDto } from
 import { useFileUploader } from "@/hooks/useFileUploader";
 import type { CreateDishMediaResponse, CreateDishResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { Dimensions } from "react-native";
 import { selectMediaForReview } from "@/features/map/utils/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";

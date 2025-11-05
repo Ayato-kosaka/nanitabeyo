@@ -5,7 +5,7 @@ import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinn
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Topic } from "@/types/search";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { insertReaction } from "@/lib/reactions";
 import i18n from "@/lib/i18n";
 

@@ -21,7 +21,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";

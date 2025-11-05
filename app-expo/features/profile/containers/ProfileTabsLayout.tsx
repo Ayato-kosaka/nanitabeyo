@@ -13,7 +13,7 @@ import { EarningsTab } from "../tabs/wallet/EarningsTab";
 import { LoginbackModal } from "../components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { mockBids, mockEarnings } from "../constants";
 import { ProfileEditForm } from "../components/ProfileEditForm";
 import { FeedbackForm } from "../components/FeedbackForm";
