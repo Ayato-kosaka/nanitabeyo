@@ -91,7 +91,7 @@ export class NotificationJobService {
     const { title, body } = await this.buildNotificationMessage(
       actionType,
       targetTable,
-      actorId,
+      recipientId,
     );
 
     await this.service.sendPushNotification(recipientId, {
@@ -130,10 +130,11 @@ export class NotificationJobService {
   private async buildNotificationMessage(
     actionType: string,
     targetTable: string,
-    actorId: string,
+    recipientId: string,
   ) {
-    const actor = (await this.userService.getUserByIds([actorId]))[0];
-    if (!actor) throw new Error(`ActorUserNotFound: actorId=${actorId}`);
+    const actor = (await this.userService.getUserByIds([recipientId]))[0];
+    if (!actor)
+      throw new Error(`ActorUserNotFound: recipientId=${recipientId}`);
     const title = actor.display_name ?? undefined;
 
     const SUPPORTED_LOCALES = [
