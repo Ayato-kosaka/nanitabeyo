@@ -1,6 +1,6 @@
 import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
-import { Grid3x3 as Grid3X3, Bookmark, Wallet, Heart } from "lucide-react-native";
+import { Utensils, Bookmark, Wallet, Heart } from "lucide-react-native";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import i18n from "@/lib/i18n";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
@@ -53,7 +53,7 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 		const color = isActive ? "#5EA2FF" : "#666";
 		switch (group) {
 			case "reviews":
-				return <Grid3X3 size={20} color={color} />;
+				return <Utensils size={20} color={color} />;
 			case "saved":
 				return <Bookmark size={20} color={color} fill={isActive ? color : "transparent"} />;
 			case "wallet":
