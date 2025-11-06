@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
@@ -56,6 +56,22 @@ export default function NotificationsScreen() {
 		}, [user?.id]),
 	);
 
+	// 重複排除済みの配列をメモ化
+	const uniqueDishMediaEntries = useMemo(() => {
+		const seen = new Set<string | number>();
+		const arr: DishMediaEntry[] = [];
+		for (const n of notifications.items) {
+			const e = n.dishMediaEntiries;
+			if (!e) continue;
+			const id = e.dish_media.id;
+			if (!seen.has(id)) {
+				seen.add(id);
+				arr.push(e);
+			}
+		}
+		return arr;
+	}, [notifications.items]);
+
 	// #通知機能 【仕様】通知タップ時の遷移処理
 	const handleNotificationPress = useCallback(
 		(notification: NotificationItem) => {
@@ -66,13 +82,10 @@ export default function NotificationsScreen() {
 
 			if (target_table === "dish_media" && notification.dishMediaEntiries !== undefined) {
 				// #通知機能 【仕様】dish_media の場合は FoodContentFeed へ遷移
-				const dishMediaEntries = notifications.items
-					.map((n) => n.dishMediaEntiries)
-					.filter((t): t is DishMediaEntry => !!t);
-				const index = dishMediaEntries.findIndex(
-					(d) => d.dish_media.id === notification.dishMediaEntiries?.dish_media.id,
-				);
-				setDishePromises("notification", Promise.resolve(dishMediaEntries));
+				const currentDishMediaId = notification.dishMediaEntiries.dish_media.id;
+				let index = uniqueDishMediaEntries.findIndex((d) => d.dish_media.id === currentDishMediaId);
+				if (index < 0) index = 0; // 念のため
+				setDishePromises("notification", Promise.resolve(uniqueDishMediaEntries));
 				router.push({
 					pathname: "/[locale]/(tabs)/notifications/feed",
 					params: { locale, startIndex: index },
@@ -80,7 +93,7 @@ export default function NotificationsScreen() {
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
-		[lightImpact, router, notifications.items, setDishePromises, locale],
+		[lightImpact, router, setDishePromises, locale, uniqueDishMediaEntries],
 	);
 
 	// #通知機能 【仕様】通知アイテムのアイコンを取得
