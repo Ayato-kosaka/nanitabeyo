@@ -1,17 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, AppState } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
-import { Heart, Bookmark, Calendar, Share, User, MapPinned } from "lucide-react-native";
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
+import { Calendar, User } from "lucide-react-native";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import type { CreateDishMediaViewResponse, DishMediaEntry } from "@shared/api/v1/res";
-import { dateStringToTimestamp } from "@/lib/frontend-utils";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { toggleReaction } from "@/lib/reactions";
 import { generateShareUrl, handleShare } from "@/lib/share";
@@ -21,1012 +18,605 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import VideoPlayer from "../../../components/VideoPlayer";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useAPICall } from "@/hooks/useAPICall";
-import {
-	DishMediaImpressionBodyDto,
-	type CreateDishMediaViewDto,
-	type DishMediaReactionBodyDto,
-} from "@shared/api/v1/dto";
-import * as Crypto from "expo-crypto";
+import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
+import CommentsSection from "./CommentsSection";
+import ActionButtons from "./ActionButtons";
+import { useMediaTracking } from "../hooks/useMediaTracking";
+import { formatLikeCount, Translate } from "../utils/text";
+import type { ScrollView } from "react-native-gesture-handler";
 
 interface DishMediaContentProps {
-	item: DishMediaEntry;
-	carouselRef?: React.RefObject<any>;
-	isActive: boolean;
-	sessionId: string;
-	source: string;
+        item: DishMediaEntry;
+        carouselRef?: React.RefObject<any>;
+        isActive: boolean;
+        sessionId: string;
+        source: string;
 }
 
-// Helper: treat full-width (CJK / > 0xFF) as 2 units like Twitter
-const isFullWidthChar = (ch: string) => {
-	const code = ch.charCodeAt(0);
-	return code > 0xff; // simple heuristic
+type CommentLikeState = {
+        isLiked: boolean;
+        count: number;
 };
 
-// Return substring fitting within unitLimit (FW=2, others=1)
-const sliceByUnitLimit = (text: string, unitLimit: number) => {
-	let units = 0;
-	let i = 0;
-	while (i < text.length) {
-		const add = isFullWidthChar(text[i]) ? 2 : 1;
-		if (units + add > unitLimit) break;
-		units += add;
-		i++;
-	}
-	return {
-		substring: text.slice(0, i),
-		isTruncated: i < text.length,
-		usedUnits: units,
-	};
-};
+type CommentLikeMap = Record<string, CommentLikeState>;
 
-const formatLikeCount = (count: number): string => {
-	if (count >= 1000000) {
-		return (count / 1000000).toFixed(1).replace(/\.0$/, "") + i18n.t("DishMediaContent.numberSuffix.million");
-	}
-	if (count >= 1000) {
-		return (count / 1000).toFixed(1).replace(/\.0$/, "") + i18n.t("DishMediaContent.numberSuffix.thousand");
-	}
-	return count.toString();
-};
+type CommentExpandedMap = Record<string, number>;
 
+type DishReview = DishMediaEntry["dish_reviews"][number];
+
+const t: Translate = (key, options) => i18n.t(key, options);
+
+// 画面構成と props の受け渡しのみを担う。表示に関係ない副作用は保持しない
 export default function DishMediaContent({ item, carouselRef, isActive, sessionId, source }: DishMediaContentProps) {
-	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
-	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
-	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
-	const { BlurModal, open: openMenuModal, close: closeMenuModal } = useBlurModal({ intensity: 100 });
-	const [commentLikes, setCommentLikes] = useState(
-		item.dish_reviews.reduce(
-			(acc, review) => {
-				acc[review.id] = { isLiked: false, count: review.likeCount };
-				return acc;
-			},
-			{} as { [key: string]: { isLiked: boolean; count: number } },
-		),
-	);
-	// State to track expanded characters count for each comment
-	const [commentExpandedChars, setCommentExpandedChars] = useState(
-		item.dish_reviews.reduce(
-			(acc, review) => {
-				const remoteConfig = getRemoteConfig();
-				const charLimit = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
-				// Interpret as unit limit (FW=2, half=1)
-				acc[review.id] = charLimit;
-				return acc;
-			},
-			{} as { [key: string]: number },
-		),
-	);
-	const scrollViewRef = useRef<ScrollView>(null);
-	const { lightImpact, mediumImpact } = useHaptics();
-	const { callBackend } = useAPICall();
-	const { logFrontendEvent } = useLogger();
-	const router = useRouter();
-	const locale = useLocale();
-	const insets = useSafeAreaInsets();
-	const [rightActionsWidth, setRightActionsWidth] = useState(0);
-	const { showSnackbar } = useSnackbar();
+        const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
+        const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
+        const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
+        const { BlurModal, open: openMenuModal, close: closeMenuModal } = useBlurModal({ intensity: 100 });
+        const [commentLikes, setCommentLikes] = useState<CommentLikeMap>(
+                item.dish_reviews.reduce<CommentLikeMap>((acc, review: DishReview) => {
+                        acc[review.id] = { isLiked: false, count: review.likeCount };
+                        return acc;
+                }, {} as CommentLikeMap),
+        );
+        const [commentExpandedUnits, setCommentExpandedUnits] = useState<CommentExpandedMap>(
+                item.dish_reviews.reduce<CommentExpandedMap>((acc, review: DishReview) => {
+                        const remoteConfig = getRemoteConfig();
+                        const charLimit = parseInt(remoteConfig?.v1_dish_comment_review_show_number ?? "0", 10);
+                        acc[review.id] = charLimit;
+                        return acc;
+                }, {} as CommentExpandedMap),
+        );
+        const scrollViewRef = useRef<ScrollView>(null);
+        const { lightImpact } = useHaptics();
+        const { callBackend } = useAPICall();
+        const { logFrontendEvent } = useLogger();
+        const router = useRouter();
+        const locale = useLocale();
+        const insets = useSafeAreaInsets();
+        const [rightActionsWidth, setRightActionsWidth] = useState(0);
+        const { showSnackbar } = useSnackbar();
 
-	// ===== Tracking State =====
-	const impressionId = useRef<string | null>(null);
-	const viewSending = useRef(false);
-	const watchStartTime = useRef<Date>(new Date());
-	const watchMs = useRef(0);
-	const isCompleted = useRef(false);
-	const rewatchCount = useRef(0);
-	const watchTimerRef = useRef<NodeJS.Timeout | string | number | null>(null);
-	const appStateRef = useRef(AppState.currentState);
-	const lastActiveTimeRef = useRef(Date.now());
+        const { handleVideoLoop, handleVideoProgress } = useMediaTracking({
+                isActive,
+                sessionId,
+                source,
+                dishMedia: item.dish_media,
+        });
 
-	const mediaSource = useMemo(
-		() => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
-		[item.dish_media.mediaUrl],
-	);
+        const mediaSource = useMemo(
+                () => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
+                [item.dish_media.mediaUrl],
+        );
 
-	useEffect(() => {
-		scrollViewRef.current?.scrollToEnd({ animated: false });
-	}, [item.dish_reviews.length]);
+        useEffect(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: false });
+        }, [item.dish_reviews.length]);
 
-	// ===== Impression Tracking =====
-	useEffect(() => {
-		if (isActive) {
-			const id = Crypto.randomUUID();
-			impressionId.current = id;
-			watchStartTime.current = new Date();
-			watchMs.current = 0;
-			isCompleted.current = false;
-			rewatchCount.current = 0;
-			callBackend<DishMediaImpressionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/impression`, {
-				method: "POST",
-				requestPayload: {
-					id,
-					session_id: sessionId,
-					source,
-				},
-			});
-		}
-	}, [isActive, item.dish_media.id, sessionId, source, logFrontendEvent]);
+        const likesText = useMemo(() => formatLikeCount(likesCount, t), [likesCount]);
+        const shareLabel = useMemo(() => t("DishMediaContent.actions.share"), []);
+        const mapLabel = useMemo(() => t("DishMediaContent.actions.openMap"), []);
+        const commentPaddingRight = useMemo(
+                () => Math.max(16, rightActionsWidth + insets.right + 8),
+                [rightActionsWidth, insets.right],
+        );
 
-	// ===== Watch Time Tracking =====
-	useEffect(() => {
-		const remoteConfig = getRemoteConfig();
-		const imageCompletionThresholdMs = parseInt(remoteConfig?.v1_dish_media_image_completion_threshold_ms!, 10);
+        const handleCommentLike = async (commentId: string) => {
+                lightImpact();
+                const currentLikeState = commentLikes[commentId]?.isLiked || false;
+                const willLike = !currentLikeState;
 
-		if (isActive) {
-			// タイマーのスタート
-			lastActiveTimeRef.current = Date.now();
+                setCommentLikes((prev) => ({
+                        ...prev,
+                        [commentId]: {
+                                isLiked: willLike,
+                                count: currentLikeState ? (prev[commentId]?.count || 0) - 1 : (prev[commentId]?.count || 0) + 1,
+                        },
+                }));
 
-			const interval = setInterval(() => {
-				if (appStateRef.current === "active") {
-					const now = Date.now();
-					const elapsed = now - lastActiveTimeRef.current;
-					lastActiveTimeRef.current = now;
+                logFrontendEvent({
+                        event_name: currentLikeState ? "comment_unliked" : "comment_liked",
+                        error_level: "log",
+                        payload: {
+                                commentId,
+                                dishMediaId: item.dish_media.id,
+                                restaurantId: item.restaurant.id,
+                        },
+                });
 
-					const newWatchMs = watchMs.current + elapsed;
-					// Check completion for images
-					if (
-						item.dish_media.media_type === "image" &&
-						!isCompleted.current &&
-						newWatchMs >= imageCompletionThresholdMs
-					) {
-						isCompleted.current = true;
-						logFrontendEvent({
-							event_name: "dish_media_image_completed",
-							error_level: "log",
-							payload: {
-								dish_media_id: item.dish_media.id,
-								watch_ms: newWatchMs,
-							},
-						});
-					}
-					watchMs.current = newWatchMs;
-				}
-			}, 100); // Update every 100ms
+                try {
+                        await toggleReaction({
+                                target_type: "dish_reviews",
+                                target_id: commentId,
+                                action_type: "like",
+                                willReact: willLike,
+                        });
+                } catch (error) {
+                        setCommentLikes((prev) => ({
+                                ...prev,
+                                [commentId]: {
+                                        isLiked: currentLikeState,
+                                        count: currentLikeState
+                                                ? (prev[commentId]?.count || 0) + 1
+                                                : (prev[commentId]?.count || 0) - 1,
+                                },
+                        }));
+                        logFrontendEvent({
+                                event_name: "comment_like_reaction_failed",
+                                error_level: "log",
+                                payload: {
+                                        error: error instanceof Error ? error.message : String(error),
+                                        target_id: commentId,
+                                        action_type: "like",
+                                },
+                        });
+                }
+        };
 
-			watchTimerRef.current = interval;
-		}
+        const handleSeeMore = (commentId: string) => {
+                lightImpact();
+                const remoteConfig = getRemoteConfig();
+                const charUnitIncrement = parseInt(remoteConfig?.v1_dish_comment_review_show_number ?? "0", 10);
 
-		return () => {
-			if (watchTimerRef.current) {
-				clearInterval(watchTimerRef.current);
-				watchTimerRef.current = null;
-			}
-		};
-	}, [isActive, item.dish_media.id, item.dish_media.media_type, logFrontendEvent]);
+                setCommentExpandedUnits((prev) => ({
+                        ...prev,
+                        [commentId]: (prev[commentId] ?? 0) + charUnitIncrement,
+                }));
 
-	// ===== AppState Tracking =====
-	useEffect(() => {
-		const subscription = AppState.addEventListener("change", (nextAppState) => {
-			if (appStateRef.current === "active" && nextAppState.match(/inactive|background/)) {
-				// App is going to background - pause watch time tracking
-				appStateRef.current = nextAppState;
-			} else if (appStateRef.current.match(/inactive|background/) && nextAppState === "active") {
-				// App is coming back to foreground - resume from current time
-				appStateRef.current = nextAppState;
-				lastActiveTimeRef.current = Date.now();
-			}
-		});
+                logFrontendEvent({
+                        event_name: "comment_see_more_clicked",
+                        error_level: "log",
+                        payload: {
+                                commentId,
+                                dishMediaId: item.dish_media.id,
+                                restaurantId: item.restaurant.id,
+                                previousExpandedChars: commentExpandedUnits[commentId],
+                                newExpandedChars: (commentExpandedUnits[commentId] ?? 0) + charUnitIncrement,
+                                unitIncrement: charUnitIncrement,
+                        },
+                });
+        };
 
-		return () => {
-			subscription.remove();
-		};
-	}, []);
+        const handleLike = async () => {
+                lightImpact();
+                const willLike = !isLiked;
+                setIsLiked(willLike);
+                setLikesCount((prev) => (willLike ? prev + 1 : prev - 1));
 
-	// ===== Send View on Deactivate or Unmount =====
-	const sendView = useCallback(async () => {
-		if (!impressionId.current || viewSending.current) return;
+                logFrontendEvent({
+                        event_name: willLike ? "dish_liked" : "dish_unliked",
+                        error_level: "log",
+                        payload: {
+                                dishMediaId: item.dish_media.id,
+                                restaurantId: item.restaurant.id,
+                                previousLikeCount: likesCount,
+                                newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
+                        },
+                });
 
-		const isSkipped = watchMs.current < 1000 && !isCompleted.current;
-		const payload = {
-			impression_id: impressionId.current,
-			started_at: watchStartTime.current,
-			watch_ms: Math.round(watchMs.current),
-			is_completed: isCompleted.current,
-			is_skipped: isSkipped,
-			rewatch_count: rewatchCount.current,
-		};
+                try {
+                        if (willLike) {
+                                await callBackend<DishMediaReactionBodyDto, void>(
+                                        `v1/dish-media/${item.dish_media.id}/reaction`,
+                                        {
+                                                method: "POST",
+                                                requestPayload: { action_type: "like" },
+                                        },
+                                );
+                        } else {
+                                await callBackend<DishMediaReactionBodyDto, void>(
+                                        `v1/dish-media/${item.dish_media.id}/reaction`,
+                                        {
+                                                method: "DELETE",
+                                                requestPayload: { action_type: "like" },
+                                        },
+                                );
+                        }
+                } catch (error) {
+                        setIsLiked(!willLike);
+                        setLikesCount((prev) => (willLike ? prev - 1 : prev + 1));
+                        logFrontendEvent({
+                                event_name: "dish_like_reaction_failed",
+                                error_level: "log",
+                                payload: {
+                                        error: error instanceof Error ? error.message : String(error),
+                                        target_id: item.dish_media.id,
+                                        action_type: "like",
+                                        willReact: willLike,
+                                },
+                        });
+                }
+        };
 
-		viewSending.current = true;
-		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>(`v1/dish-media/${item.dish_media.id}/view`, {
-			method: "POST",
-			requestPayload: payload,
-		});
-		impressionId.current = null;
-		viewSending.current = false;
-	}, [item.dish_media.id, callBackend, logFrontendEvent]);
-	useEffect(() => {
-		if (!isActive) {
-			sendView();
-		}
+        const handleSave = async () => {
+                lightImpact();
+                const willSave = !isSaved;
+                setIsSaved(willSave);
 
-		// Also send on unmount
-		return () => {
-			// Fire and forget - we can't await in cleanup
-			sendView().catch((error) => {
-				logFrontendEvent({
-					event_name: "dish_media_view_send_cleanup_error",
-					error_level: "warn",
-					payload: {
-						error: error instanceof Error ? error.message : String(error),
-						dish_media_id: item.dish_media.id,
-					},
-				});
-			});
-		};
-	}, [isActive, sendView, item.dish_media.id, logFrontendEvent]);
+                logFrontendEvent({
+                        event_name: willSave ? "dish_saved" : "dish_unsaved",
+                        error_level: "log",
+                        payload: {
+                                dishMediaId: item.dish_media.id,
+                                restaurantId: item.restaurant.id,
+                        },
+                });
 
-	// ===== Video Progress Tracking =====
-	const handleVideoProgress = (progress: { currentTime: number; duration: number }) => {
-		if (item.dish_media.media_type === "video" && progress.duration > 0) {
-			const progressPercent = (progress.currentTime / progress.duration) * 100;
+                try {
+                        if (willSave) {
+                                await callBackend<DishMediaReactionBodyDto, void>(
+                                        `v1/dish-media/${item.dish_media.id}/reaction`,
+                                        {
+                                                method: "POST",
+                                                requestPayload: { action_type: "save" },
+                                        },
+                                );
+                        } else {
+                                await callBackend<DishMediaReactionBodyDto, void>(
+                                        `v1/dish-media/${item.dish_media.id}/reaction`,
+                                        {
+                                                method: "DELETE",
+                                                requestPayload: { action_type: "save" },
+                                        },
+                                );
+                        }
+                } catch (error) {
+                        setIsSaved(!willSave);
+                        logFrontendEvent({
+                                event_name: "dish_save_reaction_failed",
+                                error_level: "log",
+                                payload: {
+                                        error: error instanceof Error ? error.message : String(error),
+                                        target_id: item.dish_media.id,
+                                        action_type: "save",
+                                        willReact: willSave,
+                                },
+                        });
+                }
+        };
 
-			// Mark as completed when 90% reached
-			if (!isCompleted.current && progressPercent >= 90) {
-				isCompleted.current = true;
-				logFrontendEvent({
-					event_name: "dish_media_video_completed",
-					error_level: "log",
-					payload: {
-						dish_media_id: item.dish_media.id,
-						progress_percent: progressPercent,
-						current_time: progress.currentTime,
-						duration: progress.duration,
-					},
-				});
-			}
-		}
-	};
+        const handleViewRestaurant = () => {
+                lightImpact();
 
-	const handleVideoLoop = () => {
-		rewatchCount.current += 1;
-		logFrontendEvent({
-			event_name: "dish_media_video_looped",
-			error_level: "log",
-			payload: {
-				dish_media_id: item.dish_media.id,
-				rewatch_count: rewatchCount.current,
-			},
-		});
-	};
+                logFrontendEvent({
+                        event_name: "restaurant_view_clicked",
+                        error_level: "log",
+                        payload: {
+                                restaurantId: item.restaurant.id,
+                                restaurantName: item.restaurant.name,
+                                fromDishMediaId: item.dish_media.id,
+                        },
+                });
+        };
 
-	const handleCommentLike = async (commentId: string) => {
-		lightImpact();
-		const currentLikeState = commentLikes[commentId]?.isLiked || false;
-		const willLike = !currentLikeState;
+        const handleViewCreator = () => {
+                lightImpact();
+                router.push({
+                        pathname: `/[locale]/profile`,
+                        params: {
+                                locale,
+                                userId: "123",
+                        },
+                });
 
-		setCommentLikes((prev) => ({
-			...prev,
-			[commentId]: {
-				isLiked: willLike,
-				count: currentLikeState ? (prev[commentId]?.count || 0) - 1 : (prev[commentId]?.count || 0) + 1,
-			},
-		}));
+                logFrontendEvent({
+                        event_name: "creator_profile_clicked",
+                        error_level: "log",
+                        payload: {
+                                creatorUserId: "123",
+                                fromDishMediaId: item.dish_media.id,
+                                restaurantId: item.restaurant.id,
+                        },
+                });
+        };
 
-		logFrontendEvent({
-			event_name: currentLikeState ? "comment_unliked" : "comment_liked",
-			error_level: "log",
-			payload: {
-				commentId,
-				dishMediaId: item.dish_media.id,
-				restaurantId: item.restaurant.id,
-			},
-		});
+        const handleMenuOpen = () => {
+                lightImpact();
+                openMenuModal();
 
-		try {
-			await toggleReaction({
-				target_type: "dish_reviews",
-				target_id: commentId,
-				action_type: "like",
-				willReact: willLike,
-			});
-		} catch (error) {
-			// Revert state on error
-			setCommentLikes((prev) => ({
-				...prev,
-				[commentId]: {
-					isLiked: currentLikeState,
-					count: currentLikeState ? (prev[commentId]?.count || 0) + 1 : (prev[commentId]?.count || 0) - 1,
-				},
-			}));
-			logFrontendEvent({
-				event_name: "comment_like_reaction_failed",
-				error_level: "log",
-				payload: {
-					error: error instanceof Error ? error.message : String(error),
-					target_id: commentId,
-					action_type: "like",
-				},
-			});
-		}
-	};
+                logFrontendEvent({
+                        event_name: "dish_menu_opened",
+                        error_level: "log",
+                        payload: {
+                                dishMediaId: item.dish_media.id,
+                                restaurantId: item.restaurant.id,
+                        },
+                });
+        };
 
-	const handleSeeMore = (commentId: string) => {
-		lightImpact();
-		const remoteConfig = getRemoteConfig();
-		const charUnitIncrement = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
+        const handleMapPinPress = async () => {
+                lightImpact();
 
-		setCommentExpandedChars((prev) => ({
-			...prev,
-			[commentId]: prev[commentId] + charUnitIncrement,
-		}));
+                logFrontendEvent({
+                        event_name: "map_pin_clicked",
+                        error_level: "log",
+                        payload: {
+                                restaurantId: item.restaurant.id,
+                                restaurantName: item.restaurant.name,
+                                googlePlaceId: item.restaurant.google_place_id,
+                                fromDishMediaId: item.dish_media.id,
+                        },
+                });
 
-		logFrontendEvent({
-			event_name: "comment_see_more_clicked",
-			error_level: "log",
-			payload: {
-				commentId,
-				dishMediaId: item.dish_media.id,
-				restaurantId: item.restaurant.id,
-				previousExpandedChars: commentExpandedChars[commentId],
-				newExpandedChars: commentExpandedChars[commentId] + charUnitIncrement,
-				unitIncrement: charUnitIncrement,
-			},
-		});
-	};
+                try {
+                        const { mapUrl, canOpen } = await getGoogleMapsLink(item.restaurant);
+                        if (Platform.OS === "web") {
+                                window.open(mapUrl, "_blank", "noopener,noreferrer");
+                                return;
+                        }
+                        if (canOpen) {
+                                await Linking.openURL(mapUrl);
+                        } else {
+                                showSnackbar(t("DishMediaContent.errors.mapOpenFailed"));
+                        }
+                } catch (error) {
+                        showSnackbar(t("DishMediaContent.errors.mapOpenFailed"));
+                        logFrontendEvent({
+                                event_name: "map_pin_open_failed",
+                                error_level: "error",
+                                payload: {
+                                        restaurantId: item.restaurant.id,
+                                        googlePlaceId: item.restaurant.google_place_id,
+                                        error: error instanceof Error ? error.message : "Unknown error",
+                                },
+                        });
+                }
 
-	const handleLike = async () => {
-		lightImpact();
-		const willLike = !isLiked;
-		setIsLiked(willLike);
-		setLikesCount((prev) => (willLike ? prev + 1 : prev - 1));
+                try {
+                        await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
+                                method: "POST",
+                                requestPayload: { action_type: "open_map" },
+                        });
+                } catch (error) {
+                        console.log("Map open reaction error ignored:", error);
+                }
+        };
 
-		logFrontendEvent({
-			event_name: willLike ? "dish_liked" : "dish_unliked",
-			error_level: "log",
-			payload: {
-				dishMediaId: item.dish_media.id,
-				restaurantId: item.restaurant.id,
-				previousLikeCount: likesCount,
-				newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
-			},
-		});
+        const handleMenuOptionPress = useCallback(
+                (onPress: () => void) => {
+                        lightImpact();
+                        closeMenuModal();
+                        onPress();
 
-		try {
-			if (willLike) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "like" },
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "like" },
-				});
-			}
-		} catch (error) {
-			// Revert state on error
-			setIsLiked(!willLike);
-			setLikesCount((prev) => (willLike ? prev - 1 : prev + 1));
-			logFrontendEvent({
-				event_name: "dish_like_reaction_failed",
-				error_level: "log",
-				payload: {
-					error: error instanceof Error ? error.message : String(error),
-					target_id: item.dish_media.id,
-					action_type: "like",
-					willReact: willLike,
-				},
-			});
-		}
-	};
+                        logFrontendEvent({
+                                event_name: "dish_menu_option_selected",
+                                error_level: "log",
+                                payload: {
+                                        dishMediaId: item.dish_media.id,
+                                        restaurantId: item.restaurant.id,
+                                },
+                        });
+                },
+                [closeMenuModal, item.dish_media.id, item.restaurant.id, lightImpact, logFrontendEvent],
+        );
 
-	const handleSave = async () => {
-		lightImpact();
-		const willSave = !isSaved;
-		setIsSaved(willSave);
+        const handleSharePress = async () => {
+                lightImpact();
 
-		logFrontendEvent({
-			event_name: willSave ? "dish_saved" : "dish_unsaved",
-			error_level: "log",
-			payload: {
-				dishMediaId: item.dish_media.id,
-				restaurantId: item.restaurant.id,
-			},
-		});
+                try {
+                        const shareUrl = generateShareUrl(`/${locale}/posts?ids=${item.dish_media.id}`);
 
-		try {
-			if (willSave) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "save" },
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "save" },
-				});
-			}
-		} catch (error) {
-			// Revert state on error
-			setIsSaved(!willSave);
-			logFrontendEvent({
-				event_name: "dish_save_reaction_failed",
-				error_level: "log",
-				payload: {
-					error: error instanceof Error ? error.message : String(error),
-					target_id: item.dish_media.id,
-					action_type: "save",
-					willReact: willSave,
-				},
-			});
-		}
-	};
+                        logFrontendEvent({
+                                event_name: "dish_share_attempted",
+                                error_level: "log",
+                                payload: {
+                                        dishMediaId: item.dish_media.id,
+                                        restaurantId: item.restaurant.id,
+                                        shareUrl,
+                                },
+                        });
 
-	const handleViewRestaurant = () => {
-		lightImpact();
-		// router.push("/(tabs)/(home)/restaurant/1");
+                        await handleShare(
+                                shareUrl,
+                                t("DishMediaContent.share.title", { dishName: item.restaurant.name }),
+                                () => {
+                                        logFrontendEvent({
+                                                event_name: "dish_share_success",
+                                                error_level: "log",
+                                                payload: {
+                                                        dishMediaId: item.dish_media.id,
+                                                        restaurantId: item.restaurant.id,
+                                                        shareUrl,
+                                                },
+                                        });
+                                },
+                                (error) => {
+                                        logFrontendEvent({
+                                                event_name: "dish_share_failed",
+                                                error_level: "error",
+                                                payload: {
+                                                        dishMediaId: item.dish_media.id,
+                                                        restaurantId: item.restaurant.id,
+                                                        shareUrl,
+                                                        error,
+                                                },
+                                        });
+                                },
+                                showSnackbar,
+                        );
+                } catch (error) {
+                        logFrontendEvent({
+                                event_name: "dish_share_error",
+                                error_level: "error",
+                                payload: {
+                                        dishMediaId: item.dish_media.id,
+                                        restaurantId: item.restaurant.id,
+                                        error: error instanceof Error ? error.message : "Unknown error",
+                                },
+                        });
+                }
+        };
 
-		logFrontendEvent({
-			event_name: "restaurant_view_clicked",
-			error_level: "log",
-			payload: {
-				restaurantId: item.restaurant.id,
-				restaurantName: item.restaurant.name,
-				fromDishMediaId: item.dish_media.id,
-			},
-		});
-	};
+        const menuOptions = [
+                {
+                        icon: User,
+                        label: t("DishMediaContent.menuOptions.viewCreatorProfile"),
+                        onPress: handleViewCreator,
+                },
+                {
+                        icon: Calendar,
+                        label: t("DishMediaContent.menuOptions.reservation"),
+                        onPress: () => console.log("Reservation"),
+                },
+        ];
 
-	const handleViewCreator = () => {
-		lightImpact();
-		// Navigate to creator's profile
-		router.push({
-			pathname: `/[locale]/profile`,
-			params: {
-				locale,
-				userId: "123",
-			},
-		});
+        return (
+                <SafeAreaView style={styles.container}>
+                        {item.dish_media.media_type === "video" ? (
+                                <VideoPlayer
+                                        uri={item.dish_media.mediaUrl}
+                                        style={StyleSheet.absoluteFill}
+                                        shouldPlay={isActive}
+                                        onProgress={handleVideoProgress}
+                                        onLoop={handleVideoLoop}
+                                />
+                        ) : (
+                                <Image
+                                        source={mediaSource}
+                                        cachePolicy="memory-disk"
+                                        transition={100}
+                                        style={StyleSheet.absoluteFill}
+                                        contentFit="cover"
+                                />
+                        )}
 
-		logFrontendEvent({
-			event_name: "creator_profile_clicked",
-			error_level: "log",
-			payload: {
-				creatorUserId: "123",
-				fromDishMediaId: item.dish_media.id,
-				restaurantId: item.restaurant.id,
-			},
-		});
-	};
+                        <View style={styles.topHeader}>
+                                <View style={styles.headerLeft}>
+                                        <Text style={styles.menuName}>{item.restaurant.name}</Text>
+                                        <View style={styles.priceRatingContainer}>{/* Price & rating placeholder */}</View>
+                                </View>
+                                <View style={styles.headerRight}>{/* CTA placeholder */}</View>
+                        </View>
 
-	const handleMenuOpen = () => {
-		lightImpact();
-		openMenuModal();
+                        <CommentsSection
+                                reviews={item.dish_reviews}
+                                expandedUnits={commentExpandedUnits}
+                                likesState={commentLikes}
+                                paddingRight={commentPaddingRight}
+                                scrollViewRef={scrollViewRef}
+                                carouselRef={carouselRef}
+                                onSeeMore={handleSeeMore}
+                                onToggleLike={handleCommentLike}
+                                t={t}
+                        />
 
-		logFrontendEvent({
-			event_name: "dish_menu_opened",
-			error_level: "log",
-			payload: {
-				dishMediaId: item.dish_media.id,
-				restaurantId: item.restaurant.id,
-			},
-		});
-	};
+                        <View pointerEvents="box-none" style={styles.bottomSection}>
+                                <View pointerEvents="box-none" style={styles.actionRow}>
+                                        <ActionButtons
+                                                restaurantImageUrl={item.restaurant.image_url}
+                                                onPressRestaurant={handleViewRestaurant}
+                                                isLiked={isLiked}
+                                                likesText={likesText}
+                                                onLike={handleLike}
+                                                isSaved={isSaved}
+                                                onSave={handleSave}
+                                                onShare={handleSharePress}
+                                                onOpenMap={handleMapPinPress}
+                                                shareLabel={shareLabel}
+                                                mapLabel={mapLabel}
+                                                onLayout={setRightActionsWidth}
+                                        />
+                                </View>
+                        </View>
 
-	const handleMapPinPress = async () => {
-		lightImpact();
-
-		logFrontendEvent({
-			event_name: "map_pin_clicked",
-			error_level: "log",
-			payload: {
-				restaurantId: item.restaurant.id,
-				restaurantName: item.restaurant.name,
-				googlePlaceId: item.restaurant.google_place_id,
-				fromDishMediaId: item.dish_media.id,
-			},
-		});
-
-		try {
-			const { mapUrl, canOpen } = await getGoogleMapsLink(item.restaurant);
-			if (Platform.OS === "web") {
-				window.open(mapUrl, "_blank", "noopener,noreferrer"); // 別タブで開く
-				return;
-			}
-			if (canOpen) {
-				await Linking.openURL(mapUrl);
-			} else {
-				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			}
-		} catch (error) {
-			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			logFrontendEvent({
-				event_name: "map_pin_open_failed",
-				error_level: "error",
-				payload: {
-					restaurantId: item.restaurant.id,
-					googlePlaceId: item.restaurant.google_place_id,
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			});
-		}
-
-		// Reaction を登録する。重複する場合はエラーになるが無視する。
-		try {
-			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${item.dish_media.id}/reaction`, {
-				method: "POST",
-				requestPayload: { action_type: "open_map" },
-			});
-		} catch (error) {
-			// Ignore errors as per the comment
-			console.log("Map open reaction error ignored:", error);
-		}
-	};
-
-	const handleMenuOptionPress = (onPress: () => void) => {
-		lightImpact();
-		closeMenuModal();
-		onPress();
-
-		logFrontendEvent({
-			event_name: "dish_menu_option_selected",
-			error_level: "log",
-			payload: {
-				dishMediaId: item.dish_media.id,
-				restaurantId: item.restaurant.id,
-			},
-		});
-	};
-
-	const handleSharePress = async () => {
-		lightImpact();
-
-		try {
-			const shareUrl = generateShareUrl(`/${locale}/posts?ids=${item.dish_media.id}`);
-
-			logFrontendEvent({
-				event_name: "dish_share_attempted",
-				error_level: "log",
-				payload: {
-					dishMediaId: item.dish_media.id,
-					restaurantId: item.restaurant.id,
-					shareUrl,
-				},
-			});
-
-			await handleShare(
-				shareUrl,
-				i18n.t("DishMediaContent.share.title", { dishName: item.restaurant.name }),
-				() => {
-					// Success callback
-					logFrontendEvent({
-						event_name: "dish_share_success",
-						error_level: "log",
-						payload: {
-							dishMediaId: item.dish_media.id,
-							restaurantId: item.restaurant.id,
-							shareUrl,
-						},
-					});
-				},
-				(error) => {
-					// Error callback
-					logFrontendEvent({
-						event_name: "dish_share_failed",
-						error_level: "error",
-						payload: {
-							dishMediaId: item.dish_media.id,
-							restaurantId: item.restaurant.id,
-							shareUrl,
-							error,
-						},
-					});
-				},
-				showSnackbar,
-			);
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "dish_share_error",
-				error_level: "error",
-				payload: {
-					dishMediaId: item.dish_media.id,
-					restaurantId: item.restaurant.id,
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			});
-		}
-	};
-
-	const menuOptions = [
-		{
-			icon: User,
-			label: i18n.t("DishMediaContent.menuOptions.viewCreatorProfile"),
-			onPress: handleViewCreator,
-		},
-		{
-			icon: Calendar,
-			label: i18n.t("DishMediaContent.menuOptions.reservation"),
-			onPress: () => console.log("Reservation"),
-		},
-	];
-
-	return (
-		<SafeAreaView style={styles.container}>
-			{/* Background Media (Image or Video) */}
-			{item.dish_media.media_type === "video" ? (
-				<VideoPlayer
-					uri={item.dish_media.mediaUrl}
-					style={StyleSheet.absoluteFill}
-					shouldPlay={isActive}
-					onProgress={handleVideoProgress}
-					onLoop={handleVideoLoop}
-				/>
-			) : (
-				<Image
-					source={mediaSource}
-					cachePolicy="memory-disk"
-					transition={100}
-					style={StyleSheet.absoluteFill}
-					contentFit="cover"
-				/>
-			)}
-
-			{/* Top Header */}
-			<View style={styles.topHeader}>
-				<View style={styles.headerLeft}>
-					<Text style={styles.menuName}>{item.restaurant.name}</Text>
-					<View style={styles.priceRatingContainer}>
-						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
-						{/* <View style={styles.ratingContainer}>
-              {renderStars(5, 4)}
-              <Text style={styles.reviewCount}>(127)</Text>
-            </View> */}
-					</View>
-				</View>
-				<View style={styles.headerRight}>
-					{/* <TouchableOpacity
-            style={styles.viewRestaurantButton}
-            onPress={handleViewRestaurant}
-          >
-            <Text style={styles.viewRestaurantButtonText}>{i18n.t("DishMediaContent.buttons.viewRestaurant")}</Text>
-          </TouchableOpacity> */}
-				</View>
-			</View>
-
-			{/* Comments Section */}
-			<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
-				<ScrollView
-					ref={scrollViewRef}
-					style={[styles.commentsContainer, { paddingRight: Math.max(16, rightActionsWidth + insets.right + 8) }]}
-					showsVerticalScrollIndicator={false}
-					nestedScrollEnabled={Platform.OS === "android"}
-					simultaneousHandlers={carouselRef}>
-					{item.dish_reviews.map((review) => {
-						const unitLimit = commentExpandedChars[review.id]!;
-						const { substring, isTruncated } = sliceByUnitLimit(review.comment, unitLimit);
-						const displayText = substring;
-
-						return (
-							<View key={review.id} style={styles.commentItem}>
-								<View style={styles.commentHeader}>
-									<Text style={styles.commentUsername}>{review.username}</Text>
-									<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
-								</View>
-								<View style={styles.commentContent}>
-									<View style={styles.commentTextContainer}>
-										<Text style={styles.commentText}>
-											{displayText}
-											{isTruncated && "...  "}
-											{isTruncated && (
-												<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
-													<Text style={styles.seeMoreText}>{i18n.t("DishMediaContent.actions.seeMore")}</Text>
-												</TouchableOpacity>
-											)}
-										</Text>
-									</View>
-									<View style={styles.commentActions}>
-										<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleCommentLike(review.id)}>
-											<Heart
-												size={14}
-												color={commentLikes[review.id].isLiked ? "#FF3040" : "#CCCCCC"}
-												fill={commentLikes[review.id].isLiked ? "#FF3040" : "transparent"}
-											/>
-										</TouchableOpacity>
-										{commentLikes[review.id].count > 0 && (
-											<Text style={styles.commentLikeCount}>{formatLikeCount(commentLikes[review.id].count)}</Text>
-										)}
-									</View>
-								</View>
-							</View>
-						);
-					})}
-				</ScrollView>
-			</LinearGradient>
-
-			{/* Bottom Section */}
-			<View pointerEvents="box-none" style={styles.bottomSection}>
-				<View pointerEvents="box-none" style={styles.actionRow}>
-					{/* Action Buttons */}
-					<View style={styles.rightActions} onLayout={(e) => setRightActionsWidth(e.nativeEvent.layout.width)}>
-						<TouchableOpacity style={styles.actionButton} onPress={() => handleViewRestaurant()}>
-							<Image
-								source={{
-									uri: item.restaurant.image_url,
-								}}
-								style={styles.restaurantAvatar}
-								onError={() => console.log("Failed to load restaurant avatar")}
-							/>
-						</TouchableOpacity>
-
-						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-								<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
-							</TouchableOpacity>
-							<Text style={styles.actionText}>{formatLikeCount(likesCount)}</Text>
-						</View>
-
-						<TouchableOpacity style={styles.actionButton} onPress={handleSave}>
-							<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
-						</TouchableOpacity>
-
-						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={handleSharePress}>
-								<Share size={28} color="#FFFFFF" />
-							</TouchableOpacity>
-							<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
-						</View>
-
-						<View style={styles.actionContainer}>
-							<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress}>
-								<MapPinned size={28} color="#FFFFFF" />
-							</TouchableOpacity>
-							<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
-						</View>
-
-						{/* <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleMenuOpen}
-            >
-              <EllipsisVertical size={28} color="#FFFFFF" />
-            </TouchableOpacity> */}
-					</View>
-				</View>
-			</View>
-
-			{/* Menu Modal */}
-			<BlurModal contentContainerStyle={styles.modalOverlay}>
-				<View style={styles.menuContainer}>
-					{menuOptions.map((option, index) => (
-						<TouchableOpacity
-							key={index}
-							style={styles.menuItem}
-							onPress={() => {
-								option.onPress();
-								closeMenuModal();
-							}}>
-							<option.icon size={20} color="#FFFFFF" />
-							<Text style={styles.menuItemText}>{option.label}</Text>
-						</TouchableOpacity>
-					))}
-				</View>
-			</BlurModal>
-		</SafeAreaView>
-	);
+                        <BlurModal contentContainerStyle={styles.modalOverlay}>
+                                <View style={styles.menuContainer}>
+                                        {menuOptions.map((option, index) => (
+                                                <TouchableOpacity
+                                                        key={index}
+                                                        style={styles.menuItem}
+                                                        onPress={() => handleMenuOptionPress(option.onPress)}
+                                                >
+                                                        <option.icon size={20} color="#FFFFFF" />
+                                                        <Text style={styles.menuItemText}>{option.label}</Text>
+                                                </TouchableOpacity>
+                                        ))}
+                                </View>
+                        </BlurModal>
+                </SafeAreaView>
+        );
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#000",
-	},
-	topHeader: {
-		position: "absolute",
-		top: 60,
-		left: 16,
-		right: 16,
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "flex-start",
-		zIndex: 10,
-	},
-	headerLeft: {
-		flex: 1,
-		marginRight: 16,
-	},
-	headerRight: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	menuName: {
-		fontSize: 28,
-		fontWeight: "700",
-		color: "#FFFFFF",
-		textShadowColor: "rgba(0, 0, 0, 0.5)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 2,
-		marginBottom: 4,
-		letterSpacing: -0.5,
-		lineHeight: 34,
-	},
-	priceRatingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-	},
-	price: {
-		fontSize: 20,
-		fontWeight: "600",
-		color: "#FFFFFF",
-		textShadowColor: "rgba(0, 0, 0, 0.5)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 2,
-		letterSpacing: 0.2,
-	},
-	ratingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-	},
-	starsContainer: {
-		flexDirection: "row",
-		gap: 2,
-	},
-	reviewCount: {
-		fontSize: 16,
-		color: "#FFFFFF",
-		textShadowColor: "rgba(0, 0, 0, 0.5)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 2,
-		fontWeight: "500",
-	},
-	distanceContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-	},
-	distance: {
-		fontSize: 20,
-		fontWeight: "600",
-		color: "#FFFFFF",
-		textShadowColor: "rgba(0, 0, 0, 0.5)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 2,
-		letterSpacing: 0.2,
-	},
-	viewRestaurantButton: {
-		backgroundColor: "rgba(255, 255, 255, 0.95)",
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 24,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 4,
-	},
-	viewRestaurantButtonText: {
-		fontSize: 15,
-		fontWeight: "600",
-		color: "#000",
-		letterSpacing: 0.2,
-	},
-	commentsGradient: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		maxHeight: 200,
-	},
-	commentsContainer: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-	},
-	commentItem: {
-		marginBottom: 12,
-	},
-	commentHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 4,
-	},
-	commentUsername: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#FFFFFF",
-		marginRight: 8,
-		letterSpacing: 0.1,
-	},
-	commentTimestamp: {
-		fontSize: 12,
-		color: "#CCCCCC",
-		fontWeight: "500",
-	},
-	commentContent: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "flex-start",
-	},
-	commentTextContainer: {
-		flex: 1,
-		marginRight: 8,
-	},
-	commentText: {
-		fontSize: 14,
-		color: "#FFFFFF",
-		lineHeight: 20,
-		fontWeight: "400",
-	},
-	seeMoreButton: {},
-	seeMoreText: {
-		fontSize: 12,
-		color: "#CCCCCC",
-		fontWeight: "500",
-	},
-	commentActions: {
-		alignItems: "center",
-		width: 18,
-	},
-	commentLikeButton: {
-		paddingVertical: 4,
-	},
-	commentLikeCount: {
-		fontSize: 12,
-		color: "#CCCCCC",
-		fontWeight: "500",
-	},
-	bottomSection: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		paddingHorizontal: 16,
-		paddingTop: 16,
-		paddingBottom: 32,
-	},
-	actionRow: {
-		flexDirection: "row",
-		alignItems: "flex-end",
-		justifyContent: "flex-end",
-	},
-	rightActions: {
-		alignItems: "center",
-		gap: 16,
-	},
-	restaurantAvatar: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-	},
-	actionContainer: {
-		alignItems: "center",
-	},
-	actionButton: {
-		padding: 4,
-	},
-	actionText: {
-		fontSize: 13,
-		fontWeight: "500",
-		color: "#FFFFFF",
-		marginTop: 4,
-		letterSpacing: 0.2,
-	},
-	modalOverlay: {
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	menuContainer: {
-		backgroundColor: "rgba(0, 0, 0, 0.95)",
-		borderRadius: 20,
-		padding: 12,
-		minWidth: 200,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		shadowRadius: 16,
-		elevation: 8,
-	},
-	menuItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderRadius: 12,
-	},
-	menuItemText: {
-		fontSize: 17,
-		color: "#FFFFFF",
-		marginLeft: 12,
-		fontWeight: "500",
-		letterSpacing: 0.2,
-	},
+        container: {
+                flex: 1,
+                backgroundColor: "#000",
+        },
+        topHeader: {
+                position: "absolute",
+                top: 60,
+                left: 16,
+                right: 16,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                zIndex: 10,
+        },
+        headerLeft: {
+                flex: 1,
+                marginRight: 16,
+        },
+        headerRight: {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+        },
+        menuName: {
+                fontSize: 28,
+                fontWeight: "700",
+                color: "#FFFFFF",
+                textShadowColor: "rgba(0, 0, 0, 0.5)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 2,
+                marginBottom: 4,
+                letterSpacing: -0.5,
+                lineHeight: 34,
+        },
+        priceRatingContainer: {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+        },
+        bottomSection: {
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                paddingHorizontal: 16,
+                paddingTop: 16,
+                paddingBottom: 32,
+        },
+        actionRow: {
+                flexDirection: "row",
+                alignItems: "flex-end",
+                justifyContent: "flex-end",
+        },
+        modalOverlay: {
+                justifyContent: "center",
+                alignItems: "center",
+        },
+        menuContainer: {
+                backgroundColor: "rgba(0, 0, 0, 0.95)",
+                borderRadius: 20,
+                padding: 12,
+                minWidth: 200,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+                elevation: 8,
+        },
+        menuItem: {
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+        },
+        menuItemText: {
+                fontSize: 17,
+                color: "#FFFFFF",
+                marginLeft: 12,
+                fontWeight: "500",
+                letterSpacing: 0.2,
+        },
 });
