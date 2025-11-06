@@ -268,7 +268,8 @@
 			"openInGoogle": "Ouvrir dans Google"
 		},
 		"actions": {
-			"selectDishCategory": "Sélectionner la catégorie du plat"
+			"selectDishCategory": "Sélectionner la catégorie du plat",
+			"writeReviewForThisDish": "Écrire un avis sur ce plat"
 		},
 		"inputs": {
 			"price": "Prix",

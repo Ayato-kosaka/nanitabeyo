@@ -267,7 +267,8 @@
 			"openInGoogle": "Open in Google"
 		},
 		"actions": {
-			"selectDishCategory": "Select dish category"
+			"selectDishCategory": "Select dish category",
+			"writeReviewForThisDish": "Write a review for this dish"
 		},
 		"inputs": {
 			"price": "Price",

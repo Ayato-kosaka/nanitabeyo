@@ -22,7 +22,7 @@ export class NotificationJobService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly userService: UsersService,
-  ) { }
+  ) {}
 
   /**
    * 通知ジョブを処理
@@ -134,17 +134,16 @@ export class NotificationJobService {
     actorId,
     recipientId,
   }: {
-    actionType: string,
-    targetTable: string,
-    actorId: string,
-    recipientId: string,
+    actionType: string;
+    targetTable: string;
+    actorId: string;
+    recipientId: string;
   }) {
     // 通知の送信者と受信者を取得
     const users = await this.userService.getUserByIds([actorId, recipientId]);
     const actor = users.find((u) => u.id === actorId);
     const recipient = users.find((u) => u.id === recipientId);
-    if (!actor)
-      throw new Error(`ActorUserNotFound: actorId=${actorId}`);
+    if (!actor) throw new Error(`ActorUserNotFound: actorId=${actorId}`);
     if (!recipient)
       throw new Error(`RecipientUserNotFound: recipientId=${recipientId}`);
 
@@ -218,7 +217,9 @@ export class NotificationJobService {
     if (SUPPORTED_LOCALES.includes(recipient.preferred_locale as any)) {
       locale = recipient.preferred_locale as (typeof SUPPORTED_LOCALES)[number];
     } else if (
-      SUPPORTED_LOCALES.includes(recipient.preferred_locale.split('-')[0] as any)
+      SUPPORTED_LOCALES.includes(
+        recipient.preferred_locale.split('-')[0] as any,
+      )
     ) {
       locale = recipient.preferred_locale.split(
         '-',

@@ -42,6 +42,12 @@ interface ReviewFormProps {
 	initialRating?: number;
 	/** Called when user cancels */
 	onCancel: () => void;
+	/** Pre-filled media data (for no-media mode from Feed) */
+	prefilledMedia?: {
+		mediaUrl: string;
+		mediaType: "image" | "video";
+		thumbnailImageUrl?: string;
+	};
 }
 
 const { height } = Dimensions.get("window");
@@ -61,6 +67,7 @@ export function ReviewForm({
 	initialReviewText = "",
 	initialRating = 0,
 	onCancel,
+	prefilledMedia,
 }: ReviewFormProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -94,6 +101,9 @@ export function ReviewForm({
 
 	const isValid = price.trim() && reviewText.trim() && rating > 0 && dishCategoryName.trim() && !!dishCategoryId;
 
+	// #【設計】メディアなしモード（prefilledMedia指定時）では mediaState.status の検証をスキップ
+	const isMediaReady = prefilledMedia ? true : mediaState.status === "success";
+
 	// useBlurModal for dish category selection
 	const {
 		BlurModal: DishCategoryModal,
@@ -106,6 +116,29 @@ export function ReviewForm({
 
 	// Handle media selection on mount
 	useEffect(() => {
+		// #【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
+		if (prefilledMedia) {
+			// プレビュー専用モードでは、既存のメディアURLを表示するだけで新規選択は行わない
+			if (!prefilledMedia.mediaUrl) {
+				// メディアURLが不正な場合はエラー表示してモーダルを閉じる
+				showSnackbar(i18n.t("Map.media.mediaSelectionError"));
+				onCancel();
+				return;
+			}
+
+			// 既存メディアをプレビュー用のMediaDataに変換
+			setMediaState({
+				status: "success",
+				media: {
+					type: prefilledMedia.mediaType,
+					uri: prefilledMedia.mediaUrl,
+					mimeType: prefilledMedia.mediaType === "video" ? "video/mp4" : "image/jpeg",
+					thumbnailUri: prefilledMedia.thumbnailImageUrl,
+				},
+			});
+			return;
+		}
+
 		let cancelled = false;
 
 		const handleMediaSelection = async () => {
@@ -155,7 +188,7 @@ export function ReviewForm({
 			cancelled = true;
 			setIsMounted(false);
 		};
-	}, [onCancel, lightImpact]);
+	}, [onCancel, lightImpact, prefilledMedia, showSnackbar]);
 
 	// Retry media selection
 	const handleRetry = useCallback(() => {
@@ -284,13 +317,51 @@ export function ReviewForm({
 	);
 
 	const handleSubmit = useCallback(async () => {
-		if (!isValid || isProcessing || mediaState.status !== "success") return;
+		// #【バリデーション分岐】通常モードでは mediaState.status === "success" が必須、メディアなしモードでは不要
+		if (!isValid || isProcessing || !isMediaReady) return;
 
 		mediumImpact();
 		setIsProcessing(true);
 		setDishCategoryError(null);
 
 		try {
+			// #【送信フロー差分】メディアなしモード（prefilledMedia指定時）ではメディアアップロード/CreateDishMediaをスキップ
+			if (prefilledMedia) {
+				// メディアなしモード: Dish → Review（Media作成なし）
+				const dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+					method: "POST",
+					requestPayload: {
+						restaurantId: restaurant.id,
+						dishCategoryId: dishCategoryId,
+					},
+				}).then((res) => res.id);
+
+				await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
+					method: "POST",
+					requestPayload: {
+						dishId,
+						comment: reviewText,
+						languageCode: locale,
+						priceCents: getMinorUnitFromCurrency(currencyCode),
+						currencyCode: currencyCode ?? undefined,
+						rating,
+						// createdDishMediaId は省略（メディアなしモード）
+					},
+				});
+
+				logFrontendEvent({
+					event_name: "dish_review_submitted_no_media",
+					error_level: "log",
+					payload: { restaurantId: restaurant?.id, rating: rating },
+				});
+
+				onCancel();
+				return;
+			}
+
+			// 通常モード: Dish → Media → Review（従来フロー）
+			if (mediaState.status !== "success") return;
+
 			if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
 				logFrontendEvent({
 					event_name: "video_duration_missing",
@@ -370,6 +441,7 @@ export function ReviewForm({
 		reviewText,
 		isValid,
 		isProcessing,
+		isMediaReady,
 		rating,
 		mediaState,
 		dishCategoryId,
@@ -384,6 +456,8 @@ export function ReviewForm({
 		mediaUploadFile,
 		thumbnailUploadFile,
 		mediumImpact,
+		prefilledMedia,
+		showSnackbar,
 	]);
 
 	const handleCancel = useCallback(() => {

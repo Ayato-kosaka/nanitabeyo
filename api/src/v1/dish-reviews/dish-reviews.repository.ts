@@ -73,7 +73,7 @@ export class DishReviewsRepository {
         rating: dto.rating,
         price_cents: dto.priceCents,
         currency_code: dto.currencyCode,
-        created_dish_media_id: dto.createdDishMediaId,
+        created_dish_media_id: dto.createdDishMediaId ?? null,
       },
     });
   }

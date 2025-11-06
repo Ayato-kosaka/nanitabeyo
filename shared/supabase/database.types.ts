@@ -364,7 +364,7 @@ export type Database = {
 					comment: string;
 					comment_tsv: unknown;
 					created_at: string;
-					created_dish_media_id: string;
+					created_dish_media_id: string | null;
 					currency_code: string | null;
 					dish_id: string;
 					id: string;
@@ -379,7 +379,7 @@ export type Database = {
 					comment: string;
 					comment_tsv?: unknown;
 					created_at?: string;
-					created_dish_media_id: string;
+					created_dish_media_id?: string | null;
 					currency_code?: string | null;
 					dish_id: string;
 					id?: string;

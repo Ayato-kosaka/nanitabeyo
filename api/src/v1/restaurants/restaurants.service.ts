@@ -40,7 +40,7 @@ export class RestaurantsService {
     private readonly dishesRepository: DishesRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */

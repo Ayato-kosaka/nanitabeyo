@@ -506,7 +506,7 @@ export class DishMediaRepository {
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(
-        reviews.map((review) => review.created_dish_media_id),
+        reviews.map((review) => review.created_dish_media_id).filter((id): id is string => id !== null),
         reviews.map((review) => review.id),
         userId,
       );

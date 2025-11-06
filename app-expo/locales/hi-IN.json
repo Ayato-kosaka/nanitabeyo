@@ -267,7 +267,8 @@
 			"openInGoogle": "Google में खोलें"
 		},
 		"actions": {
-			"selectDishCategory": "डिश श्रेणी चुनें"
+			"selectDishCategory": "डिश श्रेणी चुनें",
+			"writeReviewForThisDish": "इस डिश की समीक्षा लिखें"
 		},
 		"inputs": {
 			"price": "मूल्य",

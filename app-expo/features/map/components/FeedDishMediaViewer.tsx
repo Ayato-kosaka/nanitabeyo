@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
+import { ActivityIndicator, View, Text, StyleSheet, Platform } from "react-native";
 import type { DishMediaEntry } from "@shared/api/v1/res";
-import { useSafeAreaFrame } from "react-native-safe-area-context";
+import { useSafeAreaFrame, useSafeAreaInsets } from "react-native-safe-area-context";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { ReviewForm } from "./ReviewForm";
+import i18n from "@/lib/i18n";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
@@ -15,8 +19,21 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	// #【設計】現在表示中のインデックスを管理（DishMediaFeed の onIndexChange で更新）
+	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
+	const insets = useSafeAreaInsets();
+
+	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
+	const {
+		BlurModal: ReviewFormModal,
+		open: openReviewModal,
+		close: closeReviewModal,
+	} = useBlurModal({
+		keyboardVerticalOffset: Platform.OS === "ios" ? 0 : 0,
+		dismissKeyboardFirst: true,
+	});
 
 	useEffect(() => {
 		const loadData = async () => {
@@ -34,6 +51,16 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 
 		loadData();
 	}, [dishPromisesMap]);
+
+	// #【設計】DishMediaFeed から現在表示中のインデックスを受け取るコールバック
+	const handleIndexChange = useCallback((index: number) => {
+		setCurrentIndex(index);
+	}, []);
+
+	// #【設計】「この料理にレビューを書く」ボタン押下時の処理
+	const handleWriteReview = useCallback(() => {
+		openReviewModal();
+	}, [openReviewModal]);
 
 	if (isLoading) {
 		return (
@@ -60,9 +87,39 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 		);
 	}
 
+	// #【設計】現在表示中のアイテムを取得
+	const currentItem = items[currentIndex] || items[0];
+
 	return (
 		<View style={{ height: frame.height }}>
-			<DishMediaFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source={source} />
+			<DishMediaFeed
+				items={items}
+				initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
+				source={source}
+				onIndexChange={handleIndexChange}
+			/>
+			{/* #【UI】DishMediaFeed の下部に「この料理にレビューを書く」ボタンを追加 */}
+			{/* 既存スタイルに追従し、SafeArea を考慮した配置 */}
+			<View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 16 }]}>
+				<PrimaryButton
+					label={i18n.t("Map.actions.writeReviewForThisDish")}
+					onPress={handleWriteReview}
+					style={styles.writeReviewButton}
+				/>
+			</View>
+
+			{/* #【設計】ReviewForm を BlurModal 経由で表示（メディアなしレビューモード） */}
+			<ReviewFormModal>
+				<ReviewForm
+					restaurant={currentItem.restaurant}
+					onCancel={closeReviewModal}
+					prefilledMedia={{
+						mediaUrl: currentItem.dish_media.mediaUrl,
+						mediaType: currentItem.dish_media.media_type as "image" | "video",
+						thumbnailImageUrl: currentItem.dish_media.thumbnailImageUrl,
+					}}
+				/>
+			</ReviewFormModal>
 		</View>
 	);
 }
@@ -89,5 +146,17 @@ const styles = StyleSheet.create({
 		color: "#FFF",
 		fontSize: 16,
 		textAlign: "center",
+	},
+	// #【UI】ボタンコンテナ: 既存スタイルに追従し、画面下部に固定配置
+	buttonContainer: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+		paddingHorizontal: 16,
+		paddingTop: 8,
+	},
+	writeReviewButton: {
+		width: "100%",
 	},
 });
