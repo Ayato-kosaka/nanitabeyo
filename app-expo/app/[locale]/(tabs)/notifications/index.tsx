@@ -81,7 +81,7 @@ export default function NotificationsScreen() {
 			const { target_table } = notification.notification;
 
 			if (target_table === "dish_media" && notification.dishMediaEntiries !== undefined) {
-				// #通知機能 【仕様】dish_media の場合は FoodContentFeed へ遷移
+				// #通知機能 【仕様】dish_media の場合は DishMediaFeed へ遷移
 				const currentDishMediaId = notification.dishMediaEntiries.dish_media.id;
 				let index = uniqueDishMediaEntries.findIndex((d) => d.dish_media.id === currentDishMediaId);
 				if (index < 0) index = 0; // 念のため

@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
-import FoodContentMap from "@/components/FoodContentMap";
+import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -49,8 +49,8 @@ export default function ProfileSearchResultScreen() {
 			</View>
 
 			{/* Feed Content */}
-			{/* <FoodContentFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-			<FoodContentMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} source="profile-topic-search" />
+			{/* <DishMediaFeed items={dishes} onIndexChange={handleIndexChange} /> */}
+			<DishMediaMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} source="profile-topic-search" />
 		</LinearGradient>
 	);
 }

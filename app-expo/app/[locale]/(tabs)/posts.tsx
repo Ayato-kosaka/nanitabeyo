@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import FoodContentMap from "@/components/FoodContentMap";
+import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -24,7 +24,7 @@ export default function PostsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<FoodContentMap itemsPromise={dishesPromise} source="PostsScreen" />
+			<DishMediaMap itemsPromise={dishesPromise} source="PostsScreen" />
 		</LinearGradient>
 	);
 }

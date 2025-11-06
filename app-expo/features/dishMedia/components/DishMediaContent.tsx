@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, AppState } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
-import { Heart, Bookmark, Calendar, Share, Star, User, EllipsisVertical, MapPinned } from "lucide-react-native";
+import { Heart, Bookmark, Calendar, Share, User, MapPinned } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
@@ -18,7 +18,7 @@ import { generateShareUrl, handleShare } from "@/lib/share";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import VideoPlayer from "./VideoPlayer";
+import VideoPlayer from "../../../components/VideoPlayer";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useAPICall } from "@/hooks/useAPICall";
 import {
@@ -28,7 +28,7 @@ import {
 } from "@shared/api/v1/dto";
 import * as Crypto from "expo-crypto";
 
-interface FoodContentScreenProps {
+interface DishMediaContentProps {
 	item: DishMediaEntry;
 	carouselRef?: React.RefObject<any>;
 	isActive: boolean;
@@ -61,15 +61,15 @@ const sliceByUnitLimit = (text: string, unitLimit: number) => {
 
 const formatLikeCount = (count: number): string => {
 	if (count >= 1000000) {
-		return (count / 1000000).toFixed(1).replace(/\.0$/, "") + i18n.t("FoodContentScreen.numberSuffix.million");
+		return (count / 1000000).toFixed(1).replace(/\.0$/, "") + i18n.t("DishMediaContent.numberSuffix.million");
 	}
 	if (count >= 1000) {
-		return (count / 1000).toFixed(1).replace(/\.0$/, "") + i18n.t("FoodContentScreen.numberSuffix.thousand");
+		return (count / 1000).toFixed(1).replace(/\.0$/, "") + i18n.t("DishMediaContent.numberSuffix.thousand");
 	}
 	return count.toString();
 };
 
-export default function FoodContentScreen({ item, carouselRef, isActive, sessionId, source }: FoodContentScreenProps) {
+export default function DishMediaContent({ item, carouselRef, isActive, sessionId, source }: DishMediaContentProps) {
 	const [isSaved, setIsSaved] = useState(item.dish_media.isSaved);
 	const [isLiked, setIsLiked] = useState(item.dish_media.isLiked);
 	const [likesCount, setLikesCount] = useState(item.dish_media.likeCount);
@@ -525,10 +525,10 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 			if (canOpen) {
 				await Linking.openURL(mapUrl);
 			} else {
-				showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			}
 		} catch (error) {
-			showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			logFrontendEvent({
 				event_name: "map_pin_open_failed",
 				error_level: "error",
@@ -585,7 +585,7 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 
 			await handleShare(
 				shareUrl,
-				i18n.t("FoodContentScreen.share.title", { dishName: item.restaurant.name }),
+				i18n.t("DishMediaContent.share.title", { dishName: item.restaurant.name }),
 				() => {
 					// Success callback
 					logFrontendEvent({
@@ -629,12 +629,12 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 	const menuOptions = [
 		{
 			icon: User,
-			label: i18n.t("FoodContentScreen.menuOptions.viewCreatorProfile"),
+			label: i18n.t("DishMediaContent.menuOptions.viewCreatorProfile"),
 			onPress: handleViewCreator,
 		},
 		{
 			icon: Calendar,
-			label: i18n.t("FoodContentScreen.menuOptions.reservation"),
+			label: i18n.t("DishMediaContent.menuOptions.reservation"),
 			onPress: () => console.log("Reservation"),
 		},
 	];
@@ -677,7 +677,7 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
             style={styles.viewRestaurantButton}
             onPress={handleViewRestaurant}
           >
-            <Text style={styles.viewRestaurantButtonText}>{i18n.t("FoodContentScreen.buttons.viewRestaurant")}</Text>
+            <Text style={styles.viewRestaurantButtonText}>{i18n.t("DishMediaContent.buttons.viewRestaurant")}</Text>
           </TouchableOpacity> */}
 				</View>
 			</View>
@@ -708,7 +708,7 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 											{isTruncated && "...  "}
 											{isTruncated && (
 												<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
-													<Text style={styles.seeMoreText}>{i18n.t("FoodContentScreen.actions.seeMore")}</Text>
+													<Text style={styles.seeMoreText}>{i18n.t("DishMediaContent.actions.seeMore")}</Text>
 												</TouchableOpacity>
 											)}
 										</Text>
@@ -762,14 +762,14 @@ export default function FoodContentScreen({ item, carouselRef, isActive, session
 							<TouchableOpacity style={styles.actionButton} onPress={handleSharePress}>
 								<Share size={28} color="#FFFFFF" />
 							</TouchableOpacity>
-							<Text style={styles.actionText}>{i18n.t("FoodContentScreen.actions.share")}</Text>
+							<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
 						</View>
 
 						<View style={styles.actionContainer}>
 							<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress}>
 								<MapPinned size={28} color="#FFFFFF" />
 							</TouchableOpacity>
-							<Text style={styles.actionText}>{i18n.t("FoodContentScreen.actions.openMap")}</Text>
+							<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
 						</View>
 
 						{/* <TouchableOpacity

@@ -113,10 +113,10 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			if (canOpen) {
 				await Linking.openURL(mapUrl);
 			} else {
-				showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			}
 		} catch (error) {
-			showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			logFrontendEvent({
 				event_name: "restaurant_google_maps_open_failed",
 				error_level: "error",

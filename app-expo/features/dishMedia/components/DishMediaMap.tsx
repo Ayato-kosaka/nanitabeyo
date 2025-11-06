@@ -2,8 +2,8 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { StyleSheet, View, Dimensions } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Marker, Region } from "@/components/MapView";
-import FoodContentScreen from "./FoodContentScreen";
-import { AvatarBubbleMarker } from "./AvatarBubbleMarker";
+import DishMediaContent from "./DishMediaContent";
+import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
@@ -15,7 +15,7 @@ const CAROUSEL_HEIGHT = height * 0.8;
 // parallaxScrollingScale
 const PARALLAX_SCALE = 0.85;
 
-interface FoodContentMapProps {
+interface DishMediaMapProps {
 	itemsPromise: Promise<DishMediaEntry[]>;
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
@@ -27,13 +27,13 @@ interface FoodContentMapProps {
 	source: string;
 }
 
-export default function FoodContentMap({
+export default function DishMediaMap({
 	itemsPromise,
 	initialIndex = 0,
 	onIndexChange,
 	initialLocation,
 	source,
-}: FoodContentMapProps) {
+}: DishMediaMapProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
@@ -44,7 +44,7 @@ export default function FoodContentMap({
 		[items],
 	);
 
-	// 一意なセッションID（FoodContentScreen へ伝搬）
+	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
 
 	useEffect(() => {
@@ -118,7 +118,7 @@ export default function FoodContentMap({
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: DishMediaEntry; index: number }) => (
 			<View style={styles.carouselItem}>
-				<FoodContentScreen
+				<DishMediaContent
 					item={item}
 					carouselRef={carouselRef}
 					isActive={index === currentIndex}

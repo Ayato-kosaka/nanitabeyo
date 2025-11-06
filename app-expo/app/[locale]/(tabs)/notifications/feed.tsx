@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocalSearchParams } from "expo-router";
-import FoodContentFeed from "@/components/FoodContentFeed";
+import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import type { DishMediaEntry } from "@shared/api/v1/res";
@@ -56,7 +56,7 @@ export default function NotificationFeedScreen() {
 		);
 	}
 
-	return <FoodContentFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source="notification" />;
+	return <DishMediaFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source="notification" />;
 }
 
 const styles = StyleSheet.create({

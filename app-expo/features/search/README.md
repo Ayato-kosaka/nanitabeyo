@@ -41,10 +41,10 @@
 - クエリから受け取った `topicId` と、必要なら位置情報を JSON パースして `initialLocation` として解釈する。
 - `useSearchResult(topicId)` で以下の振る舞いを一元管理する。
   - カード位置（`currentIndex`）と完了モーダル表示フラグ（`showCompletionModal`）。
-  - `useDishMediaEntriesStore` に保存済みの `dishPromisesMap[topicId]` を取り出し、`FoodContentMap` に `itemsPromise` として渡す。
+  - `useDishMediaEntriesStore` に保存済みの `dishPromisesMap[topicId]` を取り出し、`DishMediaMap` に `itemsPromise` として渡す。
   - インデックス変更・画面クローズ・カード一覧へ戻る操作のログ送信。
 - 画面表示時に `screen_view` を記録し、戻るボタン (`X`) タップで軽いハプティクス後に前画面へ戻る。
-- メインコンテンツはマップベースの `FoodContentMap` を使用し、`handleIndexChange` で選択状態を同期する設計。
+- メインコンテンツはマップベースの `DishMediaMap` を使用し、`handleIndexChange` で選択状態を同期する設計。
 
 ## 検索機能の共通モジュール
 
@@ -66,4 +66,4 @@
 
 1. `index` で検索条件を構築し、`topics` へ JSON で引き渡す。
 2. `topics` が候補を検索し、ユーザー選択後に該当トピックの料理データ取得 Promise を `useDishMediaEntriesStore` に保存して `result` に遷移する。
-3. `result` ではストアに保存された Promise を使って `FoodContentMap` を描画し、インタラクションの状態遷移を `useSearchResult` が管理する。
+3. `result` ではストアに保存された Promise を使って `DishMediaMap` を描画し、インタラクションの状態遷移を `useSearchResult` が管理する。

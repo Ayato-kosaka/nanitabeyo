@@ -12,7 +12,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo } from "react-native";
-import FoodContentScreen from "./FoodContentScreen";
+import DishMediaContent from "./DishMediaContent";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
@@ -65,7 +65,7 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 	const { selectionChanged } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	// 一意なセッションID（FoodContentScreen へ伝搬）
+	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
 
 	// --- ライフサイクルログ（初回） ------------------------------
@@ -153,12 +153,7 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 		({ item, index }: ListRenderItemInfo<DishMediaEntry>) => (
 			// 各ページは厳密に画面高に合わせる
 			<View style={{ height: Math.max(1, pageHeight) }}>
-				<FoodContentScreen
-					item={item}
-					isActive={index === currentIndex}
-					sessionId={sessionId.current}
-					source={source}
-				/>
+				<DishMediaContent item={item} isActive={index === currentIndex} sessionId={sessionId.current} source={source} />
 			</View>
 		),
 		[pageHeight, currentIndex],

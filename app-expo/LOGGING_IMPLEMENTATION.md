@@ -68,8 +68,8 @@ Added observability logging throughout the app-expo directory using the existing
 
 ### Components
 
-- `components/FoodContentFeed.tsx` - Content feed interactions and swipe navigation
-- `components/FoodContentScreen.tsx` - Content engagement (like, save, share, comments)
+- `components/DishMediaFeed.tsx` - Content feed interactions and swipe navigation
+- `components/DishMediaContent.tsx` - Content engagement (like, save, share, comments)
 
 ### Hooks & Services
 
