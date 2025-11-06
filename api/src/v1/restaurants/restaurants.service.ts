@@ -40,7 +40,7 @@ export class RestaurantsService {
     private readonly dishesRepository: DishesRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -158,7 +158,7 @@ export class RestaurantsService {
           id: 'unknown', // Will be assigned by database
           google_place_id: dto.googlePlaceId,
           name: placeDetail.displayName!.text!,
-          name_language_code: 'ja', // Japanese priority as set above
+          name_language_code: dto.languageCode,
           latitude: placeDetail.location!.latitude!,
           longitude: placeDetail.location!.longitude!,
           image_url: placeDetail.photos?.[0]?.name || '', // TODO: 引数から受け取る。
