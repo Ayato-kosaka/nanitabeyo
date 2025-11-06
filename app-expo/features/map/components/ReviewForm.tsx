@@ -350,16 +350,7 @@ export function ReviewForm({
 			});
 
 			logFrontendEvent({
-				event_name: "dish_media_submit_success",
-				error_level: "log",
-				payload: { dishId, media: mediaState.media, dishCategoryId },
-			});
-
-			// Simulate review submission
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
-			logFrontendEvent({
-				event_name: "restaurant_review_submitted",
+				event_name: "dish_review_submitted",
 				error_level: "log",
 				payload: { restaurantId: restaurant?.id, rating: rating },
 			});
@@ -367,7 +358,7 @@ export function ReviewForm({
 			onCancel();
 		} catch (error: any) {
 			logFrontendEvent({
-				event_name: "restaurant_review_submission_failed",
+				event_name: "dish_review_submission_failed",
 				error_level: "error",
 				payload: { restaurantId: restaurant?.id, error: error?.message },
 			});
