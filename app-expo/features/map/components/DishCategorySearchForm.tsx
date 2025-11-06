@@ -6,7 +6,7 @@ import { DishCategoryAutocomplete } from "@/components/DishCategoryAutocomplete"
 
 interface DishCategorySearchFormProps {
 	/** Called when user selects a suggestion */
-	onSubmit: (suggestion: QueryDishCategoryVariantsResponse[number]) => void;
+	onSuggestionSelect: (suggestion: QueryDishCategoryVariantsResponse[number]) => void;
 	/** Called when user clears the input */
 	onClear?: () => void;
 	/** Called when the component is mounted */
@@ -23,7 +23,7 @@ interface DishCategorySearchFormProps {
  * Dish Category Search Form Component
  */
 export function DishCategorySearchForm({
-	onSubmit,
+	onSuggestionSelect,
 	onClear,
 	onMount,
 	onUnmount,
@@ -51,9 +51,11 @@ export function DishCategorySearchForm({
 	/* 提案選択ハンドラ */
 	const handleSuggestionSelect = useCallback(
 		(suggestion: { dishCategoryId: string; label: string }) => {
-			onSubmit(suggestion);
+			onSuggestionSelect(suggestion);
+			// 提案選択後に onUnmount 時に空文字を渡すためにリセット
+			latestRef.current = "";
 		},
-		[onSubmit],
+		[onSuggestionSelect],
 	);
 
 	/* クリアハンドラ */

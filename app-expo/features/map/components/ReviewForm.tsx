@@ -509,7 +509,7 @@ export function ReviewForm({
 			{/* DishCategoryAutocomplete Modal */}
 			<DishCategoryModal>
 				<DishCategorySearchForm
-					onSubmit={handleDishCategorySelect}
+					onSuggestionSelect={handleDishCategorySelect}
 					onMount={onDishCategoryModalMount}
 					onUnmount={onDishCategoryModalUnmmount}
 					testID="dish-category-search"
