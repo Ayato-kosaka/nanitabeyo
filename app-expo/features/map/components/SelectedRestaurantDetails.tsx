@@ -19,6 +19,7 @@ import type { CreateRestaurantResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useSafeAreaFrame } from "react-native-safe-area-context";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -44,6 +45,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
+	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 
 	// Modals
 	const {
@@ -201,7 +203,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
 	return (
-		<View style={styles.container}>
+		<View style={{ height: frame.height }}>
 			<Tabs.Container
 				renderHeader={renderHeader}
 				headerHeight={headerHeight}
@@ -237,9 +239,6 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
 	restaurantInfo: {
 		flexDirection: "row",
 		alignItems: "center",
