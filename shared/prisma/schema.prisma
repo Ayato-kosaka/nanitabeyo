@@ -191,7 +191,7 @@ model dish_reviews {
   rating                 Int                      @db.SmallInt
   price_cents            Int?
   currency_code          String?                  @db.Char(3)
-  created_dish_media_id  String?                  @db.Uuid
+  created_dish_media_id  String                   @db.Uuid
   imported_user_name     String?
   imported_user_avatar   String?
   created_at             DateTime                 @default(now()) @db.Timestamptz(6)

@@ -13832,7 +13832,7 @@ export namespace Prisma {
     rating: number
     price_cents: number | null
     currency_code: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date
@@ -13952,7 +13952,7 @@ export namespace Prisma {
       rating: number
       price_cents: number | null
       currency_code: string | null
-      created_dish_media_id: string | null
+      created_dish_media_id: string
       imported_user_name: string | null
       imported_user_avatar: string | null
       created_at: Date
@@ -34693,7 +34693,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -34710,7 +34710,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -34755,7 +34755,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -40648,7 +40648,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -40663,7 +40663,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -41666,7 +41666,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -41681,7 +41681,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -42085,7 +42085,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
@@ -42415,7 +42415,7 @@ export namespace Prisma {
     rating: number
     price_cents?: number | null
     currency_code?: string | null
-    created_dish_media_id: string | null
+    created_dish_media_id: string
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string

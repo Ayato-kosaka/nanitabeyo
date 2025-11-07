@@ -34,7 +34,6 @@ export class CreateDishReviewDto {
 	rating!: number;
 
 	/** 作成された dish_media.id */
-	@IsOptional()
 	@IsUUID()
-	createdDishMediaId?: string;
+	createdDishMediaId!: string;
 }
