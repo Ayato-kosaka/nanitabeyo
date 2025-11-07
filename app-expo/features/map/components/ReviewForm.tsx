@@ -25,12 +25,18 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import { CreateDishDto, type CreateDishMediaDto, type CreateDishReviewDto } from "@shared/api/v1/dto";
 import { useFileUploader } from "@/hooks/useFileUploader";
-import type { CreateDishMediaResponse, CreateDishResponse, CreateDishReviewResponse } from "@shared/api/v1/res";
+import type {
+	CreateDishMediaResponse,
+	CreateDishResponse,
+	CreateDishReviewResponse,
+	DishMediaEntry,
+} from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { Dimensions } from "react-native";
 import { selectMediaForReview } from "@/features/map/utils/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
+import { Image } from "expo-image";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -43,11 +49,7 @@ interface ReviewFormProps {
 	/** Called when user cancels */
 	onCancel: () => void;
 	/** Pre-filled media data (for no-media mode from Feed) */
-	prefilledMedia?: {
-		mediaUrl: string;
-		mediaType: "image" | "video";
-		thumbnailImageUrl?: string;
-	};
+	prefilledMedia?: DishMediaEntry["dish_media"] & { dish: DishMediaEntry["dish"] };
 }
 
 const { height } = Dimensions.get("window");
@@ -81,11 +83,11 @@ export function ReviewForm({
 	const [mediaState, setMediaState] = useState<
 		{ status: "loading" } | { status: "error"; error: string } | { status: "success"; media: MediaData }
 	>({ status: "loading" });
-	const [isMounted, setIsMounted] = useState(true);
+	const mountedRef = useRef(true);
 
 	// 料理カテゴリの状態管理
-	const [dishCategoryName, setDishCategoryName] = useState("");
-	const [dishCategoryId, setDishCategoryId] = useState<string | null>(null);
+	const [dishCategoryName, setDishCategoryName] = useState(prefilledMedia?.dish.name ?? "");
+	const [dishCategoryId, setDishCategoryId] = useState<string | null>(prefilledMedia?.dish.category_id ?? null);
 	const [dishCategoryError, setDishCategoryError] = useState<string | null>(null);
 
 	// Internal state - isolated from parent re-renders
@@ -101,9 +103,6 @@ export function ReviewForm({
 
 	const isValid = price.trim() && reviewText.trim() && rating > 0 && dishCategoryName.trim() && !!dishCategoryId;
 
-	// #【設計】メディアなしモード（prefilledMedia指定時）では mediaState.status の検証をスキップ
-	const isMediaReady = prefilledMedia ? true : mediaState.status === "success";
-
 	// useBlurModal for dish category selection
 	const {
 		BlurModal: DishCategoryModal,
@@ -114,30 +113,30 @@ export function ReviewForm({
 		dismissKeyboardFirst: true,
 	});
 
-	// Handle media selection on mount
+	// マウント時にメディア選択を実行
 	useEffect(() => {
-		// #【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
-		if (prefilledMedia) {
-			// プレビュー専用モードでは、既存のメディアURLを表示するだけで新規選択は行わない
-			if (!prefilledMedia.mediaUrl) {
-				// メディアURLが不正な場合はエラー表示してモーダルを閉じる
-				showSnackbar(i18n.t("Map.media.mediaSelectionError"));
-				onCancel();
-				return;
+		const handleSetMediaState = async () => {
+			if (!prefilledMedia) return;
+			try {
+				if (prefilledMedia.media_type === "image") {
+					setMediaState({ status: "loading" });
+					await Image.prefetch(prefilledMedia.mediaUrl);
+				}
+				// 既存メディアをプレビュー用のMediaDataに変換
+				setMediaState({
+					status: "success",
+					media: {
+						type: prefilledMedia.media_type as CreateDishMediaDto["mediaType"],
+						uri: prefilledMedia.mediaUrl,
+						// 【設計】prefilledMedia が指定されている場合は、mimeType は利用しないので適当に設定
+						mimeType: prefilledMedia.media_type,
+						thumbnailUri: prefilledMedia.thumbnailImageUrl,
+					},
+				});
+			} catch (error) {
+				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
 			}
-
-			// 既存メディアをプレビュー用のMediaDataに変換
-			setMediaState({
-				status: "success",
-				media: {
-					type: prefilledMedia.mediaType,
-					uri: prefilledMedia.mediaUrl,
-					mimeType: prefilledMedia.mediaType === "video" ? "video/mp4" : "image/jpeg",
-					thumbnailUri: prefilledMedia.thumbnailImageUrl,
-				},
-			});
-			return;
-		}
+		};
 
 		let cancelled = false;
 
@@ -146,7 +145,7 @@ export function ReviewForm({
 				const result = await selectMediaForReview();
 
 				// Guard against setState on unmounted component
-				if (cancelled || !isMounted) return;
+				if (cancelled || !mountedRef.current) return;
 
 				if (!result.success || result.media === undefined) {
 					// Handle cancellation - close modal automatically
@@ -177,18 +176,24 @@ export function ReviewForm({
 				setMediaState({ status: "success", media: result.media });
 				lightImpact(); // Haptic feedback on success
 			} catch (error) {
-				if (cancelled || !isMounted) return;
+				if (cancelled || !mountedRef.current) return;
 				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
 			}
 		};
 
-		handleMediaSelection();
-
-		return () => {
-			cancelled = true;
-			setIsMounted(false);
-		};
-	}, [onCancel, lightImpact, prefilledMedia, showSnackbar]);
+		// #【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
+		if (prefilledMedia) {
+			handleSetMediaState();
+			return;
+		} else {
+			// 通常のメディア選択フロー
+			handleMediaSelection();
+			return () => {
+				cancelled = true;
+				mountedRef.current = false;
+			};
+		}
+	}, [onCancel, lightImpact, prefilledMedia]);
 
 	// Retry media selection
 	const handleRetry = useCallback(() => {
@@ -199,7 +204,7 @@ export function ReviewForm({
 			try {
 				const result = await selectMediaForReview();
 
-				if (!isMounted) return;
+				if (!mountedRef.current) return;
 
 				if (!result.success || result.media === undefined) {
 					if (result.error === "cancelled") {
@@ -227,13 +232,13 @@ export function ReviewForm({
 				setMediaState({ status: "success", media: result.media });
 				lightImpact();
 			} catch (error) {
-				if (!isMounted) return;
+				if (!mountedRef.current) return;
 				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
 			}
 		};
 
 		retrySelection();
-	}, [onCancel, lightImpact, isMounted]);
+	}, [onCancel, lightImpact]);
 
 	// Animated height for InitialMediaPreview
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - バッファ
@@ -317,18 +322,27 @@ export function ReviewForm({
 	);
 
 	const handleSubmit = useCallback(async () => {
-		// #【バリデーション分岐】通常モードでは mediaState.status === "success" が必須、メディアなしモードでは不要
-		if (!isValid || isProcessing || !isMediaReady) return;
+		if (!isValid || isProcessing || mediaState.status !== "success") return;
 
 		mediumImpact();
 		setIsProcessing(true);
 		setDishCategoryError(null);
 
 		try {
-			// #【送信フロー差分】メディアなしモード（prefilledMedia指定時）ではメディアアップロード/CreateDishMediaをスキップ
-			if (prefilledMedia) {
-				// メディアなしモード: Dish → Review（Media作成なし）
-				const dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+			// #【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
+			let dishId: string;
+			let dishMediaId: string;
+			if (!prefilledMedia) {
+				if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
+					logFrontendEvent({
+						event_name: "video_duration_missing",
+						error_level: "error",
+						payload: { media: mediaState.media },
+					});
+					throw new Error(i18n.t("errors.videoProcessingFailed"));
+				}
+
+				dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
 					method: "POST",
 					requestPayload: {
 						restaurantId: restaurant.id,
@@ -336,76 +350,41 @@ export function ReviewForm({
 					},
 				}).then((res) => res.id);
 
-				await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
+				// dish-media.media_path をアップロード
+				const mediaPath = await mediaUploadFile(mediaState.media.uri, {
+					mimeType: mediaState.media.mimeType,
+					baseFileName: `${dishId}-media`,
+				});
+				// dish-media.thumbnail_path をアップロード
+				let thumbnailPath = mediaPath; // 画像の場合は mediaPath と同じにする
+				if (mediaState.media.type === "video") {
+					if (!mediaState.media.thumbnailUri) throw new Error("Missing thumbnail for video");
+					thumbnailPath = await thumbnailUploadFile(mediaState.media.thumbnailUri, {
+						mimeType: "image/jpeg",
+						baseFileName: `${dishId}-thumbnail`,
+					});
+				}
+
+				/**
+				 * Video のアップロードが完了してからでないと、
+				 * transcoer API が失敗する可能性があるため、直列で実行する
+				 */
+				const dishMedia = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
 					method: "POST",
 					requestPayload: {
 						dishId,
-						comment: reviewText,
-						languageCode: locale,
-						priceCents: getMinorUnitFromCurrency(currencyCode),
-						currencyCode: currencyCode ?? undefined,
-						rating,
-						// createdDishMediaId は省略（メディアなしモード）
+						mediaPath,
+						thumbnailPath,
+						mediaType: mediaState.media.type,
+						videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
 					},
 				});
-
-				logFrontendEvent({
-					event_name: "dish_review_submitted_no_media",
-					error_level: "log",
-					payload: { restaurantId: restaurant?.id, rating: rating },
-				});
-
-				onCancel();
-				return;
+				dishMediaId = dishMedia.id;
+			} else {
+				// prefilleMedia が指定されている場合は、その dishId と dishMediaId を利用する
+				dishId = prefilledMedia.dish_id;
+				dishMediaId = prefilledMedia.id;
 			}
-
-			// 通常モード: Dish → Media → Review（従来フロー）
-			if (mediaState.status !== "success") return;
-
-			if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
-				logFrontendEvent({
-					event_name: "video_duration_missing",
-					error_level: "error",
-					payload: { media: mediaState.media },
-				});
-				throw new Error(i18n.t("errors.videoProcessingFailed"));
-			}
-
-			const dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
-				method: "POST",
-				requestPayload: {
-					restaurantId: restaurant.id,
-					dishCategoryId: dishCategoryId,
-				},
-			}).then((res) => res.id);
-
-			const mediaPath = await mediaUploadFile(mediaState.media.uri, {
-				mimeType: mediaState.media.mimeType,
-				baseFileName: `${dishId}-media`,
-			});
-			let thumbnailPath = mediaPath; // Default to mediaPath for images
-			if (mediaState.media.type === "video") {
-				if (!mediaState.media.thumbnailUri) throw new Error("Missing thumbnail for video");
-				thumbnailPath = await thumbnailUploadFile(mediaState.media.thumbnailUri, {
-					mimeType: "image/jpeg",
-					baseFileName: `${dishId}-thumbnail`,
-				});
-			}
-
-			/**
-			 * Video のアップロードが完了してからでないと、
-			 * transcoer API が失敗する可能性があるため、直列で実行する
-			 */
-			const dishMedia = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
-				method: "POST",
-				requestPayload: {
-					dishId,
-					mediaPath,
-					thumbnailPath,
-					mediaType: mediaState.media.type,
-					videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
-				},
-			});
 
 			await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
@@ -416,7 +395,7 @@ export function ReviewForm({
 					priceCents: getMinorUnitFromCurrency(currencyCode),
 					currencyCode: currencyCode ?? undefined,
 					rating,
-					createdDishMediaId: dishMedia.id,
+					createdDishMediaId: dishMediaId,
 				},
 			});
 
@@ -441,7 +420,6 @@ export function ReviewForm({
 		reviewText,
 		isValid,
 		isProcessing,
-		isMediaReady,
 		rating,
 		mediaState,
 		dishCategoryId,
@@ -538,6 +516,7 @@ export function ReviewForm({
 				<Pressable
 					style={styles.selectRow}
 					onPress={openDishCategoryModal}
+					disabled={!!prefilledMedia} // #【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 					<Text style={[styles.selectRowText, dishCategoryName ? { color: "#000", fontWeight: "600" } : {}]}>
