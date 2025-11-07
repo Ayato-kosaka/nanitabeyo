@@ -22,7 +22,7 @@ export class DishReviewsService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly cloudTasks: CloudTasksService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-reviews (投稿)                   */
@@ -57,7 +57,11 @@ export class DishReviewsService {
   /* ------------------------------------------------------------------ */
   /*            POST /v1/dish-reviews/:id/likes (いいね)                 */
   /* ------------------------------------------------------------------ */
-  async likeDishReview({ id }: LikeDishReviewParamsDto, userId: string, isAnonymous: boolean,) {
+  async likeDishReview(
+    { id }: LikeDishReviewParamsDto,
+    userId: string,
+    isAnonymous: boolean,
+  ) {
     this.logger.verbose('LikeDishReview', 'likeDishReview', { id, userId });
 
     // レビューが存在するか確認
@@ -73,19 +77,40 @@ export class DishReviewsService {
     // #通知機能 【設計】成功時に Cloud Tasks にジョブ投入（匿名ユーザーは除外）
     if (!isAnonymous) {
       const idempotencyKey = `${reaction.target_type}:${reaction.action_type}:${id}`;
-      this.cloudTasks.enqueueNotification({
-        actionType: 'like',
-        targetTable: 'dish_reviews',
-        targetId: id,
-        actorId: userId,
-        idempotencyKey,
-      }).catch((error) => {
-        this.logger.error('EnqueueNotificationFailed', 'likeDishReview', {
-          reviewId: id,
-          userId,
-          error: error instanceof Error ? error.message : String(error),
+      this.cloudTasks
+        .enqueueNotification({
+          actionType: 'like',
+          targetTable: 'dish_reviews',
+          targetId: id,
+          actorId: userId,
+          idempotencyKey,
+        })
+        .catch((error) => {
+          this.logger.error('EnqueueNotificationFailed', 'likeDishReview', {
+            reviewId: id,
+            userId,
+            error: error instanceof Error ? error.message : String(error),
+          });
         });
-      });
     }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*            DELETE /v1/dish-reviews/:id/likes (いいね解除)           */
+  /* ------------------------------------------------------------------ */
+  async unlikeDishReview({ id }: LikeDishReviewParamsDto, userId: string) {
+    this.logger.verbose('UnlikeDishReview', 'unlikeDishReview', { id, userId });
+
+    // レビューが存在するか確認
+    const exists = await this.repo.reviewExists(id);
+    if (!exists) {
+      this.logger.warn('ReviewNotFound', 'unlikeDishReview', { reviewId: id });
+      throw new NotFoundException('Review not found');
+    }
+
+    // リアクション削除
+    await this.repo.unlikeReview(id, userId);
+
+    // #通知機能 【設計】いいね解除時は通知を送信しない
   }
 }
