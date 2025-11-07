@@ -40,7 +40,7 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 		};
 
 		loadData();
-	}, [dishPromisesMap]);
+	}, [dishPromisesMap, source]);
 
 	// #【設計】現在表示中のインデックスを管理（DishMediaFeed の onIndexChange で更新）
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
