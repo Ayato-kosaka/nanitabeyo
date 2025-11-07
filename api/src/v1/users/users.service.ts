@@ -30,7 +30,7 @@ export class UsersService {
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
-  ) { }
+  ) {}
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -50,10 +50,15 @@ export class UsersService {
       dto.cursor,
     );
 
-    const uniqueDishMediaIds = Array.from(new Set(reviews.map(r => r.created_dish_media_id)));
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, { userId, reviewLimit: 0 });
+    const uniqueDishMediaIds = Array.from(
+      new Set(reviews.map((r) => r.created_dish_media_id)),
+    );
+    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+      uniqueDishMediaIds,
+      { userId, reviewLimit: 0 },
+    );
 
-    const dishMediaMap = new Map<string, typeof result.items[0]>(
+    const dishMediaMap = new Map<string, (typeof result.items)[0]>(
       result.items.map((item) => [item.dish_media.id, item]),
     );
 
@@ -69,24 +74,32 @@ export class UsersService {
     });
 
     return {
-      data: reviews.map((review) => {
-        const dishMediaEntryItem = dishMediaMap.get(review.created_dish_media_id);
-        if (!dishMediaEntryItem) {
-          this.logger.warn('DishMediaEntryItem not found for review', 'getUserDishReviews', {
-            reviewId: review.id,
-            dishMediaId: review.created_dish_media_id,
-          });
-          return undefined;
-        }
-        return {
-          ...dishMediaEntryItem,
-          dish_media: {
-            ...dishMediaEntryItem?.dish_media,
-            isMe: dishMediaEntryItem?.dish_media.user_id === userId,
-          },
-          dish_reviews: [review],
-        }
-      }).filter((item) => item !== undefined),
+      data: reviews
+        .map((review) => {
+          const dishMediaEntryItem = dishMediaMap.get(
+            review.created_dish_media_id,
+          );
+          if (!dishMediaEntryItem) {
+            this.logger.warn(
+              'DishMediaEntryItem not found for review',
+              'getUserDishReviews',
+              {
+                reviewId: review.id,
+                dishMediaId: review.created_dish_media_id,
+              },
+            );
+            return undefined;
+          }
+          return {
+            ...dishMediaEntryItem,
+            dish_media: {
+              ...dishMediaEntryItem?.dish_media,
+              isMe: dishMediaEntryItem?.dish_media.user_id === userId,
+            },
+            dish_reviews: [review],
+          };
+        })
+        .filter((item) => item !== undefined),
       nextCursor,
       cdnCookies: result.cdnCookies,
     };

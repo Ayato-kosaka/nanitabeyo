@@ -219,6 +219,11 @@
 			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
 			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "My photo/video reviews only"
+			}
+		},
 		"statusLabels": {
 			"active": "Active",
 			"completed": "Completed",
