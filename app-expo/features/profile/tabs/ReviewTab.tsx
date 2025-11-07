@@ -97,6 +97,21 @@ export function ReviewTab() {
 		[handleItemPress],
 	);
 
+	const header = useMemo(
+		() => (
+			<TouchableOpacity
+				style={styles.checkboxContainer}
+				onPress={() => setOnlyMyPhotoVideoReviews(!onlyMyPhotoVideoReviews)}
+				activeOpacity={0.7}>
+				<View style={[styles.checkbox, onlyMyPhotoVideoReviews && styles.checkboxChecked]}>
+					{onlyMyPhotoVideoReviews && <Text style={styles.checkboxMark}>✓</Text>}
+				</View>
+				<Text style={styles.checkboxLabel}>{i18n.t("Profile.reviews.filter.onlyMyPhotoVideo")}</Text>
+			</TouchableOpacity>
+		),
+		[onlyMyPhotoVideoReviews],
+	);
+
 	const errorMessage = error ? (error instanceof Error ? error.message : String(error)) : null;
 
 	const renderEmptyState = useCallback(() => {
@@ -125,46 +140,28 @@ export function ReviewTab() {
 	}, [errorMessage, refresh]);
 
 	return (
-		<View style={styles.container}>
-			<View style={styles.filterContainer}>
-				<TouchableOpacity
-					style={styles.checkboxContainer}
-					onPress={() => setOnlyMyPhotoVideoReviews(!onlyMyPhotoVideoReviews)}
-					activeOpacity={0.7}>
-					<View style={[styles.checkbox, onlyMyPhotoVideoReviews && styles.checkboxChecked]}>
-						{onlyMyPhotoVideoReviews && <Text style={styles.checkboxMark}>✓</Text>}
-					</View>
-					<Text style={styles.checkboxLabel}>{i18n.t("Profile.reviews.filter.onlyMyPhotoVideo")}</Text>
-				</TouchableOpacity>
-			</View>
-			<GridList
-				data={displayedItems.map((item) => ({ ...item, id: item.dish_media.id }))}
-				renderItem={({ item, index }) => renderReviewItem({ item, index })}
-				numColumns={3}
-				contentContainerStyle={styles.gridContent}
-				columnWrapperStyle={styles.gridRow}
-				isLoading={isLoadingInitial}
-				isLoadingMore={isLoadingMore}
-				refreshing={isLoadingInitial}
-				onRefresh={refresh}
-				onEndReached={loadMore}
-				ListEmptyComponent={renderEmptyState}
-				testID="review-tab-grid"
-			/>
-		</View>
+		<GridList
+			data={displayedItems.map((item) => ({ ...item, id: item.dish_reviews[0].id }))}
+			renderItem={({ item, index }) => renderReviewItem({ item, index })}
+			ListHeaderComponent={header}
+			numColumns={3}
+			contentContainerStyle={styles.gridContent}
+			columnWrapperStyle={styles.gridRow}
+			isLoading={isLoadingInitial}
+			isLoadingMore={isLoadingMore}
+			refreshing={isLoadingInitial}
+			onRefresh={refresh}
+			onEndReached={loadMore}
+			ListEmptyComponent={renderEmptyState}
+			testID="review-tab-grid"
+		/>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	filterContainer: {
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-		backgroundColor: "#FFFFFF",
-	},
 	checkboxContainer: {
+		paddingRight: 16,
+		paddingVertical: 8,
 		flexDirection: "row",
 		alignItems: "center",
 	},
