@@ -169,15 +169,18 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	checkbox: {
-		width: 20,
-		height: 20,
-		borderWidth: 2,
-		borderColor: "#D1D5DB",
-		borderRadius: 4,
-		marginRight: 12,
+		width: 24,
+		height: 24,
+		borderRadius: 6,
 		alignItems: "center",
 		justifyContent: "center",
+		marginRight: 12,
 		backgroundColor: "#FFFFFF",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.3,
+		shadowRadius: 16,
+		elevation: 4,
 	},
 	checkboxChecked: {
 		backgroundColor: "#5EA2FF",
@@ -186,7 +189,7 @@ const styles = StyleSheet.create({
 	checkboxMark: {
 		color: "#FFFFFF",
 		fontSize: 14,
-		fontWeight: "bold",
+		fontWeight: "700",
 	},
 	checkboxLabel: {
 		fontSize: 14,
