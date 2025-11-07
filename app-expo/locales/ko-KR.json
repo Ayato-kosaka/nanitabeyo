@@ -268,7 +268,8 @@
 			"openInGoogle": "Google에서 열기"
 		},
 		"actions": {
-			"selectDishCategory": "요리 카테고리 선택"
+			"selectDishCategory": "요리 카테고리 선택",
+			"writeReviewForThisDish": "이 요리에 대한 리뷰 작성"
 		},
 		"inputs": {
 			"price": "가격",

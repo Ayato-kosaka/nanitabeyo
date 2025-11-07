@@ -268,7 +268,8 @@
 			"openInGoogle": "فتح في Google"
 		},
 		"actions": {
-			"selectDishCategory": "اختر فئة الطبق"
+			"selectDishCategory": "اختر فئة الطبق",
+			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق"
 		},
 		"inputs": {
 			"price": "السعر",

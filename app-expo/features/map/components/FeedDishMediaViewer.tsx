@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { ReviewForm } from "./ReviewForm";
+import i18n from "@/lib/i18n";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
@@ -17,6 +21,9 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 	const [error, setError] = useState<string | null>(null);
 
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
+
+	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
+	const { BlurModal: ReviewFormModal, open: openReviewModal, close: closeReviewModal } = useBlurModal({});
 
 	useEffect(() => {
 		const loadData = async () => {
@@ -33,7 +40,18 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 		};
 
 		loadData();
-	}, [dishPromisesMap]);
+	}, [dishPromisesMap, source]);
+
+	// 【設計】現在表示中のインデックスを管理（DishMediaFeed の onIndexChange で更新）
+	const [currentIndex, setCurrentIndex] = useState(initialIndex);
+	const handleIndexChange = useCallback((index: number) => {
+		setCurrentIndex(index);
+	}, []);
+
+	// #400 【設計】「この料理にレビューを書く」ボタン押下時の処理
+	const handleWriteReview = useCallback(() => {
+		openReviewModal();
+	}, [openReviewModal]);
 
 	if (isLoading) {
 		return (
@@ -60,9 +78,31 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 		);
 	}
 
+	// 現在表示中のアイテムを取得
+	const currentItem = items[currentIndex] || items[0];
+
 	return (
 		<View style={{ height: frame.height }}>
-			<DishMediaFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source={source} />
+			<DishMediaFeed
+				items={items}
+				initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
+				source={source}
+				onIndexChange={handleIndexChange}
+			/>
+			<PrimaryButton
+				style={styles.writeReviewButton}
+				label={i18n.t("Map.actions.writeReviewForThisDish")}
+				onPress={handleWriteReview}
+			/>
+
+			{/* #400【設計】ReviewForm を BlurModal 経由で表示（メディアなしレビューモード） */}
+			<ReviewFormModal>
+				<ReviewForm
+					restaurant={currentItem.restaurant}
+					onCancel={closeReviewModal}
+					prefilledMedia={{ ...currentItem.dish_media, dish: currentItem.dish }}
+				/>
+			</ReviewFormModal>
 		</View>
 	);
 }
@@ -89,5 +129,8 @@ const styles = StyleSheet.create({
 		color: "#FFF",
 		fontSize: 16,
 		textAlign: "center",
+	},
+	writeReviewButton: {
+		marginVertical: 16,
 	},
 });

@@ -267,7 +267,8 @@
 			"openInGoogle": "在 Google 中打开"
 		},
 		"actions": {
-			"selectDishCategory": "选择菜品类别"
+			"selectDishCategory": "选择菜品类别",
+			"writeReviewForThisDish": "为这道菜写评论"
 		},
 		"inputs": {
 			"price": "价格",
