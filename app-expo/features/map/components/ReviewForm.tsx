@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingLeft: 4,
 		paddingRight: 12,
-		minWidth: 80,
+		width: 80,
 		textAlign: "right",
 	},
 	priceInputSmall: {
