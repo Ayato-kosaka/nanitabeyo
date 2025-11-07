@@ -184,7 +184,9 @@ export function ReviewForm({
 		// #400 【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
 		if (prefilledMedia) {
 			handleSetMediaState();
-			return;
+			return () => {
+				mountedRef.current = false;
+			};
 		} else {
 			// 通常のメディア選択フロー
 			handleMediaSelection();
