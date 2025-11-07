@@ -51,7 +51,7 @@ export class UsersService {
     );
 
     const result = await this.dishMediaService.fetchDishMediaEntryItems(
-      reviews.map((review) => review.created_dish_media_id).filter((id): id is string => id !== null),
+      reviews.map((review) => review.created_dish_media_id),
       { userId, reviewLimit: 0 },
     );
 
