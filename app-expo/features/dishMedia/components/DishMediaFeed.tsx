@@ -23,7 +23,7 @@ import * as Crypto from "expo-crypto";
 const clampIndex = (index: number, length: number) => Math.min(Math.max(0, index), Math.max(0, length - 1));
 
 // --- Props -------------------------------------------------------------------
-interface FoodContentFeedProps {
+interface DishMediaFeedProps {
 	// 表示対象のメディア配列
 	items: DishMediaEntry[];
 	// 初期表示インデックス（範囲外はクランプ）
@@ -32,10 +32,18 @@ interface FoodContentFeedProps {
 	onIndexChange?: (index: number) => void;
 	// 呼び出し元コンテキスト
 	source: string;
+	// keyExtractor（省略時は dish_media.id を使用）
+	keyExtractor?: (item: DishMediaEntry) => string;
 }
 
 // --- 本体 --------------------------------------------------------------------
-export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange, source }: FoodContentFeedProps) {
+export default function DishMediaFeed({
+	items,
+	initialIndex = 0,
+	onIndexChange,
+	source,
+	keyExtractor = (item) => String(item.dish_media.id),
+}: DishMediaFeedProps) {
 	// 命令的スクロール用の List 参照
 	const listRef = useRef<FlatList<DishMediaEntry>>(null);
 
@@ -101,9 +109,6 @@ export default function FoodContentFeed({ items, initialIndex = 0, onIndexChange
 			});
 		});
 	}, [items.length, initialIndex, pageHeight]);
-
-	// --- keyExtractor（安定参照） ---------------------------------------------
-	const keyExtractor = useCallback((it: DishMediaEntry) => String(it.dish_media.id), []);
 
 	// --- getItemLayout（高さ=画面高を提供; 初期スクロール安定化の要） --------
 	const getItemLayout = useMemo(
