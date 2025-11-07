@@ -329,7 +329,7 @@ export function resolveCurrencySymbol(currencyCode: string | null, locale: strin
  *  - JPY/KRW/VND/CLP/ISK/XAF/XOF/RWF/GNF = 0
  *  - KWD/BHD/OMR/JOD/TND/LYD/IQD = 3
  */
-export function getMinorUnitFromCurrency(currencyCode: string | null | undefined): number {
+export function getMinorUnitDigits(currencyCode: string | null | undefined): number {
 	const code = (currencyCode || "").toUpperCase();
 
 	// 0 桁（小数なし）
@@ -389,7 +389,7 @@ export function parseAmountString(raw: string): number {
  * - minorUnits=3 -> *1000
  */
 export function toMinorAmountInteger(amount: number, currencyCode: string | null | undefined): number {
-	const minorUnits = getMinorUnitFromCurrency(currencyCode);
+	const minorUnits = getMinorUnitDigits(currencyCode);
 	const factor = Math.pow(10, minorUnits);
 
 	// 金額×係数を丸めて安全な整数に

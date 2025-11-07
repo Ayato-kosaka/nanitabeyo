@@ -17,7 +17,12 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview, MediaData } from "./InitialMediaPreview";
-import { getCurrencyCodeFromRestaurant, getMinorUnitFromCurrency, resolveCurrencySymbol } from "@/lib/googlePlaces";
+import {
+	getCurrencyCodeFromRestaurant,
+	parseAmountString,
+	resolveCurrencySymbol,
+	toMinorAmountInteger,
+} from "@/lib/googlePlaces";
 import { useLocale } from "@/hooks/useLocale";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -100,8 +105,19 @@ export function ReviewForm({
 
 	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
+	// price は、小数点を含めた文字列として管理しているため、対象通貨での minorUnit(桁数) に基づいて整数変換を行う
+	const parsedPrice = useMemo(
+		() => parseAmountString(price) && toMinorAmountInteger(parseAmountString(price), currencyCode),
+		[price, currencyCode],
+	);
 
-	const isValid = price.trim() && reviewText.trim() && rating > 0 && dishCategoryName.trim() && !!dishCategoryId;
+	const isValid =
+		Number.isFinite(parsedPrice) &&
+		parsedPrice > 0 &&
+		reviewText.trim() &&
+		rating > 0 &&
+		dishCategoryName.trim() &&
+		!!dishCategoryId;
 
 	// useBlurModal for dish category selection
 	const {
@@ -394,7 +410,7 @@ export function ReviewForm({
 					dishId,
 					comment: reviewText,
 					languageCode: locale,
-					priceCents: getMinorUnitFromCurrency(currencyCode),
+					priceCents: parsedPrice,
 					currencyCode: currencyCode ?? undefined,
 					rating,
 					createdDishMediaId: dishMediaId,
@@ -404,7 +420,7 @@ export function ReviewForm({
 			logFrontendEvent({
 				event_name: "dish_review_submitted",
 				error_level: "log",
-				payload: { restaurantId: restaurant?.id, rating: rating },
+				payload: { restaurantId: restaurant?.id, rating, parsedPrice },
 			});
 
 			onCancel();
