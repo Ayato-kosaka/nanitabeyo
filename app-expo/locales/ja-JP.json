@@ -219,6 +219,11 @@
 			"noSavedPosts": "気になる投稿を見つけたら\"保存\"で見返せます",
 			"noSavedTopics": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "自分の写真/動画レビューのみ"
+			}
+		},
 		"statusLabels": {
 			"active": "アクティブ",
 			"completed": "完了",

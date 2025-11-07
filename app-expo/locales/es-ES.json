@@ -219,6 +219,11 @@
 			"noSavedPosts": "Cuando encuentres publicaciones interesantes, usa \"Guardar\" para revisarlas",
 			"noSavedTopics": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "Solo mis reseñas con fotos/vídeos"
+			}
+		},
 		"statusLabels": {
 			"active": "Activo",
 			"completed": "Completado",

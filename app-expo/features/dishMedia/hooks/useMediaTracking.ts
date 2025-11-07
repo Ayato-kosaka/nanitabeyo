@@ -8,194 +8,188 @@ import type { DishMediaEntry, CreateDishMediaViewResponse } from "@shared/api/v1
 import type { DishMediaImpressionBodyDto, CreateDishMediaViewDto } from "@shared/api/v1/dto";
 
 interface UseMediaTrackingParams {
-    isActive: boolean;
-    sessionId: string;
-    source: string;
-    dishMedia: DishMediaEntry["dish_media"];
+	isActive: boolean;
+	sessionId: string;
+	source: string;
+	dishMedia: DishMediaEntry["dish_media"];
 }
 
 // Impression + WatchTime + VideoProgress を統合
 export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: UseMediaTrackingParams) => {
-    const { logFrontendEvent } = useLogger();
-    const { callBackend } = useAPICall();
+	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
 
-    // ===== Tracking State =====
-    const impressionId = useRef<string | null>(null);
-    const viewSending = useRef(false);
-    const watchStartTime = useRef<Date>(new Date());
-    const watchMs = useRef(0);
-    const isCompleted = useRef(false);
-    const rewatchCount = useRef(0);
-    const watchTimerRef = useRef<NodeJS.Timeout | string | number | null>(null);
-    const appStateRef = useRef(AppState.currentState);
-    const lastActiveTimeRef = useRef(Date.now());
+	// ===== Tracking State =====
+	const impressionId = useRef<string | null>(null);
+	const viewSending = useRef(false);
+	const watchStartTime = useRef<Date>(new Date());
+	const watchMs = useRef(0);
+	const isCompleted = useRef(false);
+	const rewatchCount = useRef(0);
+	const watchTimerRef = useRef<NodeJS.Timeout | string | number | null>(null);
+	const appStateRef = useRef(AppState.currentState);
+	const lastActiveTimeRef = useRef(Date.now());
 
+	// ===== Impression Tracking =====
+	useEffect(() => {
+		if (isActive) {
+			const id = Crypto.randomUUID();
+			impressionId.current = id;
+			watchStartTime.current = new Date();
+			watchMs.current = 0;
+			isCompleted.current = false;
+			rewatchCount.current = 0;
+			callBackend<DishMediaImpressionBodyDto, void>(`v1/dish-media/${dishMedia.id}/impression`, {
+				method: "POST",
+				requestPayload: {
+					id,
+					session_id: sessionId,
+					source,
+				},
+			});
+		}
+	}, [isActive, dishMedia.id, sessionId, source, logFrontendEvent]);
 
+	// ===== Watch Time Tracking =====
+	useEffect(() => {
+		const remoteConfig = getRemoteConfig();
+		const imageCompletionThresholdMs = parseInt(remoteConfig?.v1_dish_media_image_completion_threshold_ms!, 10);
 
-    // ===== Impression Tracking =====
-    useEffect(() => {
-        if (isActive) {
-            const id = Crypto.randomUUID();
-            impressionId.current = id;
-            watchStartTime.current = new Date();
-            watchMs.current = 0;
-            isCompleted.current = false;
-            rewatchCount.current = 0;
-            callBackend<DishMediaImpressionBodyDto, void>(`v1/dish-media/${dishMedia.id}/impression`, {
-                method: "POST",
-                requestPayload: {
-                    id,
-                    session_id: sessionId,
-                    source,
-                },
-            });
-        }
-    }, [isActive, dishMedia.id, sessionId, source, logFrontendEvent]);
+		if (isActive) {
+			// タイマーのスタート
+			lastActiveTimeRef.current = Date.now();
 
-    // ===== Watch Time Tracking =====
-    useEffect(() => {
-        const remoteConfig = getRemoteConfig();
-        const imageCompletionThresholdMs = parseInt(remoteConfig?.v1_dish_media_image_completion_threshold_ms!, 10);
+			const interval = setInterval(() => {
+				if (appStateRef.current === "active") {
+					const now = Date.now();
+					const elapsed = now - lastActiveTimeRef.current;
+					lastActiveTimeRef.current = now;
 
-        if (isActive) {
-            // タイマーのスタート
-            lastActiveTimeRef.current = Date.now();
+					const newWatchMs = watchMs.current + elapsed;
+					// Check completion for images
+					if (dishMedia.media_type === "image" && !isCompleted.current && newWatchMs >= imageCompletionThresholdMs) {
+						isCompleted.current = true;
+						logFrontendEvent({
+							event_name: "dish_media_image_completed",
+							error_level: "log",
+							payload: {
+								dish_media_id: dishMedia.id,
+								watch_ms: newWatchMs,
+							},
+						});
+					}
+					watchMs.current = newWatchMs;
+				}
+			}, 100); // Update every 100ms
 
-            const interval = setInterval(() => {
-                if (appStateRef.current === "active") {
-                    const now = Date.now();
-                    const elapsed = now - lastActiveTimeRef.current;
-                    lastActiveTimeRef.current = now;
+			watchTimerRef.current = interval;
+		}
 
-                    const newWatchMs = watchMs.current + elapsed;
-                    // Check completion for images
-                    if (
-                        dishMedia.media_type === "image" &&
-                        !isCompleted.current &&
-                        newWatchMs >= imageCompletionThresholdMs
-                    ) {
-                        isCompleted.current = true;
-                        logFrontendEvent({
-                            event_name: "dish_media_image_completed",
-                            error_level: "log",
-                            payload: {
-                                dish_media_id: dishMedia.id,
-                                watch_ms: newWatchMs,
-                            },
-                        });
-                    }
-                    watchMs.current = newWatchMs;
-                }
-            }, 100); // Update every 100ms
+		return () => {
+			if (watchTimerRef.current) {
+				clearInterval(watchTimerRef.current);
+				watchTimerRef.current = null;
+			}
+		};
+	}, [isActive, dishMedia.id, dishMedia.media_type, logFrontendEvent]);
 
-            watchTimerRef.current = interval;
-        }
+	// ===== AppState Tracking =====
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (nextAppState) => {
+			if (appStateRef.current === "active" && nextAppState.match(/inactive|background/)) {
+				// App is going to background - pause watch time tracking
+				appStateRef.current = nextAppState;
+			} else if (appStateRef.current.match(/inactive|background/) && nextAppState === "active") {
+				// App is coming back to foreground - resume from current time
+				appStateRef.current = nextAppState;
+				lastActiveTimeRef.current = Date.now();
+			}
+		});
 
-        return () => {
-            if (watchTimerRef.current) {
-                clearInterval(watchTimerRef.current);
-                watchTimerRef.current = null;
-            }
-        };
-    }, [isActive, dishMedia.id, dishMedia.media_type, logFrontendEvent]);
+		return () => {
+			subscription.remove();
+		};
+	}, []);
 
-    // ===== AppState Tracking =====
-    useEffect(() => {
-        const subscription = AppState.addEventListener("change", (nextAppState) => {
-            if (appStateRef.current === "active" && nextAppState.match(/inactive|background/)) {
-                // App is going to background - pause watch time tracking
-                appStateRef.current = nextAppState;
-            } else if (appStateRef.current.match(/inactive|background/) && nextAppState === "active") {
-                // App is coming back to foreground - resume from current time
-                appStateRef.current = nextAppState;
-                lastActiveTimeRef.current = Date.now();
-            }
-        });
+	// ===== Send View on Deactivate or Unmount =====
+	const sendView = useCallback(async () => {
+		if (!impressionId.current || viewSending.current) return;
 
-        return () => {
-            subscription.remove();
-        };
-    }, []);
+		const isSkipped = watchMs.current < 1000 && !isCompleted.current;
+		const payload = {
+			impression_id: impressionId.current,
+			started_at: watchStartTime.current,
+			watch_ms: Math.round(watchMs.current),
+			is_completed: isCompleted.current,
+			is_skipped: isSkipped,
+			rewatch_count: rewatchCount.current,
+		};
 
-    // ===== Send View on Deactivate or Unmount =====
-    const sendView = useCallback(async () => {
-        if (!impressionId.current || viewSending.current) return;
+		viewSending.current = true;
+		await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>(`v1/dish-media/${dishMedia.id}/view`, {
+			method: "POST",
+			requestPayload: payload,
+		});
+		impressionId.current = null;
+		viewSending.current = false;
+	}, [dishMedia.id, callBackend, logFrontendEvent]);
+	useEffect(() => {
+		if (!isActive) {
+			sendView();
+		}
 
-        const isSkipped = watchMs.current < 1000 && !isCompleted.current;
-        const payload = {
-            impression_id: impressionId.current,
-            started_at: watchStartTime.current,
-            watch_ms: Math.round(watchMs.current),
-            is_completed: isCompleted.current,
-            is_skipped: isSkipped,
-            rewatch_count: rewatchCount.current,
-        };
+		// Also send on unmount
+		return () => {
+			// Fire and forget - we can't await in cleanup
+			sendView().catch((error) => {
+				logFrontendEvent({
+					event_name: "dish_media_view_send_cleanup_error",
+					error_level: "warn",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						dish_media_id: dishMedia.id,
+					},
+				});
+			});
+		};
+	}, [isActive, sendView, dishMedia.id, logFrontendEvent]);
 
-        viewSending.current = true;
-        await callBackend<CreateDishMediaViewDto, CreateDishMediaViewResponse>(`v1/dish-media/${dishMedia.id}/view`, {
-            method: "POST",
-            requestPayload: payload,
-        });
-        impressionId.current = null;
-        viewSending.current = false;
-    }, [dishMedia.id, callBackend, logFrontendEvent]);
-    useEffect(() => {
-        if (!isActive) {
-            sendView();
-        }
+	// ===== Video Progress Tracking =====
+	const handleVideoProgress = (progress: { currentTime: number; duration: number }) => {
+		if (dishMedia.media_type === "video" && progress.duration > 0) {
+			const progressPercent = (progress.currentTime / progress.duration) * 100;
 
-        // Also send on unmount
-        return () => {
-            // Fire and forget - we can't await in cleanup
-            sendView().catch((error) => {
-                logFrontendEvent({
-                    event_name: "dish_media_view_send_cleanup_error",
-                    error_level: "warn",
-                    payload: {
-                        error: error instanceof Error ? error.message : String(error),
-                        dish_media_id: dishMedia.id,
-                    },
-                });
-            });
-        };
-    }, [isActive, sendView, dishMedia.id, logFrontendEvent]);
+			// 動画完了: currentTime/duration が 90% を超えたら 1 回だけ完了ログ
+			if (!isCompleted.current && progressPercent >= 90) {
+				isCompleted.current = true;
+				logFrontendEvent({
+					event_name: "dish_media_video_completed",
+					error_level: "log",
+					payload: {
+						dish_media_id: dishMedia.id,
+						progress_percent: progressPercent,
+						current_time: progress.currentTime,
+						duration: progress.duration,
+					},
+				});
+			}
+		}
+	};
 
-    // ===== Video Progress Tracking =====
-    const handleVideoProgress = (progress: { currentTime: number; duration: number }) => {
-        if (dishMedia.media_type === "video" && progress.duration > 0) {
-            const progressPercent = (progress.currentTime / progress.duration) * 100;
+	const handleVideoLoop = useCallback(() => {
+		rewatchCount.current += 1;
+		logFrontendEvent({
+			event_name: "dish_media_video_looped",
+			error_level: "log",
+			payload: {
+				dish_media_id: dishMedia.id,
+				rewatch_count: rewatchCount.current,
+			},
+		});
+	}, [dishMedia.id, logFrontendEvent]);
 
-            // 動画完了: currentTime/duration が 90% を超えたら 1 回だけ完了ログ
-            if (!isCompleted.current && progressPercent >= 90) {
-                isCompleted.current = true;
-                logFrontendEvent({
-                    event_name: "dish_media_video_completed",
-                    error_level: "log",
-                    payload: {
-                        dish_media_id: dishMedia.id,
-                        progress_percent: progressPercent,
-                        current_time: progress.currentTime,
-                        duration: progress.duration,
-                    },
-                });
-            }
-        }
-    };
-
-    const handleVideoLoop = useCallback(() => {
-        rewatchCount.current += 1;
-        logFrontendEvent({
-            event_name: "dish_media_video_looped",
-            error_level: "log",
-            payload: {
-                dish_media_id: dishMedia.id,
-                rewatch_count: rewatchCount.current,
-            },
-        });
-    }, [dishMedia.id, logFrontendEvent]);
-
-    return {
-        handleVideoProgress,
-        handleVideoLoop,
-    };
+	return {
+		handleVideoProgress,
+		handleVideoLoop,
+	};
 };

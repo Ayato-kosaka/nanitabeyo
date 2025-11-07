@@ -219,6 +219,11 @@
 			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
 			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "Uniquement mes avis avec photo/vidéo"
+			}
+		},
 		"statusLabels": {
 			"active": "Actif",
 			"completed": "Terminé",
