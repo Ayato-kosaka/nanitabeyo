@@ -12,11 +12,19 @@ interface DishMediaContentProps {
 	item: DishMediaEntry;
 	carouselRef?: React.RefObject<any>;
 	isActive: boolean;
+	getTitle?: (item: DishMediaEntry) => string | null;
 	sessionId: string;
 	source: string;
 }
 
-export default function DishMediaContent({ item, carouselRef, isActive, sessionId, source }: DishMediaContentProps) {
+export default function DishMediaContent({
+	item,
+	carouselRef,
+	isActive,
+	getTitle = (item) => item.restaurant.name,
+	sessionId,
+	source,
+}: DishMediaContentProps) {
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
@@ -56,7 +64,7 @@ export default function DishMediaContent({ item, carouselRef, isActive, sessionI
 			{/* Top Header */}
 			<View style={styles.topHeader}>
 				<View style={styles.headerLeft}>
-					<Text style={styles.menuName}>{item.restaurant.name}</Text>
+					<Text style={styles.menuName}>{getTitle(item)}</Text>
 					<View style={styles.priceRatingContainer}>
 						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
 						{/* <View style={styles.ratingContainer}>

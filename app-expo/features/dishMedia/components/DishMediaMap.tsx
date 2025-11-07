@@ -23,6 +23,7 @@ interface DishMediaMapProps {
 		latitude: number;
 		longitude: number;
 	};
+	getTitle?: (item: DishMediaEntry) => string | null;
 	// 呼び出し元コンテキスト
 	source: string;
 }
@@ -32,6 +33,7 @@ export default function DishMediaMap({
 	initialIndex = 0,
 	onIndexChange,
 	initialLocation,
+	getTitle,
 	source,
 }: DishMediaMapProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -122,6 +124,7 @@ export default function DishMediaMap({
 					item={item}
 					carouselRef={carouselRef}
 					isActive={index === currentIndex}
+					getTitle={getTitle}
 					sessionId={sessionId.current}
 					source={source}
 				/>

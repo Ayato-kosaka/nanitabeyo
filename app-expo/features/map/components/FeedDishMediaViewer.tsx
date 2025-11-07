@@ -86,6 +86,7 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 			<DishMediaFeed
 				items={items}
 				initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
+				getTitle={(item) => item.dish.name}
 				source={source}
 				onIndexChange={handleIndexChange}
 			/>

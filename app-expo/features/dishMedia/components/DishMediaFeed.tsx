@@ -30,6 +30,8 @@ interface DishMediaFeedProps {
 	initialIndex?: number;
 	// 表示中インデックスが変化した際のコールバック
 	onIndexChange?: (index: number) => void;
+	// 各アイテムのタイトル取得関数
+	getTitle?: (item: DishMediaEntry) => string | null;
 	// 呼び出し元コンテキスト
 	source: string;
 	// keyExtractor（省略時は dish_media.id を使用）
@@ -41,6 +43,7 @@ export default function DishMediaFeed({
 	items,
 	initialIndex = 0,
 	onIndexChange,
+	getTitle,
 	source,
 	keyExtractor = (item) => String(item.dish_media.id),
 }: DishMediaFeedProps) {
@@ -158,7 +161,13 @@ export default function DishMediaFeed({
 		({ item, index }: ListRenderItemInfo<DishMediaEntry>) => (
 			// 各ページは厳密に画面高に合わせる
 			<View style={{ height: Math.max(1, pageHeight) }}>
-				<DishMediaContent item={item} isActive={index === currentIndex} sessionId={sessionId.current} source={source} />
+				<DishMediaContent
+					item={item}
+					isActive={index === currentIndex}
+					getTitle={getTitle}
+					sessionId={sessionId.current}
+					source={source}
+				/>
 			</View>
 		),
 		[pageHeight, currentIndex],
