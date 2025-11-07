@@ -17,7 +17,7 @@ export class DishReviewsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /**
    * 料理が存在するかチェック
@@ -82,16 +82,12 @@ export class DishReviewsRepository {
    * レビューにいいね（リアクション追加）
    */
   async likeReview(reviewId: string, userId: string) {
-    // Generate a unique ID for the reaction
-    const reactionId = `${userId}_${reviewId}_like_${Date.now()}`;
-
     const appVersion = this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
 
     return this.prisma.prisma.reactions.create({
       data: {
-        id: reactionId,
         user_id: userId,
-        target_type: 'dish_review',
+        target_type: 'dish_reviews',
         target_id: reviewId,
         action_type: 'like',
         created_at: new Date(),

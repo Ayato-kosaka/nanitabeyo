@@ -67,7 +67,7 @@ export function DishReviewsSection({ reviews, paddingRight, carouselRef }: DishR
 	const [reviewLikes, setReviewLikes] = useState(
 		reviews.reduce(
 			(acc, review) => {
-				acc[review.id] = { isLiked: false, count: review.likeCount };
+				acc[review.id] = { isLiked: review.isLiked, count: review.likeCount };
 				return acc;
 			},
 			{} as { [key: string]: { isLiked: boolean; count: number } },

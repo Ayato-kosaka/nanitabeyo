@@ -16,7 +16,6 @@ import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish
 import { PrismaDishMediaImpressions } from '../../../../shared/converters/convert_dish_media_impressions';
 import { PrismaDishMediaAnalysisResults } from '../../../../shared/converters/convert_dish_media_analysis_results';
 import { AppLoggerService } from 'src/core/logger/logger.service';
-import { randomUUID } from 'crypto';
 
 import {
   CreateDishMediaDto,
@@ -27,7 +26,8 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
-import { env } from 'src/core/config/env';
+import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
+import { ClsService } from 'nestjs-cls';
 
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
@@ -57,7 +57,8 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+    private readonly cls: ClsService,
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -409,9 +410,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -767,14 +768,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -790,12 +791,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
@@ -921,6 +922,7 @@ export class DishMediaRepository {
     } else {
       // save / open_map の場合、または匿名ユーザーの like は reactions を操作
       if (willReact) {
+        const appVersion = this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
         await tx.reactions.create({
           data: {
             user_id: reaction.user_id,
@@ -928,7 +930,7 @@ export class DishMediaRepository {
             target_id: reaction.target_id,
             action_type: reaction.action_type,
             created_at: new Date(),
-            created_version: env.API_COMMIT_ID,
+            created_version: appVersion,
             lock_no: 0,
           },
         });

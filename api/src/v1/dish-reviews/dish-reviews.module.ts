@@ -16,11 +16,13 @@ import { DishReviewsRepository } from './dish-reviews.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
+import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
 
 @Module({
   imports: [
     PrismaModule, // DB アクセス
     LoggerModule, // アプリ共通 Logger
+    CloudTasksModule, // Cloud Tasks サービス
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishReviewsController],
@@ -29,4 +31,4 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
     DishReviewsService, // 他ドメインが再利用できる
   ],
 })
-export class DishReviewsModule {}
+export class DishReviewsModule { }
