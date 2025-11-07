@@ -181,7 +181,7 @@ export function ReviewForm({
 			}
 		};
 
-		// #【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
+		// #400 【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
 		if (prefilledMedia) {
 			handleSetMediaState();
 			return;
@@ -329,7 +329,7 @@ export function ReviewForm({
 		setDishCategoryError(null);
 
 		try {
-			// #【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
+			// #400 【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
 			let dishId: string;
 			let dishMediaId: string;
 			if (!prefilledMedia) {
@@ -516,7 +516,7 @@ export function ReviewForm({
 				<Pressable
 					style={styles.selectRow}
 					onPress={openDishCategoryModal}
-					disabled={!!prefilledMedia} // #【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
+					disabled={!!prefilledMedia} // #400 【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 					<Text style={[styles.selectRowText, dishCategoryName ? { color: "#000", fontWeight: "600" } : {}]}>

@@ -42,13 +42,13 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 		loadData();
 	}, [dishPromisesMap]);
 
-	// #【設計】現在表示中のインデックスを管理（DishMediaFeed の onIndexChange で更新）
+	// 【設計】現在表示中のインデックスを管理（DishMediaFeed の onIndexChange で更新）
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const handleIndexChange = useCallback((index: number) => {
 		setCurrentIndex(index);
 	}, []);
 
-	// #【設計】「この料理にレビューを書く」ボタン押下時の処理
+	// #400 【設計】「この料理にレビューを書く」ボタン押下時の処理
 	const handleWriteReview = useCallback(() => {
 		openReviewModal();
 	}, [openReviewModal]);
@@ -78,7 +78,7 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 		);
 	}
 
-	// #【設計】現在表示中のアイテムを取得
+	// 現在表示中のアイテムを取得
 	const currentItem = items[currentIndex] || items[0];
 
 	return (
@@ -95,7 +95,7 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 				onPress={handleWriteReview}
 			/>
 
-			{/* #【設計】ReviewForm を BlurModal 経由で表示（メディアなしレビューモード） */}
+			{/* #400【設計】ReviewForm を BlurModal 経由で表示（メディアなしレビューモード） */}
 			<ReviewFormModal>
 				<ReviewForm
 					restaurant={currentItem.restaurant}
