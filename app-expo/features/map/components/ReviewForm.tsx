@@ -116,7 +116,7 @@ export function ReviewForm({
 	// マウント時にメディア選択を実行
 	useEffect(() => {
 		const handleSetMediaState = async () => {
-			if (!prefilledMedia) return;
+			if (!prefilledMedia || !mountedRef.current) return;
 			try {
 				if (prefilledMedia.media_type === "image") {
 					setMediaState({ status: "loading" });
