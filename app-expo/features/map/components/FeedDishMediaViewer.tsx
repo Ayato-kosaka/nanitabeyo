@@ -3,7 +3,7 @@ import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import type { DishMediaEntry } from "@shared/api/v1/res";
-import { useSafeAreaFrame, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { ReviewForm } from "./ReviewForm";
