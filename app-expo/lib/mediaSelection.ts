@@ -151,6 +151,8 @@ export async function selectMedia(
 	mediaTypes: ImagePicker.MediaType[],
 	options?: {
 		shouldGenerateThumbnail?: boolean;
+		allowsEditing?: boolean;
+		aspect?: [number, number];
 	}
 ): Promise<MediaSelectionResult> {
 	try {
@@ -169,6 +171,8 @@ export async function selectMedia(
 			allowsMultipleSelection: false,
 			quality: 1,
 			videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
+			allowsEditing: options?.allowsEditing,
+			aspect: options?.aspect,
 		});
 
 		if (result.canceled) {

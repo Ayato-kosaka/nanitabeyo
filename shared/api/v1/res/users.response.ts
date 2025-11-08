@@ -3,22 +3,14 @@ import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_b
 import { SupabaseDishCategories } from "../../../converters/convert_dish_categories";
 import { PaginatedResponse } from "./paginated-response";
 import { DishMediaEntry } from "./dish-media.response";
+import { SupabaseUsers } from "shared/converters/convert_users";
 
 /**
  * ユーザープロフィール情報
  */
-export interface UserProfile {
-	id: string;
-	username: string;
-	display_name: string | null;
-	bio: string | null;
-	avatar: string | null;
-	avatar_path: string | null;
-	preferred_locale: string;
-	created_at: string;
-	updated_at: string;
+export type UserProfile = SupabaseUsers & {
 	/** アバター画像の署名付きURL（原本） */
-	avatarUrl?: string;
+	avatarSignedUrl?: string;
 	/** アバター画像のCDN URL（利用可能な場合） */
 	avatarCdnUrl?: string;
 	/** アバター画像の派生サイズURL群 */

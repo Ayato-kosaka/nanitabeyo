@@ -137,42 +137,6 @@ export function ProfileTabsLayout() {
 		});
 	}, [lightImpact, openEditModal, logFrontendEvent]);
 
-	const handleSaveProfile = useCallback(
-		async (values: { avatar: string; display_name: string; bio: string }) => {
-			if (!profile) return;
-			mediumImpact();
-			setProfile((prev) =>
-				prev
-					? {
-							...prev,
-							avatar: values.avatar,
-							display_name: values.display_name,
-							bio: values.bio,
-						}
-					: null,
-			);
-			await supabase
-				.from("users")
-				.update({
-					avatar: values.avatar,
-					display_name: values.display_name,
-					bio: values.bio,
-				})
-				.eq("id", profile.id);
-			closeEditModal();
-			logFrontendEvent({
-				event_name: "profile_edit_saved",
-				error_level: "log",
-				payload: {
-					newBioLength: values.bio.length,
-					hasAvatar: !!values.avatar,
-					hasDisplayName: !!values.display_name,
-				},
-			});
-		},
-		[profile, mediumImpact, closeEditModal, logFrontendEvent],
-	);
-
 	const handleFeedback = useCallback(() => {
 		lightImpact();
 		openFeedbackModal();
@@ -317,22 +281,13 @@ export function ProfileTabsLayout() {
 				) : null}
 			</Tabs.Container>
 
-			<BlurModal>
-				{({ close }) => (
-					<ProfileEditForm
-						initialValues={{
-							avatar: profile?.avatar || "",
-							display_name: profile?.display_name || "",
-							bio: profile?.bio || "",
-						}}
-						onSubmit={(values) => {
-							handleSaveProfile(values);
-							close();
-						}}
-						onCancel={close}
-					/>
-				)}
-			</BlurModal>
+			{profile && (
+				<BlurModal>
+					{({ close }) => (
+						<ProfileEditForm initialValues={profile} setProfile={setProfile} close={close} onCancel={close} />
+					)}
+				</BlurModal>
+			)}
 
 			<FeedbackModal>
 				{({ close }) => (

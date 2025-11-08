@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength } from "class-validator";
+import { IsOptional, IsString, Matches, MaxLength, ValidateIf } from "class-validator";
 
 /**
  * POST /v1/users/:id のリクエストボディ
@@ -8,12 +8,12 @@ export class UpdateUserProfileDto {
 	@IsOptional()
 	@IsString()
 	@MaxLength(100)
-	display_name?: string;
+	display_name?: string | null;
 
 	@IsOptional()
 	@IsString()
 	@MaxLength(500)
-	bio?: string;
+	bio?: string | null;
 
 	/**
 	 * GCS にアップロード済みの原本画像パス（一時領域からの移動対象）
@@ -22,10 +22,12 @@ export class UpdateUserProfileDto {
 	@IsOptional()
 	@IsString()
 	@MaxLength(500)
-	avatar_path?: string;
+	avatar_path?: string | null;
 
 	@IsOptional()
 	@IsString()
-	@MaxLength(100)
+	@Matches(/^[a-z]{2,3}(-[A-Z]{2})?$/, {
+		message: "languageTag must follow IETF BCP 47 format (e.g., en-US, ja-JP, fr-CA)",
+	})
 	preferred_locale?: string;
 }
