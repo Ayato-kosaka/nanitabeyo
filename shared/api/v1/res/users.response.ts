@@ -64,5 +64,5 @@ export type QueryMeSavedDishMediaResponse = PaginatedResponse<
 /** GET /v1/users/:id のレスポンス型 */
 export type GetUserProfileResponse = UserProfile;
 
-/** POST /v1/users/:id のレスポンス型 */
+/** POST /v1/users/me のレスポンス型 */
 export type UpdateUserProfileResponse = UserProfile;

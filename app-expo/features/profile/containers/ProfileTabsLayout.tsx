@@ -20,15 +20,17 @@ import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { Image } from "expo-image";
 import { SupabaseUsers } from "@shared/converters/convert_users";
 import { userProfile } from "@/data/profileData";
+import { useAPICall } from "@/hooks/useAPICall";
+import type { GetUserProfileResponse } from "@shared/api/v1/res";
 
 export function ProfileTabsLayout() {
-	const { userId } = useLocalSearchParams();
+	const { userId } = useLocalSearchParams<{ userId?: string }>();
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
 	const { user } = useAuth();
 
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
@@ -52,24 +54,23 @@ export function ProfileTabsLayout() {
 				setProfile(userProfile);
 				return;
 			}
-			const { data, error } = await supabase
-				.from("users")
-				.select("*")
-				.eq("id", userId ?? user?.id)
-				.single<SupabaseUsers>();
-			if (error) {
+			try {
+				const data = await callBackend<{}, GetUserProfileResponse>(`v1/users/${userId ?? user?.id}`, {
+					method: "GET",
+					requestPayload: {},
+				});
+				data.avatar && (await Image.prefetch(data.avatar));
+				setProfile(data);
+			} catch (error: any) {
 				logFrontendEvent({
 					event_name: "load_own_profile_error",
 					error_level: "error",
-					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest, data },
+					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest },
 				});
-			} else if (data) {
-				data.avatar && (await Image.prefetch(data.avatar));
-				setProfile(data);
 			}
 		};
 		loadOwnProfile();
-	}, [isGuest, userId, user?.id, logFrontendEvent]);
+	}, [callBackend, isGuest, isOwnProfile, logFrontendEvent, user?.id, userId]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];

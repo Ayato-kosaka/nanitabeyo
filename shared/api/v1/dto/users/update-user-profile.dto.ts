@@ -1,7 +1,7 @@
 import { IsOptional, IsString, Matches, MaxLength, ValidateIf } from "class-validator";
 
 /**
- * POST /v1/users/:id のリクエストボディ
+ * POST /v1/users/me のリクエストボディ
  * プロフィール情報（display_name, bio, avatar_path）を更新する
  */
 export class UpdateUserProfileDto {
