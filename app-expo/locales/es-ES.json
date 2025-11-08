@@ -247,7 +247,8 @@
 		"labels": {
 			"bio": "Bio",
 			"displayName": "Nombre para mostrar",
-			"avatar": "URL de imagen de avatar"
+			"avatar": "URL de imagen de avatar",
+			"profileImage": "Imagen de perfil"
 		},
 		"privateContent": "Este contenido es privado",
 		"placeholders": {
@@ -256,7 +257,15 @@
 			"enterAvatar": "Ingresa la URL de tu imagen de avatar..."
 		},
 		"savedCount": "{{count}} guardados",
-		"guestBio": "Bienvenido, Invitado 👋\nGracias por usar la nueva app gourmet 'CraveCatch'😊\n¡Funciones de cuenta y más actualizaciones próximamente!"
+		"guestBio": "Bienvenido, Invitado 👋\nGracias por usar la nueva app gourmet 'CraveCatch'😊\n¡Funciones de cuenta y más actualizaciones próximamente!",
+		"hints": {
+			"tapToSelectImage": "Toca para seleccionar imagen"
+		},
+		"errors": {
+			"permissionDenied": "Permiso para acceder a imágenes denegado",
+			"uploadFailed": "Error al cargar la imagen",
+			"invalidImage": "Archivo de imagen no válido"
+		}
 	},
 	"NotFound": {
 		"title": "¡Vaya!",

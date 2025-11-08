@@ -224,19 +224,17 @@ export class UsersMapper {
   /**
    * ユーザープロフィールに avatar URL 群を付与
    */
-  async enrichUserProfileWithAvatarUrls(
-    user: {
-      id: string;
-      username: string;
-      display_name: string | null;
-      bio: string | null;
-      avatar: string | null;
-      avatar_path: string | null;
-      preferred_locale: string;
-      created_at: Date;
-      updated_at: Date;
-    },
-  ): Promise<UserProfile> {
+  async enrichUserProfileWithAvatarUrls(user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    bio: string | null;
+    avatar: string | null;
+    avatar_path: string | null;
+    preferred_locale: string;
+    created_at: Date;
+    updated_at: Date;
+  }): Promise<UserProfile> {
     const result: UserProfile = {
       id: user.id,
       username: user.username,
@@ -301,38 +299,34 @@ export class UsersMapper {
   /**
    * GET /v1/users/:id のレスポンス変換
    */
-  async toGetUserProfileResponse(
-    user: {
-      id: string;
-      username: string;
-      display_name: string | null;
-      bio: string | null;
-      avatar: string | null;
-      avatar_path: string | null;
-      preferred_locale: string;
-      created_at: Date;
-      updated_at: Date;
-    },
-  ): Promise<GetUserProfileResponse> {
+  async toGetUserProfileResponse(user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    bio: string | null;
+    avatar: string | null;
+    avatar_path: string | null;
+    preferred_locale: string;
+    created_at: Date;
+    updated_at: Date;
+  }): Promise<GetUserProfileResponse> {
     return this.enrichUserProfileWithAvatarUrls(user);
   }
 
   /**
    * POST /v1/users/:id のレスポンス変換
    */
-  async toUpdateUserProfileResponse(
-    user: {
-      id: string;
-      username: string;
-      display_name: string | null;
-      bio: string | null;
-      avatar: string | null;
-      avatar_path: string | null;
-      preferred_locale: string;
-      created_at: Date;
-      updated_at: Date;
-    },
-  ): Promise<UpdateUserProfileResponse> {
+  async toUpdateUserProfileResponse(user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    bio: string | null;
+    avatar: string | null;
+    avatar_path: string | null;
+    preferred_locale: string;
+    created_at: Date;
+    updated_at: Date;
+  }): Promise<UpdateUserProfileResponse> {
     return this.enrichUserProfileWithAvatarUrls(user);
   }
 }

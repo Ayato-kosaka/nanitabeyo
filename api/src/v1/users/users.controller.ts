@@ -94,7 +94,10 @@ export class UsersController {
   @ApiOperation({ summary: 'ユーザープロフィール更新' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
-  @ApiResponse({ status: 403, description: '他のユーザーのプロフィールは更新できません' })
+  @ApiResponse({
+    status: 403,
+    description: '他のユーザーのプロフィールは更新できません',
+  })
   @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
   async updateUserProfile(
     @Param() params: UserIdParamsDto,
