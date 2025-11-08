@@ -117,9 +117,11 @@ export function useFileUploader() {
 					}
 				}
 
+				const localUri = await downloadToLocalIfNeeded(uri);
+
 				const uploadTask = FileSystem.createUploadTask(
 					signedUrlResponse.putUrl,
-					uri,
+					localUri,
 					{
 						httpMethod: "PUT",
 						headers: { "Content-Type": mimeType },
@@ -218,3 +220,14 @@ export function useFileUploader() {
 		formatProgress,
 	};
 }
+
+// 必要に応じてローカルファイルにダウンロードするユーティリティ
+const downloadToLocalIfNeeded = async (uri: string): Promise<string> => {
+	if (Platform.OS === "web") return uri; // WebはそのままfetchでOK
+	if (uri.startsWith("file://")) return uri;
+	// http(s) → 一時ファイルに保存
+	const tmp = `${FileSystem.cacheDirectory}avatar-${Date.now()}.tmp`;
+	const { uri: localUri, status } = await FileSystem.downloadAsync(uri, tmp);
+	if (status < 200 || status >= 300) throw new Error(`Download failed: ${status}`);
+	return localUri;
+};
