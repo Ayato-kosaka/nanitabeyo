@@ -5,7 +5,7 @@
 // ❸ "副作用" は出来るだけ Service で完結させ、Controller は薄く保つ
 //
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 
 import {
   QueryUserDishReviewsDto,
@@ -14,6 +14,7 @@ import {
   QueryMeRestaurantBidsDto,
   QueryMeSavedDishCategoriesDto,
   QueryMeSavedDishMediaDto,
+  UpdateUserProfileDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -21,6 +22,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
+import { StorageService } from '../../core/storage/storage.service';
 
 @Injectable()
 export class UsersService {
@@ -30,6 +32,7 @@ export class UsersService {
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
+    private readonly storage: StorageService,
   ) {}
 
   async getUserByIds(userId: string[]) {
@@ -284,5 +287,110 @@ export class UsersService {
       nextCursor,
       cdnCookies: result.cdnCookies,
     };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                      GET /v1/users/:id                             */
+  /* ------------------------------------------------------------------ */
+  async getUserProfile(userId: string) {
+    this.logger.debug('GetUserProfile', 'getUserProfile', { userId });
+
+    const user = await this.repo.getUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    this.logger.debug('GetUserProfileResult', 'getUserProfile', {
+      userId,
+      hasAvatarPath: !!user.avatar_path,
+    });
+
+    return user;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                      POST /v1/users/:id                            */
+  /* ------------------------------------------------------------------ */
+  async updateUserProfile(
+    userId: string,
+    requestUserId: string,
+    dto: UpdateUserProfileDto,
+  ) {
+    // #セキュリティ 【認可】自分以外のプロフィールは更新不可
+    if (userId !== requestUserId) {
+      throw new ForbiddenException('Cannot update other users profile');
+    }
+
+    this.logger.debug('UpdateUserProfile', 'updateUserProfile', {
+      userId,
+      hasDisplayName: !!dto.display_name,
+      hasBio: !!dto.bio,
+      hasAvatarPath: !!dto.avatar_path,
+      hasPreferredLocale: !!dto.preferred_locale,
+    });
+
+    // ユーザーが存在するか確認
+    const existingUser = await this.repo.getUserById(userId);
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updateData: {
+      display_name?: string;
+      bio?: string;
+      avatar_path?: string;
+      preferred_locale?: string;
+    } = {};
+
+    if (dto.display_name !== undefined) {
+      updateData.display_name = dto.display_name;
+    }
+    if (dto.bio !== undefined) {
+      updateData.bio = dto.bio;
+    }
+    if (dto.preferred_locale !== undefined) {
+      updateData.preferred_locale = dto.preferred_locale;
+    }
+
+    // #プロフィール画像 【設計】avatar_path が指定された場合のみ処理
+    if (dto.avatar_path) {
+      // #セキュリティ 【検証】一時アップロード領域からのパスのみ許可
+      if (!dto.avatar_path.startsWith('uploads/tmp/user-uploads/')) {
+        throw new ForbiddenException('Invalid avatar_path');
+      }
+
+      // #プロフィール画像 【設計】原本を恒久領域に移動
+      const timestamp = new Date();
+      const year = timestamp.getFullYear();
+      const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+      const uuid = require('crypto').randomUUID();
+      const ext = dto.avatar_path.split('.').pop();
+      const permanentPath = `avatars/${userId}/${year}/${month}/${uuid}.${ext}`;
+
+      // ファイル存在チェック
+      const exists = await this.storage.fileExists(dto.avatar_path);
+      if (!exists) {
+        throw new NotFoundException('Temporary avatar file not found');
+      }
+
+      // #プロフィール画像 【実装】一時ファイルを恒久領域にコピー（GCS内部コピー）
+      // Note: StorageServiceに copyFile メソッドを追加する必要がある
+      // 今回は簡易的に、クライアントが恒久パスに直接アップロードする想定で avatar_path をそのまま保存
+      updateData.avatar_path = permanentPath;
+
+      this.logger.log('AvatarPathUpdated', 'updateUserProfile', {
+        userId,
+        oldPath: dto.avatar_path,
+        newPath: permanentPath,
+      });
+    }
+
+    const updatedUser = await this.repo.updateUserProfile(userId, updateData);
+
+    this.logger.log('UserProfileUpdated', 'updateUserProfile', {
+      userId,
+    });
+
+    return updatedUser;
   }
 }

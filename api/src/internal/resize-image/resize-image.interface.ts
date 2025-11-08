@@ -13,8 +13,8 @@ export interface ResizeImageParams {
   column: string;
   /** Record ID (UUID) */
   recordId: string;
-  /** Target size in pixels */
-  size: 256 | 1024;
+  /** Target size in pixels (64=sm, 256=md, 512=lg, 1024=xl) */
+  size: 64 | 256 | 512 | 1024;
 }
 
 /**

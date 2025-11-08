@@ -94,4 +94,48 @@ export class UsersRepository {
       },
     });
   }
+
+  /**
+   * 指定されたIDのユーザーを1件取得
+   */
+  async getUserById(userId: string) {
+    return this.prisma.prisma.users.findUnique({
+      where: { id: userId },
+    });
+  }
+
+  /**
+   * ユーザープロフィールを更新
+   */
+  async updateUserProfile(
+    userId: string,
+    data: {
+      display_name?: string;
+      bio?: string;
+      avatar_path?: string;
+      preferred_locale?: string;
+    },
+  ) {
+    this.logger.debug('UpdateUserProfile', 'updateUserProfile', {
+      userId,
+      hasDisplayName: !!data.display_name,
+      hasBio: !!data.bio,
+      hasAvatarPath: !!data.avatar_path,
+      hasPreferredLocale: !!data.preferred_locale,
+    });
+
+    const result = await this.prisma.prisma.users.update({
+      where: { id: userId },
+      data: {
+        ...data,
+        updated_at: new Date(),
+      },
+    });
+
+    this.logger.log('UserProfileUpdated', 'updateUserProfile', {
+      userId,
+    });
+
+    return result;
+  }
 }

@@ -11,6 +11,9 @@ import {
   QueryMeRestaurantBidsResponse,
   QueryMeSavedDishCategoriesResponse,
   QueryMeSavedDishMediaResponse,
+  UserProfile,
+  GetUserProfileResponse,
+  UpdateUserProfileResponse,
 } from '@shared/v1/res';
 import { DishMediaEntryItem } from '../dish-media/dish-media.mapper';
 import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
@@ -29,9 +32,11 @@ import {
   convertPrismaToSupabase_RestaurantBids,
   PrismaRestaurantBids,
 } from '../../../../shared/converters/convert_restaurant_bids';
+import { StorageService } from '../../core/storage/storage.service';
 
 @Injectable()
 export class UsersMapper {
+  constructor(private readonly storage: StorageService) {}
   /**
    * GET /v1/users/:id/dish-reviews のレスポンス変換
    */
@@ -214,5 +219,120 @@ export class UsersMapper {
       }),
       nextCursor: result.nextCursor,
     };
+  }
+
+  /**
+   * ユーザープロフィールに avatar URL 群を付与
+   */
+  async enrichUserProfileWithAvatarUrls(
+    user: {
+      id: string;
+      username: string;
+      display_name: string | null;
+      bio: string | null;
+      avatar: string | null;
+      avatar_path: string | null;
+      preferred_locale: string;
+      created_at: Date;
+      updated_at: Date;
+    },
+  ): Promise<UserProfile> {
+    const result: UserProfile = {
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      bio: user.bio,
+      avatar: user.avatar,
+      avatar_path: user.avatar_path,
+      preferred_locale: user.preferred_locale,
+      created_at: user.created_at.toISOString(),
+      updated_at: user.updated_at.toISOString(),
+    };
+
+    // #プロフィール画像 【設計】avatar_path がある場合のみ署名付きURL生成
+    if (user.avatar_path) {
+      // 原本の署名付きURL（フォールバック用）
+      result.avatarUrl = await this.storage.generateSignedUrl(
+        user.avatar_path,
+        24 * 60 * 60, // 24時間有効
+      );
+
+      // 派生画像の署名付きURL（リサイズ済み or キュー投入）
+      const [smUrl, mdUrl, lgUrl] = await Promise.all([
+        this.storage.getOrQueueResizedSignedUrl(
+          {
+            table: 'users',
+            column: 'avatar_path',
+            recordId: user.id,
+            size: 64,
+          },
+          user.avatar_path,
+        ),
+        this.storage.getOrQueueResizedSignedUrl(
+          {
+            table: 'users',
+            column: 'avatar_path',
+            recordId: user.id,
+            size: 256,
+          },
+          user.avatar_path,
+        ),
+        this.storage.getOrQueueResizedSignedUrl(
+          {
+            table: 'users',
+            column: 'avatar_path',
+            recordId: user.id,
+            size: 512,
+          },
+          user.avatar_path,
+        ),
+      ]);
+
+      result.avatarUrls = {
+        sm: smUrl,
+        md: mdUrl,
+        lg: lgUrl,
+      };
+    }
+
+    return result;
+  }
+
+  /**
+   * GET /v1/users/:id のレスポンス変換
+   */
+  async toGetUserProfileResponse(
+    user: {
+      id: string;
+      username: string;
+      display_name: string | null;
+      bio: string | null;
+      avatar: string | null;
+      avatar_path: string | null;
+      preferred_locale: string;
+      created_at: Date;
+      updated_at: Date;
+    },
+  ): Promise<GetUserProfileResponse> {
+    return this.enrichUserProfileWithAvatarUrls(user);
+  }
+
+  /**
+   * POST /v1/users/:id のレスポンス変換
+   */
+  async toUpdateUserProfileResponse(
+    user: {
+      id: string;
+      username: string;
+      display_name: string | null;
+      bio: string | null;
+      avatar: string | null;
+      avatar_path: string | null;
+      preferred_locale: string;
+      created_at: Date;
+      updated_at: Date;
+    },
+  ): Promise<UpdateUserProfileResponse> {
+    return this.enrichUserProfileWithAvatarUrls(user);
   }
 }

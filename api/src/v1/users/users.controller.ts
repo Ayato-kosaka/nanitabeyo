@@ -9,6 +9,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   ParseUUIDPipe,
   Query,
@@ -29,6 +31,7 @@ import {
 
 import {
   UserIdParamsDto,
+  UpdateUserProfileDto,
   QueryUserDishReviewsDto,
   QueryMeLikedDishMediaDto,
   QueryMePayoutsDto,
@@ -37,6 +40,8 @@ import {
   QueryMeSavedDishMediaDto,
 } from '@shared/v1/dto';
 import {
+  GetUserProfileResponse,
+  UpdateUserProfileResponse,
   QueryUserDishReviewsResponse,
   QueryMeLikedDishMediaResponse,
   QueryMePayoutsResponse,
@@ -61,6 +66,48 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
   ) {}
+
+  /* ------------------------------------------------------------------ */
+  /*                        GET /v1/users/:id                           */
+  /* ------------------------------------------------------------------ */
+  @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'ユーザープロフィール取得' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
+  async getUserProfile(
+    @Param() params: UserIdParamsDto,
+  ): Promise<GetUserProfileResponse> {
+    const user = await this.usersService.getUserProfile(params.id);
+    return this.usersMapper.toGetUserProfileResponse(user);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                        POST /v1/users/:id                          */
+  /* ------------------------------------------------------------------ */
+  @Post(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({ summary: 'ユーザープロフィール更新' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 403, description: '他のユーザーのプロフィールは更新できません' })
+  @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
+  async updateUserProfile(
+    @Param() params: UserIdParamsDto,
+    @Body() dto: UpdateUserProfileDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<UpdateUserProfileResponse> {
+    const updatedUser = await this.usersService.updateUserProfile(
+      params.id,
+      user.id,
+      dto,
+    );
+    return this.usersMapper.toUpdateUserProfileResponse(updatedUser);
+  }
 
   /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
