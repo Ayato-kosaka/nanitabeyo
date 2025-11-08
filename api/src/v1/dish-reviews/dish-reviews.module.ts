@@ -31,4 +31,4 @@ import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
     DishReviewsService, // 他ドメインが再利用できる
   ],
 })
-export class DishReviewsModule { }
+export class DishReviewsModule {}
