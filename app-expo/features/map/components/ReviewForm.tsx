@@ -16,7 +16,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
-import { InitialMediaPreview, MediaData } from "./InitialMediaPreview";
+import { InitialMediaPreview } from "./InitialMediaPreview";
 import {
 	getCurrencyCodeFromRestaurant,
 	parseAmountString,
@@ -39,7 +39,7 @@ import type {
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { Dimensions } from "react-native";
-import { selectMediaForReview } from "@/features/map/utils/mediaSelection";
+import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
 
@@ -158,7 +158,7 @@ export function ReviewForm({
 
 		const handleMediaSelection = async () => {
 			try {
-				const result = await selectMediaForReview();
+				const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
 
 				// Guard against setState on unmounted component
 				if (cancelled || !mountedRef.current) return;
@@ -220,7 +220,7 @@ export function ReviewForm({
 		// Since we can't easily re-trigger the effect, we'll call the function directly
 		const retrySelection = async () => {
 			try {
-				const result = await selectMediaForReview();
+				const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
 
 				if (!mountedRef.current) return;
 

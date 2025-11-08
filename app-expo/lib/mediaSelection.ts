@@ -1,9 +1,19 @@
 import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import type { MediaData } from "../components/InitialMediaPreview";
+import { CreateDishMediaDto } from "@shared/api/v1/dto";
 
 const MAX_VIDEO_DURATION_SECONDS = 120; // 2 minutes
+
+export interface MediaData {
+	type: CreateDishMediaDto["mediaType"];
+	uri: string;
+	width?: number;
+	height?: number;
+	durationSec?: number;
+	thumbnailUri?: string;
+	mimeType: string;
+}
 
 interface MediaSelectionResult {
 	success: boolean;
@@ -137,7 +147,12 @@ async function getVideoDuration(uri: string): Promise<number | null> {
  * Launch media picker and handle media selection
  * Returns media data with thumbnail for videos
  */
-export async function selectMediaForReview(): Promise<MediaSelectionResult> {
+export async function selectMedia(
+	mediaTypes: ImagePicker.MediaType[],
+	options?: {
+		shouldGenerateThumbnail?: boolean;
+	}
+): Promise<MediaSelectionResult> {
 	try {
 		// Request permissions
 		const hasPermission = await requestPermissions();
@@ -150,7 +165,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 
 		// Launch picker
 		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ["images", "videos"], // Allow both images and videos
+			mediaTypes,
 			allowsMultipleSelection: false,
 			quality: 1,
 			videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
@@ -183,7 +198,7 @@ export async function selectMediaForReview(): Promise<MediaSelectionResult> {
 
 		// ---- サムネ生成 ----
 		let thumbnailUri: string | undefined;
-		if (isVideo) {
+		if (options?.shouldGenerateThumbnail && isVideo) {
 			const thumbnail = await generateVideoThumbnail(asset.uri);
 			if (!thumbnail) {
 				return {
