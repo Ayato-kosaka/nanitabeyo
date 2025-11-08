@@ -96,4 +96,20 @@ export class DishReviewsRepository {
       },
     });
   }
+
+  /**
+   * レビューのいいね解除（リアクション削除）
+   */
+  async unlikeReview(reviewId: string, userId: string) {
+    return this.prisma.prisma.reactions.delete({
+      where: {
+        user_id_target_type_target_id_action_type: {
+          user_id: userId,
+          target_type: 'dish_reviews',
+          target_id: reviewId,
+          action_type: 'like',
+        },
+      },
+    });
+  }
 }

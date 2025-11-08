@@ -94,4 +94,23 @@ export class DishReviewsService {
         });
     }
   }
+
+  /* ------------------------------------------------------------------ */
+  /*            DELETE /v1/dish-reviews/:id/likes (いいね解除)           */
+  /* ------------------------------------------------------------------ */
+  async unlikeDishReview({ id }: LikeDishReviewParamsDto, userId: string) {
+    this.logger.verbose('UnlikeDishReview', 'unlikeDishReview', { id, userId });
+
+    // レビューが存在するか確認
+    const exists = await this.repo.reviewExists(id);
+    if (!exists) {
+      this.logger.warn('ReviewNotFound', 'unlikeDishReview', { reviewId: id });
+      throw new NotFoundException('Review not found');
+    }
+
+    // リアクション削除
+    await this.repo.unlikeReview(id, userId);
+
+    // #通知機能 【設計】いいね解除時は通知を送信しない
+  }
 }

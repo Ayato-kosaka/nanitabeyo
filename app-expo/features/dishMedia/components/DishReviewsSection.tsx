@@ -9,7 +9,7 @@ import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { useLogger } from "@/hooks/useLogger";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useHaptics } from "@/hooks/useHaptics";
-import { toggleReaction } from "@/lib/reactions";
+import { useAPICall } from "@/hooks/useAPICall";
 import i18n from "@/lib/i18n";
 
 interface DishReviewsSectionProps {
@@ -20,6 +20,7 @@ interface DishReviewsSectionProps {
 
 // コメントの表示のみを担当。状態変更は親側のコールバックに委譲
 export function DishReviewsSection({ reviews, paddingRight, carouselRef }: DishReviewsSectionProps) {
+	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
 
@@ -95,12 +96,17 @@ export function DishReviewsSection({ reviews, paddingRight, carouselRef }: DishR
 		});
 
 		try {
-			await toggleReaction({
-				target_type: "dish_reviews",
-				target_id: reviewId,
-				action_type: "like",
-				willReact: willLike,
-			});
+			if (willLike) {
+				await callBackend<{}, void>(`v1/dish-reviews/${reviewId}/likes`, {
+					method: "POST",
+					requestPayload: {},
+				});
+			} else {
+				await callBackend<{}, void>(`v1/dish-reviews/${reviewId}/likes`, {
+					method: "DELETE",
+					requestPayload: {},
+				});
+			}
 		} catch (error) {
 			// Revert state on error
 			setReviewLikes((prev) => ({
