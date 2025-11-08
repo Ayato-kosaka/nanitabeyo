@@ -41,7 +41,8 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 		lightImpact();
 		const willLike = !isLiked;
 		setIsLiked(willLike);
-		setLikesCount((prev) => (willLike ? prev + 1 : prev - 1));
+		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
+		setLikesCount((prev) => (willLike ? prev + 1 : Math.max(0, prev - 1)));
 
 		logFrontendEvent({
 			event_name: willLike ? "dish_liked" : "dish_unliked",
@@ -68,7 +69,8 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 		} catch (error) {
 			// Revert state on error
 			setIsLiked(!willLike);
-			setLikesCount((prev) => (willLike ? prev - 1 : prev + 1));
+			// #259 【バグ】エラー時のリバート処理でも下限0を保証
+			setLikesCount((prev) => (willLike ? Math.max(0, prev - 1) : prev + 1));
 			logFrontendEvent({
 				event_name: "dish_like_reaction_failed",
 				error_level: "log",
