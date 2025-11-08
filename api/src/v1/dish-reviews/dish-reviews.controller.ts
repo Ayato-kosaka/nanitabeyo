@@ -9,6 +9,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Param,
   ParseUUIDPipe,
   Post,
@@ -79,5 +80,23 @@ export class DishReviewsController {
       user.id,
       user.isAnonymous,
     );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*            DELETE /v1/dish-reviews/:id/likes                       */
+  /* ------------------------------------------------------------------ */
+  @Delete(':id/likes')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'レビューいいね解除' })
+  @ApiParam({ name: 'id', required: true, description: 'dish_reviews.id' })
+  @ApiResponse({ status: 200, description: 'いいね解除成功' })
+  async unlikeDishReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<LikeDishReviewResponse> {
+    const params: LikeDishReviewParamsDto = { id };
+    return this.dishReviewsService.unlikeDishReview(params, user.id);
   }
 }
