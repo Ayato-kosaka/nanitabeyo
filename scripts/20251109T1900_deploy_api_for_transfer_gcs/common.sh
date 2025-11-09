@@ -33,7 +33,7 @@ run_cmd() {
     log "[DRY_RUN] $*"
   else
     log "exec: $*"
-    eval "$@"
+    "$@"
   fi
 }
 
