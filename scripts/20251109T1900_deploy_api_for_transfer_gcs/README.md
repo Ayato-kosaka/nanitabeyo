@@ -14,7 +14,7 @@ GCS **新バケット移行**のための実行ラッパ群です。`infra/gcp/*
 ## 内容物
 
 ```
-./scripts/migration/20251109T1900_deploy_api_for_transfer_gcs/
+./scripts/20251109T1900_deploy_api_for_transfer_gcs/
   ├── 1_1_create_private_bucket.sh
   ├── 1_2_create_public_bucket.sh
   ├── 3_1_setup_public_cdn.sh
