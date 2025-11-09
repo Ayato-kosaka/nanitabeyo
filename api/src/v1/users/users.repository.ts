@@ -6,13 +6,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { PrismaUsers } from '../../../../shared/converters/convert_users';
 
 @Injectable()
 export class UsersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * ユーザーの収益一覧を取得
@@ -108,34 +109,16 @@ export class UsersRepository {
    * ユーザープロフィールを更新
    */
   async updateUserProfile(
-    userId: string,
-    data: {
-      display_name?: string;
-      bio?: string;
-      avatar_path?: string;
-      preferred_locale?: string;
-    },
+    data: Partial<Omit<PrismaUsers, 'created_at' | 'updated_at' | 'lock_no'>>,
   ) {
-    this.logger.debug('UpdateUserProfile', 'updateUserProfile', {
-      userId,
-      hasDisplayName: !!data.display_name,
-      hasBio: !!data.bio,
-      hasAvatarPath: !!data.avatar_path,
-      hasPreferredLocale: !!data.preferred_locale,
-    });
-
     const result = await this.prisma.prisma.users.update({
-      where: { id: userId },
+      where: { id: data.id },
       data: {
         ...data,
         updated_at: new Date(),
+        lock_no: { increment: 1 }
       },
     });
-
-    this.logger.log('UserProfileUpdated', 'updateUserProfile', {
-      userId,
-    });
-
     return result;
   }
 }

@@ -12,11 +12,9 @@ import {
   getExt,
   buildFileName,
   buildFullPath,
-  buildResizedPath,
 } from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 import * as crypto from 'crypto';
-import { ResizeImageDto } from 'src/internal/resize-image/resize-image.dto';
 
 @Injectable()
 export class StorageService {

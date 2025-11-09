@@ -11,7 +11,7 @@ import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { DishMediaModule } from '../dish-media/dish-media.module';
-import { ResizeImageModule } from 'src/internal/resize-image/resize-image.module';
+import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
 
 @Module({
   imports: [
@@ -20,7 +20,7 @@ import { ResizeImageModule } from 'src/internal/resize-image/resize-image.module
     LoggerModule,
     forwardRef(() => AuthModule), // For JWT Guards and CurrentUser decorator
     DishMediaModule,
-    ResizeImageModule,
+    CloudTasksModule
   ],
   controllers: [UsersController],
   providers: [

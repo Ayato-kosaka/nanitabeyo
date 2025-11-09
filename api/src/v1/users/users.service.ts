@@ -26,9 +26,8 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
-import { StorageService } from '../../core/storage/storage.service';
 import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
-import { ResizeImageService } from 'src/internal/resize-image/resize-image.service';
+import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 
 @Injectable()
 export class UsersService {
@@ -38,8 +37,7 @@ export class UsersService {
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
-    private readonly storage: StorageService,
-    private readonly resizeImage: ResizeImageService,
+    private readonly cloudTasks: CloudTasksService,
   ) { }
 
   async getUserByIds(userId: string[]) {
@@ -316,68 +314,48 @@ export class UsersService {
   }
 
   /* ------------------------------------------------------------------ */
-  /*                      POST /v1/users/:id                            */
+  /*                      POST /v1/users/me                             */
   /* ------------------------------------------------------------------ */
   async updateUserProfile(
     userId: string,
-    requestUserId: string,
     dto: UpdateUserProfileDto,
   ) {
-    // #セキュリティ 【認可】自分以外のプロフィールは更新不可
-    if (userId !== requestUserId) {
-      throw new ForbiddenException('Cannot update other users profile');
-    }
-
     this.logger.debug('UpdateUserProfile', 'updateUserProfile', {
       userId,
-      hasDisplayName: !!dto.display_name,
-      hasBio: !!dto.bio,
-      hasAvatarPath: !!dto.avatar_path,
-      hasPreferredLocale: !!dto.preferred_locale,
+      dto
     });
 
     // ユーザーが存在するか確認
     const existingUser = await this.repo.getUserById(userId);
-    if (!existingUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    const updateData: {
-      display_name?: string;
-      bio?: string;
-      avatar_path?: string;
-      preferred_locale?: string;
-    } = {};
-
-    if (dto.display_name !== undefined) {
-      updateData.display_name = dto.display_name;
-    }
-    if (dto.bio !== undefined) {
-      updateData.bio = dto.bio;
-    }
-    if (dto.preferred_locale !== undefined) {
-      updateData.preferred_locale = dto.preferred_locale;
-    }
+    if (!existingUser) throw new NotFoundException('User not found');
 
     // #プロフィール画像 【設計】avatar_path が指定された場合のみ処理
     if (dto.avatar_path) {
       // #セキュリティ 【検証】ユーザーアップロード領域に限る
       if (!isValidUserUploadedPath(dto.avatar_path, userId)) throw new ForbiddenException('Invalid avatar_path');
 
-      // 画像のリサイズと保存を実行
-      await this.resizeImage.resizeAndStoreImage({
+      // 画像のリサイズと保存を実行（プロフィールのサムネ用）
+      await this.cloudTasks.enqueueResizeImage({
         table: 'users',
         column: 'avatar_path',
         recordId: userId,
         size: 256,
         originalPath: dto.avatar_path,
       });
+
+      // 画像のリサイズと保存を実行（コメント欄用）
+      await this.cloudTasks.enqueueResizeImage({
+        table: 'users',
+        column: 'avatar_path',
+        recordId: userId,
+        size: 64,
+        originalPath: dto.avatar_path,
+      });
     }
 
-    const updatedUser = await this.repo.updateUserProfile(userId, updateData);
-
-    this.logger.log('UserProfileUpdated', 'updateUserProfile', {
-      userId,
+    const updatedUser = await this.repo.updateUserProfile({
+      ...dto,
+      id: userId,
     });
 
     return updatedUser;
