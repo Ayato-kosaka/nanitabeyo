@@ -65,7 +65,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                        GET /v1/users/:id                           */
@@ -85,14 +85,13 @@ export class UsersController {
   }
 
   /* ------------------------------------------------------------------ */
-  /*                        POST /v1/users/:id                          */
+  /*                        POST /v1/users/me                           */
   /* ------------------------------------------------------------------ */
-  @Post(':id')
+  @Post('/me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'ユーザープロフィール更新' })
-  @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({
     status: 403,
@@ -100,12 +99,10 @@ export class UsersController {
   })
   @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
   async updateUserProfile(
-    @Param() params: UserIdParamsDto,
     @Body() dto: UpdateUserProfileDto,
     @CurrentUser() user: RequestUser,
   ): Promise<UpdateUserProfileResponse> {
     const updatedUser = await this.usersService.updateUserProfile(
-      params.id,
       user.id,
       dto,
     );

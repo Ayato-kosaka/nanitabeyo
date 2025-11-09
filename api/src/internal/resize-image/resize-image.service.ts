@@ -191,18 +191,8 @@ export class ResizeImageService {
         };
       }
 
-      // Get original image path
-      const originalPath = await this.getOriginalPath(
-        params.table,
-        params.column,
-        params.recordId,
-      );
-      if (!originalPath) {
-        throw new Error('Original image path not found');
-      }
-
       // Download original image
-      const originalBuffer = await this.downloadOriginalImage(originalPath);
+      const originalBuffer = await this.downloadOriginalImage(params.originalPath);
 
       // Resize image
       const resizedBuffer = await this.resizeImage(originalBuffer, params.size);
@@ -224,7 +214,6 @@ export class ResizeImageService {
 
       this.logger.log('ResizeImageCompleted', 'resizeAndStoreImage', {
         resizedPath: result.path,
-        originalPath,
         size: params.size,
       });
 

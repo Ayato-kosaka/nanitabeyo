@@ -28,4 +28,9 @@ export class ResizeImageDto {
   @IsInt()
   @IsIn([64, 256, 512, 1024])
   size: 64 | 256 | 512 | 1024;
+
+  /** Original image path override */
+  @IsString()
+  @IsNotEmpty()
+  originalPath!: string;
 }

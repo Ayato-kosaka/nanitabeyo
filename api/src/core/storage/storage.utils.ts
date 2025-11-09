@@ -60,6 +60,6 @@ export function buildResizedPath(params: ResizeImageDto): string {
 /* -------------------------------------------------------------------------- */
 /*                          ファイル名チェック                                */
 /* -------------------------------------------------------------------------- */
-export const isValidUserUploadedFileName = (fileName: string): boolean => {
-  return fileName.startsWith(`${env.API_NODE_ENV}/user-uploaded/`);
+export const isValidUserUploadedPath = (fileName: string, userId): boolean => {
+  return fileName.startsWith(`${env.API_NODE_ENV}/user-uploaded/${userId}/`);
 }

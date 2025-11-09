@@ -191,6 +191,9 @@ export class DishMediaService {
       throw new NotFoundException('Dish not found');
     }
 
+    // #セキュリティ 【検証】ユーザーアップロード領域に限る
+    if (!isValidUserUploadedPath(dto.mediaPath, creatorId)) throw new NotFoundException('Invalid mediaPath');
+
     // トランザクションで dish_media + 付随レコード作成
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>

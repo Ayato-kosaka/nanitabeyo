@@ -36,7 +36,7 @@ import { StorageService } from '../../core/storage/storage.service';
 
 @Injectable()
 export class UsersMapper {
-  constructor(private readonly storage: StorageService) {}
+  constructor(private readonly storage: StorageService) { }
   /**
    * GET /v1/users/:id/dish-reviews のレスポンス変換
    */
@@ -254,43 +254,6 @@ export class UsersMapper {
         user.avatar_path,
         24 * 60 * 60, // 24時間有効
       );
-
-      // 派生画像の署名付きURL（リサイズ済み or キュー投入）
-      const [smUrl, mdUrl, lgUrl] = await Promise.all([
-        this.storage.getOrQueueResizedSignedUrl(
-          {
-            table: 'users',
-            column: 'avatar_path',
-            recordId: user.id,
-            size: 64,
-          },
-          user.avatar_path,
-        ),
-        this.storage.getOrQueueResizedSignedUrl(
-          {
-            table: 'users',
-            column: 'avatar_path',
-            recordId: user.id,
-            size: 256,
-          },
-          user.avatar_path,
-        ),
-        this.storage.getOrQueueResizedSignedUrl(
-          {
-            table: 'users',
-            column: 'avatar_path',
-            recordId: user.id,
-            size: 512,
-          },
-          user.avatar_path,
-        ),
-      ]);
-
-      result.avatarUrls = {
-        sm: smUrl,
-        md: mdUrl,
-        lg: lgUrl,
-      };
     }
 
     return result;
@@ -314,7 +277,7 @@ export class UsersMapper {
   }
 
   /**
-   * POST /v1/users/:id のレスポンス変換
+   * POST /v1/users/me のレスポンス変換
    */
   async toUpdateUserProfileResponse(user: {
     id: string;

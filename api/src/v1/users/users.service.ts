@@ -27,7 +27,7 @@ import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { StorageService } from '../../core/storage/storage.service';
-import { isValidUserUploadedFileName } from 'src/core/storage/storage.utils';
+import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { ResizeImageService } from 'src/internal/resize-image/resize-image.service';
 
 @Injectable()
@@ -361,34 +361,16 @@ export class UsersService {
 
     // #プロフィール画像 【設計】avatar_path が指定された場合のみ処理
     if (dto.avatar_path) {
-      // #セキュリティ 【検証】一時アップロード領域からのパスのみ許可
-      if (!dto.avatar_path.startsWith('uploads/tmp/user-uploads/')) {
-        throw new ForbiddenException('Invalid avatar_path');
-      }
+      // #セキュリティ 【検証】ユーザーアップロード領域に限る
+      if (!isValidUserUploadedPath(dto.avatar_path, userId)) throw new ForbiddenException('Invalid avatar_path');
 
-      // #プロフィール画像 【設計】原本を恒久領域に移動
-      const timestamp = new Date();
-      const year = timestamp.getFullYear();
-      const month = String(timestamp.getMonth() + 1).padStart(2, '0');
-      const uuid = require('crypto').randomUUID();
-      const ext = dto.avatar_path.split('.').pop();
-      const permanentPath = `avatars/${userId}/${year}/${month}/${uuid}.${ext}`;
-
-      // ファイル存在チェック
-      const exists = await this.storage.fileExists(dto.avatar_path);
-      if (!exists) {
-        throw new NotFoundException('Temporary avatar file not found');
-    }
-
-      // #プロフィール画像 【実装】一時ファイルを恒久領域にコピー（GCS内部コピー）
-      // Note: StorageServiceに copyFile メソッドを追加する必要がある
-      // 今回は簡易的に、クライアントが恒久パスに直接アップロードする想定で avatar_path をそのまま保存
-      updateData.avatar_path = permanentPath;
-
-      this.logger.log('AvatarPathUpdated', 'updateUserProfile', {
-        userId,
-        oldPath: dto.avatar_path,
-        newPath: permanentPath,
+      // 画像のリサイズと保存を実行
+      await this.resizeImage.resizeAndStoreImage({
+        table: 'users',
+        column: 'avatar_path',
+        recordId: userId,
+        size: 256,
+        originalPath: dto.avatar_path,
       });
     }
 

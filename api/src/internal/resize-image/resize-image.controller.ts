@@ -37,11 +37,6 @@ export class ResizeImageController {
   @Post()
   @HttpCode(HttpStatus.NO_CONTENT)
   async resizeImage(@Body() dto: ResizeImageDto): Promise<void> {
-    await this.resizeImageService.resizeAndStoreImage({
-      table: dto.table,
-      column: dto.column,
-      recordId: dto.recordId,
-      size: dto.size,
-    });
+    await this.resizeImageService.resizeAndStoreImage(dto);
   }
 }

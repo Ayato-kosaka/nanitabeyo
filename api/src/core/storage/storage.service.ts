@@ -221,66 +221,6 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
-  /*                  Get or Queue Resized Signed URL                       */
-  /* ---------------------------------------------------------------------- */
-  /**
-   * Get signed URL for resized image, or queue resize if not exists
-   * Returns original signed URL if resize is queued
-   */
-  async getOrQueueResizedSignedUrl(
-    params: ResizeImageDto,
-    originalPath: string,
-    expiresInSeconds = 24 * 60 * 60,
-  ): Promise<string> {
-    // Build resized image path following naming convention
-    const resizedPath = buildResizedPath(params);
-
-    try {
-      const [exists, resizedSignedUrl, originalSignedUrl] = await Promise.all([
-        this.fileExists(resizedPath), // ネットワーク
-        this.generateSignedUrl(resizedPath, expiresInSeconds), // ローカル署名
-        this.generateSignedUrl(originalPath, expiresInSeconds), // ローカル署名
-      ]);
-
-      if (exists) {
-        // Return resized image signed URL
-        this.logger.debug('ResizedImageExists', 'getOrQueueResizedSignedUrl', {
-          resizedPath,
-        });
-        return resizedSignedUrl;
-      }
-
-      // Resized image doesn't exist, queue async resize
-      this.logger.debug('ResizedImageNotFound', 'getOrQueueResizedSignedUrl', {
-        resizedPath,
-        queueingResize: true,
-      });
-
-      // Queue async resize using CloudTasksService
-      this.cloudTasks.enqueueResizeImage(params).catch((err) => {
-        this.logger.warn('ResizeQueueError', 'getOrQueueResizedSignedUrl', {
-          params,
-          error: err instanceof Error ? err.message : 'Unknown error',
-        });
-      });
-
-      // Return original image signed URL for now
-      return originalSignedUrl;
-    } catch (err) {
-      this.logger.error(
-        'GetOrQueueResizedSignedUrlError',
-        'getOrQueueResizedSignedUrl',
-        {
-          params,
-          error: (err as Error).message,
-        },
-      );
-      // Fallback to original on error
-      return this.generateSignedUrl(originalPath, expiresInSeconds);
-    }
-  }
-
-  /* ---------------------------------------------------------------------- */
   /*                      CDN Signed Cookie Generation                      */
   /* ---------------------------------------------------------------------- */
   /**
