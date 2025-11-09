@@ -27,6 +27,8 @@ import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { StorageService } from '../../core/storage/storage.service';
+import { isValidUserUploadedFileName } from 'src/core/storage/storage.utils';
+import { ResizeImageService } from 'src/internal/resize-image/resize-image.service';
 
 @Injectable()
 export class UsersService {
@@ -37,7 +39,8 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly storage: StorageService,
-  ) {}
+    private readonly resizeImage: ResizeImageService,
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -375,7 +378,7 @@ export class UsersService {
       const exists = await this.storage.fileExists(dto.avatar_path);
       if (!exists) {
         throw new NotFoundException('Temporary avatar file not found');
-      }
+    }
 
       // #プロフィール画像 【実装】一時ファイルを恒久領域にコピー（GCS内部コピー）
       // Note: StorageServiceに copyFile メソッドを追加する必要がある
