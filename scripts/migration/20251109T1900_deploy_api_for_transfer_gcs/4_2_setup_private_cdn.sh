@@ -16,7 +16,7 @@ delete_if_exists() {
   if [[ "${DRY_RUN}" == "true" ]]; then
     log "[DRY_RUN] delete_if_exists: ${desc}"
   else
-    if eval ${cmd} >/dev/null 2>&1; then
+    if "$@" >/dev/null 2>&1; then
       ok "Deleted: ${desc}"
     else
       warn "Skip (not found or already removed): ${desc}"
