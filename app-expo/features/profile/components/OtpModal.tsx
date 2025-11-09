@@ -13,6 +13,7 @@ import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useProfile } from "../hooks/useProfile";
 
 interface OtpModalProps {
 	onClose: () => void;
@@ -26,7 +27,8 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 	const inputRefs = useRef<(TextInput | null)[]>([]);
 	const [pendingDisplayName, setPendingDisplayName] = useState("");
 
-	const { signInWithOtp, verifyOtp, createUserProfile } = useAuth();
+	const { signInWithOtp, verifyOtp } = useAuth();
+	const { createUserProfile } = useProfile();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 
