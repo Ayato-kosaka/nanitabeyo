@@ -158,12 +158,12 @@ echo "📦 Source objects : ${SRC_COUNT} objects, ${SRC_BYTES_HUMAN}"
 # --- 2) コピー実行（DRY_RUN でスキップ可） ------------------------------------
 if [[ "${DRY_RUN}" == "true" ]]; then
   echo "🔎 DRY RUN のためコピーは実行しません。実行予定コマンド:"
-  echo "    gcloud storage cp -r -m ${EXTRA_CP_FLAGS} \"${SRC_URI}**\" \"${DST_URI}\""
+  echo "    gcloud storage cp -r -m \"${EXTRA_CP_FLAGS}\" \"${SRC_URI}**\" \"${DST_URI}\""
 else
   echo "🚚 Copying… (overwrite, recursive, parallel)"
   # 上書き前提: --no-clobber は付けないこと
   # 注意: 末尾 '**' で SRC_PREFIX 配下すべてを再帰コピー
-  gcloud storage cp -r -m ${EXTRA_CP_FLAGS} "${SRC_URI}**" "${DST_URI}"
+  gcloud storage cp -r -m "${EXTRA_CP_FLAGS}" "${SRC_URI}**" "${DST_URI}"
 fi
 
 # --- 3) 転送後のレポート -------------------------------------------------------
