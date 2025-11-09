@@ -9,8 +9,8 @@ import { CloudTasksClient } from '@google-cloud/tasks';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
-import { GetResizedSignedUrlParams } from '../storage/storage.types';
 import { NotificationJobPayload } from '../../internal/notifications/notification-job.interface';
+import { ResizeImageDto } from 'src/internal/resize-image/resize-image.dto';
 
 @Injectable()
 export class CloudTasksService {
@@ -91,7 +91,7 @@ export class CloudTasksService {
   }
 
   /** 画像リサイズジョブをキューに追加 */
-  async enqueueResizeImage(params: GetResizedSignedUrlParams): Promise<void> {
+  async enqueueResizeImage(params: ResizeImageDto): Promise<void> {
     const url = `${env.CLOUD_RUN_URL}/internal/resize-image`;
     await this.enqueueJsonPostTask({
       url,

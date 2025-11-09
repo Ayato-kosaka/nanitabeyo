@@ -8,8 +8,9 @@ import * as sharp from 'sharp';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { ResizeImageParams, ResizeImageResult } from './resize-image.interface';
+import { ResizeImageResult } from './resize-image.interface';
 import { buildResizedPath } from 'src/core/storage/storage.utils';
+import { ResizeImageDto } from './resize-image.dto';
 
 // 識別子の簡易バリデーション（必要に応じて厳しく）
 function isSafeIdentifier(name: string) {
@@ -27,7 +28,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * Get the original image path from database
@@ -162,7 +163,7 @@ export class ResizeImageService {
    * Main method to resize and store image
    */
   async resizeAndStoreImage(
-    params: ResizeImageParams,
+    params: ResizeImageDto,
   ): Promise<ResizeImageResult> {
     const resizedPath = buildResizedPath(params);
 

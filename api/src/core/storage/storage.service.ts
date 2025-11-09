@@ -7,7 +7,6 @@ import {
   UploadFileParams,
   UploadFileAtPathParams,
   UploadResult,
-  GetResizedSignedUrlParams,
 } from './storage.types';
 import {
   getExt,
@@ -17,6 +16,7 @@ import {
 } from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 import * as crypto from 'crypto';
+import { ResizeImageDto } from 'src/internal/resize-image/resize-image.dto';
 
 @Injectable()
 export class StorageService {
@@ -228,7 +228,7 @@ export class StorageService {
    * Returns original signed URL if resize is queued
    */
   async getOrQueueResizedSignedUrl(
-    params: GetResizedSignedUrlParams,
+    params: ResizeImageDto,
     originalPath: string,
     expiresInSeconds = 24 * 60 * 60,
   ): Promise<string> {

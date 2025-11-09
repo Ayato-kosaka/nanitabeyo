@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { MAX_FILENAME_BYTES } from './storage.constants';
-import { ResizeImageParams } from 'src/internal/resize-image/resize-image.interface';
 import { env } from '../config/env';
+import { ResizeImageDto } from 'src/internal/resize-image/resize-image.dto';
 
 /* -------------------------------------------------------------------------- */
 /*                               MIME → ext map                               */
@@ -53,6 +53,13 @@ export const buildFullPath = (params: {
  * Build the resized image path based on naming convention
  * ${env}/resized-image/${table}/${column}/${recordId}/${size}.webp
  */
-export function buildResizedPath(params: ResizeImageParams): string {
+export function buildResizedPath(params: ResizeImageDto): string {
   return `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${params.size}.webp`;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          ファイル名チェック                                */
+/* -------------------------------------------------------------------------- */
+export const isValidUserUploadedFileName = (fileName: string): boolean => {
+  return fileName.startsWith(`${env.API_NODE_ENV}/user-uploaded/`);
 }

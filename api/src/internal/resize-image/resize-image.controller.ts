@@ -27,7 +27,7 @@ export class ResizeImageController {
   constructor(
     private readonly resizeImageService: ResizeImageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * POST /internal/resize-image
@@ -37,34 +37,11 @@ export class ResizeImageController {
   @Post()
   @HttpCode(HttpStatus.NO_CONTENT)
   async resizeImage(@Body() dto: ResizeImageDto): Promise<void> {
-    this.logger.debug('ResizeImageRequestReceived', 'resizeImage', {
+    await this.resizeImageService.resizeAndStoreImage({
       table: dto.table,
       column: dto.column,
       recordId: dto.recordId,
       size: dto.size,
     });
-
-    try {
-      await this.resizeImageService.resizeAndStoreImage({
-        table: dto.table,
-        column: dto.column,
-        recordId: dto.recordId,
-        size: dto.size,
-      });
-
-      this.logger.log('ResizeImageRequestCompleted', 'resizeImage', {
-        table: dto.table,
-        recordId: dto.recordId,
-        size: dto.size,
-      });
-    } catch (error) {
-      this.logger.error('ResizeImageRequestError', 'resizeImage', {
-        table: dto.table,
-        recordId: dto.recordId,
-        size: dto.size,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      throw error;
-    }
   }
 }
