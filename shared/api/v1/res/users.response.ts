@@ -21,22 +21,13 @@ export type UserProfile = SupabaseUsers & {
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
 export type QueryUserDishReviewsResponse = PaginatedResponse<
 	DishMediaEntry & {
-		dish: {
-			reviewCount: number;
-			averageRating: number;
-		};
 		dish_media: { isMe: boolean };
 	}
 >;
 
 /** GET /v1/users/me/liked-dish-media のレスポンス型 */
 export type QueryMeLikedDishMediaResponse = PaginatedResponse<
-	DishMediaEntry & {
-		dish: {
-			reviewCount: number;
-			averageRating: number;
-		};
-	}
+	DishMediaEntry
 >;
 
 /** GET /v1/users/me/payouts のレスポンス型 */
@@ -50,12 +41,7 @@ export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishC
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = PaginatedResponse<
-	DishMediaEntry & {
-		dish: {
-			reviewCount: number;
-			averageRating: number;
-		};
-	}
+	DishMediaEntry
 >;
 
 /** GET /v1/users/:id のレスポンス型 */

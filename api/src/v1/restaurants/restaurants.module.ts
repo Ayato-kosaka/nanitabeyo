@@ -8,7 +8,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { RestaurantsController } from './restaurants.controller';
 import { RestaurantsService } from './restaurants.service';
 import { RestaurantsRepository } from './restaurants.repository';
-import { RestaurantsMapper } from './restaurants.mapper';
 
 // ─── 横串インフラ層 ──────────────────────────────────────────
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -28,10 +27,10 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
     forwardRef(() => DishMediaModule), // DishMediaService を利用するため
   ],
   controllers: [RestaurantsController],
-  providers: [RestaurantsService, RestaurantsRepository, RestaurantsMapper],
+  providers: [RestaurantsService, RestaurantsRepository],
   exports: [
     RestaurantsService, // 他ドメインから利用できるよう export
     RestaurantsRepository,
   ],
 })
-export class RestaurantsModule {}
+export class RestaurantsModule { }

@@ -17,26 +17,26 @@ import {
 } from '@shared/v1/dto';
 
 import { DishMediaRepository } from './dish-media.repository';
-import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { DishMediaEntryItem } from './dish-media.mapper';
-import { mapWithConcurrency } from 'src/core/utils/backend-utils';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { env } from '../../core/config/env';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
+import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
+import { DishMediaAssembler } from './dish-media.assembler';
+import { DishMediaEntry } from '@shared/v1/res';
 
 @Injectable()
 export class DishMediaService {
   constructor(
     private readonly repo: DishMediaRepository,
-    private readonly storage: StorageService,
+    private readonly assembler: DishMediaAssembler,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -91,7 +91,8 @@ export class DishMediaService {
   }
 
   /**
-   * dishMediaIds から DishMediaEntryItem[] を取得し署名付き URL を付与
+   * dishMediaIds から DishMediaEntryItem[] を取得し、
+   * 署名付き URL, CDN URL郡 を付与
    */
   public async fetchDishMediaEntryItems(
     dishMediaIds: string[],
@@ -99,77 +100,15 @@ export class DishMediaService {
       userId?: string;
       reviewLimit?: number;
     },
-  ): Promise<{ items: DishMediaEntryItem[]; cdnCookies?: string[] }> {
-    if (!dishMediaIds.length) return { items: [] };
+  ): Promise<{ items: DishMediaEntry[]; cdnCookies: string[] }> {
+    if (!dishMediaIds.length) return { items: [], cdnCookies: [] };
 
     const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(
       dishMediaIds,
       option,
     );
 
-    const cdnCookies: string[] = [];
-
-    const dishMediaEntryItems = await mapWithConcurrency(
-      dishMediaEntries,
-      async (rec) => {
-        const getMediaUrl = async () => {
-          // For video media, generate CDN URL and collect cookies
-          if (rec.dish_media.media_type === 'video') {
-            // Build CDN URL for master.m3u8
-            const cdnUrlPrefix = `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${rec.dish_media.id}/`;
-
-            // Generate and collect signed cookies
-            const cookies = this.storage.generateCdnSignedCookies(
-              cdnUrlPrefix,
-              rec.dish_media.id,
-            );
-            if (cookies) {
-              cdnCookies.push(...cookies);
-            }
-
-            return `${cdnUrlPrefix}master.m3u8`;
-          } else {
-            // For images, use existing resized image logic
-            return await this.storage.getOrQueueResizedSignedUrl(
-              {
-                table: 'dish_media',
-                column: 'media_path',
-                recordId: rec.dish_media.id,
-                size: 1024,
-              },
-              rec.dish_media.media_path,
-            );
-          }
-        };
-        const [mediaUrl, thumbnailImageUrl] = await Promise.all([
-          getMediaUrl(),
-          this.storage.getOrQueueResizedSignedUrl(
-            {
-              table: 'dish_media',
-              column: 'thumbnail_path',
-              recordId: rec.dish_media.id,
-              size: 256,
-            },
-            rec.dish_media.thumbnail_path,
-          ),
-        ]);
-
-        return {
-          ...rec,
-          dish_media: {
-            ...rec.dish_media,
-            mediaUrl,
-            thumbnailImageUrl,
-          },
-        };
-      },
-      12, // concurrency
-    ).then((list) => list.filter((v): v is NonNullable<typeof v> => !!v));
-
-    return {
-      items: dishMediaEntryItems,
-      cdnCookies: cdnCookies.length > 0 ? cdnCookies : undefined,
-    };
+    return this.assembler.toDishMediaEntry(dishMediaEntries);
   }
 
   /* ------------------------------------------------------------------ */

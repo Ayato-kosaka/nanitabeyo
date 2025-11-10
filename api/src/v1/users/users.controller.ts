@@ -126,10 +126,10 @@ export class UsersController {
     @Query() query: QueryUserDishReviewsDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryUserDishReviewsResponse> {
-    const result = await this.usersService.getUserDishReviews(params.id, query);
+    const { data, nextCursor, cdnCookies } = await this.usersService.getUserDishReviews(params.id, query);
 
     // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
+    if (cdnCookies && cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
         ...(existing
@@ -137,12 +137,12 @@ export class UsersController {
             ? existing
             : [String(existing)]
           : []),
-        ...result.cdnCookies,
+        ...cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);
     }
 
-    return this.usersMapper.toUserDishReviewsResponse(result);
+    return this.usersMapper.toUserDishReviewsResponse({ data, nextCursor });
   }
 
   /* ------------------------------------------------------------------ */
@@ -163,14 +163,14 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeLikedDishMediaResponse> {
-    const result = await this.usersService.getMeLikedDishMedia(
+    const { data, nextCursor, cdnCookies } = await this.usersService.getMeLikedDishMedia(
       user.id,
       user.isAnonymous,
       query,
     );
 
     // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
+    if (cdnCookies && cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
         ...(existing
@@ -178,12 +178,12 @@ export class UsersController {
             ? existing
             : [String(existing)]
           : []),
-        ...result.cdnCookies,
+        ...cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);
     }
 
-    return this.usersMapper.toMeLikedDishMediaResponse(result);
+    return { data, nextCursor };
   }
 
   /* ------------------------------------------------------------------ */
@@ -272,10 +272,10 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeSavedDishMediaResponse> {
-    const result = await this.usersService.getMeSavedDishMedia(user.id, query);
+    const { data, nextCursor, cdnCookies } = await this.usersService.getMeSavedDishMedia(user.id, query);
 
     // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
+    if (cdnCookies && cdnCookies.length > 0) {
       const existing = res.getHeader('Set-Cookie');
       const merged = [
         ...(existing
@@ -283,11 +283,11 @@ export class UsersController {
             ? existing
             : [String(existing)]
           : []),
-        ...result.cdnCookies,
+        ...cdnCookies,
       ];
       res.setHeader('Set-Cookie', merged);
     }
 
-    return this.usersMapper.toMeSavedDishMediaResponse(result);
+    return { data, nextCursor };
   }
 }

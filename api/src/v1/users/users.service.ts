@@ -29,6 +29,8 @@ import { DishCategoriesRepository } from '../dish-categories/dish-categories.rep
 import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
+import { DishMediaEntry } from '@shared/v1/res';
+import { convertPrismaToSupabase_DishReviews, convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class UsersService {
@@ -49,7 +51,12 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */
   /* ------------------------------------------------------------------ */
-  async getUserDishReviews(userId: string, dto: QueryUserDishReviewsDto) {
+  async getUserDishReviews(userId: string, dto: QueryUserDishReviewsDto):
+    Promise<{
+      data: (DishMediaEntry & { dish_media: { isMe: boolean; } })[];
+      nextCursor: string | null;
+      cdnCookies: string[];
+    }> {
     this.logger.debug('GetUserDishReviews', 'getUserDishReviews', {
       userId,
       cursor: dto.cursor,
@@ -63,13 +70,13 @@ export class UsersService {
     const uniqueDishMediaIds = Array.from(
       new Set(reviews.map((r) => r.created_dish_media_id)),
     );
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+    const dishMediaEntryItemsResult = await this.dishMediaService.fetchDishMediaEntryItems(
       uniqueDishMediaIds,
       { userId, reviewLimit: 0 },
     );
 
-    const dishMediaMap = new Map<string, (typeof result.items)[0]>(
-      result.items.map((item) => [item.dish_media.id, item]),
+    const dishMediaMap = new Map<string, (typeof dishMediaEntryItemsResult.items)[0]>(
+      dishMediaEntryItemsResult.items.map((item) => [item.dish_media.id, item]),
     );
 
     const nextCursor =
@@ -80,7 +87,7 @@ export class UsersService {
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: reviews.length,
       nextCursor,
-      hasCookies: !!result.cdnCookies,
+      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
@@ -106,12 +113,15 @@ export class UsersService {
               ...dishMediaEntryItem?.dish_media,
               isMe: dishMediaEntryItem?.dish_media.user_id === userId,
             },
-            dish_reviews: [review],
+            dish_reviews: [{
+              ...review,
+              ...convertPrismaToSupabase_DishReviews(review),
+            }],
           };
         })
         .filter((item) => item !== undefined),
       nextCursor,
-      cdnCookies: result.cdnCookies,
+      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 
@@ -136,7 +146,7 @@ export class UsersService {
 
     const dishMediaIds = likes.map((l) => l.dish_media_id);
 
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+    const dishMediaEntryItemsResult = await this.dishMediaService.fetchDishMediaEntryItems(
       dishMediaIds,
       {
         userId,
@@ -149,15 +159,15 @@ export class UsersService {
         : null;
 
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
-      count: result.items.length,
+      count: dishMediaEntryItemsResult.items.length,
       nextCursor,
-      hasCookies: !!result.cdnCookies,
+      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
-      data: result.items,
+      data: dishMediaEntryItemsResult.items,
       nextCursor,
-      cdnCookies: result.cdnCookies,
+      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 
@@ -271,7 +281,7 @@ export class UsersService {
 
     const dishMediaIds = saves.map((s) => s.dish_media_id);
 
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
+    const dishMediaEntryItemsResult = await this.dishMediaService.fetchDishMediaEntryItems(
       dishMediaIds,
       {
         userId,
@@ -284,15 +294,15 @@ export class UsersService {
         : null;
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
-      count: result.items.length,
+      count: dishMediaEntryItemsResult.items.length,
       nextCursor,
-      hasCookies: !!result.cdnCookies,
+      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
-      data: result.items,
+      data: dishMediaEntryItemsResult.items,
       nextCursor,
-      cdnCookies: result.cdnCookies,
+      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 

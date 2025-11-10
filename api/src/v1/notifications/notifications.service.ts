@@ -19,7 +19,6 @@ import {
 import { convertPrismaToSupabase_Notifications } from '../../../../shared/converters/convert_notifications';
 import { UsersService } from '../users/users.service';
 import { DishMediaService } from '../dish-media/dish-media.service';
-import { DishMediaMapper } from '../dish-media/dish-media.mapper';
 import { UsersAssembler } from '../users/users.assembler';
 
 @Injectable()
@@ -32,7 +31,6 @@ export class NotificationsService {
     private readonly userService: UsersService,
     private readonly usersAssembler: UsersAssembler,
     private readonly dishMediaService: DishMediaService,
-    private readonly dishMediaMapper: DishMediaMapper,
   ) {
     this.expo = new Expo();
   }
@@ -70,10 +68,8 @@ export class NotificationsService {
           .map((item) => item.notifications.target_id),
         { userId },
       );
-    const dishMediaEntiries =
-      this.dishMediaMapper.toDishMediaEntry(dishMediaItems);
     const dishMediaMap = new Map(
-      dishMediaEntiries.map((entry) => [entry.dish_media.id, entry]),
+      dishMediaItems.map((entry) => [entry.dish_media.id, entry]),
     );
 
     // #通知機能 【設計】NotificationItem 形式に変換（actors と notification を含む）

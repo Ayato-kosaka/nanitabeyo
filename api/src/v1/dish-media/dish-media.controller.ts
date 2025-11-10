@@ -52,15 +52,13 @@ import { RequestUser } from '../../core/auth/auth.types';
 
 // ドメイン Service
 import { DishMediaService } from './dish-media.service';
-import { DishMediaMapper } from './dish-media.mapper';
 
 @ApiTags('DishMedia')
 @Controller('v1/dish-media')
 export class DishMediaController {
   constructor(
     private readonly dishMediaService: DishMediaService,
-    private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -98,7 +96,7 @@ export class DishMediaController {
     }
 
     return {
-      items: this.dishMediaMapper.toDishMediaEntry(result.items),
+      items: result.items,
       notFound: result.notFound,
     };
   }
@@ -139,7 +137,7 @@ export class DishMediaController {
       res.setHeader('Set-Cookie', merged);
     }
 
-    return this.dishMediaMapper.toDishMediaEntry(result.items);
+    return result.items;
   }
 
   /* ------------------------------------------------------------------ */
