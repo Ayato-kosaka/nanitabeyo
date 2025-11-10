@@ -468,8 +468,6 @@ model user_notification_cursors {
 model users {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   display_name     String?
-  avatar           String?
-  avatar_path      String?
   bio              String?
   last_login_at    DateTime?          @db.Timestamptz(6)
   created_at       DateTime           @default(now()) @db.Timestamptz(6)
@@ -477,6 +475,7 @@ model users {
   lock_no          Int                @default(0)
   username         String             @db.Citext
   preferred_locale String
+  avatar_path      String?
   dish_media       dish_media[]
   dish_media_likes dish_media_likes[]
   dish_reviews     dish_reviews[]
