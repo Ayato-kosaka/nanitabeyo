@@ -80,8 +80,7 @@ export class UsersController {
   async getUserProfile(
     @Param() params: UserIdParamsDto,
   ): Promise<GetUserProfileResponse> {
-    const user = await this.usersService.getUserProfile(params.id);
-    return this.usersMapper.toGetUserProfileResponse(user);
+    return await this.usersService.getUserProfile(params.id);
   }
 
   /* ------------------------------------------------------------------ */
@@ -102,11 +101,10 @@ export class UsersController {
     @Body() dto: UpdateUserProfileDto,
     @CurrentUser() user: RequestUser,
   ): Promise<UpdateUserProfileResponse> {
-    const updatedUser = await this.usersService.updateUserProfile(
+    return await this.usersService.updateUserProfile(
       user.id,
       dto,
     );
-    return this.usersMapper.toUpdateUserProfileResponse(updatedUser);
   }
 
   /* ------------------------------------------------------------------ */

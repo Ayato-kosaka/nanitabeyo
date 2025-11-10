@@ -12,6 +12,7 @@ import { AuthModule } from '../../core/auth/auth.module';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { DishMediaModule } from '../dish-media/dish-media.module';
 import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
+import { UsersAssembler } from './users.assembler';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
     UsersRepository,
     UsersMapper,
     DishCategoriesRepository,
+    UsersAssembler,
   ],
-  exports: [UsersService, UsersRepository],
+  exports: [UsersService, UsersRepository, UsersAssembler],
 })
 export class UsersModule { }

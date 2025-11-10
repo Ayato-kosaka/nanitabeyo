@@ -3,7 +3,7 @@ import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_b
 import { SupabaseDishCategories } from "../../../converters/convert_dish_categories";
 import { PaginatedResponse } from "./paginated-response";
 import { DishMediaEntry } from "./dish-media.response";
-import { SupabaseUsers } from "shared/converters/convert_users";
+import { SupabaseUsers } from "../../../converters/convert_users";
 
 /**
  * ユーザープロフィール情報
@@ -11,13 +11,10 @@ import { SupabaseUsers } from "shared/converters/convert_users";
 export type UserProfile = SupabaseUsers & {
 	/** アバター画像の署名付きURL（原本） */
 	avatarSignedUrl?: string;
-	/** アバター画像のCDN URL（利用可能な場合） */
-	avatarCdnUrl?: string;
-	/** アバター画像の派生サイズURL群 */
+	/** アバター画像の派生サイズCDN URL群 */
 	avatarUrls?: {
-		sm?: string; // 64x64
-		md?: string; // 256x256
-		lg?: string; // 512x512
+		sm: string; // 64x64
+		md: string; // 256x256
 	};
 }
 

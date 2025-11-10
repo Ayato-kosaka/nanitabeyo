@@ -28,11 +28,13 @@ import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
+import { UsersAssembler } from './users.assembler';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly repo: UsersRepository,
+    private readonly assembler: UsersAssembler,
     private readonly logger: AppLoggerService,
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
@@ -305,12 +307,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    this.logger.debug('GetUserProfileResult', 'getUserProfile', {
-      userId,
-      hasAvatarPath: !!user.avatar_path,
-    });
-
-    return user;
+    return this.assembler.enrichUserProfileWithAvatarUrls(user);
   }
 
   /* ------------------------------------------------------------------ */
@@ -358,6 +355,6 @@ export class UsersService {
       id: userId,
     });
 
-    return updatedUser;
+    return this.assembler.enrichUserProfileWithAvatarUrls(updatedUser);
   }
 }
