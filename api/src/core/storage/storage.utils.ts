@@ -53,8 +53,9 @@ export const buildFullPath = (params: {
  * Build the resized image path based on naming convention
  * ${env}/resized-image/${table}/${column}/${recordId}/${size}.webp
  */
-export function buildResizedPath(params: ResizeImageDto): string {
-  return `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${params.size}.webp`;
+export function buildResizedPath(params: ResizeImageDto, type: 'gcs' | 'cdn' = "gcs"): string {
+  const gcsPath = `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${params.size}.webp`;
+  return type === 'gcs' ? gcsPath : `https://${env.CDN_HOST}/${gcsPath}`;
 }
 
 /* -------------------------------------------------------------------------- */

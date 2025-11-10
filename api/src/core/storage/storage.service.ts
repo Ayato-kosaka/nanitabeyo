@@ -226,10 +226,9 @@ export class StorageService {
    * Used for HLS video playback where multiple files need to be accessed
    *
    * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
-   * @param recordId - The record ID for cookie path scoping
    * @returns Array of cookie strings ready for Set-Cookie headers
    */
-  generateCdnSignedCookies(urlPrefix: string, recordId: string): string[] {
+  generateCdnSignedCookies(urlPrefix: string): string[] {
     try {
       // ---- normalize prefix -------------------------------------------------
       const u = new URL(urlPrefix);
@@ -276,7 +275,6 @@ export class StorageService {
         'generateCdnSignedCookies',
         {
           urlPrefix: normalizedPrefix,
-          recordId,
           expires: new Date(expires * 1000).toISOString(),
           cookiePreview: cookie.slice(0, 200) + '...',
         },
@@ -289,7 +287,6 @@ export class StorageService {
       this.logger.error('CdnSignedCookieError', 'generateCdnSignedCookies', {
         error_message: (err as Error).message,
         urlPrefix,
-        recordId,
       });
       throw err;
     }
