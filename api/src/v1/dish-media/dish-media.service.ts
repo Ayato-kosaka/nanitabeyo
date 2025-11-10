@@ -206,8 +206,8 @@ export class DishMediaService {
       mediaType: dto.mediaType,
     });
 
-    // video の場合のみトランスコードジョブを直接作成
     if (dto.mediaType === 'video') {
+      // video の場合、トランスコードジョブを直接作成
       const inputUri = `gs://${env.GCS_BUCKET_NAME}/${dto.mediaPath}`;
       const outputUri = `gs://${env.GCS_BUCKET_NAME}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${result.id}/`;
 
@@ -222,7 +222,25 @@ export class DishMediaService {
         inputUri: dto.mediaPath,
         outputUri,
       });
+    } else {
+      // 画像のリサイズと保存を実行（投稿メディアのフルスクリーン表示用）
+      await this.cloudTasks.enqueueResizeImage({
+        table: 'dish_media',
+        column: 'media_path',
+        recordId: result.id,
+        size: 1024,
+        originalPath: dto.mediaPath,
+      });
     }
+
+    // 画像のリサイズと保存を実行（サムネイル用）
+    await this.cloudTasks.enqueueResizeImage({
+      table: 'dish_media',
+      column: 'thumbnail_path',
+      recordId: result.id,
+      size: 256,
+      originalPath: dto.thumbnailPath,
+    });
 
     return convertPrismaToSupabase_DishMedia(result);
   }
