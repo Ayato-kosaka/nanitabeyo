@@ -11,7 +11,6 @@ import { NotificationsRepository } from './notifications.repository';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { QueryNotificationsDto } from '@shared/v1/dto';
 import {
-  QueryNotificationsResponse,
   MarkAllReadResponse,
   UnreadCountResponse,
   CreateDeviceTokenResponse,
@@ -21,6 +20,7 @@ import { convertPrismaToSupabase_Notifications } from '../../../../shared/conver
 import { UsersService } from '../users/users.service';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishMediaMapper } from '../dish-media/dish-media.mapper';
+import { UsersAssembler } from '../users/users.assembler';
 
 @Injectable()
 export class NotificationsService {
@@ -30,6 +30,7 @@ export class NotificationsService {
     private readonly repo: NotificationsRepository,
     private readonly logger: AppLoggerService,
     private readonly userService: UsersService,
+    private readonly usersAssembler: UsersAssembler,
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaMapper: DishMediaMapper,
   ) {
@@ -54,7 +55,12 @@ export class NotificationsService {
         new Set(items.flatMap((item) => item.notifications.actor_ids)),
       ),
     );
-    const actorMap = new Map(actors.map((user) => [user.id, user]));
+    const actorEntries = await Promise.all(
+      actors.map(async (user) => await this.usersAssembler.enrichUserProfileWithAvatarUrls(user)),
+    );
+    const actorMap = new Map(actorEntries.map(({ id, display_name, avatarSignedUrl, avatarUrls }) => [
+      id, { id, display_name, avatarSignedUrl, avatarUrls }
+    ]));
 
     // dish_media ターゲットのエンティティを一括取得
     const { items: dishMediaItems, cdnCookies } =

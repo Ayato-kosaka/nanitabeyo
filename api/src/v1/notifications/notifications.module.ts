@@ -16,4 +16,4 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
   providers: [NotificationsService, NotificationsRepository],
   exports: [NotificationsService, NotificationsRepository],
 })
-export class NotificationsModule {}
+export class NotificationsModule { }

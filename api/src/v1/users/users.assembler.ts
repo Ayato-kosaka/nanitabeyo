@@ -50,6 +50,8 @@ export class UsersAssembler {
           'cdn',
         ),
       };
+
+      this.storage.generateCdnSignedCookies(avatarUrls.sm.split('/').slice(0, -1).join('/'));
     }
 
     return { ...supabaseUsers, avatarSignedUrl, avatarUrls };
