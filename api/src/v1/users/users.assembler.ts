@@ -32,7 +32,7 @@ export class UsersAssembler {
         sm: buildResizedPath(
           {
             table: 'users',
-            column: 'avatar',
+            column: 'avatar_path',
             recordId: user.id,
             size: 64,
             originalPath: user.avatar_path,
@@ -42,7 +42,7 @@ export class UsersAssembler {
         md: buildResizedPath(
           {
             table: 'users',
-            column: 'avatar',
+            column: 'avatar_path',
             recordId: user.id,
             size: 256,
             originalPath: user.avatar_path,

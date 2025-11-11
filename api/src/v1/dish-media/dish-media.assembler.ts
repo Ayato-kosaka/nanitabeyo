@@ -114,7 +114,7 @@ export class DishMediaAssembler {
     const cdnUrl = buildResizedPath(
       {
         table: 'dish_media',
-        column: 'thumbnail_image',
+        column: 'thumbnail_path',
         recordId: dishMedia.id,
         size: 256,
         originalPath: dishMedia.thumbnail_path
