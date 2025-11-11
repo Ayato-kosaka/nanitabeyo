@@ -137,7 +137,7 @@ export class ResizeImageService {
       const resized = await sharp(buffer)
         .resize(width, height, {
           fit: 'cover',
-          position: 'attention',
+          position: 'center',
         })
         .webp({ quality: 85 })
         .toBuffer();
