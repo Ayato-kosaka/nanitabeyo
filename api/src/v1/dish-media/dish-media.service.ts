@@ -36,7 +36,7 @@ export class DishMediaService {
     private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -46,7 +46,7 @@ export class DishMediaService {
       location: dto.location,
       radius: dto.radius,
       categoryId: dto.categoryId,
-      userId
+      userId,
     });
 
     const dishMediaIds = await this.prisma.withTransaction(

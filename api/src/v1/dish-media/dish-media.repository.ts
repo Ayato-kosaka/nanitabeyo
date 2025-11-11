@@ -57,19 +57,14 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
   /* ------------------------------------------------------------------ */
   async findDishMediaIds(
     tx: Prisma.TransactionClient,
-    {
-      location,
-      radius,
-      categoryId,
-      limit = 5,
-    }: SearchDishMediaDto,
+    { location, radius, categoryId, limit = 5 }: SearchDishMediaDto,
     userId: string,
   ): Promise<string[]> {
     // Haversine 距離 (PostgreSQL + PostGIS) の簡易例
@@ -115,10 +110,10 @@ export class DishMediaRepository {
         CAST(${userLat}  AS double precision) AS user_lat,
         CAST(${userLon}  AS double precision) AS user_lon,
         CAST(${radius}  AS double precision) AS radius_m,
-        -- CAST(${"openAt"}  AS timestamptz)      AS open_at,
+        -- CAST(${'openAt'}  AS timestamptz)      AS open_at,
         CAST(${categoryId}  AS text)           AS category_id,
-        -- CAST(${"priceMin"}  AS numeric)          AS price_min,
-        -- CAST(${"priceMax"}  AS numeric)          AS price_max,
+        -- CAST(${'priceMin'}  AS numeric)          AS price_min,
+        -- CAST(${'priceMax'}  AS numeric)          AS price_max,
         CAST(${limit} AS integer) AS limit_count,
         CAST(${GUMBLE_TAU}  AS double precision) AS gumbel_tau, -- ランキングに “ゆらぎ（探索）” をどれだけ入れるかの強さ。
         CAST(${pageSeed}  AS text)             AS page_seed,
@@ -365,15 +360,15 @@ export class DishMediaRepository {
     ORDER BY bucket, rank_in_bucket;
     `;
 
-    this.logger.debug(
-      'findDishMediaIdsResult',
-      'findDishMediaIds',
-      rows,
-    );
+    this.logger.debug('findDishMediaIdsResult', 'findDishMediaIds', rows);
 
     // rows の bucket を見て、新着1件、地域人気4件 に分ける。（但し、片方が不足する場合は、もう片方で補完）
-    const newQueue = rows.filter(r => r.bucket === "new").map((r) => r.dish_media_id);
-    const regionalQueue = rows.filter(r => r.bucket === "regional").map((r) => r.dish_media_id);
+    const newQueue = rows
+      .filter((r) => r.bucket === 'new')
+      .map((r) => r.dish_media_id);
+    const regionalQueue = rows
+      .filter((r) => r.bucket === 'regional')
+      .map((r) => r.dish_media_id);
     const resultDishMediaIds: string[] = [];
     // Helper: キューから n 件取り出す
     const takeFrom = <T>(q: T[], n: number) => {
@@ -414,9 +409,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-        likeCount: Number(cursorStr.split('_')[0]),
-        mediaId: cursorStr.split('_')[1],
-      }
+          likeCount: Number(cursorStr.split('_')[0]),
+          mediaId: cursorStr.split('_')[1],
+        }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -759,14 +754,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-        by: ['target_id'],
-        where: {
-          target_type: 'dish_reviews',
-          target_id: { in: reviewIds },
-          action_type: 'like',
-        },
-        _count: { target_id: true },
-      })
+          by: ['target_id'],
+          where: {
+            target_type: 'dish_reviews',
+            target_id: { in: reviewIds },
+            action_type: 'like',
+          },
+          _count: { target_id: true },
+        })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -782,12 +777,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-        where: {
-          user_id: userId,
-          target_id: { in: targetIds },
-        },
-        select: { target_type: true, target_id: true, action_type: true },
-      })
+          where: {
+            user_id: userId,
+            target_id: { in: targetIds },
+          },
+          select: { target_type: true, target_id: true, action_type: true },
+        })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>

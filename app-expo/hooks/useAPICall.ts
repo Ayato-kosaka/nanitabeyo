@@ -66,12 +66,8 @@ export const useAPICall = () => {
 			const appVersion = Env.APP_VERSION;
 			// GET/DELETE で FormData でも multipart でもない場合はクエリに展開
 			const shouldUseQuery =
-				(method === "GET" || method === "DELETE") &&
-				!(requestPayload instanceof FormData) &&
-				!isMultipart;
-			const qs = shouldUseQuery
-				? `?${new URLSearchParams(requestPayload as Record<string, string>).toString()}`
-				: "";
+				(method === "GET" || method === "DELETE") && !(requestPayload instanceof FormData) && !isMultipart;
+			const qs = shouldUseQuery ? `?${new URLSearchParams(requestPayload as Record<string, string>).toString()}` : "";
 			const endpoint = `${Env.BACKEND_BASE_URL}/${endpointName}${qs}`;
 
 			// 🔐 認証トークンの有無をチェック
@@ -85,9 +81,7 @@ export const useAPICall = () => {
 				"x-app-version": appVersion,
 				Authorization: `Bearer ${accessToken}`,
 			};
-			const willSendBody =
-				method === "POST" ||
-				(method === "DELETE" && !shouldUseQuery);
+			const willSendBody = method === "POST" || (method === "DELETE" && !shouldUseQuery);
 			if (willSendBody && !isMultipart) {
 				headers["Content-Type"] = "application/json";
 			}

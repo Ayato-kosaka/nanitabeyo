@@ -74,7 +74,7 @@ const thumbnailImageUrl = await this.storage.getOrQueueResizedSignedUrl(
 
 - **Output**: WebP
 - **Aspect Ratio**: 9:16 (portrait)
-- **Fit Mode**: `cover` with `attention` positioning
+- **Fit Mode**: `cover` with `center` positioning
 - **Quality**: 85
 
 ### Path Convention
