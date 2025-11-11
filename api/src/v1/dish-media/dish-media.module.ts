@@ -29,7 +29,7 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     StorageModule, // 画像用 GCS / S3 署名 URL ユーティリティ
     TranscoderModule, // Video transcoding service
     CloudTasksModule, // Cloud Tasks サービス
-    RestaurantsModule,
+    forwardRef(() => RestaurantsModule), // RestaurantsAssembler で署名付きURL生成のため
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishMediaController],
