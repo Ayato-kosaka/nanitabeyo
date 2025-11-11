@@ -6,11 +6,11 @@ import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "luci
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
-import { SupabaseUsers } from "@shared/converters/convert_users";
 import { getAvatarUrl } from "./ProfileEditForm";
+import { GetUserProfileResponse } from "@shared/api/v1/res";
 
 interface ProfileHeaderProps {
-	profile: SupabaseUsers;
+	profile: GetUserProfileResponse;
 	isOwnProfile: boolean;
 	isGuest?: boolean;
 	isFollowing?: boolean;

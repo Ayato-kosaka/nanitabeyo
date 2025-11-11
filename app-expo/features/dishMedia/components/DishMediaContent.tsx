@@ -7,6 +7,7 @@ import VideoPlayer from "../../../components/VideoPlayer";
 import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
+import { getDishMediaMediaUrl } from "../utils/dish_media.utils";
 
 interface DishMediaContentProps {
 	item: DishMediaEntry;
@@ -36,8 +37,11 @@ export default function DishMediaContent({
 	});
 
 	const mediaSource = useMemo(
-		() => ({ uri: item.dish_media.mediaUrl, cacheKey: item.dish_media.mediaUrl.split("?")[0] }),
-		[item.dish_media.mediaUrl],
+		() => ({
+			uri: getDishMediaMediaUrl(item.dish_media),
+			cacheKey: getDishMediaMediaUrl(item.dish_media).split("?")[0],
+		}),
+		[item.dish_media],
 	);
 
 	return (
