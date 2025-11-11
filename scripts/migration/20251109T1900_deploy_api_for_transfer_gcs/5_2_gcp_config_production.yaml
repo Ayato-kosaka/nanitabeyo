@@ -1,0 +1,36 @@
+# =========================================
+# Cloud Tasks / Cloud Run 向け設定
+# ここだけ書き換えれば、スクリプト本体は変更不要です
+# =========================================
+project_id: "food-scroll"
+location: "asia-northeast1"
+queue: "image-resize-queue"
+
+# Cloud Run 側のエンドポイント
+run_url: "https://api-production-386582543095.asia-northeast1.run.app/internal/resize-image"
+
+# OIDC 署名に使うサービスアカウント（Cloud Run に run.invoker が必要）
+oidc_service_account_email: "tasks-invoker@food-scroll.iam.gserviceaccount.com"
+
+# Cloud Run 側が検証する audience
+oidc_audience: "https://api-production-386582543095.asia-northeast1.run.app/internal/resize-image"
+
+# HTTP リクエスト設定
+http_method: "POST"
+headers:
+  Content-Type: "application/json"
+
+# タスク投入オプション
+# - batch_size: 1回の DB フェッチごとに何件まとめて作成するか（create_task は1件ずつですが、DB→APIの処理単位として）
+# - sleep_interval_ms: API 呼び出しのインターバル（軽いスロットリング）
+# - dry_run: true の場合は Cloud Tasks 作成せずログ出力だけ
+batch_size: 100
+sleep_interval_ms: 10
+dry_run: false
+
+# リトライ方針（作成時の例外ハンドリング用）
+max_retries_per_task: 3
+retry_backoff_ms: 200
+
+# null/空文字の originalPath をスキップする（true 推奨）
+skip_empty_paths: true

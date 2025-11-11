@@ -18,9 +18,13 @@ GCS **新バケット移行**のための実行ラッパ群です。`infra/gcp/*
   ├── 1_1_create_private_bucket.sh
   ├── 1_2_create_public_bucket.sh
   ├── 3_1_setup_public_cdn.sh
+  ├── 4_0_gcp_config_develop.yaml
+  ├── 4_0_enqueue_image_resizes_develop.py
   ├── 4_1_transfer_gcs_develop.sh
   ├── 4_2_setup_private_cdn.sh
   ├── 5_1_db_migration_prod.sh
+  ├── 5_2_gcp_config_production.yaml
+  ├── 5_2_enqueue_image_resizes_production.py
   ├── 6_setup_cloud_run_custom_domain_production.sh
   ├── 7_2_transfer_gcs_production.sh
   ├── common.sh
@@ -62,6 +66,21 @@ DRY_RUN=true ./1_2_create_public_bucket.sh
 # 3. Public CDN の作成
 ./3_1_setup_public_cdn.sh
 
+# 4. devlop 既存画像のリサイズ
+
+# まずは Dry-run（タスクは作成されません／内容だけ確認）
+GOOGLE_APPLICATION_CREDENTIALS=./sa.json \
+python 4_0_enqueue_image_resizes_develop.py \
+  --pg-url "postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require" \
+  --config "./4_0_gcp_config_develop.yaml" \
+  --dry-run
+
+# 問題なければ実投下
+GOOGLE_APPLICATION_CREDENTIALS=./sa.json \
+python 4_0_enqueue_image_resizes_develop.py \
+  --pg-url "postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require" \
+  --config "./4_0_gcp_config_develop.yaml"
+
 # 4. develop 先行移行（旧 private -> 新 private）
 ./4_1_transfer_gcs_develop.sh
 
@@ -70,6 +89,21 @@ DRY_RUN=true ./1_2_create_public_bucket.sh
 
 # 5. 本番 DB マイグレーション
 ./5_1_db_migration_prod.sh
+
+# 5. 本番 既存画像のリサイズ
+
+# Dry-run（本番は特に推奨）
+GOOGLE_APPLICATION_CREDENTIALS=./sa.json \
+python 5_2_enqueue_image_resizes_production.py \
+  --pg-url "postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require" \
+  --config "./5_2_gcp_config_production.yaml" \
+  --dry-run
+
+# 実投下
+GOOGLE_APPLICATION_CREDENTIALS=./sa.json \
+python 5_2_enqueue_image_resizes_production.py \
+  --pg-url "postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require" \
+  --config "./5_2_gcp_config_production.yaml"
 
 # 6. 本番 Cloud Run のカスタムドメイン
 ./6_setup_cloud_run_custom_domain_production.sh
