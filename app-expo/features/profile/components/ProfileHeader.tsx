@@ -50,7 +50,7 @@ export function ProfileHeader({
 	onFeedback,
 	onLogin,
 }: ProfileHeaderProps) {
-	const avatarUrl = useMemo(() => getAvatarUrl(profile), [profile]);
+	const avatarUrl = useMemo(() => getAvatarUrl(profile, "md"), [profile]);
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}

@@ -14,6 +14,7 @@ import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNo
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import { getAvatarUrl } from "@/features/profile/components/ProfileEditForm";
+import { getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
 
 /**
  * 🔔 通知一覧画面
@@ -154,7 +155,7 @@ export default function NotificationsScreen() {
 			const iconBgColor = getIconBackgroundColor(item.notification.action_type);
 			const actorNames = formatActorNames(item.actors);
 			const message = getNotificationMessage(item);
-			const avatar = getAvatarUrl(item.actors[0]) || "https://via.placeholder.com/50";
+			const avatar = getAvatarUrl(item.actors[0], "sm") || "https://via.placeholder.com/50";
 
 			return (
 				<TouchableOpacity
@@ -182,7 +183,7 @@ export default function NotificationsScreen() {
 					{item.dishMediaEntiries && (
 						<View style={styles.rightContainer}>
 							<Image
-								source={{ uri: item.dishMediaEntiries.dish_media.thumbnailImageUrl }}
+								source={{ uri: getDishMediaThumbnailUrl(item.dishMediaEntiries.dish_media) }}
 								style={styles.postThumbnail}
 							/>
 						</View>

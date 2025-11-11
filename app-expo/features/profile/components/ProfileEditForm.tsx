@@ -27,8 +27,11 @@ interface ProfileEditFormProps {
 	close: () => void;
 }
 
-export const getAvatarUrl = (user: Pick<GetUserProfileResponse, "avatarUrls" | "avatarSignedUrl">): string | null => {
-	return user.avatarUrls?.sm || user.avatarSignedUrl || null;
+export const getAvatarUrl = (
+	user: Pick<GetUserProfileResponse, "avatarUrls" | "avatarSignedUrl">,
+	size: keyof NonNullable<(typeof user)["avatarUrls"]>,
+): string | null => {
+	return user.avatarUrls?.[size] || user.avatarSignedUrl || null;
 };
 
 /**
@@ -45,7 +48,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 
 	// Internal state - isolated from parent re-renders
 	const [avatar, setAvatar] = useState<{ uri: string | null; mimeType: string | null }>({
-		uri: getAvatarUrl(initialValues),
+		uri: getAvatarUrl(initialValues, "md"),
 		mimeType: null,
 	});
 	const [display_name, setDisplayName] = useState(initialValues.display_name);
@@ -62,7 +65,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 		let uploadedAvatarPath: string | null | undefined = undefined;
 		if (avatar.uri === null) {
 			uploadedAvatarPath = null;
-		} else if (avatar.uri !== getAvatarUrl(initialValues)) {
+		} else if (avatar.uri !== getAvatarUrl(initialValues, "md")) {
 			try {
 				if (!avatar.mimeType) throw new Error("Avatar mimeType is missing");
 				uploadedAvatarPath = await uploadFile(avatar.uri, {

@@ -14,6 +14,7 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import type { DishMediaEntry, QueryUserDishReviewsResponse } from "@shared/api/v1/res";
 import type { QueryUserDishReviewsDto } from "@shared/api/v1/dto";
+import { getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
 
 export function ReviewTab() {
 	const { userId } = useLocalSearchParams<{ userId?: string }>();
@@ -80,7 +81,7 @@ export function ReviewTab() {
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
-				imageUrl: item.dish_media.thumbnailImageUrl,
+				imageUrl: getDishMediaThumbnailUrl(item.dish_media),
 			};
 
 			return (

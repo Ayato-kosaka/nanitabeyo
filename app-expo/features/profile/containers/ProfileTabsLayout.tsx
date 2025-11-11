@@ -58,7 +58,7 @@ export function ProfileTabsLayout() {
 					method: "GET",
 					requestPayload: {},
 				});
-				const avatarUrl = getAvatarUrl(data);
+				const avatarUrl = getAvatarUrl(data, "md");
 				avatarUrl && (await Image.prefetch(avatarUrl));
 				setProfile(data);
 			} catch (error: any) {

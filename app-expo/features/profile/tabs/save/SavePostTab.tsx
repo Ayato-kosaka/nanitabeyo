@@ -5,6 +5,7 @@ import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import type { DishMediaEntry, QueryMeSavedDishMediaResponse } from "@shared/api/v1/res";
+import { getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
 
 interface SavePostTabProps {
 	data: QueryMeSavedDishMediaResponse["data"][number][];
@@ -38,7 +39,7 @@ export function SavePostTab({
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
-				imageUrl: item.dish_media.thumbnailImageUrl,
+				imageUrl: getDishMediaThumbnailUrl(item.dish_media),
 			};
 
 			return (

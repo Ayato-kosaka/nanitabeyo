@@ -11,7 +11,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 
 interface AvatarImageCardProps {
 	/** 現在のアバター画像URL（なければプレースホルダ） */
-	avatarUrl: string | null;
+	avatarUrl: string | null | undefined;
 	/** 画像選択ボタン押下時のコールバック */
 	onSelectImage: (media: Pick<MediaData, "uri" | "mimeType">) => void;
 	/** レイアウト計測用コールバック */

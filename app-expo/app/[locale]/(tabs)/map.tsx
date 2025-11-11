@@ -15,6 +15,7 @@ import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRes
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { getRestaurantImageUrl } from "@/features/map/utils/restaurants.utils";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
@@ -162,7 +163,7 @@ export default function MapScreen() {
 						}}
 						onPress={() => handleMarkerPress(restaurantData)}
 						color="#FFF"
-						uri={restaurantData.restaurant.image_url}
+						uri={getRestaurantImageUrl(restaurantData.restaurant, "sm")}
 					/>
 				))}
 			</MapView>

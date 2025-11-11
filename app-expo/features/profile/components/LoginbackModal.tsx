@@ -6,17 +6,7 @@
 - ローディング/エラー状態、i18n、キーボード回避、アラート通知を扱う。
 */
 import React, { useState, useCallback } from "react";
-import {
-	View,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	StyleSheet,
-	KeyboardAvoidingView,
-	Platform,
-	ScrollView,
-} from "react-native";
-import { User, Mail, Phone } from "lucide-react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
