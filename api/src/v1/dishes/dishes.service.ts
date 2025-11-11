@@ -34,17 +34,11 @@ import {
   buildFullPath,
   getExt,
 } from 'src/core/storage/storage.utils';
-import { env } from 'src/core/config/env';
 import { randomUUID } from 'node:crypto';
 
 // Google Maps types for photo handling
 import { protos } from '@googlemaps/places';
 
-interface PhotoCandidate {
-  name?: string | null;
-  widthPx?: number | null;
-  heightPx?: number | null;
-}
 
 @Injectable()
 export class DishesService {
@@ -58,117 +52,6 @@ export class DishesService {
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
   ) { }
-
-  /**
-   * 写真候補を選択する優先順位ロジック
-   */
-  private selectBestPhoto(photos: PhotoCandidate[]): PhotoCandidate | null {
-    if (!photos || photos.length === 0) {
-      return null;
-    }
-
-    // フィルタリングとソート
-    const validPhotos = photos.filter(
-      (photo) => photo.name && photo.widthPx && photo.heightPx,
-    );
-
-    if (validPhotos.length === 0) {
-      // フォールバック: 名前のある最初の写真を使用
-      return photos.find((photo) => photo.name) || null;
-    }
-
-    // 優先順位ロジック
-    const sortedPhotos = validPhotos.sort((a, b) => {
-      // ① widthPx > 600 を満たすものを優先
-      const aWideEnough = (a.widthPx || 0) > 600;
-      const bWideEnough = (b.widthPx || 0) > 600;
-
-      if (aWideEnough && !bWideEnough) return -1;
-      if (!aWideEnough && bWideEnough) return 1;
-
-      // ② アスペクト比が 9:16 に近いもの（差の小さい順）
-      const targetRatio = 9 / 16;
-      const aRatio = (a.widthPx || 1) / (a.heightPx || 1);
-      const bRatio = (b.widthPx || 1) / (b.heightPx || 1);
-      const aDiff = Math.abs(aRatio - targetRatio);
-      const bDiff = Math.abs(bRatio - targetRatio);
-
-      if (Math.abs(aDiff - bDiff) > 0.01) {
-        return aDiff - bDiff;
-      }
-
-      // ③ widthPx の大きい順
-      return (b.widthPx || 0) - (a.widthPx || 0);
-    });
-
-    return sortedPhotos[0] || validPhotos[0];
-  }
-
-  /**
-   * 複数の写真候補から成功するまで順次試行
-   */
-  private async tryGetPhotoMedia(
-    photos: PhotoCandidate[],
-  ): Promise<{ photoUri: string } | null> {
-    if (!photos || photos.length === 0) {
-      return null;
-    }
-
-    // 優先順位に基づいて写真を選択・ソート
-    const allCandidates = [...photos];
-    const bestPhoto = this.selectBestPhoto(allCandidates);
-
-    if (bestPhoto) {
-      // ベスト写真を最初に移動
-      const otherPhotos = allCandidates.filter(
-        (p) => p.name !== bestPhoto.name,
-      );
-      allCandidates.splice(0, allCandidates.length, bestPhoto, ...otherPhotos);
-    }
-
-    // 順次試行
-    for (const photo of allCandidates) {
-      if (!photo.name) continue;
-
-      try {
-        const LONG_EDGE = 1280;
-
-        const [widthPx, heightPx] =
-          photo.widthPx && photo.heightPx
-            ? // 長辺を基準にリサイズ
-            photo.widthPx >= photo.heightPx
-              ? [LONG_EDGE, undefined]
-              : [undefined, LONG_EDGE]
-            : // フォールバック：とりあえず幅だけ指定して巨大画像を回避
-            [LONG_EDGE, undefined];
-        const result = await this.locationsService.getPhotoMedia(
-          photo.name,
-          widthPx,
-          heightPx,
-        );
-
-        if (result) {
-          this.logger.debug('PhotoMediaSuccess', 'tryGetPhotoMedia', {
-            photoName: photo.name,
-            widthPx: photo.widthPx,
-            heightPx: photo.heightPx,
-          });
-          return result;
-        } else throw new Error('No photo media returned');
-      } catch (error) {
-        this.logger.warn('PhotoMediaFallback', 'tryGetPhotoMedia', {
-          photoName: photo.name,
-          widthPx: photo.widthPx,
-          heightPx: photo.heightPx,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        // 次の候補を試行
-        continue;
-      }
-    }
-
-    return null;
-  }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -307,7 +190,7 @@ export class DishesService {
         }
 
         // PhotoMediaUri を複数候補から取得（バイナリ取得は行わない）
-        const photoMedia = await this.tryGetPhotoMedia(photos);
+        const photoMedia = await this.locationsService.tryGetPhotoMedia(photos);
         if (!photoMedia) {
           throw new Error(`No photo URL found for place: ${place.id!}`);
         }

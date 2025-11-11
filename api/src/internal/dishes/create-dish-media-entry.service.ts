@@ -13,10 +13,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishesRepository } from '../../v1/dishes/dishes.repository';
 import { convertSupabaseToPrisma_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertSupabaseToPrisma_Dishes } from '../../../../shared/converters/convert_dishes';
-import {
-  convertSupabaseToPrisma_DishMedia,
-  SupabaseDishMedia,
-} from '../../../../shared/converters/convert_dish_media';
+import { convertSupabaseToPrisma_DishMedia, } from '../../../../shared/converters/convert_dish_media';
 import { convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 
@@ -166,7 +163,8 @@ export class CreateDishMediaEntryService {
           );
           throw error;
         }),
-      this.cloudTasksService.enqueueResizeImage({
+      payload.restaurants.image_path
+      && this.cloudTasksService.enqueueResizeImage({
         table: 'restaurants',
         column: 'image_path',
         recordId: payload.restaurants.id,
@@ -180,7 +178,8 @@ export class CreateDishMediaEntryService {
         });
         throw error;
       }),
-      this.cloudTasksService.enqueueResizeImage({
+      payload.restaurants.image_path
+      && this.cloudTasksService.enqueueResizeImage({
         table: 'restaurants',
         column: 'image_path',
         recordId: payload.restaurants.id,

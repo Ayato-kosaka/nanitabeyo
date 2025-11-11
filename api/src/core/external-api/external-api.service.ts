@@ -9,6 +9,7 @@ import { AppLoggerService } from '../logger/logger.service';
 import { CreateExternalApiInput } from '../logger/logger.types';
 import { google } from '@googlemaps/places/build/protos/protos';
 import { InputJsonValue } from '../../../../shared/prisma/runtime/library';
+import { PhotoMediaBinary, PhotoMediaJson } from 'src/v1/locations/locations.service';
 
 // Wikidata API のレスポンス型
 interface WikidataSearchResponse {
@@ -34,15 +35,15 @@ export interface ClaudeMessageResponse {
   type: 'message';
   content: (
     | {
-        type: 'text';
-        text: string;
-      }
+      type: 'text';
+      text: string;
+    }
     | {
-        type: 'tool_use';
-        id: string;
-        name: string;
-        input: any;
-      }
+      type: 'tool_use';
+      id: string;
+      name: string;
+      input: any;
+    }
   )[];
   stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
   stop_sequence: string | null;
@@ -68,15 +69,16 @@ export interface ClaudeMessageRequest {
     input_schema: any;
   }[];
   tool_choice?:
-    | { type: 'auto' }
-    | { type: 'any' }
-    | { type: 'tool'; name: string };
+  | { type: 'auto' }
+  | { type: 'any' }
+  | { type: 'tool'; name: string };
   stream?: boolean;
 }
 
+
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * Claude API呼び出し
@@ -282,33 +284,51 @@ export class ExternalApiService {
   }
 
   /**
-   * Google Places API: Get Photo Media (JSON with photoUri)
+   * Google Places API: Photo Media 取得
    */
   async getPhotoMedia(
     photoRef: string,
     widthPx?: number,
     heightPx?: number,
-  ): Promise<{ photoUri: string } | null> {
+    opts?: { skipHttpRedirect?: true }
+  ): Promise<PhotoMediaJson | null>;
+  async getPhotoMedia(
+    photoRef: string,
+    widthPx: number | undefined,
+    heightPx: number | undefined,
+    opts: { skipHttpRedirect: false }
+  ): Promise<PhotoMediaBinary | null>;
+  async getPhotoMedia(
+    photoRef: string,
+    widthPx?: number,
+    heightPx?: number,
+    opts?: { skipHttpRedirect?: boolean }
+  ): Promise<PhotoMediaJson | PhotoMediaBinary | null>;
+  async getPhotoMedia(
+    photoRef: string,
+    widthPx?: number,
+    heightPx?: number,
+    opts?: { skipHttpRedirect?: boolean }
+  ): Promise<PhotoMediaJson | PhotoMediaBinary | null> {
     const apiKey = env.GOOGLE_PLACE_API_KEY;
     if (!apiKey) {
       throw new Error('GOOGLE_PLACE_API_KEY is not configured');
     }
 
-    const photoName = photoRef.endsWith('/media')
-      ? photoRef
-      : `${photoRef}/media`;
+    const { skipHttpRedirect = true } = opts ?? {};
+    const photoName = photoRef.endsWith('/media') ? photoRef : `${photoRef}/media`;
 
     // Build query parameters
     const queryParams = new URLSearchParams();
-    queryParams.append('skipHttpRedirect', 'true');
+    queryParams.append('skipHttpRedirect', String(skipHttpRedirect));
 
-    // Use provided dimensions if available, otherwise fall back to 800px
+    // 画像サイズ（幅優先、無指定なら 1280px）
     if (widthPx) {
       queryParams.append('maxWidthPx', widthPx.toString());
     } else if (heightPx) {
       queryParams.append('maxHeightPx', heightPx.toString());
     } else {
-      queryParams.append('maxWidthPx', '800');
+      queryParams.append('maxWidthPx', '1280');
     }
 
     const endpoint = `https://places.googleapis.com/v1/${photoName}?${queryParams.toString()}`;
@@ -332,11 +352,24 @@ export class ExternalApiService {
         );
       }
 
-      const data = await response.json().catch(() => null);
-      if (data?.photoUri) {
-        return { photoUri: data.photoUri };
+      if (skipHttpRedirect) {
+        // skip=true のときは JSON で photoUri が返る
+        const data = await response.json().catch(() => null as any);
+        if (data?.photoUri) {
+          return { photoUri: data.photoUri };
+        }
+        return null;
+      } else {
+        // skip=false のときは 302 → 実体画像へリダイレクト
+        // fetch はデフォルトでリダイレクト追従するので、この response は画像本体
+        const contentType =
+          (response.headers?.get?.('content-type') ?? 'application/octet-stream');
+
+        // ← arrayBuffer を使い、Node で Buffer に変換
+        const ab = await response.arrayBuffer();
+        const buffer = Buffer.from(ab);
+        return { buffer, contentType, byteLength: buffer.length };
       }
-      return null;
     } catch (error) {
       this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
         error_message: error instanceof Error ? error.message : 'Unknown error',

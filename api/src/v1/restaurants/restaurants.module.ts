@@ -16,12 +16,18 @@ import { ExternalApiModule } from '../../core/external-api/external-api.module';
 import { AuthModule } from '../../core/auth/auth.module';
 import { DishesModule } from '../dishes/dishes.module';
 import { DishMediaModule } from '../dish-media/dish-media.module';
+import { LocationsModule } from '../locations/locations.module';
+import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
+import { StorageModule } from 'src/core/storage/storage.module';
 
 @Module({
   imports: [
     PrismaModule, // DB アクセス
     LoggerModule, // アプリ共通 Logger
     ExternalApiModule, // Google Place API 呼び出し
+    LocationsModule, // LocationsService を利用するため
+    CloudTasksModule, // Cloud Tasks 利用のため
+    StorageModule, // StorageService 利用のため
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
     forwardRef(() => DishesModule), // DishesRepository を利用するため
     forwardRef(() => DishMediaModule), // DishMediaService を利用するため
@@ -33,4 +39,4 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
     RestaurantsRepository,
   ],
 })
-export class RestaurantsModule {}
+export class RestaurantsModule { }
