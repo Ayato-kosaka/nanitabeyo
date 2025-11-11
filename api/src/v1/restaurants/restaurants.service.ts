@@ -30,11 +30,13 @@ import { PrismaRestaurants } from '../../../../shared/converters/convert_restaur
 import { LocationsService } from '../locations/locations.service';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { StorageService } from 'src/core/storage/storage.service';
+import { RestaurantsAssembler } from './restaurants.assembler';
 
 @Injectable()
 export class RestaurantsService {
   constructor(
     private readonly repo: RestaurantsRepository,
+    private readonly assembler: RestaurantsAssembler,
     private readonly externalApi: ExternalApiService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
@@ -68,10 +70,10 @@ export class RestaurantsService {
       count: results.length,
     });
 
-    return results.map((r) => ({
-      restaurant: convertPrismaToSupabase_Restaurants(r.restaurant),
+    return await Promise.all(results.map(async (r) => ({
+      restaurant: await this.assembler.enrichRestaurantsWithImageUrls(r.restaurant),
       meta: r.meta,
-    }));
+    })));
   }
 
   /* ------------------------------------------------------------------ */
@@ -103,6 +105,7 @@ export class RestaurantsService {
       totalCents: 0,
       maxEndDate: null,
     };
+    let imageSignedUrl: string | undefined;
     if (restaurant) {
       restaurantReviewStats = await this.prisma.withTransaction(
         (tx: Prisma.TransactionClient) =>
@@ -171,6 +174,7 @@ export class RestaurantsService {
             identifier: dto.googlePlaceId,
           })
           imagePath = result.path;
+          imageSignedUrl = result.signedUrl;
         }
 
         // restaurant テーブル登録
@@ -237,7 +241,12 @@ export class RestaurantsService {
     }
 
     return {
-      ...convertPrismaToSupabase_Restaurants(restaurant!),
+      ...convertPrismaToSupabase_Restaurants(restaurant),
+      imageSignedUrl,
+      imageUrls: imageSignedUrl ? {
+        sm: imageSignedUrl,
+        md: imageSignedUrl,
+      } : undefined,
       ...restaurantReviewStats,
       ...restaurantBidStats,
     };
@@ -338,6 +347,6 @@ export class RestaurantsService {
       name: restaurant.name,
     });
 
-    return convertPrismaToSupabase_Restaurants(restaurant);
+    return await this.assembler.enrichRestaurantsWithImageUrls(restaurant);
   }
 }

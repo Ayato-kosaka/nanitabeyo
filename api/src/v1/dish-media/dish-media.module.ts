@@ -20,6 +20,7 @@ import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / Current
 import { TranscoderModule } from '../../core/transcoder/transcoder.module';
 import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
 import { DishMediaAssembler } from './dish-media.assembler';
+import { RestaurantsModule } from '../restaurants/restaurants.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DishMediaAssembler } from './dish-media.assembler';
     StorageModule, // 画像用 GCS / S3 署名 URL ユーティリティ
     TranscoderModule, // Video transcoding service
     CloudTasksModule, // Cloud Tasks サービス
+    RestaurantsModule,
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishMediaController],
@@ -41,4 +43,4 @@ import { DishMediaAssembler } from './dish-media.assembler';
     DishMediaRepository,
   ],
 })
-export class DishMediaModule {}
+export class DishMediaModule { }

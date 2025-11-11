@@ -9,16 +9,19 @@ import { buildResizedPath } from '../../core/storage/storage.utils';
 import { DishMediaEntryEntity } from './dish-media.repository';
 import { DishMediaEntry } from '@shared/v1/res';
 
-import { convertPrismaToSupabase_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
 import { env } from 'src/core/config/env';
+import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 
 @Injectable()
 export class DishMediaAssembler {
-  constructor(private readonly storage: StorageService) {}
+  constructor(
+    private readonly storage: StorageService,
+    private readonly restaurantsAssembler: RestaurantsAssembler,
+  ) { }
 
   /**
    * Repository から取得した `DishMediaEntryEntity[]` を
@@ -31,8 +34,7 @@ export class DishMediaAssembler {
     const items = await mapWithConcurrency(
       dishMediaEntryEntities,
       async (src) => {
-        // Use convertPrismaToSupabase as base, then add only required additional fields
-        const restaurant = convertPrismaToSupabase_Restaurants(src.restaurant);
+        const restaurant = await this.restaurantsAssembler.enrichRestaurantsWithImageUrls(src.restaurant);
 
         const dishBase = convertPrismaToSupabase_Dishes(src.dish);
         const dish = {
@@ -93,18 +95,18 @@ export class DishMediaAssembler {
     const cdnUrl =
       dishMedia.media_type === 'video'
         ? // 動画の場合の HLS マスター再生リスト CDN URL
-          `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${dishMedia.id}/master.m3u8`
+        `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${dishMedia.id}/master.m3u8`
         : // 画像の場合のリサイズ CDN URL
-          buildResizedPath(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: dishMedia.id,
-              size: 1024,
-              originalPath: dishMedia.media_path,
-            },
-            'cdn',
-          );
+        buildResizedPath(
+          {
+            table: 'dish_media',
+            column: 'media_path',
+            recordId: dishMedia.id,
+            size: 1024,
+            originalPath: dishMedia.media_path,
+          },
+          'cdn',
+        );
     // 取得した CDN URL からプレフィックスを抽出
     const cdnUrlPrefix = cdnUrl.split('/').slice(0, -1).join('/');
 

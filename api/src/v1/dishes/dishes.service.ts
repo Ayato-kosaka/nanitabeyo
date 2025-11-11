@@ -272,7 +272,14 @@ export class DishesService {
         });
 
         const BulkImportDishesResponseEntry: BulkImportDishesResponse[0] = {
-          restaurant: restaurant,
+          restaurant: {
+            ...restaurant,
+            imageSignedUrl: photoMedia.photoUri,
+            imageUrls: {
+              sm: photoMedia.photoUri,
+              md: photoMedia.photoUri,
+            },
+          },
           dish: {
             ...dish,
             reviewCount: dishReviews.length,

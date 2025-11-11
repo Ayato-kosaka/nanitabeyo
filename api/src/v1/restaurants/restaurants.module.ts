@@ -19,6 +19,7 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
 import { LocationsModule } from '../locations/locations.module';
 import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
 import { StorageModule } from 'src/core/storage/storage.module';
+import { RestaurantsAssembler } from './restaurants.assembler';
 
 @Module({
   imports: [
@@ -33,10 +34,11 @@ import { StorageModule } from 'src/core/storage/storage.module';
     forwardRef(() => DishMediaModule), // DishMediaService を利用するため
   ],
   controllers: [RestaurantsController],
-  providers: [RestaurantsService, RestaurantsRepository],
+  providers: [RestaurantsService, RestaurantsRepository, RestaurantsAssembler],
   exports: [
     RestaurantsService, // 他ドメインから利用できるよう export
     RestaurantsRepository,
+    RestaurantsAssembler,
   ],
 })
 export class RestaurantsModule { }
