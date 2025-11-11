@@ -27,7 +27,7 @@ interface ProfileEditFormProps {
 	close: () => void;
 }
 
-export const getAvatarUrl = (user: GetUserProfileResponse): string | null => {
+export const getAvatarUrl = (user: Pick<GetUserProfileResponse, "avatarUrls" | "avatarSignedUrl">): string | null => {
 	return user.avatarUrls?.sm || user.avatarSignedUrl || null;
 };
 
