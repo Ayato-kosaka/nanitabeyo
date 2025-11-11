@@ -65,5 +65,5 @@ export function buildResizedPath(
 /*                          ファイル名チェック                                */
 /* -------------------------------------------------------------------------- */
 export const isValidUserUploadedPath = (fileName: string, userId): boolean => {
-  return fileName.startsWith(`${env.API_NODE_ENV}/user-uploaded/${userId}/`);
+  return fileName.startsWith(`${env.API_NODE_ENV}/user-uploads/${userId}/`);
 };
