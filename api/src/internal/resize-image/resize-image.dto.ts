@@ -3,7 +3,7 @@
 // DTO for resize-image endpoint request validation
 //
 
-import { IsString, IsInt, IsIn, IsNotEmpty } from 'class-validator';
+import { IsString, IsInt, IsIn, IsNotEmpty, IsOptional } from 'class-validator';
 
 /**
  * DTO for POST /internal/resize-image request
@@ -28,6 +28,11 @@ export class ResizeImageDto {
   @IsInt()
   @IsIn([64, 256, 512, 1024])
   size: 64 | 256 | 512 | 1024;
+
+  /** Optional aspect ratio (width / height) */
+  @IsOptional()
+  @IsInt()
+  aspectRatio?: number;
 
   /** Original image path override */
   @IsString()

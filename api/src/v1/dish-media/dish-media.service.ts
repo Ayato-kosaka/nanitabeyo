@@ -36,7 +36,7 @@ export class DishMediaService {
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -169,6 +169,7 @@ export class DishMediaService {
         column: 'media_path',
         recordId: result.id,
         size: 1024,
+        aspectRatio: 9 / 16,
         originalPath: dto.mediaPath,
       });
     }
@@ -179,6 +180,7 @@ export class DishMediaService {
       column: 'thumbnail_path',
       recordId: result.id,
       size: 256,
+      aspectRatio: 9 / 16,
       originalPath: dto.thumbnailPath,
     });
 

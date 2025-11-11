@@ -28,7 +28,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * Get the original image path from database
@@ -126,17 +126,25 @@ export class ResizeImageService {
   }
 
   /**
-   * Resize image using Sharp with 9:16 aspect ratio
+   * 画像をリサイズしてWebPに変換
    */
-  private async resizeImage(buffer: Buffer, size: number): Promise<Buffer> {
+  private async resizeImage(buffer: Buffer, width: number,
+    option?: {
+      aspectRatio?: number;
+    }
+  ): Promise<Buffer> {
     try {
-      // Calculate height for 9:16 aspect ratio
-      const width = size;
-      const height = Math.round((size * 16) / 9);
+      let height: number | undefined = undefined;
+      let fit: keyof sharp.FitEnum = 'inside'; // デフォルトはトリミングなし
+
+      if (option?.aspectRatio) {
+        height = Math.round(width / option.aspectRatio);
+        fit = 'cover'; // 縦横比を守りつつ埋める、必要ならトリミング
+      }
 
       const resized = await sharp(buffer)
         .resize(width, height, {
-          fit: 'cover',
+          fit,
           position: 'center',
         })
         .webp({ quality: 85 })
@@ -152,7 +160,7 @@ export class ResizeImageService {
       return resized;
     } catch (error) {
       this.logger.error('ResizeImageError', 'resizeImage', {
-        size,
+        size: width,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;

@@ -135,6 +135,7 @@ export class CreateDishMediaEntryService {
           column: 'media_path',
           recordId: payload.dish_media.id,
           size: 1024,
+          aspectRatio: 9 / 16,
           originalPath: payload.dish_media.media_path,
         })
         .catch((error) => {
@@ -151,6 +152,7 @@ export class CreateDishMediaEntryService {
           column: 'thumbnail_path',
           recordId: payload.dish_media.id,
           size: 256,
+          aspectRatio: 9 / 16,
           originalPath: payload.dish_media.thumbnail_path,
         })
         .catch((error) => {
@@ -169,6 +171,7 @@ export class CreateDishMediaEntryService {
         column: 'image_path',
         recordId: payload.restaurants.id,
         size: 256,
+        aspectRatio: 9 / 16,
         originalPath: payload.restaurants.image_path,
       }).catch((error) => {
         this.logger.error('EnqueueResizeRestaurantImageError', 'createDishMediaEntry', {
@@ -182,6 +185,7 @@ export class CreateDishMediaEntryService {
         column: 'image_path',
         recordId: payload.restaurants.id,
         size: 64,
+        aspectRatio: 9 / 16,
         originalPath: payload.restaurants.image_path,
       }).catch((error) => {
         this.logger.error('EnqueueResizeRestaurantImageError', 'createDishMediaEntry', {
