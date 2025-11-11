@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches, MaxLength, ValidateIf } from "class-validator";
+import { IsOptional, IsString, Matches, MaxLength } from "class-validator";
 
 /**
  * POST /v1/users/me のリクエストボディ
