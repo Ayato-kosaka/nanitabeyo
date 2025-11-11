@@ -373,7 +373,8 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   image_url: 'image_url',
   address_components: 'address_components',
   plus_code: 'plus_code',
-  created_at: 'created_at'
+  created_at: 'created_at',
+  image_path: 'image_path'
 };
 
 exports.Prisma.User_device_tokensScalarFieldEnum = {
