@@ -42,12 +42,11 @@ export const buildFileName = (baseName: string, ext: string): string => {
 /*                              GCS パスビルダー                              */
 /* -------------------------------------------------------------------------- */
 export const buildFullPath = (params: {
-  env: string;
   resourceType: string;
   usageType: string;
   finalFileName: string;
 }): string =>
-  `${params.env}/${params.resourceType}/${params.usageType}/${params.finalFileName}`;
+  `${env.API_NODE_ENV}/${params.resourceType}/${params.usageType}/${params.finalFileName}`;
 
 /**
  * Build the resized image path based on naming convention

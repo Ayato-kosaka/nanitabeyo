@@ -57,7 +57,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   /**
    * 写真候補を選択する優先順位ロジック
@@ -136,11 +136,11 @@ export class DishesService {
         const [widthPx, heightPx] =
           photo.widthPx && photo.heightPx
             ? // 長辺を基準にリサイズ
-              photo.widthPx >= photo.heightPx
+            photo.widthPx >= photo.heightPx
               ? [LONG_EDGE, undefined]
               : [undefined, LONG_EDGE]
             : // フォールバック：とりあえず幅だけ指定して巨大画像を回避
-              [LONG_EDGE, undefined];
+            [LONG_EDGE, undefined];
         const result = await this.locationsService.getPhotoMedia(
           photo.name,
           widthPx,
@@ -315,7 +315,6 @@ export class DishesService {
         const ext = getExt('image/jpeg');
         const mediaFileName = buildFileName(place.id!, ext);
         const mediaPath = buildFullPath({
-          env: env.API_NODE_ENV,
           resourceType: 'google-maps',
           usageType: 'photo',
           finalFileName: mediaFileName,
@@ -330,6 +329,7 @@ export class DishesService {
           longitude: place.location!.longitude!,
           location: null,
           image_url: photoMedia.photoUri,
+          image_path: mediaPath,
           address_components: JSON.parse(
             JSON.stringify(place.addressComponents),
           ),
@@ -396,7 +396,7 @@ export class DishesService {
             averageRating:
               dishReviews.length > 0
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
-                  dishReviews.length
+                dishReviews.length
                 : 0,
           },
           dish_media: {

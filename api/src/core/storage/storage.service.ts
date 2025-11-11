@@ -40,7 +40,6 @@ export class StorageService {
     const ext = getExt(mimeType);
     const finalFileName = buildFileName(identifier, ext);
     const fullPath = buildFullPath({
-      env: env.API_NODE_ENV,
       resourceType,
       usageType,
       finalFileName,

@@ -21,7 +21,7 @@ export class UserUploadsService {
   constructor(
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*          POST /v1/user-uploads/signed-url (署名付きURL発行)         */
@@ -41,7 +41,6 @@ export class UserUploadsService {
     const fullFileName = buildFileName(dto.baseFileName, extension);
 
     const objectPath = buildFullPath({
-      env: env.API_NODE_ENV,
       resourceType: 'user-uploads',
       usageType: userId + '/' + dto.mimeType.replace(/[^a-zA-Z0-9]/g, '-'),
       finalFileName: fullFileName,
