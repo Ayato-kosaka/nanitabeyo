@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session, User, Provider } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
@@ -21,7 +21,6 @@ type AuthContextType = {
 	verifyOtp: (phone: string, token: string) => Promise<void>;
 	linkIdentity: (provider: Provider) => Promise<void>;
 	handleOAuthResultUrl: (url?: string | null) => Promise<User | null | undefined>;
-	createUserProfile: (user: { displayName?: string; avatar?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,8 +33,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * - OAuth, メールログイン・サインアップ機能を提供
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
+	const { logFrontendEvent } = useLogger();
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
 	const locale = useLocale();
@@ -216,11 +215,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			type: "sms",
 		});
 		if (error) throw error;
-
-		// ユーザープロフィールを作成（存在しなければ）
-		if (data.user) {
-			await createUserProfile({});
-		}
 	};
 
 	/**
@@ -308,61 +302,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	};
 
 	/**
-	 * ユーザープロフィールを作成する（存在しなければ）
-	 * @param displayName - 表示名（オプション）
-	 */
-	const createUserProfile = async ({ displayName, avatar }: { displayName?: string; avatar?: string }) => {
-		const user = sessionRef.current?.user;
-		if (!user) return;
-
-		try {
-			// 既存のユーザープロフィールをチェック
-			const { data: existingProfileId, error: fetchError } = await supabase
-				.from("users")
-				.select("id")
-				.eq("id", user.id)
-				.single<string>();
-
-			if (fetchError && fetchError.code !== "PGRST116") {
-				// PGRST116 = not found, それ以外のエラーは投げる
-				throw fetchError;
-			}
-
-			if (!existingProfileId) {
-				// ユーザープロフィールが存在しない場合のみ作成
-				const timestamp = Date.now();
-				const randomSuffix = Math.floor(Math.random() * 1000)
-					.toString()
-					.padStart(3, "0");
-				const username = `user${(timestamp + parseInt(randomSuffix)).toString().slice(0, 13)}`;
-
-				const { error: insertError } = await supabase.from("users").insert({
-					id: user.id,
-					username,
-					display_name: displayName || "nickname",
-					avatar,
-					preferred_locale: locale,
-				});
-
-				if (insertError) throw insertError;
-
-				logFrontendEvent({
-					event_name: "user_profile_created",
-					error_level: "log",
-					payload: { user_id: user.id, username },
-				});
-			}
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "user_profile_creation_error",
-				error_level: "error",
-				payload: { user_id: user.id, error: (error as Error).message },
-			});
-			// プロフィール作成エラーは致命的ではないので、ログのみ
-		}
-	};
-
-	/**
 	 * 現在のセッションをログアウトする。
 	 */
 	const logout = async () => {
@@ -370,20 +309,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		if (error) throw error;
 	};
 
-	const value: AuthContextType = {
-		user,
-		getSession,
-		loading,
-		loginWithEmail,
-		signUpWithEmail,
-		logout,
-		signInWithOAuth,
-		signInWithOtp,
-		verifyOtp,
-		linkIdentity,
-		handleOAuthResultUrl,
-		createUserProfile,
-	};
+	const value = useMemo<AuthContextType>(
+		() => ({
+			user,
+			getSession,
+			loading,
+			loginWithEmail,
+			signUpWithEmail,
+			logout,
+			signInWithOAuth,
+			signInWithOtp,
+			verifyOtp,
+			linkIdentity,
+			handleOAuthResultUrl,
+		}),
+		[
+			user,
+			getSession,
+			loading,
+			loginWithEmail,
+			signUpWithEmail,
+			logout,
+			signInWithOAuth,
+			signInWithOtp,
+			verifyOtp,
+			linkIdentity,
+			handleOAuthResultUrl,
+		],
+	);
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

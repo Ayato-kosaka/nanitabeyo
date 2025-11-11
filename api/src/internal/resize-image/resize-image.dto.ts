@@ -26,6 +26,11 @@ export class ResizeImageDto {
 
   /** Target size in pixels */
   @IsInt()
-  @IsIn([256, 1024])
-  size: 256 | 1024;
+  @IsIn([64, 256, 512, 1024])
+  size: 64 | 256 | 512 | 1024;
+
+  /** Original image path override */
+  @IsString()
+  @IsNotEmpty()
+  originalPath!: string;
 }

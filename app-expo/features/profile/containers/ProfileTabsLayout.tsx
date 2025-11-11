@@ -15,20 +15,21 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { mockBids, mockEarnings } from "../constants";
-import { ProfileEditForm } from "../components/ProfileEditForm";
+import { getAvatarUrl, ProfileEditForm } from "../components/ProfileEditForm";
 import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { Image } from "expo-image";
-import { SupabaseUsers } from "@shared/converters/convert_users";
 import { userProfile } from "@/data/profileData";
+import { useAPICall } from "@/hooks/useAPICall";
+import type { GetUserProfileResponse } from "@shared/api/v1/res";
 
 export function ProfileTabsLayout() {
-	const { userId } = useLocalSearchParams();
+	const { userId } = useLocalSearchParams<{ userId?: string }>();
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
 	const { user } = useAuth();
 
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
@@ -41,7 +42,7 @@ export function ProfileTabsLayout() {
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
-	const [profile, setProfile] = useState<SupabaseUsers | null>(null);
+	const [profile, setProfile] = useState<GetUserProfileResponse | null>(null);
 
 	const isOwnProfile = useMemo(() => !userId || userId === "me", [userId]);
 	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
@@ -52,24 +53,24 @@ export function ProfileTabsLayout() {
 				setProfile(userProfile);
 				return;
 			}
-			const { data, error } = await supabase
-				.from("users")
-				.select("*")
-				.eq("id", userId ?? user?.id)
-				.single<SupabaseUsers>();
-			if (error) {
+			try {
+				const data = await callBackend<{}, GetUserProfileResponse>(`v1/users/${userId ?? user?.id}`, {
+					method: "GET",
+					requestPayload: {},
+				});
+				const avatarUrl = getAvatarUrl(data);
+				avatarUrl && (await Image.prefetch(avatarUrl));
+				setProfile(data);
+			} catch (error: any) {
 				logFrontendEvent({
 					event_name: "load_own_profile_error",
 					error_level: "error",
-					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest, data },
+					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest },
 				});
-			} else if (data) {
-				data.avatar && (await Image.prefetch(data.avatar));
-				setProfile(data);
 			}
 		};
 		loadOwnProfile();
-	}, [isGuest, userId, user?.id, logFrontendEvent]);
+	}, [callBackend, isGuest, isOwnProfile, logFrontendEvent, user?.id, userId]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
@@ -136,42 +137,6 @@ export function ProfileTabsLayout() {
 			payload: {},
 		});
 	}, [lightImpact, openEditModal, logFrontendEvent]);
-
-	const handleSaveProfile = useCallback(
-		async (values: { avatar: string; display_name: string; bio: string }) => {
-			if (!profile) return;
-			mediumImpact();
-			setProfile((prev) =>
-				prev
-					? {
-							...prev,
-							avatar: values.avatar,
-							display_name: values.display_name,
-							bio: values.bio,
-						}
-					: null,
-			);
-			await supabase
-				.from("users")
-				.update({
-					avatar: values.avatar,
-					display_name: values.display_name,
-					bio: values.bio,
-				})
-				.eq("id", profile.id);
-			closeEditModal();
-			logFrontendEvent({
-				event_name: "profile_edit_saved",
-				error_level: "log",
-				payload: {
-					newBioLength: values.bio.length,
-					hasAvatar: !!values.avatar,
-					hasDisplayName: !!values.display_name,
-				},
-			});
-		},
-		[profile, mediumImpact, closeEditModal, logFrontendEvent],
-	);
 
 	const handleFeedback = useCallback(() => {
 		lightImpact();
@@ -317,22 +282,13 @@ export function ProfileTabsLayout() {
 				) : null}
 			</Tabs.Container>
 
-			<BlurModal>
-				{({ close }) => (
-					<ProfileEditForm
-						initialValues={{
-							avatar: profile?.avatar || "",
-							display_name: profile?.display_name || "",
-							bio: profile?.bio || "",
-						}}
-						onSubmit={(values) => {
-							handleSaveProfile(values);
-							close();
-						}}
-						onCancel={close}
-					/>
-				)}
-			</BlurModal>
+			{profile && (
+				<BlurModal>
+					{({ close }) => (
+						<ProfileEditForm initialValues={profile} setProfile={setProfile} close={close} onCancel={close} />
+					)}
+				</BlurModal>
+			)}
 
 			<FeedbackModal>
 				{({ close }) => (

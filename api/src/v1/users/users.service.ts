@@ -5,7 +5,11 @@
 // ❸ "副作用" は出来るだけ Service で完結させ、Controller は薄く保つ
 //
 
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 
 import {
   QueryUserDishReviewsDto,
@@ -14,6 +18,7 @@ import {
   QueryMeRestaurantBidsDto,
   QueryMeSavedDishCategoriesDto,
   QueryMeSavedDishMediaDto,
+  UpdateUserProfileDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -21,15 +26,22 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
+import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
+import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
+import { UsersAssembler } from './users.assembler';
+import { DishMediaEntry } from '@shared/v1/res';
+import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly repo: UsersRepository,
+    private readonly assembler: UsersAssembler,
     private readonly logger: AppLoggerService,
     private readonly dishMediaRepo: DishMediaRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
+    private readonly cloudTasks: CloudTasksService,
   ) {}
 
   async getUserByIds(userId: string[]) {
@@ -39,7 +51,14 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */
   /* ------------------------------------------------------------------ */
-  async getUserDishReviews(userId: string, dto: QueryUserDishReviewsDto) {
+  async getUserDishReviews(
+    userId: string,
+    dto: QueryUserDishReviewsDto,
+  ): Promise<{
+    data: (DishMediaEntry & { dish_media: { isMe: boolean } })[];
+    nextCursor: string | null;
+    cdnCookies: string[];
+  }> {
     this.logger.debug('GetUserDishReviews', 'getUserDishReviews', {
       userId,
       cursor: dto.cursor,
@@ -53,13 +72,17 @@ export class UsersService {
     const uniqueDishMediaIds = Array.from(
       new Set(reviews.map((r) => r.created_dish_media_id)),
     );
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
-      uniqueDishMediaIds,
-      { userId, reviewLimit: 0 },
-    );
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
+        userId,
+        reviewLimit: 0,
+      });
 
-    const dishMediaMap = new Map<string, (typeof result.items)[0]>(
-      result.items.map((item) => [item.dish_media.id, item]),
+    const dishMediaMap = new Map<
+      string,
+      (typeof dishMediaEntryItemsResult.items)[0]
+    >(
+      dishMediaEntryItemsResult.items.map((item) => [item.dish_media.id, item]),
     );
 
     const nextCursor =
@@ -70,7 +93,7 @@ export class UsersService {
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: reviews.length,
       nextCursor,
-      hasCookies: !!result.cdnCookies,
+      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
@@ -96,12 +119,17 @@ export class UsersService {
               ...dishMediaEntryItem?.dish_media,
               isMe: dishMediaEntryItem?.dish_media.user_id === userId,
             },
-            dish_reviews: [review],
+            dish_reviews: [
+              {
+                ...review,
+                ...convertPrismaToSupabase_DishReviews(review),
+              },
+            ],
           };
         })
         .filter((item) => item !== undefined),
       nextCursor,
-      cdnCookies: result.cdnCookies,
+      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 
@@ -126,12 +154,10 @@ export class UsersService {
 
     const dishMediaIds = likes.map((l) => l.dish_media_id);
 
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
-      },
-    );
+      });
 
     const nextCursor =
       likes.length > 0
@@ -139,15 +165,15 @@ export class UsersService {
         : null;
 
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
-      count: result.items.length,
+      count: dishMediaEntryItemsResult.items.length,
       nextCursor,
-      hasCookies: !!result.cdnCookies,
+      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
-      data: result.items,
+      data: dishMediaEntryItemsResult.items,
       nextCursor,
-      cdnCookies: result.cdnCookies,
+      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 
@@ -261,12 +287,10 @@ export class UsersService {
 
     const dishMediaIds = saves.map((s) => s.dish_media_id);
 
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
-      },
-    );
+      });
 
     const nextCursor =
       saves.length > 0
@@ -274,15 +298,75 @@ export class UsersService {
         : null;
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
-      count: result.items.length,
+      count: dishMediaEntryItemsResult.items.length,
       nextCursor,
-      hasCookies: !!result.cdnCookies,
+      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
-      data: result.items,
+      data: dishMediaEntryItemsResult.items,
       nextCursor,
-      cdnCookies: result.cdnCookies,
+      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                      GET /v1/users/:id                             */
+  /* ------------------------------------------------------------------ */
+  async getUserProfile(userId: string) {
+    this.logger.debug('GetUserProfile', 'getUserProfile', { userId });
+
+    const user = await this.repo.getUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.assembler.enrichUserProfileWithAvatarUrls(user);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                      POST /v1/users/me                             */
+  /* ------------------------------------------------------------------ */
+  async updateUserProfile(userId: string, dto: UpdateUserProfileDto) {
+    this.logger.debug('UpdateUserProfile', 'updateUserProfile', {
+      userId,
+      dto,
+    });
+
+    // ユーザーが存在するか確認
+    const existingUser = await this.repo.getUserById(userId);
+    if (!existingUser) throw new NotFoundException('User not found');
+
+    // #プロフィール画像 【設計】avatar_path が指定された場合のみ処理
+    if (dto.avatar_path) {
+      // #セキュリティ 【検証】ユーザーアップロード領域に限る
+      if (!isValidUserUploadedPath(dto.avatar_path, userId))
+        throw new ForbiddenException('Invalid avatar_path');
+
+      // 画像のリサイズと保存を実行（プロフィールのサムネ用）
+      await this.cloudTasks.enqueueResizeImage({
+        table: 'users',
+        column: 'avatar_path',
+        recordId: userId,
+        size: 256,
+        originalPath: dto.avatar_path,
+      });
+
+      // 画像のリサイズと保存を実行（コメント欄用）
+      await this.cloudTasks.enqueueResizeImage({
+        table: 'users',
+        column: 'avatar_path',
+        recordId: userId,
+        size: 64,
+        originalPath: dto.avatar_path,
+      });
+    }
+
+    const updatedUser = await this.repo.updateUserProfile({
+      ...dto,
+      id: userId,
+    });
+
+    return this.assembler.enrichUserProfileWithAvatarUrls(updatedUser);
   }
 }

@@ -11,7 +11,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { DishMediaController } from './dish-media.controller';
 import { DishMediaService } from './dish-media.service';
 import { DishMediaRepository } from './dish-media.repository';
-import { DishMediaMapper } from './dish-media.mapper';
 
 // ─── 横串インフラ層 ──────────────────────────────────────────
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -20,6 +19,7 @@ import { StorageModule } from '../../core/storage/storage.module'; // 署名 URL
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
 import { TranscoderModule } from '../../core/transcoder/transcoder.module';
 import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
+import { DishMediaAssembler } from './dish-media.assembler';
 
 @Module({
   imports: [
@@ -34,12 +34,11 @@ import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
   providers: [
     DishMediaService,
     DishMediaRepository, // ← ここで DI できるので Service から注入可能
-    DishMediaMapper, // 追加: DishMediaMapper をプロバイダーとして登録
+    DishMediaAssembler, // 追加: DishMediaAssembler をプロバイダーとして登録
   ],
   exports: [
     DishMediaService, // 他ドメインが “いいね数集計” 等で再利用できる
     DishMediaRepository,
-    DishMediaMapper, // 追加: DishMediaMapper をエクスポート
   ],
 })
 export class DishMediaModule {}

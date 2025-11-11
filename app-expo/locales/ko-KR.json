@@ -247,7 +247,8 @@
 		"labels": {
 			"bio": "자기소개",
 			"displayName": "표시 이름",
-			"avatar": "아바타 이미지 URL"
+			"avatar": "아바타 이미지 URL",
+			"profileImage": "프로필 이미지"
 		},
 		"privateContent": "이 내용은 비공개입니다",
 		"placeholders": {
@@ -256,7 +257,15 @@
 			"enterAvatar": "아바타 이미지 URL을 입력하세요..."
 		},
 		"savedCount": "{{count}}회 저장",
-		"guestBio": "환영합니다, 게스트님 👋\n새로운 미식 앱 'CraveCatch'를 사용해 주셔서 감사합니다😊\n계정 기능을 포함한 업데이트가 곧 진행됩니다!"
+		"guestBio": "환영합니다, 게스트님 👋\n새로운 미식 앱 'CraveCatch'를 사용해 주셔서 감사합니다😊\n계정 기능을 포함한 업데이트가 곧 진행됩니다!",
+		"hints": {
+			"tapToSelectImage": "탭하여 이미지 선택"
+		},
+		"errors": {
+			"permissionDenied": "이미지 액세스 권한이 거부되었습니다",
+			"uploadFailed": "이미지 업로드 실패",
+			"invalidImage": "잘못된 이미지 파일"
+		}
 	},
 	"NotFound": {
 		"title": "이런!",

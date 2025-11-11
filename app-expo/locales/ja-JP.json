@@ -247,13 +247,22 @@
 		"labels": {
 			"bio": "自己紹介",
 			"displayName": "表示名",
-			"avatar": "アバター画像URL"
+			"avatar": "アバター画像URL",
+			"profileImage": "プロフィール画像"
 		},
 		"privateContent": "この内容は非公開です",
 		"placeholders": {
 			"enterBio": "自己紹介を入力してください...",
 			"enterDisplayName": "表示名を入力してください...",
 			"enterAvatar": "アバター画像URLを入力してください..."
+		},
+		"hints": {
+			"tapToSelectImage": "タップして画像を選択"
+		},
+		"errors": {
+			"permissionDenied": "画像へのアクセスが許可されていません",
+			"uploadFailed": "画像のアップロードに失敗しました",
+			"invalidImage": "無効な画像ファイルです"
 		},
 		"savedCount": "{{count}}件保存",
 		"guestBio": "ようこそ、ゲストさん 👋\n新感覚グルメアプリ「なに食べよ」を使って頂きありがとうございます😊\nアカウント機能含め、近日アップデートしていきます！"

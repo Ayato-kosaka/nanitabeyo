@@ -3,27 +3,30 @@ import { SupabaseRestaurantBids } from "../../../converters/convert_restaurant_b
 import { SupabaseDishCategories } from "../../../converters/convert_dish_categories";
 import { PaginatedResponse } from "./paginated-response";
 import { DishMediaEntry } from "./dish-media.response";
+import { SupabaseUsers } from "../../../converters/convert_users";
+
+/**
+ * ユーザープロフィール情報
+ */
+export type UserProfile = SupabaseUsers & {
+	/** アバター画像の署名付きURL（原本） */
+	avatarSignedUrl?: string;
+	/** アバター画像の派生サイズCDN URL群 */
+	avatarUrls?: {
+		sm: string; // 64x64
+		md: string; // 256x256
+	};
+};
 
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
 export type QueryUserDishReviewsResponse = PaginatedResponse<
 	DishMediaEntry & {
-		dish: {
-			reviewCount: number;
-			averageRating: number;
-		};
 		dish_media: { isMe: boolean };
 	}
 >;
 
 /** GET /v1/users/me/liked-dish-media のレスポンス型 */
-export type QueryMeLikedDishMediaResponse = PaginatedResponse<
-	DishMediaEntry & {
-		dish: {
-			reviewCount: number;
-			averageRating: number;
-		};
-	}
->;
+export type QueryMeLikedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
 
 /** GET /v1/users/me/payouts のレスポンス型 */
 export type QueryMePayoutsResponse = PaginatedResponse<SupabasePayouts>;
@@ -35,11 +38,10 @@ export type QueryMeRestaurantBidsResponse = PaginatedResponse<SupabaseRestaurant
 export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishCategories>;
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
-export type QueryMeSavedDishMediaResponse = PaginatedResponse<
-	DishMediaEntry & {
-		dish: {
-			reviewCount: number;
-			averageRating: number;
-		};
-	}
->;
+export type QueryMeSavedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
+
+/** GET /v1/users/:id のレスポンス型 */
+export type GetUserProfileResponse = UserProfile;
+
+/** POST /v1/users/me のレスポンス型 */
+export type UpdateUserProfileResponse = UserProfile;

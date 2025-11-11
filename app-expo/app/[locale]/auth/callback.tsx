@@ -22,6 +22,7 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { Provider } from "@supabase/supabase-js";
 import * as AuthSession from "expo-auth-session";
+import { useProfile } from "@/features/profile/hooks/useProfile";
 
 /**
  * OAuth認証のコールバック画面
@@ -29,7 +30,8 @@ import * as AuthSession from "expo-auth-session";
  */
 export default function AuthCallbackScreen() {
 	const router = useRouter();
-	const { createUserProfile, handleOAuthResultUrl, signInWithOAuth } = useAuth();
+	const { handleOAuthResultUrl, signInWithOAuth } = useAuth();
+	const { createUserProfile } = useProfile();
 	const { logFrontendEvent } = useLogger();
 	const { locale, ...rest } = useLocalSearchParams<{ locale: string; [k: string]: string }>();
 	const [showConflictDialog, setShowConflictDialog] = useState(false);

@@ -23,7 +23,6 @@ import {
   QueryRestaurantsByGooglePlaceIdResponse,
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
-import { RestaurantsMapper } from './restaurants.mapper';
 import { DishesRepository } from '../dishes/dishes.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
@@ -33,7 +32,6 @@ import { PrismaRestaurants } from '../../../../shared/converters/convert_restaur
 export class RestaurantsService {
   constructor(
     private readonly repo: RestaurantsRepository,
-    private readonly mapper: RestaurantsMapper,
     private readonly externalApi: ExternalApiService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
@@ -241,28 +239,26 @@ export class RestaurantsService {
       (l) => l.dish_media_id,
     );
 
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
-      },
-    );
+      });
 
     this.logger.debug(
       'GetRestaurantDishMediaResult',
       'getRestaurantDishMedia',
       {
-        count: result.items.length,
-        hasCookies: !!result.cdnCookies,
+        count: dishMediaEntryItemsResult.items.length,
+        hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
       },
     );
 
     return {
-      response: this.mapper.toRestaurantDishMediaResponse({
-        data: result.items,
+      response: {
+        data: dishMediaEntryItemsResult.items,
         nextCursor: dishMediaByRestaurant.nextCursor,
-      }),
-      cdnCookies: result.cdnCookies,
+      },
+      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 

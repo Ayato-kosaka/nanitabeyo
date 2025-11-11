@@ -7,14 +7,8 @@ import {
   UploadFileParams,
   UploadFileAtPathParams,
   UploadResult,
-  GetResizedSignedUrlParams,
 } from './storage.types';
-import {
-  getExt,
-  buildFileName,
-  buildFullPath,
-  buildResizedPath,
-} from './storage.utils';
+import { getExt, buildFileName, buildFullPath } from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 import * as crypto from 'crypto';
 
@@ -221,66 +215,6 @@ export class StorageService {
   }
 
   /* ---------------------------------------------------------------------- */
-  /*                  Get or Queue Resized Signed URL                       */
-  /* ---------------------------------------------------------------------- */
-  /**
-   * Get signed URL for resized image, or queue resize if not exists
-   * Returns original signed URL if resize is queued
-   */
-  async getOrQueueResizedSignedUrl(
-    params: GetResizedSignedUrlParams,
-    originalPath: string,
-    expiresInSeconds = 24 * 60 * 60,
-  ): Promise<string> {
-    // Build resized image path following naming convention
-    const resizedPath = buildResizedPath(params);
-
-    try {
-      const [exists, resizedSignedUrl, originalSignedUrl] = await Promise.all([
-        this.fileExists(resizedPath), // ネットワーク
-        this.generateSignedUrl(resizedPath, expiresInSeconds), // ローカル署名
-        this.generateSignedUrl(originalPath, expiresInSeconds), // ローカル署名
-      ]);
-
-      if (exists) {
-        // Return resized image signed URL
-        this.logger.debug('ResizedImageExists', 'getOrQueueResizedSignedUrl', {
-          resizedPath,
-        });
-        return resizedSignedUrl;
-      }
-
-      // Resized image doesn't exist, queue async resize
-      this.logger.debug('ResizedImageNotFound', 'getOrQueueResizedSignedUrl', {
-        resizedPath,
-        queueingResize: true,
-      });
-
-      // Queue async resize using CloudTasksService
-      this.cloudTasks.enqueueResizeImage(params).catch((err) => {
-        this.logger.warn('ResizeQueueError', 'getOrQueueResizedSignedUrl', {
-          params,
-          error: err instanceof Error ? err.message : 'Unknown error',
-        });
-      });
-
-      // Return original image signed URL for now
-      return originalSignedUrl;
-    } catch (err) {
-      this.logger.error(
-        'GetOrQueueResizedSignedUrlError',
-        'getOrQueueResizedSignedUrl',
-        {
-          params,
-          error: (err as Error).message,
-        },
-      );
-      // Fallback to original on error
-      return this.generateSignedUrl(originalPath, expiresInSeconds);
-    }
-  }
-
-  /* ---------------------------------------------------------------------- */
   /*                      CDN Signed Cookie Generation                      */
   /* ---------------------------------------------------------------------- */
   /**
@@ -288,10 +222,9 @@ export class StorageService {
    * Used for HLS video playback where multiple files need to be accessed
    *
    * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
-   * @param recordId - The record ID for cookie path scoping
    * @returns Array of cookie strings ready for Set-Cookie headers
    */
-  generateCdnSignedCookies(urlPrefix: string, recordId: string): string[] {
+  generateCdnSignedCookies(urlPrefix: string): string[] {
     try {
       // ---- normalize prefix -------------------------------------------------
       const u = new URL(urlPrefix);
@@ -338,7 +271,6 @@ export class StorageService {
         'generateCdnSignedCookies',
         {
           urlPrefix: normalizedPrefix,
-          recordId,
           expires: new Date(expires * 1000).toISOString(),
           cookiePreview: cookie.slice(0, 200) + '...',
         },
@@ -351,7 +283,6 @@ export class StorageService {
       this.logger.error('CdnSignedCookieError', 'generateCdnSignedCookies', {
         error_message: (err as Error).message,
         urlPrefix,
-        recordId,
       });
       throw err;
     }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,6 +7,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseUsers } from "@shared/converters/convert_users";
+import { getAvatarUrl } from "./ProfileEditForm";
 
 interface ProfileHeaderProps {
 	profile: SupabaseUsers;
@@ -49,6 +50,7 @@ export function ProfileHeader({
 	onFeedback,
 	onLogin,
 }: ProfileHeaderProps) {
+	const avatarUrl = useMemo(() => getAvatarUrl(profile), [profile]);
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}
@@ -74,10 +76,10 @@ export function ProfileHeader({
 				<Card style={styles.card} pointerEvents="box-none">
 					{/* Avatar and Stats */}
 					<View style={[styles.profileHeader]} pointerEvents="none">
-						{(isGuest || profile.avatar) && (
+						{(isGuest || avatarUrl) && (
 							<Image
-								key={profile.avatar || "placeholder"}
-								source={isGuest ? require("@/assets/images/icon.png") : { uri: profile.avatar }}
+								key={avatarUrl || "placeholder"}
+								source={isGuest ? require("@/assets/images/icon.png") : { uri: avatarUrl }}
 								style={styles.avatar}
 								contentFit="cover"
 								transition={0}

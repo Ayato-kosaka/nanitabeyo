@@ -959,7 +959,7 @@ export type Database = {
 			};
 			users: {
 				Row: {
-					avatar: string | null;
+					avatar_path: string | null;
 					bio: string | null;
 					created_at: string;
 					display_name: string | null;
@@ -971,7 +971,7 @@ export type Database = {
 					username: string;
 				};
 				Insert: {
-					avatar?: string | null;
+					avatar_path?: string | null;
 					bio?: string | null;
 					created_at?: string;
 					display_name?: string | null;
@@ -983,7 +983,7 @@ export type Database = {
 					username: string;
 				};
 				Update: {
-					avatar?: string | null;
+					avatar_path?: string | null;
 					bio?: string | null;
 					created_at?: string;
 					display_name?: string | null;

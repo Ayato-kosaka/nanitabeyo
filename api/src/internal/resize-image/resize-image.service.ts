@@ -8,8 +8,9 @@ import * as sharp from 'sharp';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { ResizeImageParams, ResizeImageResult } from './resize-image.interface';
+import { ResizeImageResult } from './resize-image.interface';
 import { buildResizedPath } from 'src/core/storage/storage.utils';
+import { ResizeImageDto } from './resize-image.dto';
 
 // 識別子の簡易バリデーション（必要に応じて厳しく）
 function isSafeIdentifier(name: string) {
@@ -162,7 +163,7 @@ export class ResizeImageService {
    * Main method to resize and store image
    */
   async resizeAndStoreImage(
-    params: ResizeImageParams,
+    params: ResizeImageDto,
   ): Promise<ResizeImageResult> {
     const resizedPath = buildResizedPath(params);
 
@@ -190,18 +191,10 @@ export class ResizeImageService {
         };
       }
 
-      // Get original image path
-      const originalPath = await this.getOriginalPath(
-        params.table,
-        params.column,
-        params.recordId,
-      );
-      if (!originalPath) {
-        throw new Error('Original image path not found');
-      }
-
       // Download original image
-      const originalBuffer = await this.downloadOriginalImage(originalPath);
+      const originalBuffer = await this.downloadOriginalImage(
+        params.originalPath,
+      );
 
       // Resize image
       const resizedBuffer = await this.resizeImage(originalBuffer, params.size);
@@ -223,7 +216,6 @@ export class ResizeImageService {
 
       this.logger.log('ResizeImageCompleted', 'resizeAndStoreImage', {
         resizedPath: result.path,
-        originalPath,
         size: params.size,
       });
 

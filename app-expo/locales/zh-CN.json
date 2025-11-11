@@ -247,7 +247,8 @@
 		"labels": {
 			"bio": "简介",
 			"displayName": "显示名称",
-			"avatar": "头像图片URL"
+			"avatar": "头像图片URL",
+			"profileImage": "头像"
 		},
 		"privateContent": "此内容为私密",
 		"placeholders": {
@@ -256,7 +257,15 @@
 			"enterAvatar": "请输入您的头像图片URL..."
 		},
 		"savedCount": "{{count}} 次收藏",
-		"guestBio": "欢迎，访客 👋\n感谢您使用新概念美食应用《CraveCatch》😊\n账户功能和更多更新即将推出！"
+		"guestBio": "欢迎，访客 👋\n感谢您使用新概念美食应用《CraveCatch》😊\n账户功能和更多更新即将推出！",
+		"hints": {
+			"tapToSelectImage": "点击选择图片"
+		},
+		"errors": {
+			"permissionDenied": "访问图片权限被拒绝",
+			"uploadFailed": "上传图片失败",
+			"invalidImage": "无效的图片文件"
+		}
 	},
 	"NotFound": {
 		"title": "哎呀！",

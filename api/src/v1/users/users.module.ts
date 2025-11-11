@@ -11,6 +11,8 @@ import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { DishMediaModule } from '../dish-media/dish-media.module';
+import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
+import { UsersAssembler } from './users.assembler';
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
     LoggerModule,
     forwardRef(() => AuthModule), // For JWT Guards and CurrentUser decorator
     DishMediaModule,
+    CloudTasksModule,
   ],
   controllers: [UsersController],
   providers: [
@@ -26,7 +29,8 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
     UsersRepository,
     UsersMapper,
     DishCategoriesRepository,
+    UsersAssembler,
   ],
-  exports: [UsersService, UsersRepository],
+  exports: [UsersService, UsersRepository, UsersAssembler],
 })
 export class UsersModule {}

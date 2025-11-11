@@ -4,17 +4,7 @@ import { Image } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Play } from "lucide-react-native";
 import i18n from "@/lib/i18n";
-import type { CreateDishMediaDto } from "@shared/api/v1/dto";
-
-export interface MediaData {
-	type: CreateDishMediaDto["mediaType"];
-	uri: string;
-	width?: number;
-	height?: number;
-	durationSec?: number;
-	thumbnailUri?: string;
-	mimeType: string;
-}
+import { MediaData } from "../../../lib/mediaSelection";
 
 interface InitialMediaPreviewProps {
 	media: MediaData;
