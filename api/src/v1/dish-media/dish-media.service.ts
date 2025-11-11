@@ -36,7 +36,7 @@ export class DishMediaService {
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -131,7 +131,8 @@ export class DishMediaService {
     }
 
     // #セキュリティ 【検証】ユーザーアップロード領域に限る
-    if (!isValidUserUploadedPath(dto.mediaPath, creatorId)) throw new NotFoundException('Invalid mediaPath');
+    if (!isValidUserUploadedPath(dto.mediaPath, creatorId))
+      throw new NotFoundException('Invalid mediaPath');
 
     // トランザクションで dish_media + 付随レコード作成
     const result = await this.prisma.withTransaction(

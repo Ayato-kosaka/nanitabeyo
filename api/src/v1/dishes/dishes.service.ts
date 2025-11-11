@@ -25,15 +25,9 @@ import {
   PrismaDishes,
   SupabaseDishes,
 } from '../../../../shared/converters/convert_dishes';
-import {
-  SupabaseRestaurants,
-} from '../../../../shared/converters/convert_restaurants';
-import {
-  SupabaseDishMedia,
-} from '../../../../shared/converters/convert_dish_media';
-import {
-  SupabaseDishReviews,
-} from '../../../../shared/converters/convert_dish_reviews';
+import { SupabaseRestaurants } from '../../../../shared/converters/convert_restaurants';
+import { SupabaseDishMedia } from '../../../../shared/converters/convert_dish_media';
+import { SupabaseDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
 import {
   buildFileName,
@@ -63,7 +57,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   /**
    * 写真候補を選択する優先順位ロジック
@@ -139,13 +133,14 @@ export class DishesService {
       try {
         const LONG_EDGE = 1280;
 
-        const [widthPx, heightPx] = (photo.widthPx && photo.heightPx) ?
-          // 長辺を基準にリサイズ
-          (photo.widthPx >= photo.heightPx ?
-            [LONG_EDGE, undefined] :
-            [undefined, LONG_EDGE]) :
-          // フォールバック：とりあえず幅だけ指定して巨大画像を回避
-          [LONG_EDGE, undefined];
+        const [widthPx, heightPx] =
+          photo.widthPx && photo.heightPx
+            ? // 長辺を基準にリサイズ
+              photo.widthPx >= photo.heightPx
+              ? [LONG_EDGE, undefined]
+              : [undefined, LONG_EDGE]
+            : // フォールバック：とりあえず幅だけ指定して巨大画像を回避
+              [LONG_EDGE, undefined];
         const result = await this.locationsService.getPhotoMedia(
           photo.name,
           widthPx,
@@ -400,7 +395,8 @@ export class DishesService {
             reviewCount: dishReviews.length,
             averageRating:
               dishReviews.length > 0
-                ? dishReviews.reduce((sum, r) => sum + r.rating, 0) / dishReviews.length
+                ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
+                  dishReviews.length
                 : 0,
           },
           dish_media: {
@@ -490,7 +486,8 @@ export class DishesService {
         this.logger.debug('AsyncJobEnqueued', 'bulkImportFromGoogle', {
           jobId,
           placeId,
-        }))
+        }),
+      );
     } catch (error) {
       this.logger.error('AsyncJobEnqueueError', 'bulkImportFromGoogle', {
         jobId,

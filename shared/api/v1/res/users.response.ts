@@ -16,7 +16,7 @@ export type UserProfile = SupabaseUsers & {
 		sm: string; // 64x64
 		md: string; // 256x256
 	};
-}
+};
 
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
 export type QueryUserDishReviewsResponse = PaginatedResponse<
@@ -26,9 +26,7 @@ export type QueryUserDishReviewsResponse = PaginatedResponse<
 >;
 
 /** GET /v1/users/me/liked-dish-media のレスポンス型 */
-export type QueryMeLikedDishMediaResponse = PaginatedResponse<
-	DishMediaEntry
->;
+export type QueryMeLikedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
 
 /** GET /v1/users/me/payouts のレスポンス型 */
 export type QueryMePayoutsResponse = PaginatedResponse<SupabasePayouts>;
@@ -40,9 +38,7 @@ export type QueryMeRestaurantBidsResponse = PaginatedResponse<SupabaseRestaurant
 export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishCategories>;
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
-export type QueryMeSavedDishMediaResponse = PaginatedResponse<
-	DishMediaEntry
->;
+export type QueryMeSavedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
 
 /** GET /v1/users/:id のレスポンス型 */
 export type GetUserProfileResponse = UserProfile;

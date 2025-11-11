@@ -56,9 +56,7 @@ import { DishMediaService } from './dish-media.service';
 @ApiTags('DishMedia')
 @Controller('v1/dish-media')
 export class DishMediaController {
-  constructor(
-    private readonly dishMediaService: DishMediaService,
-  ) { }
+  constructor(private readonly dishMediaService: DishMediaService) {}
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */

@@ -18,13 +18,15 @@ import { env } from 'src/core/config/env';
 
 @Injectable()
 export class DishMediaAssembler {
-  constructor(private readonly storage: StorageService) { }
+  constructor(private readonly storage: StorageService) {}
 
   /**
    * Repository から取得した `DishMediaEntryEntity[]` を
    * Controller 公開型の `DishMediaEntry[]` へ変換
    */
-  async toDishMediaEntry(dishMediaEntryEntities: DishMediaEntryEntity[]): Promise<{ items: DishMediaEntry[], cdnCookies: string[] }> {
+  async toDishMediaEntry(
+    dishMediaEntryEntities: DishMediaEntryEntity[],
+  ): Promise<{ items: DishMediaEntry[]; cdnCookies: string[] }> {
     const cdnCookies: string[] = [];
     const items = await mapWithConcurrency(
       dishMediaEntryEntities,
@@ -41,7 +43,10 @@ export class DishMediaAssembler {
         };
 
         const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-        const [{ mediaUrl, mediaUrls }, { thumbnailImageUrl, thumbnailImageUrls }] = await Promise.all([
+        const [
+          { mediaUrl, mediaUrls },
+          { thumbnailImageUrl, thumbnailImageUrls },
+        ] = await Promise.all([
           this.getMediaUrl(src.dish_media, cdnCookies),
           this.getThumbnailImageUrl(src.dish_media, cdnCookies),
         ]);
@@ -78,25 +83,28 @@ export class DishMediaAssembler {
   /**
    * dish_media エンティティから media_path の署名付き URL, CDN URL 群 を生成して付与
    */
-  private async getMediaUrl(dishMedia: DishMediaEntryEntity["dish_media"], cdnCookies: string[]):
-    Promise<Pick<DishMediaEntry["dish_media"], "mediaUrl" | "mediaUrls">> {
+  private async getMediaUrl(
+    dishMedia: DishMediaEntryEntity['dish_media'],
+    cdnCookies: string[],
+  ): Promise<Pick<DishMediaEntry['dish_media'], 'mediaUrl' | 'mediaUrls'>> {
     // 原本の署名付き URL を生成
     const mediaUrl = await this.storage.generateSignedUrl(dishMedia.media_path);
 
-    const cdnUrl = dishMedia.media_type === 'video' ?
-      // 動画の場合の HLS マスター再生リスト CDN URL
-      `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${dishMedia.id}/master.m3u8` :
-      // 画像の場合のリサイズ CDN URL
-      buildResizedPath(
-        {
-          table: 'dish_media',
-          column: 'media_path',
-          recordId: dishMedia.id,
-          size: 1024,
-          originalPath: dishMedia.media_path
-        },
-        'cdn',
-      );
+    const cdnUrl =
+      dishMedia.media_type === 'video'
+        ? // 動画の場合の HLS マスター再生リスト CDN URL
+          `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${dishMedia.id}/master.m3u8`
+        : // 画像の場合のリサイズ CDN URL
+          buildResizedPath(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: dishMedia.id,
+              size: 1024,
+              originalPath: dishMedia.media_path,
+            },
+            'cdn',
+          );
     // 取得した CDN URL からプレフィックスを抽出
     const cdnUrlPrefix = cdnUrl.split('/').slice(0, -1).join('/');
 
@@ -104,12 +112,21 @@ export class DishMediaAssembler {
     cdnCookies.push(...this.storage.generateCdnSignedCookies(cdnUrlPrefix));
 
     return { mediaUrl, mediaUrls: { xl: cdnUrl } };
-  };
+  }
 
-  private async getThumbnailImageUrl(dishMedia: DishMediaEntryEntity["dish_media"], cdnCookies: string[]):
-    Promise<Pick<DishMediaEntry["dish_media"], "thumbnailImageUrl" | "thumbnailImageUrls">> {
+  private async getThumbnailImageUrl(
+    dishMedia: DishMediaEntryEntity['dish_media'],
+    cdnCookies: string[],
+  ): Promise<
+    Pick<
+      DishMediaEntry['dish_media'],
+      'thumbnailImageUrl' | 'thumbnailImageUrls'
+    >
+  > {
     // 原本の署名付き URL を生成
-    const thumbnailImageUrl = await this.storage.generateSignedUrl(dishMedia.thumbnail_path);
+    const thumbnailImageUrl = await this.storage.generateSignedUrl(
+      dishMedia.thumbnail_path,
+    );
 
     const cdnUrl = buildResizedPath(
       {
@@ -117,7 +134,7 @@ export class DishMediaAssembler {
         column: 'thumbnail_path',
         recordId: dishMedia.id,
         size: 256,
-        originalPath: dishMedia.thumbnail_path
+        originalPath: dishMedia.thumbnail_path,
       },
       'cdn',
     );

@@ -27,7 +27,7 @@ export class ResizeImageController {
   constructor(
     private readonly resizeImageService: ResizeImageService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * POST /internal/resize-image

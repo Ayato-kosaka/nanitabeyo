@@ -13,7 +13,7 @@ export class UsersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * ユーザーの収益一覧を取得
@@ -116,7 +116,7 @@ export class UsersRepository {
       data: {
         ...data,
         updated_at: new Date(),
-        lock_no: { increment: 1 }
+        lock_no: { increment: 1 },
       },
     });
     return result;

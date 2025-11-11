@@ -54,11 +54,17 @@ export class NotificationsService {
       ),
     );
     const actorEntries = await Promise.all(
-      actors.map(async (user) => await this.usersAssembler.enrichUserProfileWithAvatarUrls(user)),
+      actors.map(
+        async (user) =>
+          await this.usersAssembler.enrichUserProfileWithAvatarUrls(user),
+      ),
     );
-    const actorMap = new Map(actorEntries.map(({ id, display_name, avatarSignedUrl, avatarUrls }) => [
-      id, { id, display_name, avatarSignedUrl, avatarUrls }
-    ]));
+    const actorMap = new Map(
+      actorEntries.map(({ id, display_name, avatarSignedUrl, avatarUrls }) => [
+        id,
+        { id, display_name, avatarSignedUrl, avatarUrls },
+      ]),
+    );
 
     // dish_media ターゲットのエンティティを一括取得
     const { items: dishMediaItems, cdnCookies } =

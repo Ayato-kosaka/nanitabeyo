@@ -32,7 +32,6 @@ import {
 
 @Injectable()
 export class UsersMapper {
-
   /**
    * GET /v1/users/:id/dish-reviews のレスポンス変換
    */
@@ -41,13 +40,15 @@ export class UsersMapper {
     nextCursor: string | null;
   }): QueryUserDishReviewsResponse {
     return {
-      data: result.data.map(({ restaurant, dish, dish_media: dishMedia, dish_reviews }) => {
-        const dish_media = {
-          ...dishMedia,
-          isMe: dishMedia.isMe,
-        };
-        return { restaurant, dish, dish_media, dish_reviews };
-      }),
+      data: result.data.map(
+        ({ restaurant, dish, dish_media: dishMedia, dish_reviews }) => {
+          const dish_media = {
+            ...dishMedia,
+            isMe: dishMedia.isMe,
+          };
+          return { restaurant, dish, dish_media, dish_reviews };
+        },
+      ),
       nextCursor: result.nextCursor,
     };
   }

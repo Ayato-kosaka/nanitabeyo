@@ -21,7 +21,7 @@ import { UsersAssembler } from './users.assembler';
     LoggerModule,
     forwardRef(() => AuthModule), // For JWT Guards and CurrentUser decorator
     DishMediaModule,
-    CloudTasksModule
+    CloudTasksModule,
   ],
   controllers: [UsersController],
   providers: [
@@ -33,4 +33,4 @@ import { UsersAssembler } from './users.assembler';
   ],
   exports: [UsersService, UsersRepository, UsersAssembler],
 })
-export class UsersModule { }
+export class UsersModule {}

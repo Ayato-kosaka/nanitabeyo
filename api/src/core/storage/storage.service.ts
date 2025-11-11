@@ -8,11 +8,7 @@ import {
   UploadFileAtPathParams,
   UploadResult,
 } from './storage.types';
-import {
-  getExt,
-  buildFileName,
-  buildFullPath,
-} from './storage.utils';
+import { getExt, buildFileName, buildFullPath } from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 import * as crypto from 'crypto';
 

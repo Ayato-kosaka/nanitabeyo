@@ -13,7 +13,10 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishesRepository } from '../../v1/dishes/dishes.repository';
 import { convertSupabaseToPrisma_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertSupabaseToPrisma_Dishes } from '../../../../shared/converters/convert_dishes';
-import { convertSupabaseToPrisma_DishMedia, SupabaseDishMedia } from '../../../../shared/converters/convert_dish_media';
+import {
+  convertSupabaseToPrisma_DishMedia,
+  SupabaseDishMedia,
+} from '../../../../shared/converters/convert_dish_media';
 import { convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 
@@ -25,7 +28,7 @@ export class CreateDishMediaEntryService {
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
     private readonly cloudTasksService: CloudTasksService,
-  ) { }
+  ) {}
 
   /**
    * 非同期ジョブの処理メイン関数
@@ -120,41 +123,47 @@ export class CreateDishMediaEntryService {
     await Promise.allSettled(downloadPromises);
   }
 
-
-
   /**
    * 画像リサイズの非同期ジョブをキューに投入
    */
   private async enqueueResizeImageJob(dishMedia: SupabaseDishMedia) {
     return Promise.all([
       // メイン画像リサイズジョブ
-      this.cloudTasksService.enqueueResizeImage({
-        table: 'dish_media',
-        column: 'media_path',
-        recordId: dishMedia.id,
-        size: 1024,
-        originalPath: dishMedia.media_path,
-      }).catch((error) => {
-        this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
-          dishMediaId: dishMedia.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        throw error;
-      }),
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'dish_media',
+          column: 'media_path',
+          recordId: dishMedia.id,
+          size: 1024,
+          originalPath: dishMedia.media_path,
+        })
+        .catch((error) => {
+          this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
+            dishMediaId: dishMedia.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          throw error;
+        }),
       // サムネイル画像リサイズジョブ
-      this.cloudTasksService.enqueueResizeImage({
-        table: 'dish_media',
-        column: 'thumbnail_path',
-        recordId: dishMedia.id,
-        size: 256,
-        originalPath: dishMedia.thumbnail_path,
-      }).catch((error) => {
-        this.logger.error('EnqueueResizeThumbnailError', 'createDishMediaEntry', {
-          dishMediaId: dishMedia.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        throw error;
-      })
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'dish_media',
+          column: 'thumbnail_path',
+          recordId: dishMedia.id,
+          size: 256,
+          originalPath: dishMedia.thumbnail_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeThumbnailError',
+            'createDishMediaEntry',
+            {
+              dishMediaId: dishMedia.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
     ]);
   }
 

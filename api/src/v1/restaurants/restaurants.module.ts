@@ -33,4 +33,4 @@ import { DishMediaModule } from '../dish-media/dish-media.module';
     RestaurantsRepository,
   ],
 })
-export class RestaurantsModule { }
+export class RestaurantsModule {}

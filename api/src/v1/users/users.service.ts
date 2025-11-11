@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) { }
+  ) {}
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -51,12 +51,14 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */
   /* ------------------------------------------------------------------ */
-  async getUserDishReviews(userId: string, dto: QueryUserDishReviewsDto):
-    Promise<{
-      data: (DishMediaEntry & { dish_media: { isMe: boolean; } })[];
-      nextCursor: string | null;
-      cdnCookies: string[];
-    }> {
+  async getUserDishReviews(
+    userId: string,
+    dto: QueryUserDishReviewsDto,
+  ): Promise<{
+    data: (DishMediaEntry & { dish_media: { isMe: boolean } })[];
+    nextCursor: string | null;
+    cdnCookies: string[];
+  }> {
     this.logger.debug('GetUserDishReviews', 'getUserDishReviews', {
       userId,
       cursor: dto.cursor,
@@ -70,12 +72,16 @@ export class UsersService {
     const uniqueDishMediaIds = Array.from(
       new Set(reviews.map((r) => r.created_dish_media_id)),
     );
-    const dishMediaEntryItemsResult = await this.dishMediaService.fetchDishMediaEntryItems(
-      uniqueDishMediaIds,
-      { userId, reviewLimit: 0 },
-    );
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
+        userId,
+        reviewLimit: 0,
+      });
 
-    const dishMediaMap = new Map<string, (typeof dishMediaEntryItemsResult.items)[0]>(
+    const dishMediaMap = new Map<
+      string,
+      (typeof dishMediaEntryItemsResult.items)[0]
+    >(
       dishMediaEntryItemsResult.items.map((item) => [item.dish_media.id, item]),
     );
 
@@ -113,10 +119,12 @@ export class UsersService {
               ...dishMediaEntryItem?.dish_media,
               isMe: dishMediaEntryItem?.dish_media.user_id === userId,
             },
-            dish_reviews: [{
-              ...review,
-              ...convertPrismaToSupabase_DishReviews(review),
-            }],
+            dish_reviews: [
+              {
+                ...review,
+                ...convertPrismaToSupabase_DishReviews(review),
+              },
+            ],
           };
         })
         .filter((item) => item !== undefined),
@@ -146,12 +154,10 @@ export class UsersService {
 
     const dishMediaIds = likes.map((l) => l.dish_media_id);
 
-    const dishMediaEntryItemsResult = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
-      },
-    );
+      });
 
     const nextCursor =
       likes.length > 0
@@ -281,12 +287,10 @@ export class UsersService {
 
     const dishMediaIds = saves.map((s) => s.dish_media_id);
 
-    const dishMediaEntryItemsResult = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
-      },
-    );
+      });
 
     const nextCursor =
       saves.length > 0
@@ -323,13 +327,10 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   /*                      POST /v1/users/me                             */
   /* ------------------------------------------------------------------ */
-  async updateUserProfile(
-    userId: string,
-    dto: UpdateUserProfileDto,
-  ) {
+  async updateUserProfile(userId: string, dto: UpdateUserProfileDto) {
     this.logger.debug('UpdateUserProfile', 'updateUserProfile', {
       userId,
-      dto
+      dto,
     });
 
     // ユーザーが存在するか確認
@@ -339,7 +340,8 @@ export class UsersService {
     // #プロフィール画像 【設計】avatar_path が指定された場合のみ処理
     if (dto.avatar_path) {
       // #セキュリティ 【検証】ユーザーアップロード領域に限る
-      if (!isValidUserUploadedPath(dto.avatar_path, userId)) throw new ForbiddenException('Invalid avatar_path');
+      if (!isValidUserUploadedPath(dto.avatar_path, userId))
+        throw new ForbiddenException('Invalid avatar_path');
 
       // 画像のリサイズと保存を実行（プロフィールのサムネ用）
       await this.cloudTasks.enqueueResizeImage({

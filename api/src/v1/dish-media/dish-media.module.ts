@@ -41,4 +41,4 @@ import { DishMediaAssembler } from './dish-media.assembler';
     DishMediaRepository,
   ],
 })
-export class DishMediaModule { }
+export class DishMediaModule {}

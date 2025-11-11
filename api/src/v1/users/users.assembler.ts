@@ -7,16 +7,22 @@ import { Injectable } from '@nestjs/common';
 import { UserProfile } from '@shared/v1/res';
 import { StorageService } from '../../core/storage/storage.service';
 import { buildResizedPath } from '../../core/storage/storage.utils';
-import { convertPrismaToSupabase_Users, PrismaUsers, SupabaseUsers } from '../../../../shared/converters/convert_users';
+import {
+  convertPrismaToSupabase_Users,
+  PrismaUsers,
+  SupabaseUsers,
+} from '../../../../shared/converters/convert_users';
 
 @Injectable()
 export class UsersAssembler {
-  constructor(private readonly storage: StorageService) { }
+  constructor(private readonly storage: StorageService) {}
 
   /**
    * ユーザープロフィールに avatar URL 群を付与
    */
-  async enrichUserProfileWithAvatarUrls(user: PrismaUsers): Promise<UserProfile> {
+  async enrichUserProfileWithAvatarUrls(
+    user: PrismaUsers,
+  ): Promise<UserProfile> {
     const supabaseUsers: SupabaseUsers = convertPrismaToSupabase_Users(user);
 
     // #プロフィール画像 【設計】avatar_path がある場合のみ
@@ -51,7 +57,9 @@ export class UsersAssembler {
         ),
       };
 
-      this.storage.generateCdnSignedCookies(avatarUrls.sm.split('/').slice(0, -1).join('/'));
+      this.storage.generateCdnSignedCookies(
+        avatarUrls.sm.split('/').slice(0, -1).join('/'),
+      );
     }
 
     return { ...supabaseUsers, avatarSignedUrl, avatarUrls };

@@ -153,7 +153,7 @@ export async function selectMedia(
 		shouldGenerateThumbnail?: boolean;
 		allowsEditing?: boolean;
 		aspect?: [number, number];
-	}
+	},
 ): Promise<MediaSelectionResult> {
 	try {
 		// Request permissions

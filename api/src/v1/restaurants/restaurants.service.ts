@@ -38,7 +38,7 @@ export class RestaurantsService {
     private readonly dishesRepository: DishesRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -239,12 +239,10 @@ export class RestaurantsService {
       (l) => l.dish_media_id,
     );
 
-    const dishMediaEntryItemsResult = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
-      },
-    );
+      });
 
     this.logger.debug(
       'GetRestaurantDishMediaResult',

@@ -16,4 +16,4 @@ import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
   controllers: [DishesController],
   providers: [CreateDishMediaEntryService],
 })
-export class InternalDishesModule { }
+export class InternalDishesModule {}

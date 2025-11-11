@@ -28,7 +28,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * Get the original image path from database
@@ -192,7 +192,9 @@ export class ResizeImageService {
       }
 
       // Download original image
-      const originalBuffer = await this.downloadOriginalImage(params.originalPath);
+      const originalBuffer = await this.downloadOriginalImage(
+        params.originalPath,
+      );
 
       // Resize image
       const resizedBuffer = await this.resizeImage(originalBuffer, params.size);

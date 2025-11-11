@@ -20,7 +20,8 @@ export const otherUserProfile: SupabaseUsers = {
 	id: "user_456",
 	username: "chef_master",
 	display_name: "Chef Master",
-	avatar_path: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200&h=200",
+	avatar_path:
+		"https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200&h=200",
 	bio: "👨‍🍳 Professional chef & food creator\n🏆 Michelin starred restaurant owner\n📚 Sharing recipes & cooking tips",
 	preferred_locale: "ar",
 	created_at: new Date().toISOString(),
