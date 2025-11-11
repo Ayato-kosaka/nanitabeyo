@@ -6,27 +6,30 @@ import i18n from "@/lib/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareForm } from "@/features/blurModal/components/form";
 import { AvatarImageCard } from "./AvatarImageCard";
-import { SupabaseUsers } from "@shared/converters/convert_users";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { useAPICall } from "@/hooks/useAPICall";
 import { UpdateUserProfileDto } from "@shared/api/v1/dto";
-import { UpdateUserProfileResponse } from "@shared/api/v1/res";
+import type { GetUserProfileResponse, UpdateUserProfileResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 const FIELD = ["display_name", "avatar", "bio"] as const;
 type ProfileEditFormData = { [K in (typeof FIELD)[number]]: string };
 interface ProfileEditFormProps {
 	/** Initial values for the form */
-	initialValues: SupabaseUsers;
+	initialValues: GetUserProfileResponse;
 	/** Called to update profile in parent component */
-	setProfile: React.Dispatch<React.SetStateAction<SupabaseUsers | null>>;
+	setProfile: React.Dispatch<React.SetStateAction<GetUserProfileResponse | null>>;
 	/** Called when user cancels (usually to close modal) */
 	onCancel: () => void;
 	/** Called to close the modal */
 	close: () => void;
 }
+
+export const getAvatarUrl = (user: GetUserProfileResponse): string | null => {
+	return user.avatarUrls?.sm || user.avatarSignedUrl || null;
+};
 
 /**
  * Profile edit form component that manages its own internal state to prevent
@@ -42,7 +45,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 
 	// Internal state - isolated from parent re-renders
 	const [avatar, setAvatar] = useState<{ uri: string | null; mimeType: string | null }>({
-		uri: initialValues.avatar,
+		uri: getAvatarUrl(initialValues),
 		mimeType: null,
 	});
 	const [display_name, setDisplayName] = useState(initialValues.display_name);
@@ -59,7 +62,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 		let uploadedAvatarPath: string | null | undefined = undefined;
 		if (avatar.uri === null) {
 			uploadedAvatarPath = null;
-		} else if (avatar.uri !== initialValues.avatar) {
+		} else if (avatar.uri !== getAvatarUrl(initialValues)) {
 			try {
 				if (!avatar.mimeType) throw new Error("Avatar mimeType is missing");
 				uploadedAvatarPath = await uploadFile(avatar.uri, {
@@ -116,7 +119,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 		mediumImpact,
 		setProfile,
 		avatar,
-		initialValues.avatar,
+		initialValues,
 		uploadFile,
 		logFrontendEvent,
 		callBackend,

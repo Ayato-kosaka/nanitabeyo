@@ -1,6 +1,7 @@
+import { GetUserProfileResponse } from "@shared/api/v1/res";
 import { SupabaseUsers } from "@shared/converters/convert_users";
 
-const getGuestProfile = (): SupabaseUsers => ({
+const getGuestProfile = (): GetUserProfileResponse => ({
 	id: "guest",
 	username: "guest",
 	display_name: "Guest",
@@ -13,7 +14,7 @@ const getGuestProfile = (): SupabaseUsers => ({
 	updated_at: new Date().toISOString(),
 });
 
-export const userProfile: SupabaseUsers = getGuestProfile();
+export const userProfile: GetUserProfileResponse = getGuestProfile();
 
 export const otherUserProfile: SupabaseUsers = {
 	id: "user_456",

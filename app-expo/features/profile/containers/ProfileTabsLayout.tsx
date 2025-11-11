@@ -15,13 +15,12 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { mockBids, mockEarnings } from "../constants";
-import { ProfileEditForm } from "../components/ProfileEditForm";
+import { getAvatarUrl, ProfileEditForm } from "../components/ProfileEditForm";
 import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Image } from "expo-image";
-import { SupabaseUsers } from "@shared/converters/convert_users";
 import { userProfile } from "@/data/profileData";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { GetUserProfileResponse } from "@shared/api/v1/res";
@@ -43,7 +42,7 @@ export function ProfileTabsLayout() {
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
-	const [profile, setProfile] = useState<SupabaseUsers | null>(null);
+	const [profile, setProfile] = useState<GetUserProfileResponse | null>(null);
 
 	const isOwnProfile = useMemo(() => !userId || userId === "me", [userId]);
 	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
@@ -59,7 +58,8 @@ export function ProfileTabsLayout() {
 					method: "GET",
 					requestPayload: {},
 				});
-				data.avatar && (await Image.prefetch(data.avatar));
+				const avatarUrl = getAvatarUrl(data);
+				avatarUrl && (await Image.prefetch(avatarUrl));
 				setProfile(data);
 			} catch (error: any) {
 				logFrontendEvent({
