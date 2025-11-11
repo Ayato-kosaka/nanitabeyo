@@ -906,7 +906,7 @@ export type Database = {
           created_at: string
           google_place_id: string
           id: string
-          image_path: string
+          image_path: string | null
           image_url: string
           latitude: number
           location: unknown
@@ -920,7 +920,7 @@ export type Database = {
           created_at?: string
           google_place_id: string
           id?: string
-          image_path: string
+          image_path?: string | null
           image_url: string
           latitude: number
           location?: unknown
@@ -934,7 +934,7 @@ export type Database = {
           created_at?: string
           google_place_id?: string
           id?: string
-          image_path?: string
+          image_path?: string | null
           image_url?: string
           latitude?: number
           location?: unknown

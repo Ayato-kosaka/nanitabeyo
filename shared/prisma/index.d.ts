@@ -27397,7 +27397,7 @@ export namespace Prisma {
     address_components: JsonValue
     plus_code: JsonValue | null
     created_at: Date
-    image_path: string
+    image_path: string | null
     _count: RestaurantsCountAggregateOutputType | null
     _avg: RestaurantsAvgAggregateOutputType | null
     _sum: RestaurantsSumAggregateOutputType | null
@@ -27504,7 +27504,7 @@ export namespace Prisma {
       address_components: Prisma.JsonValue
       plus_code: Prisma.JsonValue | null
       created_at: Date
-      image_path: string
+      image_path: string | null
     }, ExtArgs["result"]["restaurants"]>
     composites: {}
   }
@@ -33777,7 +33777,7 @@ export namespace Prisma {
     address_components?: JsonFilter<"restaurants">
     plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
-    image_path?: StringFilter<"restaurants"> | string
+    image_path?: StringNullableFilter<"restaurants"> | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
   }
@@ -33793,7 +33793,7 @@ export namespace Prisma {
     address_components?: SortOrder
     plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
-    image_path?: SortOrder
+    image_path?: SortOrderInput | SortOrder
     dishes?: dishesOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
   }
@@ -33812,7 +33812,7 @@ export namespace Prisma {
     address_components?: JsonFilter<"restaurants">
     plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
-    image_path?: StringFilter<"restaurants"> | string
+    image_path?: StringNullableFilter<"restaurants"> | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
   }, "id" | "google_place_id">
@@ -33828,7 +33828,7 @@ export namespace Prisma {
     address_components?: SortOrder
     plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
-    image_path?: SortOrder
+    image_path?: SortOrderInput | SortOrder
     _count?: restaurantsCountOrderByAggregateInput
     _avg?: restaurantsAvgOrderByAggregateInput
     _max?: restaurantsMaxOrderByAggregateInput
@@ -33850,7 +33850,7 @@ export namespace Prisma {
     address_components?: JsonWithAggregatesFilter<"restaurants">
     plus_code?: JsonNullableWithAggregatesFilter<"restaurants">
     created_at?: DateTimeWithAggregatesFilter<"restaurants"> | Date | string
-    image_path?: StringWithAggregatesFilter<"restaurants"> | string
+    image_path?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
   }
 
   export type user_device_tokensWhereInput = {
@@ -35762,7 +35762,7 @@ export namespace Prisma {
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
-    image_path: string
+    image_path?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
@@ -35778,7 +35778,7 @@ export namespace Prisma {
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
-    image_path: string
+    image_path?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -35794,7 +35794,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
@@ -35810,7 +35810,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
@@ -35826,7 +35826,7 @@ export namespace Prisma {
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
-    image_path: string
+    image_path?: string | null
   }
 
   export type restaurantsUpdateManyMutationInput = {
@@ -35840,7 +35840,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type restaurantsUncheckedUpdateManyInput = {
@@ -35854,7 +35854,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type user_device_tokensCreateInput = {
@@ -40752,7 +40752,7 @@ export namespace Prisma {
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
-    image_path: string
+    image_path?: string | null
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -40767,7 +40767,7 @@ export namespace Prisma {
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
-    image_path: string
+    image_path?: string | null
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -40903,7 +40903,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
 
@@ -40918,7 +40918,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
@@ -41344,7 +41344,7 @@ export namespace Prisma {
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
-    image_path: string
+    image_path?: string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -41359,7 +41359,7 @@ export namespace Prisma {
     address_components: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
-    image_path: string
+    image_path?: string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -41443,7 +41443,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
   }
 
@@ -41458,7 +41458,7 @@ export namespace Prisma {
     address_components?: JsonNullValueInput | InputJsonValue
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    image_path?: StringFieldUpdateOperationsInput | string
+    image_path?: NullableStringFieldUpdateOperationsInput | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
