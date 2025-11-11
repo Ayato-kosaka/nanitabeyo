@@ -30,7 +30,7 @@ import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
 import { DishMediaEntry } from '@shared/v1/res';
-import { convertPrismaToSupabase_DishReviews, convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class UsersService {
