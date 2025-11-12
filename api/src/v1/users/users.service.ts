@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -57,7 +57,6 @@ export class UsersService {
   ): Promise<{
     data: (DishMediaEntry & { dish_media: { isMe: boolean } })[];
     nextCursor: string | null;
-    cdnCookies: string[];
   }> {
     this.logger.debug('GetUserDishReviews', 'getUserDishReviews', {
       userId,
@@ -93,7 +92,6 @@ export class UsersService {
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: reviews.length,
       nextCursor,
-      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
@@ -129,7 +127,6 @@ export class UsersService {
         })
         .filter((item) => item !== undefined),
       nextCursor,
-      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 
@@ -167,13 +164,11 @@ export class UsersService {
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
       count: dishMediaEntryItemsResult.items.length,
       nextCursor,
-      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
       data: dishMediaEntryItemsResult.items,
       nextCursor,
-      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 
@@ -300,13 +295,11 @@ export class UsersService {
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
       count: dishMediaEntryItemsResult.items.length,
       nextCursor,
-      hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
     });
 
     return {
       data: dishMediaEntryItemsResult.items,
       nextCursor,
-      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 

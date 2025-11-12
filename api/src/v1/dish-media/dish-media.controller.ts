@@ -56,7 +56,7 @@ import { DishMediaService } from './dish-media.service';
 @ApiTags('DishMedia')
 @Controller('v1/dish-media')
 export class DishMediaController {
-  constructor(private readonly dishMediaService: DishMediaService) {}
+  constructor(private readonly dishMediaService: DishMediaService) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -78,20 +78,6 @@ export class DishMediaController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryDishMediaByIdsResponse> {
     const result = await this.dishMediaService.findByIds(query.ids, user?.id);
-
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
 
     return {
       items: result.items,
@@ -120,20 +106,6 @@ export class DishMediaController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<SearchDishMediaResponse> {
     const result = await this.dishMediaService.findByCriteria(query, user.id);
-
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
 
     return result.items;
   }

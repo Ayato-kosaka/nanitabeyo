@@ -29,8 +29,7 @@ export class DishMediaAssembler {
    */
   toDishMediaEntry(
     dishMediaEntryEntities: DishMediaEntryEntity[],
-  ): { items: DishMediaEntry[]; cdnCookies: string[] } {
-    const cdnCookies: string[] = [];
+  ): { items: DishMediaEntry[]; } {
     const items = dishMediaEntryEntities.map((src) => {
       const restaurant = this.restaurantsAssembler.enrichRestaurantsWithImageUrls(src.restaurant);
 
@@ -43,8 +42,8 @@ export class DishMediaAssembler {
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-      const mediaUrl = this.getMediaUrl(src.dish_media, cdnCookies)
-      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media, cdnCookies)
+      const mediaUrl = this.getMediaUrl(src.dish_media)
+      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media)
       const dish_media = {
         ...dishMediaBase,
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
@@ -69,7 +68,7 @@ export class DishMediaAssembler {
       return { restaurant, dish, dish_media, dish_reviews };
     },
     );
-    return { items, cdnCookies };
+    return { items };
   }
 
   /**
@@ -77,7 +76,6 @@ export class DishMediaAssembler {
    */
   private getMediaUrl(
     dishMedia: DishMediaEntryEntity['dish_media'],
-    cdnCookies: string[],
   ): string {
     const cdnUrl =
       dishMedia.media_type === 'video'
@@ -103,7 +101,6 @@ export class DishMediaAssembler {
 
   private getThumbnailImageUrl(
     dishMedia: DishMediaEntryEntity['dish_media'],
-    cdnCookies: string[],
   ): string {
     const cdnUrl = buildResizedPath(
       {

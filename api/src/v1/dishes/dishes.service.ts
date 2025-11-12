@@ -274,7 +274,6 @@ export class DishesService {
         const BulkImportDishesResponseEntry: BulkImportDishesResponse[0] = {
           restaurant: {
             ...restaurant,
-            imageSignedUrl: photoMedia.photoUri,
             imageUrls: {
               sm: photoMedia.photoUri,
               md: photoMedia.photoUri,

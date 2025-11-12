@@ -60,7 +60,6 @@ export class DishMediaService {
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
       count: result.items.length,
-      hasCookies: !!result.cdnCookies,
     });
     return result;
   }
@@ -84,10 +83,9 @@ export class DishMediaService {
     this.logger.debug('FindByIdsResult', 'findByIds', {
       count: result.items.length,
       notFound: notFound.length,
-      hasCookies: !!result.cdnCookies,
     });
 
-    return { items: result.items, notFound, cdnCookies: result.cdnCookies };
+    return { items: result.items, notFound };
   }
 
   /**
@@ -100,8 +98,8 @@ export class DishMediaService {
       userId?: string;
       reviewLimit?: number;
     },
-  ): Promise<{ items: DishMediaEntry[]; cdnCookies: string[] }> {
-    if (!dishMediaIds.length) return { items: [], cdnCookies: [] };
+  ): Promise<{ items: DishMediaEntry[]; }> {
+    if (!dishMediaIds.length) return { items: [] };
 
     const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(
       dishMediaIds,

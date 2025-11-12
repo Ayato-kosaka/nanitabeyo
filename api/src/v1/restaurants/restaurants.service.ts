@@ -260,7 +260,6 @@ export class RestaurantsService {
     userId?: string,
   ): Promise<{
     response: QueryRestaurantDishMediaResponse;
-    cdnCookies?: string[];
   }> {
     this.logger.debug('GetRestaurantDishMedia', 'getRestaurantDishMedia', {
       restaurantId,
@@ -301,7 +300,6 @@ export class RestaurantsService {
       'getRestaurantDishMedia',
       {
         count: dishMediaEntryItemsResult.items.length,
-        hasCookies: !!dishMediaEntryItemsResult.cdnCookies,
       },
     );
 
@@ -310,7 +308,6 @@ export class RestaurantsService {
         data: dishMediaEntryItemsResult.items,
         nextCursor: dishMediaByRestaurant.nextCursor,
       },
-      cdnCookies: dishMediaEntryItemsResult.cdnCookies,
     };
   }
 

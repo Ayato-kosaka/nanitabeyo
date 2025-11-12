@@ -65,7 +65,7 @@ export class NotificationsService {
     );
 
     // dish_media ターゲットのエンティティを一括取得
-    const { items: dishMediaItems, cdnCookies } =
+    const { items: dishMediaItems } =
       await this.dishMediaService.fetchDishMediaEntryItems(
         items
           .filter((item) => item.notifications.target_table === 'dish_media')
@@ -90,7 +90,6 @@ export class NotificationsService {
     return {
       items: notificationItems,
       nextCursor,
-      cdnCookies,
     };
   }
 

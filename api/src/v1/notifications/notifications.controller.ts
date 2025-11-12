@@ -42,7 +42,7 @@ import { Response } from 'express';
 @ApiTags('Notifications')
 @Controller('v1/notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly notificationsService: NotificationsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/notifications                         */
@@ -77,20 +77,6 @@ export class NotificationsController {
       user.id,
       query,
     );
-
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
 
     return {
       items: result.items,
