@@ -13,7 +13,7 @@ run_url: "https://api-production-386582543095.asia-northeast1.run.app/internal/r
 oidc_service_account_email: "tasks-invoker@food-scroll.iam.gserviceaccount.com"
 
 # Cloud Run 側が検証する audience
-oidc_audience: "https://api-production-386582543095.asia-northeast1.run.app/internal/resize-image"
+oidc_audience: "https://api-production-386582543095.asia-northeast1.run.app"
 
 # HTTP リクエスト設定
 http_method: "POST"

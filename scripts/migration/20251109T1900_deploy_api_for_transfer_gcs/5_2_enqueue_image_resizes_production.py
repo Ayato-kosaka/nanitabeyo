@@ -205,9 +205,9 @@ def main():
     parent = client.queue_path(project_id, location, queue)
 
     # DB 接続（psycopg v3）
-    # autocommit=True で読み取り主体のためトランザクション簡略化
+    # autocommit=False で読み取り主体のためトランザクション簡略化
     print("[INFO] connecting to PostgreSQL...")
-    with psycopg.connect(args.pg_url, autocommit=True) as conn:
+    with psycopg.connect(args.pg_url, autocommit=False) as conn:
         print("[INFO] connected. starting enqueue...")
 
         total_created = 0
@@ -222,7 +222,7 @@ def main():
                 body = build_payload(
                     table="dish_media",
                     column="media_path",
-                    record_id=record_id,
+                    record_id=str(record_id),
                     size=1024,
                     original_path=original_path,
                     aspect_ratio=ASPECT_9_16,
@@ -253,7 +253,7 @@ def main():
                 body = build_payload(
                     table="dish_media",
                     column="thumbnail_path",
-                    record_id=record_id,
+                    record_id=str(record_id),
                     size=256,
                     original_path=original_path,
                     aspect_ratio=ASPECT_9_16,
@@ -285,7 +285,7 @@ def main():
                     body = build_payload(
                         table="restaurants",
                         column="image_path",
-                        record_id=record_id,
+                        record_id=str(record_id),
                         size=size,
                         original_path=original_path,
                         aspect_ratio=ASPECT_9_16,
@@ -317,7 +317,7 @@ def main():
                     body = build_payload(
                         table="users",
                         column="avatar_path",
-                        record_id=record_id,
+                        record_id=str(record_id),
                         size=size,
                         original_path=original_path,
                         # aspect_ratio は None のまま（キーを送らない）

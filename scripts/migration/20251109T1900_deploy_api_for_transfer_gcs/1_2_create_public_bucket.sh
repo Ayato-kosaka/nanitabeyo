@@ -8,6 +8,9 @@ ENV_NAME="${ENV_NAME:-develop}"
 load_env
 gcloud_check
 
+# PAP を解除したい（= public で使いたい）ので、ENV で指定
+export PUBLIC_ACCESS_PREVENTION=unspecified
+
 INFRA="$(infra_path)"
 
 log "Creating/ensuring PUBLIC bucket: ${PUBLIC_BUCKET} in ${REGION} (${STORAGE_CLASS}, UBLA=${UBLA})"
