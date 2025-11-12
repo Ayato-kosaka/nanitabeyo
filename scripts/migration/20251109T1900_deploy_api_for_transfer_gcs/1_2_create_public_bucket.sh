@@ -14,8 +14,7 @@ log "Creating/ensuring PUBLIC bucket: ${PUBLIC_BUCKET} in ${REGION} (${STORAGE_C
 run_cmd "${INFRA}/create-gcs-bucket.sh" "${PUBLIC_BUCKET}" "${REGION}" "${STORAGE_CLASS}" "${UBLA}"
 
 log "Disabling Public Access Prevention on PUBLIC bucket: ${PUBLIC_BUCKET}"
-gcloud storage buckets update gs://${PUBLIC_BUCKET} \
-  --public-access-prevention=unspecified
+run_cmd gcloud storage buckets update "gs://${PUBLIC_BUCKET}" --clear-pap
 
 log "Making PUBLIC bucket (${PUBLIC_BUCKET}) objects publicly readable"
 gcloud storage buckets add-iam-policy-binding gs://${PUBLIC_BUCKET} \
@@ -33,6 +32,6 @@ cat > /tmp/cors.json <<'JSON'
   }
 ]
 JSON
-gcloud storage buckets update gs://${PUBLIC_BUCKET} --cors-file=/tmp/cors.json
+run_cmd gcloud storage buckets update "gs://${PUBLIC_BUCKET}" --cors-file=/tmp/cors.json
 
 ok "Public bucket ready: ${PUBLIC_BUCKET}"
