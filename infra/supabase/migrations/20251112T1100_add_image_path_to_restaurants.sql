@@ -4,7 +4,7 @@
 -- - 既存の `image_url` は **非推奨 (deprecate)** とし、当面は残す。
 -- - まずは `image_path` を追加 → バックフィル → 検証 の順で厳格化する。
 -- - バックフィル方針
---    restaurant_id` ごとに **最古の dishes** → その **最古の dish_media** の `thumbnail_path` を使用（存在すれば）。
+--    `restaurant_id` ごとに **最古の dishes** → その **最古の dish_media** の `thumbnail_path` を使用（存在すれば）。
 -- - すべての `restaurants` レコードに、`image_path` が `development/google-maps/photo/` または `production/google-maps/photo/` で始まることを検証し、満たさなければ失敗させる。
 ------------------------------------------------------------------------------------------------------------------------------------------
 -- ## 背景 / 目的
