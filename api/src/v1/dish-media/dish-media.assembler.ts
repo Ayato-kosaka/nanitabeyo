@@ -5,7 +5,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { StorageService } from '../../core/storage/storage.service';
-import { buildResizedPath } from '../../core/storage/storage.utils';
+import { buildResizedPath, buildTranscodedPath } from '../../core/storage/storage.utils';
 import { DishMediaEntryEntity } from './dish-media.repository';
 import { DishMediaEntry } from '@shared/v1/res';
 
@@ -21,7 +21,7 @@ export class DishMediaAssembler {
   constructor(
     private readonly storage: StorageService,
     private readonly restaurantsAssembler: RestaurantsAssembler,
-  ) {}
+  ) { }
 
   /**
    * Repository から取得した `DishMediaEntryEntity[]` を
@@ -80,18 +80,24 @@ export class DishMediaAssembler {
     const cdnUrl =
       dishMedia.media_type === 'video'
         ? // 動画の場合の HLS マスター再生リスト CDN URL
-          `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${dishMedia.id}/master.m3u8`
+        buildTranscodedPath({
+          table: 'dish_media',
+          column: 'media_path',
+          recordId: dishMedia.id,
+          originalPath: dishMedia.media_path,
+        },
+          'cdn')
         : // 画像の場合のリサイズ CDN URL
-          buildResizedPath(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: dishMedia.id,
-              size: 1024,
-              originalPath: dishMedia.media_path,
-            },
-            'cdn',
-          );
+        buildResizedPath(
+          {
+            table: 'dish_media',
+            column: 'media_path',
+            recordId: dishMedia.id,
+            size: 1024,
+            originalPath: dishMedia.media_path,
+          },
+          'cdn',
+        );
 
     // 派生サイズの署名付き CDN URL を生成
     const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl, {

@@ -23,7 +23,7 @@ import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { env } from '../../core/config/env';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
-import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
+import { buildTranscodedPath, isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { DishMediaAssembler } from './dish-media.assembler';
 import { DishMediaEntry } from '@shared/v1/res';
 
@@ -36,7 +36,7 @@ export class DishMediaService {
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -147,7 +147,12 @@ export class DishMediaService {
     if (dto.mediaType === 'video') {
       // video の場合、トランスコードジョブを直接作成
       const inputUri = `gs://${env.GCS_BUCKET_NAME}/${dto.mediaPath}`;
-      const outputUri = `gs://${env.GCS_BUCKET_NAME}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${result.id}/`;
+      const outputUri = `gs://${buildTranscodedPath({
+        table: 'dish_media',
+        column: 'media_path',
+        recordId: result.id,
+        originalPath: dto.mediaPath,
+      }).replace(/\/master\.m3u8$/, '/')}`; // ディレクトリパスにするため末尾の master.m3u8 を削除
 
       await this.transcoder.createTranscodeJob({
         inputUri,
