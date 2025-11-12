@@ -17,14 +17,14 @@ import { StaticMasterService } from './static-master.service';
           env.API_NODE_ENV === 'production'
             ? {}
             : {
-              projectId: env.GCP_PROJECT,
-              credentials: JSON.parse(
-                Buffer.from(
-                  env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
-                  'base64',
-                ).toString('utf-8'),
-              ),
-            };
+                projectId: env.GCP_PROJECT,
+                credentials: JSON.parse(
+                  Buffer.from(
+                    env.GCS_DEV_SERVICE_ACCOUNT_BASE64!,
+                    'base64',
+                  ).toString('utf-8'),
+                ),
+              };
         return new Storage(opts);
       },
     },
@@ -32,4 +32,4 @@ import { StaticMasterService } from './static-master.service';
   ],
   exports: [StaticMasterService],
 })
-export class StaticMasterModule { }
+export class StaticMasterModule {}

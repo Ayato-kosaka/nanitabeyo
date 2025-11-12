@@ -22,7 +22,7 @@ export class NotificationJobService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly userService: UsersService,
-  ) { }
+  ) {}
 
   /**
    * 通知ジョブを処理
@@ -217,9 +217,7 @@ export class NotificationJobService {
     const splitLocale = recipient.preferred_locale.split('-')[0];
     if (SUPPORTED_LOCALES.includes(recipient.preferred_locale as any)) {
       locale = recipient.preferred_locale as (typeof SUPPORTED_LOCALES)[number];
-    } else if (
-      splitLocale && SUPPORTED_LOCALES.includes(splitLocale as any)
-    ) {
+    } else if (splitLocale && SUPPORTED_LOCALES.includes(splitLocale as any)) {
       locale = splitLocale as (typeof SUPPORTED_LOCALES)[number];
     }
 

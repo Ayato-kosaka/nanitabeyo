@@ -8,4 +8,4 @@ import { StaticMasterModule } from '../static-master/static-master.module';
   providers: [RemoteConfigService],
   exports: [RemoteConfigService],
 })
-export class RemoteConfigModule { }
+export class RemoteConfigModule {}

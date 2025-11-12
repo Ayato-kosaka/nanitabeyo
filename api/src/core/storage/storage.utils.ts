@@ -58,22 +58,31 @@ export function buildResizedPath(
 ): string {
   const originalFileName = params.originalPath.split('/').pop();
   if (!originalFileName) throw new Error('Invalid originalPath');
-  const fileNameWithoutExt = originalFileName.replace(/\.[^/.]+$/, '').split('.')[0];
+  const fileNameWithoutExt = originalFileName
+    .replace(/\.[^/.]+$/, '')
+    .split('.')[0];
   const gcsPath = `${env.API_NODE_ENV}/resized-image/${params.table}/${params.column}/${params.recordId}/${fileNameWithoutExt}/${params.size}.webp`;
   return type === 'gcs' ? gcsPath : `https://${env.CDN_HOST}/${gcsPath}`;
 }
 
-/** 
+/**
  * Build the transcoded video path based on naming convention
  * ${env}/transcoded-video/${table}/${column}/${recordId}/${fileName}/${format}
  */
 export function buildTranscodedPath(
-  params: { table: string; column: string; recordId: string; originalPath: string },
+  params: {
+    table: string;
+    column: string;
+    recordId: string;
+    originalPath: string;
+  },
   type: 'gcs' | 'cdn' = 'gcs',
 ): string {
   const originalFileName = params.originalPath.split('/').pop();
   if (!originalFileName) throw new Error('Invalid originalPath');
-  const fileNameWithoutExt = originalFileName.replace(/\.[^/.]+$/, '').split('.')[0];
+  const fileNameWithoutExt = originalFileName
+    .replace(/\.[^/.]+$/, '')
+    .split('.')[0];
   const gcsPath = `${env.API_NODE_ENV}/transcoded-video/${params.table}/${params.column}/${params.recordId}/${fileNameWithoutExt}/master.m3u8`;
   return type === 'gcs' ? gcsPath : `https://${env.CDN_HOST}/${gcsPath}`;
 }

@@ -14,7 +14,7 @@ import {
 
 @Injectable()
 export class RestaurantsAssembler {
-  constructor(private readonly storage: StorageService) { }
+  constructor(private readonly storage: StorageService) {}
 
   /**
    * レストランプロフィールに署名付き CDN URL群を付与する
@@ -22,7 +22,8 @@ export class RestaurantsAssembler {
   enrichRestaurantsWithImageUrls(
     restaurants: PrismaRestaurants,
   ): RestaurantsEntity {
-    const supabaseRestaurants: SupabaseRestaurants = convertPrismaToSupabase_Restaurants(restaurants);
+    const supabaseRestaurants: SupabaseRestaurants =
+      convertPrismaToSupabase_Restaurants(restaurants);
 
     // レストランの写真がある場合のみ、
     // 派生サイズ の署名付き CDN URL群 を生成して付与する

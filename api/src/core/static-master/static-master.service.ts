@@ -14,9 +14,7 @@ export class StaticMasterService {
   /** GCS バケットハンドル（ctor で安全に初期化） */
   private readonly bucket: Bucket;
 
-  constructor(
-    @Inject(STATIC_MASTER_CLIENT) private readonly storage: Storage,
-  ) {
+  constructor(@Inject(STATIC_MASTER_CLIENT) private readonly storage: Storage) {
     this.bucket = this.storage.bucket(env.GCS_BUCKET_PUBLIC_NAME);
   }
 
@@ -66,7 +64,7 @@ export class StaticMasterService {
    * @param tableName - テーブル名
    * @returns テーブルのデータ
    */
-  private async loadStaticMaster<T extends keyof Database["dev"]["Tables"]>(
+  private async loadStaticMaster<T extends keyof Database['dev']['Tables']>(
     dirPath: string,
     tableName: T,
   ) {
@@ -118,7 +116,7 @@ export class StaticMasterService {
         );
       }
 
-      return (jsonData as { data: T[] }).data as unknown as TableRow<T>[];;
+      return (jsonData as { data: T[] }).data as unknown as TableRow<T>[];
     } catch (err: any) {
       // 404/権限/ネットワークなどをここでログ（メッセージは仕様の文言を優先）
       // ただし file.exists()/download() で throw された内部エラーは

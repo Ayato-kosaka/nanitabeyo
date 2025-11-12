@@ -10,4 +10,4 @@ import { StaticMasterModule } from '../static-master/static-master.module';
   providers: [PromptService],
   exports: [PromptService],
 })
-export class PromptModule { }
+export class PromptModule {}

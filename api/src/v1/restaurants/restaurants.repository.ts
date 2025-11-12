@@ -38,7 +38,7 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                    Restaurant search queries (nearby + bidding status)                    */
@@ -58,13 +58,25 @@ export class RestaurantsRepository {
     const radiusInDegrees = radiusInKm / 111; // Rough conversion (1 degree ≈ 111 km)
 
     const rawResult = await tx.$queryRaw<
-      (Pick<PrismaRestaurants, 'id' | 'google_place_id' | 'name' | 'name_language_code' | 'latitude' | 'longitude' | 'image_url' | 'image_path' | 'address_components' | 'plus_code' | 'created_at'>
-        & {
-          review_count: number;
-          average_rating: number;
-          total_cents: number;
-          max_end_date: string | null;
-        })[]
+      (Pick<
+        PrismaRestaurants,
+        | 'id'
+        | 'google_place_id'
+        | 'name'
+        | 'name_language_code'
+        | 'latitude'
+        | 'longitude'
+        | 'image_url'
+        | 'image_path'
+        | 'address_components'
+        | 'plus_code'
+        | 'created_at'
+      > & {
+        review_count: number;
+        average_rating: number;
+        total_cents: number;
+        max_end_date: string | null;
+      })[]
     >`
       SELECT 
         r.id,
