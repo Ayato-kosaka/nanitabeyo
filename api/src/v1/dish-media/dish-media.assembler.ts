@@ -27,51 +27,48 @@ export class DishMediaAssembler {
    * Repository から取得した `DishMediaEntryEntity[]` を
    * Controller 公開型の `DishMediaEntry[]` へ変換
    */
-  async toDishMediaEntry(
+  toDishMediaEntry(
     dishMediaEntryEntities: DishMediaEntryEntity[],
-  ): Promise<{ items: DishMediaEntry[]; cdnCookies: string[] }> {
+  ): { items: DishMediaEntry[]; cdnCookies: string[] } {
     const cdnCookies: string[] = [];
-    const items = await mapWithConcurrency(
-      dishMediaEntryEntities,
-      async (src) => {
-        const restaurant = await this.restaurantsAssembler.enrichRestaurantsWithImageUrls(src.restaurant);
+    const items = dishMediaEntryEntities.map((src) => {
+      const restaurant = this.restaurantsAssembler.enrichRestaurantsWithImageUrls(src.restaurant);
 
-        const dishBase = convertPrismaToSupabase_Dishes(src.dish);
-        const dish = {
-          ...dishBase,
-          // Explicitly add only the required additional fields for DishMediaEntry.dish
-          reviewCount: src.dish.reviewCount,
-          averageRating: src.dish.averageRating,
+      const dishBase = convertPrismaToSupabase_Dishes(src.dish);
+      const dish = {
+        ...dishBase,
+        // Explicitly add only the required additional fields for DishMediaEntry.dish
+        reviewCount: src.dish.reviewCount,
+        averageRating: src.dish.averageRating,
+      };
+
+      const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
+      const mediaUrl = this.getMediaUrl(src.dish_media, cdnCookies)
+      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media, cdnCookies)
+      const dish_media = {
+        ...dishMediaBase,
+        // Explicitly add only the required additional fields for DishMediaEntry.dish_media
+        isSaved: src.dish_media.isSaved,
+        isLiked: src.dish_media.isLiked,
+        likeCount: src.dish_media.likeCount,
+        mediaUrl,
+        thumbnailImageUrl,
+      };
+
+      const dish_reviews = src.dish_reviews.map((r) => {
+        const reviewBase = convertPrismaToSupabase_DishReviews(r);
+        return {
+          ...reviewBase,
+          // Explicitly add only the required additional fields for DishMediaEntry.dish_reviews
+          username: r.username,
+          isLiked: r.isLiked,
+          likeCount: r.likeCount,
         };
+      });
 
-        const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-        const mediaUrl = this.getMediaUrl(src.dish_media, cdnCookies)
-        const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media, cdnCookies)
-        const dish_media = {
-          ...dishMediaBase,
-          // Explicitly add only the required additional fields for DishMediaEntry.dish_media
-          isSaved: src.dish_media.isSaved,
-          isLiked: src.dish_media.isLiked,
-          likeCount: src.dish_media.likeCount,
-          mediaUrl,
-          thumbnailImageUrl,
-        };
-
-        const dish_reviews = src.dish_reviews.map((r) => {
-          const reviewBase = convertPrismaToSupabase_DishReviews(r);
-          return {
-            ...reviewBase,
-            // Explicitly add only the required additional fields for DishMediaEntry.dish_reviews
-            username: r.username,
-            isLiked: r.isLiked,
-            likeCount: r.likeCount,
-          };
-        });
-
-        return { restaurant, dish, dish_media, dish_reviews };
-      },
-      12, // concurrency
-    ).then((list) => list.filter((v): v is NonNullable<typeof v> => !!v));
+      return { restaurant, dish, dish_media, dish_reviews };
+    },
+    );
     return { items, cdnCookies };
   }
 

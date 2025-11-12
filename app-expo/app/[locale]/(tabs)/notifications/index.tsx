@@ -13,7 +13,6 @@ import { useFocusEffect } from "expo-router";
 import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
-import { getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
 import { getCacheKeyForImage } from "@/lib/image";
 
 /**
@@ -183,7 +182,10 @@ export default function NotificationsScreen() {
 					{item.dishMediaEntiries && (
 						<View style={styles.rightContainer}>
 							<Image
-								source={{ uri: getDishMediaThumbnailUrl(item.dishMediaEntiries.dish_media) }}
+								source={{
+									uri: item.dishMediaEntiries.dish_media.mediaUrl,
+									cacheKey: getCacheKeyForImage(item.dishMediaEntiries.dish_media.mediaUrl),
+								}}
 								style={styles.postThumbnail}
 							/>
 						</View>

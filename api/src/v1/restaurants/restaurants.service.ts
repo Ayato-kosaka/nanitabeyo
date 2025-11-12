@@ -70,10 +70,10 @@ export class RestaurantsService {
       count: results.length,
     });
 
-    return await Promise.all(results.map(async (r) => ({
-      restaurant: await this.assembler.enrichRestaurantsWithImageUrls(r.restaurant),
+    return results.map((r) => ({
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(r.restaurant),
       meta: r.meta,
-    })));
+    }));
   }
 
   /* ------------------------------------------------------------------ */
@@ -242,7 +242,6 @@ export class RestaurantsService {
 
     return {
       ...convertPrismaToSupabase_Restaurants(restaurant),
-      imageSignedUrl,
       imageUrls: imageSignedUrl ? {
         sm: imageSignedUrl,
         md: imageSignedUrl,
@@ -347,6 +346,6 @@ export class RestaurantsService {
       name: restaurant.name,
     });
 
-    return await this.assembler.enrichRestaurantsWithImageUrls(restaurant);
+    return this.assembler.enrichRestaurantsWithImageUrls(restaurant);
   }
 }

@@ -16,7 +16,7 @@ import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { getRestaurantImageUrl } from "@/features/map/utils/restaurants.utils";
+import { getCacheKeyForImage } from "@/lib/image";
 
 interface ActionButtonsProps {
 	dishMedia: DishMediaEntry["dish_media"];
@@ -320,7 +320,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 		<View style={styles.rightActions} onLayout={handleLayout}>
 			<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant}>
 				<Image
-					source={{ uri: getRestaurantImageUrl(restaurant, "sm") }}
+					source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
 					style={styles.restaurantAvatar}
 					onError={() => console.log("Failed to load restaurant avatar")}
 				/>

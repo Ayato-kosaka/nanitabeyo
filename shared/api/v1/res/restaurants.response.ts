@@ -6,9 +6,7 @@ import { PaginatedResponse } from "./paginated-response";
 export type RestaurantsEntity = SupabaseRestaurants & {
 	// @deprecated image_url は非推奨。代わりに imageUrls を使うこと。
 	image_url: string
-	/** レストラン画像の署名付きURL（原本） */
-	imageSignedUrl?: string;
-	/** レストラン画像の派生サイズCDN URL群 */
+	/** レストラン画像の署名付きCDN URL群（派生サイズ） */
 	imageUrls?: {
 		sm: string; // 64x64
 		md: string; // 256x256

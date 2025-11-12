@@ -3,6 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { Marker } from "./MapView";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { Image } from "expo-image";
+import { getCacheKeyForImage } from "@/lib/image";
 
 type Props = RNMarkerProps & {
 	uri: string | undefined;
@@ -29,7 +30,7 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }:
 					},
 				]}>
 				<Image
-					source={{ uri }}
+					source={{ uri, cacheKey: getCacheKeyForImage(uri) }}
 					style={[
 						styles.avatar,
 						{
