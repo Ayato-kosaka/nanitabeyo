@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
-import { setAudioModeAsync, AudioModule, RecordingPresets } from "expo-audio"; // Threshold for detecting video loop (when currentTime returns to near start)
+import { setAudioModeAsync } from "expo-audio"; // Threshold for detecting video loop (when currentTime returns to near start)
 export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
 // Progress tracking interval in milliseconds
 const PROGRESS_CHECK_INTERVAL_MS = 250;
