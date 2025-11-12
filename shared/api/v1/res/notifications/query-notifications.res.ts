@@ -21,7 +21,7 @@ export type NotificationActor = Pick<UserProfile, "id" | "display_name" | "avata
 export interface NotificationItem {
 	notification: NotificationResponse;
 	actors: NotificationActor[];
-	dishMediaEntiries?: DishMediaEntry;
+	dishMediaEntries?: DishMediaEntry;
 }
 
 /**

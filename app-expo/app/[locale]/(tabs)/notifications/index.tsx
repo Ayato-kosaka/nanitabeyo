@@ -62,7 +62,7 @@ export default function NotificationsScreen() {
 		const seen = new Set<string | number>();
 		const arr: DishMediaEntry[] = [];
 		for (const n of notifications.items) {
-			const e = n.dishMediaEntiries;
+			const e = n.dishMediaEntries;
 			if (!e) continue;
 			const id = e.dish_media.id;
 			if (!seen.has(id)) {
@@ -81,9 +81,9 @@ export default function NotificationsScreen() {
 			// #通知機能 【設計】target_table に基づいて遷移先を判定
 			const { target_table } = notification.notification;
 
-			if (target_table === "dish_media" && notification.dishMediaEntiries !== undefined) {
+			if (target_table === "dish_media" && notification.dishMediaEntries !== undefined) {
 				// #通知機能 【仕様】dish_media の場合は DishMediaFeed へ遷移
-				const currentDishMediaId = notification.dishMediaEntiries.dish_media.id;
+				const currentDishMediaId = notification.dishMediaEntries.dish_media.id;
 				let index = uniqueDishMediaEntries.findIndex((d) => d.dish_media.id === currentDishMediaId);
 				if (index < 0) index = 0; // 念のため
 				setDishePromises("notification", Promise.resolve(uniqueDishMediaEntries));
@@ -179,12 +179,12 @@ export default function NotificationsScreen() {
 					</View>
 
 					{/* Right: Post Thumbnail */}
-					{item.dishMediaEntiries && (
+					{item.dishMediaEntries && (
 						<View style={styles.rightContainer}>
 							<Image
 								source={{
-									uri: item.dishMediaEntiries.dish_media.mediaUrl,
-									cacheKey: getCacheKeyForImage(item.dishMediaEntiries.dish_media.mediaUrl),
+									uri: item.dishMediaEntries.dish_media.mediaUrl,
+									cacheKey: getCacheKeyForImage(item.dishMediaEntries.dish_media.mediaUrl),
 								}}
 								style={styles.postThumbnail}
 							/>

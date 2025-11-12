@@ -83,7 +83,7 @@ export class NotificationsService {
       actors: item.notifications.actor_ids
         .map((actorId) => actorMap.get(actorId))
         .filter((actor) => actor !== undefined),
-      dishMediaEntiries: dishMediaMap.get(item.notifications.target_id),
+      dishMediaEntries: dishMediaMap.get(item.notifications.target_id),
     }));
 
     return {
