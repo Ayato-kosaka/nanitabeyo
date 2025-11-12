@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { Tabs } from "@/components/collapsible-tabs";
 import i18n from "@/lib/i18n";
 import { BidItem } from "../../constants";
+import { getCacheKeyForImage } from "@/lib/image";
 
 interface DepositsTabProps {
 	data: BidItem[];
@@ -83,7 +84,7 @@ export function DepositsTab({
 			<TouchableOpacity style={styles.depositCard} onPress={() => onItemPress?.(item, index)}>
 				<View style={styles.depositHeader}>
 					<Image
-						source={{ uri: item.restaurantImageUrl }}
+						source={{ uri: item.restaurantImageUrl, cacheKey: getCacheKeyForImage(item.restaurantImageUrl) }}
 						style={styles.depositAvatar}
 						onError={() => console.log("Failed to load restaurant image")}
 					/>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
 import { Camera, DollarSign, ExternalLink } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { Card } from "@/components/Card";
@@ -20,6 +20,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
+import { Image } from "expo-image";
+import { getCacheKeyForImage } from "@/lib/image";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -140,7 +142,10 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image source={{ uri: restaurant.image_url }} style={styles.restaurantAvatar} />
+						<Image
+							source={{ uri: restaurant.imageUrls?.md, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.md) }}
+							style={styles.restaurantAvatar}
+						/>
 						<View style={styles.restaurantDetails}>
 							<Text style={styles.restaurantName}>{restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
