@@ -32,6 +32,6 @@ delete_if_exists "backend-bucket backend-bucket-cdn" "gcloud compute backend-buc
 INFRA="$(infra_path)"
 
 log "Setting up PRIVATE CDN for host=${CDN_PRIVATE_HOST}, bucket=${PRIVATE_BUCKET} (signed cookies)"
-run_cmd "\"${INFRA}/setup_cdn_signed_cookies_and_lb.sh\" \"${PROJECT_ID}\" \"${CDN_PRIVATE_HOST}\" \"${PRIVATE_BUCKET}\" \"${CDN_PRIVATE_KEY_NAME}\""
+run_cmd "${INFRA}/setup_cdn_signed_cookies_and_lb.sh" "${PROJECT_ID}" "${CDN_PRIVATE_HOST}" "${PRIVATE_BUCKET}" "${CDN_PRIVATE_KEY_NAME}"
 
 ok "Private CDN setup requested. Remember to update DNS to new LB IP for ${CDN_PRIVATE_HOST}."

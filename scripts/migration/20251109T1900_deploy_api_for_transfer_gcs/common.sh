@@ -108,10 +108,10 @@ gcloud_check() {
   active_proj="$(gcloud config get-value project 2>/dev/null || true)"
   if [[ -z "${active_proj}" ]]; then
     warn "gcloud active project is empty; setting to PROJECT_ID=${PROJECT_ID}"
-    run_cmd "gcloud config set project ${PROJECT_ID}"
+    run_cmd gcloud config set project ${PROJECT_ID}
   elif [[ "${active_proj}" != "${PROJECT_ID}" ]]; then
     warn "gcloud active project (${active_proj}) != PROJECT_ID (${PROJECT_ID}); switching"
-    run_cmd "gcloud config set project ${PROJECT_ID}"
+    run_cmd gcloud config set project ${PROJECT_ID}
   fi
 }
 

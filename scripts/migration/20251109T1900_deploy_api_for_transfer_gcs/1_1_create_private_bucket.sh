@@ -11,9 +11,9 @@ gcloud_check
 INFRA="$(infra_path)"
 
 log "Creating/ensuring PRIVATE bucket: ${PRIVATE_BUCKET} in ${REGION} (${STORAGE_CLASS}, UBLA=${UBLA})"
-run_cmd "\"${INFRA}/create-gcs-bucket.sh\" \"${PRIVATE_BUCKET}\" \"${REGION}\" \"${STORAGE_CLASS}\" \"${UBLA}\""
+run_cmd "${INFRA}/create-gcs-bucket.sh" "${PRIVATE_BUCKET}" "${REGION}" "${STORAGE_CLASS}" "${UBLA}"
 
 log "Applying CORS to PRIVATE bucket (${PRIVATE_BUCKET}) using infra default '*'"
-run_cmd "\"${INFRA}/create-gcs-cors.sh\" \"${PRIVATE_BUCKET}\""
+run_cmd "${INFRA}/create-gcs-cors.sh" "${PRIVATE_BUCKET}"
 
 ok "Private bucket ready: ${PRIVATE_BUCKET}"

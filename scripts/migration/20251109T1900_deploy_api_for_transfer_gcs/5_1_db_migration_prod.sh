@@ -15,7 +15,7 @@ log "Applying DB migration on production (schema: ${DB_SCHEMA:-unknown})"
 pushd "${ROOT_DIR}" >/dev/null
 
 # Run the migration from project root as requested
-run_cmd "pnpm run db:migration ${MIGRATION_FILE}"
+run_cmd pnpm run db:migration ${MIGRATION_FILE}
 
 popd >/dev/null
 ok "DB migration applied: ${MIGRATION_FILE}"

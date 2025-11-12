@@ -11,7 +11,7 @@ gcloud_check
 INFRA="$(infra_path)"
 
 log "Creating/ensuring PUBLIC bucket: ${PUBLIC_BUCKET} in ${REGION} (${STORAGE_CLASS}, UBLA=${UBLA})"
-run_cmd "\"${INFRA}/create-gcs-bucket.sh\" \"${PUBLIC_BUCKET}\" \"${REGION}\" \"${STORAGE_CLASS}\" \"${UBLA}\""
+run_cmd "${INFRA}/create-gcs-bucket.sh" "${PUBLIC_BUCKET}" "${REGION}" "${STORAGE_CLASS}" "${UBLA}"
 
 log "Disabling Public Access Prevention on PUBLIC bucket: ${PUBLIC_BUCKET}"
 gcloud storage buckets update gs://${PUBLIC_BUCKET} \

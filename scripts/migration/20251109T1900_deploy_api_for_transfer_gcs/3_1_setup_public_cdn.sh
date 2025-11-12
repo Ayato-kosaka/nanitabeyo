@@ -12,6 +12,6 @@ INFRA="$(infra_path)"
 
 log "Setting up PUBLIC CDN for host=${CDN_PUBLIC_HOST}, bucket=${PUBLIC_BUCKET} (signed cookies)"
 # TTL omitted to use infra default. Key name provided.
-run_cmd "\"${INFRA}/setup_cdn_signed_cookies_and_lb.sh\" \"${PROJECT_ID}\" \"${CDN_PUBLIC_HOST}\" \"${PUBLIC_BUCKET}\" \"${CDN_PUBLIC_KEY_NAME}\""
+run_cmd "${INFRA}/setup_cdn_signed_cookies_and_lb.sh" "${PROJECT_ID}" "${CDN_PUBLIC_HOST}" "${PUBLIC_BUCKET}" "${CDN_PUBLIC_KEY_NAME}"
 
 ok "Public CDN setup requested. Remember to point DNS to new LB IP for ${CDN_PUBLIC_HOST}."
