@@ -9,9 +9,6 @@ import { SupabaseUsers } from "../../../converters/convert_users";
  * ユーザープロフィール情報
  */
 export type UserProfile = SupabaseUsers & {
-	/** アバター画像の署名付きURL（原本） */
-	avatarSignedUrl?: string;
-	/** アバター画像の派生サイズCDN URL群 */
 	avatarUrls?: {
 		sm: string; // 64x64
 		md: string; // 256x256

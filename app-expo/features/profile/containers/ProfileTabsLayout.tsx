@@ -15,7 +15,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { mockBids, mockEarnings } from "../constants";
-import { getAvatarUrl, ProfileEditForm } from "../components/ProfileEditForm";
+import { ProfileEditForm } from "../components/ProfileEditForm";
 import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
@@ -58,7 +58,7 @@ export function ProfileTabsLayout() {
 					method: "GET",
 					requestPayload: {},
 				});
-				const avatarUrl = getAvatarUrl(data, "md");
+				const avatarUrl = data.avatarUrls?.md;
 				avatarUrl && (await Image.prefetch(avatarUrl));
 				setProfile(data);
 			} catch (error: any) {

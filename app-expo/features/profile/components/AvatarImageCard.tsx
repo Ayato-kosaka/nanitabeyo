@@ -8,6 +8,7 @@ import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
+import { getCacheKeyForImage } from "@/lib/image";
 
 interface AvatarImageCardProps {
 	/** 現在のアバター画像URL（なければプレースホルダ） */
@@ -72,7 +73,11 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 							<ActivityIndicator size="large" color="#007AFF" />
 						</View>
 					) : avatarUrl ? (
-						<Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" />
+						<Image
+							source={{ uri: avatarUrl, cacheKey: getCacheKeyForImage(avatarUrl) }}
+							style={styles.avatar}
+							contentFit="cover"
+						/>
 					) : (
 						<View style={styles.avatarPlaceholder}>
 							<Ionicons name="person-circle-outline" size={64} color="#999" />

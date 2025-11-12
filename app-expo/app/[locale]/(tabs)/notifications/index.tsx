@@ -13,8 +13,8 @@ import { useFocusEffect } from "expo-router";
 import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
-import { getAvatarUrl } from "@/features/profile/components/ProfileEditForm";
 import { getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
+import { getCacheKeyForImage } from "@/lib/image";
 
 /**
  * 🔔 通知一覧画面
@@ -155,7 +155,7 @@ export default function NotificationsScreen() {
 			const iconBgColor = getIconBackgroundColor(item.notification.action_type);
 			const actorNames = formatActorNames(item.actors);
 			const message = getNotificationMessage(item);
-			const avatar = getAvatarUrl(item.actors[0], "sm") || "https://via.placeholder.com/50";
+			const avatar = item.actors[0].avatarUrls?.sm || "https://via.placeholder.com/50";
 
 			return (
 				<TouchableOpacity
@@ -164,7 +164,7 @@ export default function NotificationsScreen() {
 					activeOpacity={0.7}>
 					{/* Left: Avatar with Action Icon */}
 					<View style={styles.avatarContainer}>
-						<Image source={{ uri: avatar }} style={styles.avatar} />
+						<Image source={{ uri: avatar, cacheKey: getCacheKeyForImage(avatar) }} style={styles.avatar} />
 						<View style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
 							{getNotificationIcon(item.notification.action_type)}
 						</View>

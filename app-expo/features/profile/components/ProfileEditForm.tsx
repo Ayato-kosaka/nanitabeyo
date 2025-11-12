@@ -27,13 +27,6 @@ interface ProfileEditFormProps {
 	close: () => void;
 }
 
-export const getAvatarUrl = (
-	user: Pick<GetUserProfileResponse, "avatarUrls" | "avatarSignedUrl">,
-	size: keyof NonNullable<(typeof user)["avatarUrls"]>,
-): string | null => {
-	return user.avatarUrls?.[size] || user.avatarSignedUrl || null;
-};
-
 /**
  * Profile edit form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
@@ -48,7 +41,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 
 	// Internal state - isolated from parent re-renders
 	const [avatar, setAvatar] = useState<{ uri: string | null; mimeType: string | null }>({
-		uri: getAvatarUrl(initialValues, "md"),
+		uri: initialValues.avatarUrls?.md || null,
 		mimeType: null,
 	});
 	const [display_name, setDisplayName] = useState(initialValues.display_name);
@@ -65,7 +58,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 		let uploadedAvatarPath: string | null | undefined = undefined;
 		if (avatar.uri === null) {
 			uploadedAvatarPath = null;
-		} else if (avatar.uri !== getAvatarUrl(initialValues, "md")) {
+		} else if (avatar.uri !== (initialValues.avatarUrls?.md || null)) {
 			try {
 				if (!avatar.mimeType) throw new Error("Avatar mimeType is missing");
 				uploadedAvatarPath = await uploadFile(avatar.uri, {

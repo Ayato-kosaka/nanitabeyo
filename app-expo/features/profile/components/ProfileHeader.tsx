@@ -6,8 +6,8 @@ import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "luci
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
-import { getAvatarUrl } from "./ProfileEditForm";
 import { GetUserProfileResponse } from "@shared/api/v1/res";
+import { getCacheKeyForImage } from "@/lib/image";
 
 interface ProfileHeaderProps {
 	profile: GetUserProfileResponse;
@@ -50,7 +50,7 @@ export function ProfileHeader({
 	onFeedback,
 	onLogin,
 }: ProfileHeaderProps) {
-	const avatarUrl = useMemo(() => getAvatarUrl(profile, "md"), [profile]);
+	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}
@@ -79,7 +79,11 @@ export function ProfileHeader({
 						{(isGuest || avatarUrl) && (
 							<Image
 								key={avatarUrl || "placeholder"}
-								source={isGuest ? require("@/assets/images/icon.png") : { uri: avatarUrl }}
+								source={
+									isGuest
+										? require("@/assets/images/icon.png")
+										: { uri: avatarUrl, cacheKey: getCacheKeyForImage(avatarUrl) }
+								}
 								style={styles.avatar}
 								contentFit="cover"
 								transition={0}

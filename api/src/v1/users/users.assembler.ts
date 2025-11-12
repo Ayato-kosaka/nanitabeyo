@@ -15,27 +15,23 @@ import {
 
 @Injectable()
 export class UsersAssembler {
-  constructor(private readonly storage: StorageService) {}
+  constructor(private readonly storage: StorageService) { }
 
   /**
    * ユーザープロフィールに avatar URL 群を付与
    */
-  async enrichUserProfileWithAvatarUrls(
+  enrichUserProfileWithAvatarUrls(
     user: PrismaUsers,
-  ): Promise<UserProfile> {
+  ): UserProfile {
     const supabaseUsers: SupabaseUsers = convertPrismaToSupabase_Users(user);
 
     // #プロフィール画像 【設計】avatar_path がある場合のみ
-    // 署名付きURL, 派生サイズ の CDN URL, URL群 を生成して付与する
-    let avatarSignedUrl: string | undefined;
+    // 派生サイズ の CDN 署名付きURL群 を生成して付与する
     let avatarUrls: { sm: string; md: string } | undefined;
     if (user.avatar_path) {
-      // アバター画像の署名付きURL（原本）
-      avatarSignedUrl = await this.storage.generateSignedUrl(user.avatar_path);
-
       // アバター画像の派生サイズ CDN URL 群
       avatarUrls = {
-        sm: buildResizedPath(
+        sm: this.storage.generateCdnSignedURL(buildResizedPath(
           {
             table: 'users',
             column: 'avatar_path',
@@ -44,8 +40,8 @@ export class UsersAssembler {
             originalPath: user.avatar_path,
           },
           'cdn',
-        ),
-        md: buildResizedPath(
+        )),
+        md: this.storage.generateCdnSignedURL(buildResizedPath(
           {
             table: 'users',
             column: 'avatar_path',
@@ -54,14 +50,10 @@ export class UsersAssembler {
             originalPath: user.avatar_path,
           },
           'cdn',
-        ),
+        )),
       };
-
-      this.storage.generateCdnSignedCookies(
-        avatarUrls.sm.split('/').slice(0, -1).join('/'),
-      );
     }
 
-    return { ...supabaseUsers, avatarSignedUrl, avatarUrls };
+    return { ...supabaseUsers, avatarUrls };
   }
 }

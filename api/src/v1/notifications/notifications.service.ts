@@ -53,16 +53,14 @@ export class NotificationsService {
         new Set(items.flatMap((item) => item.notifications.actor_ids)),
       ),
     );
-    const actorEntries = await Promise.all(
-      actors.map(
-        async (user) =>
-          await this.usersAssembler.enrichUserProfileWithAvatarUrls(user),
-      ),
+    const actorEntries = actors.map(
+      (user) =>
+        this.usersAssembler.enrichUserProfileWithAvatarUrls(user),
     );
     const actorMap = new Map(
-      actorEntries.map(({ id, display_name, avatarSignedUrl, avatarUrls }) => [
+      actorEntries.map(({ id, display_name, avatarUrls }) => [
         id,
-        { id, display_name, avatarSignedUrl, avatarUrls },
+        { id, display_name, avatarUrls },
       ]),
     );
 
