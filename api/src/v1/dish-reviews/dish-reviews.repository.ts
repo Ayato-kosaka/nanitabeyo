@@ -82,21 +82,33 @@ export class DishReviewsRepository {
    * レビューにいいね（リアクション追加）
    */
   async likeReview(reviewId: string, userId: string) {
-    // Generate a unique ID for the reaction
-    const reactionId = `${userId}_${reviewId}_like_${Date.now()}`;
-
     const appVersion = this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
 
     return this.prisma.prisma.reactions.create({
       data: {
-        id: reactionId,
         user_id: userId,
-        target_type: 'dish_review',
+        target_type: 'dish_reviews',
         target_id: reviewId,
         action_type: 'like',
         created_at: new Date(),
         created_version: appVersion,
         lock_no: 0,
+      },
+    });
+  }
+
+  /**
+   * レビューのいいね解除（リアクション削除）
+   */
+  async unlikeReview(reviewId: string, userId: string) {
+    return this.prisma.prisma.reactions.delete({
+      where: {
+        user_id_target_type_target_id_action_type: {
+          user_id: userId,
+          target_type: 'dish_reviews',
+          target_id: reviewId,
+          action_type: 'like',
+        },
       },
     });
   }

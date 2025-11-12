@@ -2,9 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
-import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
-
-// Threshold for detecting video loop (when currentTime returns to near start)
+import { setAudioModeAsync } from "expo-audio"; // Threshold for detecting video loop (when currentTime returns to near start)
 export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
 // Progress tracking interval in milliseconds
 const PROGRESS_CHECK_INTERVAL_MS = 250;
@@ -54,14 +52,16 @@ function VideoPlayer({
 	useEffect(() => {
 		(async () => {
 			try {
-				await Audio.setAudioModeAsync({
-					allowsRecordingIOS: false,
-					staysActiveInBackground: false,
-					playsInSilentModeIOS: true, // iOSサイレントでも再生
-					interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-					shouldDuckAndroid: true, // Androidで他音源を下げる
-					interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-					playThroughEarpieceAndroid: false,
+				await setAudioModeAsync({
+					// iOS
+					allowsRecording: false,
+					playsInSilentMode: true,
+					interruptionMode: "doNotMix",
+					// 共通
+					shouldPlayInBackground: false,
+					// Android
+					interruptionModeAndroid: "doNotMix",
+					shouldRouteThroughEarpiece: false,
 				});
 			} catch (e) {
 				logFrontendEvent({

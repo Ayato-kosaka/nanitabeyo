@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { GridList } from "@/components/collapsible-tabs";
+import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
@@ -19,6 +19,7 @@ export function ReviewTab() {
 	const { userId } = useLocalSearchParams<{ userId?: string }>();
 	const { user } = useAuth();
 	const targetUserId = userId && userId !== "me" ? String(userId) : user?.id;
+	const [onlyMyPhotoVideoReviews, setOnlyMyPhotoVideoReviews] = useState(false);
 	const { callBackend } = useAPICall();
 	const { items, loadInitial, loadMore, refresh, error, isLoadingInitial, isLoadingMore } = useCursorPagination<
 		QueryUserDishReviewsDto,
@@ -51,10 +52,16 @@ export function ReviewTab() {
 	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
+	const displayedItems = useMemo(
+		() =>
+			onlyMyPhotoVideoReviews && targetUserId ? items.filter((e) => e.dish_media.user_id === targetUserId) : items,
+		[onlyMyPhotoVideoReviews, items, targetUserId],
+	);
+
 	const handleItemPress = useCallback(
 		(item: DishMediaEntry, index: number) => {
 			lightImpact();
-			setDishePromises("reviews", Promise.resolve(items));
+			setDishePromises("reviews", Promise.resolve(displayedItems));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "reviews" },
@@ -65,7 +72,7 @@ export function ReviewTab() {
 				payload: { item, tabName: "reviews" },
 			});
 		},
-		[lightImpact, setDishePromises, items, locale, logFrontendEvent],
+		[lightImpact, setDishePromises, displayedItems, locale, logFrontendEvent],
 	);
 
 	const renderReviewItem = useCallback(
@@ -88,6 +95,21 @@ export function ReviewTab() {
 			);
 		},
 		[handleItemPress],
+	);
+
+	const header = useMemo(
+		() => (
+			<TouchableOpacity
+				style={styles.checkboxContainer}
+				onPress={() => setOnlyMyPhotoVideoReviews(!onlyMyPhotoVideoReviews)}
+				activeOpacity={0.7}>
+				<View style={[styles.checkbox, onlyMyPhotoVideoReviews && styles.checkboxChecked]}>
+					{onlyMyPhotoVideoReviews && <Text style={styles.checkboxMark}>✓</Text>}
+				</View>
+				<Text style={styles.checkboxLabel}>{i18n.t("Profile.reviews.filter.onlyMyPhotoVideo")}</Text>
+			</TouchableOpacity>
+		),
+		[onlyMyPhotoVideoReviews],
 	);
 
 	const errorMessage = error ? (error instanceof Error ? error.message : String(error)) : null;
@@ -119,8 +141,9 @@ export function ReviewTab() {
 
 	return (
 		<GridList
-			data={items.map((item) => ({ ...item, id: item.dish_media.id }))}
+			data={displayedItems.map((item) => ({ ...item, id: item.dish_reviews[0].id }))}
 			renderItem={({ item, index }) => renderReviewItem({ item, index })}
+			ListHeaderComponent={header}
 			numColumns={3}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}
@@ -136,6 +159,39 @@ export function ReviewTab() {
 }
 
 const styles = StyleSheet.create({
+	checkboxContainer: {
+		paddingRight: 16,
+		paddingVertical: 8,
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	checkbox: {
+		width: 24,
+		height: 24,
+		borderRadius: 6,
+		alignItems: "center",
+		justifyContent: "center",
+		marginRight: 12,
+		backgroundColor: "#FFFFFF",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.3,
+		shadowRadius: 16,
+		elevation: 4,
+	},
+	checkboxChecked: {
+		backgroundColor: "#5EA2FF",
+		borderColor: "#5EA2FF",
+	},
+	checkboxMark: {
+		color: "#FFFFFF",
+		fontSize: 14,
+		fontWeight: "700",
+	},
+	checkboxLabel: {
+		fontSize: 14,
+		color: "#374151",
+	},
 	gridContent: {
 		paddingHorizontal: 16,
 		paddingVertical: 8,

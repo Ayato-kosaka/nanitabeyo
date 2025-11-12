@@ -140,9 +140,20 @@
 	},
 	"Notifications": {
 		"title": "Notifications",
-		"timeAgo": "{{time}} ago"
+		"timeAgo": "{{time}} ago",
+		"empty": "No notifications yet",
+		"loadingMore": "Loading more...",
+		"notification": {
+			"dish_media": {
+				"like": "liked your post",
+				"save": "saved your post"
+			},
+			"dish_reviews": {
+				"like": "liked your review"
+			}
+		}
 	},
-	"FoodContentScreen": {
+	"DishMediaContent": {
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -208,6 +219,11 @@
 			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
 			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "My photo/video reviews only"
+			}
+		},
 		"statusLabels": {
 			"active": "Active",
 			"completed": "Completed",
@@ -231,7 +247,8 @@
 		"labels": {
 			"bio": "Bio",
 			"displayName": "Display Name",
-			"avatar": "Avatar Image URL"
+			"avatar": "Avatar Image URL",
+			"profileImage": "Profile Image"
 		},
 		"privateContent": "This content is private",
 		"placeholders": {
@@ -240,7 +257,15 @@
 			"enterAvatar": "Enter your avatar image URL..."
 		},
 		"savedCount": "{{count}} saves",
-		"guestBio": "Welcome, Guest 👋\nThank you for using the new gourmet app 'CraveCatch'😊\nAccount features and more updates coming soon!"
+		"guestBio": "Welcome, Guest 👋\nThank you for using the new gourmet app 'CraveCatch'😊\nAccount features and more updates coming soon!",
+		"hints": {
+			"tapToSelectImage": "Tap to select image"
+		},
+		"errors": {
+			"permissionDenied": "Permission to access images denied",
+			"uploadFailed": "Failed to upload image",
+			"invalidImage": "Invalid image file"
+		}
 	},
 	"NotFound": {
 		"title": "Oops!",
@@ -256,7 +281,8 @@
 			"openInGoogle": "Open in Google"
 		},
 		"actions": {
-			"selectDishCategory": "Select dish category"
+			"selectDishCategory": "Select dish category",
+			"writeReviewForThisDish": "Write a review for this dish"
 		},
 		"inputs": {
 			"price": "Price",

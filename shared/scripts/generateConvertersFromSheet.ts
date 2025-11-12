@@ -47,10 +47,10 @@ function toPascalCase(str: string): string {
  * @returns 除外対象であれば true
  */
 function isAllExccludedType(columnType: string): boolean {
-	return ["geography(point,4326)"].includes(columnType.toLowerCase());
+	return [""].includes(columnType.toLowerCase());
 }
 function isPrismaExccludedType(columnType: string): boolean {
-	return ["tsvector"].includes(columnType.toLowerCase());
+	return ["tsvector", "geography(point,4326)"].includes(columnType.toLowerCase());
 }
 
 /**

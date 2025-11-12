@@ -11,13 +11,14 @@ import { PaperProvider, Portal } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
+import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { useColorScheme } from "react-native";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
-import { SeoHead } from "../../components/seo";
+import SeoHead from "../../components/seo";
 
 /**
  * 🌍 BCP 47 言語タグが妥当な形式かを検証するユーティリティ関数。
@@ -86,10 +87,11 @@ export default function RootLayout() {
 					<SnackbarProvider>
 						<DialogProvider>
 							<AuthProvider>
-								<Portal.Host>
-									<SplashHandler>
-										<HealthCheckInitializer>
-											<GestureHandlerRootView style={{ flex: 1 }}>
+								<PushTokenRegistration />
+								<GestureHandlerRootView style={{ flex: 1 }}>
+									<Portal.Host>
+										<SplashHandler>
+											<HealthCheckInitializer>
 												<AppProvider>
 													<Stack screenOptions={{ header: () => null }}>
 														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
@@ -97,10 +99,10 @@ export default function RootLayout() {
 													</Stack>
 													<StatusBar style="light" />
 												</AppProvider>
-											</GestureHandlerRootView>
-										</HealthCheckInitializer>
-									</SplashHandler>
-								</Portal.Host>
+											</HealthCheckInitializer>
+										</SplashHandler>
+									</Portal.Host>
+								</GestureHandlerRootView>
 							</AuthProvider>
 						</DialogProvider>
 					</SnackbarProvider>

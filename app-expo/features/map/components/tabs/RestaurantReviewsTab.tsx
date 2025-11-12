@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { GridList } from "@/components/collapsible-tabs";
+import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import { Text } from "react-native";
 import Stars from "@/components/Stars";
@@ -8,6 +8,11 @@ import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryRestaurantDishMediaDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
+import { useLocale } from "@/hooks/useLocale";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
 
 interface RestaurantReviewsTabProps {
 	/** レストランID（Google Place ID） */
@@ -23,6 +28,11 @@ interface RestaurantReviewsTabProps {
  */
 export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps) {
 	const { callBackend } = useAPICall();
+	const { lightImpact } = useHaptics();
+	const { setDishePromises } = useDishMediaEntriesStore();
+	const locale = useLocale();
+	const { BlurModal: DishMediaModal, open: openDishMediaModal } = useBlurModal();
+	const [selectedDishMediaIndex, setSelectedDishMediaIndex] = useState<number>(0);
 
 	// レストランの料理メディア取得用のカーソルページネーション
 	// APIエンドポイント: GET /v1/restaurants/:id/dish-media
@@ -53,11 +63,24 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 		}
 	}, [restaurantId, reviews.loadInitial]);
 
+	const onItemPress = useCallback(
+		(item: QueryRestaurantDishMediaResponse["data"][number]) => {
+			lightImpact();
+			setDishePromises("map", Promise.resolve(reviews.items));
+			const index = reviews.items.findIndex((d) => d.dish_media.id === item.dish_media.id);
+			setSelectedDishMediaIndex(index);
+			openDishMediaModal();
+		},
+		[lightImpact, locale, reviews.items, setDishePromises],
+	);
+
 	// グリッドアイテムのレンダリング関数
 	// 既存のレイアウト構造を完全に維持
 	const renderReviewItem = useCallback(
 		({ item }: { item: QueryRestaurantDishMediaResponse["data"][number] }) => (
-			<ImageCard item={{ id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}>
+			<ImageCard
+				item={{ id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}
+				onPress={() => onItemPress(item)}>
 				<View style={styles.reviewCardOverlay}>
 					<Text style={styles.reviewCardTitle}>{item.dish.name}</Text>
 					<View style={styles.reviewCardRating}>
@@ -67,22 +90,27 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 				</View>
 			</ImageCard>
 		),
-		[],
+		[onItemPress],
 	);
 
 	return (
-		<GridList
-			// データ変換: dish_media.idをトップレベルのidとして設定（既存実装を維持）
-			data={reviews.items.map((item) => ({ ...item, id: item.dish_media.id }))}
-			renderItem={renderReviewItem}
-			numColumns={3} // 3列のグリッドレイアウト
-			contentContainerStyle={styles.reviewsContent}
-			columnWrapperStyle={styles.reviewsRow}
-			// ページネーション関連のプロパティ
-			onEndReached={reviews.loadMore}
-			onRefresh={reviews.refresh}
-			refreshing={reviews.isLoadingInitial}
-		/>
+		<>
+			<GridList
+				// データ変換: dish_media.idをトップレベルのidとして設定（既存実装を維持）
+				data={reviews.items.map((item) => ({ ...item, id: item.dish_media.id }))}
+				renderItem={renderReviewItem}
+				numColumns={3} // 3列のグリッドレイアウト
+				contentContainerStyle={styles.reviewsContent}
+				columnWrapperStyle={styles.reviewsRow}
+				// ページネーション関連のプロパティ
+				onEndReached={reviews.loadMore}
+				onRefresh={reviews.refresh}
+				refreshing={reviews.isLoadingInitial}
+			/>
+			<DishMediaModal paddingVertical={0}>
+				<FeedDishMediaViewer initialIndex={selectedDishMediaIndex} source="map" />
+			</DishMediaModal>
+		</>
 	);
 }
 

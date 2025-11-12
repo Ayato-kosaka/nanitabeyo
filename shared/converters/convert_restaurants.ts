@@ -21,6 +21,7 @@ export function convertSupabaseToPrisma_Restaurants(supabase: SupabaseRestaurant
     longitude: supabase.longitude,
 
     image_url: supabase.image_url,
+    image_path: supabase.image_path,
     address_components: supabase.address_components,
     plus_code: supabase.plus_code,
     created_at: new Date(supabase.created_at),
@@ -40,8 +41,9 @@ export function convertPrismaToSupabase_Restaurants(prisma: PrismaRestaurants): 
     name_language_code: prisma.name_language_code,
     latitude: prisma.latitude,
     longitude: prisma.longitude,
-
+    location: null,
     image_url: prisma.image_url,
+    image_path: prisma.image_path,
     address_components: prisma.address_components,
     plus_code: prisma.plus_code,
     created_at: prisma.created_at?.toISOString() ?? null,

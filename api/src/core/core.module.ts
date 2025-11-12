@@ -6,7 +6,6 @@ import { StorageModule } from './storage/storage.module';
 import { RemoteConfigModule } from './remote-config/remote-config.module';
 import { CloudTasksModule } from './cloud-tasks/cloud-tasks.module';
 import { AuthModule } from './auth/auth.module';
-import { NotifierModule } from './notifier/notifier.module';
 import { ClaudeModule } from './claude/claude.module';
 import { ExternalApiModule } from './external-api/external-api.module';
 import { PromptModule } from './prompt/prompt.module';
@@ -19,7 +18,6 @@ import { TranscoderModule } from './transcoder/transcoder.module';
     RemoteConfigModule,
     CloudTasksModule,
     AuthModule,
-    NotifierModule,
     ClaudeModule,
     ExternalApiModule,
     PromptModule,
@@ -31,7 +29,6 @@ import { TranscoderModule } from './transcoder/transcoder.module';
     RemoteConfigModule,
     CloudTasksModule,
     AuthModule,
-    NotifierModule,
     ClaudeModule,
     ExternalApiModule,
     PromptModule,

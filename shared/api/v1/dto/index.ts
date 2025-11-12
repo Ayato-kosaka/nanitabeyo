@@ -34,6 +34,7 @@ export { QueryRestaurantsByGooglePlaceIdDto } from "./restaurants/query-restaura
 export { CreateUserUploadSignedUrlDto } from "./user-uploads/create-user-upload-signed-url.dto";
 
 export { UserIdParamsDto } from "./users/user-id-params.dto";
+export { UpdateUserProfileDto } from "./users/update-user-profile.dto";
 export { QueryUserDishReviewsDto } from "./users/query-user-dish-reviews.dto";
 export { QueryMeLikedDishMediaDto } from "./users/query-me-liked-dish-media.dto";
 export { QueryMePayoutsDto } from "./users/query-me-payouts.dto";
@@ -42,3 +43,6 @@ export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categ
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
+
+export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
+export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";

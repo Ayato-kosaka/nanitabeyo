@@ -6,6 +6,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { PrismaUsers } from '../../../../shared/converters/convert_users';
 
 @Injectable()
 export class UsersRepository {
@@ -81,6 +82,43 @@ export class UsersRepository {
       count: result.length,
     });
 
+    return result;
+  }
+
+  /**
+   * 指定されたIDのユーザーを取得
+   */
+  async getUserByIds(userId: string[]) {
+    return this.prisma.prisma.users.findMany({
+      where: {
+        id: { in: userId },
+      },
+    });
+  }
+
+  /**
+   * 指定されたIDのユーザーを1件取得
+   */
+  async getUserById(userId: string) {
+    return this.prisma.prisma.users.findUnique({
+      where: { id: userId },
+    });
+  }
+
+  /**
+   * ユーザープロフィールを更新
+   */
+  async updateUserProfile(
+    data: Partial<Omit<PrismaUsers, 'created_at' | 'updated_at' | 'lock_no'>>,
+  ) {
+    const result = await this.prisma.prisma.users.update({
+      where: { id: data.id },
+      data: {
+        ...data,
+        updated_at: new Date(),
+        lock_no: { increment: 1 },
+      },
+    });
     return result;
   }
 }

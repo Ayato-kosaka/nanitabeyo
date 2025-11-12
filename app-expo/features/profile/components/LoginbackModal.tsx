@@ -6,22 +6,12 @@
 - ローディング/エラー状態、i18n、キーボード回避、アラート通知を扱う。
 */
 import React, { useState, useCallback } from "react";
-import {
-	View,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	StyleSheet,
-	KeyboardAvoidingView,
-	Platform,
-	ScrollView,
-} from "react-native";
-import { User, Mail, Phone } from "lucide-react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -170,17 +160,17 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 
 			{/* Existing Account Checkbox - Show only for anonymous users */}
 			{user?.is_anonymous && (
-				<View style={styles.checkboxContainer}>
-					<TouchableOpacity
-						style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}
-						onPress={() => setHasExistingAccount(!hasExistingAccount)}
-						disabled={isLoading}>
+				<TouchableOpacity
+					style={styles.checkboxContainer}
+					onPress={() => setHasExistingAccount(!hasExistingAccount)}
+					disabled={isLoading}>
+					<View style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}>
 						{hasExistingAccount && <Text style={styles.checkboxMark}>✓</Text>}
-					</TouchableOpacity>
+					</View>
 					<View style={styles.checkboxTextContainer}>
 						<Text style={styles.checkboxText}>{i18n.t("auth.existing_account_checkbox")}</Text>
 					</View>
-				</View>
+				</TouchableOpacity>
 			)}
 
 			{/* OAuth Buttons */}

@@ -554,6 +554,68 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			notification_recipients: {
+				Row: {
+					created_at: string;
+					notification_id: string;
+					recipient_id: string;
+					thread_updated_at: string;
+				};
+				Insert: {
+					created_at?: string;
+					notification_id: string;
+					recipient_id: string;
+					thread_updated_at: string;
+				};
+				Update: {
+					created_at?: string;
+					notification_id?: string;
+					recipient_id?: string;
+					thread_updated_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "notification_recipients_notification_id_fkey";
+						columns: ["notification_id"];
+						isOneToOne: false;
+						referencedRelation: "notifications";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			notifications: {
+				Row: {
+					action_type: string;
+					actor_ids: string[];
+					created_at: string;
+					id: string;
+					idempotency_key: string;
+					target_id: string;
+					target_table: string;
+					updated_at: string;
+				};
+				Insert: {
+					action_type: string;
+					actor_ids: string[];
+					created_at?: string;
+					id?: string;
+					idempotency_key: string;
+					target_id: string;
+					target_table: string;
+					updated_at?: string;
+				};
+				Update: {
+					action_type?: string;
+					actor_ids?: string[];
+					created_at?: string;
+					id?: string;
+					idempotency_key?: string;
+					target_id?: string;
+					target_table?: string;
+					updated_at?: string;
+				};
+				Relationships: [];
+			};
 			payouts: {
 				Row: {
 					amount_cents: number;
@@ -826,8 +888,10 @@ export type Database = {
 					created_at: string;
 					google_place_id: string;
 					id: string;
+					image_path: string | null;
 					image_url: string;
 					latitude: number;
+					location: unknown;
 					longitude: number;
 					name: string;
 					name_language_code: string;
@@ -838,8 +902,10 @@ export type Database = {
 					created_at?: string;
 					google_place_id: string;
 					id?: string;
+					image_path?: string | null;
 					image_url: string;
 					latitude: number;
+					location?: unknown;
 					longitude: number;
 					name: string;
 					name_language_code: string;
@@ -850,8 +916,10 @@ export type Database = {
 					created_at?: string;
 					google_place_id?: string;
 					id?: string;
+					image_path?: string | null;
 					image_url?: string;
 					latitude?: number;
+					location?: unknown;
 					longitude?: number;
 					name?: string;
 					name_language_code?: string;
@@ -859,37 +927,73 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			user_device_tokens: {
+				Row: {
+					expo_push_token: string;
+					updated_at: string;
+					user_id: string;
+				};
+				Insert: {
+					expo_push_token: string;
+					updated_at?: string;
+					user_id: string;
+				};
+				Update: {
+					expo_push_token?: string;
+					updated_at?: string;
+					user_id?: string;
+				};
+				Relationships: [];
+			};
+			user_notification_cursors: {
+				Row: {
+					last_read_at: string;
+					user_id: string;
+				};
+				Insert: {
+					last_read_at: string;
+					user_id: string;
+				};
+				Update: {
+					last_read_at?: string;
+					user_id?: string;
+				};
+				Relationships: [];
+			};
 			users: {
 				Row: {
-					avatar: string | null;
+					avatar_path: string | null;
 					bio: string | null;
 					created_at: string;
 					display_name: string | null;
 					id: string;
 					last_login_at: string | null;
 					lock_no: number;
+					preferred_locale: string;
 					updated_at: string;
 					username: string;
 				};
 				Insert: {
-					avatar?: string | null;
+					avatar_path?: string | null;
 					bio?: string | null;
 					created_at?: string;
 					display_name?: string | null;
 					id?: string;
 					last_login_at?: string | null;
 					lock_no?: number;
+					preferred_locale: string;
 					updated_at?: string;
 					username: string;
 				};
 				Update: {
-					avatar?: string | null;
+					avatar_path?: string | null;
 					bio?: string | null;
 					created_at?: string;
 					display_name?: string | null;
 					id?: string;
 					last_login_at?: string | null;
 					lock_no?: number;
+					preferred_locale?: string;
 					updated_at?: string;
 					username?: string;
 				};

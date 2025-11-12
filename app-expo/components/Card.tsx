@@ -20,7 +20,15 @@ export interface CardProps extends ViewProps {
  */
 export const Card = forwardRef<View, CardProps>(
 	(
-		{ children, radius = 20, elevation = 4, padding = { paddingHorizontal: 16, paddingVertical: 20 }, style, ...rest },
+		{
+			children,
+			radius = 20,
+			elevation = 4,
+			padding = { paddingHorizontal: 16, paddingVertical: 20 },
+			style,
+			onLayout,
+			...rest
+		},
 		ref,
 	) => {
 		/** ----- Theme-aware background ----- */
@@ -62,7 +70,7 @@ export const Card = forwardRef<View, CardProps>(
 		];
 
 		return (
-			<View style={containerStyle} pointerEvents="box-none">
+			<View style={containerStyle} onLayout={onLayout} pointerEvents="box-none">
 				<View ref={ref} style={surfaceStyle} {...rest}>
 					{children}
 				</View>

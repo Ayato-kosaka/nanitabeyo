@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocalSearchParams } from "expo-router";
-import FoodContentFeed from "@/components/FoodContentFeed";
+import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import type { DishMediaEntry } from "@shared/api/v1/res";
+import { GroupName } from "@/features/profile/components/ProfileTabsBar";
 // import { mockDishItems } from "@/data/searchMockData";
 
 export default function ProfileFoodScreen() {
-	const { startIndex, tabName } = useLocalSearchParams<{ startIndex?: string; tabName?: string }>();
+	const { startIndex, tabName } = useLocalSearchParams<{ startIndex?: string; tabName?: GroupName }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
 	const { dishPromisesMap } = useDishMediaEntriesStore();
 	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
@@ -39,6 +40,11 @@ export default function ProfileFoodScreen() {
 		loadData();
 	}, [tabName, dishPromisesMap]);
 
+	const keyExtractor = useMemo(
+		() => (tabName === "reviews" ? (item: DishMediaEntry) => String(item.dish_reviews[0].id) : undefined),
+		[tabName],
+	);
+
 	if (isLoading) {
 		return (
 			<View style={styles.centerContainer}>
@@ -64,7 +70,14 @@ export default function ProfileFoodScreen() {
 		);
 	}
 
-	return <FoodContentFeed items={items} initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source="profile" />;
+	return (
+		<DishMediaFeed
+			items={items}
+			initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
+			source={`profile-${tabName}`}
+			keyExtractor={keyExtractor}
+		/>
+	);
 }
 
 const styles = StyleSheet.create({

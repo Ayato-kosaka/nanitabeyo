@@ -9,6 +9,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   ParseUUIDPipe,
   Query,
@@ -29,6 +31,7 @@ import {
 
 import {
   UserIdParamsDto,
+  UpdateUserProfileDto,
   QueryUserDishReviewsDto,
   QueryMeLikedDishMediaDto,
   QueryMePayoutsDto,
@@ -37,6 +40,8 @@ import {
   QueryMeSavedDishMediaDto,
 } from '@shared/v1/dto';
 import {
+  GetUserProfileResponse,
+  UpdateUserProfileResponse,
   QueryUserDishReviewsResponse,
   QueryMeLikedDishMediaResponse,
   QueryMePayoutsResponse,
@@ -63,6 +68,43 @@ export class UsersController {
   ) {}
 
   /* ------------------------------------------------------------------ */
+  /*                        GET /v1/users/:id                           */
+  /* ------------------------------------------------------------------ */
+  @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'ユーザープロフィール取得' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
+  async getUserProfile(
+    @Param() params: UserIdParamsDto,
+  ): Promise<GetUserProfileResponse> {
+    return await this.usersService.getUserProfile(params.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                        POST /v1/users/me                           */
+  /* ------------------------------------------------------------------ */
+  @Post('/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({ summary: 'ユーザープロフィール更新' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({
+    status: 403,
+    description: '他のユーザーのプロフィールは更新できません',
+  })
+  @ApiResponse({ status: 404, description: 'ユーザーが見つかりません' })
+  async updateUserProfile(
+    @Body() dto: UpdateUserProfileDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<UpdateUserProfileResponse> {
+    return await this.usersService.updateUserProfile(user.id, dto);
+  }
+
+  /* ------------------------------------------------------------------ */
   /*                   GET /v1/users/:id/dish-reviews                  */
   /* ------------------------------------------------------------------ */
   @Get(':id/dish-reviews')
@@ -81,23 +123,12 @@ export class UsersController {
     @Query() query: QueryUserDishReviewsDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryUserDishReviewsResponse> {
-    const result = await this.usersService.getUserDishReviews(params.id, query);
+    const { data, nextCursor } = await this.usersService.getUserDishReviews(
+      params.id,
+      query,
+    );
 
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
-
-    return this.usersMapper.toUserDishReviewsResponse(result);
+    return this.usersMapper.toUserDishReviewsResponse({ data, nextCursor });
   }
 
   /* ------------------------------------------------------------------ */
@@ -118,23 +149,13 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeLikedDishMediaResponse> {
-    const result = await this.usersService.getMeLikedDishMedia(user.id, query);
+    const { data, nextCursor } = await this.usersService.getMeLikedDishMedia(
+      user.id,
+      user.isAnonymous,
+      query,
+    );
 
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
-
-    return this.usersMapper.toMeLikedDishMediaResponse(result);
+    return { data, nextCursor };
   }
 
   /* ------------------------------------------------------------------ */
@@ -223,22 +244,11 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeSavedDishMediaResponse> {
-    const result = await this.usersService.getMeSavedDishMedia(user.id, query);
+    const { data, nextCursor } = await this.usersService.getMeSavedDishMedia(
+      user.id,
+      query,
+    );
 
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
-
-    return this.usersMapper.toMeSavedDishMediaResponse(result);
+    return { data, nextCursor };
   }
 }

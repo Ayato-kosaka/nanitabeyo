@@ -59,9 +59,9 @@ EXPO_PUBLIC_WEB_BASE_URL=https://your-domain.com
 - **配置**: `https://your-domain.com/.well-known/assetlinks.json`
 - **注意**: SHA256フィンガープリントを実アプリの証明書に置き換える
 
-### 5. FoodContentScreen への組み込み
+### 5. DishMediaContent への組み込み
 
-**ファイル**: `app-expo/components/FoodContentScreen.tsx`
+**ファイル**: `app-expo/components/DishMediaContent.tsx`
 
 **変更内容:**
 
@@ -74,7 +74,7 @@ EXPO_PUBLIC_WEB_BASE_URL=https://your-domain.com
 
 **ファイル**: `app-expo/locales/en-US.json`, `app-expo/locales/ja-JP.json`
 
-`FoodContentScreen.share.title` を追加（共有ダイアログのタイトルに使用）。
+`DishMediaContent.share.title` を追加（共有ダイアログのタイトルに使用）。
 
 ## セットアップ手順
 

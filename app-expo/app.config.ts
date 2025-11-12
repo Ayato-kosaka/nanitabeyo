@@ -90,6 +90,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	plugins: [
 		"expo-router",
 		"expo-video",
+		"expo-audio",
+		"expo-notifications",
 		[
 			"expo-splash-screen",
 			{

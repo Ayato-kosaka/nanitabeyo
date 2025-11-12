@@ -53,11 +53,13 @@ export const mockDishItems: (DishMediaEntry & {
 			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
+			image_path:
+				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 			google_place_id: "place_feed_1",
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.657825,
 			longitude: 139.696711,
-			// location: null,
+			location: null,
 			address_components: null,
 			plus_code: null,
 		},
@@ -157,11 +159,13 @@ export const mockDishItems: (DishMediaEntry & {
 			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
+			image_path:
+				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nruv-h2vCDAJumBtmRitcsUoQQjnlPPm6IT02ijQO_NK7O2eTVJaK8RPQViyvSircZEl760RUAQfXlmr0gywjVxKewBHj22zPr_ojiVJpUUhmTE1M-Wn2qrcSj8DWTlWC918Nux=w408-h306-k-no",
 			google_place_id: "place_feed_2",
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.65741,
 			longitude: 139.704493,
-			// location: null,
+			location: null,
 			address_components: null,
 			plus_code: null,
 		},
@@ -261,11 +265,13 @@ export const mockDishItems: (DishMediaEntry & {
 			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
+			image_path:
+				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqezqcFVVLLs85pwH220HKYcZrOOC8aJPeQKlY3GRt6DitAygLgBQJheWQYq_HxlMUBQoX-ZgfM2ssNg74-tsrM3UDw-WVHmlC0r2UOujFap0ixM33Nv90k6-AcuwQNMdLQ7amN=w408-h306-k-no",
 			google_place_id: "place_feed_3",
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.65408,
 			longitude: 139.707492,
-			// location: null,
+			location: null,
 			address_components: null,
 			plus_code: null,
 		},
@@ -365,11 +371,13 @@ export const mockDishItems: (DishMediaEntry & {
 			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
+			image_path:
+				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqk_LMB9f9uWO7OOQIz4amoVSWhX-No0_UnWZFjaH_UPMTPlKIeyOPa6cfVkkwum8k_-CiuAvAE5OXRlwX-kEBhUDVLiqhEO7D6BUZC_8eJL0HiNzWfOlND_05yJDpWGo_frKCS=w408-h306-k-no",
 			google_place_id: "place_feed_4",
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.659186,
 			longitude: 139.698929,
-			// location: null,
+			location: null,
 			address_components: null,
 			plus_code: null,
 		},
@@ -469,11 +477,13 @@ export const mockDishItems: (DishMediaEntry & {
 			name_language_code: "ja",
 			image_url:
 				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
+			image_path:
+				"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqSeSqkDVI3GgKjVxWLabC0QEyTOmPu1F3XXR0HIrdhlDEoFuQsuJNfreJbPYvjd6UYhINlbFyOQoqkowAXeVo49WmK2lKYDr5XGFWZIhFan4VI6B2NHBHgAF_uSujCAqzT1WaH_Q=w426-h240-k-no",
 			google_place_id: "place_feed_5",
 			created_at: "2025-08-08T17:19:02.676Z",
 			latitude: 35.658813,
 			longitude: 139.698221,
-			// location: null,
+			location: null,
 			address_components: null,
 			plus_code: null,
 		},

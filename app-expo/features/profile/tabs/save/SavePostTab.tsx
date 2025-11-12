@@ -1,10 +1,10 @@
 import React, { useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { GridList } from "@/components/collapsible-tabs";
+import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
-import type { DishMediaEntry, QueryMeSavedDishMediaResponse } from "@shared/api/v1/res";
+import type { QueryMeSavedDishMediaResponse } from "@shared/api/v1/res";
 
 interface SavePostTabProps {
 	data: QueryMeSavedDishMediaResponse["data"][number][];

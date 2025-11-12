@@ -26,7 +26,7 @@ export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number)
 		const file = parts[5];
 		if (!file) return originalUrl;
 
-		const width = Math.min(Math.max(Math.round(widthPx), 240), 1280); // 240〜1280にクランプ
+		const width = Math.min(Math.max(Math.round(widthPx), 1024), 1280); // 1024〜1280にクランプ
 		parts.splice(3, 0, "thumb"); // "commons" の次に "thumb" を挿入
 		parts.push(`${width}px-${file}`); // 末尾に "<width>px<File>" を追加
 		u.pathname = parts.join("/");

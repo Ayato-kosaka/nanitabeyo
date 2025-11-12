@@ -11,7 +11,7 @@ import {
   BufferedBackendEventLog,
   BufferedExternalApiLog,
 } from './logger.types';
-import * as chunk from 'lodash.chunk';
+const chunk = require('lodash.chunk');
 
 @Injectable()
 export class LogFlushMiddleware implements NestMiddleware {

@@ -140,9 +140,20 @@
 	},
 	"Notifications": {
 		"title": "通知",
-		"timeAgo": "{{time}}前"
+		"timeAgo": "{{time}}前",
+		"empty": "通知はまだありません",
+		"loadingMore": "読み込み中...",
+		"notification": {
+			"dish_media": {
+				"like": "があなたの投稿にいいねしました",
+				"save": "があなたの投稿を保存しました"
+			},
+			"dish_reviews": {
+				"like": "があなたのレビューにいいねしました"
+			}
+		}
 	},
-	"FoodContentScreen": {
+	"DishMediaContent": {
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -208,6 +219,11 @@
 			"noSavedPosts": "気になる投稿を見つけたら\"保存\"で見返せます",
 			"noSavedTopics": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "自分の写真/動画レビューのみ"
+			}
+		},
 		"statusLabels": {
 			"active": "アクティブ",
 			"completed": "完了",
@@ -231,13 +247,22 @@
 		"labels": {
 			"bio": "自己紹介",
 			"displayName": "表示名",
-			"avatar": "アバター画像URL"
+			"avatar": "アバター画像URL",
+			"profileImage": "プロフィール画像"
 		},
 		"privateContent": "この内容は非公開です",
 		"placeholders": {
 			"enterBio": "自己紹介を入力してください...",
 			"enterDisplayName": "表示名を入力してください...",
 			"enterAvatar": "アバター画像URLを入力してください..."
+		},
+		"hints": {
+			"tapToSelectImage": "タップして画像を選択"
+		},
+		"errors": {
+			"permissionDenied": "画像へのアクセスが許可されていません",
+			"uploadFailed": "画像のアップロードに失敗しました",
+			"invalidImage": "無効な画像ファイルです"
 		},
 		"savedCount": "{{count}}件保存",
 		"guestBio": "ようこそ、ゲストさん 👋\n新感覚グルメアプリ「なに食べよ」を使って頂きありがとうございます😊\nアカウント機能含め、近日アップデートしていきます！"
@@ -257,7 +282,8 @@
 			"openInGoogle": "Google で開く"
 		},
 		"actions": {
-			"selectDishCategory": "料理カテゴリを選択"
+			"selectDishCategory": "料理カテゴリを選択",
+			"writeReviewForThisDish": "この料理にレビューを書く"
 		},
 		"inputs": {
 			"price": "料金",

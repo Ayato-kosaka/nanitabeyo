@@ -31,7 +31,7 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     LocationsModule, // Google Places API 連携
     RemoteConfigModule, // Remote Config サービス
     DishCategoriesModule, // 料理カテゴリ管理
-    RestaurantsModule, // レストラン管理
+    forwardRef(() => RestaurantsModule), // レストラン管理
   ],
   controllers: [DishesController],
   providers: [DishesService, DishesRepository],

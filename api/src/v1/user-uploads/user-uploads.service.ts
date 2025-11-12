@@ -41,7 +41,6 @@ export class UserUploadsService {
     const fullFileName = buildFileName(dto.baseFileName, extension);
 
     const objectPath = buildFullPath({
-      env: env.API_NODE_ENV,
       resourceType: 'user-uploads',
       usageType: userId + '/' + dto.mimeType.replace(/[^a-zA-Z0-9]/g, '-'),
       finalFileName: fullFileName,

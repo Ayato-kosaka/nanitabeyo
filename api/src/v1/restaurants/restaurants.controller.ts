@@ -144,20 +144,6 @@ export class RestaurantsController {
       user.id,
     );
 
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
-
     return result.response;
   }
 }

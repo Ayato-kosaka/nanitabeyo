@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
-import { GridList } from "@/components/collapsible-tabs";
+import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
@@ -11,7 +11,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
-import type { DishMediaEntry, QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
+import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
 
 export function LikeTab() {

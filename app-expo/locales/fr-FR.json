@@ -140,9 +140,20 @@
 	},
 	"Notifications": {
 		"title": "Notifications",
-		"timeAgo": "il y a {{time}}"
+		"timeAgo": "il y a {{time}}",
+		"empty": "Aucune notification pour le moment",
+		"loadingMore": "Chargement...",
+		"notification": {
+			"dish_media": {
+				"like": "a aimé votre publication",
+				"save": "a enregistré votre publication"
+			},
+			"dish_reviews": {
+				"like": "a aimé votre avis"
+			}
+		}
 	},
-	"FoodContentScreen": {
+	"DishMediaContent": {
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -208,6 +219,11 @@
 			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
 			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "Uniquement mes avis avec photo/vidéo"
+			}
+		},
 		"statusLabels": {
 			"active": "Actif",
 			"completed": "Terminé",
@@ -231,7 +247,8 @@
 		"labels": {
 			"bio": "Bio",
 			"displayName": "Nom d'affichage",
-			"avatar": "URL de l'image d'avatar"
+			"avatar": "URL de l'image d'avatar",
+			"profileImage": "Image de profil"
 		},
 		"privateContent": "Ce contenu est privé",
 		"placeholders": {
@@ -240,7 +257,15 @@
 			"enterAvatar": "Entrez l'URL de votre image d'avatar..."
 		},
 		"savedCount": "{{count}} enregistrements",
-		"guestBio": "Bienvenue, Invité 👋\nMerci d'utiliser la nouvelle app gastronomique 'CraveCatch'😊\nFonctions de compte et plus de mises à jour bientôt disponibles !"
+		"guestBio": "Bienvenue, Invité 👋\nMerci d'utiliser la nouvelle app gastronomique 'CraveCatch'😊\nFonctions de compte et plus de mises à jour bientôt disponibles !",
+		"hints": {
+			"tapToSelectImage": "Appuyez pour sélectionner une image"
+		},
+		"errors": {
+			"permissionDenied": "Permission d'accéder aux images refusée",
+			"uploadFailed": "Échec du téléchargement de l'image",
+			"invalidImage": "Fichier image non valide"
+		}
 	},
 	"NotFound": {
 		"title": "Oups !",
@@ -257,7 +282,8 @@
 			"openInGoogle": "Ouvrir dans Google"
 		},
 		"actions": {
-			"selectDishCategory": "Sélectionner la catégorie du plat"
+			"selectDishCategory": "Sélectionner la catégorie du plat",
+			"writeReviewForThisDish": "Écrire un avis sur ce plat"
 		},
 		"inputs": {
 			"price": "Prix",

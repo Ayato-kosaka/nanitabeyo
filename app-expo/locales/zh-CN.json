@@ -140,9 +140,20 @@
 	},
 	"Notifications": {
 		"title": "通知",
-		"timeAgo": "{{time}}前"
+		"timeAgo": "{{time}}前",
+		"empty": "还没有通知",
+		"loadingMore": "加载中...",
+		"notification": {
+			"dish_media": {
+				"like": "点赞了您的帖子",
+				"save": "保存了您的帖子"
+			},
+			"dish_reviews": {
+				"like": "点赞了您的评论"
+			}
+		}
 	},
-	"FoodContentScreen": {
+	"DishMediaContent": {
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -208,6 +219,11 @@
 			"noSavedPosts": "发现感兴趣的帖子时，使用\"保存\"功能可以重新查看",
 			"noSavedTopics": "发现感兴趣的菜品时，使用\"保存\"功能可以探索附近的餐厅"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "仅显示我的照片/视频评价"
+			}
+		},
 		"statusLabels": {
 			"active": "活跃",
 			"completed": "已完成",
@@ -231,7 +247,8 @@
 		"labels": {
 			"bio": "简介",
 			"displayName": "显示名称",
-			"avatar": "头像图片URL"
+			"avatar": "头像图片URL",
+			"profileImage": "头像"
 		},
 		"privateContent": "此内容为私密",
 		"placeholders": {
@@ -240,7 +257,15 @@
 			"enterAvatar": "请输入您的头像图片URL..."
 		},
 		"savedCount": "{{count}} 次收藏",
-		"guestBio": "欢迎，访客 👋\n感谢您使用新概念美食应用《CraveCatch》😊\n账户功能和更多更新即将推出！"
+		"guestBio": "欢迎，访客 👋\n感谢您使用新概念美食应用《CraveCatch》😊\n账户功能和更多更新即将推出！",
+		"hints": {
+			"tapToSelectImage": "点击选择图片"
+		},
+		"errors": {
+			"permissionDenied": "访问图片权限被拒绝",
+			"uploadFailed": "上传图片失败",
+			"invalidImage": "无效的图片文件"
+		}
 	},
 	"NotFound": {
 		"title": "哎呀！",
@@ -256,7 +281,8 @@
 			"openInGoogle": "在 Google 中打开"
 		},
 		"actions": {
-			"selectDishCategory": "选择菜品类别"
+			"selectDishCategory": "选择菜品类别",
+			"writeReviewForThisDish": "为这道菜写评论"
 		},
 		"inputs": {
 			"price": "价格",

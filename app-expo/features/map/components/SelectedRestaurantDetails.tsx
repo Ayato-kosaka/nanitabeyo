@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
 import { Camera, DollarSign, ExternalLink } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { BidForm } from "@/features/map/components/BidForm";
@@ -19,6 +19,9 @@ import type { CreateRestaurantResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useSafeAreaFrame } from "react-native-safe-area-context";
+import { Image } from "expo-image";
+import { getCacheKeyForImage } from "@/lib/image";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -44,6 +47,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
+	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 
 	// Modals
 	const {
@@ -111,10 +115,10 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			if (canOpen) {
 				await Linking.openURL(mapUrl);
 			} else {
-				showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			}
 		} catch (error) {
-			showSnackbar(i18n.t("FoodContentScreen.errors.mapOpenFailed"));
+			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			logFrontendEvent({
 				event_name: "restaurant_google_maps_open_failed",
 				error_level: "error",
@@ -138,7 +142,10 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
-						<Image source={{ uri: restaurant.image_url }} style={styles.restaurantAvatar} />
+						<Image
+							source={{ uri: restaurant.imageUrls?.md, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.md) }}
+							style={styles.restaurantAvatar}
+						/>
 						<View style={styles.restaurantDetails}>
 							<Text style={styles.restaurantName}>{restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
@@ -201,7 +208,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
 	return (
-		<View style={styles.container}>
+		<View style={{ height: frame.height }}>
 			<Tabs.Container
 				renderHeader={renderHeader}
 				headerHeight={headerHeight}
@@ -237,9 +244,6 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
 	restaurantInfo: {
 		flexDirection: "row",
 		alignItems: "center",

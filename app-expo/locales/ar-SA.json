@@ -140,9 +140,20 @@
 	},
 	"Notifications": {
 		"title": "الإشعارات",
-		"timeAgo": "قبل {{time}}"
+		"timeAgo": "قبل {{time}}",
+		"empty": "لا توجد إشعارات بعد",
+		"loadingMore": "جارٍ التحميل...",
+		"notification": {
+			"dish_media": {
+				"like": "أعجب بمنشورك",
+				"save": "حفظ منشورك"
+			},
+			"dish_reviews": {
+				"like": "أعجب بمراجعتك"
+			}
+		}
 	},
-	"FoodContentScreen": {
+	"DishMediaContent": {
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -208,6 +219,11 @@
 			"noSavedPosts": "عندما تجد منشورات مثيرة للاهتمام، استخدم \"حفظ\" لمراجعتها",
 			"noSavedTopics": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "عرض مراجعاتي بالصور/الفيديو فقط"
+			}
+		},
 		"statusLabels": {
 			"active": "نشط",
 			"completed": "مكتمل",
@@ -231,7 +247,8 @@
 		"labels": {
 			"bio": "نبذة",
 			"displayName": "اسم العرض",
-			"avatar": "رابط صورة الملف الشخصي"
+			"avatar": "رابط صورة الملف الشخصي",
+			"profileImage": "صورة الملف الشخصي"
 		},
 		"privateContent": "هذا المحتوى خاص",
 		"placeholders": {
@@ -240,7 +257,15 @@
 			"enterAvatar": "أدخل رابط صورة الملف الشخصي..."
 		},
 		"savedCount": "{{count}} حفظ",
-		"guestBio": "مرحباً، ضيف 👋\nشكراً لاستخدام تطبيق الطعام الجديد 'CraveCatch'😊\nميزات الحساب والمزيد من التحديثات قادمة قريباً!"
+		"guestBio": "مرحباً، ضيف 👋\nشكراً لاستخدام تطبيق الطعام الجديد 'CraveCatch'😊\nميزات الحساب والمزيد من التحديثات قادمة قريباً!",
+		"hints": {
+			"tapToSelectImage": "اضغط لاختيار الصورة"
+		},
+		"errors": {
+			"permissionDenied": "تم رفض الإذن للوصول إلى الصور",
+			"uploadFailed": "فشل تحميل الصورة",
+			"invalidImage": "ملف صورة غير صالح"
+		}
 	},
 	"NotFound": {
 		"title": "عذرًا!",
@@ -257,7 +282,8 @@
 			"openInGoogle": "فتح في Google"
 		},
 		"actions": {
-			"selectDishCategory": "اختر فئة الطبق"
+			"selectDishCategory": "اختر فئة الطبق",
+			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق"
 		},
 		"inputs": {
 			"price": "السعر",

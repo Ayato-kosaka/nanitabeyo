@@ -23,24 +23,6 @@ export const useAPICall = () => {
 	const { showDialog } = useDialog();
 	const { getSession } = useAuth();
 
-	const buildRequestBody = <TRequest extends Record<string, any> | FormData>(
-		method: "GET" | "POST" | "DELETE",
-		shouldUseQuery: boolean,
-		isMultipart: boolean,
-		requestPayload: TRequest,
-	): BodyInit | undefined => {
-		if (method === "POST") {
-			return isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload);
-		}
-		if (method === "DELETE") {
-			if (shouldUseQuery) {
-				return undefined;
-			}
-			return isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload);
-		}
-		return undefined;
-	};
-
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
 	 *
@@ -63,27 +45,10 @@ export const useAPICall = () => {
 				isMultipart?: boolean;
 			},
 		): Promise<R> => {
-			const appVersion = Env.APP_VERSION;
-			// GET/DELETE で FormData でも multipart でもない場合はクエリに展開
-			const shouldUseQuery =
-				(method === "GET" || method === "DELETE") && !(requestPayload instanceof FormData) && !isMultipart;
-			const qs = shouldUseQuery ? `?${new URLSearchParams(requestPayload as Record<string, string>).toString()}` : "";
-			const endpoint = `${Env.BACKEND_BASE_URL}/${endpointName}${qs}`;
-
 			// 🔐 認証トークンの有無をチェック
 			const accessToken = getSession()?.access_token;
 			if (!accessToken) {
 				throw new Error("User is not authenticated: Supabase access_token is missing.");
-			}
-
-			// 🧾 リクエストヘッダー構築
-			const headers: Record<string, string> = {
-				"x-app-version": appVersion,
-				Authorization: `Bearer ${accessToken}`,
-			};
-			const willSendBody = method === "POST" || (method === "DELETE" && !shouldUseQuery);
-			if (willSendBody && !isMultipart) {
-				headers["Content-Type"] = "application/json";
 			}
 
 			// 🌐 API 呼び出し
@@ -99,13 +64,15 @@ export const useAPICall = () => {
 				},
 			});
 
-			const response = await fetch(endpoint, {
-				method,
-				headers,
-				body: buildRequestBody(method, shouldUseQuery, isMultipart, requestPayload),
-				// Include credentials for web to receive CDN signed cookies
-				credentials: Platform.OS === "web" ? "include" : "same-origin",
-			});
+			const response = await fetchWithAuth(
+				endpointName,
+				{
+					method,
+					requestPayload,
+					isMultipart,
+				},
+				accessToken,
+			);
 
 			const requestId = response.headers.get("x-request-id");
 			const duration = Date.now() - startTime;
@@ -240,3 +207,59 @@ export const useAPICall = () => {
 
 	return { callBackend };
 };
+
+const buildRequestBody = <TRequest extends Record<string, any> | FormData>(
+	method: "GET" | "POST" | "DELETE",
+	shouldUseQuery: boolean,
+	isMultipart: boolean,
+	requestPayload: TRequest,
+): BodyInit | undefined => {
+	if (method === "POST") {
+		return isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload);
+	}
+	if (method === "DELETE") {
+		if (shouldUseQuery) {
+			return undefined;
+		}
+		return isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload);
+	}
+	return undefined;
+};
+
+export async function fetchWithAuth<TRequest extends Record<string, any> | FormData>(
+	endpointName: string,
+	{
+		method = "POST",
+		requestPayload,
+		isMultipart = false,
+	}: {
+		method?: "GET" | "POST" | "DELETE";
+		requestPayload: TRequest;
+		isMultipart?: boolean;
+	},
+	accessToken: string,
+): Promise<Response> {
+	const appVersion = Env.APP_VERSION;
+	// 🧾 リクエストヘッダー構築
+	const headers: Record<string, string> = {
+		"x-app-version": appVersion,
+		Authorization: `Bearer ${accessToken}`,
+	};
+
+	// GET/DELETE で FormData でも multipart でもない場合はクエリに展開
+	const shouldUseQuery =
+		(method === "GET" || method === "DELETE") && !(requestPayload instanceof FormData) && !isMultipart;
+	const qs = shouldUseQuery ? `?${new URLSearchParams(requestPayload as Record<string, string>).toString()}` : "";
+	const endpoint = `${Env.BACKEND_BASE_URL}/${endpointName}${qs}`;
+
+	const willSendBody = method === "POST" || (method === "DELETE" && !shouldUseQuery);
+
+	if (willSendBody && !isMultipart) headers["Content-Type"] = "application/json";
+	return await fetch(endpoint, {
+		method,
+		headers,
+		body: buildRequestBody(method, shouldUseQuery, isMultipart, requestPayload),
+		// Include credentials for web to receive CDN signed cookies
+		credentials: Platform.OS === "web" ? "include" : "same-origin",
+	});
+}

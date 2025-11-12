@@ -1,10 +1,12 @@
 import { Tabs } from "expo-router";
-import { House as Home, MapPinned, Bell, User, Code, Search } from "lucide-react-native";
+import { MapPinned, Bell, User, Search } from "lucide-react-native";
 import i18n from "@/lib/i18n";
+import { useAuth } from "@/contexts/AuthProvider";
 
 const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
 
 export default function TabLayout() {
+	const { user } = useAuth();
 	return (
 		<Tabs
 			initialRouteName="search"
@@ -29,14 +31,6 @@ export default function TabLayout() {
 				tabBarShowLabel: false,
 			}}>
 			<Tabs.Screen
-				name="home"
-				options={{
-					title: i18n.t("Tabs.home"),
-					href: null,
-					tabBarIcon: ({ size, color }) => <Home size={ICON_SIZE} color={color} />,
-				}}
-			/>
-			<Tabs.Screen
 				name="search"
 				options={{
 					title: i18n.t("Tabs.search"),
@@ -55,6 +49,7 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.notifications"),
 					tabBarIcon: ({ size, color }) => <Bell size={ICON_SIZE} color={color} />,
+					href: user?.is_anonymous ? null : undefined,
 				}}
 			/>
 			<Tabs.Screen

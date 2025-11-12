@@ -11,7 +11,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { DishMediaController } from './dish-media.controller';
 import { DishMediaService } from './dish-media.service';
 import { DishMediaRepository } from './dish-media.repository';
-import { DishMediaMapper } from './dish-media.mapper';
 
 // ─── 横串インフラ層 ──────────────────────────────────────────
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -19,7 +18,9 @@ import { LoggerModule } from '../../core/logger/logger.module';
 import { StorageModule } from '../../core/storage/storage.module'; // 署名 URL 発行用
 import { AuthModule } from '../../core/auth/auth.module'; // JWT Guard / CurrentUser デコレータ
 import { TranscoderModule } from '../../core/transcoder/transcoder.module';
-import { NotifierModule } from '../../core/notifier/notifier.module';
+import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
+import { DishMediaAssembler } from './dish-media.assembler';
+import { RestaurantsModule } from '../restaurants/restaurants.module';
 
 @Module({
   imports: [
@@ -27,14 +28,15 @@ import { NotifierModule } from '../../core/notifier/notifier.module';
     LoggerModule, // アプリ共通 Logger
     StorageModule, // 画像用 GCS / S3 署名 URL ユーティリティ
     TranscoderModule, // Video transcoding service
-    NotifierModule, // 通知サービス
+    CloudTasksModule, // Cloud Tasks サービス
+    forwardRef(() => RestaurantsModule), // RestaurantsAssembler で署名付きURL生成のため
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
   controllers: [DishMediaController],
   providers: [
     DishMediaService,
     DishMediaRepository, // ← ここで DI できるので Service から注入可能
-    DishMediaMapper, // 追加: DishMediaMapper をプロバイダーとして登録
+    DishMediaAssembler, // 追加: DishMediaAssembler をプロバイダーとして登録
   ],
   exports: [
     DishMediaService, // 他ドメインが “いいね数集計” 等で再利用できる

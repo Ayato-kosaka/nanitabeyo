@@ -23,23 +23,29 @@ import {
   QueryRestaurantsByGooglePlaceIdResponse,
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
-import { RestaurantsMapper } from './restaurants.mapper';
 import { DishesRepository } from '../dishes/dishes.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
+import { LocationsService } from '../locations/locations.service';
+import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
+import { StorageService } from 'src/core/storage/storage.service';
+import { RestaurantsAssembler } from './restaurants.assembler';
 
 @Injectable()
 export class RestaurantsService {
   constructor(
     private readonly repo: RestaurantsRepository,
-    private readonly mapper: RestaurantsMapper,
+    private readonly assembler: RestaurantsAssembler,
     private readonly externalApi: ExternalApiService,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
     private readonly dishMediaService: DishMediaService,
     private readonly dishMediaRepository: DishMediaRepository,
+    private readonly locationsService: LocationsService,
+    private readonly cloudTasksService: CloudTasksService,
+    private readonly storageService: StorageService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -65,7 +71,7 @@ export class RestaurantsService {
     });
 
     return results.map((r) => ({
-      restaurant: convertPrismaToSupabase_Restaurants(r.restaurant),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(r.restaurant),
       meta: r.meta,
     }));
   }
@@ -99,6 +105,7 @@ export class RestaurantsService {
       totalCents: 0,
       maxEndDate: null,
     };
+    let imageSignedUrl: string | undefined;
     if (restaurant) {
       restaurantReviewStats = await this.prisma.withTransaction(
         (tx: Prisma.TransactionClient) =>
@@ -123,6 +130,7 @@ export class RestaurantsService {
           'location',
           'addressComponents',
           'plusCode',
+          'photos',
         ].join(',');
         const placeDetail = await this.externalApi.callPlaceDetails(
           fieldMask,
@@ -141,6 +149,7 @@ export class RestaurantsService {
           missingFields.push('location.longitude');
         if (!placeDetail.addressComponents)
           missingFields.push('addressComponents');
+        if (!placeDetail.photos) missingFields.push('photos');
 
         if (missingFields.length > 0) {
           this.logger.error('InvalidPlaceData', 'createRestaurant', {
@@ -153,15 +162,34 @@ export class RestaurantsService {
           );
         }
 
-        // 3. Create restaurant record
+        // 写真の取得とストレージパスの構築
+        const photoMedia = await this.locationsService.tryGetPhotoMedia(
+          placeDetail.photos!,
+          false,
+        );
+        let imagePath: string | null = null;
+        if (photoMedia) {
+          const result = await this.storageService.uploadFile({
+            buffer: photoMedia.buffer,
+            mimeType: 'image/jpeg',
+            resourceType: 'google-maps',
+            usageType: 'photo',
+            identifier: dto.googlePlaceId,
+          });
+          imagePath = result.path;
+          imageSignedUrl = result.signedUrl;
+        }
+
+        // restaurant テーブル登録
         const restaurantData: PrismaRestaurants = {
           id: 'unknown', // Will be assigned by database
           google_place_id: dto.googlePlaceId,
           name: placeDetail.displayName!.text!,
-          name_language_code: 'ja', // Japanese priority as set above
+          name_language_code: dto.languageCode,
           latitude: placeDetail.location!.latitude!,
           longitude: placeDetail.location!.longitude!,
-          image_url: placeDetail.photos?.[0]?.name || '', // TODO: 引数から受け取る。
+          image_url: '', // 【非推奨カラム】
+          image_path: imagePath,
           address_components: JSON.parse(
             JSON.stringify(placeDetail.addressComponents),
           ),
@@ -180,6 +208,27 @@ export class RestaurantsService {
             ),
         );
 
+        // 画像のリサイズタスクをキューイング
+        if (imagePath && restaurant) {
+          // Enqueue image resize tasks for multiple sizes
+          await this.cloudTasksService.enqueueResizeImage({
+            table: 'restaurants',
+            column: 'image_path',
+            recordId: restaurant.id,
+            size: 256,
+            aspectRatio: 9 / 16,
+            originalPath: imagePath,
+          });
+          await this.cloudTasksService.enqueueResizeImage({
+            table: 'restaurants',
+            column: 'image_path',
+            recordId: restaurant.id,
+            size: 64,
+            aspectRatio: 9 / 16,
+            originalPath: imagePath,
+          });
+        }
+
         this.logger.debug('RestaurantCreated', 'createRestaurant', {
           restaurantId: restaurant.id,
           name: restaurant.name,
@@ -195,7 +244,13 @@ export class RestaurantsService {
     }
 
     return {
-      ...convertPrismaToSupabase_Restaurants(restaurant!),
+      ...convertPrismaToSupabase_Restaurants(restaurant),
+      imageUrls: imageSignedUrl
+        ? {
+            sm: imageSignedUrl,
+            md: imageSignedUrl,
+          }
+        : undefined,
       ...restaurantReviewStats,
       ...restaurantBidStats,
     };
@@ -210,7 +265,6 @@ export class RestaurantsService {
     userId?: string,
   ): Promise<{
     response: QueryRestaurantDishMediaResponse;
-    cdnCookies?: string[];
   }> {
     this.logger.debug('GetRestaurantDishMedia', 'getRestaurantDishMedia', {
       restaurantId,
@@ -241,28 +295,24 @@ export class RestaurantsService {
       (l) => l.dish_media_id,
     );
 
-    const result = await this.dishMediaService.fetchDishMediaEntryItems(
-      dishMediaIds,
-      {
+    const dishMediaEntryItemsResult =
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
-      },
-    );
+      });
 
     this.logger.debug(
       'GetRestaurantDishMediaResult',
       'getRestaurantDishMedia',
       {
-        count: result.items.length,
-        hasCookies: !!result.cdnCookies,
+        count: dishMediaEntryItemsResult.items.length,
       },
     );
 
     return {
-      response: this.mapper.toRestaurantDishMediaResponse({
-        data: result.items,
+      response: {
+        data: dishMediaEntryItemsResult.items,
         nextCursor: dishMediaByRestaurant.nextCursor,
-      }),
-      cdnCookies: result.cdnCookies,
+      },
     };
   }
 
@@ -298,6 +348,6 @@ export class RestaurantsService {
       name: restaurant.name,
     });
 
-    return convertPrismaToSupabase_Restaurants(restaurant);
+    return this.assembler.enrichRestaurantsWithImageUrls(restaurant);
   }
 }

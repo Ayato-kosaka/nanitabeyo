@@ -6,8 +6,13 @@
 import { Module } from '@nestjs/common';
 import { InternalDishesModule } from './dishes/dishes.module';
 import { ResizeImageModule } from './resize-image/resize-image.module';
+import { InternalNotificationsModule } from './notifications/notifications.module';
 
 @Module({
-  imports: [InternalDishesModule, ResizeImageModule],
+  imports: [
+    InternalDishesModule,
+    ResizeImageModule,
+    InternalNotificationsModule,
+  ],
 })
 export class InternalModule {}

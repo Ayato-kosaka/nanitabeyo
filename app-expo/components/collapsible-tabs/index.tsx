@@ -11,4 +11,3 @@
 // index.native.ts for iOS/Android
 // index.web.tsx for Web
 export * from "./index.native";
-export { GridList } from "./GridList";

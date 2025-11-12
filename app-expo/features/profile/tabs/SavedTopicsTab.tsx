@@ -9,7 +9,7 @@ import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
-import { useBlurModal } from "@/hooks/useBlurModal";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useLocale } from "@/hooks/useLocale";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";

@@ -7,14 +7,8 @@ import {
   UploadFileParams,
   UploadFileAtPathParams,
   UploadResult,
-  GetResizedSignedUrlParams,
 } from './storage.types';
-import {
-  getExt,
-  buildFileName,
-  buildFullPath,
-  buildResizedPath,
-} from './storage.utils';
+import { getExt, buildFileName, buildFullPath } from './storage.utils';
 import { CloudTasksService } from '../cloud-tasks/cloud-tasks.service';
 import * as crypto from 'crypto';
 
@@ -46,7 +40,6 @@ export class StorageService {
     const ext = getExt(mimeType);
     const finalFileName = buildFileName(identifier, ext);
     const fullPath = buildFullPath({
-      env: env.API_NODE_ENV,
       resourceType,
       usageType,
       finalFileName,
@@ -220,63 +213,68 @@ export class StorageService {
     }
   }
 
-  /* ---------------------------------------------------------------------- */
-  /*                  Get or Queue Resized Signed URL                       */
-  /* ---------------------------------------------------------------------- */
   /**
-   * Get signed URL for resized image, or queue resize if not exists
-   * Returns original signed URL if resize is queued
+   * ----------------------------------------------------------------------
+   *                          CDN Signed URL Generation
+   * ----------------------------------------------------------------------
+   * Cloud CDN の Signed URL を生成する
+   *  - デフォルト: フル URL 署名（?Expires=&KeyName= まで付けた URL 全体を HMAC-SHA1）
+   *  - urlPrefix 指定時: URLPrefix 方式（URLPrefix&Expires&KeyName を HMAC-SHA1、元URLに各QPを付与）
+   *
+   * @param url        署名対象の URL（https 必須）
+   * @param opts
+   *   - ttlSeconds?:  有効期限（秒）未指定時は 24時間
+   *   - urlPrefix?:   URLPrefix 方式で署名する場合のプレフィックス（https://.../ で終わるのを推奨）
+   * @returns 署名済み URL
+   *
+   * 参考:
+   *  - Signed URL の作り方（順序/HMAC/エンコード等）:contentReference[oaicite:1]{index=1}
+   *  - URLPrefix を使った署名方法（パラメータと署名対象）:contentReference[oaicite:2]{index=2}
    */
-  async getOrQueueResizedSignedUrl(
-    params: GetResizedSignedUrlParams,
-    originalPath: string,
-    expiresInSeconds = 24 * 60 * 60,
-  ): Promise<string> {
-    // Build resized image path following naming convention
-    const resizedPath = buildResizedPath(params);
+  generateCdnSignedURL(
+    url: string,
+    opts?: { ttlSeconds?: number; urlPrefix?: boolean },
+  ): string {
+    // ---- validate & normalize URL -----------------------------------------
+    const u = new URL(url);
+    assertHttps(u, 'url');
 
-    try {
-      const [exists, resizedSignedUrl, originalSignedUrl] = await Promise.all([
-        this.fileExists(resizedPath), // ネットワーク
-        this.generateSignedUrl(resizedPath, expiresInSeconds), // ローカル署名
-        this.generateSignedUrl(originalPath, expiresInSeconds), // ローカル署名
-      ]);
+    const ttl = opts?.ttlSeconds !== undefined ? opts.ttlSeconds : 24 * 60 * 60;
+    if (ttl <= 0) throw new Error('ttlSeconds must be > 0');
 
-      if (exists) {
-        // Return resized image signed URL
-        this.logger.debug('ResizedImageExists', 'getOrQueueResizedSignedUrl', {
-          resizedPath,
-        });
-        return resizedSignedUrl;
-      }
+    const expires = makeExpires(ttl);
+    const keyName = env.CDN_KEY_NAME as string;
+    const keySecretB64url = env.CDN_KEY_SECRET_B64 as string; // 登録済み Key の「RAW 16byte」を想定
 
-      // Resized image doesn't exist, queue async resize
-      this.logger.debug('ResizedImageNotFound', 'getOrQueueResizedSignedUrl', {
-        resizedPath,
-        queueingResize: true,
+    // 署名方式: URLPrefix か フル URL か
+    if (opts?.urlPrefix) {
+      const prefix = normalizePrefixFromUrl(u);
+      const policy = buildUrlPrefixPolicy(prefix, expires, keyName);
+      const signature = signPolicy(policy, keySecretB64url);
+
+      const sep = u.search ? '&' : '?';
+      const signed = `${u.toString()}${sep}${policy}&Signature=${signature}`;
+
+      this.logger.debug('CdnSignedURLGenerated', 'generateCdnSignedURL', {
+        mode: 'URLPrefix',
+        prefix,
+        expires: new Date(expires * 1000).toISOString(),
+        preview: signed.slice(0, 200) + '...',
       });
+      return signed;
+    } else {
+      // フル URL 署名（URL 全体に Expires/KeyName を付与し、その文字列を HMAC）
+      const sep = u.search ? '&' : '?';
+      const urlToSign = `${u.toString()}${sep}Expires=${expires}&KeyName=${keyName}`;
+      const signature = signPolicy(urlToSign, keySecretB64url);
+      const signed = `${urlToSign}&Signature=${signature}`;
 
-      // Queue async resize using CloudTasksService
-      this.cloudTasks.enqueueResizeImage(params).catch((err) => {
-        this.logger.warn('ResizeQueueError', 'getOrQueueResizedSignedUrl', {
-          params,
-          error: err instanceof Error ? err.message : 'Unknown error',
-        });
+      this.logger.debug('CdnSignedURLGenerated', 'generateCdnSignedURL', {
+        mode: 'FullURL',
+        expires: new Date(expires * 1000).toISOString(),
+        preview: signed.slice(0, 200) + '...',
       });
-
-      // Return original image signed URL for now
-      return originalSignedUrl;
-    } catch (err) {
-      this.logger.error(
-        'GetOrQueueResizedSignedUrlError',
-        'getOrQueueResizedSignedUrl',
-        {
-          params,
-          error: (err as Error).message,
-        },
-      );
-      // Fallback to original on error
-      return this.generateSignedUrl(originalPath, expiresInSeconds);
+      return signed;
     }
   }
 
@@ -288,47 +286,27 @@ export class StorageService {
    * Used for HLS video playback where multiple files need to be accessed
    *
    * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
-   * @param recordId - The record ID for cookie path scoping
    * @returns Array of cookie strings ready for Set-Cookie headers
+   * @deprecated
    */
-  generateCdnSignedCookies(urlPrefix: string, recordId: string): string[] {
+  generateCdnSignedCookies(urlPrefix: string): string[] {
     try {
       // ---- normalize prefix -------------------------------------------------
       const u = new URL(urlPrefix);
-      if (u.protocol !== 'https:') {
-        throw new Error(`urlPrefix must be https: got ${u.protocol}`);
-      }
-      // ensure trailing slash for a clean prefix match
-      if (!u.pathname.endsWith('/')) u.pathname = `${u.pathname}/`;
-      u.search = '';
-      u.hash = '';
-      const normalizedPrefix = u.toString(); // https://cdn.../<path>/
+      assertHttps(u, 'urlPrefix');
+      const prefix = normalizePrefixFromUrl(u);
+      const expires = makeExpires(env.CDN_SIGNED_COOKIE_TTL_SECONDS);
+      const keyName = env.CDN_KEY_NAME as string;
+      const keySecretB64url = env.CDN_KEY_SECRET_B64 as string;
 
-      // ---- build policy -----------------------------------------------------
-      // 1) base64url(URLPrefix)  ※パディングなし
-      const urlPrefixB64url = b64url(Buffer.from(normalizedPrefix, 'utf8'));
-
-      const expires =
-        Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
-      const keyName = env.CDN_KEY_NAME;
-
-      // 2) Cloud CDN 形式は "URLPrefix=<b64url>:Expires=<ts>:KeyName=<name>"
-      const policy = `URLPrefix=${urlPrefixB64url}:Expires=${expires}:KeyName=${keyName}`;
-
-      // ---- sign (HMAC-SHA1 with RAW key bytes) -----------------------------
-      // env.CDN_KEY_SECRET_B64 は「Cloud CDN に登録した鍵」＝base64url 文字列を想定
-      const keyRaw = fromB64url(env.CDN_KEY_SECRET_B64);
-
-      const sigRaw = crypto.createHmac('sha1', keyRaw).update(policy).digest();
-      const signature = b64url(sigRaw); // base64url (no padding)
-
-      // ---- build Set-Cookie -------------------------------------------------
+      const policy = buildCookiePolicy(prefix, expires, keyName);
+      const signature = signPolicy(policy, keySecretB64url);
       const cookieValue = `${policy}:Signature=${signature}`;
-      const cookiePath = u.pathname; // cookie の Path は prefix のパス部分
 
+      const cookiePath = new URL(prefix).pathname;
       const cookie =
         `Cloud-CDN-Cookie=${cookieValue}; ` +
-        `Domain=.${u.hostname.includes('.') ? u.hostname.split('.').slice(1).join('.') : u.hostname}; ` +
+        `Domain=${domainForCookie(u.hostname)}; ` +
         `Path=${cookiePath}; ` +
         `Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; ` +
         `HttpOnly; Secure; SameSite=None; Partitioned`;
@@ -337,13 +315,11 @@ export class StorageService {
         'CdnSignedCookiesGenerated',
         'generateCdnSignedCookies',
         {
-          urlPrefix: normalizedPrefix,
-          recordId,
+          urlPrefix: prefix,
           expires: new Date(expires * 1000).toISOString(),
           cookiePreview: cookie.slice(0, 200) + '...',
         },
       );
-
       // 1枚クッキー方式（Cloud-CDN-Cookie）で返す。
       // ※運用が「3分割クッキー」なら、Policy/Signature/KeyName を別々に出す実装を追加してください。
       return [cookie];
@@ -351,13 +327,15 @@ export class StorageService {
       this.logger.error('CdnSignedCookieError', 'generateCdnSignedCookies', {
         error_message: (err as Error).message,
         urlPrefix,
-        recordId,
       });
       throw err;
     }
   }
 }
 
+/* ================================================================
+ *                   Base64URL helpers (共通)
+ * ================================================================ */
 function b64url(buf: Buffer) {
   return buf
     .toString('base64')
@@ -373,4 +351,74 @@ function fromB64url(s: string) {
       .padEnd(Math.ceil(s.length / 4) * 4, '='),
     'base64',
   );
+}
+
+/* ================================================================
+ *                   URL utilities (共通)
+ * ================================================================ */
+function assertHttps(u: URL, label = 'url') {
+  if (u.protocol !== 'https:') {
+    throw new Error(`${label} must be https: got ${u.protocol}`);
+  }
+}
+
+function normalizePrefixFromUrl(u: URL): string {
+  // クエリ/ハッシュ無効化、ファイル名を落として「ディレクトリ末尾 /」に統一
+  const pu = new URL(u.toString());
+  pu.search = '';
+  pu.hash = '';
+  const parts = pu.pathname.split('/');
+  if (parts.length && parts[parts.length - 1] !== '') {
+    parts.pop(); // ファイル名相当を削る
+  }
+  pu.pathname = parts.join('/');
+  if (!pu.pathname.endsWith('/')) pu.pathname = pu.pathname + '/';
+  return pu.toString();
+}
+
+function domainForCookie(hostname: string): string {
+  // 2LD/3LD のざっくり対応（既存実装踏襲）
+  return `.${hostname.includes('.') ? hostname.split('.').slice(1).join('.') : hostname}`;
+}
+
+/* ================================================================
+ *                   Policy / Sign (共通)
+ * ================================================================ */
+type CommonOpts = {
+  ttlSeconds: number;
+  keyName: string;
+  keySecretB64url: string; // Cloud CDN に登録した鍵（base64url）
+};
+
+function makeExpires(ttlSeconds: number): number {
+  if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
+    throw new Error('ttlSeconds must be > 0');
+  }
+  return Math.floor(Date.now() / 1000) + Math.floor(ttlSeconds);
+}
+
+function signPolicy(policy: string, keySecretB64url: string): string {
+  const keyRaw = fromB64url(keySecretB64url);
+  const sigRaw = crypto.createHmac('sha1', keyRaw).update(policy).digest();
+  return b64url(sigRaw);
+}
+
+/** URLPrefix 方式の policy 文字列を作る（& 区切り） */
+function buildUrlPrefixPolicy(
+  prefix: string,
+  expires: number,
+  keyName: string,
+): string {
+  const urlPrefixB64url = b64url(Buffer.from(prefix, 'utf8'));
+  return `URLPrefix=${urlPrefixB64url}&Expires=${expires}&KeyName=${keyName}`;
+}
+
+/** Cookie 方式の policy 文字列（: 区切り / 既存仕様踏襲） */
+function buildCookiePolicy(
+  prefix: string,
+  expires: number,
+  keyName: string,
+): string {
+  const urlPrefixB64url = b64url(Buffer.from(prefix, 'utf8'));
+  return `URLPrefix=${urlPrefixB64url}:Expires=${expires}:KeyName=${keyName}`;
 }

@@ -140,9 +140,20 @@
 	},
 	"Notifications": {
 		"title": "알림",
-		"timeAgo": "{{time}} 전"
+		"timeAgo": "{{time}} 전",
+		"empty": "아직 알림이 없습니다",
+		"loadingMore": "로딩 중...",
+		"notification": {
+			"dish_media": {
+				"like": "님이 회원님의 게시물을 좋아합니다",
+				"save": "님이 회원님의 게시물을 저장했습니다"
+			},
+			"dish_reviews": {
+				"like": "님이 회원님의 리뷰를 좋아합니다"
+			}
+		}
 	},
-	"FoodContentScreen": {
+	"DishMediaContent": {
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -208,6 +219,11 @@
 			"noSavedPosts": "흥미로운 게시물을 찾으면 \"저장\"으로 다시 볼 수 있습니다",
 			"noSavedTopics": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
 		},
+		"reviews": {
+			"filter": {
+				"onlyMyPhotoVideo": "내 사진/동영상 리뷰만"
+			}
+		},
 		"statusLabels": {
 			"active": "활성",
 			"completed": "완료",
@@ -231,7 +247,8 @@
 		"labels": {
 			"bio": "자기소개",
 			"displayName": "표시 이름",
-			"avatar": "아바타 이미지 URL"
+			"avatar": "아바타 이미지 URL",
+			"profileImage": "프로필 이미지"
 		},
 		"privateContent": "이 내용은 비공개입니다",
 		"placeholders": {
@@ -240,7 +257,15 @@
 			"enterAvatar": "아바타 이미지 URL을 입력하세요..."
 		},
 		"savedCount": "{{count}}회 저장",
-		"guestBio": "환영합니다, 게스트님 👋\n새로운 미식 앱 'CraveCatch'를 사용해 주셔서 감사합니다😊\n계정 기능을 포함한 업데이트가 곧 진행됩니다!"
+		"guestBio": "환영합니다, 게스트님 👋\n새로운 미식 앱 'CraveCatch'를 사용해 주셔서 감사합니다😊\n계정 기능을 포함한 업데이트가 곧 진행됩니다!",
+		"hints": {
+			"tapToSelectImage": "탭하여 이미지 선택"
+		},
+		"errors": {
+			"permissionDenied": "이미지 액세스 권한이 거부되었습니다",
+			"uploadFailed": "이미지 업로드 실패",
+			"invalidImage": "잘못된 이미지 파일"
+		}
 	},
 	"NotFound": {
 		"title": "이런!",
@@ -257,7 +282,8 @@
 			"openInGoogle": "Google에서 열기"
 		},
 		"actions": {
-			"selectDishCategory": "요리 카테고리 선택"
+			"selectDishCategory": "요리 카테고리 선택",
+			"writeReviewForThisDish": "이 요리에 대한 리뷰 작성"
 		},
 		"inputs": {
 			"price": "가격",

@@ -39,17 +39,3 @@ export interface UploadResult {
   /** 読み取り用署名 URL  */
   signedUrl: string;
 }
-
-/**
- * Parameters for on-demand resized image URL generation
- */
-export interface GetResizedSignedUrlParams {
-  /** Database table name */
-  table: string;
-  /** Database column name */
-  column: string;
-  /** Record ID (UUID) */
-  recordId: string;
-  /** Target size in pixels */
-  size: 256 | 1024;
-}

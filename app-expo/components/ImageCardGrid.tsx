@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
+import { getCacheKeyForImage } from "@/lib/image";
 
 /* -------------------------------------------------------------------------- */
 /*                                  型定義                                    */
@@ -79,7 +80,7 @@ function _ImageCard<T extends ImageCardItem>({
 	const { width: widthDimensions } = useWindowDimensions();
 
 	const source = useMemo(
-		() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS, cacheKey: item.imageUrl.split("?")[0] }),
+		() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS, cacheKey: getCacheKeyForImage(item.imageUrl) }),
 		[item.imageUrl],
 	);
 

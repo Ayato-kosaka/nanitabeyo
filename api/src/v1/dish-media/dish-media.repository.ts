@@ -16,7 +16,6 @@ import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish
 import { PrismaDishMediaImpressions } from '../../../../shared/converters/convert_dish_media_impressions';
 import { PrismaDishMediaAnalysisResults } from '../../../../shared/converters/convert_dish_media_analysis_results';
 import { AppLoggerService } from 'src/core/logger/logger.service';
-import { randomUUID } from 'crypto';
 
 import {
   CreateDishMediaDto,
@@ -27,7 +26,8 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
-import { env } from 'src/core/config/env';
+import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
+import { ClsService } from 'nestjs-cls';
 
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
@@ -57,6 +57,7 @@ export class DishMediaRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
+    private readonly cls: ClsService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -447,7 +448,7 @@ export class DishMediaRepository {
           ) AS rn
         FROM media_like_counts mlc
       )
-      SELECTrows
+      SELECT
         ranked.dish_media_id,
         ranked.dish_id,
         ranked.like_count
@@ -527,48 +528,61 @@ export class DishMediaRepository {
   /* ------------------------------------------------------------------ */
   async findDishMediaByLikedUser(
     userId: string,
+    isAnonymous: boolean,
     cursor?: string,
     limit = 42,
   ): Promise<{ dish_media_id: string; created_at: Date }[]> {
     this.logger.debug('findDishMediaByLikedUser', 'findDishMediaByLikedUser', {
       userId,
       cursor,
+      isAnonymous,
       limit,
     });
 
-    const whereClause: any = {
-      user_id: userId,
-      target_type: 'dish_media',
-      action_type: 'like',
-    };
-    if (cursor) {
-      whereClause.created_at = { lt: new Date(cursor) };
+    let result: { dish_media_id: string; created_at: Date }[] = [];
+    if (isAnonymous) {
+      // 匿名ユーザーの場合は reactions テーブルから取得
+      const whereClause: Prisma.reactionsWhereInput = {
+        user_id: userId,
+        target_type: 'dish_media',
+        action_type: 'like',
+      };
+      if (cursor) {
+        whereClause.created_at = { lt: new Date(cursor) };
+      }
+
+      const likes = await this.prisma.prisma.reactions.findMany({
+        where: whereClause,
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        select: { target_id: true, created_at: true },
+      });
+
+      result = likes.map((r) => ({
+        dish_media_id: r.target_id,
+        created_at: r.created_at,
+      }));
+    } else {
+      // 通常ユーザーの場合は dish_media_likes テーブルから取得
+      const whereClause: Prisma.dish_media_likesWhereInput = {
+        user_id: userId,
+      };
+      if (cursor) {
+        whereClause.created_at = { lt: new Date(cursor) };
+      }
+
+      const likes = await this.prisma.prisma.dish_media_likes.findMany({
+        where: whereClause,
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        select: { dish_media_id: true, created_at: true },
+      });
+
+      result = likes.map((r) => ({
+        dish_media_id: r.dish_media_id,
+        created_at: r.created_at,
+      }));
     }
-
-    const likes = await this.prisma.prisma.reactions.findMany({
-      where: whereClause,
-      orderBy: { created_at: 'desc' },
-      take: limit,
-      select: { target_id: true, created_at: true },
-    });
-
-    const result = likes.map((r) => ({
-      dish_media_id: r.target_id,
-      created_at: r.created_at,
-    }));
-
-    // TODO: ログインユーザーの場合
-    // const whereClause: any = { user_id: userId };
-    // if (cursor) {
-    //   whereClause.created_at = { lt: new Date(cursor) };
-    // }
-
-    // const likes = await this.prisma.prisma.dish_media_likes.findMany({
-    //   where: whereClause,
-    //   orderBy: { created_at: 'desc' },
-    //   take: limit,
-    //   select: { dish_media_id: true, created_at: true },
-    // });
 
     this.logger.debug(
       'findDishMediaByLikedUserResult',
@@ -908,6 +922,8 @@ export class DishMediaRepository {
     } else {
       // save / open_map の場合、または匿名ユーザーの like は reactions を操作
       if (willReact) {
+        const appVersion =
+          this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
         await tx.reactions.create({
           data: {
             user_id: reaction.user_id,
@@ -915,7 +931,7 @@ export class DishMediaRepository {
             target_id: reaction.target_id,
             action_type: reaction.action_type,
             created_at: new Date(),
-            created_version: env.API_COMMIT_ID,
+            created_version: appVersion,
             lock_no: 0,
           },
         });

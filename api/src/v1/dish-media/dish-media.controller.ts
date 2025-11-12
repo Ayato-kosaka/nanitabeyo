@@ -52,15 +52,11 @@ import { RequestUser } from '../../core/auth/auth.types';
 
 // ドメイン Service
 import { DishMediaService } from './dish-media.service';
-import { DishMediaMapper } from './dish-media.mapper';
 
 @ApiTags('DishMedia')
 @Controller('v1/dish-media')
 export class DishMediaController {
-  constructor(
-    private readonly dishMediaService: DishMediaService,
-    private readonly dishMediaMapper: DishMediaMapper,
-  ) {}
+  constructor(private readonly dishMediaService: DishMediaService) {}
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -83,22 +79,8 @@ export class DishMediaController {
   ): Promise<QueryDishMediaByIdsResponse> {
     const result = await this.dishMediaService.findByIds(query.ids, user?.id);
 
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
-
     return {
-      items: this.dishMediaMapper.toSearchDishMediaResponse(result.items),
+      items: result.items,
       notFound: result.notFound,
     };
   }
@@ -125,21 +107,7 @@ export class DishMediaController {
   ): Promise<SearchDishMediaResponse> {
     const result = await this.dishMediaService.findByCriteria(query, user.id);
 
-    // Set CDN signed cookies if present (for video media)
-    if (result.cdnCookies && result.cdnCookies.length > 0) {
-      const existing = res.getHeader('Set-Cookie');
-      const merged = [
-        ...(existing
-          ? Array.isArray(existing)
-            ? existing
-            : [String(existing)]
-          : []),
-        ...result.cdnCookies,
-      ];
-      res.setHeader('Set-Cookie', merged);
-    }
-
-    return this.dishMediaMapper.toSearchDishMediaResponse(result.items);
+    return result.items;
   }
 
   /* ------------------------------------------------------------------ */

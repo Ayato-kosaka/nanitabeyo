@@ -296,6 +296,170 @@ export const COUNTRY_TO_CURRENCY_MAP = {
 	// 念のため重複防止
 } as const;
 
+/** ISO-4217 通貨コードから通貨記号へのマッピング表
+ * 例: CURRENCY_SYMBOL_MAP["JPY"] => "¥"
+ * ※ Intl API が利用できない環境向けのフォールバックとして使用
+ */
+export const CURRENCY_SYMBOL_MAP = {
+	USD: "$",
+	EUR: "€",
+	GBP: "£",
+	CLP: "$",
+	COP: "$",
+	SEK: "kr",
+	DKK: "kr",
+	PLN: "zł",
+	CZK: "Kč",
+	HUF: "Ft",
+	RUB: "₽",
+
+	XCD: "$",
+	AWG: "ƒ",
+	BBD: "$",
+	BMD: "$",
+	BSD: "$",
+	BZD: "$",
+	BOB: "Bs",
+	BRL: "R$",
+	CAD: "$",
+	CRC: "₡",
+	CUP: "₱",
+	ANG: "ƒ",
+	DOP: "RD$",
+	GTQ: "Q",
+	GYD: "$",
+	HNL: "L",
+	HTG: "G",
+	JMD: "J$",
+	KYD: "$",
+	MXN: "$",
+	NIO: "C$",
+	PAB: "B/.",
+	PEN: "S/",
+	PYG: "₲",
+	SRD: "$",
+	TTD: "TT$",
+	UYU: "$U",
+	VES: "Bs",
+
+	ALL: "L",
+	AMD: "֏",
+	BAM: "KM",
+	BGN: "лв",
+	BYN: "Br",
+	CHF: "CHF",
+	GIP: "£",
+	ISK: "kr",
+	MDL: "L",
+	MKD: "ден",
+	NOK: "kr",
+	RON: "lei",
+	RSD: "дин",
+	UAH: "₴",
+
+	AOA: "Kz",
+	XOF: "CFA",
+	BIF: "FBu",
+	BWP: "P",
+	CDF: "FC",
+	XAF: "FCFA",
+	CVE: "$",
+	DJF: "Fdj",
+	DZD: "دج",
+	EGP: "£",
+	MAD: "MAD",
+	ERN: "Nfk",
+	ETB: "Br",
+	GHS: "₵",
+	GMD: "D",
+	GNF: "FG",
+	KES: "KSh",
+	KMF: "CF",
+	LRD: "$",
+	LSL: "L",
+	LYD: "ل.د",
+	MGA: "Ar",
+	MRU: "UM",
+	MUR: "₨",
+	MWK: "MK",
+	NAD: "$",
+	NGN: "₦",
+	RWF: "FRw",
+	SCR: "₨",
+	SDG: "£",
+	SHP: "£",
+	SLE: "Le",
+	SOS: "S",
+	SSP: "£",
+	STN: "Db",
+	SZL: "E",
+	TND: "د.ت",
+	TZS: "TSh",
+	UGX: "USh",
+	ZAR: "R",
+	ZMW: "ZK",
+	ZWG: "ZiG",
+
+	AED: "د.إ",
+	BHD: "ب.د",
+	IQD: "ع.د",
+	IRR: "﷼",
+	ILS: "₪",
+	JOD: "د.ا",
+	KWD: "د.ك",
+	LBP: "ل.ل",
+	OMR: "ر.ع.",
+	QAR: "ر.ق",
+	SAR: "ر.س",
+	SYP: "£",
+	TRY: "₺",
+	YER: "﷼",
+
+	AFN: "؋",
+	AZN: "₼",
+	BDT: "৳",
+	BTN: "Nu.",
+	BND: "$",
+	KHR: "៛",
+	CNY: "¥",
+	GEL: "₾",
+	HKD: "$",
+	INR: "₹",
+	IDR: "Rp",
+	JPY: "¥",
+	KZT: "₸",
+	KGS: "с",
+	LAK: "₭",
+	MOP: "P",
+	MYR: "RM",
+	MVR: "ރ.",
+	MNT: "₮",
+	MMK: "K",
+	NPR: "₨",
+	PKR: "₨",
+	PHP: "₱",
+	KRW: "₩",
+	KPW: "₩",
+	SGD: "$",
+	LKR: "Rs",
+	TWD: "NT$",
+	THB: "฿",
+	TJS: "ЅМ",
+	TMT: "m",
+	UZS: "so‘m",
+	VND: "₫",
+
+	FJD: "$",
+	NZD: "$",
+	PGK: "K",
+	SBD: "$",
+	TOP: "T$",
+	AUD: "$",
+	VUV: "VT",
+	WST: "WS$",
+	XPF: "₣",
+} as const;
+
 /**
  * 通貨コードから通貨記号を取得（Intl API使用版）
  * @param currencyCode ISO-4217 通貨コード (例: "JPY", "USD")
@@ -303,21 +467,26 @@ export const COUNTRY_TO_CURRENCY_MAP = {
  * @returns 通貨記号 (例: "¥", "$") または通貨コード自体 (Intl未対応やエラー時)
  */
 export function resolveCurrencySymbol(currencyCode: string | null, locale: string) {
+	if (!currencyCode) return null; // 通貨コードが null/空の場合は空文字を返す
+	const code = currencyCode.toUpperCase();
+	const fallback = CURRENCY_SYMBOL_MAP[code as keyof typeof CURRENCY_SYMBOL_MAP] ?? code;
 	try {
-		if (!currencyCode) return null; // 通貨コードが null/空の場合は空文字を返す
-		const parts = new Intl.NumberFormat(locale, {
-			style: "currency",
-			currency: currencyCode,
-			currencyDisplay: "narrowSymbol", // 記号優先。なければコード等に落ちる
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).formatToParts(0);
+		if (typeof Intl !== "undefined" && typeof Intl.NumberFormat === "function") {
+			const parts = new Intl.NumberFormat(locale, {
+				style: "currency",
+				currency: currencyCode,
+				currencyDisplay: "narrowSymbol", // 記号優先。なければコード等に落ちる
+				minimumFractionDigits: 0,
+				maximumFractionDigits: 0,
+			}).formatToParts(0);
 
-		const sym = parts.find((p) => p.type === "currency")?.value;
-		return sym || currencyCode; // 最終フォールバック
+			const sym = parts.find((p) => p.type === "currency")?.value;
+			return sym || code;
+		}
 	} catch {
-		return currencyCode; // Hermes/Intl未対応などの最終フォールバック
+		return fallback; // Hermes/Intl未対応などの最終フォールバック
 	}
+	return fallback;
 }
 
 /**
@@ -329,7 +498,7 @@ export function resolveCurrencySymbol(currencyCode: string | null, locale: strin
  *  - JPY/KRW/VND/CLP/ISK/XAF/XOF/RWF/GNF = 0
  *  - KWD/BHD/OMR/JOD/TND/LYD/IQD = 3
  */
-export function getMinorUnitFromCurrency(currencyCode: string | null | undefined): number {
+export function getMinorUnitDigits(currencyCode: string | null | undefined): number {
 	const code = (currencyCode || "").toUpperCase();
 
 	// 0 桁（小数なし）
@@ -389,7 +558,7 @@ export function parseAmountString(raw: string): number {
  * - minorUnits=3 -> *1000
  */
 export function toMinorAmountInteger(amount: number, currencyCode: string | null | undefined): number {
-	const minorUnits = getMinorUnitFromCurrency(currencyCode);
+	const minorUnits = getMinorUnitDigits(currencyCode);
 	const factor = Math.pow(10, minorUnits);
 
 	// 金額×係数を丸めて安全な整数に

@@ -15,6 +15,7 @@ import { convertSupabaseToPrisma_Restaurants } from '../../../../shared/converte
 import { convertSupabaseToPrisma_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertSupabaseToPrisma_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 
 @Injectable()
 export class CreateDishMediaEntryService {
@@ -23,6 +24,7 @@ export class CreateDishMediaEntryService {
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
+    private readonly cloudTasksService: CloudTasksService,
   ) {}
 
   /**
@@ -54,6 +56,9 @@ export class CreateDishMediaEntryService {
 
       // 4テーブルのUPSERT処理
       await this.upsertDatabaseEntries(payload);
+
+      // 画像リサイズの非同期ジョブをキューに投入
+      await this.enqueueResizeImageJob(payload);
 
       // 冪等性キーを記録（処理完了マーク）
       await this.markJobCompleted(payload.idempotencyKey);
@@ -113,6 +118,94 @@ export class CreateDishMediaEntryService {
     });
 
     await Promise.allSettled(downloadPromises);
+  }
+
+  /**
+   * 画像リサイズの非同期ジョブをキューに投入
+   */
+  private async enqueueResizeImageJob(payload: CreateDishMediaEntryJobPayload) {
+    return Promise.all([
+      // メイン画像リサイズジョブ
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'dish_media',
+          column: 'media_path',
+          recordId: payload.dish_media.id,
+          size: 1024,
+          aspectRatio: 9 / 16,
+          originalPath: payload.dish_media.media_path,
+        })
+        .catch((error) => {
+          this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
+            dishMediaId: payload.dish_media.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          throw error;
+        }),
+      // サムネイル画像リサイズジョブ
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'dish_media',
+          column: 'thumbnail_path',
+          recordId: payload.dish_media.id,
+          size: 256,
+          aspectRatio: 9 / 16,
+          originalPath: payload.dish_media.thumbnail_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeThumbnailError',
+            'createDishMediaEntry',
+            {
+              dishMediaId: payload.dish_media.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
+      payload.restaurants.image_path &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'restaurants',
+            column: 'image_path',
+            recordId: payload.restaurants.id,
+            size: 256,
+            aspectRatio: 9 / 16,
+            originalPath: payload.restaurants.image_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeRestaurantImageError',
+              'createDishMediaEntry',
+              {
+                restaurantId: payload.restaurants.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
+      payload.restaurants.image_path &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'restaurants',
+            column: 'image_path',
+            recordId: payload.restaurants.id,
+            size: 64,
+            aspectRatio: 9 / 16,
+            originalPath: payload.restaurants.image_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeRestaurantImageError',
+              'createDishMediaEntry',
+              {
+                restaurantId: payload.restaurants.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
+    ]);
   }
 
   /**

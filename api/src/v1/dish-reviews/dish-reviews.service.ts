@@ -12,16 +12,16 @@ import { CreateDishReviewDto, LikeDishReviewParamsDto } from '@shared/v1/dto';
 
 import { DishReviewsRepository } from './dish-reviews.repository';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotifierService } from '../../core/notifier/notifier.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 
 @Injectable()
 export class DishReviewsService {
   constructor(
     private readonly repo: DishReviewsRepository,
     private readonly prisma: PrismaService,
-    private readonly notifier: NotifierService,
     private readonly logger: AppLoggerService,
+    private readonly cloudTasks: CloudTasksService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -57,12 +57,16 @@ export class DishReviewsService {
   /* ------------------------------------------------------------------ */
   /*            POST /v1/dish-reviews/:id/likes (いいね)                 */
   /* ------------------------------------------------------------------ */
-  async likeDishReview({ id }: LikeDishReviewParamsDto, userId: string) {
+  async likeDishReview(
+    { id }: LikeDishReviewParamsDto,
+    userId: string,
+    isAnonymous: boolean,
+  ) {
     this.logger.verbose('LikeDishReview', 'likeDishReview', { id, userId });
 
     // レビューが存在するか確認
-    const reviewExists = await this.repo.reviewExists(id);
-    if (!reviewExists) {
+    const exists = await this.repo.reviewExists(id);
+    if (!exists) {
       this.logger.warn('ReviewNotFound', 'likeDishReview', { reviewId: id });
       throw new NotFoundException('Review not found');
     }
@@ -70,30 +74,43 @@ export class DishReviewsService {
     // リアクション追加
     const reaction = await this.repo.likeReview(id, userId);
 
-    // レビュー作成者を取得してプッシュ通知送信
-    const review = await this.repo.getReviewById(id);
-    if (review?.user_id && review.user_id !== userId) {
-      // 非同期通知（失敗してもレスポンスに影響させない）
-      // TODO: ユーザーのプッシュトークンを取得する必要がある
-      // this.notifier
-      //   .sendPush([{
-      //     to: userPushToken, // 実際のExpoプッシュトークンが必要
-      //     title: 'レビューが高評価！',
-      //     body: `あなたのレビューがいいねされました`,
-      //   }])
-      //   .catch((err) =>
-      //     this.logger.warn('PushLikeNotificationFailed', 'likeDishReview', {
-      //       error: err.message,
-      //       reviewId: id,
-      //       userId,
-      //     }),
-      //   );
+    // #通知機能 【設計】成功時に Cloud Tasks にジョブ投入（匿名ユーザーは除外）
+    if (!isAnonymous) {
+      const idempotencyKey = `${reaction.target_type}:${reaction.action_type}:${id}`;
+      this.cloudTasks
+        .enqueueNotification({
+          actionType: 'like',
+          targetTable: 'dish_reviews',
+          targetId: id,
+          actorId: userId,
+          idempotencyKey,
+        })
+        .catch((error) => {
+          this.logger.error('EnqueueNotificationFailed', 'likeDishReview', {
+            reviewId: id,
+            userId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*            DELETE /v1/dish-reviews/:id/likes (いいね解除)           */
+  /* ------------------------------------------------------------------ */
+  async unlikeDishReview({ id }: LikeDishReviewParamsDto, userId: string) {
+    this.logger.verbose('UnlikeDishReview', 'unlikeDishReview', { id, userId });
+
+    // レビューが存在するか確認
+    const exists = await this.repo.reviewExists(id);
+    if (!exists) {
+      this.logger.warn('ReviewNotFound', 'unlikeDishReview', { reviewId: id });
+      throw new NotFoundException('Review not found');
     }
 
-    this.logger.debug('ReviewLiked', 'likeDishReview', {
-      reviewId: id,
-      userId,
-      reactionId: reaction.id,
-    });
+    // リアクション削除
+    await this.repo.unlikeReview(id, userId);
+
+    // #通知機能 【設計】いいね解除時は通知を送信しない
   }
 }
