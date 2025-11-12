@@ -7,7 +7,6 @@
 //
 
 import {
-  Body,
   Controller,
   Get,
   Post,
@@ -25,12 +24,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { QueryNotificationsDto, CreateDeviceTokenDto } from '@shared/v1/dto';
+import { QueryNotificationsDto } from '@shared/v1/dto';
 import {
   QueryNotificationsResponse,
   MarkAllReadResponse,
   UnreadCountResponse,
-  CreateDeviceTokenResponse,
 } from '@shared/v1/res';
 
 import { JwtAuthGuard } from '../../core/auth/auth.guard';
@@ -42,7 +40,7 @@ import { Response } from 'express';
 @ApiTags('Notifications')
 @Controller('v1/notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly notificationsService: NotificationsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/notifications                         */
