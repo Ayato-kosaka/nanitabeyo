@@ -42,7 +42,6 @@ import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
-import { getDishMediaMediaUrl, getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -135,12 +134,12 @@ export function ReviewForm({
 		const handleSetMediaState = async () => {
 			if (!prefilledMedia || !mountedRef.current) return;
 			try {
-				const mediaUrl = getDishMediaMediaUrl(prefilledMedia);
+				const mediaUrl = prefilledMedia.mediaUrl;
 				if (prefilledMedia.media_type === "image") {
 					setMediaState({ status: "loading" });
 					mediaUrl && (await Image.prefetch(mediaUrl));
 				}
-				const thumbnailUrl = getDishMediaThumbnailUrl(prefilledMedia);
+				const thumbnailUrl = prefilledMedia.thumbnailImageUrl;
 				thumbnailUrl && (await Image.prefetch(thumbnailUrl));
 				// 既存メディアをプレビュー用のMediaDataに変換
 				setMediaState({

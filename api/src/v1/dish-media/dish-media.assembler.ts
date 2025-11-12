@@ -45,13 +45,8 @@ export class DishMediaAssembler {
         };
 
         const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-        const [
-          { mediaUrl, mediaUrls },
-          { thumbnailImageUrl, thumbnailImageUrls },
-        ] = await Promise.all([
-          this.getMediaUrl(src.dish_media, cdnCookies),
-          this.getThumbnailImageUrl(src.dish_media, cdnCookies),
-        ]);
+        const mediaUrl = this.getMediaUrl(src.dish_media, cdnCookies)
+        const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media, cdnCookies)
         const dish_media = {
           ...dishMediaBase,
           // Explicitly add only the required additional fields for DishMediaEntry.dish_media
@@ -59,9 +54,7 @@ export class DishMediaAssembler {
           isLiked: src.dish_media.isLiked,
           likeCount: src.dish_media.likeCount,
           mediaUrl,
-          mediaUrls,
           thumbnailImageUrl,
-          thumbnailImageUrls,
         };
 
         const dish_reviews = src.dish_reviews.map((r) => {
@@ -85,13 +78,10 @@ export class DishMediaAssembler {
   /**
    * dish_media エンティティから media_path の署名付き URL, CDN URL 群 を生成して付与
    */
-  private async getMediaUrl(
+  private getMediaUrl(
     dishMedia: DishMediaEntryEntity['dish_media'],
     cdnCookies: string[],
-  ): Promise<Pick<DishMediaEntry['dish_media'], 'mediaUrl' | 'mediaUrls'>> {
-    // 原本の署名付き URL を生成
-    const mediaUrl = await this.storage.generateSignedUrl(dishMedia.media_path);
-
+  ): string {
     const cdnUrl =
       dishMedia.media_type === 'video'
         ? // 動画の場合の HLS マスター再生リスト CDN URL
@@ -107,29 +97,17 @@ export class DishMediaAssembler {
           },
           'cdn',
         );
-    // 取得した CDN URL からプレフィックスを抽出
-    const cdnUrlPrefix = cdnUrl.split('/').slice(0, -1).join('/');
 
-    // 署名付き CDN クッキーを生成して配列に追加
-    cdnCookies.push(...this.storage.generateCdnSignedCookies(cdnUrlPrefix));
+    // 派生サイズの署名付き CDN URL を生成
+    const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl, { urlPrefix: dishMedia.media_type === 'video' });
 
-    return { mediaUrl, mediaUrls: { xl: cdnUrl } };
+    return mediaUrl;
   }
 
-  private async getThumbnailImageUrl(
+  private getThumbnailImageUrl(
     dishMedia: DishMediaEntryEntity['dish_media'],
     cdnCookies: string[],
-  ): Promise<
-    Pick<
-      DishMediaEntry['dish_media'],
-      'thumbnailImageUrl' | 'thumbnailImageUrls'
-    >
-  > {
-    // 原本の署名付き URL を生成
-    const thumbnailImageUrl = await this.storage.generateSignedUrl(
-      dishMedia.thumbnail_path,
-    );
-
+  ): string {
     const cdnUrl = buildResizedPath(
       {
         table: 'dish_media',
@@ -140,12 +118,10 @@ export class DishMediaAssembler {
       },
       'cdn',
     );
-    // 取得した CDN URL からプレフィックスを抽出
-    const cdnUrlPrefix = cdnUrl.split('/').slice(0, -1).join('/');
 
-    // 署名付き CDN クッキーを生成して配列に追加
-    cdnCookies.push(...this.storage.generateCdnSignedCookies(cdnUrlPrefix));
+    // 派生サイズの署名付き CDN URL を生成
+    const thumbnailImageUrl = this.storage.generateCdnSignedURL(cdnUrl);
 
-    return { thumbnailImageUrl, thumbnailImageUrls: { md: cdnUrl } };
+    return thumbnailImageUrl;
   }
 }

@@ -292,9 +292,7 @@ export class DishesService {
           dish_media: {
             ...dishMedia,
             mediaUrl: photoMedia.photoUri,
-            mediaUrls: { xl: photoMedia.photoUri }, // CDN URL はジョブ実行後に生成されるため、ここではGoogle写真URLをセット
             thumbnailImageUrl: photoMedia.photoUri,
-            thumbnailImageUrls: { md: photoMedia.photoUri }, // CDN URL はジョブ実行後に生成されるため、ここではGoogle写真URLをセット
             isSaved: false, // 初期状態では保存されていない
             isLiked: false, // 初期状態ではいいねされていない
             likeCount: 0, // 初期状態ではいいね数は0

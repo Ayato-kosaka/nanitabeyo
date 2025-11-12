@@ -11,9 +11,8 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
-import type { DishMediaEntry, QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
+import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
-import { getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
 
 export function LikeTab() {
 	const { callBackend } = useAPICall();
@@ -83,7 +82,7 @@ export function LikeTab() {
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
-				imageUrl: getDishMediaThumbnailUrl(item.dish_media),
+				imageUrl: item.dish_media.thumbnailImageUrl,
 			};
 
 			return (

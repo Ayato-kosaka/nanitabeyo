@@ -14,18 +14,10 @@ export type DishMediaEntry = {
 		isSaved: boolean;
 		isLiked: boolean;
 		likeCount: number;
-		/** 投稿メディアの署名付きURL（原本） */
+		/** 投稿メディアの署名付きCDN URL（派生サイズ） */
 		mediaUrl: string;
-		/** 投稿メディアの派生サイズCDN URL群 */
-		mediaUrls: {
-			xl: string; // 1024x1024
-		};
-		/** 投稿サムネイル画像の署名付きURL（原本） */
+		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ） */
 		thumbnailImageUrl: string;
-		/** 投稿サムネイル画像の署名付きCDN URL群 */
-		thumbnailImageUrls: {
-			md: string; // 256x256
-		};
 	};
 	dish_reviews: (SupabaseDishReviews & {
 		username: string;

@@ -13,7 +13,6 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
-import { getDishMediaThumbnailUrl } from "@/features/dishMedia/utils/dish_media.utils";
 
 interface RestaurantReviewsTabProps {
 	/** レストランID（Google Place ID） */
@@ -80,7 +79,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const renderReviewItem = useCallback(
 		({ item }: { item: QueryRestaurantDishMediaResponse["data"][number] }) => (
 			<ImageCard
-				item={{ id: item.dish_media.id, imageUrl: getDishMediaThumbnailUrl(item.dish_media) }}
+				item={{ id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}
 				onPress={() => onItemPress(item)}>
 				<View style={styles.reviewCardOverlay}>
 					<Text style={styles.reviewCardTitle}>{item.dish.name}</Text>
