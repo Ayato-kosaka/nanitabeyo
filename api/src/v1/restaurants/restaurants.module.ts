@@ -41,4 +41,4 @@ import { RestaurantsAssembler } from './restaurants.assembler';
     RestaurantsAssembler,
   ],
 })
-export class RestaurantsModule { }
+export class RestaurantsModule {}

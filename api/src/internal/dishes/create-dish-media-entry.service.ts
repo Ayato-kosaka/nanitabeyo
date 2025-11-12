@@ -13,7 +13,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishesRepository } from '../../v1/dishes/dishes.repository';
 import { convertSupabaseToPrisma_Restaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertSupabaseToPrisma_Dishes } from '../../../../shared/converters/convert_dishes';
-import { convertSupabaseToPrisma_DishMedia, } from '../../../../shared/converters/convert_dish_media';
+import { convertSupabaseToPrisma_DishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 
@@ -25,7 +25,7 @@ export class CreateDishMediaEntryService {
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
     private readonly cloudTasksService: CloudTasksService,
-  ) { }
+  ) {}
 
   /**
    * 非同期ジョブの処理メイン関数
@@ -163,36 +163,48 @@ export class CreateDishMediaEntryService {
           );
           throw error;
         }),
-      payload.restaurants.image_path
-      && this.cloudTasksService.enqueueResizeImage({
-        table: 'restaurants',
-        column: 'image_path',
-        recordId: payload.restaurants.id,
-        size: 256,
-        aspectRatio: 9 / 16,
-        originalPath: payload.restaurants.image_path,
-      }).catch((error) => {
-        this.logger.error('EnqueueResizeRestaurantImageError', 'createDishMediaEntry', {
-          restaurantId: payload.restaurants.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        throw error;
-      }),
-      payload.restaurants.image_path
-      && this.cloudTasksService.enqueueResizeImage({
-        table: 'restaurants',
-        column: 'image_path',
-        recordId: payload.restaurants.id,
-        size: 64,
-        aspectRatio: 9 / 16,
-        originalPath: payload.restaurants.image_path,
-      }).catch((error) => {
-        this.logger.error('EnqueueResizeRestaurantImageError', 'createDishMediaEntry', {
-          restaurantId: payload.restaurants.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        throw error;
-      }),
+      payload.restaurants.image_path &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'restaurants',
+            column: 'image_path',
+            recordId: payload.restaurants.id,
+            size: 256,
+            aspectRatio: 9 / 16,
+            originalPath: payload.restaurants.image_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeRestaurantImageError',
+              'createDishMediaEntry',
+              {
+                restaurantId: payload.restaurants.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
+      payload.restaurants.image_path &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'restaurants',
+            column: 'image_path',
+            recordId: payload.restaurants.id,
+            size: 64,
+            aspectRatio: 9 / 16,
+            originalPath: payload.restaurants.image_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeRestaurantImageError',
+              'createDishMediaEntry',
+              {
+                restaurantId: payload.restaurants.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
     ]);
   }
 

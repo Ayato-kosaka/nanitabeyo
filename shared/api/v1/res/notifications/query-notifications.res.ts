@@ -13,7 +13,7 @@ export type NotificationResponse = Omit<SupabaseNotifications, "action_type" | "
 /**
  * 通知のアクター（先頭3件のユーザー情報）
  */
-export type NotificationActor = Pick<UserProfile, "id" | "display_name" | "avatarUrls">
+export type NotificationActor = Pick<UserProfile, "id" | "display_name" | "avatarUrls">;
 
 /**
  * 通知アイテム（アクターとターゲットコンテンツを含む）

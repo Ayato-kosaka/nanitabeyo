@@ -21,17 +21,20 @@ export class DishMediaAssembler {
   constructor(
     private readonly storage: StorageService,
     private readonly restaurantsAssembler: RestaurantsAssembler,
-  ) { }
+  ) {}
 
   /**
    * Repository から取得した `DishMediaEntryEntity[]` を
    * Controller 公開型の `DishMediaEntry[]` へ変換
    */
-  toDishMediaEntry(
-    dishMediaEntryEntities: DishMediaEntryEntity[],
-  ): { items: DishMediaEntry[]; } {
+  toDishMediaEntry(dishMediaEntryEntities: DishMediaEntryEntity[]): {
+    items: DishMediaEntry[];
+  } {
     const items = dishMediaEntryEntities.map((src) => {
-      const restaurant = this.restaurantsAssembler.enrichRestaurantsWithImageUrls(src.restaurant);
+      const restaurant =
+        this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
+          src.restaurant,
+        );
 
       const dishBase = convertPrismaToSupabase_Dishes(src.dish);
       const dish = {
@@ -42,8 +45,8 @@ export class DishMediaAssembler {
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-      const mediaUrl = this.getMediaUrl(src.dish_media)
-      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media)
+      const mediaUrl = this.getMediaUrl(src.dish_media);
+      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media);
       const dish_media = {
         ...dishMediaBase,
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
@@ -66,35 +69,34 @@ export class DishMediaAssembler {
       });
 
       return { restaurant, dish, dish_media, dish_reviews };
-    },
-    );
+    });
     return { items };
   }
 
   /**
    * dish_media エンティティから media_path の署名付き URL, CDN URL 群 を生成して付与
    */
-  private getMediaUrl(
-    dishMedia: DishMediaEntryEntity['dish_media'],
-  ): string {
+  private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): string {
     const cdnUrl =
       dishMedia.media_type === 'video'
         ? // 動画の場合の HLS マスター再生リスト CDN URL
-        `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${dishMedia.id}/master.m3u8`
+          `https://${env.CDN_HOST}/${env.API_NODE_ENV}/transcoded/dish_media/media_path/${dishMedia.id}/master.m3u8`
         : // 画像の場合のリサイズ CDN URL
-        buildResizedPath(
-          {
-            table: 'dish_media',
-            column: 'media_path',
-            recordId: dishMedia.id,
-            size: 1024,
-            originalPath: dishMedia.media_path,
-          },
-          'cdn',
-        );
+          buildResizedPath(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: dishMedia.id,
+              size: 1024,
+              originalPath: dishMedia.media_path,
+            },
+            'cdn',
+          );
 
     // 派生サイズの署名付き CDN URL を生成
-    const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl, { urlPrefix: dishMedia.media_type === 'video' });
+    const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl, {
+      urlPrefix: dishMedia.media_type === 'video',
+    });
 
     return mediaUrl;
   }

@@ -36,7 +36,7 @@ export class DishMediaService {
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -98,7 +98,7 @@ export class DishMediaService {
       userId?: string;
       reviewLimit?: number;
     },
-  ): Promise<{ items: DishMediaEntry[]; }> {
+  ): Promise<{ items: DishMediaEntry[] }> {
     if (!dishMediaIds.length) return { items: [] };
 
     const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(

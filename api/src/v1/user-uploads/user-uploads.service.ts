@@ -21,7 +21,7 @@ export class UserUploadsService {
   constructor(
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*          POST /v1/user-uploads/signed-url (署名付きURL発行)         */

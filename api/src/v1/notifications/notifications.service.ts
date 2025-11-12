@@ -53,9 +53,8 @@ export class NotificationsService {
         new Set(items.flatMap((item) => item.notifications.actor_ids)),
       ),
     );
-    const actorEntries = actors.map(
-      (user) =>
-        this.usersAssembler.enrichUserProfileWithAvatarUrls(user),
+    const actorEntries = actors.map((user) =>
+      this.usersAssembler.enrichUserProfileWithAvatarUrls(user),
     );
     const actorMap = new Map(
       actorEntries.map(({ id, display_name, avatarUrls }) => [

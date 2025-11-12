@@ -40,4 +40,4 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     DishesRepository,
   ],
 })
-export class DishesModule { }
+export class DishesModule {}

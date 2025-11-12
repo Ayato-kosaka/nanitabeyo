@@ -214,23 +214,23 @@ export class StorageService {
   }
 
   /**
- * ----------------------------------------------------------------------
- *                          CDN Signed URL Generation
- * ----------------------------------------------------------------------
- * Cloud CDN の Signed URL を生成する
- *  - デフォルト: フル URL 署名（?Expires=&KeyName= まで付けた URL 全体を HMAC-SHA1）
- *  - urlPrefix 指定時: URLPrefix 方式（URLPrefix&Expires&KeyName を HMAC-SHA1、元URLに各QPを付与）
- *
- * @param url        署名対象の URL（https 必須）
- * @param opts
- *   - ttlSeconds?:  有効期限（秒）未指定時は 24時間
- *   - urlPrefix?:   URLPrefix 方式で署名する場合のプレフィックス（https://.../ で終わるのを推奨）
- * @returns 署名済み URL
- *
- * 参考:
- *  - Signed URL の作り方（順序/HMAC/エンコード等）:contentReference[oaicite:1]{index=1}
- *  - URLPrefix を使った署名方法（パラメータと署名対象）:contentReference[oaicite:2]{index=2}
- */
+   * ----------------------------------------------------------------------
+   *                          CDN Signed URL Generation
+   * ----------------------------------------------------------------------
+   * Cloud CDN の Signed URL を生成する
+   *  - デフォルト: フル URL 署名（?Expires=&KeyName= まで付けた URL 全体を HMAC-SHA1）
+   *  - urlPrefix 指定時: URLPrefix 方式（URLPrefix&Expires&KeyName を HMAC-SHA1、元URLに各QPを付与）
+   *
+   * @param url        署名対象の URL（https 必須）
+   * @param opts
+   *   - ttlSeconds?:  有効期限（秒）未指定時は 24時間
+   *   - urlPrefix?:   URLPrefix 方式で署名する場合のプレフィックス（https://.../ で終わるのを推奨）
+   * @returns 署名済み URL
+   *
+   * 参考:
+   *  - Signed URL の作り方（順序/HMAC/エンコード等）:contentReference[oaicite:1]{index=1}
+   *  - URLPrefix を使った署名方法（パラメータと署名対象）:contentReference[oaicite:2]{index=2}
+   */
   generateCdnSignedURL(
     url: string,
     opts?: { ttlSeconds?: number; urlPrefix?: boolean },
@@ -278,7 +278,6 @@ export class StorageService {
     }
   }
 
-
   /* ---------------------------------------------------------------------- */
   /*                      CDN Signed Cookie Generation                      */
   /* ---------------------------------------------------------------------- */
@@ -312,11 +311,15 @@ export class StorageService {
         `Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; ` +
         `HttpOnly; Secure; SameSite=None; Partitioned`;
 
-      this.logger.debug('CdnSignedCookiesGenerated', 'generateCdnSignedCookies', {
-        urlPrefix: prefix,
-        expires: new Date(expires * 1000).toISOString(),
-        cookiePreview: cookie.slice(0, 200) + '...',
-      });
+      this.logger.debug(
+        'CdnSignedCookiesGenerated',
+        'generateCdnSignedCookies',
+        {
+          urlPrefix: prefix,
+          expires: new Date(expires * 1000).toISOString(),
+          cookiePreview: cookie.slice(0, 200) + '...',
+        },
+      );
       // 1枚クッキー方式（Cloud-CDN-Cookie）で返す。
       // ※運用が「3分割クッキー」なら、Policy/Signature/KeyName を別々に出す実装を追加してください。
       return [cookie];
@@ -401,13 +404,21 @@ function signPolicy(policy: string, keySecretB64url: string): string {
 }
 
 /** URLPrefix 方式の policy 文字列を作る（& 区切り） */
-function buildUrlPrefixPolicy(prefix: string, expires: number, keyName: string): string {
+function buildUrlPrefixPolicy(
+  prefix: string,
+  expires: number,
+  keyName: string,
+): string {
   const urlPrefixB64url = b64url(Buffer.from(prefix, 'utf8'));
   return `URLPrefix=${urlPrefixB64url}&Expires=${expires}&KeyName=${keyName}`;
 }
 
 /** Cookie 方式の policy 文字列（: 区切り / 既存仕様踏襲） */
-function buildCookiePolicy(prefix: string, expires: number, keyName: string): string {
+function buildCookiePolicy(
+  prefix: string,
+  expires: number,
+  keyName: string,
+): string {
   const urlPrefixB64url = b64url(Buffer.from(prefix, 'utf8'));
   return `URLPrefix=${urlPrefixB64url}:Expires=${expires}:KeyName=${keyName}`;
 }

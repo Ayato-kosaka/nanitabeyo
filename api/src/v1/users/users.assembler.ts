@@ -15,14 +15,12 @@ import {
 
 @Injectable()
 export class UsersAssembler {
-  constructor(private readonly storage: StorageService) { }
+  constructor(private readonly storage: StorageService) {}
 
   /**
    * ユーザープロフィールに avatar URL 群を付与
    */
-  enrichUserProfileWithAvatarUrls(
-    user: PrismaUsers,
-  ): UserProfile {
+  enrichUserProfileWithAvatarUrls(user: PrismaUsers): UserProfile {
     const supabaseUsers: SupabaseUsers = convertPrismaToSupabase_Users(user);
 
     // #プロフィール画像 【設計】avatar_path がある場合のみ
@@ -31,26 +29,30 @@ export class UsersAssembler {
     if (user.avatar_path) {
       // アバター画像の派生サイズ CDN URL 群
       avatarUrls = {
-        sm: this.storage.generateCdnSignedURL(buildResizedPath(
-          {
-            table: 'users',
-            column: 'avatar_path',
-            recordId: user.id,
-            size: 64,
-            originalPath: user.avatar_path,
-          },
-          'cdn',
-        )),
-        md: this.storage.generateCdnSignedURL(buildResizedPath(
-          {
-            table: 'users',
-            column: 'avatar_path',
-            recordId: user.id,
-            size: 256,
-            originalPath: user.avatar_path,
-          },
-          'cdn',
-        )),
+        sm: this.storage.generateCdnSignedURL(
+          buildResizedPath(
+            {
+              table: 'users',
+              column: 'avatar_path',
+              recordId: user.id,
+              size: 64,
+              originalPath: user.avatar_path,
+            },
+            'cdn',
+          ),
+        ),
+        md: this.storage.generateCdnSignedURL(
+          buildResizedPath(
+            {
+              table: 'users',
+              column: 'avatar_path',
+              recordId: user.id,
+              size: 256,
+              originalPath: user.avatar_path,
+            },
+            'cdn',
+          ),
+        ),
       };
     }
 

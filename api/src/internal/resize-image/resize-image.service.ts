@@ -28,7 +28,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * Get the original image path from database
@@ -128,10 +128,12 @@ export class ResizeImageService {
   /**
    * 画像をリサイズしてWebPに変換
    */
-  private async resizeImage(buffer: Buffer, width: number,
+  private async resizeImage(
+    buffer: Buffer,
+    width: number,
     option?: {
       aspectRatio?: number;
-    }
+    },
   ): Promise<Buffer> {
     try {
       let height: number | undefined = undefined;

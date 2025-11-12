@@ -9,7 +9,10 @@ import { AppLoggerService } from '../logger/logger.service';
 import { CreateExternalApiInput } from '../logger/logger.types';
 import { google } from '@googlemaps/places/build/protos/protos';
 import { InputJsonValue } from '../../../../shared/prisma/runtime/library';
-import { PhotoMediaBinary, PhotoMediaJson } from 'src/v1/locations/locations.service';
+import {
+  PhotoMediaBinary,
+  PhotoMediaJson,
+} from 'src/v1/locations/locations.service';
 
 // Wikidata API のレスポンス型
 interface WikidataSearchResponse {
@@ -35,15 +38,15 @@ export interface ClaudeMessageResponse {
   type: 'message';
   content: (
     | {
-      type: 'text';
-      text: string;
-    }
+        type: 'text';
+        text: string;
+      }
     | {
-      type: 'tool_use';
-      id: string;
-      name: string;
-      input: any;
-    }
+        type: 'tool_use';
+        id: string;
+        name: string;
+        input: any;
+      }
   )[];
   stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
   stop_sequence: string | null;
@@ -69,16 +72,15 @@ export interface ClaudeMessageRequest {
     input_schema: any;
   }[];
   tool_choice?:
-  | { type: 'auto' }
-  | { type: 'any' }
-  | { type: 'tool'; name: string };
+    | { type: 'auto' }
+    | { type: 'any' }
+    | { type: 'tool'; name: string };
   stream?: boolean;
 }
 
-
 @Injectable()
 export class ExternalApiService {
-  constructor(private readonly logger: AppLoggerService) { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /**
    * Claude API呼び出し
@@ -290,25 +292,25 @@ export class ExternalApiService {
     photoRef: string,
     widthPx?: number,
     heightPx?: number,
-    opts?: { skipHttpRedirect?: true }
+    opts?: { skipHttpRedirect?: true },
   ): Promise<PhotoMediaJson | null>;
   async getPhotoMedia(
     photoRef: string,
     widthPx: number | undefined,
     heightPx: number | undefined,
-    opts: { skipHttpRedirect: false }
+    opts: { skipHttpRedirect: false },
   ): Promise<PhotoMediaBinary | null>;
   async getPhotoMedia(
     photoRef: string,
     widthPx?: number,
     heightPx?: number,
-    opts?: { skipHttpRedirect?: boolean }
+    opts?: { skipHttpRedirect?: boolean },
   ): Promise<PhotoMediaJson | PhotoMediaBinary | null>;
   async getPhotoMedia(
     photoRef: string,
     widthPx?: number,
     heightPx?: number,
-    opts?: { skipHttpRedirect?: boolean }
+    opts?: { skipHttpRedirect?: boolean },
   ): Promise<PhotoMediaJson | PhotoMediaBinary | null> {
     const apiKey = env.GOOGLE_PLACE_API_KEY;
     if (!apiKey) {
@@ -316,7 +318,9 @@ export class ExternalApiService {
     }
 
     const { skipHttpRedirect = true } = opts ?? {};
-    const photoName = photoRef.endsWith('/media') ? photoRef : `${photoRef}/media`;
+    const photoName = photoRef.endsWith('/media')
+      ? photoRef
+      : `${photoRef}/media`;
 
     // Build query parameters
     const queryParams = new URLSearchParams();
@@ -363,7 +367,7 @@ export class ExternalApiService {
         // skip=false のときは 302 → 実体画像へリダイレクト
         // fetch はデフォルトでリダイレクト追従するので、この response は画像本体
         const contentType =
-          (response.headers?.get?.('content-type') ?? 'application/octet-stream');
+          response.headers?.get?.('content-type') ?? 'application/octet-stream';
 
         // ← arrayBuffer を使い、Node で Buffer に変換
         const ab = await response.arrayBuffer();

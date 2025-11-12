@@ -46,7 +46,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -163,7 +163,10 @@ export class RestaurantsService {
         }
 
         // 写真の取得とストレージパスの構築
-        const photoMedia = await this.locationsService.tryGetPhotoMedia(placeDetail.photos!, false);
+        const photoMedia = await this.locationsService.tryGetPhotoMedia(
+          placeDetail.photos!,
+          false,
+        );
         let imagePath: string | null = null;
         if (photoMedia) {
           const result = await this.storageService.uploadFile({
@@ -172,7 +175,7 @@ export class RestaurantsService {
             resourceType: 'google-maps',
             usageType: 'photo',
             identifier: dto.googlePlaceId,
-          })
+          });
           imagePath = result.path;
           imageSignedUrl = result.signedUrl;
         }
@@ -242,10 +245,12 @@ export class RestaurantsService {
 
     return {
       ...convertPrismaToSupabase_Restaurants(restaurant),
-      imageUrls: imageSignedUrl ? {
-        sm: imageSignedUrl,
-        md: imageSignedUrl,
-      } : undefined,
+      imageUrls: imageSignedUrl
+        ? {
+            sm: imageSignedUrl,
+            md: imageSignedUrl,
+          }
+        : undefined,
       ...restaurantReviewStats,
       ...restaurantBidStats,
     };

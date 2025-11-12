@@ -65,7 +65,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                        GET /v1/users/:id                           */
@@ -123,8 +123,10 @@ export class UsersController {
     @Query() query: QueryUserDishReviewsDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryUserDishReviewsResponse> {
-    const { data, nextCursor } =
-      await this.usersService.getUserDishReviews(params.id, query);
+    const { data, nextCursor } = await this.usersService.getUserDishReviews(
+      params.id,
+      query,
+    );
 
     return this.usersMapper.toUserDishReviewsResponse({ data, nextCursor });
   }
@@ -147,12 +149,11 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeLikedDishMediaResponse> {
-    const { data, nextCursor } =
-      await this.usersService.getMeLikedDishMedia(
-        user.id,
-        user.isAnonymous,
-        query,
-      );
+    const { data, nextCursor } = await this.usersService.getMeLikedDishMedia(
+      user.id,
+      user.isAnonymous,
+      query,
+    );
 
     return { data, nextCursor };
   }
@@ -243,8 +244,10 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryMeSavedDishMediaResponse> {
-    const { data, nextCursor } =
-      await this.usersService.getMeSavedDishMedia(user.id, query);
+    const { data, nextCursor } = await this.usersService.getMeSavedDishMedia(
+      user.id,
+      query,
+    );
 
     return { data, nextCursor };
   }
