@@ -10,14 +10,13 @@ import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaNotifications } from '../../../../shared/converters/convert_notifications';
-import { PrismaNotificationRecipients } from '../../../../shared/converters/convert_notification_recipients';
 
 @Injectable()
 export class NotificationsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * 通知一覧を取得（キーセットページング）
