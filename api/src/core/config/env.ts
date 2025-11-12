@@ -16,6 +16,7 @@ const envSchema = z.object({
   SUPABASE_JWT_SECRET: z.string(),
   GOOGLE_PLACE_API_KEY: z.string(),
   GCS_BUCKET_NAME: z.string(),
+  GCS_BUCKET_PUBLIC_NAME: z.string(),
   GCS_STATIC_MASTER_DIR_PATH: z.string(),
   CLAUDE_API_KEY: z.string(),
   GOOGLE_API_KEY: z.string(),

@@ -2,12 +2,12 @@
 
 import { Module } from '@nestjs/common';
 import { PromptService } from './prompt.service';
-import { StaticMasterService } from '../utils/static-master.service';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { StaticMasterModule } from '../static-master/static-master.module';
 
 @Module({
-  imports: [PrismaModule],
-  providers: [PromptService, StaticMasterService],
+  imports: [PrismaModule, StaticMasterModule],
+  providers: [PromptService],
   exports: [PromptService],
 })
-export class PromptModule {}
+export class PromptModule { }

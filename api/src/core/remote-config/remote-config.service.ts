@@ -1,6 +1,6 @@
 // api/src/core/remote-config/remote-config.service.ts
 import { Injectable } from '@nestjs/common';
-import { StaticMasterService } from '../utils/static-master.service';
+import { StaticMasterService } from '../static-master/static-master.service';
 import {
   remoteConfigSchema,
   RemoteConfigValues,
@@ -8,7 +8,7 @@ import {
 
 @Injectable()
 export class RemoteConfigService {
-  constructor(private readonly staticMasterService: StaticMasterService) {}
+  constructor(private readonly staticMasterService: StaticMasterService) { }
 
   /**
    * 🔧 Remote Config の静的マスタから指定キーの値を取得する。

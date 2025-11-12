@@ -4,7 +4,7 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { StaticMasterService } from '../utils/static-master.service';
+import { StaticMasterService } from '../static-master/static-master.service';
 import { pickByWeight } from '../utils/weight.utils';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../../../shared/prisma';
@@ -19,7 +19,7 @@ export class PromptService {
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * プロンプトファミリーとバリアントを取得し、重み付け選択を行う
