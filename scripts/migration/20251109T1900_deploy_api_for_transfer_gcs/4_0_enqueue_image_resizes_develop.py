@@ -10,7 +10,7 @@ Cloud Run エンドポイントを一括キックするスクリプト。
 - PostgreSQL の URL は実行時引数で渡す（PCに保存しない）
 - 指定の 4 区分（dish_media, restaurants, users）を一括投入
 - ペイロードは依頼仕様どおり:
-  { table, column, recordId, size, originalPath }
+  { table, column, recordId, size, originalPath, aspectRatio? }
 
 ■ 事前要件
 - Cloud Tasks API 有効化
@@ -88,18 +88,21 @@ def iter_rows(conn, sql: str, batch_size: int) -> Iterable[List[Tuple]]:
             yield rows
 
 
-def build_payload(table: str, column: str, record_id, size: int, original_path) -> dict:
+def build_payload(table: str, column: str, record_id, size: int, original_path, aspect_ratio: Optional[float] = None) -> dict:
     """
     Cloud Run に渡す JSON ペイロードを構築。
-    仕様: { table, column, recordId, size, originalPath }
+    仕様: { table, column, recordId, size, originalPath, aspectRatio? }
     """
-    return {
+    payload = {
         "table": table,
         "column": column,
         "recordId": record_id,
         "size": size,
         "originalPath": original_path,
     }
+    if aspect_ratio is not None:
+        payload["aspectRatio"] = aspect_ratio
+    return payload
 
 
 def should_skip_path(original_path: Optional[str], skip_empty: bool) -> bool:
@@ -194,6 +197,9 @@ def main():
 
     dry_run = args.dry_run or bool(cfg.get("dry_run", False))
 
+    # 共通アスペクト比（9:16）
+    ASPECT_9_16 = 9 / 16
+
     # Cloud Tasks クライアント初期化
     client = tasks_v2.CloudTasksClient()
     parent = client.queue_path(project_id, location, queue)
@@ -207,7 +213,7 @@ def main():
         total_created = 0
 
         # ------------------------------------
-        # 1) dish_media.media_path -> size 1024
+        # 1) dish_media.media_path -> size 1024, aspectRatio 9/16
         # ------------------------------------
         for rows in iter_rows(conn, SQL_DISH_MEDIA_IMAGE, batch_size):
             for record_id, original_path in rows:
@@ -219,6 +225,7 @@ def main():
                     record_id=record_id,
                     size=1024,
                     original_path=original_path,
+                    aspect_ratio=ASPECT_9_16,
                 )
                 name = create_task(
                     client,
@@ -237,7 +244,7 @@ def main():
                 time.sleep(sleep_interval_ms / 1000.0)
 
         # ------------------------------------
-        # 2) dish_media.thumbnail_path -> size 256
+        # 2) dish_media.thumbnail_path -> size 256, aspectRatio 9/16
         # ------------------------------------
         for rows in iter_rows(conn, SQL_DISH_MEDIA_THUMB, batch_size):
             for record_id, original_path in rows:
@@ -249,6 +256,7 @@ def main():
                     record_id=record_id,
                     size=256,
                     original_path=original_path,
+                    aspect_ratio=ASPECT_9_16,
                 )
                 name = create_task(
                     client,
@@ -267,7 +275,7 @@ def main():
                 time.sleep(sleep_interval_ms / 1000.0)
 
         # ------------------------------------
-        # 3) restaurants.image_path -> size 256 と 64
+        # 3) restaurants.image_path -> size 256 と 64, aspectRatio 9/16
         # ------------------------------------
         for rows in iter_rows(conn, SQL_RESTAURANTS_IMAGE, batch_size):
             for record_id, original_path in rows:
@@ -280,6 +288,7 @@ def main():
                         record_id=record_id,
                         size=size,
                         original_path=original_path,
+                        aspect_ratio=ASPECT_9_16,
                     )
                     name = create_task(
                         client,
@@ -298,7 +307,7 @@ def main():
                     time.sleep(sleep_interval_ms / 1000.0)
 
         # ------------------------------------
-        # 4) users.avatar_path -> size 256 と 64（null はクエリ側で除外）
+        # 4) users.avatar_path -> size 256 と 64（null はクエリ側で除外）※ aspectRatio は未指定
         # ------------------------------------
         for rows in iter_rows(conn, SQL_USERS_AVATAR, batch_size):
             for record_id, original_path in rows:
@@ -311,6 +320,7 @@ def main():
                         record_id=record_id,
                         size=size,
                         original_path=original_path,
+                        # aspect_ratio は None のまま（キーを送らない）
                     )
                     name = create_task(
                         client,
