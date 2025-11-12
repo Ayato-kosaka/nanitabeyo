@@ -38,7 +38,7 @@ e2e/.detoxrc.json
 e2e/.env
 
 # --- Scripts ---
-!scripts/20251109T1900_deploy_api_for_transfer_gcs/.env.*
+!scripts/migration/20251109T1900_deploy_api_for_transfer_gcs/.env.*
 
 # --- macOS / OS Junk ---
 .DS_Store
