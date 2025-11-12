@@ -11,9 +11,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishesRepository } from '../../v1/dishes/dishes.repository';
-import { convertSupabaseToPrisma_Restaurants } from '../../../../shared/converters/convert_restaurants';
+import { convertSupabaseToPrisma_Restaurants, PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { convertSupabaseToPrisma_Dishes } from '../../../../shared/converters/convert_dishes';
-import { convertSupabaseToPrisma_DishMedia } from '../../../../shared/converters/convert_dish_media';
+import { convertSupabaseToPrisma_DishMedia, PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
 import { convertSupabaseToPrisma_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 
@@ -25,7 +25,7 @@ export class CreateDishMediaEntryService {
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /**
    * 非同期ジョブの処理メイン関数
@@ -55,10 +55,10 @@ export class CreateDishMediaEntryService {
       await this.downloadAndStorePhotos(payload);
 
       // 4テーブルのUPSERT処理
-      await this.upsertDatabaseEntries(payload);
+      const { restaurant, dishMedia } = await this.upsertDatabaseEntries(payload);
 
       // 画像リサイズの非同期ジョブをキューに投入
-      await this.enqueueResizeImageJob(payload);
+      await this.enqueueResizeImageJob(dishMedia, restaurant);
 
       // 冪等性キーを記録（処理完了マーク）
       await this.markJobCompleted(payload.idempotencyKey);
@@ -123,21 +123,21 @@ export class CreateDishMediaEntryService {
   /**
    * 画像リサイズの非同期ジョブをキューに投入
    */
-  private async enqueueResizeImageJob(payload: CreateDishMediaEntryJobPayload) {
+  private async enqueueResizeImageJob(dishMedia: PrismaDishMedia, restaurants: PrismaRestaurants) {
     return Promise.all([
       // メイン画像リサイズジョブ
       this.cloudTasksService
         .enqueueResizeImage({
           table: 'dish_media',
           column: 'media_path',
-          recordId: payload.dish_media.id,
+          recordId: dishMedia.id,
           size: 1024,
           aspectRatio: 9 / 16,
-          originalPath: payload.dish_media.media_path,
+          originalPath: dishMedia.media_path,
         })
         .catch((error) => {
           this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
-            dishMediaId: payload.dish_media.id,
+            dishMediaId: dishMedia.id,
             error: error instanceof Error ? error.message : 'Unknown error',
           });
           throw error;
@@ -147,64 +147,64 @@ export class CreateDishMediaEntryService {
         .enqueueResizeImage({
           table: 'dish_media',
           column: 'thumbnail_path',
-          recordId: payload.dish_media.id,
+          recordId: dishMedia.id,
           size: 256,
           aspectRatio: 9 / 16,
-          originalPath: payload.dish_media.thumbnail_path,
+          originalPath: dishMedia.thumbnail_path,
         })
         .catch((error) => {
           this.logger.error(
             'EnqueueResizeThumbnailError',
             'createDishMediaEntry',
             {
-              dishMediaId: payload.dish_media.id,
+              dishMediaId: dishMedia.id,
               error: error instanceof Error ? error.message : 'Unknown error',
             },
           );
           throw error;
         }),
-      payload.restaurants.image_path &&
-        this.cloudTasksService
-          .enqueueResizeImage({
-            table: 'restaurants',
-            column: 'image_path',
-            recordId: payload.restaurants.id,
-            size: 256,
-            aspectRatio: 9 / 16,
-            originalPath: payload.restaurants.image_path,
-          })
-          .catch((error) => {
-            this.logger.error(
-              'EnqueueResizeRestaurantImageError',
-              'createDishMediaEntry',
-              {
-                restaurantId: payload.restaurants.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              },
-            );
-            throw error;
-          }),
-      payload.restaurants.image_path &&
-        this.cloudTasksService
-          .enqueueResizeImage({
-            table: 'restaurants',
-            column: 'image_path',
-            recordId: payload.restaurants.id,
-            size: 64,
-            aspectRatio: 9 / 16,
-            originalPath: payload.restaurants.image_path,
-          })
-          .catch((error) => {
-            this.logger.error(
-              'EnqueueResizeRestaurantImageError',
-              'createDishMediaEntry',
-              {
-                restaurantId: payload.restaurants.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              },
-            );
-            throw error;
-          }),
+      restaurants.image_path &&
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'restaurants',
+          column: 'image_path',
+          recordId: restaurants.id,
+          size: 256,
+          aspectRatio: 9 / 16,
+          originalPath: restaurants.image_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeRestaurantImageError',
+            'createDishMediaEntry',
+            {
+              restaurantId: restaurants.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
+      restaurants.image_path &&
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'restaurants',
+          column: 'image_path',
+          recordId: restaurants.id,
+          size: 64,
+          aspectRatio: 9 / 16,
+          originalPath: restaurants.image_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeRestaurantImageError',
+            'createDishMediaEntry',
+            {
+              restaurantId: restaurants.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
     ]);
   }
 
@@ -213,8 +213,8 @@ export class CreateDishMediaEntryService {
    */
   private async upsertDatabaseEntries(
     payload: CreateDishMediaEntryJobPayload,
-  ): Promise<void> {
-    await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
+  ) {
+    return await this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
       // 1. レストラン登録
       const restaurant = await this.dishesRepository.createOrGetRestaurant(
         tx,
@@ -229,7 +229,7 @@ export class CreateDishMediaEntryService {
       });
 
       // 3. 料理メディア登録
-      await this.dishesRepository.createDishMedia(
+      const dishMedia = await this.dishesRepository.createDishMedia(
         tx,
         convertSupabaseToPrisma_DishMedia({
           ...payload.dish_media,
@@ -238,13 +238,15 @@ export class CreateDishMediaEntryService {
       );
 
       // 4. 料理レビュー登録
-      await this.dishesRepository.createDishReviews(
+      const dishReciews = await this.dishesRepository.createDishReviews(
         tx,
         payload.dish_reviews.map((review) => ({
           ...convertSupabaseToPrisma_DishReviews(review),
           dish_id: dish.id,
         })),
       );
+
+      return { restaurant, dish, dishMedia, dishReciews }
     });
   }
 
