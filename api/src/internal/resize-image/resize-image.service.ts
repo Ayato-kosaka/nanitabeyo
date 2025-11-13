@@ -5,6 +5,7 @@
 
 import { Injectable } from '@nestjs/common';
 import * as sharp from 'sharp';
+import { Jimp, JimpMime } from 'jimp';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
@@ -22,13 +23,61 @@ function quoteIdent(name: string) {
   return `"${name.replace(/"/g, '""')}"`;
 }
 
+/**
+ * 恒久的に処理できない画像エラーを表すカスタムエラークラス
+ * ログで区別できるようにするが、レスポンスは5xxとする
+ */
+export class PermanentImageError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'PermanentImageError';
+  }
+}
+
+/**
+ * JPEGデコードエラーが再エンコードで救済可能かを判定
+ * @param error エラーオブジェクト
+ * @returns 再エンコードを試す対象ならtrue
+ */
+function isRecoverableJpegDecodeError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  // #423 【バグ】libvipsのJPEGデコードエラーパターンを検出
+  const patterns = [
+    'invalid sos parameters for sequential jpeg',
+    'vipsjpeg:',
+    'jpeg',
+  ];
+
+  return patterns.some((pattern) => message.includes(pattern));
+}
+
+/**
+ * Jimpを使用してJPEGを再エンコード
+ * @param buffer 元の画像バッファ
+ * @returns 再エンコード済みJPEGバッファ
+ */
+async function reencodeWithJimp(buffer: Buffer): Promise<Buffer> {
+  const image = await Jimp.read(buffer);
+  // #423 【設計】Jimp で JPEG に再エンコードして libvips が読める形式に正規化
+  return await image.getBuffer(JimpMime.jpeg, { quality: 95 });
+}
+
 @Injectable()
 export class ResizeImageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * Get the original image path from database
@@ -127,6 +176,7 @@ export class ResizeImageService {
 
   /**
    * 画像をリサイズしてWebPに変換
+   * JPEGデコードエラー時はJimpで再エンコードして再試行
    */
   private async resizeImage(
     buffer: Buffer,
@@ -136,37 +186,106 @@ export class ResizeImageService {
     },
   ): Promise<Buffer> {
     try {
-      let height: number | undefined = undefined;
-      let fit: keyof sharp.FitEnum = 'inside'; // デフォルトはトリミングなし
+      // #423 【設計】まずは通常通りsharpでリサイズを試行
+      return await this.performResize(buffer, width, option);
+    } catch (error) {
+      // #423 【バグ】JPEGデコードエラーの場合、Jimpで再エンコードして再試行
+      if (isRecoverableJpegDecodeError(error)) {
+        this.logger.warn('ResizeImageDecodeError', 'resizeImage', {
+          size: width,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          attemptingReencode: true,
+        });
 
-      if (option?.aspectRatio) {
-        height = Math.round(width / option.aspectRatio);
-        fit = 'cover'; // 縦横比を守りつつ埋める、必要ならトリミング
+        try {
+          // Jimpで再エンコード
+          const reencodedBuffer = await reencodeWithJimp(buffer);
+
+          this.logger.log('ImageReencoded', 'resizeImage', {
+            originalSize: buffer.length,
+            reencodedSize: reencodedBuffer.length,
+          });
+
+          // 再エンコード済みバッファで再度リサイズ
+          const result = await this.performResize(
+            reencodedBuffer,
+            width,
+            option,
+          );
+
+          this.logger.log('ResizeImageCompletedAfterReencode', 'resizeImage', {
+            size: width,
+          });
+
+          return result;
+        } catch (reencodeError) {
+          // #423 【設計】再エンコードでも失敗した場合は恒久エラー
+          this.logger.error('ImageRepairFailed', 'resizeImage', {
+            size: width,
+            originalError: error instanceof Error ? error.message : 'Unknown',
+            reencodeError:
+              reencodeError instanceof Error
+                ? reencodeError.message
+                : 'Unknown',
+          });
+
+          throw new PermanentImageError(
+            'Failed to resize image even after re-encoding',
+            'RESIZE_PERMANENT_FAILURE',
+            {
+              originalError: error instanceof Error ? error.message : 'Unknown',
+              reencodeError:
+                reencodeError instanceof Error
+                  ? reencodeError.message
+                  : 'Unknown',
+            },
+          );
+        }
       }
 
-      const resized = await sharp(buffer)
-        .resize(width, height, {
-          fit,
-          position: 'center',
-        })
-        .webp({ quality: 85 })
-        .toBuffer();
-
-      this.logger.debug('ImageResized', 'resizeImage', {
-        originalSize: buffer.length,
-        resizedSize: resized.length,
-        targetWidth: width,
-        targetHeight: height,
-      });
-
-      return resized;
-    } catch (error) {
+      // 再エンコード対象外のエラーはそのまま伝播
       this.logger.error('ResizeImageError', 'resizeImage', {
         size: width,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
+  }
+
+  /**
+   * Sharpを使用して実際のリサイズ処理を実行
+   */
+  private async performResize(
+    buffer: Buffer,
+    width: number,
+    option?: {
+      aspectRatio?: number;
+    },
+  ): Promise<Buffer> {
+    let height: number | undefined = undefined;
+    let fit: keyof sharp.FitEnum = 'inside'; // デフォルトはトリミングなし
+
+    if (option?.aspectRatio) {
+      height = Math.round(width / option.aspectRatio);
+      fit = 'cover'; // 縦横比を守りつつ埋める、必要ならトリミング
+    }
+
+    const resized = await sharp(buffer)
+      .resize(width, height, {
+        fit,
+        position: 'center',
+      })
+      .webp({ quality: 85 })
+      .toBuffer();
+
+    this.logger.debug('ImageResized', 'performResize', {
+      originalSize: buffer.length,
+      resizedSize: resized.length,
+      targetWidth: width,
+      targetHeight: height,
+    });
+
+    return resized;
   }
 
   /**
@@ -235,10 +354,25 @@ export class ResizeImageService {
         alreadyExisted: false,
       };
     } catch (error) {
-      this.logger.error('ResizeAndStoreImageError', 'resizeAndStoreImage', {
-        params,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      // #423 【設計】恒久エラーも含めすべてのエラーをログに記録
+      if (error instanceof PermanentImageError) {
+        this.logger.error(
+          'ResizeAndStoreImagePermanentFailure',
+          'resizeAndStoreImage',
+          {
+            params,
+            code: error.code,
+            details: error.details,
+            message: error.message,
+          },
+        );
+      } else {
+        this.logger.error('ResizeAndStoreImageError', 'resizeAndStoreImage', {
+          params,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+      // #423 【設計】すべてのエラーを上位に伝播（Controller で5xx返却）
       throw error;
     }
   }
