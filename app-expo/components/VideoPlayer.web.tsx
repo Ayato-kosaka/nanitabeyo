@@ -25,10 +25,13 @@ const LOOP_TAIL_S = 0.7; // Near the end of the video
  * VideoPlayer component for HLS video playback
  *
  * Supports:
- * - Web: Uses native video element for Safari, hls.js for other browsers (if needed)
+ * - Web: Uses native video element for Safari, hls.js for other browsers
  *
- * The CDN signed cookies are automatically sent by the platform:
- * - Web: Browser automatically includes cookies for same-origin requests
+ * Signed URL handling:
+ * - Extracts signature parameters (URLPrefix, Expires, KeyName, Signature) from master.m3u8 URL
+ * - Propagates these parameters to all child resources (playlists, segments) for Media CDN authentication
+ * - Safari: Native HLS with signed URLs passed directly
+ * - Other browsers: hls.js with custom xhrSetup to append signature parameters to all requests
  */
 function VideoPlayer({
 	uri,
@@ -132,9 +135,45 @@ function VideoPlayer({
 			// ネイティブ HLS
 			video.src = uri;
 		} else if (Hls.isSupported()) {
+			// #<TICKET> 【設計】署名付きURLパラメータ抽出（URLPrefix/Expires/KeyName/Signature）
+			const extractSignatureParams = (url: string): URLSearchParams => {
+				const u = new URL(url);
+				const params = new URLSearchParams();
+				const keys = ["URLPrefix", "Expires", "KeyName", "Signature"];
+				keys.forEach((key) => {
+					const val = u.searchParams.get(key);
+					if (val) params.set(key, val);
+				});
+				return params;
+			};
+
+			// master.m3u8 の署名パラメータを保持
+			const signatureParams = extractSignatureParams(uri);
+
 			const hls = new Hls({
-				xhrSetup: (xhr) => {
-					xhr.withCredentials = true;
+				// #<TICKET> 【設計】HLSセグメント/プレイリスト全リクエストに署名パラメータ付与（Media CDN要件）
+				xhrSetup: (xhr, url) => {
+					if (signatureParams.toString()) {
+						try {
+							const targetUrl = new URL(url);
+							// 既存のクエリパラメータに署名パラメータを追加
+							signatureParams.forEach((value, key) => {
+								if (!targetUrl.searchParams.has(key)) {
+									targetUrl.searchParams.set(key, value);
+								}
+							});
+							// hls.js は xhrSetup を xhr.open() 前に呼び出すので、
+							// この時点でURLを変更することはできない。
+							// 代わりに xhr.open をフックする
+							const originalOpen = xhr.open;
+							xhr.open = function (method: string, requestUrl: string | URL, ...args: any[]) {
+								return originalOpen.call(this, method, targetUrl.toString(), ...args);
+							};
+						} catch (e) {
+							// URL解析失敗時はそのまま（相対URLなど）
+							console.warn("Failed to append signature params:", e);
+						}
+					}
 				},
 			});
 			hlsRef.current = hls;
@@ -228,8 +267,6 @@ function VideoPlayer({
 	}, [isLooping, startProgressLoop, stopProgressLoop]);
 
 	// NOTE: hls.js 使用時は src を指定しない（attachMedia が管理）
-	// For web, use native video element
-	// Safari supports HLS natively, other browsers may need hls.js (future enhancement)
 	return (
 		<View style={[styles.container, style]}>
 			{isLoading && (
@@ -238,9 +275,8 @@ function VideoPlayer({
 				</View>
 			)}
 			<video
-				// Cookie を送るために必須
+				// #<TICKET> 【設計】Safari のネイティブ HLS 用に src 設定（hls.js 時は attachMedia が管理）
 				src={uri}
-				crossOrigin="use-credentials"
 				ref={videoRef}
 				controls
 				autoPlay={shouldPlay}

@@ -21,10 +21,11 @@ export interface VideoPlayerProps {
  * VideoPlayer component for HLS video playback
  *
  * Supports:
- * - iOS/Android: Uses expo-video VideoView component with automatic cookie handling
+ * - iOS/Android: Uses expo-video VideoView component
  *
- * The CDN signed cookies are automatically sent by the platform:
- * - iOS/Android: expo-video automatically includes cookies in HLS requests
+ * Signed URL handling:
+ * - expo-video automatically passes URL parameters to all HLS child resources
+ * - No additional handling needed as URLPrefix signature parameters are propagated by the native player
  */
 function VideoPlayer({
 	uri,

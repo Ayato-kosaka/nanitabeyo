@@ -77,7 +77,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * Get the original image path from database
