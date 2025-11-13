@@ -50,7 +50,7 @@ function isRecoverableJpegDecodeError(error: unknown): boolean {
 
   const message = error.message.toLowerCase();
 
-  // #課題番号未定 【バグ】libvipsのJPEGデコードエラーパターンを検出
+  // #423 【バグ】libvipsのJPEGデコードエラーパターンを検出
   const patterns = [
     'invalid sos parameters for sequential jpeg',
     'vipsjpeg:',
@@ -67,7 +67,7 @@ function isRecoverableJpegDecodeError(error: unknown): boolean {
  */
 async function reencodeWithJimp(buffer: Buffer): Promise<Buffer> {
   const image = await Jimp.read(buffer);
-  // #課題番号未定 【設計】Jimp で JPEG に再エンコードして libvips が読める形式に正規化
+  // #423 【設計】Jimp で JPEG に再エンコードして libvips が読める形式に正規化
   return await image.getBuffer(JimpMime.jpeg, { quality: 95 });
 }
 
@@ -77,7 +77,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * Get the original image path from database
@@ -186,10 +186,10 @@ export class ResizeImageService {
     },
   ): Promise<Buffer> {
     try {
-      // #課題番号未定 【設計】まずは通常通りsharpでリサイズを試行
+      // #423 【設計】まずは通常通りsharpでリサイズを試行
       return await this.performResize(buffer, width, option);
     } catch (error) {
-      // #課題番号未定 【バグ】JPEGデコードエラーの場合、Jimpで再エンコードして再試行
+      // #423 【バグ】JPEGデコードエラーの場合、Jimpで再エンコードして再試行
       if (isRecoverableJpegDecodeError(error)) {
         this.logger.warn('ResizeImageDecodeError', 'resizeImage', {
           size: width,
@@ -219,7 +219,7 @@ export class ResizeImageService {
 
           return result;
         } catch (reencodeError) {
-          // #課題番号未定 【設計】再エンコードでも失敗した場合は恒久エラー
+          // #423 【設計】再エンコードでも失敗した場合は恒久エラー
           this.logger.error('ImageRepairFailed', 'resizeImage', {
             size: width,
             originalError: error instanceof Error ? error.message : 'Unknown',
@@ -354,7 +354,7 @@ export class ResizeImageService {
         alreadyExisted: false,
       };
     } catch (error) {
-      // #課題番号未定 【設計】恒久エラーも含めすべてのエラーをログに記録
+      // #423 【設計】恒久エラーも含めすべてのエラーをログに記録
       if (error instanceof PermanentImageError) {
         this.logger.error(
           'ResizeAndStoreImagePermanentFailure',
@@ -372,7 +372,7 @@ export class ResizeImageService {
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
-      // #課題番号未定 【設計】すべてのエラーを上位に伝播（Controller で5xx返却）
+      // #423 【設計】すべてのエラーを上位に伝播（Controller で5xx返却）
       throw error;
     }
   }
