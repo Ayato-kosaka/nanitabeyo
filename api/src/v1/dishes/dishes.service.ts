@@ -32,16 +32,12 @@ import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dis
 import {
   buildFileName,
   buildFullPath,
-  buildResizedPath,
   getExt,
 } from 'src/core/storage/storage.utils';
 import { randomUUID } from 'node:crypto';
 
 // Google Maps types for photo handling
 import { protos } from '@googlemaps/places';
-import { StorageService } from 'src/core/storage/storage.service';
-import { ResizeImageDto } from 'src/internal/resize-image/resize-image.dto';
-import { ResizeImageService } from 'src/internal/resize-image/resize-image.service';
 
 @Injectable()
 export class DishesService {
@@ -49,14 +45,12 @@ export class DishesService {
     private readonly repo: DishesRepository,
     private readonly logger: AppLoggerService,
     private readonly locationsService: LocationsService,
-    private readonly storageService: StorageService,
-    private readonly resizeImageService: ResizeImageService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -195,45 +189,18 @@ export class DishesService {
         }
 
         // PhotoMediaUri を複数候補から取得（バイナリ取得は行わない）
-        // #429 オリジナル画像を保存するため、Buffer 取得を行う
-        const photoMedia = await this.locationsService.tryGetPhotoMedia(
-          photos,
-          false,
-        );
+        const photoMedia = await this.locationsService.tryGetPhotoMedia(photos);
         if (!photoMedia) {
           throw new Error(`No photo URL found for place: ${place.id!}`);
         }
 
-        const dishMediaId = randomUUID();
-
         const ext = getExt('image/jpeg');
-        const finalFileName = buildFileName(place.id!, ext);
-        const fullPath = buildFullPath({
+        const mediaFileName = buildFileName(place.id!, ext);
+        const mediaPath = buildFullPath({
           resourceType: 'google-maps',
           usageType: 'photo',
-          finalFileName,
+          finalFileName: mediaFileName,
         });
-
-        const [uploadResult, { resizedSignedUrl }] = await Promise.all([
-          // #429 画像アップロード、リサイズは同期で行う。
-          // Google API 側でリサイズは出来ず、別途ジョブキューで処理するとクライアント負荷が高くなるため
-          this.storageService.uploadFileAtPath({
-            buffer: photoMedia.buffer,
-            mimeType: 'image/jpeg',
-            fullPath,
-          }),
-          this.resizeAndStoreImage(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: dishMediaId,
-              size: 1024,
-              aspectRatio: 9 / 16,
-              originalPath: fullPath, // 使用しない
-            },
-            photoMedia.buffer,
-          ),
-        ]);
 
         const restaurant: SupabaseRestaurants = {
           id: 'unknown',
@@ -243,8 +210,8 @@ export class DishesService {
           latitude: place.location!.latitude!,
           longitude: place.location!.longitude!,
           location: null,
-          image_url: resizedSignedUrl,
-          image_path: uploadResult.path,
+          image_url: photoMedia.photoUri,
+          image_path: mediaPath,
           address_components: JSON.parse(
             JSON.stringify(place.addressComponents),
           ),
@@ -265,12 +232,12 @@ export class DishesService {
         };
 
         const dishMedia: SupabaseDishMedia = {
-          id: dishMediaId,
+          id: randomUUID(),
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
-          media_path: uploadResult.path,
+          media_path: mediaPath,
           media_type: 'image',
-          thumbnail_path: uploadResult.path,
+          thumbnail_path: mediaPath,
           video_duration_ms: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -300,14 +267,15 @@ export class DishesService {
           dishMedia,
           dishReviews,
           placeId: place.id!,
+          photoUri: photoMedia.photoUri,
         });
 
         const BulkImportDishesResponseEntry: BulkImportDishesResponse[0] = {
           restaurant: {
             ...restaurant,
             imageUrls: {
-              sm: resizedSignedUrl,
-              md: resizedSignedUrl,
+              sm: photoMedia.photoUri,
+              md: photoMedia.photoUri,
             },
           },
           dish: {
@@ -316,13 +284,13 @@ export class DishesService {
             averageRating:
               dishReviews.length > 0
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
-                  dishReviews.length
+                dishReviews.length
                 : 0,
           },
           dish_media: {
             ...dishMedia,
-            mediaUrl: resizedSignedUrl,
-            thumbnailImageUrl: resizedSignedUrl,
+            mediaUrl: photoMedia.photoUri,
+            thumbnailImageUrl: photoMedia.photoUri,
             isSaved: false, // 初期状態では保存されていない
             isLiked: false, // 初期状態ではいいねされていない
             likeCount: 0, // 初期状態ではいいね数は0
@@ -367,47 +335,6 @@ export class DishesService {
   }
 
   /**
-   * 画像をリサイズして保存
-   */
-  private async resizeAndStoreImage(
-    params: ResizeImageDto,
-    originalBuffer: Buffer,
-  ) {
-    const resizedPath = buildResizedPath(params);
-    const resizedCDNUrl = buildResizedPath(params, 'cdn');
-
-    // Resize image
-    const resizedBuffer = await this.resizeImageService.resizeImage(
-      originalBuffer,
-      params.size,
-      {
-        aspectRatio: params.aspectRatio,
-      },
-    );
-
-    // Upload resized image with cache headers
-    await this.storageService.uploadFileAtPath({
-      buffer: resizedBuffer,
-      mimeType: 'image/webp',
-      fullPath: resizedPath,
-      overwriteIfExists: false,
-      metadata: {
-        cacheControl: 'public, max-age=31536000, immutable',
-        table: params.table,
-        column: params.column,
-        recordId: params.recordId,
-        size: params.size.toString(),
-      },
-    });
-
-    // 派生サイズの署名付き CDN URL を生成
-    const resizedSignedUrl =
-      this.storageService.generateCdnSignedURL(resizedCDNUrl);
-
-    return { resizedPath, resizedCDNUrl, resizedSignedUrl };
-  }
-
-  /**
    * 非同期ジョブをキューに投入
    */
   private async enqueueCreateDishMediaEntryJob({
@@ -416,12 +343,14 @@ export class DishesService {
     dishMedia,
     dishReviews,
     placeId,
+    photoUri,
   }: {
     restaurant: SupabaseRestaurants;
     dish: SupabaseDishes;
     dishMedia: SupabaseDishMedia;
     dishReviews: SupabaseDishReviews[];
     placeId: string;
+    photoUri: string;
   }) {
     // 非同期ジョブ用のペイロード作成
     const jobId = `dish-create-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -430,13 +359,14 @@ export class DishesService {
     const jobPayload: CreateDishMediaEntryJobPayload = {
       jobId,
       idempotencyKey,
+      photoUri: [photoUri],
       restaurants: restaurant,
       dishes: dish,
       dish_media: dishMedia,
       dish_reviews: dishReviews,
     };
 
-    // 非同期ジョブをキューに投入
+    // 非同期ジョブをキューに投入（写真の実体取得・保存のため）
     try {
       this.cloudTasksService.enqueueCreateDishMediaEntry(jobPayload).then(() =>
         this.logger.debug('AsyncJobEnqueued', 'bulkImportFromGoogle', {

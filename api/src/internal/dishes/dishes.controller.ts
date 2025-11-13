@@ -44,6 +44,7 @@ export class DishesController {
     this.logger.debug('CreateDishMediaEntryStarted', 'createDishMediaEntry', {
       jobId: payload.jobId,
       idempotencyKey: payload.idempotencyKey,
+      photoUriCount: payload.photoUri.length,
     });
 
     try {
