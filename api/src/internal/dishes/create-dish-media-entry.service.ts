@@ -31,7 +31,7 @@ export class CreateDishMediaEntryService {
     private readonly logger: AppLoggerService,
     private readonly dishesRepository: DishesRepository,
     private readonly cloudTasksService: CloudTasksService,
-  ) {}
+  ) { }
 
   /**
    * 非同期ジョブの処理メイン関数
@@ -41,7 +41,6 @@ export class CreateDishMediaEntryService {
   ): Promise<void> {
     this.logger.debug('ProcessAsyncJob Started', 'processAsyncJob', {
       jobId: payload.jobId,
-      photoUriCount: payload.photoUri.length,
     });
 
     // 冪等性チェック: 既に処理済みかどうか確認
@@ -57,9 +56,6 @@ export class CreateDishMediaEntryService {
     }
 
     try {
-      // 写真のダウンロードと保存を並列処理
-      await this.downloadAndStorePhotos(payload);
-
       // 4テーブルのUPSERT処理
       const { restaurant, dishMedia } =
         await this.upsertDatabaseEntries(payload);
@@ -84,50 +80,6 @@ export class CreateDishMediaEntryService {
   }
 
   /**
-   * 写真のダウンロードと保存を並列処理
-   */
-  private async downloadAndStorePhotos(
-    payload: CreateDishMediaEntryJobPayload,
-  ): Promise<void> {
-    const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
-      try {
-        // 写真データを取得
-        const response = await fetch(photoUri);
-        if (!response.ok) {
-          throw new Error(`Failed to download photo: ${response.status}`);
-        }
-
-        const buffer = Buffer.from(await response.arrayBuffer());
-
-        // ストレージに保存（事前に生成されたmedia_pathを使用）
-        const uploadResult = await this.storage.uploadFileAtPath({
-          buffer,
-          mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
-          fullPath: payload.dish_media.media_path,
-          overwriteIfExists: false, // 冪等性のため既存ファイルは上書きしない
-        });
-
-        this.logger.debug('PhotoDownloaded', 'downloadAndStorePhotos', {
-          originalUri: photoUri,
-          uploadedPath: uploadResult.signedUrl,
-          mediaPath: payload.dish_media.media_path,
-        });
-
-        return uploadResult.signedUrl;
-      } catch (error) {
-        this.logger.error('PhotoDownloadError', 'downloadAndStorePhotos', {
-          photoUri,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        // エラーでもフォールバックとして元のURIを返す
-        return photoUri;
-      }
-    });
-
-    await Promise.allSettled(downloadPromises);
-  }
-
-  /**
    * 画像リサイズの非同期ジョブをキューに投入
    */
   private async enqueueResizeImageJob(
@@ -135,23 +87,6 @@ export class CreateDishMediaEntryService {
     restaurants: PrismaRestaurants,
   ) {
     return Promise.all([
-      // メイン画像リサイズジョブ
-      this.cloudTasksService
-        .enqueueResizeImage({
-          table: 'dish_media',
-          column: 'media_path',
-          recordId: dishMedia.id,
-          size: 1024,
-          aspectRatio: 9 / 16,
-          originalPath: dishMedia.media_path,
-        })
-        .catch((error) => {
-          this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
-            dishMediaId: dishMedia.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          throw error;
-        }),
       // サムネイル画像リサイズジョブ
       this.cloudTasksService
         .enqueueResizeImage({
@@ -174,47 +109,47 @@ export class CreateDishMediaEntryService {
           throw error;
         }),
       restaurants.image_path &&
-        this.cloudTasksService
-          .enqueueResizeImage({
-            table: 'restaurants',
-            column: 'image_path',
-            recordId: restaurants.id,
-            size: 256,
-            aspectRatio: 9 / 16,
-            originalPath: restaurants.image_path,
-          })
-          .catch((error) => {
-            this.logger.error(
-              'EnqueueResizeRestaurantImageError',
-              'createDishMediaEntry',
-              {
-                restaurantId: restaurants.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              },
-            );
-            throw error;
-          }),
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'restaurants',
+          column: 'image_path',
+          recordId: restaurants.id,
+          size: 256,
+          aspectRatio: 9 / 16,
+          originalPath: restaurants.image_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeRestaurantImageError',
+            'createDishMediaEntry',
+            {
+              restaurantId: restaurants.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
       restaurants.image_path &&
-        this.cloudTasksService
-          .enqueueResizeImage({
-            table: 'restaurants',
-            column: 'image_path',
-            recordId: restaurants.id,
-            size: 64,
-            aspectRatio: 9 / 16,
-            originalPath: restaurants.image_path,
-          })
-          .catch((error) => {
-            this.logger.error(
-              'EnqueueResizeRestaurantImageError',
-              'createDishMediaEntry',
-              {
-                restaurantId: restaurants.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              },
-            );
-            throw error;
-          }),
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'restaurants',
+          column: 'image_path',
+          recordId: restaurants.id,
+          size: 64,
+          aspectRatio: 9 / 16,
+          originalPath: restaurants.image_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeRestaurantImageError',
+            'createDishMediaEntry',
+            {
+              restaurantId: restaurants.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
     ]);
   }
 

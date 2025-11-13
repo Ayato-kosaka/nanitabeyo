@@ -178,7 +178,7 @@ export class ResizeImageService {
    * 画像をリサイズしてWebPに変換
    * JPEGデコードエラー時はJimpで再エンコードして再試行
    */
-  private async resizeImage(
+  async resizeImage(
     buffer: Buffer,
     width: number,
     option?: {
@@ -326,7 +326,9 @@ export class ResizeImageService {
       );
 
       // Resize image
-      const resizedBuffer = await this.resizeImage(originalBuffer, params.size);
+      const resizedBuffer = await this.resizeImage(originalBuffer, params.size, {
+        aspectRatio: params.aspectRatio,
+      });
 
       // Upload resized image with cache headers
       const result = await this.storage.uploadFileAtPath({

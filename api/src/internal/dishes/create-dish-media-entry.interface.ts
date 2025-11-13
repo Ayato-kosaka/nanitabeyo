@@ -18,9 +18,6 @@ export interface CreateDishMediaEntryJobPayload {
   /** 冪等性キー（重複処理防止） */
   idempotencyKey: string;
 
-  /** 写真URI配列 */
-  photoUri: string[];
-
   /** レストランデータ */
   restaurants: SupabaseRestaurants;
 

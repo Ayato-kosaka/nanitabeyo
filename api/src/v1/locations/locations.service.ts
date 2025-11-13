@@ -59,7 +59,7 @@ export class LocationsService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly externalApiService: ExternalApiService,
-  ) {}
+  ) { }
 
   /**
    * addressComponents から国コード (ISO-2) と州コード (ISO-3166-2) を抽出
@@ -182,17 +182,17 @@ export class LocationsService {
 
     // Build the base request payload
     const baseRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-      {
-        textQuery: query,
-        locationBias: {
-          circle: {
-            center: { latitude: lat, longitude: lng },
-            radius: params.radius,
-          },
+    {
+      textQuery: query,
+      locationBias: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius: params.radius,
         },
-        ...(params.pageSize && { pageSize: params.pageSize }),
-        ...(params.languageCode && { languageCode: params.languageCode }),
-      };
+      },
+      ...(params.pageSize && { pageSize: params.pageSize }),
+      ...(params.languageCode && { languageCode: params.languageCode }),
+    };
 
     // Helper function to perform search with given parameters
     const performSearch = async (
@@ -261,18 +261,18 @@ export class LocationsService {
     try {
       // Step 1: Normal search with all conditions
       const fullRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-        {
-          ...baseRequestPayload,
-          ...(params.minRating && { minRating: params.minRating }),
-          // priceLevels は string 配列なので、型チェックを回避するためにキャスト
-          ...(params.priceLevels && {
-            priceLevels: params.priceLevels.map(
-              (level) =>
-                level as unknown as protos.google.maps.places.v1.PriceLevel,
-            ),
-          }),
-          rankPreference: 'DISTANCE',
-        };
+      {
+        ...baseRequestPayload,
+        ...(params.minRating && { minRating: params.minRating }),
+        // priceLevels は string 配列なので、型チェックを回避するためにキャスト
+        ...(params.priceLevels && {
+          priceLevels: params.priceLevels.map(
+            (level) =>
+              level as unknown as protos.google.maps.places.v1.PriceLevel,
+          ),
+        }),
+        rankPreference: 'DISTANCE',
+      };
 
       let response = await performSearch(fullRequestPayload, 'full_conditions');
 
@@ -288,10 +288,10 @@ export class LocationsService {
       });
 
       const relaxedRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-        {
-          ...baseRequestPayload,
-          rankPreference: 'DISTANCE',
-        };
+      {
+        ...baseRequestPayload,
+        rankPreference: 'DISTANCE',
+      };
 
       response = await performSearch(
         relaxedRequestPayload,
@@ -314,9 +314,9 @@ export class LocationsService {
       );
 
       const minimalRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-        {
-          ...baseRequestPayload,
-        };
+      {
+        ...baseRequestPayload,
+      };
 
       response = await performSearch(
         minimalRequestPayload,
@@ -428,20 +428,10 @@ export class LocationsService {
       if (!photo.name) continue;
 
       try {
-        const LONG_EDGE = 1280;
-
-        const [widthPx, heightPx] =
-          photo.widthPx && photo.heightPx
-            ? // 長辺を基準にリサイズ
-              photo.widthPx >= photo.heightPx
-              ? [LONG_EDGE, undefined]
-              : [undefined, LONG_EDGE]
-            : // フォールバック：とりあえず幅だけ指定して巨大画像を回避
-              [LONG_EDGE, undefined];
         const result = await this.externalApiService.getPhotoMedia(
           photo.name,
-          widthPx,
-          heightPx,
+          photo.widthPx || undefined, // #429 API の仕様により、そのままのサイズを指定する。
+          photo.heightPx || undefined,
           { skipHttpRedirect },
         );
 

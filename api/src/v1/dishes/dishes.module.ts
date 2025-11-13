@@ -21,6 +21,8 @@ import { LocationsModule } from '../locations/locations.module'; // Google Place
 import { RemoteConfigModule } from '../../core/remote-config/remote-config.module';
 import { DishCategoriesModule } from '../dish-categories/dish-categories.module';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
+import { StorageModule } from 'src/core/storage/storage.module';
+import { ResizeImageModule } from 'src/internal/resize-image/resize-image.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     RemoteConfigModule, // Remote Config サービス
     DishCategoriesModule, // 料理カテゴリ管理
     forwardRef(() => RestaurantsModule), // レストラン管理
+    StorageModule, // ファイルストレージサービス
+    ResizeImageModule, // 画像リサイズサービス
   ],
   controllers: [DishesController],
   providers: [DishesService, DishesRepository],
@@ -40,4 +44,4 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     DishesRepository,
   ],
 })
-export class DishesModule {}
+export class DishesModule { }

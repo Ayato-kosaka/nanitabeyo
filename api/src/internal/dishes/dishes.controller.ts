@@ -27,7 +27,7 @@ export class DishesController {
   constructor(
     private readonly createDishMediaEntryService: CreateDishMediaEntryService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * POST /internal/dishes/create
@@ -44,7 +44,6 @@ export class DishesController {
     this.logger.debug('CreateDishMediaEntryStarted', 'createDishMediaEntry', {
       jobId: payload.jobId,
       idempotencyKey: payload.idempotencyKey,
-      photoUriCount: payload.photoUri.length,
     });
 
     try {
