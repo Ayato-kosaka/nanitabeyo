@@ -77,7 +77,7 @@ export class ResizeImageService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * Get the original image path from database
@@ -326,9 +326,13 @@ export class ResizeImageService {
       );
 
       // Resize image
-      const resizedBuffer = await this.resizeImage(originalBuffer, params.size, {
-        aspectRatio: params.aspectRatio,
-      });
+      const resizedBuffer = await this.resizeImage(
+        originalBuffer,
+        params.size,
+        {
+          aspectRatio: params.aspectRatio,
+        },
+      );
 
       // Upload resized image with cache headers
       const result = await this.storage.uploadFileAtPath({

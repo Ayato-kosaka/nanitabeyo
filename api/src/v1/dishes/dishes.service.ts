@@ -56,7 +56,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -196,7 +196,10 @@ export class DishesService {
 
         // PhotoMediaUri を複数候補から取得（バイナリ取得は行わない）
         // #429 オリジナル画像を保存するため、Buffer 取得を行う
-        const photoMedia = await this.locationsService.tryGetPhotoMedia(photos, false);
+        const photoMedia = await this.locationsService.tryGetPhotoMedia(
+          photos,
+          false,
+        );
         if (!photoMedia) {
           throw new Error(`No photo URL found for place: ${place.id!}`);
         }
@@ -219,14 +222,17 @@ export class DishesService {
             mimeType: 'image/jpeg',
             fullPath,
           }),
-          this.resizeAndStoreImage({
-            table: 'dish_media',
-            column: 'media_path',
-            recordId: dishMediaId,
-            size: 1024,
-            aspectRatio: 9 / 16,
-            originalPath: fullPath, // 使用しない
-          }, photoMedia.buffer)
+          this.resizeAndStoreImage(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: dishMediaId,
+              size: 1024,
+              aspectRatio: 9 / 16,
+              originalPath: fullPath, // 使用しない
+            },
+            photoMedia.buffer,
+          ),
         ]);
 
         const restaurant: SupabaseRestaurants = {
@@ -310,7 +316,7 @@ export class DishesService {
             averageRating:
               dishReviews.length > 0
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
-                dishReviews.length
+                  dishReviews.length
                 : 0,
           },
           dish_media: {
@@ -361,16 +367,23 @@ export class DishesService {
   }
 
   /**
-    * 画像をリサイズして保存
-    */
-  private async resizeAndStoreImage(params: ResizeImageDto, originalBuffer: Buffer) {
+   * 画像をリサイズして保存
+   */
+  private async resizeAndStoreImage(
+    params: ResizeImageDto,
+    originalBuffer: Buffer,
+  ) {
     const resizedPath = buildResizedPath(params);
     const resizedCDNUrl = buildResizedPath(params, 'cdn');
 
     // Resize image
-    const resizedBuffer = await this.resizeImageService.resizeImage(originalBuffer, params.size, {
-      aspectRatio: params.aspectRatio,
-    });
+    const resizedBuffer = await this.resizeImageService.resizeImage(
+      originalBuffer,
+      params.size,
+      {
+        aspectRatio: params.aspectRatio,
+      },
+    );
 
     // Upload resized image with cache headers
     await this.storageService.uploadFileAtPath({
@@ -388,7 +401,8 @@ export class DishesService {
     });
 
     // 派生サイズの署名付き CDN URL を生成
-    const resizedSignedUrl = this.storageService.generateCdnSignedURL(resizedCDNUrl);
+    const resizedSignedUrl =
+      this.storageService.generateCdnSignedURL(resizedCDNUrl);
 
     return { resizedPath, resizedCDNUrl, resizedSignedUrl };
   }

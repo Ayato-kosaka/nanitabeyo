@@ -44,4 +44,4 @@ import { ResizeImageModule } from 'src/internal/resize-image/resize-image.module
     DishesRepository,
   ],
 })
-export class DishesModule { }
+export class DishesModule {}
