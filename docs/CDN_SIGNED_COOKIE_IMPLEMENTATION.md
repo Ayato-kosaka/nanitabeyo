@@ -1,8 +1,10 @@
-# 動画メディア向けCDN署名付きCookie実装
+# 動画メディア向けCDN署名付きURL実装
 
 ## 概要
 
-この実装では、動画の再生にCDN署名付きCookieによる認証を追加した。動画はHLS（HTTP Live Streaming）で配信され、`master.m3u8` → セグメントプレイリスト → `.ts` セグメントと複数のファイルへアクセスする必要がある。単一ファイルだけを保護する署名付きURLとは異なり、CDN署名付きCookieは特定のURLプレフィックス配下のファイルをまとめて保護できる。
+この実装では、動画の再生にCDN署名付きURL（URLPrefix方式）による認証を追加した。動画はHLS（HTTP Live Streaming）で配信され、`master.m3u8` → セグメントプレイリスト → `.ts` セグメントと複数のファイルへアクセスする必要がある。URLPrefix方式の署名付きURLは特定のURLプレフィックス配下のファイルをまとめて保護でき、クライアント側でHLSの全リクエストに署名パラメータを付与することで動画再生を可能にする。
+
+> **注**: 以前はCookie方式を使用していたが、Media CDNの仕様上、HLSのセグメントファイルアクセス時にCookieが適切に送信されない問題があったため、署名付きURL方式に移行した。
 
 ## アーキテクチャ
 
@@ -14,50 +16,58 @@
    - `CDN_KEY_SECRET_B64`: Base64エンコードした秘密鍵
    - `CDN_SIGNED_COOKIE_TTL_SECONDS`: CookieのTTL（デフォルト600秒/10分）
 
-2. **Cookie生成** (`api/src/core/storage/storage.service.ts`)
-   - `generateCdnSignedCookies()`: Cloud CDNの署名付きCookieを生成
+2. **署名付きURL生成** (`api/src/core/storage/storage.service.ts`)
+   - `generateCdnSignedURL()`: Cloud CDNの署名付きURLを生成（URLPrefix方式）
    - HMAC-SHA1署名とBase64 URLセーフエンコードを使用
-   - Cookie値の形式: `URLPrefix=<url>&Expires=<timestamp>&KeyName=<key>&Signature=<sig>`
-   - Cookie属性: `Domain`, `Path`, `Max-Age`, `HttpOnly`, `Secure`, `SameSite=None`
+   - URLパラメータ形式: `?URLPrefix=<base64url>&Expires=<timestamp>&KeyName=<key>&Signature=<sig>`
+   - URLPrefix方式により、プレフィックス配下の全ファイルに同じ署名パラメータでアクセス可能
 
-3. **メディアURL生成** (`api/src/v1/dish-media/dish-media.service.ts`)
-   - `fetchDishMediaEntryItems()`: 動画メディアを検出し、CDNのURLを生成
-   - 動画の場合: `https://{CDN_HOST}/{env}/transcoded/dish_media/media_path/{recordId}/master.m3u8`
+3. **メディアURL生成** (`api/src/v1/dish-media/dish-media.assembler.ts`)
+   - `getMediaUrl()`: 動画メディアを検出し、署名付きCDN URLを生成
+   - 動画の場合: `https://{CDN_HOST}/{env}/transcoded/dish_media/media_path/{recordId}/master.m3u8?URLPrefix=...&Expires=...&KeyName=...&Signature=...`
    - 画像の場合: 従来通りGCSの署名付きURLを使用
-   - データ本体に加えて必要に応じてCDN Cookieを返却
+   - 署名パラメータは`urlPrefix: true`オプションで生成（URLPrefix方式）
 
-4. **コントローラーへの組み込み**
-   - `UsersController`: 保存済み/いいね済みのディッシュメディアAPIでCookieを設定
-   - `DishMediaController`: 検索およびID指定取得のエンドポイントでCookieを設定
-   - `RestaurantsController`: 店舗のディッシュメディア取得でCookieを設定
-   - NestJSの`@Res({ passthrough: true })`で`Set-Cookie`ヘッダーを付与
+4. **クライアント側のHLS再生対応**
+   - **Web** (`app-expo/components/VideoPlayer.web.tsx`):
+     - hls.jsの`xhrSetup`コールバックで全HTTPリクエストに署名パラメータを付与
+     - master.m3u8から署名パラメータ（URLPrefix, Expires, KeyName, Signature）を抽出
+     - セグメントプレイリスト、TSセグメントファイルの全リクエストに署名パラメータを自動追加
+     - Safari: ネイティブHLS再生でURLパラメータを自動伝播
+   - **Native** (`app-expo/components/VideoPlayer.tsx`):
+     - expo-videoのネイティブプレイヤーがURLパラメータを自動的に子リソースに伝播
+     - 追加の実装不要
 
-## Cookieの形式
+## 署名付きURLの形式
 
-### Cookie構造
+### URL構造
 
-Cookie名は`Cloud-CDN-Cookie`で、値はコロン区切りのフィールドで構成される。
+master.m3u8のURLに署名パラメータが付与される形式。
 
 ```
-Cloud-CDN-Cookie=URLPrefix=<url>:Expires=<timestamp>:KeyName=<key>:Signature=<sig>; Domain=<cdn-host>; Path=<path>; Max-Age=<ttl>; HttpOnly; Secure; SameSite=None
+https://cdn.example.com/{env}/transcoded/dish_media/media_path/{recordId}/master.m3u8?URLPrefix=<base64url>&Expires=<timestamp>&KeyName=<key>&Signature=<sig>
 ```
 
-※署名は`URLPrefix=<url>&Expires=<timestamp>&KeyName=<key>`というアンパサンド区切りの文字列を対象に計算するが、Cookie値はコロン区切りで表現する。
+### 署名パラメータ
+
+- **URLPrefix**: Base64 URLエンコードされたプレフィックスパス（例: `https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/`）
+- **Expires**: Unix タイムスタンプ（有効期限）
+- **KeyName**: CDNに登録された署名鍵の名前
+- **Signature**: HMAC-SHA1署名（Base64 URLセーフエンコード）
+
+### 署名対象
+
+URLPrefix方式では、以下の文字列（&区切り）を署名対象とする:
+
+```
+URLPrefix=<base64url>&Expires=<timestamp>&KeyName=<key>
+```
 
 ### 例
 
 ```
-Cloud-CDN-Cookie=URLPrefix=https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/:Expires=1760483243:KeyName=my-key:Signature=BnNrXpMt4ul7kQciSaqt1dUOoG4=; Domain=cdn.example.com; Path=/prod/transcoded/dish_media/media_path/abc123/; Max-Age=600; HttpOnly; Secure; SameSite=None
+https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/master.m3u8?URLPrefix=aHR0cHM6Ly9jZG4uZXhhbXBsZS5jb20vcHJvZC90cmFuc2NvZGVkL2Rpc2hfbWVkaWEvbWVkaWFfcGF0aC9hYmMxMjMv&Expires=1760483243&KeyName=my-key&Signature=BnNrXpMt4ul7kQciSaqt1dUOoG4
 ```
-
-### Cookie属性
-
-- **Domain**: `cdn.example.com`（CDNドメインに限定）
-- **Path**: `/{env}/transcoded/dish_media/media_path/{recordId}/`（個別動画のディレクトリに限定）
-- **Max-Age**: `600`（デフォルトTTLは10分）
-- **HttpOnly**: JavaScriptからのアクセスを遮断
-- **Secure**: HTTPS通信のみで送信
-- **SameSite=None**: クロスサイト動画再生に必要
 
 ## URLパス構造
 
@@ -74,78 +84,75 @@ https://cdn.example.com/{env}/transcoded/dish_media/media_path/{recordId}/
     └── ...
 ```
 
-### Cookieのスコープ
+### 署名付きURLのスコープ
 
-`Path`属性をディレクトリパスに設定することで、以下のファイルへアクセスできる。
+URLPrefix方式の署名により、以下のファイルへアクセスできる。
 
 - `master.m3u8`
 - すべての解像度プレイリスト（例: `720p.m3u8`）
 - パス配下のすべての動画セグメント
 
+クライアント側（hls.js等）が署名パラメータを子リソースのリクエストに付与することで、プレフィックス配下の全ファイルが同じ署名でアクセス可能。
+
 ## APIエンドポイント
 
-### Cookieを設定するエンドポイント
+### 署名付きURLを返すエンドポイント
 
-動画を含むディッシュメディアを返すエンドポイントでは、署名付きCookieをレスポンスに含める。
+動画を含むディッシュメディアを返すエンドポイントでは、署名付きURLを`mediaUrl`フィールドに含める。
 
 1. **GET /v1/users/me/saved-dish-media**
    - 保存済みディッシュメディアを返却
-   - レスポンスの動画ごとにCookieを設定
+   - 動画の`mediaUrl`に署名付きURLを設定
 
 2. **GET /v1/users/me/liked-dish-media**
    - いいね済みディッシュメディアを返却
-   - レスポンスの動画ごとにCookieを設定
+   - 動画の`mediaUrl`に署名付きURLを設定
 
 3. **GET /v1/users/:id/dish-reviews**
    - ユーザーのレビューとメディアを返却
-   - レスポンスの動画ごとにCookieを設定
+   - 動画の`mediaUrl`に署名付きURLを設定
 
 4. **GET /v1/dish-media?ids=...**
    - ID指定でディッシュメディアを取得
-   - レスポンスの動画ごとにCookieを設定
+   - 動画の`mediaUrl`に署名付きURLを設定
 
 5. **GET /v1/dish-media/search**
    - ディッシュメディア検索結果を返却
-   - レスポンスの動画ごとにCookieを設定
+   - 動画の`mediaUrl`に署名付きURLを設定
 
 6. **GET /v1/restaurants/:id/dish-media**
    - 店舗のディッシュメディアを返却
-   - レスポンスの動画ごとにCookieを設定
+   - 動画の`mediaUrl`に署名付きURLを設定
 
 ### レスポンスの挙動
 
-- `Set-Cookie`ヘッダーを複数返却（1動画につき1Cookie）
-- CDN設定が存在する場合にのみCookieを設定
+- `mediaUrl`フィールドに署名付きURLを含む
+- 署名パラメータはURL自体に含まれるため、追加のヘッダー不要
+- CDN設定が存在する場合にのみ署名付きURLを生成
 - CDNが未設定の場合はGCS署名付きURLにフォールバック
-- DTOには`mediaUrl`（CDN URL）のみを含め、Cookieはヘッダーで提供
 
 ## セキュリティの考慮事項
-
-### Cookie属性
-
-- **HttpOnly**: XSS対策のためJavaScriptからアクセス不可
-- **Secure**: HTTPS通信でのみ送信
-- **SameSite=None**: クロスオリジン再生に必要。設定時は`Secure`が必須
-
-### TTL戦略
-
-- デフォルトTTL: 10分（600秒）
-- 短時間TTLで漏えいリスクを最小化
-- クライアントはCookie更新のためにメディア一覧を再取得する必要がある
-- 自然失効により明示的な失効処理は不要
 
 ### 署名の安全性
 
 - HMAC-SHA1と秘密鍵を使用
-- 署名対象: `URLPrefix + Expires + KeyName`
-- Base64のURLセーフ変換（`+`/`=`→`-`/`_`）
+- 署名対象: `URLPrefix + Expires + KeyName`（&区切り）
+- Base64のURLセーフ変換（`+`→`-`、`/`→`_`、`=`を削除）
 - 署名が不正な場合、CDNが403を返却
 
-### パスの分離
+### TTL戦略
 
-- Cookieは各`recordId`のパス単位でスコープを設定
-- ユーザーは権限のある動画にのみアクセス可能
-- パスベースの制限により他レコードへのアクセスを防止
+- デフォルトTTL: 24時間（86400秒）
+- URLに有効期限が含まれるため、期限切れ後は自動的にアクセス不可
+- クライアントはURL更新のためにメディア一覧を再取得する必要がある
+- 自然失効により明示的な失効処理は不要
+
+### URLの分離
+
+- 署名はrecordId単位のURLプレフィックスに対して生成
+- ユーザーは権限のある動画のURLのみを取得
+- URLベースの制限により他レコードへのアクセスを防止
+- URLが漏洩しても有効期限により被害を限定化
 
 ## 設定
 
@@ -156,7 +163,6 @@ https://cdn.example.com/{env}/transcoded/dish_media/media_path/{recordId}/
 CDN_HOST=cdn.example.com
 CDN_KEY_NAME=dev-signing-key
 CDN_KEY_SECRET_B64=<base64-encoded-secret>
-CDN_SIGNED_COOKIE_TTL_SECONDS=600
 ```
 
 ### 本番環境
@@ -169,42 +175,64 @@ CDN_SIGNED_COOKIE_TTL_SECONDS=600
 
 ## クライアント統合
 
-### Web（React / Next.js）
+### Web（hls.js使用）
 
 ```typescript
-// Cookieを受け取るためにcredentialsをinclude
-const response = await fetch("/v1/users/me/saved-dish-media", {
-	credentials: "include",
-});
+// app-expo/components/VideoPlayer.web.tsx の実装
+// master.m3u8のURLから署名パラメータを抽出
+const extractSignatureParams = (url: string): URLSearchParams => {
+	const u = new URL(url);
+	const params = new URLSearchParams();
+	const keys = ["URLPrefix", "Expires", "KeyName", "Signature"];
+	keys.forEach((key) => {
+		const val = u.searchParams.get(key);
+		if (val) params.set(key, val);
+	});
+	return params;
+};
 
-const data = await response.json();
+const signatureParams = extractSignatureParams(uri);
 
-// HLSプレイヤーでmediaUrlをそのまま利用
-data.items.forEach((item) => {
-	if (item.dish_media.media_type === "video") {
-		// ブラウザがHLSリクエスト時にCookieを自動送信
-		player.src = item.dish_media.mediaUrl;
-	}
+// hls.jsの設定で全リクエストに署名パラメータを付与
+const hls = new Hls({
+	xhrSetup: (xhr, url) => {
+		if (signatureParams.toString()) {
+			const targetUrl = new URL(url);
+			signatureParams.forEach((value, key) => {
+				if (!targetUrl.searchParams.has(key)) {
+					targetUrl.searchParams.set(key, value);
+				}
+			});
+			// xhr.openをフックしてURLを置換
+			const originalOpen = xhr.open;
+			xhr.open = function (method: string, requestUrl: string | URL, ...args: any[]) {
+				return originalOpen.call(this, method, targetUrl.toString(), ...args);
+			};
+		}
+	},
 });
 ```
 
-### モバイル（React Native + expo-av）
+### Web（Safari ネイティブHLS）
 
 ```typescript
-// Cookieを受け取るためにcredentialsをinclude
-const response = await fetch('/v1/users/me/saved-dish-media', {
-  credentials: 'include'
+// Safari ではネイティブ HLS サポートにより、video 要素に直接 src を設定
+// ブラウザが自動的にセグメントリクエストにパラメータを伝播
+<video src={signedUrl} controls autoPlay />
+```
+
+### モバイル（React Native + expo-video）
+
+```typescript
+// expo-video のネイティブプレイヤーがURLパラメータを自動的に伝播
+// 追加の実装不要
+import { useVideoPlayer, VideoView } from "expo-video";
+
+const player = useVideoPlayer(signedUrl, (player) => {
+	player.play();
 });
 
-const data = await response.json();
-
-// expo-avのVideoコンポーネントで再生
-data.items.forEach(item => {
-  if (item.dish_media.media_type === 'video') {
-    // expo-avが自動的にCookieを送信
-    <Video source={{ uri: item.dish_media.mediaUrl }} />
-  }
-});
+<VideoView player={player} />;
 ```
 
 ## CDNの設定
@@ -244,15 +272,15 @@ export CDN_KEY_SECRET_B64=$(cat cdn-signing-key.txt)
 ### 手動テスト
 
 1. CDN設定を有効にした状態でAPIサーバーを起動
-2. `/v1/users/me/saved-dish-media` などのエンドポイントを叩く
-3. レスポンスヘッダーに動画用`Set-Cookie`が含まれることを確認
-4. Domain / Path / HttpOnly / Secure / SameSiteなどの属性を検証
+2. `/v1/dish-media/search` などのエンドポイントを叩く
+3. レスポンスの`mediaUrl`に署名パラメータが含まれることを確認
+4. URLに`URLPrefix`, `Expires`, `KeyName`, `Signature`が含まれることを検証
 5. `mediaUrl`へアクセスして動画が再生できることを確認
 6. TTLを過ぎた後にアクセスし403になることを確認
 
-### Cookie検証スクリプト
+### 署名検証スクリプト
 
-Cookie生成を検証するスクリプト例:
+署名付きURL生成を検証するスクリプト例:
 
 ```javascript
 const crypto = require("crypto");
@@ -261,73 +289,88 @@ const env = {
 	CDN_HOST: "cdn.example.com",
 	CDN_KEY_NAME: "test-key",
 	CDN_KEY_SECRET_B64: Buffer.from("test-secret").toString("base64"),
-	CDN_SIGNED_COOKIE_TTL_SECONDS: 600,
 };
 
-function generateCdnSignedCookies(urlPrefix, recordId) {
+function generateCdnSignedURL(url, ttlSeconds = 86400) {
 	const keySecret = Buffer.from(env.CDN_KEY_SECRET_B64, "base64");
-	const expires = Math.floor(Date.now() / 1000) + env.CDN_SIGNED_COOKIE_TTL_SECONDS;
+	const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
 
-	// 署名は&区切りの文字列に対して生成
-	const toSign = `URLPrefix=${urlPrefix}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
+	// URLプレフィックスを正規化
+	const u = new URL(url);
+	const parts = u.pathname.split("/");
+	if (parts.length && parts[parts.length - 1] !== "") {
+		parts.pop(); // ファイル名を削除
+	}
+	u.pathname = parts.join("/") + "/";
+	u.search = "";
+	u.hash = "";
+	const prefix = u.toString();
+
+	// Base64 URLエンコード
+	const urlPrefixB64url = Buffer.from(prefix, "utf8")
+		.toString("base64")
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
+
+	// 署名対象文字列（&区切り）
+	const policy = `URLPrefix=${urlPrefixB64url}&Expires=${expires}&KeyName=${env.CDN_KEY_NAME}`;
+
+	// HMAC-SHA1署名
 	const signature = crypto
 		.createHmac("sha1", keySecret)
-		.update(toSign)
+		.update(policy)
 		.digest("base64")
 		.replace(/\+/g, "-")
-		.replace(/\//g, "_");
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
 
-	const urlObj = new URL(urlPrefix);
-	const cookiePath = urlObj.pathname;
-
-	// Cookie値は:区切りで表現
-	return [
-		`Cloud-CDN-Cookie=URLPrefix=${urlPrefix}:Expires=${expires}:KeyName=${env.CDN_KEY_NAME}:Signature=${signature}; Domain=${env.CDN_HOST}; Path=${cookiePath}; Max-Age=${env.CDN_SIGNED_COOKIE_TTL_SECONDS}; HttpOnly; Secure; SameSite=None`,
-	];
+	// 元のURLにパラメータ追加
+	const originalUrl = new URL(url);
+	return `${originalUrl.toString()}${originalUrl.search ? "&" : "?"}${policy}&Signature=${signature}`;
 }
 
 // テスト実行
-const testRecordId = "123e4567-e89b-12d3-a456-426614174000";
-const testUrl = `https://cdn.example.com/prod/transcoded/dish_media/media_path/${testRecordId}/`;
-const cookies = generateCdnSignedCookies(testUrl, testRecordId);
-console.log(cookies);
+const testUrl = "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/master.m3u8";
+const signedUrl = generateCdnSignedURL(testUrl);
+console.log(signedUrl);
 ```
 
 ## 監視
 
 ### 重要なメトリクス
 
-- Cookie生成の成功/失敗率
+- 署名付きURL生成の成功/失敗率
 - CDNから返却される403（署名エラー）
 - TTLの有効期限パターン
-- 1リクエストあたりのCookie発行数
+- 動画再生の成功率
 
 ### ログ
 
-すべてのCookie関連処理は`AppLoggerService`で記録される。
+すべての署名付きURL関連処理は`AppLoggerService`で記録される。
 
-- `CdnSignedCookiesGenerated`: 生成に成功
+- `CdnSignedURLGenerated`: 生成に成功
 - `CdnConfigMissing`: CDN設定が不足している
-- `CdnSignedCookieError`: 生成中にエラー発生
+- 署名エラーはCDN側で発生し、クライアントに403として返却
 
 ### ログ例
 
 ```json
 {
-	"event": "CdnSignedCookiesGenerated",
-	"context": "generateCdnSignedCookies",
+	"event": "CdnSignedURLGenerated",
+	"context": "generateCdnSignedURL",
 	"data": {
-		"urlPrefix": "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/",
-		"recordId": "abc123",
+		"mode": "URLPrefix",
+		"prefix": "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/",
 		"expires": "2025-10-14T23:17:23.000Z",
-		"cookieCount": 1
+		"preview": "https://cdn.example.com/prod/transcoded/dish_media/media_path/abc123/master.m3u8?URLPrefix=..."
 	}
 }
 ```
 
 ## トラブルシューティング
 
-### 課題: レスポンスにCookieが含まれない
+### 課題: mediaUrlに署名パラメータが含まれない
 
 - CDN関連の環境変数が設定されているか確認
 - ログに`CdnConfigMissing`が出力されていないか確認
@@ -335,35 +378,34 @@ console.log(cookies);
 
 ### 課題: CDNから403が返る
 
-- Cookieの署名が正しいか検証
-- CookieのTTLが切れていないか確認
+- URLの署名が正しいか検証
+- URLのTTLが切れていないか確認
 - CDNに正しい署名鍵が設定されているか確認
-- CookieのDomainがCDNドメインと一致しているか確認
+- URLのプレフィックスがCDNドメインと一致しているか確認
 
-### 課題: クライアントがCookieを送信しない
+### 課題: HLSセグメントファイルで403が返る
 
-- fetch時に`credentials: 'include'`が指定されているか確認
-- Cookieの属性（特にSecure）が要件を満たしているか確認
-- CookieのDomainがリクエストドメインと一致しているか確認
-- SameSite=Noneをサポートしていないクライアントでないか確認
+- クライアント側（hls.js）が署名パラメータを付与しているか確認
+- ブラウザの開発者ツールでネットワークタブを確認し、セグメントリクエストに署名パラメータが含まれているか検証
+- Safari の場合、ネイティブHLSが署名パラメータを自動伝播しているか確認
 
-### 課題: 同じrecordIdでCookieが複数発行される
+### 課題: 動画が再生されない
 
-- ページネーション時は想定される挙動
-- リスト取得ごとに新しいCookieが生成される
-- 古いCookieはTTLで自然に失効
-- 必要であれば`Max-Age=0`のCookieで明示的に削除
+- `VideoPlayer.web.tsx`の`xhrSetup`が正しく実装されているか確認
+- master.m3u8から署名パラメータが正しく抽出されているか確認
+- コンソールログで署名パラメータの内容を確認
 
 ## 今後の拡張
 
-1. **Cookieの事前更新**: 有効期限前にクライアント側で更新する仕組み
-2. **バッチ最適化**: Cookie数を減らすためのパス共有
-3. **分析基盤**: Cookie利用状況や期限切れを可視化
-4. **レート制限**: ユーザー/IPごとのCookie発行回数を制限
+1. **URLの事前更新**: 有効期限前にクライアント側で更新する仕組み
+2. **署名キャッシュ**: 同じプレフィックスに対する署名の再利用
+3. **分析基盤**: URL利用状況や期限切れを可視化
+4. **レート制限**: ユーザー/IPごとのURL生成回数を制限
 5. **モニタリングダッシュボード**: メトリクスの可視化
 
 ## 参考資料
 
-- [Cloud CDN Signed Cookies Documentation](https://cloud.google.com/cdn/docs/using-signed-cookies)
-- [HTTP Cookie Specification (RFC 6265)](https://tools.ietf.org/html/rfc6265)
-- [SameSite Cookie Attribute](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite)
+- [Cloud CDN Signed URLs Documentation](https://cloud.google.com/cdn/docs/using-signed-urls)
+- [URLPrefix方式の署名](https://cloud.google.com/cdn/docs/using-signed-urls#url-prefix)
+- [HLS.js Documentation](https://github.com/video-dev/hls.js/)
+- [expo-video Documentation](https://docs.expo.dev/versions/latest/sdk/video/)
