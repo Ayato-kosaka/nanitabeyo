@@ -5,7 +5,7 @@
 # 目的:
 #   - GCS バケット間で「指定プレフィックス配下」のオブジェクトを転送
 #   - 既存オブジェクトがあっても上書き（overwrite）
-#   - 転送後にオブジェクト数と合計サイズをレポート（src / dst / 差分）
+#   - 転送後に合計サイズのみをレポート（src / dst / 差分）
 #
 # 使い方:
 #   chmod +x transfer_gcs_bucket_prefix.sh
@@ -89,28 +89,13 @@ bucket_exists () {
   return 0
 }
 
-# --- ヘルパー: 件数と合計サイズを取得 -----------------------------------------
+# --- ヘルパー: 合計サイズを取得 -----------------------------------------
 # 引数: <URI prefix>（例: gs://bucket/path/）
-# 出力: 2行（count と bytes）
+# 出力: バイト数（整数）
 stat_prefix () {
   local uri_prefix="$1"
-  # --recursive --long で全オブジェクトとサイズを取得
-  # フォルダ見出し等は出ない想定。サイズ列（先頭）が整数の行のみ集計。
-  local tmp
-  if ! tmp="$(gcloud storage ls --recursive --long "${uri_prefix}" 2>/dev/null || true)"; then
-    echo "0"; echo "0"; return
-  fi
-
-  # "TOTAL:      N objects, M bytes" が末尾に出る場合もあるが、行頭サイズ列の行で集計する
-  local count bytes
-  count="$(awk '/^[[:space:]]*[0-9]+[[:space:]]+[0-9]{4}-/{c++} END{print c+0}' <<<"${tmp}")"
-  bytes="$(awk '
-    /^[[:space:]]*[0-9]+[[:space:]]+[0-9]{4}-/ {sum += $1}
-    END {printf "%.0f\n", sum+0}
-  ' <<<"${tmp}")"
-
-  echo "${count:-0}"
-  echo "${bytes:-0}"
+  gsutil du -s "${uri_prefix}" 2>/dev/null \
+    | awk 'NR==1 {print $1} END { if (NR==0) print 0 }'
 }
 
 # --- ヘルパー: バイト値を人間可読に -------------------------------------------
@@ -146,29 +131,30 @@ fi
 
 # --- 1) ソースの存在チェック ---------------------------------------------------
 echo "🔎 Scanning source prefix…"
-read -r SRC_COUNT SRC_BYTES < <(stat_prefix "${SRC_URI}")
-if [[ "${SRC_COUNT}" -eq 0 ]]; then
+read -r SRC_BYTES < <(stat_prefix "${SRC_URI}")
+if [[ "${SRC_BYTES}" -eq 0 ]]; then
   echo "⚠️  ソースに該当オブジェクトが見つかりません: ${SRC_URI}"
   exit 0
 fi
 
 SRC_BYTES_HUMAN="$(human_bytes "${SRC_BYTES}")"
-echo "📦 Source objects : ${SRC_COUNT} objects, ${SRC_BYTES_HUMAN}"
+echo "📦 Source objects : ${SRC_BYTES_HUMAN}"
 
 # --- 2) コピー実行（DRY_RUN でスキップ可） ------------------------------------
 if [[ "${DRY_RUN}" == "true" ]]; then
   echo "🔎 DRY RUN のためコピーは実行しません。実行予定コマンド:"
-  echo "    gcloud storage cp -r -m \"${EXTRA_CP_FLAGS}\" \"${SRC_URI}**\" \"${DST_URI}\""
+  echo "    gsutil -m cp -r ${EXTRA_CP_FLAGS} \"${SRC_URI}**\" \"${DST_URI}\""
 else
   echo "🚚 Copying… (overwrite, recursive, parallel)"
-  # 上書き前提: --no-clobber は付けないこと
-  # 注意: 末尾 '**' で SRC_PREFIX 配下すべてを再帰コピー
-  gcloud storage cp -r -m "${EXTRA_CP_FLAGS}" "${SRC_URI}**" "${DST_URI}"
+  SRC_URI="gs://${SRC_BUCKET}/${SRC_PREFIX}"
+  DST_URI="gs://${DST_BUCKET}"
+  # -m: 並列コピー, -r: 再帰
+  gsutil -m cp -r ${EXTRA_CP_FLAGS} "${SRC_URI}" "${DST_URI}"
 fi
 
 # --- 3) 転送後のレポート -------------------------------------------------------
 echo "🔎 Gathering post-copy stats…"
-read -r DST_COUNT DST_BYTES < <(stat_prefix "${DST_URI}")
+read -r DST_BYTES < <(stat_prefix "${DST_URI}")
 
 DST_BYTES_HUMAN="$(human_bytes "${DST_BYTES}")"
 
@@ -177,15 +163,12 @@ DST_BYTES_HUMAN="$(human_bytes "${DST_BYTES}")"
 echo "────────────────────────────────────────────────────────"
 echo "🧾 Transfer Report"
 echo "  FROM: ${SRC_URI}"
-echo "    - objects : ${SRC_COUNT}"
 echo "    - size    : ${SRC_BYTES_HUMAN}"
 echo "  TO  : ${DST_URI}"
-echo "    - objects : ${DST_COUNT}"
 echo "    - size    : ${DST_BYTES_HUMAN}"
 
 # 参考: コピー直後の「差異ヒント」
-DIFF_OBJS=$(( DST_COUNT - 0 ))  # 単純表示用
-DIFF_BYTES=$(( DST_BYTES - 0 ))
+DIFF_BYTES=$(( DST_BYTES - SRC_BYTES ))
 DIFF_BYTES_HUMAN="$(human_bytes "${DIFF_BYTES}")"
 
 echo "────────────────────────────────────────────────────────"
@@ -193,10 +176,10 @@ if [[ "${DRY_RUN}" == "true" ]]; then
   echo "ℹ️  DRY RUN のため、上記はコピー前の見積もり（Source のみ）です。"
 else
   # 転送検証（ソース件数とコピー先件数が一致しているかの簡易チェック）
-  if [[ "${DST_COUNT}" -lt "${SRC_COUNT}" ]]; then
-    echo "⚠️  注意: コピー先の件数がソースより少ない可能性があります。再実行や権限・エラーを確認してください。"
+  if [[ "${DST_BYTES}" -lt "${SRC_BYTES}" ]]; then
+    echo "⚠️  注意: コピー先のサイズがソースより小さいです！"
   else
-    echo "✅  基本チェック: コピー先で十分な件数が確認できました。"
+    echo "✅  基本チェック: コピー先のサイズはソースと同等以上です。"
   fi
 fi
 

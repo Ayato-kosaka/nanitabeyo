@@ -51,26 +51,26 @@ from google.api_core.exceptions import GoogleAPICallError, RetryError
 # dish_media.media_path のリサイズ（画像のみ）
 SQL_DISH_MEDIA_IMAGE = """
 SELECT id AS recordId, media_path AS originalPath
-FROM dev.dish_media
+FROM public.dish_media
 WHERE media_type = 'image';
 """
 
 # dish_media.thumbnail_path のリサイズ（null/空はスキップ推奨）
 SQL_DISH_MEDIA_THUMB = """
 SELECT id AS recordId, thumbnail_path AS originalPath
-FROM dev.dish_media;
+FROM public.dish_media;
 """
 
 # restaurants.image_path のリサイズ（2サイズ）
 SQL_RESTAURANTS_IMAGE = """
 SELECT id AS recordId, image_path AS originalPath
-FROM dev.restaurants;
+FROM public.restaurants;
 """
 
 # users.avatar_path のリサイズ（2サイズ、null は除外）
 SQL_USERS_AVATAR = """
 SELECT id AS recordId, avatar_path AS originalPath
-FROM dev.users
+FROM public.users
 WHERE avatar_path IS NOT NULL;
 """
 

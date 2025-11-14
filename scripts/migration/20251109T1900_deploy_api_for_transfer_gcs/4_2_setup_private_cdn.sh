@@ -12,9 +12,8 @@ gcloud_check
 # These may or may not exist; ignore errors.
 delete_if_exists() {
   local desc="$1"; shift
-  local cmd="$*"
   if [[ "${DRY_RUN}" == "true" ]]; then
-    log "[DRY_RUN] delete_if_exists: ${desc}"
+    log "[DRY_RUN] delete_if_exists: ${desc}: $*"
   else
     if "$@" >/dev/null 2>&1; then
       ok "Deleted: ${desc}"
@@ -25,9 +24,9 @@ delete_if_exists() {
 }
 
 log "Best-effort removal of old CDN LB components for host=${CDN_PRIVATE_HOST}"
-delete_if_exists "forwarding rule cdn-https-forwarding-rule" "gcloud compute forwarding-rules delete cdn-https-forwarding-rule --global --quiet"
-delete_if_exists "url-map cdn-url-map" "gcloud compute url-maps delete cdn-url-map --global --quiet"
-delete_if_exists "backend-bucket backend-bucket-cdn" "gcloud compute backend-buckets delete backend-bucket-cdn --quiet"
+delete_if_exists "forwarding rule cdn-https-forwarding-rule" gcloud compute forwarding-rules delete cdn-https-forwarding-rule --global --quiet
+delete_if_exists "url-map cdn-url-map" gcloud compute url-maps delete cdn-url-map --global --quiet
+delete_if_exists "backend-bucket backend-bucket-cdn" gcloud compute backend-buckets delete backend-bucket-cdn --quiet
 
 INFRA="$(infra_path)"
 
