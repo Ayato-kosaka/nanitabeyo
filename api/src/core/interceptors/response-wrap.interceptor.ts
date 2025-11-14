@@ -81,14 +81,14 @@ export class ResponseWrapInterceptor implements NestInterceptor {
 
         // Build and send backend event log (success path)
         try {
-          const payload = maskSensitiveFields(req.body);
-          const responsePayload = maskSensitiveFields(payload);
+          const reqPayload = maskSensitiveFields(req.body);
+          const resPayload = maskSensitiveFields(payload);
           const info = {
             method: req?.method,
             url: req?.originalUrl ?? req?.url,
             statusCode: res?.statusCode,
-            payload,
-            responsePayload,
+            reqPayload,
+            resPayload,
             wrapped: !alreadyWrapped,
             queue_ms,
             upload_ms,

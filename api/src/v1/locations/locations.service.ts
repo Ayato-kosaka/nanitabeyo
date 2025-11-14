@@ -428,20 +428,10 @@ export class LocationsService {
       if (!photo.name) continue;
 
       try {
-        const LONG_EDGE = 1280;
-
-        const [widthPx, heightPx] =
-          photo.widthPx && photo.heightPx
-            ? // 長辺を基準にリサイズ
-              photo.widthPx >= photo.heightPx
-              ? [LONG_EDGE, undefined]
-              : [undefined, LONG_EDGE]
-            : // フォールバック：とりあえず幅だけ指定して巨大画像を回避
-              [LONG_EDGE, undefined];
         const result = await this.externalApiService.getPhotoMedia(
           photo.name,
-          widthPx,
-          heightPx,
+          photo.widthPx || undefined, // #429 API の仕様により、そのままのサイズを指定する。
+          photo.heightPx || undefined,
           { skipHttpRedirect },
         );
 

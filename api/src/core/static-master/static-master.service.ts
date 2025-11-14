@@ -5,7 +5,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Bucket, Storage } from '@google-cloud/storage';
 import { Database } from '../../../../shared/supabase/database.types';
 import { TableRow } from '../../../../shared/utils/devDB.types';
-import { loadStaticMaster } from '../../../../shared/utils/loadStaticMaster';
 import { env } from '../config/env';
 import { STATIC_MASTER_CLIENT } from './static-master.constants';
 
@@ -46,8 +45,7 @@ export class StaticMasterService {
     const expired = now - last > this.CACHE_TTL_MS;
 
     if (!this.cache[tableName] || expired) {
-      this.cache[tableName] = await loadStaticMaster(
-        env.GCS_BUCKET_NAME,
+      this.cache[tableName] = await this.loadStaticMaster(
         env.GCS_STATIC_MASTER_DIR_PATH,
         tableName,
       );

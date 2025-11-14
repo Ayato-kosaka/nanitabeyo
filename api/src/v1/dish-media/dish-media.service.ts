@@ -150,7 +150,7 @@ export class DishMediaService {
     if (dto.mediaType === 'video') {
       // video の場合、トランスコードジョブを直接作成
       const inputUri = `gs://${env.GCS_BUCKET_NAME}/${dto.mediaPath}`;
-      const outputUri = `gs://${buildTranscodedPath({
+      const outputUri = `gs://${env.GCS_BUCKET_NAME}/${buildTranscodedPath({
         table: 'dish_media',
         column: 'media_path',
         recordId: result.id,

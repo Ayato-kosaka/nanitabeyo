@@ -418,7 +418,7 @@ export class DishMediaRepository {
       ? Prisma.sql`
           AND (
             ranked.like_count < ${cursor.likeCount}
-            OR (ranked.like_count = ${cursor.likeCount} AND ranked.dish_media_id < ${cursor.mediaId})
+            OR (ranked.like_count = ${cursor.likeCount} AND ranked.dish_media_id < ${cursor.mediaId}::uuid)
           )
         `
       : Prisma.empty;
