@@ -1,8 +1,40 @@
 import { Env } from "../constants/Env";
 import type { RemoteConfigValues } from "@shared/remoteConfig/remoteConfig.schema";
-import { loadStaticMaster } from "@shared/utils/loadStaticMaster";
+import { Database } from "@shared/supabase/database.types";
+import { TableRow } from "@shared/utils/devDB.types";
+
 // キャッシュ用のローカル変数（初期値は null）
 let cachedValues: RemoteConfigValues | null = null;
+
+/**
+ * CDN から静的マスタを取得
+ *
+ * @param tableName - テーブル名
+ * @returns テーブルのデータ
+ */
+const fetchStaticMasterFromCDN = async <T extends keyof Database["dev"]["Tables"]>(
+	tableName: T,
+): Promise<TableRow<T>[]> => {
+	// CDN の URL を組み立て
+	const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${Env.GCS_STATIC_MASTER_DIR_PATH}${tableName}.json`;
+
+	const res = await fetch(cdnUrl);
+	if (!res.ok) {
+		throw new Error(`Failed to load static master from CDN. ${tableName}.json is not found.`);
+	}
+
+	const jsonData = await res.json();
+
+	if (!jsonData) {
+		throw new Error(`Failed to load static master from CDN. ${tableName}.json is empty.`);
+	} else if (jsonData.data === undefined) {
+		throw new Error(`Failed to load static master from CDN. ${tableName}.json is undefined.`);
+	} else if (!Array.isArray(jsonData.data)) {
+		throw new Error(`Failed to load static master from CDN. ${tableName} is invalid.`);
+	}
+
+	return jsonData.data as unknown as TableRow<T>[];
+};
 
 /**
  * 静的マスタから設定データを取得
@@ -11,7 +43,7 @@ let cachedValues: RemoteConfigValues | null = null;
  */
 export const initRemoteConfig = async (): Promise<RemoteConfigValues | null> => {
 	// 🔄 静的マスタから設定データを取得
-	const configJson = await loadStaticMaster(Env.GCS_BUCKET_NAME, Env.GCS_STATIC_MASTER_DIR_PATH, "config");
+	const configJson = await fetchStaticMasterFromCDN("config");
 	const config = configJson.reduce(
 		(acc, config) => {
 			acc[config.key] = config.value;
