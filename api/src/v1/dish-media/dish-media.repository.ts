@@ -430,14 +430,13 @@ export class DishMediaRepository {
         SELECT
           dm.id        AS dish_media_id,
           dm.dish_id   AS dish_id,
-          COUNT(dml.id) AS like_count
+          COALESCE(dmar.like_total, 0) AS like_count
         FROM dish_media dm
         JOIN dishes d
           ON d.id = dm.dish_id
-        LEFT JOIN dish_media_likes dml
-          ON dml.dish_media_id = dm.id
+        LEFT JOIN dish_media_analysis_results dmar
+          ON dmar.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
-        GROUP BY dm.id, dm.dish_id
       ),
       ranked AS (
         SELECT
@@ -658,7 +657,7 @@ export class DishMediaRepository {
       where: { id: { in: dishMediaIds } },
       include: {
         dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
-        _count: { select: { dish_media_likes: true } }, // いいね数を取得
+        dish_media_analysis_results: true, // #292 【設計】いいね数は like_total から取得（トゥルース源）
         dishes: {
           include: {
             restaurants: true,
@@ -740,7 +739,9 @@ export class DishMediaRepository {
               reactionSet.has(
                 this.reactionKey('dish_media', dishMedia.id, 'like'),
               ),
-            likeCount: dishMedia._count.dish_media_likes, // 【設計】likeCount に reactions(匿名ユーザー)は含めない
+            likeCount: Number(
+              dishMedia.dish_media_analysis_results?.like_total ?? 0,
+            ), // #292 【設計】likeCount は dish_media_analysis_results.like_total から取得（reactions は含めない）
           },
           dish_reviews: dishReviews.map((review) => ({
             ...review,
