@@ -135,7 +135,7 @@ function VideoPlayer({
 			// ネイティブ HLS
 			video.src = uri;
 		} else if (Hls.isSupported()) {
-			// #<TICKET> 【設計】署名付きURLパラメータ抽出（URLPrefix/Expires/KeyName/Signature）
+			// #427 【設計】署名付きURLパラメータ抽出（URLPrefix/Expires/KeyName/Signature）
 			const extractSignatureParams = (url: string): URLSearchParams => {
 				const u = new URL(url);
 				const params = new URLSearchParams();
@@ -151,7 +151,7 @@ function VideoPlayer({
 			const signatureParams = extractSignatureParams(uri);
 
 			const hls = new Hls({
-				// #<TICKET> 【設計】HLSセグメント/プレイリスト全リクエストに署名パラメータ付与（Media CDN要件）
+				// #427 【設計】HLSセグメント/プレイリスト全リクエストに署名パラメータ付与（Media CDN要件）
 				xhrSetup: (xhr, url) => {
 					if (signatureParams.toString()) {
 						try {
@@ -275,7 +275,7 @@ function VideoPlayer({
 				</View>
 			)}
 			<video
-				// #<TICKET> 【設計】Safari のネイティブ HLS 用に src 設定（hls.js 時は attachMedia が管理）
+				// #427 【設計】Safari のネイティブ HLS 用に src 設定（hls.js 時は attachMedia が管理）
 				src={uri}
 				ref={videoRef}
 				controls
