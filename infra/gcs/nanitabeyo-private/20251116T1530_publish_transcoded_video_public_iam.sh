@@ -85,9 +85,11 @@ check_prerequisites() {
   # uniform bucket-level access のチェック
   local uba
   uba="$(gcloud storage buckets describe "${BUCKET_URI}" \
-    --format="value(iamConfiguration.uniformBucketLevelAccess.enabled)" 2>/dev/null || true)"
-
-  if [[ "${uba}" != "True" ]]; then
+    --format="value(uniform_bucket_level_access)" 2>/dev/null || true)"
+  
+  if [[ "${uba}" == "true" ]]; then
+    log "INFO: uniform bucket-level access は有効になっています (${BUCKET_URI})"
+  else
     log "ERROR: バケット ${BUCKET_URI} で uniform bucket-level access が有効になっていません。"
     log "       条件付き IAM を使う前に、コンソールまたは CLI から有効化してください。"
     log "       例: gcloud storage buckets update ${BUCKET_URI} --uniform-bucket-level-access"
