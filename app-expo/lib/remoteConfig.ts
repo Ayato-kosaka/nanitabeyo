@@ -16,7 +16,7 @@ const fetchStaticMasterFromCDN = async <T extends keyof Database["dev"]["Tables"
 	tableName: T,
 ): Promise<TableRow<T>[]> => {
 	// CDN の URL を組み立て
-	const cdnUrl = `${Env.CDN_PUBLIC_HOST}${Env.GCS_STATIC_MASTER_DIR_PATH}${tableName}.json`;
+	const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${Env.GCS_STATIC_MASTER_DIR_PATH}${tableName}.json`;
 
 	const res = await fetch(cdnUrl);
 	if (!res.ok) {
