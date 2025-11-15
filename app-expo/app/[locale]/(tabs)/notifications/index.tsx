@@ -57,22 +57,6 @@ export default function NotificationsScreen() {
 		}, [user?.id]),
 	);
 
-	// 重複排除済みの配列をメモ化
-	const uniqueDishMediaEntries = useMemo(() => {
-		const seen = new Set<string | number>();
-		const arr: DishMediaEntry[] = [];
-		for (const n of notifications.items) {
-			const e = n.dishMediaEntries;
-			if (!e) continue;
-			const id = e.dish_media.id;
-			if (!seen.has(id)) {
-				seen.add(id);
-				arr.push(e);
-			}
-		}
-		return arr;
-	}, [notifications.items]);
-
 	// #通知機能 【仕様】通知タップ時の遷移処理
 	const handleNotificationPress = useCallback(
 		(notification: NotificationItem) => {
@@ -83,18 +67,17 @@ export default function NotificationsScreen() {
 
 			if (target_table === "dish_media" && notification.dishMediaEntries !== undefined) {
 				// #通知機能 【仕様】dish_media の場合は DishMediaFeed へ遷移
-				const currentDishMediaId = notification.dishMediaEntries.dish_media.id;
-				let index = uniqueDishMediaEntries.findIndex((d) => d.dish_media.id === currentDishMediaId);
-				if (index < 0) index = 0; // 念のため
-				setDishePromises("notification", Promise.resolve(uniqueDishMediaEntries));
+				// #通知機能 【設計】通知からの遷移時は単一 DishMedia のみを表示（unique 廃止）
+				const currentDishMedia = notification.dishMediaEntries;
+				setDishePromises("notification", Promise.resolve([currentDishMedia]));
 				router.push({
 					pathname: "/[locale]/(tabs)/notifications/feed",
-					params: { locale, startIndex: index },
+					params: { locale, startIndex: 0 },
 				});
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
-		[lightImpact, router, setDishePromises, locale, uniqueDishMediaEntries],
+		[lightImpact, router, setDishePromises, locale],
 	);
 
 	// #通知機能 【仕様】通知アイテムのアイコンを取得

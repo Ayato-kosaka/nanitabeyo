@@ -50,7 +50,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dishes (作成 or 取得)                 */
@@ -284,7 +284,7 @@ export class DishesService {
             averageRating:
               dishReviews.length > 0
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
-                dishReviews.length
+                  dishReviews.length
                 : 0,
           },
           dish_media: {
