@@ -87,7 +87,7 @@ check_prerequisites() {
   uba="$(gcloud storage buckets describe "${BUCKET_URI}" \
     --format="value(uniform_bucket_level_access)" 2>/dev/null || true)"
   
-  if [[ "${uba}" == "true" ]]; then
+  if [[ "${uba}" == "True" ]]; then
     log "INFO: uniform bucket-level access は有効になっています (${BUCKET_URI})"
   else
     log "ERROR: バケット ${BUCKET_URI} で uniform bucket-level access が有効になっていません。"
