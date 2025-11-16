@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
@@ -44,13 +44,37 @@ export function LikeTab() {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { setDishePromises, setDishEntry, dishEntriesById } = useDishMediaEntriesStore();
 	const locale = useLocale();
+
+	// #433 【設計】フェッチ結果をストアに保存（Promise と個別エンティティの両方）
+	useEffect(() => {
+		if (items.length > 0) {
+			setDishePromises("liked", Promise.resolve(items));
+			items.forEach((item) => {
+				setDishEntry(item.dish_media.id, item);
+			});
+		}
+	}, [items, setDishePromises, setDishEntry]);
+
+	// #433 【設計】表示用データはストアから取得（いいね状態の即時反映）
+	const displayItems = useMemo(() => {
+		return items.map((item) => {
+			const storeEntry = dishEntriesById[item.dish_media.id];
+			// ストアに最新状態があればそれを使用、なければフェッチ結果を使用
+			return storeEntry || item;
+		}).filter((item) => {
+			// いいね済みアイテムのみ表示（楽観的更新で unlike した場合は非表示）
+			const storeEntry = dishEntriesById[item.dish_media.id];
+			return storeEntry?.isLiked ?? item.dish_media.isLiked;
+		});
+	}, [items, dishEntriesById]);
 
 	const handleItemPress = useCallback(
 		(item: QueryMeLikedDishMediaResponse["data"][number], index: number) => {
 			lightImpact();
-			setDishePromises("liked", Promise.resolve(items));
+			// #433 【設計】displayItems を使用（ストアから最新状態を取得したデータ）
+			setDishePromises("liked", Promise.resolve(displayItems));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "liked" },
@@ -61,7 +85,7 @@ export function LikeTab() {
 				payload: { item, tabName: "liked" },
 			});
 		},
-		[lightImpact, setDishePromises, items, locale, logFrontendEvent],
+		[lightImpact, setDishePromises, displayItems, locale, logFrontendEvent],
 	);
 
 	const handleSearchByMood = useCallback(() => {
@@ -131,7 +155,7 @@ export function LikeTab() {
 
 	return (
 		<GridList
-			data={items.map((item) => ({ ...item, id: item.dish_media.id }))}
+			data={displayItems.map((item) => ({ ...item, id: item.dish_media.id }))}
 			renderItem={({ item, index }) => renderLikeItem({ item: item, index })}
 			numColumns={3}
 			contentContainerStyle={styles.gridContent}

@@ -49,13 +49,56 @@ export function ReviewTab() {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { setDishePromises, setDishEntry, dishEntriesById } = useDishMediaEntriesStore();
 	const locale = useLocale();
+
+	// #433 【設計】フェッチ結果をストアに保存（Promise と個別エンティティの両方）
+	useEffect(() => {
+		if (items.length > 0) {
+			// isMe フィールドを除いた形で保存
+			const dishEntries = items.map((item) => {
+				const { isMe, ...rest } = item.dish_media;
+				return {
+					...item,
+					dish_media: rest,
+				};
+			});
+			setDishePromises("reviews", Promise.resolve(dishEntries));
+			dishEntries.forEach((item) => {
+				setDishEntry(item.dish_media.id, item);
+			});
+		}
+	}, [items, setDishePromises, setDishEntry]);
+
+	// #433 【設計】表示用データはストアから取得（ストア状態の即時反映）
+	// 元の items から isMe フィールドを保持しつつ、ストアの状態をマージ
+	const storeAwareItems = useMemo(
+		() =>
+			items.map((item) => {
+				const storeEntry = dishEntriesById[item.dish_media.id];
+				if (storeEntry) {
+					// ストアエントリがある場合、isMe フィールドを維持しつつストアの状態をマージ
+					return {
+						...item,
+						dish_media: {
+							...storeEntry.dish_media,
+							isMe: item.dish_media.isMe,
+						},
+						isLiked: storeEntry.isLiked,
+						isSaved: storeEntry.isSaved,
+					};
+				}
+				return item;
+			}),
+		[items, dishEntriesById],
+	);
 
 	const displayedItems = useMemo(
 		() =>
-			onlyMyPhotoVideoReviews && targetUserId ? items.filter((e) => e.dish_media.user_id === targetUserId) : items,
-		[onlyMyPhotoVideoReviews, items, targetUserId],
+			onlyMyPhotoVideoReviews && targetUserId
+				? storeAwareItems.filter((e) => e.dish_media.user_id === targetUserId)
+				: storeAwareItems,
+		[onlyMyPhotoVideoReviews, storeAwareItems, targetUserId],
 	);
 
 	const handleItemPress = useCallback(

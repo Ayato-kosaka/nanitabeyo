@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { SavePostTab } from "./save/SavePostTab";
 import i18n from "@/lib/i18n";
@@ -54,13 +54,37 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { setDishePromises, setDishEntry, dishEntriesById } = useDishMediaEntriesStore();
 	const locale = useLocale();
+
+	// #433 【設計】フェッチ結果をストアに保存（Promise と個別エンティティの両方）
+	useEffect(() => {
+		if (posts.items.length > 0) {
+			setDishePromises("saved", Promise.resolve(posts.items));
+			posts.items.forEach((item) => {
+				setDishEntry(item.dish_media.id, item);
+			});
+		}
+	}, [posts.items, setDishePromises, setDishEntry]);
+
+	// #433 【設計】表示用データはストアから取得（保存状態の即時反映）
+	const displayItems = useMemo(() => {
+		return posts.items.map((item) => {
+			const storeEntry = dishEntriesById[item.dish_media.id];
+			// ストアに最新状態があればそれを使用、なければフェッチ結果を使用
+			return storeEntry || item;
+		}).filter((item) => {
+			// 保存済みアイテムのみ表示（楽観的更新で unsave した場合は非表示）
+			const storeEntry = dishEntriesById[item.dish_media.id];
+			return storeEntry?.isSaved ?? item.dish_media.isSaved;
+		});
+	}, [posts.items, dishEntriesById]);
 
 	const handlePostPress = useCallback(
 		(item: QueryMeSavedDishMediaResponse["data"][number], index: number) => {
 			lightImpact();
-			setDishePromises("saved", Promise.resolve(posts.items));
+			// #433 【設計】displayItems を使用（ストアから最新状態を取得したデータ）
+			setDishePromises("saved", Promise.resolve(displayItems));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "saved" },
@@ -71,14 +95,14 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 				payload: { item, tabName: "saved" },
 			});
 		},
-		[lightImpact, setDishePromises, posts.items, locale, logFrontendEvent],
+		[lightImpact, setDishePromises, displayItems, locale, logFrontendEvent],
 	);
 
 	const error = posts.error ? (posts.error instanceof Error ? posts.error.message : String(posts.error)) : null;
 
 	return (
 		<SavePostTab
-			data={posts.items}
+			data={displayItems}
 			isLoading={posts.isLoadingInitial}
 			isLoadingMore={posts.isLoadingMore}
 			refreshing={posts.isLoadingInitial}

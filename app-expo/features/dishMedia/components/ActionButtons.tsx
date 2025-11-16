@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned, User, Calendar } from "lucide-react-native";
@@ -17,6 +17,9 @@ import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getCacheKeyForImage } from "@/lib/image";
+import { useDishLike } from "@/hooks/useDishLike";
+import { useDishSave } from "@/hooks/useDishSave";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 interface ActionButtonsProps {
 	dishMedia: DishMediaEntry["dish_media"];
@@ -32,98 +35,27 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 	const router = useRouter();
 	const locale = useLocale();
 
-	const [isSaved, setIsSaved] = useState(dishMedia.isSaved);
-	const [isLiked, setIsLiked] = useState(dishMedia.isLiked);
-	const [likesCount, setLikesCount] = useState(dishMedia.likeCount);
+	// #433 【設計】いいね・保存状態はストアから取得（唯一のソースオブトゥルース）
+	const { toggleLike } = useDishLike();
+	const { toggleSave } = useDishSave();
+	const dishEntriesById = useDishMediaEntriesStore((state) => state.dishEntriesById);
+	const storeEntry = dishEntriesById[dishMedia.id];
+	
+	// ストアから現在の状態を取得（ストアにない場合は props から初期値を使用）
+	const isSaved = storeEntry?.isSaved ?? dishMedia.isSaved;
+	const isLiked = storeEntry?.isLiked ?? dishMedia.isLiked;
+	const likesCount = storeEntry?.dish_media.likeCount ?? dishMedia.likeCount;
 
 	const { BlurModal, open: openMenuModal, close: closeMenuModal } = useBlurModal({ intensity: 100 });
 
+	// #433 【設計】いいね操作は useDishLike フックに一本化（楽観的更新＋ロールバック）
 	const handleLike = async () => {
-		lightImpact();
-		const willLike = !isLiked;
-		setIsLiked(willLike);
-		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
-		setLikesCount((prev) => (willLike ? prev + 1 : Math.max(0, prev - 1)));
-
-		logFrontendEvent({
-			event_name: willLike ? "dish_liked" : "dish_unliked",
-			error_level: "log",
-			payload: {
-				dishMediaId: dishMedia.id,
-				previousLikeCount: likesCount,
-				newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
-			},
-		});
-
-		try {
-			if (willLike) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "like" },
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "like" },
-				});
-			}
-		} catch (error) {
-			// Revert state on error
-			setIsLiked(!willLike);
-			// #259 【バグ】エラー時のリバート処理でも下限0を保証
-			setLikesCount((prev) => (willLike ? Math.max(0, prev - 1) : prev + 1));
-			logFrontendEvent({
-				event_name: "dish_like_reaction_failed",
-				error_level: "log",
-				payload: {
-					error: error instanceof Error ? error.message : String(error),
-					target_id: dishMedia.id,
-					action_type: "like",
-					willReact: willLike,
-				},
-			});
-		}
+		await toggleLike(dishMedia.id);
 	};
 
+	// #433 【設計】保存操作は useDishSave フックに一本化（楽観的更新＋ロールバック）
 	const handleSave = async () => {
-		lightImpact();
-		const willSave = !isSaved;
-		setIsSaved(willSave);
-
-		logFrontendEvent({
-			event_name: willSave ? "dish_saved" : "dish_unsaved",
-			error_level: "log",
-			payload: {
-				dishMediaId: dishMedia.id,
-			},
-		});
-
-		try {
-			if (willSave) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "save" },
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "save" },
-				});
-			}
-		} catch (error) {
-			// Revert state on error
-			setIsSaved(!willSave);
-			logFrontendEvent({
-				event_name: "dish_save_reaction_failed",
-				error_level: "log",
-				payload: {
-					error: error instanceof Error ? error.message : String(error),
-					target_id: dishMedia.id,
-					action_type: "save",
-					willReact: willSave,
-				},
-			});
-		}
+		await toggleSave(dishMedia.id);
 	};
 
 	const handleViewRestaurant = () => {
