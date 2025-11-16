@@ -32,7 +32,10 @@ export class DishMediaAssembler {
    */
   toDishMediaEntry(dishMediaEntryEntities: DishMediaEntryEntity[]): {
     items: DishMediaEntry[];
+    cdnSignedCookies: string[];
   } {
+    const videoCdnUrlPrefixes: string[] = [];
+
     const items = dishMediaEntryEntities.map((src) => {
       const restaurant =
         this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
@@ -48,7 +51,10 @@ export class DishMediaAssembler {
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-      const mediaUrl = this.getMediaUrl(src.dish_media);
+      const { mediaUrl, cdnUrlPrefix } = this.getMediaUrl(src.dish_media);
+      if (cdnUrlPrefix) {
+        videoCdnUrlPrefixes.push(cdnUrlPrefix);
+      }
       const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media);
       const dish_media = {
         ...dishMediaBase,
@@ -73,13 +79,30 @@ export class DishMediaAssembler {
 
       return { restaurant, dish, dish_media, dish_reviews };
     });
-    return { items };
+
+    // 動画用の CDN Signed Cookie を生成（重複排除）
+    const uniquePrefixes = Array.from(new Set(videoCdnUrlPrefixes));
+    const cdnSignedCookies = uniquePrefixes.flatMap((prefix) =>
+      this.storage.generateCdnSignedCookies(prefix),
+    );
+
+    return { items, cdnSignedCookies };
   }
 
   /**
-   * dish_media エンティティから media_path の署名付き URL, CDN URL 群 を生成して付与
+   * dish_media エンティティから media_path の CDN URL を生成して付与
+   *
+   * 動画の場合:
+   *   - プレーンな CDN URL を返す（署名なし）
+   *   - 認可は Signed Cookie で行うため、CDN URL プレフィックスも返す
+   *
+   * 画像の場合:
+   *   - 従来通り Signed URL を返す（単一ファイルアクセスのため Cookie 不要）
    */
-  private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): string {
+  private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
+    mediaUrl: string;
+    cdnUrlPrefix?: string;
+  } {
     const cdnUrl =
       dishMedia.media_type === 'video'
         ? // 動画の場合の HLS マスター再生リスト CDN URL
@@ -104,12 +127,17 @@ export class DishMediaAssembler {
             'cdn',
           );
 
-    // 派生サイズの署名付き CDN URL を生成
-    const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl, {
-      urlPrefix: dishMedia.media_type === 'video',
-    });
-
-    return mediaUrl;
+    if (dishMedia.media_type === 'video') {
+      // 動画: プレーンな CDN URL を返し、Cookie 設定用のプレフィックスも返す
+      return {
+        mediaUrl: cdnUrl,
+        cdnUrlPrefix: cdnUrl,
+      };
+    } else {
+      // 画像: 従来通り Signed URL を返す
+      const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl);
+      return { mediaUrl };
+    }
   }
 
   private getThumbnailImageUrl(

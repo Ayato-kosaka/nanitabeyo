@@ -287,7 +287,6 @@ export class StorageService {
    *
    * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
    * @returns Array of cookie strings ready for Set-Cookie headers
-   * @deprecated
    */
   generateCdnSignedCookies(urlPrefix: string): string[] {
     try {
