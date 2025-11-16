@@ -33,8 +33,8 @@
 #
 #   例:
 #     # 本番 ・ 開発
-#     ./20251116T1300_update_cloudtasks_retry_policy.sh up uasia-northeast1 food-scroll
-#     ./20251116T1300_update_cloudtasks_retry_policy.sh down uasia-northeast1 food-scroll
+#     ./20251116T1300_update_cloudtasks_retry_policy.sh up asia-northeast1 food-scroll
+#     ./20251116T1300_update_cloudtasks_retry_policy.sh down asia-northeast1 food-scroll
 #
 # ※ 注意:
 #   - gcloud にログイン済みであること
