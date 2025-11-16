@@ -126,8 +126,8 @@
 			"confirm": "숨기기"
 		},
 		"Loading": {
-			"title": "당신에게 딱 맞는 요리를 찾고 있어요",
-			"subtitle": "잠시만 기다려 주세요..."
+			"title": "당신을 위한 완벽한 요리 6개를 엄선하고 있어요",
+			"subtitle": "추천을 곧 보여드릴게요!"
 		},
 		"errors": {
 			"fetchFailed": "요리를 가져오지 못했습니다",
@@ -350,6 +350,10 @@
 		}
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "선택하기 쉽도록 레스토랑 5곳을 엄선하고 있어요",
+			"subtitle": "추천을 곧 보여드릴게요!"
+		},
 		"placeholders": {
 			"searchLocation": "위치/지역 검색"
 		},
