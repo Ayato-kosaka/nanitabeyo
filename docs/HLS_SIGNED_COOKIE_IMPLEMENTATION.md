@@ -88,33 +88,30 @@ async fetchDishMediaEntryItems(
 - 戻り値の型に `cdnSignedCookies` を追加
 - Assembler から取得した Cookie 情報をそのまま返す
 
-### 3. Controller 層の変更
+### 3. CookieQueue パターンによる Cookie 自動設定
 
-#### `queryDishMediaByIds()`, `searchDishMedia()`
+#### CookieQueueService + ResponseWrapInterceptor の導入
+
+- **CookieQueueService** を用いて、Assembler/Service 層で CDN Signed Cookie を enqueue するだけでよい
+- Controller 層では Cookie の手動設定は不要
+- **ResponseWrapInterceptor** がリクエスト終了時に CookieQueue から全ての Cookie を自動的に `Set-Cookie` ヘッダーとして flush する
+
+**例: Assembler での Cookie enqueue**
 
 ```typescript
-async queryDishMediaByIds(
-  @Query() query: QueryDishMediaByIdsDto,
-  @CurrentUser() user: RequestUser,
-  @Res({ passthrough: true }) res: Response,
-): Promise<QueryDishMediaByIdsResponse> {
-  const result = await this.dishMediaService.findByIds(query.ids, user?.id);
+// DishMediaAssembler.ts
+constructor(
+  private readonly cookieQueue: CookieQueueService,
+  // ...
+) {}
 
-  // 動画用の CDN Signed Cookie を設定
-  if (result.cdnSignedCookies.length > 0) {
-    res.setHeader('Set-Cookie', result.cdnSignedCookies);
+private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): string {
+  if (dishMedia.media_type === 'video') {
+    const cookies = this.storage.generateCdnSignedCookies(/* ... */);
+    this.cookieQueue.enqueue(cookies);
   }
-
-  return {
-    items: result.items,
-    notFound: result.notFound,
-  };
+  // ...
 }
-```
-
-- `res.setHeader('Set-Cookie', result.cdnSignedCookies)` で Cookie を設定
-- 配列形式で複数の Cookie を一度に設定可能
-
 ### 4. Storage Service の変更
 
 - `generateCdnSignedCookies()` の `@deprecated` マーカーを削除
