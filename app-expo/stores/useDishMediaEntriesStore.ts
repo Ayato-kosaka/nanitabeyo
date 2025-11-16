@@ -18,7 +18,7 @@ type DishMediaEntriesStore = {
 	dishPromisesMap: Record<string, Promise<DishMediaEntry[]>>;
 	// #433 【設計】dishId をキーとした Dish エンティティのマップ（唯一のソースオブトゥルース）
 	dishEntriesById: Record<string, DishMediaEntryWithState>;
-	
+
 	// Promise 設定（フェッチ結果の保存）
 	setDishePromises: (key: string, items: Promise<DishMediaEntry[]>) => void;
 	// Dish エンティティの保存・更新
@@ -37,28 +37,30 @@ type DishMediaEntriesStore = {
 export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get) => ({
 	dishPromisesMap: {},
 	dishEntriesById: {},
-	
+
 	setDishePromises: (key, items) =>
 		set((state) => {
 			// #433 【設計】Promise を保存すると同時に、結果を dishEntriesById にも保存
-			items.then((dishes) => {
-				const newEntriesById = { ...state.dishEntriesById };
-				dishes.forEach((dish) => {
-					// 既存エントリがあれば状態を維持しつつ更新、なければ新規作成
-					const existing = newEntriesById[dish.dish_media.id];
-					newEntriesById[dish.dish_media.id] = {
-						...dish,
-						localMediaUri: existing?.localMediaUri,
-						localMediaStatus: existing?.localMediaStatus || "idle",
-						isLiked: existing?.isLiked ?? dish.dish_media.isLiked,
-						isSaved: existing?.isSaved ?? dish.dish_media.isSaved,
-					};
+			items
+				.then((dishes) => {
+					const newEntriesById = { ...state.dishEntriesById };
+					dishes.forEach((dish) => {
+						// 既存エントリがあれば状態を維持しつつ更新、なければ新規作成
+						const existing = newEntriesById[dish.dish_media.id];
+						newEntriesById[dish.dish_media.id] = {
+							...dish,
+							localMediaUri: existing?.localMediaUri,
+							localMediaStatus: existing?.localMediaStatus || "idle",
+							isLiked: existing?.isLiked ?? dish.dish_media.isLiked,
+							isSaved: existing?.isSaved ?? dish.dish_media.isSaved,
+						};
+					});
+					set({ dishEntriesById: newEntriesById });
+				})
+				.catch((error) => {
+					console.error("Failed to process dish promises:", error);
 				});
-				set({ dishEntriesById: newEntriesById });
-			}).catch((error) => {
-				console.error("Failed to process dish promises:", error);
-			});
-			
+
 			return {
 				dishPromisesMap: {
 					...state.dishPromisesMap,
@@ -66,7 +68,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 				},
 			};
 		}),
-	
+
 	setDishEntry: (dishMediaId, entry) =>
 		set((state) => ({
 			dishEntriesById: {
@@ -80,12 +82,12 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 				},
 			},
 		})),
-	
+
 	updateDishEntry: (dishMediaId, updates) =>
 		set((state) => {
 			const existing = state.dishEntriesById[dishMediaId];
 			if (!existing) return state;
-			
+
 			return {
 				dishEntriesById: {
 					...state.dishEntriesById,
@@ -96,12 +98,12 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 				},
 			};
 		}),
-	
+
 	toggleLike: (dishMediaId, isLiked) =>
 		set((state) => {
 			const existing = state.dishEntriesById[dishMediaId];
 			if (!existing) return state;
-			
+
 			// #433 【設計】楽観的更新：即座に liked 状態を反転し、likeCount を増減
 			const likeCountDelta = isLiked ? 1 : -1;
 			return {
@@ -119,12 +121,12 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 				},
 			};
 		}),
-	
+
 	toggleSave: (dishMediaId, isSaved) =>
 		set((state) => {
 			const existing = state.dishEntriesById[dishMediaId];
 			if (!existing) return state;
-			
+
 			// #433 【設計】楽観的更新：即座に saved 状態を反転
 			return {
 				dishEntriesById: {
@@ -140,12 +142,12 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 				},
 			};
 		}),
-	
+
 	setLocalMediaUri: (dishMediaId, uri, status = "ready") =>
 		set((state) => {
 			const existing = state.dishEntriesById[dishMediaId];
 			if (!existing) return state;
-			
+
 			return {
 				dishEntriesById: {
 					...state.dishEntriesById,
@@ -157,7 +159,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 				},
 			};
 		}),
-	
+
 	clearDishes: (key) =>
 		set((state) => {
 			if (!key) return { dishPromisesMap: {}, dishEntriesById: {} };

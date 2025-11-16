@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Image } from "expo-image";
-import { Topic, SearchParams } from "@/types/search";
+import { SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { prefetchWithUserAgent, wikimediaThumbFromOriginal } from "@/lib/wikimedia";
@@ -21,14 +21,19 @@ import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
 import { CARD_WIDTH } from "../constants";
+import { useTopicStore, type Topic } from "@/stores/useTopicStore";
 
 export const useTopicSearch = () => {
-	const [topics, setTopics] = useState<Topic[]>([]);
+	// #433 【設計】Topic の state 管理をストアに移行
+	const { topicsById, setTopic, setTopicsPromises } = useTopicStore();
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const { callBackend } = useAPICall();
 	const locale = useLocale();
 	const { logFrontendEvent } = useLogger();
+
+	// #433 【設計】ストアから topics を取得（唯一のソースオブトゥルース）
+	const topics = Object.values(topicsById).filter((topic) => !topic.isHidden);
 
 	// Helper function to create dishItemsPromise with image preloading (DRY principle)
 	const createDishItemsPromise = useCallback(
@@ -191,7 +196,10 @@ export const useTopicSearch = () => {
 							}),
 					);
 					const initialTopics = topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
-					setTopics(initialTopics);
+					// #433 【設計】Topic をストアに保存
+					initialTopics.forEach((topic) => {
+						setTopic(topic.categoryId, topic);
+					});
 					// Set loading to false after early display
 					setIsLoading(false);
 				}
@@ -262,7 +270,10 @@ export const useTopicSearch = () => {
 								}),
 						);
 						const additionalTopics = additionalTopicsWithCategoryIds.map((topic) => createTopic(topic));
-						setTopics((prevTopics) => [...prevTopics, ...additionalTopics]);
+						// #433 【設計】追加の Topic をストアに保存
+						additionalTopics.forEach((topic) => {
+							setTopic(topic.categoryId, topic);
+						});
 					}
 
 					// Update the final list for return value
@@ -290,9 +301,9 @@ export const useTopicSearch = () => {
 	);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {
-		setTopics((prevTopics) =>
-			prevTopics.map((topic) => (topic.categoryId === topicId ? { ...topic, isHidden: true } : topic)),
-		);
+		// #433 【設計】ストアの hideTopic を使用
+		const { hideTopic: storeHideTopic } = useTopicStore.getState();
+		storeHideTopic(topicId, true);
 
 		// Log hide reason for analytics
 		const hideReason = {
@@ -305,7 +316,9 @@ export const useTopicSearch = () => {
 	}, []);
 
 	const resetTopics = useCallback(() => {
-		setTopics([]);
+		// #433 【設計】ストアの clearTopics を使用
+		const { clearTopics } = useTopicStore.getState();
+		clearTopics();
 		setError(null);
 	}, []);
 

@@ -1,4 +1,4 @@
-import type { DishMediaEntry, LocationDetailsResponse } from "@shared/api/v1/res";
+import type { LocationDetailsResponse } from "@shared/api/v1/res";
 
 export type SearchParams = Omit<LocationDetailsResponse, "viewport"> & {
 	timeSlot: "morning" | "lunch" | "afternoon" | "dinner" | "late_night";
@@ -9,12 +9,5 @@ export type SearchParams = Omit<LocationDetailsResponse, "viewport"> & {
 	priceLevels: string[]; // price levels
 };
 
-export interface Topic {
-	category: string;
-	topicTitle: string;
-	reason: string;
-	categoryId: string;
-	imageUrl: string;
-	dishItemsPromise: Promise<DishMediaEntry[]>;
-	isHidden?: boolean;
-}
+// #433 【設計】Topic 型は useTopicStore に移動（唯一のソースオブトゥルース）
+export type { Topic } from "@/stores/useTopicStore";

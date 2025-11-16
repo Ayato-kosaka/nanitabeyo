@@ -52,7 +52,7 @@ export function useDishSave() {
 			} catch (error) {
 				// #433 【設計】エラー時のロールバック：元の状態に戻す
 				storeToggleSave(dishMediaId, currentSaveState);
-				
+
 				logFrontendEvent({
 					event_name: "dish_save_reaction_failed",
 					error_level: "error",

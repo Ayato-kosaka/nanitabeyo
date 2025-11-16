@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SaveTopicTab } from "./save/SaveTopicTab";
@@ -13,6 +13,7 @@ import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useLocale } from "@/hooks/useLocale";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useTopicStore } from "@/stores/useTopicStore";
 import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
@@ -28,6 +29,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
+	// #433 【設計】Topic ストアを使用（唯一のソースオブトゥルース）
+	const { setTopic, topicsById } = useTopicStore();
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
 
@@ -73,6 +76,34 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	useEffect(() => {
 		topics.loadInitial();
 	}, []);
+
+	// #433 【設計】フェッチ結果をストアに保存
+	useEffect(() => {
+		if (topics.items.length > 0) {
+			topics.items.forEach((item) => {
+				// QueryMeSavedDishCategoriesResponse の item を Topic 型に変換
+				const topicEntry = {
+					category: item.label_en,
+					topicTitle: item.label_en,
+					reason: "", // saved topics don't have reason
+					categoryId: item.id,
+					imageUrl: item.image_url || "",
+					dishItemsPromise: Promise.resolve([]), // placeholder, will be updated on selection
+					isSaved: true, // saved topics are marked as saved
+				};
+				setTopic(item.id, topicEntry);
+			});
+		}
+	}, [topics.items, setTopic]);
+
+	// #433 【設計】表示用データはストアから取得（保存状態の即時反映）
+	const displayItems = useMemo(() => {
+		return topics.items.filter((item) => {
+			const storeEntry = topicsById[item.id];
+			// 保存済みアイテムのみ表示（楽観的更新で unsave した場合は非表示）
+			return storeEntry?.isSaved ?? true;
+		});
+	}, [topics.items, topicsById]);
 
 	const handleTopicPress = useCallback(
 		(item: any, index: number) => {
@@ -164,7 +195,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	return (
 		<>
 			<SaveTopicTab
-				data={topics.items}
+				data={displayItems}
 				isLoading={topics.isLoadingInitial}
 				isLoadingMore={topics.isLoadingMore}
 				refreshing={topics.isLoadingInitial}

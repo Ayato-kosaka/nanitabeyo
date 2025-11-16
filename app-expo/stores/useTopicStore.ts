@@ -18,7 +18,7 @@ type TopicStore = {
 	topicsPromisesMap: Record<string, Promise<Topic[]>>;
 	// #433 【設計】categoryId をキーとした Topic エンティティのマップ（唯一のソースオブトゥルース）
 	topicsById: Record<string, Topic>;
-	
+
 	// Promise 設定（フェッチ結果の保存）
 	setTopicsPromises: (key: string, items: Promise<Topic[]>) => void;
 	// Topic エンティティの保存・更新
@@ -35,26 +35,28 @@ type TopicStore = {
 export const useTopicStore = create<TopicStore>((set, get) => ({
 	topicsPromisesMap: {},
 	topicsById: {},
-	
+
 	setTopicsPromises: (key, items) =>
 		set((state) => {
 			// #433 【設計】Promise を保存すると同時に、結果を topicsById にも保存
-			items.then((topics) => {
-				const newTopicsById = { ...state.topicsById };
-				topics.forEach((topic) => {
-					// 既存エントリがあれば状態を維持しつつ更新、なければ新規作成
-					const existing = newTopicsById[topic.categoryId];
-					newTopicsById[topic.categoryId] = {
-						...topic,
-						isHidden: existing?.isHidden ?? topic.isHidden ?? false,
-						isSaved: existing?.isSaved ?? topic.isSaved ?? false,
-					};
+			items
+				.then((topics) => {
+					const newTopicsById = { ...state.topicsById };
+					topics.forEach((topic) => {
+						// 既存エントリがあれば状態を維持しつつ更新、なければ新規作成
+						const existing = newTopicsById[topic.categoryId];
+						newTopicsById[topic.categoryId] = {
+							...topic,
+							isHidden: existing?.isHidden ?? topic.isHidden ?? false,
+							isSaved: existing?.isSaved ?? topic.isSaved ?? false,
+						};
+					});
+					set({ topicsById: newTopicsById });
+				})
+				.catch((error) => {
+					console.error("Failed to process topic promises:", error);
 				});
-				set({ topicsById: newTopicsById });
-			}).catch((error) => {
-				console.error("Failed to process topic promises:", error);
-			});
-			
+
 			return {
 				topicsPromisesMap: {
 					...state.topicsPromisesMap,
@@ -62,7 +64,7 @@ export const useTopicStore = create<TopicStore>((set, get) => ({
 				},
 			};
 		}),
-	
+
 	setTopic: (categoryId, topic) =>
 		set((state) => ({
 			topicsById: {
@@ -74,12 +76,12 @@ export const useTopicStore = create<TopicStore>((set, get) => ({
 				},
 			},
 		})),
-	
+
 	updateTopic: (categoryId, updates) =>
 		set((state) => {
 			const existing = state.topicsById[categoryId];
 			if (!existing) return state;
-			
+
 			return {
 				topicsById: {
 					...state.topicsById,
@@ -90,12 +92,12 @@ export const useTopicStore = create<TopicStore>((set, get) => ({
 				},
 			};
 		}),
-	
+
 	hideTopic: (categoryId, isHidden) =>
 		set((state) => {
 			const existing = state.topicsById[categoryId];
 			if (!existing) return state;
-			
+
 			return {
 				topicsById: {
 					...state.topicsById,
@@ -106,12 +108,12 @@ export const useTopicStore = create<TopicStore>((set, get) => ({
 				},
 			};
 		}),
-	
+
 	toggleSave: (categoryId, isSaved) =>
 		set((state) => {
 			const existing = state.topicsById[categoryId];
 			if (!existing) return state;
-			
+
 			return {
 				topicsById: {
 					...state.topicsById,
@@ -122,7 +124,7 @@ export const useTopicStore = create<TopicStore>((set, get) => ({
 				},
 			};
 		}),
-	
+
 	clearTopics: (key) =>
 		set((state) => {
 			if (!key) return { topicsPromisesMap: {}, topicsById: {} };

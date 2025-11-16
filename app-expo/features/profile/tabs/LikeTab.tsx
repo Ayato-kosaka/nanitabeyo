@@ -59,15 +59,17 @@ export function LikeTab() {
 
 	// #433 【設計】表示用データはストアから取得（いいね状態の即時反映）
 	const displayItems = useMemo(() => {
-		return items.map((item) => {
-			const storeEntry = dishEntriesById[item.dish_media.id];
-			// ストアに最新状態があればそれを使用、なければフェッチ結果を使用
-			return storeEntry || item;
-		}).filter((item) => {
-			// いいね済みアイテムのみ表示（楽観的更新で unlike した場合は非表示）
-			const storeEntry = dishEntriesById[item.dish_media.id];
-			return storeEntry?.isLiked ?? item.dish_media.isLiked;
-		});
+		return items
+			.map((item) => {
+				const storeEntry = dishEntriesById[item.dish_media.id];
+				// ストアに最新状態があればそれを使用、なければフェッチ結果を使用
+				return storeEntry || item;
+			})
+			.filter((item) => {
+				// いいね済みアイテムのみ表示（楽観的更新で unlike した場合は非表示）
+				const storeEntry = dishEntriesById[item.dish_media.id];
+				return storeEntry?.isLiked ?? item.dish_media.isLiked;
+			});
 	}, [items, dishEntriesById]);
 
 	const handleItemPress = useCallback(

@@ -69,15 +69,17 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	// #433 【設計】表示用データはストアから取得（保存状態の即時反映）
 	const displayItems = useMemo(() => {
-		return posts.items.map((item) => {
-			const storeEntry = dishEntriesById[item.dish_media.id];
-			// ストアに最新状態があればそれを使用、なければフェッチ結果を使用
-			return storeEntry || item;
-		}).filter((item) => {
-			// 保存済みアイテムのみ表示（楽観的更新で unsave した場合は非表示）
-			const storeEntry = dishEntriesById[item.dish_media.id];
-			return storeEntry?.isSaved ?? item.dish_media.isSaved;
-		});
+		return posts.items
+			.map((item) => {
+				const storeEntry = dishEntriesById[item.dish_media.id];
+				// ストアに最新状態があればそれを使用、なければフェッチ結果を使用
+				return storeEntry || item;
+			})
+			.filter((item) => {
+				// 保存済みアイテムのみ表示（楽観的更新で unsave した場合は非表示）
+				const storeEntry = dishEntriesById[item.dish_media.id];
+				return storeEntry?.isSaved ?? item.dish_media.isSaved;
+			});
 	}, [posts.items, dishEntriesById]);
 
 	const handlePostPress = useCallback(

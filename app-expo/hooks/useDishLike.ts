@@ -54,7 +54,7 @@ export function useDishLike() {
 			} catch (error) {
 				// #433 【設計】エラー時のロールバック：元の状態に戻す
 				storeToggleLike(dishMediaId, currentLikeState);
-				
+
 				logFrontendEvent({
 					event_name: "dish_like_reaction_failed",
 					error_level: "error",

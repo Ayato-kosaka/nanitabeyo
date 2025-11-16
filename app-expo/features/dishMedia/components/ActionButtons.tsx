@@ -40,7 +40,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 	const { toggleSave } = useDishSave();
 	const dishEntriesById = useDishMediaEntriesStore((state) => state.dishEntriesById);
 	const storeEntry = dishEntriesById[dishMedia.id];
-	
+
 	// ストアから現在の状態を取得（ストアにない場合は props から初期値を使用）
 	const isSaved = storeEntry?.isSaved ?? dishMedia.isSaved;
 	const isLiked = storeEntry?.isLiked ?? dishMedia.isLiked;
