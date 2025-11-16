@@ -58,7 +58,7 @@ export class DishMediaRepository {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -71,7 +71,6 @@ export class DishMediaRepository {
     // Haversine 距離 (PostgreSQL + PostGIS) の簡易例
     // RAW を使うときはバインド変数で SQL Injection を防止
     const [userLat, userLon] = location.split(',').map(Number);
-    const nowTs = new Date().toISOString();
     const pageSeed = crypto.randomUUID(); // ランダム順序を毎回ランダムにしたい。
 
     const GUMBLE_TAU = 0.216; // 0.3–0.5 * σ（base_score の標準偏差）で後で調整する
@@ -118,7 +117,7 @@ export class DishMediaRepository {
         CAST(${limit} AS integer) AS limit_count,
         CAST(${GUMBLE_TAU}  AS double precision) AS gumbel_tau, -- ランキングに “ゆらぎ（探索）” をどれだけ入れるかの強さ。
         CAST(${pageSeed}  AS text)             AS page_seed,
-        CAST(${nowTs}  AS timestamptz)      AS now_ts,
+        current_timestamp                           AS now_ts,
         -- geography のユーザ位置
         ST_SetSRID(ST_MakePoint(${userLon}, ${userLat}), 4326)::geography AS user_geog,
         -- 距離減衰パラメタ
@@ -136,7 +135,8 @@ export class DishMediaRepository {
         0.60 AS w_like_rate,
         0.50 AS w_is_open_at,
         0.30 AS w_distance,
-        0.50 AS w_impr_total
+        0.50 AS w_impr_total,
+        0.40 AS w_avg_rating
     ),
     -- ========== 候補集合（Stage0: 地理フィルタ） ==========
     candidates_radius AS (
@@ -212,12 +212,26 @@ export class DishMediaRepository {
           AND dmi.created_at >= (SELECT now_ts FROM params) - INTERVAL '24 hours'
       )
     ),
+    -- ========== dish_reviews 平均評価（Stage2: Pre-Rank特徴） ==========
+    -- #440 【設計】dish_reviews の平均評価を dish_id 単位で集計
+    dish_avg_ratings AS (
+      SELECT
+        dr.dish_id,
+        AVG(dr.rating) AS avg_rating
+      FROM dish_reviews dr
+      JOIN (
+        SELECT DISTINCT dish_id
+        FROM fatigue_filtered
+      ) ff ON ff.dish_id = dr.dish_id
+      GROUP BY dr.dish_id
+    ),
     -- ========== 指標結合（Stage2: Pre-Rank特徴） ==========
     features AS (
       SELECT
         ff.*,
         ar.impr_total, ar.view_total, ar.skip_total, ar.completion_total,
         ar.watch_ms_total, ar.save_total, ar.like_total, ar.open_map_total,
+        dar.avg_rating,
         -- レート（イプシロン平滑）
         CASE
           WHEN ar.impr_total > 0 AND ff.video_duration_ms > 0
@@ -244,14 +258,17 @@ export class DishMediaRepository {
       FROM fatigue_filtered ff
       LEFT JOIN dish_media_analysis_results ar
         ON ar.dish_media_id = ff.dish_media_id
+      LEFT JOIN dish_avg_ratings dar
+        ON dar.dish_id = ff.dish_id
     ),
     -- ========== Pre-Rank スコア（軽量式） ==========
     pre_rank AS (
       SELECT
         f.*,
-        0.30 * EXP(- f.distance_km / (SELECT d0 FROM params)) AS distance_contrib,
+        -- 【設計】距離計算の値をログで確認できるように、保持しておく
+        EXP(- f.distance_km / (SELECT d0 FROM params)) AS distance_contrib,
         (
-          -- w1*(1 - skip_rate) + w2*avg_watch_rate + w3*save_rate + w4*open_map_rate + w5*like_rate
+          -- w1*(1 - skip_rate) + w2*avg_watch_rate + w3*save_rate + w4*open_map_rate + w5*like_rate + w_avg_rating*(avg_rating/5.0)
           (SELECT w_skip_rate FROM weights) * COALESCE(1.0 - f.skip_rate, 0.5) +
           (SELECT w_avg_watch_rate FROM weights) * COALESCE(f.avg_watch_rate, 0.2) +
           (SELECT w_save_rate FROM weights) * COALESCE(f.save_rate, 0.01) +
@@ -263,7 +280,9 @@ export class DishMediaRepository {
           CASE
             WHEN COALESCE(f.impr_total, 0) < 15 THEN (SELECT w_impr_total FROM weights)
             ELSE 0.0
-          END
+          END +
+          -- #440 【設計】dish_reviews の平均評価を正規化（1-5 を 0-1 に変換）してスコアに加算
+          (SELECT w_avg_rating FROM weights) * COALESCE(f.avg_rating / 5.0, 0.0)
         ) AS base_score
       FROM features f
     ),
@@ -410,9 +429,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -769,14 +788,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -792,12 +811,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
