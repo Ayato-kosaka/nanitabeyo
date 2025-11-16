@@ -10,14 +10,9 @@
 // ■ 利用例
 // ──────────────────────────────────────────────
 // ```ts
-// this.cookieQueue.enqueue('Cloud-CDN-Cookie', cookieValue, {
-//   domain: '.example.com',
-//   path: '/',
-//   maxAge: 600,
-//   httpOnly: true,
-//   secure: true,
-//   sameSite: 'None',
-// });
+// this.cookieQueue.enqueue(
+//   'Cloud-CDN-Cookie=value; Domain=.example.com; Path=/; Max-Age=600; HttpOnly; Secure; SameSite=None'
+// );
 // ```
 
 import { Injectable, Scope } from '@nestjs/common';
