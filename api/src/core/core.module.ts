@@ -10,6 +10,7 @@ import { ClaudeModule } from './claude/claude.module';
 import { ExternalApiModule } from './external-api/external-api.module';
 import { PromptModule } from './prompt/prompt.module';
 import { TranscoderModule } from './transcoder/transcoder.module';
+import { CookieQueueModule } from './cookie-queue/cookie-queue.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TranscoderModule } from './transcoder/transcoder.module';
     ExternalApiModule,
     PromptModule,
     TranscoderModule,
+    CookieQueueModule,
   ],
   exports: [
     LoggerModule,
@@ -33,6 +35,7 @@ import { TranscoderModule } from './transcoder/transcoder.module';
     ExternalApiModule,
     PromptModule,
     TranscoderModule,
+    CookieQueueModule,
   ],
 })
 export class CoreModule {}

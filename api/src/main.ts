@@ -4,7 +4,6 @@ import { AppModule } from './app.module';
 import { env } from './core/config/env';
 import { ApiExceptionFilter } from './core/filters/api-exception.filter';
 import { ClsService } from 'nestjs-cls';
-import { ResponseWrapInterceptor } from './core/interceptors/response-wrap.interceptor';
 import { AppLoggerService } from './core/logger/logger.service';
 
 async function bootstrap() {
@@ -43,14 +42,6 @@ async function bootstrap() {
       whitelist: true,
       forbidUnknownValues: false,
     }),
-  );
-
-  app.useGlobalInterceptors(
-    new ResponseWrapInterceptor(
-      app.get(ClsService),
-      app.get(Reflector),
-      app.get(AppLoggerService),
-    ),
   );
 
   app.useGlobalFilters(

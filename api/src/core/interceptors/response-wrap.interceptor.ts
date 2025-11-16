@@ -15,6 +15,7 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  Scope,
   SetMetadata,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
@@ -27,6 +28,7 @@ import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
 import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
 import { AppLoggerService } from '../logger/logger.service';
 import { maskSensitiveFields } from './response-wrap.utils';
+import { CookieQueueService } from '../cookie-queue/cookie-queue.service';
 
 /* -------------------------------------------------------------------------- */
 /*                           Skip Decorator (Opt‐in)                           */
@@ -37,13 +39,14 @@ export const SkipResponseWrap = () => SetMetadata(SKIP_WRAP_META_KEY, true);
 /* -------------------------------------------------------------------------- */
 /*                              Interceptor 本体                               */
 /* -------------------------------------------------------------------------- */
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ResponseWrapInterceptor implements NestInterceptor {
   constructor(
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
     private readonly logger: AppLoggerService,
-  ) {}
+    private readonly cookieQueue: CookieQueueService,
+  ) { }
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     /* ――― 除外判定 ――― */
@@ -63,6 +66,22 @@ export class ResponseWrapInterceptor implements NestInterceptor {
         /* ---------- Request-ID をヘッダへ ---------- */
         const reqId = this.cls.get<string>(CLS_KEY_REQUEST_ID) ?? '';
         if (reqId) res.setHeader(REQUEST_ID_HEADER, reqId);
+
+        /* ---------- Cookie Queue を flush ---------- */
+        // #427 【設計】キュー済みクッキーを Set-Cookie ヘッダに反映
+        try {
+          const queuedCookies = this.cookieQueue.getAll();
+          if (queuedCookies.length > 0) {
+            res.setHeader('Set-Cookie', queuedCookies);
+          }
+        } catch (err) {
+          // CookieQueueService が利用できない場合はスキップ（後方互換性）
+          this.logger.warn(
+            'CookieQueueServiceNotAvailable',
+            'ResponseWrapInterceptor',
+            { message: 'CookieQueueService not available, skipping cookie flush.' },
+          );
+        }
 
         /* ---------- 多重ラップチェック ---------- */
         const alreadyWrapped =

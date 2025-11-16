@@ -88,7 +88,10 @@ export class DishMediaService {
       notFound: notFound.length,
     });
 
-    return { items: result.items, notFound };
+    return {
+      items: result.items,
+      notFound,
+    };
   }
 
   /**
