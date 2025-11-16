@@ -136,7 +136,8 @@ export class DishMediaRepository {
         0.60 AS w_like_rate,
         0.50 AS w_is_open_at,
         0.30 AS w_distance,
-        0.50 AS w_impr_total
+        0.50 AS w_impr_total,
+        0.40 AS w_avg_rating -- #440 【設計】dish_reviews の平均評価を Pre-Rank に加算（rating は 1-5 のスケール）
     ),
     -- ========== 候補集合（Stage0: 地理フィルタ） ==========
     candidates_radius AS (
@@ -212,12 +213,23 @@ export class DishMediaRepository {
           AND dmi.created_at >= (SELECT now_ts FROM params) - INTERVAL '24 hours'
       )
     ),
+    -- ========== dish_reviews 平均評価（Stage2: Pre-Rank特徴） ==========
+    -- #440 【設計】dish_reviews の平均評価を dish_id 単位で集計
+    dish_avg_ratings AS (
+      SELECT
+        dr.dish_id,
+        AVG(dr.rating) AS avg_rating
+      FROM dish_reviews dr
+      WHERE dr.dish_id IN (SELECT DISTINCT dish_id FROM fatigue_filtered)
+      GROUP BY dr.dish_id
+    ),
     -- ========== 指標結合（Stage2: Pre-Rank特徴） ==========
     features AS (
       SELECT
         ff.*,
         ar.impr_total, ar.view_total, ar.skip_total, ar.completion_total,
         ar.watch_ms_total, ar.save_total, ar.like_total, ar.open_map_total,
+        dar.avg_rating, -- #440 【設計】dish_reviews の平均評価を特徴量として追加
         -- レート（イプシロン平滑）
         CASE
           WHEN ar.impr_total > 0 AND ff.video_duration_ms > 0
@@ -244,6 +256,8 @@ export class DishMediaRepository {
       FROM fatigue_filtered ff
       LEFT JOIN dish_media_analysis_results ar
         ON ar.dish_media_id = ff.dish_media_id
+      LEFT JOIN dish_avg_ratings dar
+        ON dar.dish_id = ff.dish_id -- #440 【設計】dish_reviews の平均評価を dish_id で結合
     ),
     -- ========== Pre-Rank スコア（軽量式） ==========
     pre_rank AS (
@@ -251,7 +265,7 @@ export class DishMediaRepository {
         f.*,
         0.30 * EXP(- f.distance_km / (SELECT d0 FROM params)) AS distance_contrib,
         (
-          -- w1*(1 - skip_rate) + w2*avg_watch_rate + w3*save_rate + w4*open_map_rate + w5*like_rate
+          -- w1*(1 - skip_rate) + w2*avg_watch_rate + w3*save_rate + w4*open_map_rate + w5*like_rate + w_avg_rating*(avg_rating/5.0)
           (SELECT w_skip_rate FROM weights) * COALESCE(1.0 - f.skip_rate, 0.5) +
           (SELECT w_avg_watch_rate FROM weights) * COALESCE(f.avg_watch_rate, 0.2) +
           (SELECT w_save_rate FROM weights) * COALESCE(f.save_rate, 0.01) +
@@ -263,7 +277,9 @@ export class DishMediaRepository {
           CASE
             WHEN COALESCE(f.impr_total, 0) < 15 THEN (SELECT w_impr_total FROM weights)
             ELSE 0.0
-          END
+          END +
+          -- #440 【設計】dish_reviews の平均評価を正規化（1-5 を 0-1 に変換）してスコアに加算
+          (SELECT w_avg_rating FROM weights) * COALESCE(f.avg_rating / 5.0, 0.0)
         ) AS base_score
       FROM features f
     ),
