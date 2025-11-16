@@ -22,6 +22,7 @@ GCS **新バケット移行**のための実行ラッパ群です。`infra/gcp/*
   ├── 4_0_enqueue_image_resizes_develop.py
   ├── 4_1_transfer_gcs_develop.sh
   ├── 4_2_setup_private_cdn.sh
+  ├── 4_3_apply_cdn_url_map_and_firebase_domain.sh
   ├── 5_1_db_migration_prod.sh
   ├── 5_2_gcp_config_production.yaml
   ├── 5_2_enqueue_image_resizes_production.py
@@ -87,6 +88,9 @@ python 4_0_enqueue_image_resizes_develop.py \
 # 4. private CDN（cdn.nanitabeyo.net）再作成（旧LBはベストエフォートで削除）
 ./4_2_setup_private_cdn.sh
 
+# 4. CDN URL マップ反映 & Firebase Hosting カスタムドメイン追加
+./4_3_apply_cdn_url_map_and_firebase_domain.sh
+
 # 5. 本番 DB マイグレーション
 ./5_1_db_migration_prod.sh
 
@@ -139,6 +143,10 @@ python 5_2_enqueue_image_resizes_production.py \
   旧 `cdn.nanitabeyo.net` LB を **ベストエフォート削除**（指定3リソース名）後、
   同ホスト名で **新 private バケット** をオリジンに Signed Cookies 対応で再作成  
   TTL は **infra デフォルト**
+
+- `4_3_apply_cdn_url_map_and_firebase_domain.sh`  
+  **#414 対応**: CDN URL マップ（`infra/url-map/urlmap-cdn.nanitabeyo.net.yaml`）を `cdn-url-map` に import し、
+  CORS ヘッダ設定を反映。また Firebase Hosting サイト `food-scroll` に `app.nanitabeyo.net` カスタムドメインを追加
 
 - `5_1_db_migration_prod.sh`  
   プロジェクトルートで `pnpm run db:migration 20250924T1200_alter_users_add_fk_and_rls.sql` を実行し、本番 DB を更新
