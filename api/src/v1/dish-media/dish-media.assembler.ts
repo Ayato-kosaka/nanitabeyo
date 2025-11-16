@@ -80,10 +80,13 @@ export class DishMediaAssembler {
       const url = new URL(firstVideoUrl);
       const segments = url.pathname.split("/").filter(Boolean);
       // #427 【設計】gs://bucket/${env}/transcoded-video/** を公開するための CDN URL プレフィックスを抽出
-      url.pathname = "/" + segments.slice(0, 2).join("/") + "/"; // /{env}/transcoded-video/
-      const prefix = url.toString();
-      const cookies = this.storage.generateCdnSignedCookies(prefix);
-      cookies.forEach((cookie) => this.cookieQueue.enqueue(cookie));
+      const transcodedIndex = segments.indexOf('transcoded-video');
+      if (transcodedIndex >= 0) {
+        url.pathname = "/" + segments.slice(0, transcodedIndex + 1).join("/") + "/"; // /{env}/transcoded-video/
+        const prefix = url.toString();
+        const cookies = this.storage.generateCdnSignedCookies(prefix);
+        cookies.forEach((cookie) => this.cookieQueue.enqueue(cookie));
+      }
     }
 
     return { items };
