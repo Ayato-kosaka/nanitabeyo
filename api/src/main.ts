@@ -1,4 +1,4 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory, Reflector, ModuleRef } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { env } from './core/config/env';
@@ -50,6 +50,7 @@ async function bootstrap() {
       app.get(ClsService),
       app.get(Reflector),
       app.get(AppLoggerService),
+      app.get(ModuleRef),
     ),
   );
 

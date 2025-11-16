@@ -21,12 +21,14 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ClsService } from 'nestjs-cls';
 import { Reflector } from '@nestjs/core';
+import { ModuleRef } from '@nestjs/core';
 
 import { BaseResponse } from '@shared/v1/res';
 import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
 import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
 import { AppLoggerService } from '../logger/logger.service';
 import { maskSensitiveFields } from './response-wrap.utils';
+import { CookieQueueService } from '../cookie-queue/cookie-queue.service';
 
 /* -------------------------------------------------------------------------- */
 /*                           Skip Decorator (Opt‐in)                           */
@@ -43,6 +45,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
     private readonly cls: ClsService,
     private readonly reflector: Reflector,
     private readonly logger: AppLoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
@@ -63,6 +66,20 @@ export class ResponseWrapInterceptor implements NestInterceptor {
         /* ---------- Request-ID をヘッダへ ---------- */
         const reqId = this.cls.get<string>(CLS_KEY_REQUEST_ID) ?? '';
         if (reqId) res.setHeader(REQUEST_ID_HEADER, reqId);
+
+        /* ---------- Cookie Queue を flush ---------- */
+        // #427 【設計】キュー済みクッキーを Set-Cookie ヘッダに反映
+        try {
+          const cookieQueue = this.moduleRef.get(CookieQueueService, {
+            strict: false,
+          });
+          const queuedCookies = cookieQueue.getAll();
+          if (queuedCookies.length > 0) {
+            res.setHeader('Set-Cookie', queuedCookies);
+          }
+        } catch (err) {
+          // CookieQueueService が利用できない場合はスキップ（後方互換性）
+        }
 
         /* ---------- 多重ラップチェック ---------- */
         const alreadyWrapped =

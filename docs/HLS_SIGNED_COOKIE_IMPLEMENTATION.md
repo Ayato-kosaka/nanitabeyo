@@ -25,6 +25,7 @@ Cloud CDN + GCS + expo-video における HLS (HTTP Live Streaming) 配信の認
 #### `getMediaUrl()` メソッド
 
 **変更前:**
+
 ```typescript
 private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): string {
   const cdnUrl = /* CDN URL 生成 */;
@@ -36,13 +37,14 @@ private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): string {
 ```
 
 **変更後:**
+
 ```typescript
 private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
   mediaUrl: string;
   cdnUrlPrefix?: string;
 } {
   const cdnUrl = /* CDN URL 生成 */;
-  
+
   if (dishMedia.media_type === 'video') {
     // 動画: プレーンな CDN URL を返し、Cookie 設定用のプレフィックスも返す
     return {
@@ -60,6 +62,7 @@ private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
 #### `toDishMediaEntry()` メソッド
 
 **変更点:**
+
 - 動画の CDN URL プレフィックスを収集
 - 重複を排除して Signed Cookie を生成
 - `items` と `cdnSignedCookies` の両方を返す
@@ -122,7 +125,7 @@ async queryDishMediaByIds(
 `api/src/v1/dish-media/dish-media.assembler.spec.ts` を新規作成:
 
 - **テスト1**: 動画メディアで CDN Signed Cookie が生成されることを検証
-- **テスト2**: 画像メディアで Signed URL が使用されることを検証  
+- **テスト2**: 画像メディアで Signed URL が使用されることを検証
 - **テスト3**: 複数動画での重複排除を検証
 
 **テスト結果**: ✅ 3 tests passed
@@ -166,14 +169,14 @@ sequenceDiagram
     API->>API: DishMediaAssembler.toDishMediaEntry()
     API->>API: generateCdnSignedCookies(urlPrefix)
     API-->>Client: { items: [...], Set-Cookie: Cloud-CDN-Cookie=... }
-    
+
     Note over Client: expo-video が master.m3u8 を取得
     Client->>CDN: GET /transcoded/.../master.m3u8<br/>(Cookie: Cloud-CDN-Cookie=...)
     CDN->>CDN: Cookie 検証 (URLPrefix, Expires, Signature)
     CDN->>GCS: master.m3u8 取得
     GCS-->>CDN: master.m3u8 内容
     CDN-->>Client: master.m3u8
-    
+
     Note over Client: expo-video がセグメントを取得
     Client->>CDN: GET /transcoded/.../segment0.ts<br/>(Cookie: Cloud-CDN-Cookie=...)
     CDN->>CDN: Cookie 検証

@@ -18,12 +18,14 @@ import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converte
 import { mapWithConcurrency } from 'src/core/utils/backend-utils';
 import { env } from 'src/core/config/env';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
+import { CookieQueueService } from '../../core/cookie-queue/cookie-queue.service';
 
 @Injectable()
 export class DishMediaAssembler {
   constructor(
     private readonly storage: StorageService,
     private readonly restaurantsAssembler: RestaurantsAssembler,
+    private readonly cookieQueue: CookieQueueService,
   ) {}
 
   /**
@@ -32,7 +34,6 @@ export class DishMediaAssembler {
    */
   toDishMediaEntry(dishMediaEntryEntities: DishMediaEntryEntity[]): {
     items: DishMediaEntry[];
-    cdnSignedCookies: string[];
   } {
     const videoCdnUrlPrefixes: string[] = [];
 
@@ -80,13 +81,14 @@ export class DishMediaAssembler {
       return { restaurant, dish, dish_media, dish_reviews };
     });
 
-    // 動画用の CDN Signed Cookie を生成（重複排除）
+    // #427 【設計】動画用の CDN Signed Cookie を生成してキューに登録（重複排除）
     const uniquePrefixes = Array.from(new Set(videoCdnUrlPrefixes));
-    const cdnSignedCookies = uniquePrefixes.flatMap((prefix) =>
-      this.storage.generateCdnSignedCookies(prefix),
-    );
+    uniquePrefixes.forEach((prefix) => {
+      const cookies = this.storage.generateCdnSignedCookies(prefix);
+      cookies.forEach((cookie) => this.cookieQueue.enqueue(cookie));
+    });
 
-    return { items, cdnSignedCookies };
+    return { items };
   }
 
   /**

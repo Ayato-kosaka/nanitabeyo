@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DishMediaAssembler } from './dish-media.assembler';
 import { StorageService } from '../../core/storage/storage.service';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
+import { CookieQueueService } from '../../core/cookie-queue/cookie-queue.service';
 
 // Mock environment config before importing anything that depends on it
 jest.mock('src/core/config/env', () => ({
@@ -39,6 +40,7 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
   let assembler: DishMediaAssembler;
   let mockStorage: jest.Mocked<StorageService>;
   let mockRestaurantsAssembler: jest.Mocked<RestaurantsAssembler>;
+  let mockCookieQueue: jest.Mocked<CookieQueueService>;
 
   beforeEach(async () => {
     const mockStorageService = {
@@ -48,6 +50,12 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
 
     const mockRestaurantsAssemblerService = {
       enrichRestaurantsWithImageUrls: jest.fn(),
+    };
+
+    const mockCookieQueueService = {
+      enqueue: jest.fn(),
+      getAll: jest.fn(),
+      clear: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -61,16 +69,21 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           provide: RestaurantsAssembler,
           useValue: mockRestaurantsAssemblerService,
         },
+        {
+          provide: CookieQueueService,
+          useValue: mockCookieQueueService,
+        },
       ],
     }).compile();
 
     assembler = module.get<DishMediaAssembler>(DishMediaAssembler);
     mockStorage = module.get(StorageService);
     mockRestaurantsAssembler = module.get(RestaurantsAssembler);
+    mockCookieQueue = module.get(CookieQueueService);
   });
 
   describe('toDishMediaEntry', () => {
-    it('should generate CDN signed cookies for video media', () => {
+    it('should enqueue CDN signed cookies for video media', () => {
       // Arrange
       const dishMediaEntries = [
         {
@@ -103,15 +116,14 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       const result = assembler.toDishMediaEntry(dishMediaEntries as any);
 
       // Assert
-      expect(result.cdnSignedCookies).toBeDefined();
-      expect(result.cdnSignedCookies.length).toBeGreaterThan(0);
       expect(mockStorage.generateCdnSignedCookies).toHaveBeenCalled();
+      expect(mockCookieQueue.enqueue).toHaveBeenCalled();
       expect(result.items[0].dish_media.mediaUrl).not.toContain('Expires=');
       expect(result.items[0].dish_media.mediaUrl).not.toContain('KeyName=');
       expect(result.items[0].dish_media.mediaUrl).not.toContain('Signature=');
     });
 
-    it('should NOT generate CDN signed cookies for image media', () => {
+    it('should NOT enqueue CDN signed cookies for image media', () => {
       // Arrange
       const dishMediaEntries = [
         {
@@ -141,9 +153,8 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       const result = assembler.toDishMediaEntry(dishMediaEntries as any);
 
       // Assert
-      expect(result.cdnSignedCookies).toBeDefined();
-      expect(result.cdnSignedCookies.length).toBe(0);
       expect(mockStorage.generateCdnSignedCookies).not.toHaveBeenCalled();
+      expect(mockCookieQueue.enqueue).not.toHaveBeenCalled();
       expect(result.items[0].dish_media.mediaUrl).toContain('Expires=');
       expect(result.items[0].dish_media.mediaUrl).toContain('KeyName=');
       expect(result.items[0].dish_media.mediaUrl).toContain('Signature=');
@@ -198,8 +209,8 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       // Assert
       expect(result.items.length).toBe(2);
       // generateCdnSignedCookies should be called for each unique prefix
-      // In this case, both videos may have different IDs, so it depends on the path structure
       expect(mockStorage.generateCdnSignedCookies).toHaveBeenCalled();
+      expect(mockCookieQueue.enqueue).toHaveBeenCalled();
     });
   });
 });

@@ -91,7 +91,6 @@ export class DishMediaService {
     return {
       items: result.items,
       notFound,
-      cdnSignedCookies: result.cdnSignedCookies,
     };
   }
 
@@ -105,8 +104,8 @@ export class DishMediaService {
       userId?: string;
       reviewLimit?: number;
     },
-  ): Promise<{ items: DishMediaEntry[]; cdnSignedCookies: string[] }> {
-    if (!dishMediaIds.length) return { items: [], cdnSignedCookies: [] };
+  ): Promise<{ items: DishMediaEntry[] }> {
+    if (!dishMediaIds.length) return { items: [] };
 
     const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(
       dishMediaIds,

@@ -79,11 +79,6 @@ export class DishMediaController {
   ): Promise<QueryDishMediaByIdsResponse> {
     const result = await this.dishMediaService.findByIds(query.ids, user?.id);
 
-    // 動画用の CDN Signed Cookie を設定
-    if (result.cdnSignedCookies.length > 0) {
-      res.setHeader('Set-Cookie', result.cdnSignedCookies);
-    }
-
     return {
       items: result.items,
       notFound: result.notFound,
@@ -111,11 +106,6 @@ export class DishMediaController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<SearchDishMediaResponse> {
     const result = await this.dishMediaService.findByCriteria(query, user.id);
-
-    // 動画用の CDN Signed Cookie を設定
-    if (result.cdnSignedCookies.length > 0) {
-      res.setHeader('Set-Cookie', result.cdnSignedCookies);
-    }
 
     return result.items;
   }
