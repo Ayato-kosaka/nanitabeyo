@@ -17,6 +17,7 @@ import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 import { CookieQueueService } from '../../core/cookie-queue/cookie-queue.service';
+import { AppLoggerService } from 'src/core/logger/logger.service';
 
 @Injectable()
 export class DishMediaAssembler {
@@ -24,6 +25,7 @@ export class DishMediaAssembler {
     private readonly storage: StorageService,
     private readonly restaurantsAssembler: RestaurantsAssembler,
     private readonly cookieQueue: CookieQueueService,
+    private readonly logger: AppLoggerService,
   ) { }
 
   /**
@@ -77,15 +79,23 @@ export class DishMediaAssembler {
     // #427 【設計】動画公開用プレフィックスの CDN Signed Cookie を生成してキューに登録
     const firstVideoUrl = items.find((entry) => entry.dish_media.media_type === 'video')?.dish_media.mediaUrl;
     if (firstVideoUrl) {
-      const url = new URL(firstVideoUrl);
-      const segments = url.pathname.split("/").filter(Boolean);
-      // #427 【設計】gs://bucket/${env}/transcoded-video/** を公開するための CDN URL プレフィックスを抽出
-      const transcodedIndex = segments.indexOf('transcoded-video');
-      if (transcodedIndex >= 0) {
-        url.pathname = "/" + segments.slice(0, transcodedIndex + 1).join("/") + "/"; // /{env}/transcoded-video/
-        const prefix = url.toString();
-        const cookies = this.storage.generateCdnSignedCookies(prefix);
-        cookies.forEach((cookie) => this.cookieQueue.enqueue(cookie));
+      try {
+        const url = new URL(firstVideoUrl);
+        const segments = url.pathname.split("/").filter(Boolean);
+        // #427 【設計】gs://bucket/${env}/transcoded-video/** を公開するための CDN URL プレフィックスを抽出
+        const transcodedIndex = segments.indexOf('transcoded-video');
+        if (transcodedIndex >= 0) {
+          url.pathname = "/" + segments.slice(0, transcodedIndex + 1).join("/") + "/"; // /{env}/transcoded-video/
+          const prefix = url.toString();
+          const cookies = this.storage.generateCdnSignedCookies(prefix);
+          cookies.forEach((cookie) => this.cookieQueue.enqueue(cookie));
+        }
+      } catch (err) {
+        // Log error but don't fail the request - videos will be inaccessible but other data can still be returned
+        this.logger.error('InvalidVideoUrlForCookie', 'toDishMediaEntry', {
+          videoUrl: firstVideoUrl,
+          error: err.message
+        });
       }
     }
 

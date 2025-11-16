@@ -15,6 +15,7 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  Scope,
   SetMetadata,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
@@ -38,7 +39,7 @@ export const SkipResponseWrap = () => SetMetadata(SKIP_WRAP_META_KEY, true);
 /* -------------------------------------------------------------------------- */
 /*                              Interceptor 本体                               */
 /* -------------------------------------------------------------------------- */
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ResponseWrapInterceptor implements NestInterceptor {
   constructor(
     private readonly cls: ClsService,

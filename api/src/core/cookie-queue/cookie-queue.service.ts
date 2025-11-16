@@ -25,7 +25,7 @@ export interface CookieDescriptor {
   cookieString: string;
 }
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class CookieQueueService {
   private readonly cookies: Set<string> = new Set();
 

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { RequestIdModule } from './core/request-id/request-id.module';
@@ -11,6 +11,8 @@ import { V1Module } from './v1/v1.module';
 import { V2Module } from './v2/v2.module';
 import { InternalModule } from './internal/internal.module';
 import { HealthModule } from './health/health.module';
+import { ResponseWrapInterceptor } from './core/interceptors/response-wrap.interceptor';
+import { CoreModule } from './core/core.module';
 
 @Module({
   imports: [
@@ -22,15 +24,21 @@ import { HealthModule } from './health/health.module';
     V2Module,
     InternalModule, // Internal endpoints for Cloud Tasks
     HealthModule, // Add HealthModule
+    CoreModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    ResponseWrapInterceptor,
     // Register MaintenanceGuard globally
     {
       provide: APP_GUARD,
       useClass: MaintenanceGuard,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseWrapInterceptor,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule { }
