@@ -21,6 +21,7 @@ import { TranscoderModule } from '../../core/transcoder/transcoder.module';
 import { CloudTasksModule } from '../../core/cloud-tasks/cloud-tasks.module';
 import { DishMediaAssembler } from './dish-media.assembler';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
+import { CookieQueueModule } from 'src/core/cookie-queue/cookie-queue.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     StorageModule, // 画像用 GCS / S3 署名 URL ユーティリティ
     TranscoderModule, // Video transcoding service
     CloudTasksModule, // Cloud Tasks サービス
+    CookieQueueModule, // CDN Signed Cookie キューイングサービス
     forwardRef(() => RestaurantsModule), // RestaurantsAssembler で署名付きURL生成のため
     forwardRef(() => AuthModule), // 双方向依存を避けるため forwardRef
   ],
@@ -43,4 +45,4 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     DishMediaRepository,
   ],
 })
-export class DishMediaModule {}
+export class DishMediaModule { }

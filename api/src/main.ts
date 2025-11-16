@@ -1,4 +1,4 @@
-import { NestFactory, Reflector, ModuleRef } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { env } from './core/config/env';
@@ -6,6 +6,7 @@ import { ApiExceptionFilter } from './core/filters/api-exception.filter';
 import { ClsService } from 'nestjs-cls';
 import { ResponseWrapInterceptor } from './core/interceptors/response-wrap.interceptor';
 import { AppLoggerService } from './core/logger/logger.service';
+import { CookieQueueService } from './core/cookie-queue/cookie-queue.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -50,7 +51,7 @@ async function bootstrap() {
       app.get(ClsService),
       app.get(Reflector),
       app.get(AppLoggerService),
-      app.get(ModuleRef),
+      app.get(CookieQueueService),
     ),
   );
 

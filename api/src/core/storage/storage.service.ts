@@ -285,7 +285,7 @@ export class StorageService {
    * Generate CDN signed cookies for URL prefix-based authentication
    * Used for HLS video playback where multiple files need to be accessed
    *
-   * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/prod/transcoded/dish_media/media_path/recordId/)
+   * @param urlPrefix - The URL prefix to protect (e.g., https://cdn.example.com/${env}/transcoded-video/dish_media/media_path/recordId/fileName/)
    * @returns Array of cookie strings ready for Set-Cookie headers
    */
   generateCdnSignedCookies(urlPrefix: string): string[] {
