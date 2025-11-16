@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# 変更チケット Cloud Tasks のリトライポリシー見直し用スクリプト追加（maxAttempts=5 / 期限付きリトライ）
+# 変更チケット #439 Cloud Tasks のリトライポリシー見直し用スクリプト追加（maxAttempts=5 / 期限付きリトライ）
 #
 # ## 背景
 # 現在 Cloud Tasks のリトライ回数が多く、何度リトライしても通らないリクエストに対しても
@@ -32,12 +32,9 @@
 #   ./20251116T1300_update_cloudtasks_retry_policy.sh down <LOCATION> [PROJECT_ID]
 #
 #   例:
-#     # 本番 (プロジェクト指定あり)
-#     ./20251116T1300_update_cloudtasks_retry_policy.sh up us-central1 my-prod-project
-#     ./20251116T1300_update_cloudtasks_retry_policy.sh down us-central1 my-prod-project
-#
-#     # dev (gcloud のデフォルトプロジェクトを使用)
-#     ./20251116T1300_update_cloudtasks_retry_policy.sh up us-central1
+#     # 本番 ・ 開発
+#     ./20251116T1300_update_cloudtasks_retry_policy.sh up uasia-northeast1 food-scroll
+#     ./20251116T1300_update_cloudtasks_retry_policy.sh down uasia-northeast1 food-scroll
 #
 # ※ 注意:
 #   - gcloud にログイン済みであること
