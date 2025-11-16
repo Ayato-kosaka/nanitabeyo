@@ -49,14 +49,16 @@ export function LocationSearchForm({
 	return (
 		<Card>
 			<Text style={styles.modalTitle}>{title}</Text>
-			<LocationAutocomplete
-				value={locationText}
-				onChangeText={setLocationText}
-				onSelectSuggestion={handleLocationSelect}
-				placeholder={placeholder}
-				autofocus={true}
-				testID={testID}
-			/>
+			<View style={styles.locationSection}>
+				<LocationAutocomplete
+					value={locationText}
+					onChangeText={setLocationText}
+					onSelectSuggestion={handleLocationSelect}
+					placeholder={placeholder}
+					autofocus={true}
+					testID={testID}
+				/>
+			</View>
 		</Card>
 	);
 }
@@ -69,5 +71,10 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 		textAlign: "center",
 		letterSpacing: -0.3,
+	},
+	locationSection: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		gap: 12,
 	},
 });
