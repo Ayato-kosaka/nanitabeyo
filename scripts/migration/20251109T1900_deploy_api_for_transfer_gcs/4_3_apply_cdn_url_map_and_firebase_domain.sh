@@ -62,18 +62,20 @@ log "Setting up custom domain for Firebase Hosting: ${CUSTOM_DOMAIN}"
 
 # #414 【設計】Firebase Hosting カスタムドメイン追加を REST API 経由で自動化
 # 既に存在する場合は 409 Conflict が返るが、これは冪等性として許容
-ACCESS_TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
-if [[ -z "${ACCESS_TOKEN}" ]]; then
-  err "Failed to get access token from gcloud. Please ensure you are authenticated."
-  exit 1
-fi
-
-log "Attempting to add custom domain via Firebase Hosting API..."
-
 if [[ "${DRY_RUN}" == "true" ]]; then
   log "[DRY_RUN] Would create custom domain: ${CUSTOM_DOMAIN} for site: ${SITE_ID}"
   ok "[DRY_RUN] Firebase custom domain setup simulated"
 else
+  ACCESS_TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
+  if [[ -z "${ACCESS_TOKEN}" ]]; then
+    err "Failed to get access token from gcloud. Please ensure you are authenticated."
+    exit 1
+  fi
+fi
+
+log "Attempting to add custom domain via Firebase Hosting API..."
+
+if [[ "${DRY_RUN}" != "true" ]]; then
   # Firebase Hosting API を使用してカスタムドメインを追加
   # エンドポイント: POST /v1beta1/projects/{project}/sites/{site}/domains
   # 既に存在する場合は 409、成功時は 200/201 が返る
