@@ -14,6 +14,7 @@ import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNo
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import { getCacheKeyForImage } from "@/lib/image";
+import { dateStringToTimestamp } from "@/lib/frontend-utils";
 
 /**
  * 🔔 通知一覧画面
@@ -158,7 +159,7 @@ export default function NotificationsScreen() {
 							<Text style={styles.username}>{actorNames}</Text>
 							<Text style={styles.message}> {message}</Text>
 						</Text>
-						<Text style={styles.timestamp}>{new Date(item.notification.created_at).toLocaleDateString()}</Text>
+						<Text style={styles.timestamp}>{dateStringToTimestamp(item.notification.created_at)}</Text>
 					</View>
 
 					{/* Right: Post Thumbnail */}

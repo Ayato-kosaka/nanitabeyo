@@ -45,4 +45,4 @@ import { CookieQueueModule } from 'src/core/cookie-queue/cookie-queue.module';
     DishMediaRepository,
   ],
 })
-export class DishMediaModule { }
+export class DishMediaModule {}
