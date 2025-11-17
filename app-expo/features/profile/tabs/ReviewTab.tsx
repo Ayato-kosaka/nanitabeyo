@@ -62,9 +62,9 @@ export function ReviewTab() {
 			lightImpact();
 			// #443 【設計】新 Store API を使用（pushMyReviewsByKeyAsync で reviews 専用データを追加）
 			// displayedItems を DishMediaEntry & { myReview } 形式に変換
-			const reviewsData = displayedItems.map(entry => ({
+			const reviewsData = displayedItems.map((entry) => ({
 				...entry,
-				myReview: entry.dish_reviews[0]
+				myReview: entry.dish_reviews[0],
 			}));
 			pushMyReviewsByKeyAsync("reviews", Promise.resolve(reviewsData));
 			router.push({

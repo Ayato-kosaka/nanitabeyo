@@ -46,7 +46,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -247,9 +247,9 @@ export class RestaurantsService {
       ...convertPrismaToSupabase_Restaurants(restaurant),
       imageUrls: imageSignedUrl
         ? {
-          sm: imageSignedUrl,
-          md: imageSignedUrl,
-        }
+            sm: imageSignedUrl,
+            md: imageSignedUrl,
+          }
         : undefined,
       ...restaurantReviewStats,
       ...restaurantBidStats,

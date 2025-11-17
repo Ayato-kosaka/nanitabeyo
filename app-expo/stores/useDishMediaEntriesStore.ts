@@ -30,12 +30,12 @@ export type DishMediaEntriesStore = {
 	 * dish_review.id をキーにした dish_reviews エントリのマップ。
 	 * reviews キーの画面で利用するための正規化テーブル。
 	 */
-	myReviewsByReviewId: Record<string, DishMediaEntry['dish_reviews'][number]>;
+	myReviewsByReviewId: Record<string, DishMediaEntry["dish_reviews"][number]>;
 
 	/**
 	 * reviews キーの画面用途に対応する dish_review.id の配列（並び順管理用）。
 	 */
-	myReviewIdsByKey: Record<'reviews', string[]>;
+	myReviewIdsByKey: Record<"reviews", string[]>;
 
 	/**
 	 * 画面用途キーごとのロード状態。
@@ -68,14 +68,20 @@ export type DishMediaEntriesStore = {
 	 * reviewsByReviewId を更新しつつ、reviewIdsByKey[key] の末尾に reviewId を追加する。
 	 * 既に同じ reviewId が存在する場合は、エントリは上書きする。
 	 */
-	pushMyReviewsByKey: (key: 'reviews', items: (DishMediaEntry & { myReview: DishMediaEntry['dish_reviews'][number] })[]) => void;
+	pushMyReviewsByKey: (
+		key: "reviews",
+		items: (DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[],
+	) => void;
 
 	/**
 	 * 指定した画面用途キーの先頭に DishMediaEntry の dish_reviews を追加する。
 	 * reviewsByReviewId を更新しつつ、reviewIdsByKey[key] の先頭に reviewId を追加する。
 	 * 既に同じ reviewId が存在する場合は、エントリは上書きする。
 	 */
-	unshiftMyReviewsByKey: (key: 'reviews', items: (DishMediaEntry & { myReview: DishMediaEntry['dish_reviews'][number] })[]) => void;
+	unshiftMyReviewsByKey: (
+		key: "reviews",
+		items: (DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[],
+	) => void;
 
 	/**
 	 * 指定した DishMediaEntry（dish_media.id）をピンポイントに更新する。
@@ -101,13 +107,19 @@ export type DishMediaEntriesStore = {
 	 * Promise を受け取り、共通的に loading / error / データ反映を行うヘルパー。
 	 * 成功時は pushMyReviewsByKey を利用して末尾に追加する。
 	 */
-	pushMyReviewsByKeyAsync: (key: 'reviews', itemsPromise: Promise<(DishMediaEntry & { myReview: DishMediaEntry['dish_reviews'][number] })[]>) => void;
+	pushMyReviewsByKeyAsync: (
+		key: "reviews",
+		itemsPromise: Promise<(DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[]>,
+	) => void;
 
 	/**
 	 * Promise を受け取り、共通的に loading / error / データ反映を行うヘルパー。
 	 * 成功時は unshiftMyReviewsByKey を利用して先頭に追加する。
 	 */
-	unshiftMyReviewsByKeyAsync: (key: 'reviews', itemsPromise: Promise<(DishMediaEntry & { myReview: DishMediaEntry['dish_reviews'][number] })[]>) => void;
+	unshiftMyReviewsByKeyAsync: (
+		key: "reviews",
+		itemsPromise: Promise<(DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[]>,
+	) => void;
 
 	// ------ public 削除メソッド ------
 
@@ -130,18 +142,15 @@ export type DishMediaEntriesStore = {
  * - isLoading: 当該キーのロード中フラグ（デフォルト false）
  * - error: 当該キーのエラー（デフォルト null）
  */
-export const selectEntriesByKey =
-	(key: string) =>
-		(state: DishMediaEntriesStore) => {
-			const ids: string[] | null = state.mediaIdsByKey[key] || null;
-			return {
-				entries: ids && ids
-					.map((id) => state.entriesByMediaId[id])
-					.filter((entry): entry is DishMediaEntry => Boolean(entry)),
-				isLoading: state.isLoadingByKey[key] ?? false,
-				error: state.errorByKey[key] ?? null,
-			};
-		};
+export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore) => {
+	const ids: string[] | null = state.mediaIdsByKey[key] || null;
+	return {
+		entries:
+			ids && ids.map((id) => state.entriesByMediaId[id]).filter((entry): entry is DishMediaEntry => Boolean(entry)),
+		isLoading: state.isLoadingByKey[key] ?? false,
+		error: state.errorByKey[key] ?? null,
+	};
+};
 
 /**
  * reviews キー専用のセレクタ。
@@ -152,24 +161,26 @@ export const selectEntriesByKey =
  * - isLoading: "reviews" キーのロード中フラグ（デフォルト false）
  * - error: "reviews" キーのエラー（デフォルト null）
  */
-export const selectMyReviewEntriesByKey =
-	(key: 'reviews') =>
-		(state: DishMediaEntriesStore) => {
-			const reviewIds: string[] | null = state.myReviewIdsByKey[key] || null;
-			return {
-				entries: reviewIds && reviewIds
-					.map((reviewId) => {
-						const review = state.myReviewsByReviewId[reviewId];
-						if (!review) return null;
-						const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
-						if (!entry) return null;
-						return { ...entry, myReview: review };
-					})
-					.filter((entry): entry is DishMediaEntry & { myReview: DishMediaEntry['dish_reviews'][number] } => Boolean(entry)),
-				isLoading: state.isLoadingByKey[key] ?? false,
-				error: state.errorByKey[key] ?? null,
-			};
-		};
+export const selectMyReviewEntriesByKey = (key: "reviews") => (state: DishMediaEntriesStore) => {
+	const reviewIds: string[] | null = state.myReviewIdsByKey[key] || null;
+	return {
+		entries:
+			reviewIds &&
+			reviewIds
+				.map((reviewId) => {
+					const review = state.myReviewsByReviewId[reviewId];
+					if (!review) return null;
+					const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
+					if (!entry) return null;
+					return { ...entry, myReview: review };
+				})
+				.filter((entry): entry is DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] } =>
+					Boolean(entry),
+				),
+		isLoading: state.isLoadingByKey[key] ?? false,
+		error: state.errorByKey[key] ?? null,
+	};
+};
 
 export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get) => ({
 	// ------ 初期状態 ------
@@ -441,7 +452,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			delete nextIsLoadingByKey[key];
 			delete nextErrorByKey[key];
 
-			if (key === 'reviews') {
+			if (key === "reviews") {
 				nextMyReviewIdsByKey.reviews = [];
 			}
 
