@@ -4,7 +4,7 @@
 #
 # 目的:
 #   1. cdn.nanitabeyo.net 用 URL マップを infra/url-map/urlmap-cdn.nanitabeyo.net.yaml から import
-#   2. Firebase Hosting サイト food-scroll に app.nanitabeyo.net カスタムドメインを追加
+#   2. Firebase Hosting サイト food-scroll に app.nanitabeyo.net を UI で手動追加する手順を案内
 #
 # 使い方:
 #   ./4_3_apply_cdn_url_map_and_firebase_domain.sh
@@ -52,95 +52,32 @@ run_cmd gcloud compute url-maps import cdn-url-map \
 
 ok "URL map cdn-url-map imported successfully"
 
-# 3. Firebase Hosting カスタムドメインの追加
-# Firebase Hosting API v1beta1 を使用してカスタムドメインを追加
+# 3. Firebase Hosting カスタムドメインの手動設定を案内（API 自動化は中止）
 FIREBASE_PROJECT_ID="${PROJECT_ID}"
 SITE_ID="food-scroll"
 CUSTOM_DOMAIN="app.nanitabeyo.net"
 
-log "Setting up custom domain for Firebase Hosting: ${CUSTOM_DOMAIN}"
-
-# #414 【設計】Firebase Hosting カスタムドメイン追加を REST API 経由で自動化
-# 既に存在する場合は 409 Conflict が返るが、これは冪等性として許容
-if [[ "${DRY_RUN}" == "true" ]]; then
-  log "[DRY_RUN] Would create custom domain: ${CUSTOM_DOMAIN} for site: ${SITE_ID}"
-  ok "[DRY_RUN] Firebase custom domain setup simulated"
-else
-  ACCESS_TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
-  if [[ -z "${ACCESS_TOKEN}" ]]; then
-    err "Failed to get access token from gcloud. Please ensure you are authenticated."
-    exit 1
-  fi
-fi
-
-log "Attempting to add custom domain via Firebase Hosting API..."
-
-if [[ "${DRY_RUN}" != "true" ]]; then
-  # Firebase Hosting API を使用してカスタムドメインを追加
-  # エンドポイント: POST /v1beta1/projects/{project}/sites/{site}/domains
-  # 既に存在する場合は 409、成功時は 200/201 が返る
-  HTTP_CODE=$(curl -s -o /tmp/firebase_domain_response.json -w "%{http_code}" -X POST \
-    "https://firebasehosting.googleapis.com/v1beta1/projects/${FIREBASE_PROJECT_ID}/sites/${SITE_ID}/domains?domainId=${CUSTOM_DOMAIN}" \
-    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-    -H "Content-Type: application/json" \
-    -H "X-Goog-User-Project: ${FIREBASE_PROJECT_ID}" \
-    -d "{}" \
-    2>&1)
-  
-  case ${HTTP_CODE} in
-    200|201)
-      ok "Custom domain ${CUSTOM_DOMAIN} created successfully for site ${SITE_ID}"
-      if [[ -f /tmp/firebase_domain_response.json ]]; then
-        log "Response: $(cat /tmp/firebase_domain_response.json)"
-      fi
-      ;;
-    409)
-      ok "Custom domain ${CUSTOM_DOMAIN} already exists (idempotent - no action needed)"
-      ;;
-    400|403|404)
-      warn "Custom domain API returned HTTP ${HTTP_CODE}"
-      if [[ -f /tmp/firebase_domain_response.json ]]; then
-        warn "Response: $(cat /tmp/firebase_domain_response.json)"
-      fi
-      warn "Falling back to manual setup instructions below."
-      ;;
-    *)
-      warn "Custom domain API returned unexpected HTTP ${HTTP_CODE}"
-      if [[ -f /tmp/firebase_domain_response.json ]]; then
-        warn "Response: $(cat /tmp/firebase_domain_response.json)"
-      fi
-      warn "Continuing with manual setup instructions..."
-      ;;
-  esac
-  
-  rm -f /tmp/firebase_domain_response.json
-fi
+warn "Firebase Hosting カスタムドメインの自動追加は UI による手動実行に方針変更しました。"
 
 log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log "Firebase Hosting カスタムドメイン設定の次のステップ"
+log "Firebase Hosting カスタムドメイン（UI で手動）手順"
 log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "カスタムドメインのセットアップを完了するには、DNS レコードの設定が必要です:"
-echo ""
-echo "1. Firebase Console で DNS レコードを確認:"
+echo "1. Firebase Console を開く:"
 echo "   https://console.firebase.google.com/u/0/project/${FIREBASE_PROJECT_ID}/hosting/sites/${SITE_ID}"
 echo ""
-echo "2. Firebase が提示する DNS レコードを DNS プロバイダーに追加:"
-echo "   - A レコード: ${CUSTOM_DOMAIN} → Firebase が提供する IP アドレス"
-echo "   - または TXT レコード（ドメイン所有権の検証用）"
+echo "2. ［カスタムドメインを追加］をクリックし、次を入力:" 
+echo "   ドメイン: ${CUSTOM_DOMAIN}"
 echo ""
-echo "3. DNS 伝播を待機（通常 5 分〜1 時間、最大 24 時間）"
+echo "3. 表示された DNS レコードを DNS プロバイダーに追加:" 
+echo "   - A レコード: ${CUSTOM_DOMAIN} → Firebase が提供する IP" 
+echo "   - （必要に応じて）TXT レコード: ドメイン所有権の検証用"
 echo ""
-echo "4. Firebase が自動的に:"
-echo "   - ドメイン所有権を検証"
-echo "   - SSL 証明書（Let's Encrypt）をプロビジョニング"
-echo "   - HTTPS 配信を有効化"
+echo "4. DNS 伝播を待機（通常 5 分〜1 時間、最大 24 時間）"
+echo "   検証が完了すると SSL 証明書が自動プロビジョニングされ、HTTPS 配信が有効化されます。"
 echo ""
-echo "5. 状態確認コマンド（オプション）:"
-echo "   curl -s -H \"Authorization: Bearer \$(gcloud auth print-access-token)\" \\"
-echo "     \"https://firebasehosting.googleapis.com/v1beta1/projects/${FIREBASE_PROJECT_ID}/sites/${SITE_ID}/domains/${CUSTOM_DOMAIN}\" \\"
-echo "     | jq '.status'"
+echo "5. 状態確認（任意・読み取り専用 API）:"
+echo "   curl -s -H \"Authorization: Bearer \$(gcloud auth print-access-token)\" \\\n     \"https://firebasehosting.googleapis.com/v1beta1/projects/${FIREBASE_PROJECT_ID}/sites/${SITE_ID}/domains/${CUSTOM_DOMAIN}\" \\\n     | jq '.status'"
 echo ""
-log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-ok "Script completed successfully. CDN URL map imported and Firebase custom domain setup initiated."
+ok "Script completed. CDN URL map imported. Proceed with Firebase custom domain setup via UI."
