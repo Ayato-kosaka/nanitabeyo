@@ -159,6 +159,7 @@ export default function NotificationsScreen() {
 							<Text style={styles.username}>{actorNames}</Text>
 							<Text style={styles.message}> {message}</Text>
 						</Text>
+						{/* #450 【設計】DishReviewsSection と同様に dateStringToTimestamp で相対時間表示（xx秒前 / xx分前等） */}
 						<Text style={styles.timestamp}>{dateStringToTimestamp(item.notification.created_at)}</Text>
 					</View>
 
