@@ -142,7 +142,6 @@ Secure;
 SameSite=None;
 Partitioned
 
-````
 
 - **HttpOnly**: JavaScript からのアクセスを防止
 - **Secure**: HTTPS 接続でのみ送信
@@ -182,7 +181,6 @@ sequenceDiagram
     CDN->>GCS: segment0.ts 取得
     GCS-->>CDN: segment0.ts 内容
     CDN-->>Client: segment0.ts
-````
 
 ## 画像メディアの扱い
 
