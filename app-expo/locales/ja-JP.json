@@ -126,8 +126,8 @@
 			"confirm": "非表示にする"
 		},
 		"Loading": {
-			"title": "あなたにぴったりの料理を探しています",
-			"subtitle": "少々お待ちください..."
+			"title": "あなたにぴったりの料理を 6つ厳選しています",
+			"subtitle": "まもなくおすすめをお見せします！"
 		},
 		"errors": {
 			"fetchFailed": "料理の取得に失敗しました",
@@ -350,6 +350,10 @@
 		}
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "決めやすいように、お店を5つ厳選しています",
+			"subtitle": "まもなくおすすめをお見せします！"
+		},
 		"placeholders": {
 			"searchLocation": "地点・地域を検索"
 		},

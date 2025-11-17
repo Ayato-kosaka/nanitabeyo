@@ -126,8 +126,8 @@
 			"confirm": "隐藏"
 		},
 		"Loading": {
-			"title": "正在为你寻找合适的菜品",
-			"subtitle": "请稍候..."
+			"title": "正在为您精选6道完美菜品",
+			"subtitle": "推荐即将准备好！"
 		},
 		"errors": {
 			"fetchFailed": "获取菜品失败",
@@ -350,6 +350,10 @@
 		}
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "正在精选5家餐厅让您更容易选择",
+			"subtitle": "推荐即将准备好！"
+		},
 		"placeholders": {
 			"searchLocation": "搜索地点/区域"
 		},
