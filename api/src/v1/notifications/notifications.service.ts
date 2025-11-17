@@ -15,11 +15,14 @@ import {
   UnreadCountResponse,
   CreateDeviceTokenResponse,
   NotificationResponse,
+  DishMediaEntry,
 } from '@shared/v1/res';
 import { convertPrismaToSupabase_Notifications } from '../../../../shared/converters/convert_notifications';
+import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews'; // #448 【設計】Prisma 型を Supabase 型に変換
 import { UsersService } from '../users/users.service';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { UsersAssembler } from '../users/users.assembler';
+import { DishReviewsRepository } from '../dish-reviews/dish-reviews.repository'; // #448 【設計】dish_reviews 一括取得用
 
 @Injectable()
 export class NotificationsService {
@@ -31,6 +34,7 @@ export class NotificationsService {
     private readonly userService: UsersService,
     private readonly usersAssembler: UsersAssembler,
     private readonly dishMediaService: DishMediaService,
+    private readonly dishReviewsRepo: DishReviewsRepository, // #448 【設計】dish_reviews 一括取得用
   ) {
     this.expo = new Expo();
   }
@@ -63,28 +67,89 @@ export class NotificationsService {
       ]),
     );
 
-    // dish_media ターゲットのエンティティを一括取得
+    // #448 【設計】dish_media ターゲットのエンティティを一括取得
+    const dishMediaTargetIds = items
+      .filter((item) => item.notifications.target_table === 'dish_media')
+      .map((item) => item.notifications.target_id);
+
     const { items: dishMediaItems } =
-      await this.dishMediaService.fetchDishMediaEntryItems(
-        items
-          .filter((item) => item.notifications.target_table === 'dish_media')
-          .map((item) => item.notifications.target_id),
-        { userId },
-      );
+      await this.dishMediaService.fetchDishMediaEntryItems(dishMediaTargetIds, {
+        userId,
+      });
     const dishMediaMap = new Map(
       dishMediaItems.map((entry) => [entry.dish_media.id, entry]),
     );
 
+    // #448 【設計】dish_reviews ターゲットの処理
+    const dishReviewsTargetIds = items
+      .filter((item) => item.notifications.target_table === 'dish_reviews')
+      .map((item) => item.notifications.target_id);
+
+    // #448 【設計】dish_reviews を一括取得
+    const dishReviews = await this.dishReviewsRepo.getDishReviewsByIds(
+      dishReviewsTargetIds,
+      userId,
+    );
+
+    // #448 【設計】dish_reviews に紐づく created_dish_media_id を抽出してユニーク化
+    const createdDishMediaIds = Array.from(
+      new Set(dishReviews.map((review) => review.created_dish_media_id)),
+    );
+
+    // #448 【設計】created_dish_media_id から DishMediaEntry を取得（reviewLimit: 0）
+    const { items: reviewDishMediaItems } =
+      await this.dishMediaService.fetchDishMediaEntryItems(
+        createdDishMediaIds,
+        {
+          userId,
+          reviewLimit: 0,
+        },
+      );
+
+    // #448 【設計】DishMediaEntry に dish_reviews を 1 件ずつ挿入
+    const dishMediaWithReviewsMap = new Map<string, DishMediaEntry>();
+    reviewDishMediaItems.forEach((entry) => {
+      const relatedReview = dishReviews.find(
+        (review) => review.created_dish_media_id === entry.dish_media.id,
+      );
+      if (relatedReview) {
+        // #448 【設計】Prisma 型を Supabase 型に変換してから dish_reviews 配列に追加
+        const reviewBase = convertPrismaToSupabase_DishReviews(relatedReview);
+        const convertedReview = {
+          ...reviewBase,
+          username: relatedReview.username,
+          isLiked: relatedReview.isLiked,
+          likeCount: relatedReview.likeCount,
+        };
+        const updatedEntry = {
+          ...entry,
+          dish_reviews: [convertedReview, ...entry.dish_reviews],
+        };
+        dishMediaWithReviewsMap.set(relatedReview.id, updatedEntry);
+      }
+    });
+
     // #通知機能 【設計】NotificationItem 形式に変換（actors と notification を含む）
-    const notificationItems = items.map((item) => ({
-      notification: convertPrismaToSupabase_Notifications(
-        item.notifications,
-      ) as NotificationResponse,
-      actors: item.notifications.actor_ids
-        .map((actorId) => actorMap.get(actorId))
-        .filter((actor) => actor !== undefined),
-      dishMediaEntries: dishMediaMap.get(item.notifications.target_id),
-    }));
+    const notificationItems = items.map((item) => {
+      const { target_table, target_id } = item.notifications;
+      let dishMediaEntry: DishMediaEntry | undefined;
+
+      if (target_table === 'dish_media') {
+        dishMediaEntry = dishMediaMap.get(target_id);
+      } else if (target_table === 'dish_reviews') {
+        dishMediaEntry = dishMediaWithReviewsMap.get(target_id);
+      }
+
+      return {
+        notification: convertPrismaToSupabase_Notifications(
+          item.notifications,
+        ) as NotificationResponse,
+        actors: item.notifications.actor_ids
+          .map((actorId) => actorMap.get(actorId))
+          .filter((actor) => actor !== undefined),
+        dishMediaEntries: dishMediaEntry,
+      };
+    });
 
     return {
       items: notificationItems,

@@ -112,4 +112,57 @@ export class DishReviewsRepository {
       },
     });
   }
+
+  /**
+   * #448 【設計】複数の dish_reviews を ID で一括取得（通知機能用）
+   */
+  async getDishReviewsByIds(reviewIds: string[], userId?: string) {
+    if (reviewIds.length === 0) return [];
+
+    const reviews = await this.prisma.prisma.dish_reviews.findMany({
+      where: { id: { in: reviewIds } },
+      include: {
+        users: true,
+      },
+    });
+
+    // #448 【設計】レビューの like 数と、ユーザーの like 状態を取得
+    const reviewLikeCounts = reviewIds.length
+      ? await this.prisma.prisma.reactions.groupBy({
+          by: ['target_id'],
+          where: {
+            target_type: 'dish_reviews',
+            target_id: { in: reviewIds },
+            action_type: 'like',
+          },
+          _count: { target_id: true },
+        })
+      : [];
+
+    const reviewLikeCountMap = new Map(
+      reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
+    );
+
+    const userReactions = userId
+      ? await this.prisma.prisma.reactions.findMany({
+          where: {
+            user_id: userId,
+            target_type: 'dish_reviews',
+            target_id: { in: reviewIds },
+            action_type: 'like',
+          },
+          select: { target_id: true },
+        })
+      : [];
+
+    const userLikedSet = new Set(userReactions.map((r) => r.target_id));
+
+    return reviews.map((review) => ({
+      ...review,
+      username:
+        review.imported_user_name ?? review.users?.display_name ?? 'unknown',
+      isLiked: userLikedSet.has(review.id),
+      likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+    }));
+  }
 }

@@ -9,9 +9,16 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { CoreModule } from '../../core/core.module';
 import { UsersModule } from '../users/users.module';
 import { DishMediaModule } from '../dish-media/dish-media.module';
+import { DishReviewsModule } from '../dish-reviews/dish-reviews.module'; // #448 【設計】dish_reviews 一括取得用
 
 @Module({
-  imports: [PrismaModule, CoreModule, UsersModule, DishMediaModule],
+  imports: [
+    PrismaModule,
+    CoreModule,
+    UsersModule,
+    DishMediaModule,
+    DishReviewsModule, // #448 【設計】dish_reviews 一括取得用
+  ],
   controllers: [NotificationsController, DeviceTokensController],
   providers: [NotificationsService, NotificationsRepository],
   exports: [NotificationsService, NotificationsRepository],

@@ -113,4 +113,16 @@ export class DishReviewsService {
 
     // #通知機能 【設計】いいね解除時は通知を送信しない
   }
+
+  /* ------------------------------------------------------------------ */
+  /*       #448 【設計】複数の dish_reviews を ID で一括取得（通知機能用） */
+  /* ------------------------------------------------------------------ */
+  async getDishReviewsByIds(reviewIds: string[], userId?: string) {
+    this.logger.debug('GetDishReviewsByIds', 'getDishReviewsByIds', {
+      count: reviewIds.length,
+      userId,
+    });
+
+    return this.repo.getDishReviewsByIds(reviewIds, userId);
+  }
 }

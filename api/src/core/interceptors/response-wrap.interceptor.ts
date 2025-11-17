@@ -46,7 +46,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
     private readonly reflector: Reflector,
     private readonly logger: AppLoggerService,
     private readonly cookieQueue: CookieQueueService,
-  ) { }
+  ) {}
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     /* ――― 除外判定 ――― */
@@ -79,7 +79,10 @@ export class ResponseWrapInterceptor implements NestInterceptor {
           this.logger.warn(
             'CookieQueueServiceNotAvailable',
             'ResponseWrapInterceptor',
-            { message: 'CookieQueueService not available, skipping cookie flush.' },
+            {
+              message:
+                'CookieQueueService not available, skipping cookie flush.',
+            },
           );
         }
 

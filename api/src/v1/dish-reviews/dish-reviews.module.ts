@@ -29,6 +29,7 @@ import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
   providers: [DishReviewsService, DishReviewsRepository],
   exports: [
     DishReviewsService, // 他ドメインが再利用できる
+    DishReviewsRepository, // #448 【設計】NotificationsModule で dish_reviews 一括取得に使用
   ],
 })
 export class DishReviewsModule {}
