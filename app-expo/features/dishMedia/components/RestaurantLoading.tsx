@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 
-// #XXX 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
+// #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
 export const RestaurantLoading = () => (
 	<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.loadingContainer}>
 		<SafeAreaView style={styles.loadingContent}>
