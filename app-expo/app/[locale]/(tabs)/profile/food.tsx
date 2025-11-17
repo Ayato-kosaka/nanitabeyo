@@ -1,47 +1,23 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey, selectMyReviewEntriesByKey } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import { GroupName } from "@/features/profile/components/ProfileTabsBar";
 // import { mockDishItems } from "@/data/searchMockData";
 
 export default function ProfileFoodScreen() {
 	const { startIndex, tabName } = useLocalSearchParams<{ startIndex?: string; tabName?: GroupName }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	const { dishPromisesMap } = useDishMediaEntriesStore();
-	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-
-	useEffect(() => {
-		const loadData = async () => {
-			try {
-				setIsLoading(true);
-				setError(null);
-
-				if (tabName && tabName in dishPromisesMap) {
-					const dishMediaEntries = await dishPromisesMap[tabName];
-					setItems(dishMediaEntries);
-				} else {
-					// Fallback: use mock data if no data in store
-					// setItems(mockDishItems);
-					setItems([]);
-					setError("No data available for this tab");
-				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "Failed to load data");
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadData();
-	}, [tabName, dishPromisesMap]);
+	
+	// #443 【設計】新 Store API を使用（reviews の場合は専用 selector を使用）
+	const entriesData = useDishMediaEntriesStore(
+		tabName === "reviews" ? selectMyReviewEntriesByKey("reviews") : selectEntriesByKey(tabName || "")
+	);
+	const { entries: items, isLoading, error } = entriesData;
 
 	const keyExtractor = useMemo(
-		() => (tabName === "reviews" ? (item: DishMediaEntry) => String(item.dish_reviews[0].id) : undefined),
+		() => (tabName === "reviews" ? (item: any) => String(item.myReview?.id || item.dish_reviews?.[0]?.id) : undefined),
 		[tabName],
 	);
 
@@ -57,7 +33,7 @@ export default function ProfileFoodScreen() {
 	if (error) {
 		return (
 			<View style={styles.centerContainer}>
-				<Text style={styles.errorText}>{error}</Text>
+				<Text style={styles.errorText}>{error.message}</Text>
 			</View>
 		);
 	}

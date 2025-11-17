@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { router } from "expo-router";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
 import { useLogger } from "@/hooks/useLogger";
 
 // Encapsulates state and handlers for the search result screen
@@ -8,7 +8,19 @@ export function useSearchResult(topicId: string) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [showCompletionModal, setShowCompletionModal] = useState(false);
 	const { logFrontendEvent } = useLogger();
-	const dishesPromise = useDishMediaEntriesStore((state) => state.dishPromisesMap[topicId] || []);
+	// #443 【設計】新 Store API を使用（selectEntriesByKey で取得）
+	const { entries: dishes, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(topicId));
+	
+	// #443 【設計】DishMediaMap が Promise を期待しているため、互換性のため Promise に変換
+	const dishesPromise = React.useMemo(() => {
+		if (error) return Promise.reject(error);
+		if (dishes) return Promise.resolve(dishes);
+		return new Promise((resolve) => {
+			// isLoading が false になるまで待つ仕組みは不要（Store が管理）
+			// dishes が null の場合は空配列を返す
+			resolve(dishes || []);
+		});
+	}, [dishes, error]);
 
 	useEffect(() => {
 		// Log search result initialization
@@ -17,10 +29,11 @@ export function useSearchResult(topicId: string) {
 			error_level: "log",
 			payload: {
 				topicId,
-				hasDishPromise: !!dishesPromise,
+				hasDishes: !!dishes,
+				dishCount: dishes?.length || 0,
 			},
 		});
-	}, [topicId, dishesPromise, logFrontendEvent]);
+	}, [topicId, dishes, logFrontendEvent]);
 
 	const handleIndexChange = (index: number) => {
 		const previousIndex = currentIndex;

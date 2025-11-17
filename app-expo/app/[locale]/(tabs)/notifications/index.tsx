@@ -32,7 +32,7 @@ export default function NotificationsScreen() {
 	const notifications = useNotifications();
 	const { markAllAsRead } = useMarkNotificationsRead();
 	const { unreadCount, refresh: notificationUnreadCountRefresh } = useNotificationUnreadCount();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
 	// #通知機能 【設計】画面入場時に通知を取得し、未読数をリフレッシュして全件既読にする
@@ -68,9 +68,9 @@ export default function NotificationsScreen() {
 
 			if (target_table === "dish_media" && notification.dishMediaEntries !== undefined) {
 				// #通知機能 【仕様】dish_media の場合は DishMediaFeed へ遷移
-				// #通知機能 【設計】通知からの遷移時は単一 DishMedia のみを表示（unique 廃止）
+				// #443 【設計】新 Store API を使用（pushEntriesByKeyAsync ではなく同期的に push）
 				const currentDishMedia = notification.dishMediaEntries;
-				setDishePromises("notification", Promise.resolve([currentDishMedia]));
+				pushEntriesByKeyAsync("notification", Promise.resolve([currentDishMedia]));
 				router.push({
 					pathname: "/[locale]/(tabs)/notifications/feed",
 					params: { locale, startIndex: 0 },
@@ -78,7 +78,7 @@ export default function NotificationsScreen() {
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
-		[lightImpact, router, setDishePromises, locale],
+		[lightImpact, router, pushEntriesByKeyAsync, locale],
 	);
 
 	// #通知機能 【仕様】通知アイテムのアイコンを取得

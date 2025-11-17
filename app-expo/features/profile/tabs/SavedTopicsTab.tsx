@@ -27,7 +27,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
-	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
+	// #443 【設計】新 Store API を使用（pushEntriesByKeyAsync で非同期的に追加）
+	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
 
@@ -110,8 +111,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					locationDetails.localLanguageCode,
 				);
 
-				// Set to store
-				setDishes(selectedTopic.id, dishItemsPromise);
+				// #443 【設計】新 Store API を使用（pushEntriesByKeyAsync で Store に追加）
+				pushEntriesByKeyAsync(selectedTopic.id, dishItemsPromise);
 
 				// Navigate to result screen (referenced from topics.tsx handleViewDetails)
 				// Stay within profile tab as required
@@ -148,7 +149,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 			selectedTopic,
 			closeLocationModal,
 			createDishItemsPromise,
-			setDishes,
+			pushEntriesByKeyAsync,
 			locale,
 			logFrontendEvent,
 			getLocationDetails,

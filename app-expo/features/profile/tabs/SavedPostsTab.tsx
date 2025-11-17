@@ -54,13 +54,14 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
 	const handlePostPress = useCallback(
 		(item: QueryMeSavedDishMediaResponse["data"][number], index: number) => {
 			lightImpact();
-			setDishePromises("saved", Promise.resolve(posts.items));
+			// #443 【設計】新 Store API を使用（pushEntriesByKeyAsync で非同期的に追加）
+			pushEntriesByKeyAsync("saved", Promise.resolve(posts.items));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "saved" },
@@ -71,7 +72,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 				payload: { item, tabName: "saved" },
 			});
 		},
-		[lightImpact, setDishePromises, posts.items, locale, logFrontendEvent],
+		[lightImpact, pushEntriesByKeyAsync, posts.items, locale, logFrontendEvent],
 	);
 
 	const error = posts.error ? (posts.error instanceof Error ? posts.error.message : String(posts.error)) : null;

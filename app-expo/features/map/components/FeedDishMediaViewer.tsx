@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -15,32 +14,13 @@ type FeedDishMediaViewerProps = {
 };
 
 export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewerProps) {
-	const { dishPromisesMap } = useDishMediaEntriesStore();
-	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	// #443 【設計】新 Store API を使用（selectEntriesByKey で取得）
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(source));
 
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 
 	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
 	const { BlurModal: ReviewFormModal, open: openReviewModal, close: closeReviewModal } = useBlurModal({});
-
-	useEffect(() => {
-		const loadData = async () => {
-			setIsLoading(true);
-			setError(null);
-			try {
-				const dishMediaEntries = await dishPromisesMap[source];
-				setItems(dishMediaEntries);
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "Failed to load data");
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadData();
-	}, [dishPromisesMap, source]);
 
 	// 【設計】現在表示中のインデックスを管理（DishMediaFeed の onIndexChange で更新）
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -65,7 +45,7 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 	if (error) {
 		return (
 			<View style={styles.centerContainer}>
-				<Text style={styles.errorText}>{error}</Text>
+				<Text style={styles.errorText}>{error.message}</Text>
 			</View>
 		);
 	}

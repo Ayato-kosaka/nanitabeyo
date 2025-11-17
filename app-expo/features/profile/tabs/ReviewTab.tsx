@@ -49,7 +49,7 @@ export function ReviewTab() {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { pushMyReviewsByKeyAsync } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
 	const displayedItems = useMemo(
@@ -60,7 +60,13 @@ export function ReviewTab() {
 	const handleItemPress = useCallback(
 		(item: DishMediaEntry, index: number) => {
 			lightImpact();
-			setDishePromises("reviews", Promise.resolve(displayedItems));
+			// #443 【設計】新 Store API を使用（pushMyReviewsByKeyAsync で reviews 専用データを追加）
+			// displayedItems を DishMediaEntry & { myReview } 形式に変換
+			const reviewsData = displayedItems.map(entry => ({
+				...entry,
+				myReview: entry.dish_reviews[0]
+			}));
+			pushMyReviewsByKeyAsync("reviews", Promise.resolve(reviewsData));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "reviews" },
@@ -71,7 +77,7 @@ export function ReviewTab() {
 				payload: { item, tabName: "reviews" },
 			});
 		},
-		[lightImpact, setDishePromises, displayedItems, locale, logFrontendEvent],
+		[lightImpact, pushMyReviewsByKeyAsync, displayedItems, locale, logFrontendEvent],
 	);
 
 	const renderReviewItem = useCallback(

@@ -143,6 +143,34 @@ export const selectEntriesByKey =
 			};
 		};
 
+/**
+ * reviews キー専用のセレクタ。
+ * myReviewsByReviewId と entriesByMediaId を組み合わせて、
+ * DishMediaEntry & { myReview } の配列を返す。
+ *
+ * - entries: 正規化テーブルから復元した DishMediaEntry の配列（myReview 付き）（デフォルト null）
+ * - isLoading: "reviews" キーのロード中フラグ（デフォルト false）
+ * - error: "reviews" キーのエラー（デフォルト null）
+ */
+export const selectMyReviewEntriesByKey =
+	(key: 'reviews') =>
+		(state: DishMediaEntriesStore) => {
+			const reviewIds: string[] | null = state.myReviewIdsByKey[key] || null;
+			return {
+				entries: reviewIds && reviewIds
+					.map((reviewId) => {
+						const review = state.myReviewsByReviewId[reviewId];
+						if (!review) return null;
+						const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
+						if (!entry) return null;
+						return { ...entry, myReview: review };
+					})
+					.filter((entry): entry is DishMediaEntry & { myReview: DishMediaEntry['dish_reviews'][number] } => Boolean(entry)),
+				isLoading: state.isLoadingByKey[key] ?? false,
+				error: state.errorByKey[key] ?? null,
+			};
+		};
+
 export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get) => ({
 	// ------ 初期状態 ------
 
@@ -213,7 +241,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
 
 			for (const item of items) {
-				// エントリは常に最新で上書き
+				// #443 【バグ】entriesByMediaId の更新が抜けていたため追加
 				nextEntriesById[String(item.dish_media.id)] = item;
 				nextReviewsById[String(item.myReview.id)] = item.myReview;
 				prevIds.push(String(item.myReview.id));
@@ -221,6 +249,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 
 			return {
 				...state,
+				entriesByMediaId: nextEntriesById,
 				myReviewsByReviewId: nextReviewsById,
 				myReviewIdsByKey: {
 					...state.myReviewIdsByKey,
@@ -233,18 +262,21 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 		set((state) => {
 			if (!items.length) return state;
 
+			const nextEntriesById = { ...state.entriesByMediaId };
 			const nextReviewsById = { ...state.myReviewsByReviewId };
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
 			const newIds: string[] = [];
 
 			for (const item of items) {
-				// エントリは常に最新で上書き
+				// #443 【バグ】entriesByMediaId の更新が抜けていたため追加
+				nextEntriesById[String(item.dish_media.id)] = item;
 				nextReviewsById[String(item.myReview.id)] = item.myReview;
 				newIds.push(String(item.myReview.id));
 			}
 
 			return {
 				...state,
+				entriesByMediaId: nextEntriesById,
 				myReviewsByReviewId: nextReviewsById,
 				myReviewIdsByKey: {
 					...state.myReviewIdsByKey,
