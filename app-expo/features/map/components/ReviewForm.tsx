@@ -426,6 +426,7 @@ export function ReviewForm({
 				payload: { restaurantId: restaurant?.id, rating, parsedPrice },
 			});
 
+			showSnackbar(i18n.t("Map.alerts.reviewSuccess"));
 			onCancel();
 		} catch (error: any) {
 			logFrontendEvent({
