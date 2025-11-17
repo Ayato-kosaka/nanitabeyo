@@ -182,7 +182,6 @@ sequenceDiagram
     CDN->>GCS: segment0.ts 取得
     GCS-->>CDN: segment0.ts 内容
     CDN-->>Client: segment0.ts
-````
 
 ## 画像メディアの扱い
 
