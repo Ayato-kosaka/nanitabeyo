@@ -142,7 +142,6 @@ Secure;
 SameSite=None;
 Partitioned
 
-````
 
 - **HttpOnly**: JavaScript からのアクセスを防止
 - **Secure**: HTTPS 接続でのみ送信
