@@ -126,8 +126,8 @@
 			"confirm": "Hide"
 		},
 		"Loading": {
-			"title": "Searching for dishes perfect for you",
-			"subtitle": "Please wait a moment..."
+			"title": "Curating 6 perfect dishes for you",
+			"subtitle": "Your recommendations will be ready soon!"
 		},
 		"errors": {
 			"fetchFailed": "Failed to fetch dishes",
@@ -350,6 +350,10 @@
 		}
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "Selecting 5 restaurants to make choosing easier",
+			"subtitle": "Your recommendations will be ready soon!"
+		},
 		"placeholders": {
 			"searchLocation": "Search location/area"
 		},

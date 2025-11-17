@@ -3,6 +3,7 @@ import { StyleSheet, View, Dimensions } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Marker, Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
+import { RestaurantLoading } from "./RestaurantLoading";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import type { DishMediaEntry } from "@shared/api/v1/res";
@@ -132,6 +133,11 @@ export default function DishMediaMap({
 		),
 		[currentIndex],
 	);
+
+	// #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
+	if (items === null) {
+		return <RestaurantLoading />;
+	}
 
 	return (
 		<View style={styles.container}>

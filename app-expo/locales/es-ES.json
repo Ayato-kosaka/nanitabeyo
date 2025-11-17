@@ -126,8 +126,8 @@
 			"confirm": "Ocultar"
 		},
 		"Loading": {
-			"title": "Buscando el plato perfecto para ti",
-			"subtitle": "Por favor, espera..."
+			"title": "Seleccionando 6 platos perfectos para ti",
+			"subtitle": "¡Tus recomendaciones estarán listas pronto!"
 		},
 		"errors": {
 			"fetchFailed": "No se pudieron obtener los platos",
@@ -350,6 +350,10 @@
 		}
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "Seleccionando 5 restaurantes para facilitar tu elección",
+			"subtitle": "¡Tus recomendaciones estarán listas pronto!"
+		},
 		"placeholders": {
 			"searchLocation": "Buscar ubicación/área"
 		},

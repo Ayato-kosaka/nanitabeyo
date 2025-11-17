@@ -132,6 +132,7 @@ private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): string {
 ### Cookie 属性
 
 ```
+
 Cloud-CDN-Cookie=<policy>:Signature=<sig>;
 Domain=.<domain>;
 Path=<path>;
@@ -140,7 +141,7 @@ HttpOnly;
 Secure;
 SameSite=None;
 Partitioned
-```
+
 
 - **HttpOnly**: JavaScript からのアクセスを防止
 - **Secure**: HTTPS 接続でのみ送信
@@ -180,7 +181,6 @@ sequenceDiagram
     CDN->>GCS: segment0.ts 取得
     GCS-->>CDN: segment0.ts 内容
     CDN-->>Client: segment0.ts
-```
 
 ## 画像メディアの扱い
 
