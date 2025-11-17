@@ -16,11 +16,7 @@ export type UserProfile = SupabaseUsers & {
 };
 
 /** GET /v1/users/:id/dish-reviews のレスポンス型 */
-export type QueryUserDishReviewsResponse = PaginatedResponse<
-	DishMediaEntry & {
-		dish_media: { isMe: boolean };
-	}
->;
+export type QueryUserDishReviewsResponse = PaginatedResponse<DishMediaEntry>;
 
 /** GET /v1/users/me/liked-dish-media のレスポンス型 */
 export type QueryMeLikedDishMediaResponse = PaginatedResponse<DishMediaEntry>;

@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -55,7 +55,7 @@ export class UsersService {
     userId: string,
     dto: QueryUserDishReviewsDto,
   ): Promise<{
-    data: (DishMediaEntry & { dish_media: { isMe: boolean } })[];
+    data: DishMediaEntry[];
     nextCursor: string | null;
   }> {
     this.logger.debug('GetUserDishReviews', 'getUserDishReviews', {
@@ -113,10 +113,6 @@ export class UsersService {
           }
           return {
             ...dishMediaEntryItem,
-            dish_media: {
-              ...dishMediaEntryItem?.dish_media,
-              isMe: dishMediaEntryItem?.dish_media.user_id === userId,
-            },
             dish_reviews: [
               {
                 ...review,

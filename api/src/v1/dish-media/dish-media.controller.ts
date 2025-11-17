@@ -56,7 +56,7 @@ import { DishMediaService } from './dish-media.service';
 @ApiTags('DishMedia')
 @Controller('v1/dish-media')
 export class DishMediaController {
-  constructor(private readonly dishMediaService: DishMediaService) {}
+  constructor(private readonly dishMediaService: DishMediaService) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
@@ -77,7 +77,7 @@ export class DishMediaController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryDishMediaByIdsResponse> {
-    const result = await this.dishMediaService.findByIds(query.ids, user?.id);
+    const result = await this.dishMediaService.findByIds(query.ids, user.id);
 
     return {
       items: result.items,

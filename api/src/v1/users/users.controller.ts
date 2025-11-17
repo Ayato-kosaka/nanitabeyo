@@ -65,7 +65,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                        GET /v1/users/:id                           */
@@ -128,7 +128,7 @@ export class UsersController {
       query,
     );
 
-    return this.usersMapper.toUserDishReviewsResponse({ data, nextCursor });
+    return { data, nextCursor };
   }
 
   /* ------------------------------------------------------------------ */

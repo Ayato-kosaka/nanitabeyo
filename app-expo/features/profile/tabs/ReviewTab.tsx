@@ -53,8 +53,7 @@ export function ReviewTab() {
 	const locale = useLocale();
 
 	const displayedItems = useMemo(
-		() =>
-			onlyMyPhotoVideoReviews && targetUserId ? items.filter((e) => e.dish_media.user_id === targetUserId) : items,
+		() => (onlyMyPhotoVideoReviews && targetUserId ? items.filter((e) => e.dish_media.isMine) : items),
 		[onlyMyPhotoVideoReviews, items, targetUserId],
 	);
 
