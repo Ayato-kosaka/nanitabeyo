@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -74,7 +74,6 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
         userId,
-        reviewLimit: 0,
       });
 
     const dishMediaMap = new Map<
@@ -118,6 +117,7 @@ export class UsersService {
                 ...review,
                 ...convertPrismaToSupabase_DishReviews(review),
               },
+              ...dishMediaEntryItem.dish_reviews,
             ],
           };
         })
