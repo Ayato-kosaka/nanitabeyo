@@ -7,13 +7,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { DishMediaEntriesStore, selectEntriesByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
 
 export default function ResultScreen() {
 	const { topicId, location } = useLocalSearchParams<{ topicId: string; location?: string }>();
-	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(topicId)(state), [topicId]);
+	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(topicId)(state), [topicId]);
 	const { isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const initialLocation = useMemo(() => {
 		if (typeof location === "string") {

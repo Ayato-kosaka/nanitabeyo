@@ -1,13 +1,12 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore, selectEntriesByKey, DishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
+import { useDishMediaEntriesStore, selectIdsByKey } from "@/stores/useDishMediaEntriesStore";
+import { View, StyleSheet } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { ReviewForm } from "./ReviewForm";
 import i18n from "@/lib/i18n";
-import { shallow } from "zustand/shallow";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
@@ -15,9 +14,6 @@ type FeedDishMediaViewerProps = {
 };
 
 export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewerProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(source)(state), [source]);
-	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
-
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 
 	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
@@ -35,7 +31,14 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 	}, [openReviewModal]);
 
 	// 現在表示中のアイテムを取得
-	const currentItem = items[currentIndex] || items[0];
+	const { restaurant, prefilledMedia } = useMemo(() => {
+		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
+		const { ids } = selectIdsByKey(source)(state);
+		const id = ids[currentIndex];
+		const entry = state.entriesByMediaId[id];
+		if (!entry) throw new Error("FeedDishMediaViewer: entry is undefined");
+		return { restaurant: entry.restaurant, prefilledMedia: { ...entry.dish_media, dish: entry.dish } };
+	}, [currentIndex, source]);
 
 	return (
 		<View style={{ height: frame.height }}>
@@ -53,11 +56,7 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 
 			{/* #400【設計】ReviewForm を BlurModal 経由で表示（メディアなしレビューモード） */}
 			<ReviewFormModal>
-				<ReviewForm
-					restaurant={currentItem.restaurant}
-					onCancel={closeReviewModal}
-					prefilledMedia={{ ...currentItem.dish_media, dish: currentItem.dish }}
-				/>
+				<ReviewForm restaurant={restaurant} onCancel={closeReviewModal} prefilledMedia={prefilledMedia} />
 			</ReviewFormModal>
 		</View>
 	);
