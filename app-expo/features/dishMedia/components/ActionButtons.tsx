@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned, User, Calendar } from "lucide-react-native";
@@ -6,7 +6,6 @@ import i18n from "@/lib/i18n";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import { formatLikeCount } from "../utils/text";
-import { DishMediaEntry } from "@shared/api/v1/res";
 import { generateShareUrl, handleShare } from "@/lib/share";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -17,14 +16,16 @@ import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getCacheKeyForImage } from "@/lib/image";
+import { DishMediaEntriesStore, selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
 
 interface ActionButtonsProps {
-	dishMedia: DishMediaEntry["dish_media"];
-	restaurant: DishMediaEntry["restaurant"];
+	id: string;
+	entriesKey: string;
 	onLayout: (width: number) => void;
 }
 
-export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtonsProps) {
+export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -32,99 +33,145 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 	const router = useRouter();
 	const locale = useLocale();
 
-	const [isSaved, setIsSaved] = useState(dishMedia.isSaved);
-	const [isLiked, setIsLiked] = useState(dishMedia.isLiked);
-	const [likesCount, setLikesCount] = useState(dishMedia.likeCount);
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => {
+			const { entry } = selectEntryById(id, { key: entriesKey })(state);
+			if (!entry) throw new Error("ActionButtons: entry is undefined");
+			return {
+				isSaved: entry.dish_media.isSaved,
+				isLiked: entry.dish_media.isLiked,
+				likeCount: entry.dish_media.likeCount,
+			};
+		},
+		[id],
+	);
+	const { isSaved, isLiked, likeCount } = useDishMediaEntriesStore(selector, shallow);
+
+	const { dishMediaId, restaurant } = useMemo(() => {
+		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
+		const { entry } = selectEntryById(id, { key: entriesKey })(state);
+		if (!entry) throw new Error("ActionButtons: entry is undefined");
+		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
+	}, [id]);
 
 	const { BlurModal, open: openMenuModal, close: closeMenuModal } = useBlurModal({ intensity: 100 });
 
-	const handleLike = async () => {
+	const handleLike = useCallback(async () => {
 		lightImpact();
 		const willLike = !isLiked;
-		setIsLiked(willLike);
 		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
-		setLikesCount((prev) => (willLike ? prev + 1 : Math.max(0, prev - 1)));
+		let newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
+		useDishMediaEntriesStore.setState((state) => {
+			const dishMedia = state.entriesByMediaId[dishMediaId]?.dish_media;
+			if (dishMedia) {
+				return {
+					entriesByMediaId: {
+						...state.entriesByMediaId,
+						[dishMediaId]: {
+							...state.entriesByMediaId[dishMediaId],
+							dish_media: {
+								...dishMedia,
+								isLiked: willLike,
+								likeCount: newLikeCount,
+							},
+						},
+					},
+				};
+			}
+			return state;
+		});
 
 		logFrontendEvent({
 			event_name: willLike ? "dish_liked" : "dish_unliked",
 			error_level: "log",
 			payload: {
-				dishMediaId: dishMedia.id,
-				previousLikeCount: likesCount,
-				newLikeCount: willLike ? likesCount + 1 : likesCount - 1,
+				dishMediaId: dishMediaId,
+				previousLikeCount: likeCount,
+				newLikeCount: newLikeCount,
 			},
 		});
 
 		try {
 			if (willLike) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "POST",
 					requestPayload: { action_type: "like" },
 				});
 			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",
 					requestPayload: { action_type: "like" },
 				});
 			}
 		} catch (error) {
-			// Revert state on error
-			setIsLiked(!willLike);
-			// #259 【バグ】エラー時のリバート処理でも下限0を保証
-			setLikesCount((prev) => (willLike ? Math.max(0, prev - 1) : prev + 1));
 			logFrontendEvent({
 				event_name: "dish_like_reaction_failed",
-				error_level: "log",
+				error_level: "warn",
 				payload: {
 					error: error instanceof Error ? error.message : String(error),
-					target_id: dishMedia.id,
-					action_type: "like",
-					willReact: willLike,
+					dishMediaId: dishMediaId,
+					previousLikeCount: likeCount,
+					newLikeCount: newLikeCount,
 				},
 			});
 		}
-	};
+	}, [callBackend, dishMediaId, isLiked, likeCount, lightImpact, logFrontendEvent]);
 
-	const handleSave = async () => {
+	const handleSave = useCallback(async () => {
 		lightImpact();
 		const willSave = !isSaved;
-		setIsSaved(willSave);
+		useDishMediaEntriesStore.setState((state) => {
+			const dishMedia = state.entriesByMediaId[dishMediaId]?.dish_media;
+			if (dishMedia) {
+				return {
+					entriesByMediaId: {
+						...state.entriesByMediaId,
+						[dishMediaId]: {
+							...state.entriesByMediaId[dishMediaId],
+							dish_media: {
+								...dishMedia,
+								isSaved: willSave,
+							},
+						},
+					},
+				};
+			}
+			return state;
+		});
 
 		logFrontendEvent({
 			event_name: willSave ? "dish_saved" : "dish_unsaved",
 			error_level: "log",
 			payload: {
-				dishMediaId: dishMedia.id,
+				dishMediaId: dishMediaId,
 			},
 		});
 
 		try {
 			if (willSave) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "POST",
 					requestPayload: { action_type: "save" },
 				});
 			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
+				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",
 					requestPayload: { action_type: "save" },
 				});
 			}
 		} catch (error) {
-			// Revert state on error
-			setIsSaved(!willSave);
 			logFrontendEvent({
 				event_name: "dish_save_reaction_failed",
 				error_level: "log",
 				payload: {
 					error: error instanceof Error ? error.message : String(error),
-					target_id: dishMedia.id,
+					target_id: dishMediaId,
 					action_type: "save",
 					willReact: willSave,
 				},
 			});
 		}
-	};
+	}, [callBackend, dishMediaId, isSaved, lightImpact, logFrontendEvent]);
 
 	const handleViewRestaurant = () => {
 		lightImpact();
@@ -136,7 +183,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 			payload: {
 				restaurantId: restaurant.id,
 				restaurantName: restaurant.name,
-				fromDishMediaId: dishMedia.id,
+				fromDishMediaId: dishMediaId,
 			},
 		});
 	};
@@ -157,7 +204,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 			error_level: "log",
 			payload: {
 				creatorUserId: "123",
-				fromDishMediaId: dishMedia.id,
+				fromDishMediaId: dishMediaId,
 			},
 		});
 	};
@@ -170,7 +217,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 			event_name: "dish_menu_opened",
 			error_level: "log",
 			payload: {
-				dishMediaId: dishMedia.id,
+				dishMediaId: dishMediaId,
 				restaurantId: restaurant.id,
 			},
 		});
@@ -185,7 +232,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 			payload: {
 				restaurantId: restaurant.id,
 				googlePlaceId: restaurant.google_place_id,
-				fromDishMediaId: dishMedia.id,
+				fromDishMediaId: dishMediaId,
 			},
 		});
 
@@ -215,7 +262,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 
 		// Reaction を登録する。重複する場合はエラーになるが無視する。
 		try {
-			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMedia.id}/reaction`, {
+			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 				method: "POST",
 				requestPayload: { action_type: "open_map" },
 			});
@@ -234,7 +281,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 			event_name: "dish_menu_option_selected",
 			error_level: "log",
 			payload: {
-				dishMediaId: dishMedia.id,
+				dishMediaId: dishMediaId,
 				restaurantId: restaurant.id,
 			},
 		});
@@ -244,13 +291,13 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 		lightImpact();
 
 		try {
-			const shareUrl = generateShareUrl(`/${locale}/posts?ids=${dishMedia.id}`);
+			const shareUrl = generateShareUrl(`/${locale}/posts?ids=${dishMediaId}`);
 
 			logFrontendEvent({
 				event_name: "dish_share_attempted",
 				error_level: "log",
 				payload: {
-					dishMediaId: dishMedia.id,
+					dishMediaId: dishMediaId,
 					restaurantId: restaurant.id,
 					shareUrl,
 				},
@@ -265,7 +312,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 						event_name: "dish_share_success",
 						error_level: "log",
 						payload: {
-							dishMediaId: dishMedia.id,
+							dishMediaId: dishMediaId,
 							restaurantId: restaurant.id,
 							shareUrl,
 						},
@@ -277,7 +324,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 						event_name: "dish_share_failed",
 						error_level: "error",
 						payload: {
-							dishMediaId: dishMedia.id,
+							dishMediaId: dishMediaId,
 							restaurantId: restaurant.id,
 							shareUrl,
 							error,
@@ -291,7 +338,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 				event_name: "dish_share_error",
 				error_level: "error",
 				payload: {
-					dishMediaId: dishMedia.id,
+					dishMediaId: dishMediaId,
 					restaurantId: restaurant.id,
 					error: error instanceof Error ? error.message : "Unknown error",
 				},
@@ -330,7 +377,7 @@ export function ActionButtons({ dishMedia, restaurant, onLayout }: ActionButtons
 				<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
 					<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
 				</TouchableOpacity>
-				<Text style={styles.actionText}>{formatLikeCount(likesCount)}</Text>
+				<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 			</View>
 
 			<TouchableOpacity style={styles.actionButton} onPress={handleSave}>

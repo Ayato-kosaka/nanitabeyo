@@ -8,8 +8,7 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
-import { DishMediaEntriesStore, selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { shallow } from "zustand/shallow";
+import { selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 interface DishMediaContentProps {
 	id: string;
@@ -28,16 +27,13 @@ export default function DishMediaContent({
 	sessionId,
 	source,
 }: DishMediaContentProps) {
-	const selector = useCallback(
-		(state: DishMediaEntriesStore) => selectEntryById(id, { key: source })(state),
-		[id, source],
-	);
-	const { entry, myReview } = useDishMediaEntriesStore(selector, shallow);
 	const dishMediaEntry = useMemo(() => {
+		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
+		const { entry, myReview } = selectEntryById(id, { key: source })(state);
 		if (!entry) throw new Error("DishMediaContent: entry is undefined");
 		if (myReview) return { ...entry, dish_reviews: [myReview] };
 		else return entry;
-	}, [entry, myReview]);
+	}, [id, source]);
 
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
@@ -102,11 +98,7 @@ export default function DishMediaContent({
 			{/* Action Buttons */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
-					<ActionButtons
-						dishMedia={dishMediaEntry.dish_media}
-						restaurant={dishMediaEntry.restaurant}
-						onLayout={(width) => setRightActionsWidth(width)}
-					/>
+					<ActionButtons id={id} entriesKey={source} onLayout={(width) => setRightActionsWidth(width)} />
 				</View>
 			</View>
 		</SafeAreaView>
