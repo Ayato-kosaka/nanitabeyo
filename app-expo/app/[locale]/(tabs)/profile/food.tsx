@@ -30,7 +30,7 @@ export default function ProfileFoodScreen() {
 	if (error) {
 		return (
 			<View style={styles.centerContainer}>
-				<Text style={styles.errorText}>{error.message}</Text>
+				<Text style={styles.errorText}>{error}</Text>
 			</View>
 		);
 	}

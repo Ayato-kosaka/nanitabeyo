@@ -17,7 +17,7 @@ const CAROUSEL_HEIGHT = height * 0.8;
 const PARALLAX_SCALE = 0.85;
 
 interface DishMediaMapProps {
-	itemsPromise: DishMediaEntry[];
+	itemsPromise: Promise<DishMediaEntry[]>;
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
 	initialLocation?: {

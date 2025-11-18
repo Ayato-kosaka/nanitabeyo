@@ -182,7 +182,7 @@ const selectEntriesWithMyReviewsByKey = (key: "reviews") => (state: DishMediaEnt
 
 // ------ 非同期挿入ヘルパー ------
 const handleAsyncAction =
-	(set: (partial: Partial<DishMediaEntriesStore> | ((state: DishMediaEntriesStore) => Partial<DishMediaEntriesStore>)) => void, key: string, itemsPromise: Promise<DishMediaEntry[]>, onSucsess: (items: DishMediaEntry[]) => void) => {
+	(set: (partial: Partial<DishMediaEntriesStore> | ((state: DishMediaEntriesStore) => Partial<DishMediaEntriesStore>)) => void, key: string, itemsPromise: Promise<DishMediaEntry[]>, onSuccess: (items: DishMediaEntry[]) => void) => {
 		// ローディング開始 & エラーリセット
 		set((state) => ({
 			...state,
@@ -192,7 +192,7 @@ const handleAsyncAction =
 
 		itemsPromise
 			.then((items) => {
-				onSucsess(items);
+				onSuccess(items);
 			})
 			.catch((err) => {
 				const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
@@ -282,9 +282,11 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
 
 			for (const item of items) {
-				nextEntriesById[String(item.dish_media.id)] = item;
-				nextReviewsById[String(item.dish_reviews[0].id)] = item.dish_reviews[0];
-				prevIds.push(String(item.dish_reviews[0].id));
+				if (item.dish_reviews && item.dish_reviews.length > 0) {
+					nextEntriesById[String(item.dish_media.id)] = item;
+					nextReviewsById[String(item.dish_reviews[0].id)] = item.dish_reviews[0];
+					prevIds.push(String(item.dish_reviews[0].id));
+				}
 			}
 
 			return {
@@ -308,9 +310,11 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			const newIds: string[] = [];
 
 			for (const item of items) {
-				nextEntriesById[String(item.dish_media.id)] = item;
-				nextReviewsById[String(item.dish_reviews[0].id)] = item.dish_reviews[0];
-				newIds.push(String(item.dish_reviews[0].id));
+				if (item.dish_reviews && item.dish_reviews.length > 0) {
+					nextEntriesById[String(item.dish_media.id)] = item;
+					nextReviewsById[String(item.dish_reviews[0].id)] = item.dish_reviews[0];
+					newIds.push(String(item.dish_reviews[0].id));
+				}
 			}
 
 			return {
