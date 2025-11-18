@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, SafeAreaView } from "react-native";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,9 +8,11 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
+import { DishMediaEntriesStore, selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
 
 interface DishMediaContentProps {
-	item: DishMediaEntry;
+	id: string;
 	carouselRef?: React.RefObject<any>;
 	isActive: boolean;
 	getTitle?: (item: DishMediaEntry) => string | null;
@@ -19,13 +21,24 @@ interface DishMediaContentProps {
 }
 
 export default function DishMediaContent({
-	item,
+	id,
 	carouselRef,
 	isActive,
 	getTitle = (item) => item.restaurant.name,
 	sessionId,
 	source,
 }: DishMediaContentProps) {
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectEntryById(id, { key: source })(state),
+		[id, source],
+	);
+	const { entry, myReview } = useDishMediaEntriesStore(selector, shallow);
+	const dishMediaEntry = useMemo(() => {
+		if (!entry) throw new Error("DishMediaContent: entry is undefined");
+		if (myReview) return { ...entry, dish_reviews: [myReview] };
+		else return entry;
+	}, [entry, myReview]);
+
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
@@ -33,23 +46,23 @@ export default function DishMediaContent({
 		isActive,
 		sessionId,
 		source,
-		dishMedia: item.dish_media,
+		dishMedia: dishMediaEntry.dish_media,
 	});
 
 	const mediaSource = useMemo(
 		() => ({
-			uri: item.dish_media.mediaUrl,
-			cacheKey: getCacheKeyForImage(item.dish_media.mediaUrl),
+			uri: dishMediaEntry.dish_media.mediaUrl,
+			cacheKey: getCacheKeyForImage(dishMediaEntry.dish_media.mediaUrl),
 		}),
-		[item.dish_media],
+		[dishMediaEntry.dish_media],
 	);
 
 	return (
 		<SafeAreaView style={styles.container}>
 			{/* Background Media (Image or Video) */}
-			{item.dish_media.media_type === "video" ? (
+			{dishMediaEntry.dish_media.media_type === "video" ? (
 				<VideoPlayer
-					uri={item.dish_media.mediaUrl}
+					uri={dishMediaEntry.dish_media.mediaUrl}
 					style={StyleSheet.absoluteFill}
 					shouldPlay={isActive}
 					onProgress={handleVideoProgress}
@@ -68,7 +81,7 @@ export default function DishMediaContent({
 			{/* Top Header */}
 			<View style={styles.topHeader}>
 				<View style={styles.headerLeft}>
-					<Text style={styles.menuName}>{getTitle(item)}</Text>
+					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
 					<View style={styles.priceRatingContainer}>
 						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
 						{/* <View style={styles.ratingContainer}>
@@ -81,7 +94,7 @@ export default function DishMediaContent({
 			</View>
 
 			<DishReviewsSection
-				reviews={item.dish_reviews}
+				reviews={dishMediaEntry.dish_reviews}
 				paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
 				carouselRef={carouselRef}
 			/>
@@ -90,8 +103,8 @@ export default function DishMediaContent({
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
 					<ActionButtons
-						dishMedia={item.dish_media}
-						restaurant={item.restaurant}
+						dishMedia={dishMediaEntry.dish_media}
+						restaurant={dishMediaEntry.restaurant}
 						onLayout={(width) => setRightActionsWidth(width)}
 					/>
 				</View>

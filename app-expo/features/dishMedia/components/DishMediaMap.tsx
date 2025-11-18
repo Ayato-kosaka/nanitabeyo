@@ -7,7 +7,12 @@ import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
-import { DishMediaEntriesStore, selectEntriesByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import {
+	DishMediaEntriesStore,
+	selectEntryById,
+	selectIdsByKey,
+	useDishMediaEntriesStore,
+} from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
@@ -38,22 +43,39 @@ export default function DishMediaMap({
 	getTitle,
 	source,
 }: DishMediaMapProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(source)(state), [source]);
-	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(source)(state), [source]);
+	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+
+	// 画面を開いた時点の並びを固定するための state
+	// liked/unlike 等のリアルタイム反映は行わない
+	const [ids, setIds] = useState<string[]>([]);
+	useEffect(() => {
+		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
+	}, [liveIds, ids.length]);
+	const restaurants = useMemo(() => {
+		if (ids.length === 0) return [];
+		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
+		return ids
+			.map((id) => selectEntryById(id, { key: source })(state)?.entry?.restaurant)
+			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
+			.map((restaurant) => ({
+				id: restaurant.id,
+				name: restaurant.name,
+				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
+				imageUrls: restaurant.imageUrls,
+			}));
+	}, [ids, source]);
+
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
-	const coordinates = useMemo(
-		() => items?.map((item) => ({ latitude: item.restaurant.latitude, longitude: item.restaurant.longitude })) || [],
-		[items],
-	);
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
 
 	const getMapRegion = useCallback((): Region => {
-		if (coordinates.length === 0) {
+		if (restaurants.length === 0) {
 			return {
 				latitude: initialLocation?.latitude ?? 35.6762,
 				longitude: initialLocation?.longitude ?? 139.6503,
@@ -66,8 +88,8 @@ export default function DishMediaMap({
 		const aspectRatio = width / height;
 
 		// 全ピンの最小・最大座標を取得
-		const latitudes = coordinates.map((coord) => coord.latitude);
-		const longitudes = coordinates.map((coord) => coord.longitude);
+		const latitudes = restaurants.map((restaurant) => restaurant.coordinate.latitude);
+		const longitudes = restaurants.map((restaurant) => restaurant.coordinate.longitude);
 
 		const minLat = Math.min(...latitudes);
 		const maxLat = Math.max(...latitudes);
@@ -92,14 +114,14 @@ export default function DishMediaMap({
 			latitudeDelta: latDelta,
 			longitudeDelta: lngDelta,
 		};
-	}, [coordinates, initialLocation]);
+	}, [restaurants, initialLocation]);
 
 	useEffect(() => {
 		// 初期位置設定
-		if (mapRef.current && coordinates.length > 0) {
+		if (mapRef.current && restaurants.length > 0) {
 			mapRef.current.animateToRegion(getMapRegion(), 1000);
 		}
-	}, [getMapRegion]);
+	}, [getMapRegion, restaurants]);
 
 	const handleIndexChange = useCallback(
 		(index: number) => {
@@ -115,10 +137,10 @@ export default function DishMediaMap({
 	}, []);
 
 	const renderCarouselItem = useCallback(
-		({ item, index }: { item: DishMediaEntry; index: number }) => (
+		({ item, index }: { item: string; index: number }) => (
 			<View style={styles.carouselItem}>
 				<DishMediaContent
-					item={item}
+					id={item}
 					carouselRef={carouselRef}
 					isActive={index === currentIndex}
 					getTitle={getTitle}
@@ -149,27 +171,26 @@ export default function DishMediaMap({
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
 				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
-					{items !== null &&
-						coordinates.map((coordinate, index) => (
-							<AvatarBubbleMarker
-								key={`marker-${index}`}
-								coordinate={coordinate}
-								title={items[index]!.restaurant.name}
-								onPress={() => handleMarkerPress(index)}
-								uri={items[index]!.restaurant.image_url!}
-								color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
-							/>
-						))}
+					{restaurants.map((restaurant, index) => (
+						<AvatarBubbleMarker
+							key={`marker-${restaurant.id}`}
+							coordinate={restaurant.coordinate}
+							title={restaurant.name}
+							onPress={() => handleMarkerPress(index)}
+							uri={restaurant.imageUrls?.sm}
+							color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
+						/>
+					))}
 				</MapView>
 			</View>
 
 			{/* Carousel - Bottom 4/5 of screen, overlapping map */}
-			{items !== null && (
+			{
 				<Carousel
 					ref={carouselRef}
 					width={width}
 					height={CAROUSEL_HEIGHT}
-					data={items}
+					data={ids}
 					renderItem={renderCarouselItem}
 					onSnapToItem={handleIndexChange}
 					defaultIndex={initialIndex}
@@ -181,7 +202,7 @@ export default function DishMediaMap({
 					style={styles.carousel}
 					containerStyle={styles.carouselContainer}
 				/>
-			)}
+			}
 		</View>
 	);
 }

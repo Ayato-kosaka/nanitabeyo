@@ -17,7 +17,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
-import { DishMediaEntriesStore, selectEntriesByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { Text } from "react-native";
 import i18n from "@/lib/i18n";
@@ -41,40 +41,41 @@ interface DishMediaFeedProps {
 }
 
 // --- 本体 --------------------------------------------------------------------
-export default function DishMediaFeed({
-	initialIndex = 0,
-	onIndexChange,
-	getTitle,
-	source,
-	keyExtractor = (item) => String(item.dish_media.id),
-}: DishMediaFeedProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(source)(state), [source]);
-	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitle, source }: DishMediaFeedProps) {
+	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(source)(state), [source]);
+	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+
+	// 画面を開いた時点の並びを固定するための state
+	// liked/unlike 等のリアルタイム反映は行わない
+	const [ids, setIds] = useState<string[]>([]);
+	useEffect(() => {
+		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
+	}, [liveIds, ids.length]);
 
 	// 命令的スクロール用の List 参照
-	const listRef = useRef<FlatList<DishMediaEntry>>(null);
+	const listRef = useRef<FlatList<string>>(null);
 
 	// 実レイアウト高（SafeArea等込み）: onLayout で初回確定
 	const [pageHeight, setPageHeight] = useState(0);
 
 	// initialIndex を常に範囲内へ
-	const clampedInitialIndex = useMemo(() => clampIndex(initialIndex, items.length), [initialIndex, items.length]);
+	const clampedInitialIndex = useMemo(() => clampIndex(initialIndex, ids.length), [initialIndex, ids.length]);
 
 	// contentOffset を「初回マウント時のみ」適用するためのフラグ
 	const didSetInitialOffset = useRef(false);
 
 	// 現在の表示インデックス（状態）＋最新値ミラー用Ref（Viewabilityコールバックで参照）
-	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, items.length));
+	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, ids.length));
 	const currentIndexRef = useRef(currentIndex);
 	useEffect(() => {
 		currentIndexRef.current = currentIndex;
 	}, [currentIndex]);
 
 	// items の参照も最新をミラー（onViewableItemsChanged内で安定参照するため）
-	const itemsRef = useRef(items);
+	const itemsRef = useRef(ids);
 	useEffect(() => {
-		itemsRef.current = items;
-	}, [items]);
+		itemsRef.current = ids;
+	}, [ids]);
 
 	// 付随機能（ハプティクス・ログ）
 	const { selectionChanged } = useHaptics();
@@ -89,9 +90,9 @@ export default function DishMediaFeed({
 			event_name: "food_feed_mounted",
 			error_level: "log",
 			payload: {
-				itemCount: items.length,
+				itemCount: ids.length,
 				initialIndex,
-				hasItems: items.length > 0,
+				hasItems: ids.length > 0,
 				impl: "FlatList",
 			},
 		});
@@ -100,9 +101,9 @@ export default function DishMediaFeed({
 
 	// --- レイアウト確定後の初期再配置（既存ロジックを変更しない） ------------
 	useEffect(() => {
-		if (pageHeight <= 0 || items.length === 0) return;
+		if (pageHeight <= 0 || ids.length === 0) return;
 
-		const clamped = clampIndex(initialIndex, items.length);
+		const clamped = clampIndex(initialIndex, ids.length);
 
 		if (clamped !== currentIndex) {
 			setCurrentIndex(clamped);
@@ -115,11 +116,11 @@ export default function DishMediaFeed({
 				animated: false,
 			});
 		});
-	}, [items.length, initialIndex, pageHeight]);
+	}, [ids.length, initialIndex, pageHeight]);
 
 	// --- getItemLayout（高さ=画面高を提供; 初期スクロール安定化の要） --------
 	const getItemLayout = useMemo(
-		() => (_: ArrayLike<DishMediaEntry> | null | undefined, index: number) => ({
+		() => (_: ArrayLike<string> | null | undefined, index: number) => ({
 			length: pageHeight ?? 0,
 			offset: (pageHeight ?? 0) * index,
 			index,
@@ -155,18 +156,18 @@ export default function DishMediaFeed({
 				fromIndex: prev,
 				toIndex: v.index,
 				direction: v.index > prev ? "down" : "up",
-				currentItemId: item?.dish_media.id,
+				currentItemId: item,
 			},
 		});
 	}).current;
 
 	// --- renderItem（再レンダを抑制：pageHeight にのみ依存） -------------------
 	const renderItem = useCallback(
-		({ item, index }: ListRenderItemInfo<DishMediaEntry>) => (
+		({ item, index }: ListRenderItemInfo<string>) => (
 			// 各ページは厳密に画面高に合わせる
 			<View style={{ height: Math.max(1, pageHeight) }}>
 				<DishMediaContent
-					item={item}
+					id={item}
 					isActive={index === currentIndex}
 					getTitle={getTitle}
 					sessionId={sessionId.current}
@@ -206,9 +207,9 @@ export default function DishMediaFeed({
 			{pageHeight > 0 && (
 				<FlatList
 					ref={listRef}
-					data={items}
-					keyExtractor={keyExtractor}
+					data={ids}
 					renderItem={renderItem}
+					keyExtractor={(id) => id}
 					style={styles.list}
 					// ページング：1画面=1ページ
 					pagingEnabled

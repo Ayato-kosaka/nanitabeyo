@@ -137,52 +137,49 @@ export type DishMediaEntriesStore = {
 	clearByKey: (key?: string) => void;
 };
 
-/**
- * 画面用途キーごとの状態を取得するためのセレクタ。
- * - entries: 正規化テーブルと mediaIdsByKey をもとに復元した DishMediaEntry の配列（デフォルト null）
+/** 
+ * 画面用途キーごとの id 配列を取得するセレクタ。
+ * - ids: dish_media.id または dish_review.id の配列（デフォルト 空配列）
  * - isLoading: 当該キーのロード中フラグ（デフォルト false）
  * - error: 当該キーのエラー（デフォルト null）
  */
-export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore): {
-	entries: DishMediaEntry[];
+export const selectIdsByKey = (key: string) => (state: DishMediaEntriesStore): {
+	ids: string[];
 	isLoading: boolean;
 	error: string | null;
 } => {
-	let entries: DishMediaEntry[] = [];
-	if (key === "reviews") {
-		entries = selectEntriesWithMyReviewsByKey(key)(state);
-	} else {
-		const ids: string[] | null = state.mediaIdsByKey[key] || [];
-		entries =
-			ids
-				.map((id) => state.entriesByMediaId[id])
-				.filter((entry): entry is DishMediaEntry => Boolean(entry));
-	}
+	const ids = (key === "reviews"
+		? state.myReviewIdsByKey[key]
+		: state.mediaIdsByKey[key])
+		|| [];
 	return {
-		entries: entries?.filter(Boolean) || null,
+		ids,
 		isLoading: state.isLoadingByKey[key] ?? false,
 		error: state.errorByKey[key] ?? null,
-	};
-};
+	}
+}
 
-/**
- * reviews キー専用のセレクタ。
- * entriesByMediaId と myReviewsByReviewId を組み合わせて DishMediaEntry 配列を復元する。
+/** 
+ * dish_media.id または dish_review.id から DishMediaEntry を取得するセレクタ。
+ * - option.key に "reviews" を指定した場合、myReviewsByReviewId 経由でレビュー情報を含むエントリを取得する。
  */
-const selectEntriesWithMyReviewsByKey = (key: "reviews") => (state: DishMediaEntriesStore): DishMediaEntry[] => {
-	const reviewIds: string[] = state.myReviewIdsByKey[key] || [];
-	return reviewIds
-		.map((reviewId) => {
-			const review = state.myReviewsByReviewId[reviewId];
-			if (!review) return [];
-			const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
-			if (!entry) return [];
-			return { ...entry, dish_reviews: [review] };
-		})
-		.filter((entry): entry is DishMediaEntry =>
-			Boolean(entry),
-		);
-};
+export const selectEntryById = (id: string, option?: { key?: string }) => (state: DishMediaEntriesStore): {
+	entry: DishMediaEntry | null;
+	myReview: DishMediaEntry["dish_reviews"][number] | null;
+} => {
+	const { key } = option || {};
+	let entry: DishMediaEntry | null = null;
+	let myReview: DishMediaEntry["dish_reviews"][number] | null = null;
+	if (key === "reviews") {
+		myReview = state.myReviewsByReviewId[id];
+		if (myReview) {
+			entry = state.entriesByMediaId[String(myReview.created_dish_media_id)] || null;
+		}
+	} else {
+		entry = state.entriesByMediaId[id] || null
+	}
+	return { entry, myReview }
+}
 
 // ------ 非同期挿入ヘルパー ------
 const handleAsyncAction =
