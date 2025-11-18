@@ -13,8 +13,9 @@ export default function ProfileSearchResultScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	const { currentIndex, showCompletionModal, dishesPromise, handleIndexChange, handleClose, handleReturnToCards } =
-		useSearchResult(topicId as string);
+	const { currentIndex, showCompletionModal, handleIndexChange, handleClose, handleReturnToCards } = useSearchResult(
+		topicId as string,
+	);
 
 	useEffect(() => {
 		// Log screen view with search parameters
@@ -50,7 +51,7 @@ export default function ProfileSearchResultScreen() {
 
 			{/* Feed Content */}
 			{/* <DishMediaFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-			<DishMediaMap itemsPromise={dishesPromise} onIndexChange={handleIndexChange} source="profile-topic-search" />
+			<DishMediaMap onIndexChange={handleIndexChange} source={topicId} />
 		</LinearGradient>
 	);
 }

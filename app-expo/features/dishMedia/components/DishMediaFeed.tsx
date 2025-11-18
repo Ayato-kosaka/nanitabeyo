@@ -11,12 +11,16 @@
 // - 副作用（ログ/ハプティクス/analytics）: onViewableItemsChanged 内でのみ実行
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo } from "react-native";
+import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo, ActivityIndicator } from "react-native";
 import DishMediaContent from "./DishMediaContent";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
+import { DishMediaEntriesStore, selectEntriesByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
+import { Text } from "react-native";
+import i18n from "@/lib/i18n";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -24,8 +28,6 @@ const clampIndex = (index: number, length: number) => Math.min(Math.max(0, index
 
 // --- Props -------------------------------------------------------------------
 interface DishMediaFeedProps {
-	// 表示対象のメディア配列
-	items: DishMediaEntry[];
 	// 初期表示インデックス（範囲外はクランプ）
 	initialIndex?: number;
 	// 表示中インデックスが変化した際のコールバック
@@ -40,13 +42,15 @@ interface DishMediaFeedProps {
 
 // --- 本体 --------------------------------------------------------------------
 export default function DishMediaFeed({
-	items,
 	initialIndex = 0,
 	onIndexChange,
 	getTitle,
 	source,
 	keyExtractor = (item) => String(item.dish_media.id),
 }: DishMediaFeedProps) {
+	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(source)(state), [source]);
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+
 	// 命令的スクロール用の List 参照
 	const listRef = useRef<FlatList<DishMediaEntry>>(null);
 
@@ -173,8 +177,22 @@ export default function DishMediaFeed({
 		[pageHeight, currentIndex],
 	);
 
-	// --- 早期リターン：空リスト ----------------------------------------------
-	if (items.length === 0) return null;
+	if (isLoading) {
+		return (
+			<View style={styles.centerContainer}>
+				<ActivityIndicator size="large" color="#5EA2FF" />
+				<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
+			</View>
+		);
+	}
+
+	if (error) {
+		return (
+			<View style={styles.centerContainer}>
+				<Text style={styles.errorText}>{error}</Text>
+			</View>
+		);
+	}
 
 	return (
 		<View
@@ -237,5 +255,22 @@ const styles = StyleSheet.create({
 	list: {
 		flex: 1,
 		backgroundColor: "#000", // メディアを引き立てる黒背景
+	},
+	centerContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "#000",
+	},
+	loadingText: {
+		marginTop: 16,
+		color: "#FFF",
+		fontSize: 16,
+	},
+	errorText: {
+		color: "#FF6B6B",
+		fontSize: 16,
+		textAlign: "center",
+		paddingHorizontal: 20,
 	},
 });

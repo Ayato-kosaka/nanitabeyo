@@ -1,13 +1,16 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { StyleSheet, View, Dimensions } from "react-native";
+import { StyleSheet, View, Dimensions, Text } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Marker, Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
-import { RestaurantLoading } from "./RestaurantLoading";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
+import { DishMediaEntriesStore, selectEntriesByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
+import { ActivityIndicator } from "react-native";
+import i18n from "@/lib/i18n";
 
 const { width, height } = Dimensions.get("window");
 
@@ -17,7 +20,6 @@ const CAROUSEL_HEIGHT = height * 0.8;
 const PARALLAX_SCALE = 0.85;
 
 interface DishMediaMapProps {
-	itemsPromise: Promise<DishMediaEntry[]>;
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
 	initialLocation?: {
@@ -30,18 +32,18 @@ interface DishMediaMapProps {
 }
 
 export default function DishMediaMap({
-	itemsPromise,
 	initialIndex = 0,
 	onIndexChange,
 	initialLocation,
 	getTitle,
 	source,
 }: DishMediaMapProps) {
+	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(source)(state), [source]);
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
-	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
 	const coordinates = useMemo(
 		() => items?.map((item) => ({ latitude: item.restaurant.latitude, longitude: item.restaurant.longitude })) || [],
 		[items],
@@ -49,12 +51,6 @@ export default function DishMediaMap({
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
-
-	useEffect(() => {
-		itemsPromise.then((data) => {
-			setItems(data);
-		});
-	}, [itemsPromise]);
 
 	const getMapRegion = useCallback((): Region => {
 		if (coordinates.length === 0) {
@@ -134,13 +130,22 @@ export default function DishMediaMap({
 		[currentIndex],
 	);
 
-	// #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
-	if (items === null) {
-		return <RestaurantLoading />;
-	}
-
 	return (
 		<View style={styles.container}>
+			{/* この位置に置かないとマップが起動しなくなる */}
+			{isLoading && (
+				<View style={styles.centerContainer}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
+					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
+				</View>
+			)}
+
+			{error && (
+				<View style={styles.centerContainer}>
+					<Text style={styles.errorText}>{error}</Text>
+				</View>
+			)}
+
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
 				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
@@ -217,5 +222,22 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.3,
 		shadowRadius: 32,
 		elevation: 12,
+	},
+	centerContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "#000",
+	},
+	loadingText: {
+		marginTop: 16,
+		color: "#FFF",
+		fontSize: 16,
+	},
+	errorText: {
+		color: "#FF6B6B",
+		fontSize: 16,
+		textAlign: "center",
+		paddingHorizontal: 20,
 	},
 });

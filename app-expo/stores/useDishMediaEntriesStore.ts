@@ -144,17 +144,16 @@ export type DishMediaEntriesStore = {
  * - error: 当該キーのエラー（デフォルト null）
  */
 export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore): {
-	entries: DishMediaEntry[] | null;
+	entries: DishMediaEntry[];
 	isLoading: boolean;
 	error: string | null;
 } => {
-	let entries: DishMediaEntry[] | null = null;
+	let entries: DishMediaEntry[] = [];
 	if (key === "reviews") {
 		entries = selectEntriesWithMyReviewsByKey(key)(state);
 	} else {
-		const ids: string[] | null = state.mediaIdsByKey[key] || null;
+		const ids: string[] | null = state.mediaIdsByKey[key] || [];
 		entries =
-			ids &&
 			ids
 				.map((id) => state.entriesByMediaId[id])
 				.filter((entry): entry is DishMediaEntry => Boolean(entry));
@@ -170,20 +169,19 @@ export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore
  * reviews キー専用のセレクタ。
  * entriesByMediaId と myReviewsByReviewId を組み合わせて DishMediaEntry 配列を復元する。
  */
-const selectEntriesWithMyReviewsByKey = (key: "reviews") => (state: DishMediaEntriesStore): DishMediaEntry[] | null => {
-	const reviewIds: string[] | null = state.myReviewIdsByKey[key] || null;
-	return reviewIds &&
-		reviewIds
-			.map((reviewId) => {
-				const review = state.myReviewsByReviewId[reviewId];
-				if (!review) return null;
-				const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
-				if (!entry) return null;
-				return { ...entry, dish_reviews: [review] };
-			})
-			.filter((entry): entry is DishMediaEntry =>
-				Boolean(entry),
-			);
+const selectEntriesWithMyReviewsByKey = (key: "reviews") => (state: DishMediaEntriesStore): DishMediaEntry[] => {
+	const reviewIds: string[] = state.myReviewIdsByKey[key] || [];
+	return reviewIds
+		.map((reviewId) => {
+			const review = state.myReviewsByReviewId[reviewId];
+			if (!review) return [];
+			const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
+			if (!entry) return [];
+			return { ...entry, dish_reviews: [review] };
+		})
+		.filter((entry): entry is DishMediaEntry =>
+			Boolean(entry),
+		);
 };
 
 // ------ 非同期挿入ヘルパー ------
