@@ -148,13 +148,19 @@ export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore
 	isLoading: boolean;
 	error: string | null;
 } => {
-	const ids: string[] | null = state.mediaIdsByKey[key] || null;
+	let entries: DishMediaEntry[] | null = null;
+	if (key === "reviews") {
+		entries = selectEntriesWithMyReviewsByKey(key)(state);
+	} else {
+		const ids: string[] | null = state.mediaIdsByKey[key] || null;
+		entries =
+			ids &&
+			ids
+				.map((id) => state.entriesByMediaId[id])
+				.filter((entry): entry is DishMediaEntry => Boolean(entry));
+	}
 	return {
-		entries:
-			ids && (
-				key === "reviews"
-					? selectEntriesWithMyReviewsByKey(key)(state)
-					: ids.map((id) => state.entriesByMediaId[id]).filter((entry): entry is DishMediaEntry => Boolean(entry))),
+		entries: entries?.filter(Boolean) || null,
 		isLoading: state.isLoadingByKey[key] ?? false,
 		error: state.errorByKey[key] ?? null,
 	};
@@ -185,7 +191,6 @@ const handleAsyncAction =
 	(set: (partial: Partial<DishMediaEntriesStore> | ((state: DishMediaEntriesStore) => Partial<DishMediaEntriesStore>)) => void, key: string, itemsPromise: Promise<DishMediaEntry[]>, onSuccess: (items: DishMediaEntry[]) => void) => {
 		// ローディング開始 & エラーリセット
 		set((state) => ({
-			...state,
 			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
 			errorByKey: { ...state.errorByKey, [key]: null },
 		}));
@@ -197,7 +202,6 @@ const handleAsyncAction =
 			.catch((err) => {
 				const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
 				set((state) => ({
-					...state,
 					errorByKey: {
 						...state.errorByKey,
 						[key]: i18n.t("Profile.tabError.failedToLoad", { error: errorMessage }),
@@ -206,7 +210,6 @@ const handleAsyncAction =
 			})
 			.finally(() => {
 				set((state) => ({
-					...state,
 					isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
 				}));
 			});
@@ -230,20 +233,20 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 
 			const nextEntriesById = { ...state.entriesByMediaId };
 			const prevIds = state.mediaIdsByKey[key] ?? [];
+			const nextIds = [...prevIds];
 
 			for (const item of items) {
 				const mediaId = String(item.dish_media.id);
 				// エントリは常に最新で上書き
 				nextEntriesById[mediaId] = item;
-				prevIds.push(mediaId);
+				nextIds.push(mediaId);
 			}
 
 			return {
-				...state,
 				entriesByMediaId: nextEntriesById,
 				mediaIdsByKey: {
 					...state.mediaIdsByKey,
-					[key]: prevIds,
+					[key]: nextIds,
 				},
 			};
 		}),
@@ -264,7 +267,6 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			}
 
 			return {
-				...state,
 				entriesByMediaId: nextEntriesById,
 				mediaIdsByKey: {
 					...state.mediaIdsByKey,
@@ -280,22 +282,22 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			const nextEntriesById = { ...state.entriesByMediaId };
 			const nextReviewsById = { ...state.myReviewsByReviewId };
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
+			const nextIds = [...prevIds];
 
 			for (const item of items) {
 				if (item.dish_reviews && item.dish_reviews.length > 0) {
 					nextEntriesById[String(item.dish_media.id)] = item;
 					nextReviewsById[String(item.dish_reviews[0].id)] = item.dish_reviews[0];
-					prevIds.push(String(item.dish_reviews[0].id));
+					nextIds.push(String(item.dish_reviews[0].id));
 				}
 			}
 
 			return {
-				...state,
 				entriesByMediaId: nextEntriesById,
 				myReviewsByReviewId: nextReviewsById,
 				myReviewIdsByKey: {
 					...state.myReviewIdsByKey,
-					[key]: prevIds,
+					[key]: nextIds,
 				},
 			};
 		}),
@@ -318,7 +320,6 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			}
 
 			return {
-				...state,
 				entriesByMediaId: nextEntriesById,
 				myReviewsByReviewId: nextReviewsById,
 				myReviewIdsByKey: {
@@ -332,7 +333,6 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 		set((state) => {
 			const mediaId = String(item.dish_media.id);
 			return {
-				...state,
 				entriesByMediaId: {
 					...state.entriesByMediaId,
 					[mediaId]: item,
