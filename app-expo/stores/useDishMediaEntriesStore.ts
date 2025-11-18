@@ -493,6 +493,8 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			return {
 				entriesByMediaId: nextEntriesById,
 				mediaIdsByKey: nextMediaIdsByKey,
+				myReviewsByReviewId: nextMyReviewsByReviewId,
+				myReviewIdsByKey: nextMyReviewIdsByKey,
 				isLoadingByKey: nextIsLoadingByKey,
 				errorByKey: nextErrorByKey,
 			};
