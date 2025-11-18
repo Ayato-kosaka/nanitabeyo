@@ -14,7 +14,6 @@ type FeedDishMediaViewerProps = {
 };
 
 export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewerProps) {
-	// #443 【設計】新 Store API を使用（selectEntriesByKey で取得）
 	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(source));
 
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
@@ -45,7 +44,7 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 	if (error) {
 		return (
 			<View style={styles.centerContainer}>
-				<Text style={styles.errorText}>{error.message}</Text>
+				<Text style={styles.errorText}>{error}</Text>
 			</View>
 		);
 	}

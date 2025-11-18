@@ -8,7 +8,6 @@ import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 export default function NotificationFeedScreen() {
 	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	// #443 【設計】新 Store API を使用（selectEntriesByKey で取得）
 	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey("notification"));
 
 	if (isLoading) {
@@ -23,7 +22,7 @@ export default function NotificationFeedScreen() {
 	if (error) {
 		return (
 			<View style={styles.centerContainer}>
-				<Text style={styles.errorText}>{error.message}</Text>
+				<Text style={styles.errorText}>{error}</Text>
 			</View>
 		);
 	}

@@ -1,3 +1,4 @@
+import i18n from "@/lib/i18n";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { create } from "zustand";
 
@@ -43,9 +44,9 @@ export type DishMediaEntriesStore = {
 	isLoadingByKey: Record<string, boolean>;
 
 	/**
-	 * 画面用途キーごとのエラー状態。
+	 * 画面用途キーごとのエラーメッセージ。
 	 */
-	errorByKey: Record<string, Error | null>;
+	errorByKey: Record<string, string | null>;
 
 	// ------ public 挿入・更新メソッド（同期） ------
 
@@ -68,9 +69,9 @@ export type DishMediaEntriesStore = {
 	 * reviewsByReviewId を更新しつつ、reviewIdsByKey[key] の末尾に reviewId を追加する。
 	 * 既に同じ reviewId が存在する場合は、エントリは上書きする。
 	 */
-	pushMyReviewsByKey: (
+	pushEntriesWithMyReviewsByKey: (
 		key: "reviews",
-		items: (DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[],
+		items: DishMediaEntry[],
 	) => void;
 
 	/**
@@ -78,9 +79,9 @@ export type DishMediaEntriesStore = {
 	 * reviewsByReviewId を更新しつつ、reviewIdsByKey[key] の先頭に reviewId を追加する。
 	 * 既に同じ reviewId が存在する場合は、エントリは上書きする。
 	 */
-	unshiftMyReviewsByKey: (
+	unshiftEntriesWithMyReviewsByKey: (
 		key: "reviews",
-		items: (DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[],
+		items: DishMediaEntry[],
 	) => void;
 
 	/**
@@ -105,20 +106,20 @@ export type DishMediaEntriesStore = {
 
 	/**
 	 * Promise を受け取り、共通的に loading / error / データ反映を行うヘルパー。
-	 * 成功時は pushMyReviewsByKey を利用して末尾に追加する。
+	 * 成功時は pushEntriesWithMyReviewsByKey を利用して末尾に追加する。
 	 */
-	pushMyReviewsByKeyAsync: (
+	pushEntriesWithMyReviewsByKeyAsync: (
 		key: "reviews",
-		itemsPromise: Promise<(DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[]>,
+		itemsPromise: Promise<DishMediaEntry[]>,
 	) => void;
 
 	/**
 	 * Promise を受け取り、共通的に loading / error / データ反映を行うヘルパー。
-	 * 成功時は unshiftMyReviewsByKey を利用して先頭に追加する。
+	 * 成功時は unshiftEntriesWithMyReviewsByKey を利用して先頭に追加する。
 	 */
-	unshiftMyReviewsByKeyAsync: (
+	unshiftEntriesWithMyReviewsByKeyAsync: (
 		key: "reviews",
-		itemsPromise: Promise<(DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] })[]>,
+		itemsPromise: Promise<DishMediaEntry[]>,
 	) => void;
 
 	// ------ public 削除メソッド ------
@@ -142,11 +143,18 @@ export type DishMediaEntriesStore = {
  * - isLoading: 当該キーのロード中フラグ（デフォルト false）
  * - error: 当該キーのエラー（デフォルト null）
  */
-export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore) => {
+export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore): {
+	entries: DishMediaEntry[] | null;
+	isLoading: boolean;
+	error: string | null;
+} => {
 	const ids: string[] | null = state.mediaIdsByKey[key] || null;
 	return {
 		entries:
-			ids && ids.map((id) => state.entriesByMediaId[id]).filter((entry): entry is DishMediaEntry => Boolean(entry)),
+			ids && (
+				key === "reviews"
+					? selectEntriesWithMyReviewsByKey(key)(state)
+					: ids.map((id) => state.entriesByMediaId[id]).filter((entry): entry is DishMediaEntry => Boolean(entry))),
 		isLoading: state.isLoadingByKey[key] ?? false,
 		error: state.errorByKey[key] ?? null,
 	};
@@ -154,33 +162,55 @@ export const selectEntriesByKey = (key: string) => (state: DishMediaEntriesStore
 
 /**
  * reviews キー専用のセレクタ。
- * myReviewsByReviewId と entriesByMediaId を組み合わせて、
- * DishMediaEntry & { myReview } の配列を返す。
- *
- * - entries: 正規化テーブルから復元した DishMediaEntry の配列（myReview 付き）（デフォルト null）
- * - isLoading: "reviews" キーのロード中フラグ（デフォルト false）
- * - error: "reviews" キーのエラー（デフォルト null）
+ * entriesByMediaId と myReviewsByReviewId を組み合わせて DishMediaEntry 配列を復元する。
  */
-export const selectMyReviewEntriesByKey = (key: "reviews") => (state: DishMediaEntriesStore) => {
+const selectEntriesWithMyReviewsByKey = (key: "reviews") => (state: DishMediaEntriesStore): DishMediaEntry[] | null => {
 	const reviewIds: string[] | null = state.myReviewIdsByKey[key] || null;
-	return {
-		entries:
-			reviewIds &&
-			reviewIds
-				.map((reviewId) => {
-					const review = state.myReviewsByReviewId[reviewId];
-					if (!review) return null;
-					const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
-					if (!entry) return null;
-					return { ...entry, myReview: review };
-				})
-				.filter((entry): entry is DishMediaEntry & { myReview: DishMediaEntry["dish_reviews"][number] } =>
-					Boolean(entry),
-				),
-		isLoading: state.isLoadingByKey[key] ?? false,
-		error: state.errorByKey[key] ?? null,
-	};
+	return reviewIds &&
+		reviewIds
+			.map((reviewId) => {
+				const review = state.myReviewsByReviewId[reviewId];
+				if (!review) return null;
+				const entry = state.entriesByMediaId[String(review.created_dish_media_id)];
+				if (!entry) return null;
+				return { ...entry, dish_reviews: [review] };
+			})
+			.filter((entry): entry is DishMediaEntry =>
+				Boolean(entry),
+			);
 };
+
+// ------ 非同期挿入ヘルパー ------
+const handleAsyncAction =
+	(set: (partial: Partial<DishMediaEntriesStore> | ((state: DishMediaEntriesStore) => Partial<DishMediaEntriesStore>)) => void, key: string, itemsPromise: Promise<DishMediaEntry[]>, onSucsess: (items: DishMediaEntry[]) => void) => {
+		// ローディング開始 & エラーリセット
+		set((state) => ({
+			...state,
+			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
+			errorByKey: { ...state.errorByKey, [key]: null },
+		}));
+
+		itemsPromise
+			.then((items) => {
+				onSucsess(items);
+			})
+			.catch((err) => {
+				const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+				set((state) => ({
+					...state,
+					errorByKey: {
+						...state.errorByKey,
+						[key]: i18n.t("Profile.tabError.failedToLoad", { error: errorMessage }),
+					},
+				}));
+			})
+			.finally(() => {
+				set((state) => ({
+					...state,
+					isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
+				}));
+			});
+	};
 
 export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get) => ({
 	// ------ 初期状態 ------
@@ -243,7 +273,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			};
 		}),
 
-	pushMyReviewsByKey: (key, items) =>
+	pushEntriesWithMyReviewsByKey: (key, items) =>
 		set((state) => {
 			if (!items.length) return state;
 
@@ -252,10 +282,9 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
 
 			for (const item of items) {
-				// #443 【バグ】entriesByMediaId の更新が抜けていたため追加
 				nextEntriesById[String(item.dish_media.id)] = item;
-				nextReviewsById[String(item.myReview.id)] = item.myReview;
-				prevIds.push(String(item.myReview.id));
+				nextReviewsById[String(item.dish_reviews[0].id)] = item.dish_reviews[0];
+				prevIds.push(String(item.dish_reviews[0].id));
 			}
 
 			return {
@@ -269,7 +298,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			};
 		}),
 
-	unshiftMyReviewsByKey: (key, items) =>
+	unshiftEntriesWithMyReviewsByKey: (key, items) =>
 		set((state) => {
 			if (!items.length) return state;
 
@@ -279,10 +308,9 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 			const newIds: string[] = [];
 
 			for (const item of items) {
-				// #443 【バグ】entriesByMediaId の更新が抜けていたため追加
 				nextEntriesById[String(item.dish_media.id)] = item;
-				nextReviewsById[String(item.myReview.id)] = item.myReview;
-				newIds.push(String(item.myReview.id));
+				nextReviewsById[String(item.dish_reviews[0].id)] = item.dish_reviews[0];
+				newIds.push(String(item.dish_reviews[0].id));
 			}
 
 			return {
@@ -310,121 +338,23 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 
 	// ------ 非同期ラッパーメソッド ------
 
-	pushEntriesByKeyAsync: (key, itemsPromise) => {
-		// ローディング開始 & エラーリセット
-		set((state) => ({
-			...state,
-			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
-			errorByKey: { ...state.errorByKey, [key]: null },
-		}));
+	pushEntriesByKeyAsync: (key, itemsPromise) => handleAsyncAction(set, key, itemsPromise, (items) => get().pushEntriesByKey(key, items)),
 
-		itemsPromise
-			.then((items) => {
-				get().pushEntriesByKey(key, items);
-			})
-			.catch((err) => {
-				set((state) => ({
-					...state,
-					errorByKey: {
-						...state.errorByKey,
-						[key]: err instanceof Error ? err : new Error(String(err)),
-					},
-				}));
-			})
-			.finally(() => {
-				set((state) => ({
-					...state,
-					isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
-				}));
-			});
-	},
+	unshiftEntriesByKeyAsync: (key, itemsPromise) => handleAsyncAction(set, key, itemsPromise, (items) => get().unshiftEntriesByKey(key, items)),
 
-	unshiftEntriesByKeyAsync: (key, itemsPromise) => {
-		// ローディング開始 & エラーリセット
-		set((state) => ({
-			...state,
-			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
-			errorByKey: { ...state.errorByKey, [key]: null },
-		}));
+	pushEntriesWithMyReviewsByKeyAsync: (key, itemsPromise) => handleAsyncAction(
+		set,
+		key,
+		itemsPromise,
+		(items) => get().pushEntriesWithMyReviewsByKey(key, items),
+	),
 
-		itemsPromise
-			.then((items) => {
-				get().unshiftEntriesByKey(key, items);
-			})
-			.catch((err) => {
-				set((state) => ({
-					...state,
-					errorByKey: {
-						...state.errorByKey,
-						[key]: err instanceof Error ? err : new Error(String(err)),
-					},
-				}));
-			})
-			.finally(() => {
-				set((state) => ({
-					...state,
-					isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
-				}));
-			});
-	},
-
-	pushMyReviewsByKeyAsync: (key, itemsPromise) => {
-		// ローディング開始 & エラーリセット
-		set((state) => ({
-			...state,
-			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
-			errorByKey: { ...state.errorByKey, [key]: null },
-		}));
-
-		itemsPromise
-			.then((items) => {
-				get().pushMyReviewsByKey(key, items);
-			})
-			.catch((err) => {
-				set((state) => ({
-					...state,
-					errorByKey: {
-						...state.errorByKey,
-						[key]: err instanceof Error ? err : new Error(String(err)),
-					},
-				}));
-			})
-			.finally(() => {
-				set((state) => ({
-					...state,
-					isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
-				}));
-			});
-	},
-
-	unshiftMyReviewsByKeyAsync: (key, itemsPromise) => {
-		// ローディング開始 & エラーリセット
-		set((state) => ({
-			...state,
-			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
-			errorByKey: { ...state.errorByKey, [key]: null },
-		}));
-
-		itemsPromise
-			.then((items) => {
-				get().unshiftMyReviewsByKey(key, items);
-			})
-			.catch((err) => {
-				set((state) => ({
-					...state,
-					errorByKey: {
-						...state.errorByKey,
-						[key]: err instanceof Error ? err : new Error(String(err)),
-					},
-				}));
-			})
-			.finally(() => {
-				set((state) => ({
-					...state,
-					isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
-				}));
-			});
-	},
+	unshiftEntriesWithMyReviewsByKeyAsync: (key, itemsPromise) => handleAsyncAction(
+		set,
+		key,
+		itemsPromise,
+		(items) => get().unshiftEntriesWithMyReviewsByKey(key, items),
+	),
 
 	// ------ 削除メソッド ------
 

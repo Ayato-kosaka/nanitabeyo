@@ -44,14 +44,13 @@ export function LikeTab() {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
+	const { pushEntriesByKey } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
 	const handleItemPress = useCallback(
 		(item: QueryMeLikedDishMediaResponse["data"][number], index: number) => {
 			lightImpact();
-			// #443 【設計】新 Store API を使用（pushEntriesByKeyAsync で非同期的に追加）
-			pushEntriesByKeyAsync("liked", Promise.resolve(items));
+			pushEntriesByKey("liked", items);
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "liked" },
@@ -62,7 +61,7 @@ export function LikeTab() {
 				payload: { item, tabName: "liked" },
 			});
 		},
-		[lightImpact, pushEntriesByKeyAsync, items, locale, logFrontendEvent],
+		[lightImpact, pushEntriesByKey, items, locale, logFrontendEvent],
 	);
 
 	const handleSearchByMood = useCallback(() => {

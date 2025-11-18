@@ -29,8 +29,7 @@ interface RestaurantReviewsTabProps {
 export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps) {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
-	// #443 【設計】新 Store API を使用（pushEntriesByKeyAsync で非同期的に追加）
-	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
+	const { pushEntriesByKey } = useDishMediaEntriesStore();
 	const locale = useLocale();
 	const { BlurModal: DishMediaModal, open: openDishMediaModal } = useBlurModal();
 	const [selectedDishMediaIndex, setSelectedDishMediaIndex] = useState<number>(0);
@@ -67,13 +66,12 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const onItemPress = useCallback(
 		(item: QueryRestaurantDishMediaResponse["data"][number]) => {
 			lightImpact();
-			// #443 【設計】新 Store API を使用（pushEntriesByKeyAsync で Store に追加）
-			pushEntriesByKeyAsync("map", Promise.resolve(reviews.items));
+			pushEntriesByKey("map", reviews.items);
 			const index = reviews.items.findIndex((d) => d.dish_media.id === item.dish_media.id);
 			setSelectedDishMediaIndex(index);
 			openDishMediaModal();
 		},
-		[lightImpact, locale, reviews.items, pushEntriesByKeyAsync, openDishMediaModal],
+		[lightImpact, locale, reviews.items, pushEntriesByKey, openDishMediaModal],
 	);
 
 	// グリッドアイテムのレンダリング関数

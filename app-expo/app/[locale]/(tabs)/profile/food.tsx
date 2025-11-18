@@ -1,27 +1,20 @@
 import React, { useMemo } from "react";
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import {
-	useDishMediaEntriesStore,
-	selectEntriesByKey,
-	selectMyReviewEntriesByKey,
-} from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import { GroupName } from "@/features/profile/components/ProfileTabsBar";
+import { DishMediaEntry } from "@shared/api/v1/res";
 // import { mockDishItems } from "@/data/searchMockData";
 
 export default function ProfileFoodScreen() {
 	const { startIndex, tabName } = useLocalSearchParams<{ startIndex?: string; tabName?: GroupName }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
 
-	// #443 【設計】新 Store API を使用（reviews の場合は専用 selector を使用）
-	const entriesData = useDishMediaEntriesStore(
-		tabName === "reviews" ? selectMyReviewEntriesByKey("reviews") : selectEntriesByKey(tabName || ""),
-	);
-	const { entries: items, isLoading, error } = entriesData;
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(tabName || ""));
 
 	const keyExtractor = useMemo(
-		() => (tabName === "reviews" ? (item: any) => String(item.myReview?.id || item.dish_reviews?.[0]?.id) : undefined),
+		() => (tabName === "reviews" ? (item: DishMediaEntry) => String(item.dish_reviews[0]?.id) : undefined),
 		[tabName],
 	);
 
