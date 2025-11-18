@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { router } from "expo-router";
-import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey, DishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLogger } from "@/hooks/useLogger";
 import type { DishMediaEntry } from "@shared/api/v1/res";
+import { shallow } from "zustand/shallow";
 
 // Encapsulates state and handlers for the search result screen
 export function useSearchResult(topicId: string) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [showCompletionModal, setShowCompletionModal] = useState(false);
 	const { logFrontendEvent } = useLogger();
-	// #443 【設計】新 Store API を使用（selectEntriesByKey で取得）
-	const { entries: dishes, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(topicId));
-
+	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(topicId)(state), [topicId]);
+	const { entries: dishes, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 	// #443 【設計】DishMediaMap が Promise を期待しているため、互換性のため Promise に変換
 	const dishesPromise: Promise<DishMediaEntry[]> = React.useMemo(() => {
 		if (error) return Promise.reject(error);

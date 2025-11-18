@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from "react";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey, DishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { ReviewForm } from "./ReviewForm";
 import i18n from "@/lib/i18n";
+import { shallow } from "zustand/shallow";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
@@ -14,7 +15,8 @@ type FeedDishMediaViewerProps = {
 };
 
 export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewerProps) {
-	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(source));
+	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(source)(state), [source]);
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 

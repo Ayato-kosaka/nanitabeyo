@@ -1,6 +1,6 @@
 import i18n from "@/lib/i18n";
 import type { DishMediaEntry } from "@shared/api/v1/res";
-import { create } from "zustand";
+import { createWithEqualityFn } from "zustand/traditional";
 
 /**
  * 料理メディア（dish_media）に関する正規化済みの状態を管理するストア。
@@ -215,7 +215,7 @@ const handleAsyncAction =
 			});
 	};
 
-export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get) => ({
+export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesStore>()((set, get) => ({
 	// ------ 初期状態 ------
 
 	entriesByMediaId: {},

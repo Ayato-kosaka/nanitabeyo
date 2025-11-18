@@ -1,7 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useLocalSearchParams } from "expo-router";
+import { shallow } from "zustand/shallow";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey, DishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import { GroupName } from "@/features/profile/components/ProfileTabsBar";
 import { DishMediaEntry } from "@shared/api/v1/res";
@@ -11,7 +12,8 @@ export default function ProfileFoodScreen() {
 	const { startIndex, tabName } = useLocalSearchParams<{ startIndex?: string; tabName?: GroupName }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
 
-	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(tabName || ""));
+	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey(tabName ?? "")(state), [tabName]);
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	const keyExtractor = useMemo(
 		() => (tabName === "reviews" ? (item: DishMediaEntry) => String(item.dish_reviews[0]?.id) : undefined),

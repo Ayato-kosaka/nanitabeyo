@@ -1,14 +1,16 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey, DishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
+import { shallow } from "zustand/shallow";
 // import { mockDishItems } from "@/data/searchMockData";
 
 export default function NotificationFeedScreen() {
 	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey("notification"));
+	const selector = useCallback((state: DishMediaEntriesStore) => selectEntriesByKey("notification")(state), []);
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	if (isLoading) {
 		return (
