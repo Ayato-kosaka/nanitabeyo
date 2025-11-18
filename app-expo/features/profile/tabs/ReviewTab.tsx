@@ -49,7 +49,7 @@ export function ReviewTab() {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { pushEntriesWithMyReviewsByKey } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
 	const displayedItems = useMemo(
@@ -60,7 +60,7 @@ export function ReviewTab() {
 	const handleItemPress = useCallback(
 		(item: DishMediaEntry, index: number) => {
 			lightImpact();
-			setDishePromises("reviews", Promise.resolve(displayedItems));
+			pushEntriesWithMyReviewsByKey("reviews", displayedItems);
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "reviews" },
@@ -71,7 +71,7 @@ export function ReviewTab() {
 				payload: { item, tabName: "reviews" },
 			});
 		},
-		[lightImpact, setDishePromises, displayedItems, locale, logFrontendEvent],
+		[lightImpact, pushEntriesWithMyReviewsByKey, displayedItems, locale, logFrontendEvent],
 	);
 
 	const renderReviewItem = useCallback(

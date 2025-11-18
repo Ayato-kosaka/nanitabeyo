@@ -34,7 +34,7 @@ export default function TopicsScreen() {
 	}, [searchParams]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
-	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
+	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
@@ -58,7 +58,7 @@ export default function TopicsScreen() {
 	}, [params, searchTopics, showSnackbar]);
 
 	const handleViewDetails = (topic: Topic) => {
-		setDishes(topic.categoryId, topic.dishItemsPromise);
+		pushEntriesByKeyAsync(topic.categoryId, topic.dishItemsPromise);
 		router.push({
 			pathname: "/[locale]/(tabs)/search/result",
 			params: {

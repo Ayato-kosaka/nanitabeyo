@@ -1,35 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 // import { mockDishItems } from "@/data/searchMockData";
 
 export default function NotificationFeedScreen() {
 	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	const { dishPromisesMap } = useDishMediaEntriesStore();
-	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-
-	useEffect(() => {
-		const loadData = async () => {
-			setIsLoading(true);
-			setError(null);
-			try {
-				const dishMediaEntries = await dishPromisesMap["notification"];
-				setItems(dishMediaEntries);
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "Failed to load data");
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadData();
-	}, [dishPromisesMap]);
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey("notification"));
 
 	if (isLoading) {
 		return (

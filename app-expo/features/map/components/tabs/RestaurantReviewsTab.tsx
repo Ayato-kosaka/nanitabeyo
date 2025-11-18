@@ -29,7 +29,7 @@ interface RestaurantReviewsTabProps {
 export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps) {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { pushEntriesByKey } = useDishMediaEntriesStore();
 	const locale = useLocale();
 	const { BlurModal: DishMediaModal, open: openDishMediaModal } = useBlurModal();
 	const [selectedDishMediaIndex, setSelectedDishMediaIndex] = useState<number>(0);
@@ -66,12 +66,12 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const onItemPress = useCallback(
 		(item: QueryRestaurantDishMediaResponse["data"][number]) => {
 			lightImpact();
-			setDishePromises("map", Promise.resolve(reviews.items));
+			pushEntriesByKey("map", reviews.items);
 			const index = reviews.items.findIndex((d) => d.dish_media.id === item.dish_media.id);
 			setSelectedDishMediaIndex(index);
 			openDishMediaModal();
 		},
-		[lightImpact, locale, reviews.items, setDishePromises],
+		[lightImpact, reviews.items, pushEntriesByKey, openDishMediaModal],
 	);
 
 	// グリッドアイテムのレンダリング関数

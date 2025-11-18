@@ -44,13 +44,13 @@ export function LikeTab() {
 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
+	const { pushEntriesByKey } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
 	const handleItemPress = useCallback(
 		(item: QueryMeLikedDishMediaResponse["data"][number], index: number) => {
 			lightImpact();
-			setDishePromises("liked", Promise.resolve(items));
+			pushEntriesByKey("liked", items);
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "liked" },
@@ -61,7 +61,7 @@ export function LikeTab() {
 				payload: { item, tabName: "liked" },
 			});
 		},
-		[lightImpact, setDishePromises, items, locale, logFrontendEvent],
+		[lightImpact, pushEntriesByKey, items, locale, logFrontendEvent],
 	);
 
 	const handleSearchByMood = useCallback(() => {

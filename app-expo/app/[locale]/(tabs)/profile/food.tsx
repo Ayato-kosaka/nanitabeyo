@@ -1,47 +1,20 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectEntriesByKey } from "@/stores/useDishMediaEntriesStore";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import { GroupName } from "@/features/profile/components/ProfileTabsBar";
+import { DishMediaEntry } from "@shared/api/v1/res";
 // import { mockDishItems } from "@/data/searchMockData";
 
 export default function ProfileFoodScreen() {
 	const { startIndex, tabName } = useLocalSearchParams<{ startIndex?: string; tabName?: GroupName }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	const { dishPromisesMap } = useDishMediaEntriesStore();
-	const [items, setItems] = useState<DishMediaEntry[] | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
-		const loadData = async () => {
-			try {
-				setIsLoading(true);
-				setError(null);
-
-				if (tabName && tabName in dishPromisesMap) {
-					const dishMediaEntries = await dishPromisesMap[tabName];
-					setItems(dishMediaEntries);
-				} else {
-					// Fallback: use mock data if no data in store
-					// setItems(mockDishItems);
-					setItems([]);
-					setError("No data available for this tab");
-				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "Failed to load data");
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadData();
-	}, [tabName, dishPromisesMap]);
+	const { entries: items, isLoading, error } = useDishMediaEntriesStore(selectEntriesByKey(tabName || ""));
 
 	const keyExtractor = useMemo(
-		() => (tabName === "reviews" ? (item: DishMediaEntry) => String(item.dish_reviews[0].id) : undefined),
+		() => (tabName === "reviews" ? (item: DishMediaEntry) => String(item.dish_reviews[0]?.id) : undefined),
 		[tabName],
 	);
 
