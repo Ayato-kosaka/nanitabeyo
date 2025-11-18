@@ -73,7 +73,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 			setSelectedDishMediaIndex(index);
 			openDishMediaModal();
 		},
-		[lightImpact, locale, reviews.items, pushEntriesByKeyAsync, openDishMediaModal],
+		[lightImpact, reviews.items, pushEntriesByKeyAsync, openDishMediaModal],
 	);
 
 	// グリッドアイテムのレンダリング関数
