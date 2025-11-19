@@ -173,7 +173,7 @@ export default function DishMediaMap({
 				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${restaurant.id}`}
+							key={`marker-${index}`}
 							coordinate={restaurant.coordinate}
 							title={restaurant.name}
 							onPress={() => handleMarkerPress(index)}
