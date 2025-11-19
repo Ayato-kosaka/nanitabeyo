@@ -1,3 +1,4 @@
+// #454 【設計】useDishMediaEntriesStore のページネーションAPIを使用してサムネイル表示
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -6,7 +7,6 @@ import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
-import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -14,6 +14,7 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import type { DishMediaEntry, QueryUserDishReviewsResponse } from "@shared/api/v1/res";
 import type { QueryUserDishReviewsDto } from "@shared/api/v1/dto";
+import type { Fetcher } from "@/lib/createCursorController";
 
 export function ReviewTab() {
 	const { userId } = useLocalSearchParams<{ userId?: string }>();
@@ -21,36 +22,51 @@ export function ReviewTab() {
 	const targetUserId = userId && userId !== "me" ? String(userId) : user?.id;
 	const [onlyMyPhotoVideoReviews, setOnlyMyPhotoVideoReviews] = useState(false);
 	const { callBackend } = useAPICall();
-	const { items, loadInitial, loadMore, refresh, error, isLoadingInitial, isLoadingMore } = useCursorPagination<
-		QueryUserDishReviewsDto,
-		QueryUserDishReviewsResponse["data"][number]
-	>(
-		useCallback(
-			async ({ cursor }) => {
-				const response = await callBackend<QueryUserDishReviewsDto, QueryUserDishReviewsResponse>(
-					`v1/users/${targetUserId}/dish-reviews`,
-					{
-						method: "GET",
-						requestPayload: cursor ? { cursor } : {},
-					},
-				);
-				return {
-					data: response.data || [],
-					nextCursor: response.nextCursor,
-				};
-			},
-			[callBackend, targetUserId],
-		),
-	);
-
-	useEffect(() => {
-		loadInitial();
-	}, []);
-
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
+
+	// #454 【設計】ストアの画面用途キー（このタブ専用）
+	const storeKey = `profileReviews_${targetUserId}`;
+
+	const {
+		fetchInitialByKey,
+		fetchMoreByKey,
+		refreshByKey,
+		selectIdsByKey,
+		selectEntryById,
+		isLoadingByKey,
+		isLoadingMoreByKey,
+		errorByKey,
+		setDishePromises, // 旧互換のため残す（遷移先が使用）
+	} = useDishMediaEntriesStore();
+
+	// #454 【設計】データ取得関数（Fetcher型）
+	const fetcher = useCallback<Fetcher<QueryUserDishReviewsDto, DishMediaEntry>>(
+		async ({ cursor }) => {
+			const response = await callBackend<QueryUserDishReviewsDto, QueryUserDishReviewsResponse>(
+				`v1/users/${targetUserId}/dish-reviews`,
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		},
+		[callBackend, targetUserId],
+	);
+
+	// #454 【設計】初期ロード
+	useEffect(() => {
+		fetchInitialByKey(storeKey, {}, fetcher);
+	}, [storeKey, fetchInitialByKey, fetcher]);
+
+	// #454 【設計】ストアから正規化データを取得
+	const mediaIds = selectIdsByKey(storeKey);
+	const items = mediaIds.map((id) => selectEntryById(id)).filter((item): item is DishMediaEntry => item !== undefined);
 
 	const displayedItems = useMemo(
 		() => (onlyMyPhotoVideoReviews && targetUserId ? items.filter((e) => e.dish_media.isMine) : items),
@@ -60,6 +76,8 @@ export function ReviewTab() {
 	const handleItemPress = useCallback(
 		(item: DishMediaEntry, index: number) => {
 			lightImpact();
+			// #454 【設計】遷移先が旧実装（dishPromisesMap）を使用しているため、
+			// 互換性のため setDishePromises を呼び出す
 			setDishePromises("reviews", Promise.resolve(displayedItems));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
@@ -75,7 +93,7 @@ export function ReviewTab() {
 	);
 
 	const renderReviewItem = useCallback(
-		({ item, index }: { item: QueryUserDishReviewsResponse["data"][number]; index: number }) => {
+		({ item, index }: { item: DishMediaEntry; index: number }) => {
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
@@ -111,7 +129,8 @@ export function ReviewTab() {
 		[onlyMyPhotoVideoReviews],
 	);
 
-	const errorMessage = error ? (error instanceof Error ? error.message : String(error)) : null;
+	const error = errorByKey[storeKey];
+	const errorMessage = error ? (typeof error === "string" ? error : String(error)) : null;
 
 	const renderEmptyState = useCallback(() => {
 		if (errorMessage) {
@@ -121,7 +140,7 @@ export function ReviewTab() {
 						<Text style={styles.emptyStateText}>
 							{i18n.t("Profile.tabError.failedToLoad", { error: errorMessage })}
 						</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={refresh}>
+						<TouchableOpacity style={styles.retryButton} onPress={() => refreshByKey(storeKey)}>
 							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
 						</TouchableOpacity>
 					</View>
@@ -136,7 +155,15 @@ export function ReviewTab() {
 				</View>
 			</View>
 		);
-	}, [errorMessage, refresh]);
+	}, [errorMessage, refreshByKey, storeKey]);
+
+	const handleLoadMore = useCallback(() => {
+		fetchMoreByKey(storeKey, fetcher);
+	}, [storeKey, fetchMoreByKey, fetcher]);
+
+	const handleRefresh = useCallback(() => {
+		refreshByKey(storeKey);
+	}, [storeKey, refreshByKey]);
 
 	return (
 		<GridList
@@ -146,11 +173,11 @@ export function ReviewTab() {
 			numColumns={3}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}
-			isLoading={isLoadingInitial}
-			isLoadingMore={isLoadingMore}
-			refreshing={isLoadingInitial}
-			onRefresh={refresh}
-			onEndReached={loadMore}
+			isLoading={isLoadingByKey[storeKey] || false}
+			isLoadingMore={isLoadingMoreByKey[storeKey] || false}
+			refreshing={isLoadingByKey[storeKey] || false}
+			onRefresh={handleRefresh}
+			onEndReached={handleLoadMore}
 			ListEmptyComponent={renderEmptyState}
 			testID="review-tab-grid"
 		/>

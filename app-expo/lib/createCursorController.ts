@@ -111,7 +111,7 @@ export const createCursorController = <TReq, TItem>(
 	const loadMore = async (): Promise<void> => {
 		// #454 【設計】nextCursor が null の場合は何もしない
 		if (state.isLoadingMore || state.nextCursor === null) return;
-		
+
 		setState({ isLoadingMore: true, error: null });
 		try {
 			const response = await fetcher({ cursor: state.nextCursor, request: currentRequest });

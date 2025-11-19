@@ -1,10 +1,9 @@
+// #454 【設計】useDishMediaEntriesStore のページネーションAPIを使用してサムネイル表示
 import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
-import { Text } from "react-native";
 import Stars from "@/components/Stars";
-import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryRestaurantDishMediaDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
@@ -13,6 +12,8 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
+import type { Fetcher } from "@/lib/createCursorController";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 
 interface RestaurantReviewsTabProps {
 	/** レストランID（Google Place ID） */
@@ -22,62 +23,77 @@ interface RestaurantReviewsTabProps {
 /**
  * レストランのレビュー（料理メディア）タブコンポーネント
  *
- * useCursorPaginationを使用してレストランの料理メディアを取得し、
- * 3列のグリッドレイアウトで表示する。
- * SavedPostsTabの実装パターンに倣い、カーソル式ページネーションを実装。
+ * #454 【設計】useDishMediaEntriesStore のページネーションAPIを使用
+ * ストアの正規化データから描画し、画面遷移時に pushEntriesByKey を呼ばない
  */
 export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps) {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
-	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
 	const { BlurModal: DishMediaModal, open: openDishMediaModal } = useBlurModal();
 	const [selectedDishMediaIndex, setSelectedDishMediaIndex] = useState<number>(0);
 
-	// レストランの料理メディア取得用のカーソルページネーション
-	// APIエンドポイント: GET /v1/restaurants/:id/dish-media
-	const reviews = useCursorPagination<QueryRestaurantDishMediaDto, QueryRestaurantDishMediaResponse["data"][number]>(
-		useCallback(
-			async ({ cursor }) => {
-				// レストランIDをパスパラメータに含めてAPIを呼び出し
-				const response = await callBackend<QueryRestaurantDishMediaDto, QueryRestaurantDishMediaResponse>(
-					`v1/restaurants/${restaurantId}/dish-media`,
-					{
-						method: "GET",
-						requestPayload: cursor ? { cursor } : {},
-					},
-				);
-				return {
-					data: response.data || [],
-					nextCursor: response.nextCursor,
-				};
-			},
-			[callBackend, restaurantId],
-		),
+	// #454 【設計】ストアの画面用途キー（このタブ専用）
+	const storeKey = `mapReviews_${restaurantId}`;
+
+	const {
+		fetchInitialByKey,
+		fetchMoreByKey,
+		refreshByKey,
+		selectIdsByKey,
+		selectEntryById,
+		isLoadingByKey,
+		isLoadingMoreByKey,
+		errorByKey,
+		nextCursorByKey,
+		setDishePromises, // 旧互換のため残す（FeedDishMediaViewerが使用）
+	} = useDishMediaEntriesStore();
+
+	// #454 【設計】データ取得関数（Fetcher型）
+	const fetcher = useCallback<Fetcher<QueryRestaurantDishMediaDto, DishMediaEntry>>(
+		async ({ cursor }) => {
+			const response = await callBackend<QueryRestaurantDishMediaDto, QueryRestaurantDishMediaResponse>(
+				`v1/restaurants/${restaurantId}/dish-media`,
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		},
+		[callBackend, restaurantId],
 	);
 
-	// コンポーネントのマウント時、またはレストランIDが変更された時にデータを初期読み込み
+	// #454 【設計】初期ロード
 	useEffect(() => {
 		if (restaurantId) {
-			reviews.loadInitial();
+			fetchInitialByKey(storeKey, {}, fetcher);
 		}
-	}, [restaurantId, reviews.loadInitial]);
+	}, [restaurantId, storeKey, fetchInitialByKey, fetcher]);
+
+	// #454 【設計】ストアから正規化データを取得
+	const mediaIds = selectIdsByKey(storeKey);
+	const items = mediaIds.map((id) => selectEntryById(id)).filter((item): item is DishMediaEntry => item !== undefined);
 
 	const onItemPress = useCallback(
-		(item: QueryRestaurantDishMediaResponse["data"][number]) => {
+		(item: DishMediaEntry) => {
 			lightImpact();
-			setDishePromises("map", Promise.resolve(reviews.items));
-			const index = reviews.items.findIndex((d) => d.dish_media.id === item.dish_media.id);
+			// #454 【設計】FeedDishMediaViewer が旧実装（dishPromisesMap）を使用しているため、
+			// 互換性のため setDishePromises を呼び出す
+			// 将来的には FeedDishMediaViewer もストアの正規化データを直接参照するように修正予定
+			setDishePromises(storeKey, Promise.resolve(items));
+			const index = items.findIndex((d) => d.dish_media.id === item.dish_media.id);
 			setSelectedDishMediaIndex(index);
 			openDishMediaModal();
 		},
-		[lightImpact, locale, reviews.items, setDishePromises],
+		[lightImpact, locale, items, setDishePromises, storeKey, openDishMediaModal],
 	);
 
-	// グリッドアイテムのレンダリング関数
-	// 既存のレイアウト構造を完全に維持
 	const renderReviewItem = useCallback(
-		({ item }: { item: QueryRestaurantDishMediaResponse["data"][number] }) => (
+		({ item }: { item: DishMediaEntry }) => (
 			<ImageCard
 				item={{ id: item.dish_media.id, imageUrl: item.dish_media.thumbnailImageUrl }}
 				onPress={() => onItemPress(item)}>
@@ -93,28 +109,33 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 		[onItemPress],
 	);
 
+	const handleLoadMore = useCallback(() => {
+		fetchMoreByKey(storeKey, fetcher);
+	}, [storeKey, fetchMoreByKey, fetcher]);
+
+	const handleRefresh = useCallback(() => {
+		refreshByKey(storeKey);
+	}, [storeKey, refreshByKey]);
+
 	return (
 		<>
 			<GridList
-				// データ変換: dish_media.idをトップレベルのidとして設定（既存実装を維持）
-				data={reviews.items.map((item) => ({ ...item, id: item.dish_media.id }))}
+				data={items.map((item) => ({ ...item, id: item.dish_media.id }))}
 				renderItem={renderReviewItem}
-				numColumns={3} // 3列のグリッドレイアウト
+				numColumns={3}
 				contentContainerStyle={styles.reviewsContent}
 				columnWrapperStyle={styles.reviewsRow}
-				// ページネーション関連のプロパティ
-				onEndReached={reviews.loadMore}
-				onRefresh={reviews.refresh}
-				refreshing={reviews.isLoadingInitial}
+				onEndReached={handleLoadMore}
+				onRefresh={handleRefresh}
+				refreshing={isLoadingByKey[storeKey] || false}
 			/>
 			<DishMediaModal paddingVertical={0}>
-				<FeedDishMediaViewer initialIndex={selectedDishMediaIndex} source="map" />
+				<FeedDishMediaViewer initialIndex={selectedDishMediaIndex} source={storeKey} />
 			</DishMediaModal>
 		</>
 	);
 }
 
-// 既存のスタイルを完全に維持
 const styles = StyleSheet.create({
 	reviewsContent: {
 		paddingHorizontal: 16,

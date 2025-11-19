@@ -1,9 +1,9 @@
+// #454 【設計】useDishMediaEntriesStore のページネーションAPIを使用してサムネイル表示
 import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { SavePostTab } from "./save/SavePostTab";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
-import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
@@ -11,6 +11,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { router } from "expo-router";
 import type { QueryMeSavedDishMediaDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishMediaResponse, DishMediaEntry } from "@shared/api/v1/res";
+import type { Fetcher } from "@/lib/createCursorController";
 
 interface SavedPostsTabProps {
 	isOwnProfile: boolean;
@@ -28,39 +29,58 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	}
 
 	const { callBackend } = useAPICall();
-
-	const posts = useCursorPagination<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse["data"][number]>(
-		useCallback(
-			async ({ cursor }) => {
-				const response = await callBackend<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse>(
-					"v1/users/me/saved-dish-media",
-					{
-						method: "GET",
-						requestPayload: cursor ? { cursor } : {},
-					},
-				);
-				return {
-					data: response.data || [],
-					nextCursor: response.nextCursor,
-				};
-			},
-			[callBackend],
-		),
-	);
-
-	useEffect(() => {
-		posts.loadInitial();
-	}, []);
-
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
+	// #454 【設計】ストアの画面用途キー（このタブ専用）
+	const storeKey = "profileSaved";
+
+	const {
+		fetchInitialByKey,
+		fetchMoreByKey,
+		refreshByKey,
+		selectIdsByKey,
+		selectEntryById,
+		isLoadingByKey,
+		isLoadingMoreByKey,
+		errorByKey,
+		setDishePromises, // 旧互換のため残す（遷移先が使用）
+	} = useDishMediaEntriesStore();
+
+	// #454 【設計】データ取得関数（Fetcher型）
+	const fetcher = useCallback<Fetcher<QueryMeSavedDishMediaDto, DishMediaEntry>>(
+		async ({ cursor }) => {
+			const response = await callBackend<QueryMeSavedDishMediaDto, QueryMeSavedDishMediaResponse>(
+				"v1/users/me/saved-dish-media",
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		},
+		[callBackend],
+	);
+
+	// #454 【設計】初期ロード
+	useEffect(() => {
+		fetchInitialByKey(storeKey, {}, fetcher);
+	}, [storeKey, fetchInitialByKey, fetcher]);
+
+	// #454 【設計】ストアから正規化データを取得
+	const mediaIds = selectIdsByKey(storeKey);
+	const items = mediaIds.map((id) => selectEntryById(id)).filter((item): item is DishMediaEntry => item !== undefined);
+
 	const handlePostPress = useCallback(
-		(item: QueryMeSavedDishMediaResponse["data"][number], index: number) => {
+		(item: DishMediaEntry, index: number) => {
 			lightImpact();
-			setDishePromises("saved", Promise.resolve(posts.items));
+			// #454 【設計】遷移先が旧実装（dishPromisesMap）を使用しているため、
+			// 互換性のため setDishePromises を呼び出す
+			setDishePromises("saved", Promise.resolve(items));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "saved" },
@@ -71,22 +91,31 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 				payload: { item, tabName: "saved" },
 			});
 		},
-		[lightImpact, setDishePromises, posts.items, locale, logFrontendEvent],
+		[lightImpact, setDishePromises, items, locale, logFrontendEvent],
 	);
 
-	const error = posts.error ? (posts.error instanceof Error ? posts.error.message : String(posts.error)) : null;
+	const error = errorByKey[storeKey];
+	const errorMessage = error ? (typeof error === "string" ? error : String(error)) : null;
+
+	const handleLoadMore = useCallback(() => {
+		fetchMoreByKey(storeKey, fetcher);
+	}, [storeKey, fetchMoreByKey, fetcher]);
+
+	const handleRefresh = useCallback(() => {
+		refreshByKey(storeKey);
+	}, [storeKey, refreshByKey]);
 
 	return (
 		<SavePostTab
-			data={posts.items}
-			isLoading={posts.isLoadingInitial}
-			isLoadingMore={posts.isLoadingMore}
-			refreshing={posts.isLoadingInitial}
-			onRefresh={posts.refresh}
-			onEndReached={posts.loadMore}
+			data={items}
+			isLoading={isLoadingByKey[storeKey] || false}
+			isLoadingMore={isLoadingMoreByKey[storeKey] || false}
+			refreshing={isLoadingByKey[storeKey] || false}
+			onRefresh={handleRefresh}
+			onEndReached={handleLoadMore}
 			onItemPress={handlePostPress}
-			error={error}
-			onRetry={posts.refresh}
+			error={errorMessage}
+			onRetry={handleRefresh}
 		/>
 	);
 }

@@ -56,21 +56,14 @@ type DishMediaEntriesStore = {
 	 * @param request リクエストパラメータ
 	 * @param fetcher データ取得関数
 	 */
-	fetchInitialByKey: <TReq>(
-		key: string,
-		request: TReq,
-		fetcher: Fetcher<TReq, DishMediaEntry>,
-	) => Promise<void>;
+	fetchInitialByKey: <TReq>(key: string, request: TReq, fetcher: Fetcher<TReq, DishMediaEntry>) => Promise<void>;
 
 	/**
 	 * 追加ページ取得 + storeへの追記
 	 * @param key 画面用途キー
 	 * @param fetcher データ取得関数
 	 */
-	fetchMoreByKey: <TReq>(
-		key: string,
-		fetcher: Fetcher<TReq, DishMediaEntry>,
-	) => Promise<void>;
+	fetchMoreByKey: <TReq>(key: string, fetcher: Fetcher<TReq, DishMediaEntry>) => Promise<void>;
 
 	/**
 	 * リフレッシュ（再初期化）
@@ -139,13 +132,9 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 	},
 
 	// === ページネーションAPI ===
-	fetchInitialByKey: async <TReq,>(
-		key: string,
-		request: TReq,
-		fetcher: Fetcher<TReq, DishMediaEntry>,
-	) => {
+	fetchInitialByKey: async <TReq>(key: string, request: TReq, fetcher: Fetcher<TReq, DishMediaEntry>) => {
 		const state = get();
-		
+
 		// #454 【設計】コントローラーが存在しない場合は新規作成
 		let controller = state._controllers.get(key);
 		if (!controller) {
@@ -204,13 +193,10 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 		}
 	},
 
-	fetchMoreByKey: async <TReq,>(
-		key: string,
-		fetcher: Fetcher<TReq, DishMediaEntry>,
-	) => {
+	fetchMoreByKey: async <TReq>(key: string, fetcher: Fetcher<TReq, DishMediaEntry>) => {
 		const state = get();
 		const controller = state._controllers.get(key);
-		
+
 		// #454 【設計】コントローラーが存在しない場合、または nextCursor が null の場合は何もしない
 		if (!controller || state.nextCursorByKey[key] === null) {
 			return;
@@ -242,7 +228,7 @@ export const useDishMediaEntriesStore = create<DishMediaEntriesStore>((set, get)
 	refreshByKey: async (key: string) => {
 		const state = get();
 		const controller = state._controllers.get(key);
-		
+
 		if (!controller) {
 			return;
 		}

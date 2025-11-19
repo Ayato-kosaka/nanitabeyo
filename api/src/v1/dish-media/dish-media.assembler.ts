@@ -26,7 +26,7 @@ export class DishMediaAssembler {
     private readonly restaurantsAssembler: RestaurantsAssembler,
     private readonly cookieQueue: CookieQueueService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * Repository から取得した `DishMediaEntryEntity[]` を
@@ -121,26 +121,26 @@ export class DishMediaAssembler {
     const cdnUrl =
       dishMedia.media_type === 'video'
         ? // 動画の場合の HLS マスター再生リスト CDN URL
-        buildTranscodedPath(
-          {
-            table: 'dish_media',
-            column: 'media_path',
-            recordId: dishMedia.id,
-            originalPath: dishMedia.media_path,
-          },
-          'cdn',
-        )
+          buildTranscodedPath(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: dishMedia.id,
+              originalPath: dishMedia.media_path,
+            },
+            'cdn',
+          )
         : // 画像の場合のリサイズ CDN URL
-        buildResizedPath(
-          {
-            table: 'dish_media',
-            column: 'media_path',
-            recordId: dishMedia.id,
-            size: 1024,
-            originalPath: dishMedia.media_path,
-          },
-          'cdn',
-        );
+          buildResizedPath(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: dishMedia.id,
+              size: 1024,
+              originalPath: dishMedia.media_path,
+            },
+            'cdn',
+          );
 
     if (dishMedia.media_type === 'video') {
       // 動画: プレーンな CDN URL を返し、Cookie 設定用のプレフィックスも返す

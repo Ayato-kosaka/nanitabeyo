@@ -1,3 +1,4 @@
+// #454 【設計】useDishMediaEntriesStore のページネーションAPIを使用してサムネイル表示
 import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
@@ -6,50 +7,67 @@ import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
-import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
-import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
+import type { QueryMeLikedDishMediaResponse, DishMediaEntry } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
+import type { Fetcher } from "@/lib/createCursorController";
 
 export function LikeTab() {
 	const { callBackend } = useAPICall();
-	const { items, loadInitial, loadMore, refresh, error, isLoadingInitial, isLoadingMore } = useCursorPagination<
-		QueryMeLikedDishMediaDto,
-		QueryMeLikedDishMediaResponse["data"][number]
-	>(
-		useCallback(
-			async ({ cursor }) => {
-				const response = await callBackend<QueryMeLikedDishMediaDto, QueryMeLikedDishMediaResponse>(
-					"v1/users/me/liked-dish-media",
-					{
-						method: "GET",
-						requestPayload: cursor ? { cursor } : {},
-					},
-				);
-				return {
-					data: response.data || [],
-					nextCursor: response.nextCursor,
-				};
-			},
-			[callBackend],
-		),
-	);
-
-	useEffect(() => {
-		loadInitial();
-	}, []);
-
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
+	// #454 【設計】ストアの画面用途キー（このタブ専用）
+	const storeKey = "profileLikes";
+
+	const {
+		fetchInitialByKey,
+		fetchMoreByKey,
+		refreshByKey,
+		selectIdsByKey,
+		selectEntryById,
+		isLoadingByKey,
+		isLoadingMoreByKey,
+		errorByKey,
+		setDishePromises, // 旧互換のため残す（遷移先が使用）
+	} = useDishMediaEntriesStore();
+
+	// #454 【設計】データ取得関数（Fetcher型）
+	const fetcher = useCallback<Fetcher<QueryMeLikedDishMediaDto, DishMediaEntry>>(
+		async ({ cursor }) => {
+			const response = await callBackend<QueryMeLikedDishMediaDto, QueryMeLikedDishMediaResponse>(
+				"v1/users/me/liked-dish-media",
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		},
+		[callBackend],
+	);
+
+	// #454 【設計】初期ロード
+	useEffect(() => {
+		fetchInitialByKey(storeKey, {}, fetcher);
+	}, [storeKey, fetchInitialByKey, fetcher]);
+
+	// #454 【設計】ストアから正規化データを取得
+	const mediaIds = selectIdsByKey(storeKey);
+	const items = mediaIds.map((id) => selectEntryById(id)).filter((item): item is DishMediaEntry => item !== undefined);
+
 	const handleItemPress = useCallback(
-		(item: QueryMeLikedDishMediaResponse["data"][number], index: number) => {
+		(item: DishMediaEntry, index: number) => {
 			lightImpact();
+			// #454 【設計】遷移先が旧実装（dishPromisesMap）を使用しているため、
+			// 互換性のため setDishePromises を呼び出す
 			setDishePromises("liked", Promise.resolve(items));
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
@@ -78,7 +96,7 @@ export function LikeTab() {
 	}, [lightImpact, locale, logFrontendEvent]);
 
 	const renderLikeItem = useCallback(
-		({ item, index }: { item: QueryMeLikedDishMediaResponse["data"][number]; index: number }) => {
+		({ item, index }: { item: DishMediaEntry; index: number }) => {
 			const gridItem = {
 				...item,
 				id: item.dish_media.id,
@@ -99,7 +117,8 @@ export function LikeTab() {
 		[handleItemPress],
 	);
 
-	const errorMessage = error ? (error instanceof Error ? error.message : String(error)) : null;
+	const error = errorByKey[storeKey];
+	const errorMessage = error ? (typeof error === "string" ? error : String(error)) : null;
 
 	const renderEmptyState = useCallback(() => {
 		if (errorMessage) {
@@ -109,7 +128,7 @@ export function LikeTab() {
 						<Text style={styles.emptyStateText}>
 							{i18n.t("Profile.tabError.failedToLoad", { error: errorMessage })}
 						</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={refresh}>
+						<TouchableOpacity style={styles.retryButton} onPress={() => refreshByKey(storeKey)}>
 							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
 						</TouchableOpacity>
 					</View>
@@ -127,7 +146,15 @@ export function LikeTab() {
 				</View>
 			</View>
 		);
-	}, [errorMessage, refresh, handleSearchByMood]);
+	}, [errorMessage, refreshByKey, storeKey, handleSearchByMood]);
+
+	const handleLoadMore = useCallback(() => {
+		fetchMoreByKey(storeKey, fetcher);
+	}, [storeKey, fetchMoreByKey, fetcher]);
+
+	const handleRefresh = useCallback(() => {
+		refreshByKey(storeKey);
+	}, [storeKey, refreshByKey]);
 
 	return (
 		<GridList
@@ -136,11 +163,11 @@ export function LikeTab() {
 			numColumns={3}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}
-			isLoading={isLoadingInitial}
-			isLoadingMore={isLoadingMore}
-			refreshing={isLoadingInitial}
-			onRefresh={refresh}
-			onEndReached={loadMore}
+			isLoading={isLoadingByKey[storeKey] || false}
+			isLoadingMore={isLoadingMoreByKey[storeKey] || false}
+			refreshing={isLoadingByKey[storeKey] || false}
+			onRefresh={handleRefresh}
+			onEndReached={handleLoadMore}
 			ListEmptyComponent={renderEmptyState}
 			testID="like-tab-grid"
 		/>
