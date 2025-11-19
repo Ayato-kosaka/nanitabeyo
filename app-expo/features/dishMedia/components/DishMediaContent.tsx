@@ -8,7 +8,12 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
-import { selectEntryById, selectEntryByReviewId, useDishMediaEntriesStore, denormalizeEntry } from "@/stores/useDishMediaEntriesStore";
+import {
+	selectEntryById,
+	selectEntryByReviewId,
+	useDishMediaEntriesStore,
+	denormalizeEntry,
+} from "@/stores/useDishMediaEntriesStore";
 
 interface DishMediaContentProps {
 	id: string;

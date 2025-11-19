@@ -8,7 +8,12 @@ import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById, denormalizeEntry } from "@/stores/useDishMediaEntriesStore";
+import {
+	useDishMediaEntriesStore,
+	selectIdsByKey,
+	selectEntryById,
+	denormalizeEntry,
+} from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";

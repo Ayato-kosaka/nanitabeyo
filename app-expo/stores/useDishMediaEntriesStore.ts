@@ -210,26 +210,26 @@ export type DishMediaEntriesStore = {
  */
 export const selectIdsByKey =
 	(key: string) =>
-		(
-			state: DishMediaEntriesStore,
-		): {
-			ids: string[];
-			isLoading: boolean;
-			error: string | null;
-			hasFetchedInitial: boolean;
-			hasNextPage: boolean;
-			isLoadingMore: boolean;
-		} => {
-			const ids = (key === "reviews" ? state.myReviewIdsByKey[key] : state.mediaIdsByKey[key]) || [];
-			return {
-				ids,
-				isLoading: state.isLoadingByKey[key] ?? false,
-				error: state.errorByKey[key] ?? null,
-				hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
-				hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
-				isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
-			};
+	(
+		state: DishMediaEntriesStore,
+	): {
+		ids: string[];
+		isLoading: boolean;
+		error: string | null;
+		hasFetchedInitial: boolean;
+		hasNextPage: boolean;
+		isLoadingMore: boolean;
+	} => {
+		const ids = (key === "reviews" ? state.myReviewIdsByKey[key] : state.mediaIdsByKey[key]) || [];
+		return {
+			ids,
+			isLoading: state.isLoadingByKey[key] ?? false,
+			error: state.errorByKey[key] ?? null,
+			hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
+			hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
+			isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
 		};
+	};
 
 /**
  * dish_media.id から正規化済み DishMediaEntry を取得するセレクタ。
@@ -237,29 +237,29 @@ export const selectIdsByKey =
  */
 export const selectEntryById =
 	(id: string) =>
-		(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
-			return state.entriesByMediaId[id] ?? null;
-		};
+	(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
+		return state.entriesByMediaId[id] ?? null;
+	};
 
 /**
  * dish_review.id から DishReview を取得するセレクタ。
  */
 export const selectReviewById =
 	(reviewId: string) =>
-		(state: DishMediaEntriesStore): DishReview | null => {
-			return state.reviewsByReviewId[reviewId] ?? null;
-		};
+	(state: DishMediaEntriesStore): DishReview | null => {
+		return state.reviewsByReviewId[reviewId] ?? null;
+	};
 
 /**
  * dish_media.id に紐づく全レビューを取得するセレクタ。
  */
 export const selectReviewsForEntry =
 	(mediaId: string) =>
-		(state: DishMediaEntriesStore): DishReview[] => {
-			const entry = state.entriesByMediaId[mediaId];
-			if (!entry) return [];
-			return entry.dishReviewIds.map((id) => state.reviewsByReviewId[id]).filter((r): r is DishReview => !!r);
-		};
+	(state: DishMediaEntriesStore): DishReview[] => {
+		const entry = state.entriesByMediaId[mediaId];
+		if (!entry) return [];
+		return entry.dishReviewIds.map((id) => state.reviewsByReviewId[id]).filter((r): r is DishReview => !!r);
+	};
 
 /**
  * #457 【設計】正規化済みエントリを元の DishMediaEntry 形式に復元するヘルパー関数。
@@ -284,20 +284,20 @@ export const denormalizeEntry = (
  */
 export const selectEntryByReviewId =
 	(reviewId: string) =>
-		(state: DishMediaEntriesStore): DishMediaEntry | null => {
-			const review = state.reviewsByReviewId[reviewId];
-			if (!review) return null;
+	(state: DishMediaEntriesStore): DishMediaEntry | null => {
+		const review = state.reviewsByReviewId[reviewId];
+		if (!review) return null;
 
-			const mediaId = String(review.created_dish_media_id);
-			const normalizedEntry = state.entriesByMediaId[mediaId];
-			if (!normalizedEntry) return null;
+		const mediaId = String(review.created_dish_media_id);
+		const normalizedEntry = state.entriesByMediaId[mediaId];
+		if (!normalizedEntry) return null;
 
-			// #457 【設計】レビュー画面では該当レビューのみを返す
-			return {
-				...normalizedEntry,
-				dish_reviews: [review],
-			};
+		// #457 【設計】レビュー画面では該当レビューのみを返す
+		return {
+			...normalizedEntry,
+			dish_reviews: [review],
 		};
+	};
 
 // ------ 非同期挿入ヘルパー ------
 const handleAsyncAction = <T>(
@@ -665,13 +665,19 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 		// nextCursor が null の場合は何もしない
 		if (nextCursor === null || nextCursor === undefined) return;
 
-		return handleAsyncAction(set, key, fetcher({ cursor: nextCursor, request }), (response) => {
-			pushEntriesByKey(key, response.data);
-			// nextCursorByKey[key] を更新
-			set((prevState) => ({
-				nextCursorByKey: { ...prevState.nextCursorByKey, [key]: response.nextCursor ?? null },
-			}));
-		}, { loadingType: "isLoadingMoreByKey" });
+		return handleAsyncAction(
+			set,
+			key,
+			fetcher({ cursor: nextCursor, request }),
+			(response) => {
+				pushEntriesByKey(key, response.data);
+				// nextCursorByKey[key] を更新
+				set((prevState) => ({
+					nextCursorByKey: { ...prevState.nextCursorByKey, [key]: response.nextCursor ?? null },
+				}));
+			},
+			{ loadingType: "isLoadingMoreByKey" },
+		);
 	},
 
 	fetchInitialWithMyReviewsByKey: async (key, request, fetcher) =>
@@ -697,13 +703,19 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 		// nextCursor が null の場合は何もしない
 		if (nextCursor === null || nextCursor === undefined) return;
 
-		return handleAsyncAction(set, key, fetcher({ cursor: nextCursor, request }), (response) => {
-			// 取得データを末尾に追加
-			pushEntriesWithMyReviewsByKey(key, response.data);
-			// nextCursorByKey[key] を更新
-			set((prevState) => ({
-				nextCursorByKey: { ...prevState.nextCursorByKey, [key]: response.nextCursor ?? null },
-			}));
-		}, { loadingType: "isLoadingMoreByKey" });
+		return handleAsyncAction(
+			set,
+			key,
+			fetcher({ cursor: nextCursor, request }),
+			(response) => {
+				// 取得データを末尾に追加
+				pushEntriesWithMyReviewsByKey(key, response.data);
+				// nextCursorByKey[key] を更新
+				set((prevState) => ({
+					nextCursorByKey: { ...prevState.nextCursorByKey, [key]: response.nextCursor ?? null },
+				}));
+			},
+			{ loadingType: "isLoadingMoreByKey" },
+		);
 	},
 }));

@@ -8,7 +8,12 @@ import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryRestaurantDishMediaDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
-import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById, denormalizeEntry } from "@/stores/useDishMediaEntriesStore";
+import {
+	useDishMediaEntriesStore,
+	selectIdsByKey,
+	selectEntryById,
+	denormalizeEntry,
+} from "@/stores/useDishMediaEntriesStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
