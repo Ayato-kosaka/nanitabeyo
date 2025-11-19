@@ -23,7 +23,9 @@ export function LikeTab() {
 	const entriesKey = "profileLikes";
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
+	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
+		selectIdsByKey(entriesKey),
+	);
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -44,8 +46,9 @@ export function LikeTab() {
 	);
 
 	useEffect(() => {
+		if (hasFetchedInitial) return;
 		fetchInitialByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialByKey, fetcher]);
+	}, [entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial]);
 
 	const handleItemPress = useCallback(
 		(dishMediaId: string, index: number) => {

@@ -49,6 +49,11 @@ export type DishMediaEntriesStore = {
 	errorByKey: Record<string, string | null>;
 
 	/**
+	 * 画面用途キーごとに初回取得が完了したかどうかを管理するフラグ。
+	 */
+	hasFetchedInitialByKey: Record<string, boolean>;
+
+	/**
 	 *カーソルページネーション用の nextCursor を画面用途キーごとに管理
 	 */
 	nextCursorByKey: Record<string, string | null>;
@@ -201,6 +206,7 @@ export const selectIdsByKey =
 			ids: string[];
 			isLoading: boolean;
 			error: string | null;
+			hasFetchedInitial: boolean;
 			hasNextPage: boolean;
 			isLoadingMore: boolean;
 		} => {
@@ -209,6 +215,7 @@ export const selectIdsByKey =
 				ids,
 				isLoading: state.isLoadingByKey[key] ?? false,
 				error: state.errorByKey[key] ?? null,
+				hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
 				hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
 				isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
 			};
@@ -286,6 +293,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	myReviewIdsByKey: { reviews: [] },
 	isLoadingByKey: {},
 	errorByKey: {},
+	hasFetchedInitialByKey: {},
 	nextCursorByKey: {},
 	isLoadingMoreByKey: {},
 
@@ -432,6 +440,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 					myReviewIdsByKey: { reviews: [] },
 					isLoadingByKey: {},
 					errorByKey: {},
+					hasFetchedInitialByKey: {},
 					nextCursorByKey: {},
 					isLoadingMoreByKey: {},
 				};
@@ -442,12 +451,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			const nextMyReviewIdsByKey = { ...state.myReviewIdsByKey };
 			const nextIsLoadingByKey = { ...state.isLoadingByKey };
 			const nextErrorByKey = { ...state.errorByKey };
+			const nextHasFetchedInitialByKey = { ...state.hasFetchedInitialByKey };
 			const nextNextCursorByKey = { ...state.nextCursorByKey };
 			const nextIsLoadingMoreByKey = { ...state.isLoadingMoreByKey };
 
 			delete nextMediaIdsByKey[key];
 			delete nextIsLoadingByKey[key];
 			delete nextErrorByKey[key];
+			delete nextHasFetchedInitialByKey[key];
 			delete nextNextCursorByKey[key];
 			delete nextIsLoadingMoreByKey[key];
 
@@ -496,6 +507,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 				myReviewIdsByKey: nextMyReviewIdsByKey,
 				isLoadingByKey: nextIsLoadingByKey,
 				errorByKey: nextErrorByKey,
+				hasFetchedInitialByKey: nextHasFetchedInitialByKey,
 				nextCursorByKey: nextNextCursorByKey,
 				isLoadingMoreByKey: nextIsLoadingMoreByKey,
 			};
@@ -512,6 +524,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			// nextCursorByKey[key] をセット
 			set((state) => ({
 				nextCursorByKey: { ...state.nextCursorByKey, [key]: response.nextCursor ?? null },
+			}));
+			// 取得済みフラグをセット
+			set((state) => ({
+				hasFetchedInitialByKey: { ...state.hasFetchedInitialByKey, [key]: true },
 			}));
 		}),
 
@@ -540,6 +556,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			// nextCursorByKey[key] をセット
 			set((state) => ({
 				nextCursorByKey: { ...state.nextCursorByKey, [key]: response.nextCursor ?? null },
+			}));
+			// 取得済みフラグをセット
+			set((state) => ({
+				hasFetchedInitialByKey: { ...state.hasFetchedInitialByKey, [key]: true },
 			}));
 		}),
 

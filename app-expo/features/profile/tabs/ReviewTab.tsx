@@ -28,7 +28,9 @@ export function ReviewTab() {
 	const entriesKey = "reviews" as const;
 	const fetchInitialWithMyReviewsByKey = useDishMediaEntriesStore((s) => s.fetchInitialWithMyReviewsByKey);
 	const fetchMoreWithMyReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithMyReviewsByKey);
-	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
+	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
+		selectIdsByKey(entriesKey),
+	);
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -49,8 +51,9 @@ export function ReviewTab() {
 	);
 
 	useEffect(() => {
+		if (hasFetchedInitial) return;
 		fetchInitialWithMyReviewsByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher]);
+	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher, hasFetchedInitial]);
 
 	// #454 【設計】フィルタリングは表示時に ids から行う
 	const filteredIds = useMemo(() => {

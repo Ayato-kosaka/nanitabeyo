@@ -34,7 +34,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const entriesKey = `mapReviews-${restaurantId}`;
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
+	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -56,10 +56,10 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 
 	// コンポーネントのマウント時、またはレストランIDが変更された時にデータを初期読み込み
 	useEffect(() => {
-		if (restaurantId) {
+		if (restaurantId && !hasFetchedInitial) {
 			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
-	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher]);
+	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial]);
 
 	const onItemPress = useCallback(
 		(index: number) => {
