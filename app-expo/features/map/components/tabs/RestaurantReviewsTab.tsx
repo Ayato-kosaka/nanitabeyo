@@ -27,14 +27,13 @@ interface RestaurantReviewsTabProps {
 export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps) {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
-	const locale = useLocale();
 	const { BlurModal: DishMediaModal, open: openDishMediaModal } = useBlurModal();
 	const [selectedDishMediaIndex, setSelectedDishMediaIndex] = useState<number>(0);
 
 	// #454 【設計】画面用途キー "mapReviews" でストアからデータ取得
-	const key = `mapReviews-${restaurantId}`;
+	const entriesKey = `mapReviews-${restaurantId}`;
 	const { fetchInitialByKey, fetchMoreByKey } = useDishMediaEntriesStore();
-	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(key));
+	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -57,14 +56,13 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	// コンポーネントのマウント時、またはレストランIDが変更された時にデータを初期読み込み
 	useEffect(() => {
 		if (restaurantId) {
-			fetchInitialByKey(key, {}, fetcher);
+			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
-	}, [restaurantId, key, fetchInitialByKey, fetcher]);
+	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher]);
 
 	const onItemPress = useCallback(
-		(dishMediaId: number, index: number) => {
+		(index: number) => {
 			lightImpact();
-			// #454 【設計】pushEntriesByKey を削除し、そのまま遷移
 			setSelectedDishMediaIndex(index);
 			openDishMediaModal();
 		},
@@ -74,13 +72,13 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	// グリッドアイテムのレンダリング関数
 	const renderReviewItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const { entry } = useDishMediaEntriesStore(selectEntryById(item.id));
-			if (!entry) return null;
+			const { entry } = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
+			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			return (
 				<ImageCard
 					item={{ id: entry.dish_media.id, imageUrl: entry.dish_media.thumbnailImageUrl }}
-					onPress={() => onItemPress(entry.dish_media.id, index)}>
+					onPress={() => onItemPress(index)}>
 					<View style={styles.reviewCardOverlay}>
 						<Text style={styles.reviewCardTitle}>{entry.dish.name}</Text>
 						<View style={styles.reviewCardRating}>
@@ -95,12 +93,12 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	);
 
 	const handleLoadMore = useCallback(() => {
-		fetchMoreByKey(key, {}, fetcher);
-	}, [key, fetchMoreByKey, fetcher]);
+		fetchMoreByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchMoreByKey, fetcher]);
 
 	const handleRefresh = useCallback(() => {
-		fetchInitialByKey(key, {}, fetcher);
-	}, [key, fetchInitialByKey, fetcher]);
+		fetchInitialByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchInitialByKey, fetcher]);
 
 	return (
 		<>
@@ -115,7 +113,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 				refreshing={isLoading}
 			/>
 			<DishMediaModal paddingVertical={0}>
-				<FeedDishMediaViewer initialIndex={selectedDishMediaIndex} source="map" />
+				<FeedDishMediaViewer initialIndex={selectedDishMediaIndex} entriesKey={entriesKey} />
 			</DishMediaModal>
 		</>
 	);

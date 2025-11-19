@@ -34,9 +34,9 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	const locale = useLocale();
 
 	// #454 【設計】画面用途キー "profileSaved" でストアからデータ取得
-	const key = "profileSaved";
+	const entriesKey = "profileSaved";
 	const { fetchInitialByKey, fetchMoreByKey } = useDishMediaEntriesStore();
-	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(key));
+	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -57,41 +57,40 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	);
 
 	useEffect(() => {
-		fetchInitialByKey(key, {}, fetcher);
-	}, [key, fetchInitialByKey, fetcher]);
+		fetchInitialByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchInitialByKey, fetcher]);
 
 	const handleItemPress = useCallback(
-		(dishMediaId: number, index: number) => {
+		(dishMediaId: string, index: number) => {
 			lightImpact();
-			// #454 【設計】pushEntriesByKey を削除し、そのまま遷移
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
-				params: { locale, startIndex: index, tabName: "saved" },
+				params: { locale, startIndex: index, tabName: entriesKey },
 			});
 			logFrontendEvent({
 				event_name: "dish_media_entry_selected",
 				error_level: "log",
-				payload: { dishMediaId, tabName: "saved" },
+				payload: { dishMediaId, entriesKey },
 			});
 		},
 		[lightImpact, locale, logFrontendEvent],
 	);
 
 	const handleLoadMore = useCallback(() => {
-		fetchMoreByKey(key, {}, fetcher);
-	}, [key, fetchMoreByKey, fetcher]);
+		fetchMoreByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchMoreByKey, fetcher]);
 
 	const handleRefresh = useCallback(() => {
-		fetchInitialByKey(key, {}, fetcher);
-	}, [key, fetchInitialByKey, fetcher]);
+		fetchInitialByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchInitialByKey, fetcher]);
 
 	const renderPostItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const { entry } = useDishMediaEntriesStore(selectEntryById(item.id));
-			if (!entry) return null;
+			const { entry } = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
+			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {
-				id: entry.dish_media.id,
+				id: item.id,
 				imageUrl: entry.dish_media.thumbnailImageUrl,
 			};
 

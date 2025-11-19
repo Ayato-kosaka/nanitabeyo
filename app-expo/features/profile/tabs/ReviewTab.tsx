@@ -25,9 +25,9 @@ export function ReviewTab() {
 	const locale = useLocale();
 
 	// #454 【設計】画面用途キー "reviews" でストアからデータ取得
-	const key = "reviews" as const;
+	const entriesKey = "reviews" as const;
 	const { fetchInitialWithMyReviewsByKey, fetchMoreWithMyReviewsByKey } = useDishMediaEntriesStore();
-	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(key));
+	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -48,30 +48,29 @@ export function ReviewTab() {
 	);
 
 	useEffect(() => {
-		fetchInitialWithMyReviewsByKey(key, {}, fetcher);
-	}, [key, fetchInitialWithMyReviewsByKey, fetcher]);
+		fetchInitialWithMyReviewsByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher]);
 
 	// #454 【設計】フィルタリングは表示時に ids から行う
-	const displayedIds = useMemo(() => {
+	const filteredIds = useMemo(() => {
 		if (!onlyMyPhotoVideoReviews || !targetUserId) return ids;
 		return ids.filter((id) => {
-			const { entry } = useDishMediaEntriesStore.getState()(selectEntryById(id, { key }));
+			const { entry } = selectEntryById(id, { key: entriesKey })(useDishMediaEntriesStore.getState());
 			return entry?.dish_media.isMine;
 		});
-	}, [onlyMyPhotoVideoReviews, ids, targetUserId, key]);
+	}, [onlyMyPhotoVideoReviews, ids, targetUserId, entriesKey]);
 
 	const handleItemPress = useCallback(
-		(reviewId: number, index: number) => {
+		(reviewId: string, index: number) => {
 			lightImpact();
-			// #454 【設計】pushEntriesWithMyReviewsByKey を削除し、そのまま遷移
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
-				params: { locale, startIndex: index, tabName: "reviews" },
+				params: { locale, startIndex: index, tabName: entriesKey },
 			});
 			logFrontendEvent({
 				event_name: "dish_media_entry_selected",
 				error_level: "log",
-				payload: { reviewId, tabName: "reviews" },
+				payload: { reviewId, entriesKey },
 			});
 		},
 		[lightImpact, locale, logFrontendEvent],
@@ -79,16 +78,16 @@ export function ReviewTab() {
 
 	const renderReviewItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const { entry, myReview } = useDishMediaEntriesStore(selectEntryById(item.id, { key }));
-			if (!entry || !myReview) return null;
+			const { entry } = selectEntryById(item.id, { key: entriesKey })(useDishMediaEntriesStore.getState());
+			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {
-				id: myReview.id,
+				id: item.id,
 				imageUrl: entry.dish_media.thumbnailImageUrl,
 			};
 
 			return (
-				<ImageCard item={gridItem} onPress={() => handleItemPress(myReview.id, index)}>
+				<ImageCard item={gridItem} onPress={() => handleItemPress(item.id, index)}>
 					<View style={styles.reviewCardOverlay}>
 						<View style={styles.reviewCardRating}>
 							<Stars rating={entry.dish.averageRating} />
@@ -98,16 +97,16 @@ export function ReviewTab() {
 				</ImageCard>
 			);
 		},
-		[handleItemPress, key],
+		[handleItemPress, entriesKey],
 	);
 
 	const handleLoadMore = useCallback(() => {
-		fetchMoreWithMyReviewsByKey(key, {}, fetcher);
-	}, [key, fetchMoreWithMyReviewsByKey, fetcher]);
+		fetchMoreWithMyReviewsByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchMoreWithMyReviewsByKey, fetcher]);
 
 	const handleRefresh = useCallback(() => {
-		fetchInitialWithMyReviewsByKey(key, {}, fetcher);
-	}, [key, fetchInitialWithMyReviewsByKey, fetcher]);
+		fetchInitialWithMyReviewsByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher]);
 
 	const header = useMemo(
 		() => (
@@ -149,7 +148,7 @@ export function ReviewTab() {
 
 	return (
 		<GridList
-			data={displayedIds.map((id) => ({ id }))}
+			data={filteredIds.map((id) => ({ id }))}
 			renderItem={({ item, index }) => renderReviewItem({ item, index })}
 			ListHeaderComponent={header}
 			numColumns={3}
