@@ -48,6 +48,16 @@ export type DishMediaEntriesStore = {
 	 */
 	errorByKey: Record<string, string | null>;
 
+	/**
+	 * #454 【設計】カーソルページネーション用の nextCursor を画面用途キーごとに管理
+	 */
+	nextCursorByKey: Record<string, string | null>;
+
+	/**
+	 * #454 【設計】追加ページ取得中かどうかを画面用途キーごとに管理
+	 */
+	isLoadingMoreByKey: Record<string, boolean>;
+
 	// ------ public 挿入・更新メソッド（同期） ------
 
 	/**
@@ -135,6 +145,72 @@ export type DishMediaEntriesStore = {
 	 *   - 全てのキーと状態をクリア（完全リセット）
 	 */
 	clearByKey: (key?: string) => void;
+
+	// ------ #454 【設計】カーソルページネーション API ------
+
+	/**
+	 * 初期取得 + store への反映
+	 * 
+	 * @param key - 画面用途キー
+	 * @param request - リクエストパラメータ
+	 * @param fetcher - データ取得関数
+	 */
+	fetchInitialByKey: <TReq>(
+		key: string,
+		request: TReq,
+		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
+			data: DishMediaEntry[];
+			nextCursor?: string | null;
+		}>,
+	) => Promise<void>;
+
+	/**
+	 * 追加ページ取得 + store への追記
+	 * 
+	 * @param key - 画面用途キー
+	 * @param request - リクエストパラメータ（fetchMoreByKey 時も必要な場合に利用）
+	 * @param fetcher - データ取得関数
+	 */
+	fetchMoreByKey: <TReq>(
+		key: string,
+		request: TReq | undefined,
+		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
+			data: DishMediaEntry[];
+			nextCursor?: string | null;
+		}>,
+	) => Promise<void>;
+
+	/**
+	 * 初期取得 + store への反映（レビュー用）
+	 * 
+	 * @param key - 画面用途キー（"reviews" 固定）
+	 * @param request - リクエストパラメータ
+	 * @param fetcher - データ取得関数
+	 */
+	fetchInitialWithMyReviewsByKey: <TReq>(
+		key: "reviews",
+		request: TReq,
+		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
+			data: DishMediaEntry[];
+			nextCursor?: string | null;
+		}>,
+	) => Promise<void>;
+
+	/**
+	 * 追加ページ取得 + store への追記（レビュー用）
+	 * 
+	 * @param key - 画面用途キー（"reviews" 固定）
+	 * @param request - リクエストパラメータ（fetchMoreByKey 時も必要な場合に利用）
+	 * @param fetcher - データ取得関数
+	 */
+	fetchMoreWithMyReviewsByKey: <TReq>(
+		key: "reviews",
+		request: TReq | undefined,
+		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
+			data: DishMediaEntry[];
+			nextCursor?: string | null;
+		}>,
+	) => Promise<void>;
 };
 
 /** 
@@ -142,11 +218,15 @@ export type DishMediaEntriesStore = {
  * - ids: dish_media.id または dish_review.id の配列（デフォルト 空配列）
  * - isLoading: 当該キーのロード中フラグ（デフォルト false）
  * - error: 当該キーのエラー（デフォルト null）
+ * - #454 【設計】hasNextPage: 次ページがあるかどうか（デフォルト false）
+ * - #454 【設計】isLoadingMore: 追加ページ取得中かどうか（デフォルト false）
  */
 export const selectIdsByKey = (key: string) => (state: DishMediaEntriesStore): {
 	ids: string[];
 	isLoading: boolean;
 	error: string | null;
+	hasNextPage: boolean;
+	isLoadingMore: boolean;
 } => {
 	const ids = (key === "reviews"
 		? state.myReviewIdsByKey[key]
@@ -156,6 +236,8 @@ export const selectIdsByKey = (key: string) => (state: DishMediaEntriesStore): {
 		ids,
 		isLoading: state.isLoadingByKey[key] ?? false,
 		error: state.errorByKey[key] ?? null,
+		hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
+		isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
 	}
 }
 
@@ -219,6 +301,8 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	myReviewIdsByKey: { reviews: [] },
 	isLoadingByKey: {},
 	errorByKey: {},
+	nextCursorByKey: {},
+	isLoadingMoreByKey: {},
 
 	// ------ 同期挿入メソッド ------
 
@@ -368,6 +452,8 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 					myReviewIdsByKey: { reviews: [] },
 					isLoadingByKey: {},
 					errorByKey: {},
+					nextCursorByKey: {},
+					isLoadingMoreByKey: {},
 				};
 			}
 
@@ -376,10 +462,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			const nextMyReviewIdsByKey = { ...state.myReviewIdsByKey };
 			const nextIsLoadingByKey = { ...state.isLoadingByKey };
 			const nextErrorByKey = { ...state.errorByKey };
+			const nextNextCursorByKey = { ...state.nextCursorByKey };
+			const nextIsLoadingMoreByKey = { ...state.isLoadingMoreByKey };
 
 			delete nextMediaIdsByKey[key];
 			delete nextIsLoadingByKey[key];
 			delete nextErrorByKey[key];
+			delete nextNextCursorByKey[key];
+			delete nextIsLoadingMoreByKey[key];
 
 			if (key === "reviews") {
 				nextMyReviewIdsByKey.reviews = [];
@@ -426,6 +516,154 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 				myReviewIdsByKey: nextMyReviewIdsByKey,
 				isLoadingByKey: nextIsLoadingByKey,
 				errorByKey: nextErrorByKey,
+				nextCursorByKey: nextNextCursorByKey,
+				isLoadingMoreByKey: nextIsLoadingMoreByKey,
 			};
 		}),
+
+	// ------ #454 【設計】カーソルページネーション API の実装 ------
+
+	fetchInitialByKey: async (key, request, fetcher) => {
+		// isLoadingByKey[key] を true にし、エラーをクリア
+		set((state) => ({
+			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
+			errorByKey: { ...state.errorByKey, [key]: null },
+		}));
+
+		try {
+			const response = await fetcher({ request });
+			// mediaIdsByKey[key] を初期化してから新規データを反映
+			set((state) => ({
+				mediaIdsByKey: {
+					...state.mediaIdsByKey,
+					[key]: [], // 初期化
+				},
+			}));
+			get().pushEntriesByKey(key, response.data);
+			// nextCursorByKey[key] をセット
+			set((state) => ({
+				nextCursorByKey: { ...state.nextCursorByKey, [key]: response.nextCursor ?? null },
+			}));
+		} catch (err) {
+			const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+			set((state) => ({
+				errorByKey: {
+					...state.errorByKey,
+					[key]: i18n.t("Profile.tabError.failedToLoad", { error: errorMessage }),
+				},
+			}));
+		} finally {
+			set((state) => ({
+				isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
+			}));
+		}
+	},
+
+	fetchMoreByKey: async (key, request, fetcher) => {
+		const state = get();
+		const nextCursor = state.nextCursorByKey[key];
+
+		// nextCursor が null の場合は何もしない
+		if (nextCursor === null || nextCursor === undefined) return;
+
+		// isLoadingMoreByKey[key] を true にし、エラーをクリア
+		set((prevState) => ({
+			isLoadingMoreByKey: { ...prevState.isLoadingMoreByKey, [key]: true },
+			errorByKey: { ...prevState.errorByKey, [key]: null },
+		}));
+
+		try {
+			const response = await fetcher({ cursor: nextCursor, request });
+			// 取得データを末尾に追加
+			get().pushEntriesByKey(key, response.data);
+			// nextCursorByKey[key] を更新
+			set((prevState) => ({
+				nextCursorByKey: { ...prevState.nextCursorByKey, [key]: response.nextCursor ?? null },
+			}));
+		} catch (err) {
+			const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+			set((prevState) => ({
+				errorByKey: {
+					...prevState.errorByKey,
+					[key]: i18n.t("Profile.tabError.failedToLoad", { error: errorMessage }),
+				},
+			}));
+		} finally {
+			set((prevState) => ({
+				isLoadingMoreByKey: { ...prevState.isLoadingMoreByKey, [key]: false },
+			}));
+		}
+	},
+
+	fetchInitialWithMyReviewsByKey: async (key, request, fetcher) => {
+		// isLoadingByKey[key] を true にし、エラーをクリア
+		set((state) => ({
+			isLoadingByKey: { ...state.isLoadingByKey, [key]: true },
+			errorByKey: { ...state.errorByKey, [key]: null },
+		}));
+
+		try {
+			const response = await fetcher({ request });
+			// myReviewIdsByKey[key] を初期化してから新規データを反映
+			set((state) => ({
+				myReviewIdsByKey: {
+					...state.myReviewIdsByKey,
+					[key]: [], // 初期化
+				},
+			}));
+			get().pushEntriesWithMyReviewsByKey(key, response.data);
+			// nextCursorByKey[key] をセット
+			set((state) => ({
+				nextCursorByKey: { ...state.nextCursorByKey, [key]: response.nextCursor ?? null },
+			}));
+		} catch (err) {
+			const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+			set((state) => ({
+				errorByKey: {
+					...state.errorByKey,
+					[key]: i18n.t("Profile.tabError.failedToLoad", { error: errorMessage }),
+				},
+			}));
+		} finally {
+			set((state) => ({
+				isLoadingByKey: { ...state.isLoadingByKey, [key]: false },
+			}));
+		}
+	},
+
+	fetchMoreWithMyReviewsByKey: async (key, request, fetcher) => {
+		const state = get();
+		const nextCursor = state.nextCursorByKey[key];
+
+		// nextCursor が null の場合は何もしない
+		if (nextCursor === null || nextCursor === undefined) return;
+
+		// isLoadingMoreByKey[key] を true にし、エラーをクリア
+		set((prevState) => ({
+			isLoadingMoreByKey: { ...prevState.isLoadingMoreByKey, [key]: true },
+			errorByKey: { ...prevState.errorByKey, [key]: null },
+		}));
+
+		try {
+			const response = await fetcher({ cursor: nextCursor, request });
+			// 取得データを末尾に追加
+			get().pushEntriesWithMyReviewsByKey(key, response.data);
+			// nextCursorByKey[key] を更新
+			set((prevState) => ({
+				nextCursorByKey: { ...prevState.nextCursorByKey, [key]: response.nextCursor ?? null },
+			}));
+		} catch (err) {
+			const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+			set((prevState) => ({
+				errorByKey: {
+					...prevState.errorByKey,
+					[key]: i18n.t("Profile.tabError.failedToLoad", { error: errorMessage }),
+				},
+			}));
+		} finally {
+			set((prevState) => ({
+				isLoadingMoreByKey: { ...prevState.isLoadingMoreByKey, [key]: false },
+			}));
+		}
+	},
 }));

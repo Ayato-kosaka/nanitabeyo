@@ -1,66 +1,55 @@
-import { useCallback, useRef, useState } from "react";
-
-type Fetcher<TReq, TItem> = (params: {
-	cursor?: string | null;
-	request?: TReq;
-}) => Promise<{ data: TItem[]; nextCursor?: string | null }>;
+import { useCallback, useEffect, useReducer, useRef } from "react";
+import { createCursorController } from "@/lib/cursorPagination";
+import type { Fetcher } from "@/lib/cursorPagination";
 
 export const useCursorPagination = <TReq, TItem>(fetcher: Fetcher<TReq, TItem>) => {
-	const [items, setItems] = useState<TItem[]>([]);
-	const [nextCursor, setNextCursor] = useState<string | null>(null);
-	const [isLoadingInitial, setIsLoadingInitial] = useState(false);
-	const [isLoadingMore, setIsLoadingMore] = useState(false);
-	const [error, setError] = useState<unknown>(null);
-	const requestRef = useRef<TReq | undefined>(undefined);
+	// #454 【設計】createCursorController を利用してコンポーネント内のローカル用途に限定
+	const controllerRef = useRef(createCursorController(fetcher));
+	const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+
+	// controller が変更されたら再作成（fetcher が変わった場合）
+	useEffect(() => {
+		controllerRef.current = createCursorController(fetcher);
+		forceUpdate();
+	}, [fetcher]);
+
+	// state 更新時の再描画トリガー
+	useEffect(() => {
+		const controller = controllerRef.current;
+		// @ts-expect-error subscribe is internal API
+		const unsubscribe = controller.subscribe?.(() => {
+			forceUpdate();
+		});
+		return unsubscribe;
+	}, []);
+
+	const controller = controllerRef.current;
+	const state = controller.getState();
 
 	const loadInitial = useCallback(
 		async (request?: TReq) => {
-			requestRef.current = request;
-			setIsLoadingInitial(true);
-			setError(null);
-			try {
-				const response = await fetcher({ request });
-				setItems(response.data);
-				setNextCursor(response.nextCursor ?? null);
-			} catch (err) {
-				setError(err);
-				setItems([]);
-				setNextCursor(null);
-			} finally {
-				setIsLoadingInitial(false);
-			}
+			await controller.loadInitial(request);
 		},
-		[fetcher],
+		[controller],
 	);
 
 	const loadMore = useCallback(async () => {
-		if (isLoadingMore || nextCursor === null) return;
-		setIsLoadingMore(true);
-		setError(null);
-		try {
-			const response = await fetcher({ cursor: nextCursor, request: requestRef.current });
-			setItems((prev) => [...prev, ...response.data]);
-			setNextCursor(response.nextCursor ?? null);
-		} catch (err) {
-			setError(err);
-		} finally {
-			setIsLoadingMore(false);
-		}
-	}, [fetcher, nextCursor, isLoadingMore]);
+		await controller.loadMore();
+	}, [controller]);
 
 	const refresh = useCallback(async () => {
-		await loadInitial(requestRef.current);
-	}, [loadInitial]);
+		await controller.refresh();
+	}, [controller]);
 
 	return {
-		items,
+		items: state.items,
 		loadInitial,
 		loadMore,
 		refresh,
-		error,
-		isLoadingInitial,
-		isLoadingMore,
-		hasNextPage: nextCursor !== null,
+		error: state.error,
+		isLoadingInitial: state.isLoadingInitial,
+		isLoadingMore: state.isLoadingMore,
+		hasNextPage: state.nextCursor !== null,
 	};
 };
 
