@@ -23,6 +23,7 @@ export type CursorController<TReq, TItem> = {
 	loadInitial: (req?: TReq) => Promise<void>;
 	loadMore: () => Promise<void>;
 	refresh: () => Promise<void>;
+	subscribe: (listener: () => void) => () => void;
 };
 
 /**

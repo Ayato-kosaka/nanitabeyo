@@ -16,12 +16,11 @@ export const useCursorPagination = <TReq, TItem>(fetcher: Fetcher<TReq, TItem>) 
 	// state 更新時の再描画トリガー
 	useEffect(() => {
 		const controller = controllerRef.current;
-		// @ts-expect-error subscribe is internal API
 		const unsubscribe = controller.subscribe?.(() => {
 			forceUpdate();
 		});
 		return unsubscribe;
-	}, []);
+	}, [fetcher]);
 
 	const controller = controllerRef.current;
 	const state = controller.getState();
@@ -30,7 +29,7 @@ export const useCursorPagination = <TReq, TItem>(fetcher: Fetcher<TReq, TItem>) 
 		async (request?: TReq) => {
 			await controller.loadInitial(request);
 		},
-		[controller],
+		[],
 	);
 
 	const loadMore = useCallback(async () => {
