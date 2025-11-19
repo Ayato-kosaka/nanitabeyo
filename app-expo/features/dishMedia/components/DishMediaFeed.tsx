@@ -187,53 +187,55 @@ export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitl
 				if (h !== pageHeight) setPageHeight(h);
 			}}>
 			{/* pageHeight が確定するまでは描画を遅延（初期スクロール不発を防止） */}
-			{pageHeight > 0 && !!isLoading ? (
-				<View style={styles.centerContainer}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
-					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
-				</View>
-			) : !!error ? (
-				<View style={styles.centerContainer}>
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			) : (
-				<FlatList
-					ref={listRef}
-					data={ids}
-					renderItem={renderItem}
-					keyExtractor={(id) => id}
-					style={styles.list}
-					// ページング：1画面=1ページ
-					pagingEnabled
-					// 既存方針：initialScrollIndex はレイアウト後の scrollToIndex と併用
-					initialScrollIndex={clampedInitialIndex}
-					// 初回マウントのみ contentOffset も併用（保険）。既存の意図を保持。
-					contentOffset={!didSetInitialOffset.current ? { x: 0, y: clampedInitialIndex * pageHeight } : undefined}
-					onLayout={() => {
-						// contentOffset は初回マウントフレームのみ適用
-						if (!didSetInitialOffset.current) didSetInitialOffset.current = true;
-					}}
-					// 初期スクロール安定化（高さが一定である前提）
-					getItemLayout={getItemLayout}
-					// 視覚ノイズの低減
-					showsVerticalScrollIndicator={false}
-					// ページング感の強化
-					decelerationRate="fast"
-					// パフォーマンス調整（既存値を踏襲）
-					windowSize={5}
-					maxToRenderPerBatch={3}
-					// 表示中確定ハンドラ（関数インスタンスは固定）
-					onViewableItemsChanged={onViewableItemsChanged}
-					// 失敗時の再試行（既存挙動を保持）
-					onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
-						setTimeout(() => {
-							listRef.current?.scrollToIndex({ index, animated: false });
-						}, 250);
-					}}
-					// 可視閾値 = 90%
-					viewabilityConfig={viewabilityConfig}
-				/>
-			)}
+			{pageHeight > 0 ? (
+				!!isLoading ? (
+					<View style={styles.centerContainer}>
+						<ActivityIndicator size="large" color="#5EA2FF" />
+						<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
+					</View>
+				) : !!error ? (
+					<View style={styles.centerContainer}>
+						<Text style={styles.errorText}>{error}</Text>
+					</View>
+				) : (
+					<FlatList
+						ref={listRef}
+						data={ids}
+						renderItem={renderItem}
+						keyExtractor={(id) => id}
+						style={styles.list}
+						// ページング：1画面=1ページ
+						pagingEnabled
+						// 既存方針：initialScrollIndex はレイアウト後の scrollToIndex と併用
+						initialScrollIndex={clampedInitialIndex}
+						// 初回マウントのみ contentOffset も併用（保険）。既存の意図を保持。
+						contentOffset={!didSetInitialOffset.current ? { x: 0, y: clampedInitialIndex * pageHeight } : undefined}
+						onLayout={() => {
+							// contentOffset は初回マウントフレームのみ適用
+							if (!didSetInitialOffset.current) didSetInitialOffset.current = true;
+						}}
+						// 初期スクロール安定化（高さが一定である前提）
+						getItemLayout={getItemLayout}
+						// 視覚ノイズの低減
+						showsVerticalScrollIndicator={false}
+						// ページング感の強化
+						decelerationRate="fast"
+						// パフォーマンス調整（既存値を踏襲）
+						windowSize={5}
+						maxToRenderPerBatch={3}
+						// 表示中確定ハンドラ（関数インスタンスは固定）
+						onViewableItemsChanged={onViewableItemsChanged}
+						// 失敗時の再試行（既存挙動を保持）
+						onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
+							setTimeout(() => {
+								listRef.current?.scrollToIndex({ index, animated: false });
+							}, 250);
+						}}
+						// 可視閾値 = 90%
+						viewabilityConfig={viewabilityConfig}
+					/>
+				)
+			) : null}
 		</View>
 	);
 }
