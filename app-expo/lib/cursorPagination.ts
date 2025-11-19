@@ -1,6 +1,6 @@
 /**
  * カーソルページネーションのロジックを、React / Zustand から切り離した純粋な TS 関数として提供する。
- * 
+ *
  * @module cursorPagination
  */
 
@@ -48,7 +48,7 @@ export type CursorControllerOptions<TItem> = {
 /**
  * カーソルページネーションのコントローラーを作成する。
  * React や Zustand に依存しない純粋な関数として実装。
- * 
+ *
  * @param fetcher - データ取得関数
  * @param opts - オプション
  * @returns カーソルページネーションのコントローラー

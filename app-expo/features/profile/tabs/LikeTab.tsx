@@ -6,51 +6,50 @@ import { ImageCard } from "@/components/ImageCardGrid";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
-import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
 
 export function LikeTab() {
 	const { callBackend } = useAPICall();
-	const { items, loadInitial, loadMore, refresh, error, isLoadingInitial, isLoadingMore } = useCursorPagination<
-		QueryMeLikedDishMediaDto,
-		QueryMeLikedDishMediaResponse["data"][number]
-	>(
-		useCallback(
-			async ({ cursor }) => {
-				const response = await callBackend<QueryMeLikedDishMediaDto, QueryMeLikedDishMediaResponse>(
-					"v1/users/me/liked-dish-media",
-					{
-						method: "GET",
-						requestPayload: cursor ? { cursor } : {},
-					},
-				);
-				return {
-					data: response.data || [],
-					nextCursor: response.nextCursor,
-				};
-			},
-			[callBackend],
-		),
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const locale = useLocale();
+
+	// #454 【設計】画面用途キー "profileLikes" でストアからデータ取得
+	const key = "profileLikes";
+	const { fetchInitialByKey, fetchMoreByKey } = useDishMediaEntriesStore();
+	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(key));
+
+	// #454 【設計】データ取得用の fetcher 関数
+	const fetcher = useCallback(
+		async ({ cursor }: { cursor?: string | null }) => {
+			const response = await callBackend<QueryMeLikedDishMediaDto, QueryMeLikedDishMediaResponse>(
+				"v1/users/me/liked-dish-media",
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		},
+		[callBackend],
 	);
 
 	useEffect(() => {
-		loadInitial();
-	}, []);
-
-	const { lightImpact } = useHaptics();
-	const { logFrontendEvent } = useLogger();
-	const { pushEntriesByKey } = useDishMediaEntriesStore();
-	const locale = useLocale();
+		fetchInitialByKey(key, {}, fetcher);
+	}, [key, fetchInitialByKey, fetcher]);
 
 	const handleItemPress = useCallback(
-		(item: QueryMeLikedDishMediaResponse["data"][number], index: number) => {
+		(dishMediaId: number, index: number) => {
 			lightImpact();
-			pushEntriesByKey("liked", items);
+			// #454 【設計】pushEntriesByKey を削除し、そのまま遷移
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
 				params: { locale, startIndex: index, tabName: "liked" },
@@ -58,10 +57,10 @@ export function LikeTab() {
 			logFrontendEvent({
 				event_name: "dish_media_entry_selected",
 				error_level: "log",
-				payload: { item, tabName: "liked" },
+				payload: { dishMediaId, tabName: "liked" },
 			});
 		},
-		[lightImpact, pushEntriesByKey, items, locale, logFrontendEvent],
+		[lightImpact, locale, logFrontendEvent],
 	);
 
 	const handleSearchByMood = useCallback(() => {
@@ -78,19 +77,21 @@ export function LikeTab() {
 	}, [lightImpact, locale, logFrontendEvent]);
 
 	const renderLikeItem = useCallback(
-		({ item, index }: { item: QueryMeLikedDishMediaResponse["data"][number]; index: number }) => {
+		({ item, index }: { item: { id: string }; index: number }) => {
+			const { entry } = useDishMediaEntriesStore(selectEntryById(item.id));
+			if (!entry) return null;
+
 			const gridItem = {
-				...item,
-				id: item.dish_media.id,
-				imageUrl: item.dish_media.thumbnailImageUrl,
+				id: entry.dish_media.id,
+				imageUrl: entry.dish_media.thumbnailImageUrl,
 			};
 
 			return (
-				<ImageCard item={gridItem} onPress={() => handleItemPress(item, index)}>
+				<ImageCard item={gridItem} onPress={() => handleItemPress(entry.dish_media.id, index)}>
 					<View style={styles.likeCardOverlay}>
 						<View style={styles.likeCardRating}>
-							<Stars rating={item.dish.averageRating} />
-							<Text style={styles.likeCardRatingText}>({item.dish.reviewCount})</Text>
+							<Stars rating={entry.dish.averageRating} />
+							<Text style={styles.likeCardRatingText}>({entry.dish.reviewCount})</Text>
 						</View>
 					</View>
 				</ImageCard>
@@ -99,17 +100,21 @@ export function LikeTab() {
 		[handleItemPress],
 	);
 
-	const errorMessage = error ? (error instanceof Error ? error.message : String(error)) : null;
+	const handleLoadMore = useCallback(() => {
+		fetchMoreByKey(key, {}, fetcher);
+	}, [key, fetchMoreByKey, fetcher]);
+
+	const handleRefresh = useCallback(() => {
+		fetchInitialByKey(key, {}, fetcher);
+	}, [key, fetchInitialByKey, fetcher]);
 
 	const renderEmptyState = useCallback(() => {
-		if (errorMessage) {
+		if (error) {
 			return (
 				<View style={styles.emptyStateContainer}>
 					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>
-							{i18n.t("Profile.tabError.failedToLoad", { error: errorMessage })}
-						</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={refresh}>
+						<Text style={styles.emptyStateText}>{error}</Text>
+						<TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
 							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
 						</TouchableOpacity>
 					</View>
@@ -127,20 +132,20 @@ export function LikeTab() {
 				</View>
 			</View>
 		);
-	}, [errorMessage, refresh, handleSearchByMood]);
+	}, [error, handleRefresh, handleSearchByMood]);
 
 	return (
 		<GridList
-			data={items.map((item) => ({ ...item, id: item.dish_media.id }))}
-			renderItem={({ item, index }) => renderLikeItem({ item: item, index })}
+			data={ids.map((id) => ({ id }))}
+			renderItem={({ item, index }) => renderLikeItem({ item, index })}
 			numColumns={3}
 			contentContainerStyle={styles.gridContent}
 			columnWrapperStyle={styles.gridRow}
-			isLoading={isLoadingInitial}
+			isLoading={isLoading}
 			isLoadingMore={isLoadingMore}
-			refreshing={isLoadingInitial}
-			onRefresh={refresh}
-			onEndReached={loadMore}
+			refreshing={isLoading}
+			onRefresh={handleRefresh}
+			onEndReached={handleLoadMore}
 			ListEmptyComponent={renderEmptyState}
 			testID="like-tab-grid"
 		/>
