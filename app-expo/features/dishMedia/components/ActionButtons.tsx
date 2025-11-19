@@ -61,25 +61,14 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 		const willLike = !isLiked;
 		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
 		let newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
-		useDishMediaEntriesStore.setState((state) => {
-			const dishMedia = state.entriesByMediaId[dishMediaId]?.dish_media;
-			if (dishMedia) {
-				return {
-					entriesByMediaId: {
-						...state.entriesByMediaId,
-						[dishMediaId]: {
-							...state.entriesByMediaId[dishMediaId],
-							dish_media: {
-								...dishMedia,
-								isLiked: willLike,
-								likeCount: newLikeCount,
-							},
-						},
-					},
-				};
-			}
-			return state;
-		});
+		useDishMediaEntriesStore.getState().updateEntry(dishMediaId, (entry) => ({
+			...entry,
+			dish_media: {
+				...entry.dish_media,
+				isLiked: willLike,
+				likeCount: newLikeCount,
+			},
+		}));
 
 		logFrontendEvent({
 			event_name: willLike ? "dish_liked" : "dish_unliked",
@@ -120,24 +109,13 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 	const handleSave = useCallback(async () => {
 		lightImpact();
 		const willSave = !isSaved;
-		useDishMediaEntriesStore.setState((state) => {
-			const dishMedia = state.entriesByMediaId[dishMediaId]?.dish_media;
-			if (dishMedia) {
-				return {
-					entriesByMediaId: {
-						...state.entriesByMediaId,
-						[dishMediaId]: {
-							...state.entriesByMediaId[dishMediaId],
-							dish_media: {
-								...dishMedia,
-								isSaved: willSave,
-							},
-						},
-					},
-				};
-			}
-			return state;
-		});
+		useDishMediaEntriesStore.getState().updateEntry(dishMediaId, (entry) => ({
+			...entry,
+			dish_media: {
+				...entry.dish_media,
+				isSaved: willSave,
+			},
+		}));
 
 		logFrontendEvent({
 			event_name: willSave ? "dish_saved" : "dish_unsaved",

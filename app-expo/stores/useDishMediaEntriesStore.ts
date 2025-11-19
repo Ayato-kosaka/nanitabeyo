@@ -88,7 +88,7 @@ export type DishMediaEntriesStore = {
 	 * 指定した DishMediaEntry（dish_media.id）をピンポイントに更新する。
 	 * 並び順には影響を与えない。
 	 */
-	updateEntry: (item: DishMediaEntry) => void;
+	updateEntry: (dishMediaId: string, entryUpdater: (entry: DishMediaEntry) => DishMediaEntry) => void;
 
 	// ------ public 挿入メソッド（非同期ラッパー） ------
 
@@ -324,15 +324,15 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			};
 		}),
 
-	updateEntry: (item) =>
+	updateEntry: (dishMediaId, entryUpdater) =>
 		set((state) => {
-			const mediaId = String(item.dish_media.id);
-			return {
-				entriesByMediaId: {
-					...state.entriesByMediaId,
-					[mediaId]: item,
-				},
-			};
+			return state.entriesByMediaId[dishMediaId] === undefined ? state :
+				{
+					entriesByMediaId: {
+						...state.entriesByMediaId,
+						[dishMediaId]: entryUpdater(state.entriesByMediaId[dishMediaId]),
+					},
+				};
 		}),
 
 	// ------ 非同期ラッパーメソッド ------
