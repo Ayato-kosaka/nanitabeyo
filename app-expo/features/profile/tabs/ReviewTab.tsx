@@ -26,7 +26,8 @@ export function ReviewTab() {
 
 	// #454 【設計】画面用途キー "reviews" でストアからデータ取得
 	const entriesKey = "reviews" as const;
-	const { fetchInitialWithMyReviewsByKey, fetchMoreWithMyReviewsByKey } = useDishMediaEntriesStore();
+	const fetchInitialWithMyReviewsByKey = useDishMediaEntriesStore((s) => s.fetchInitialWithMyReviewsByKey);
+	const fetchMoreWithMyReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithMyReviewsByKey);
 	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
 
 	// #454 【設計】データ取得用の fetcher 関数

@@ -27,7 +27,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
-	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
+	const pushEntriesByKeyAsync = useDishMediaEntriesStore((s) => s.pushEntriesByKeyAsync);
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
 

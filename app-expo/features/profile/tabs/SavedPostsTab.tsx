@@ -35,7 +35,8 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	// #454 【設計】画面用途キー "profileSaved" でストアからデータ取得
 	const entriesKey = "profileSaved";
-	const { fetchInitialByKey, fetchMoreByKey } = useDishMediaEntriesStore();
+	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
+	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, isLoadingMore, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
 
 	// #454 【設計】データ取得用の fetcher 関数

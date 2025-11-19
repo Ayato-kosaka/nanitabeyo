@@ -11,7 +11,7 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 export default function PostsScreen() {
 	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
 	const { callBackend } = useAPICall();
-	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
+	const pushEntriesByKeyAsync = useDishMediaEntriesStore((s) => s.pushEntriesByKeyAsync);
 	const source = "PostsScreen";
 
 	useMemo(() => {
