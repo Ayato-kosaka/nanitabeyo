@@ -178,23 +178,6 @@ export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitl
 		[pageHeight, currentIndex],
 	);
 
-	if (isLoading) {
-		return (
-			<View style={styles.centerContainer}>
-				<ActivityIndicator size="large" color="#5EA2FF" />
-				<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
-			</View>
-		);
-	}
-
-	if (error) {
-		return (
-			<View style={styles.centerContainer}>
-				<Text style={styles.errorText}>{error}</Text>
-			</View>
-		);
-	}
-
 	return (
 		<View
 			style={styles.root}
@@ -204,7 +187,16 @@ export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitl
 				if (h !== pageHeight) setPageHeight(h);
 			}}>
 			{/* pageHeight が確定するまでは描画を遅延（初期スクロール不発を防止） */}
-			{pageHeight > 0 && (
+			{pageHeight > 0 && !!isLoading ? (
+				<View style={styles.centerContainer}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
+					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
+				</View>
+			) : !!error ? (
+				<View style={styles.centerContainer}>
+					<Text style={styles.errorText}>{error}</Text>
+				</View>
+			) : (
 				<FlatList
 					ref={listRef}
 					data={ids}
