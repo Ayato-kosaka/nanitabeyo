@@ -9,7 +9,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByReviewId } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryUserDishReviewsResponse } from "@shared/api/v1/res";
 import type { QueryUserDishReviewsDto } from "@shared/api/v1/dto";
@@ -58,11 +58,12 @@ export function ReviewTab() {
 	// #454 【設計】フィルタリングは表示時に ids から行う
 	const filteredIds = useMemo(() => {
 		if (!onlyMyPhotoVideoReviews || !targetUserId) return ids;
-		return ids.filter((id) => {
-			const { entry } = selectEntryById(id, { key: entriesKey })(useDishMediaEntriesStore.getState());
+		// #457 【設計】正規化ストアから復元したエントリでフィルタ
+		return ids.filter((reviewId) => {
+			const entry = selectEntryByReviewId(reviewId)(useDishMediaEntriesStore.getState());
 			return entry?.dish_media.isMine;
 		});
-	}, [onlyMyPhotoVideoReviews, ids, targetUserId, entriesKey]);
+	}, [onlyMyPhotoVideoReviews, ids, targetUserId]);
 
 	const handleItemPress = useCallback(
 		(reviewId: string, index: number) => {
@@ -82,7 +83,8 @@ export function ReviewTab() {
 
 	const renderReviewItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const { entry } = selectEntryById(item.id, { key: entriesKey })(useDishMediaEntriesStore.getState());
+			// #457 【設計】reviewId から DishMediaEntry を復元
+			const entry = selectEntryByReviewId(item.id)(useDishMediaEntriesStore.getState());
 			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {

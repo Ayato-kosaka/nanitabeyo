@@ -35,6 +35,7 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		const { ids } = selectIdsByKey(entriesKey)(state);
 		const id = ids[currentIndex];
+		// #457 【設計】正規化済みエントリを取得
 		const entry = state.entriesByMediaId[id];
 		if (!entry) throw new Error("FeedDishMediaViewer: entry is undefined");
 		return { restaurant: entry.restaurant, prefilledMedia: { ...entry.dish_media, dish: entry.dish } };
