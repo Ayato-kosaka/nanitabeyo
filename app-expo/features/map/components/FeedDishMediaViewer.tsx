@@ -10,10 +10,10 @@ import i18n from "@/lib/i18n";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
-	source: string;
+	entriesKey: string;
 };
 
-export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewerProps) {
+export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaViewerProps) {
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 
 	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
@@ -33,19 +33,19 @@ export function FeedDishMediaViewer({ initialIndex, source }: FeedDishMediaViewe
 	// 現在表示中のアイテムを取得
 	const { restaurant, prefilledMedia } = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const { ids } = selectIdsByKey(source)(state);
+		const { ids } = selectIdsByKey(entriesKey)(state);
 		const id = ids[currentIndex];
 		const entry = state.entriesByMediaId[id];
 		if (!entry) throw new Error("FeedDishMediaViewer: entry is undefined");
 		return { restaurant: entry.restaurant, prefilledMedia: { ...entry.dish_media, dish: entry.dish } };
-	}, [currentIndex, source]);
+	}, [currentIndex, entriesKey]);
 
 	return (
 		<View style={{ height: frame.height }}>
 			<DishMediaFeed
 				initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
 				getTitle={(item) => item.dish.name}
-				source={source}
+				source={entriesKey}
 				onIndexChange={handleIndexChange}
 			/>
 			<PrimaryButton

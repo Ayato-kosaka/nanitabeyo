@@ -34,7 +34,7 @@ export default function TopicsScreen() {
 	}, [searchParams]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
-	const { pushEntriesByKeyAsync } = useDishMediaEntriesStore();
+	const pushEntriesByKeyAsync = useDishMediaEntriesStore((s) => s.pushEntriesByKeyAsync);
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
