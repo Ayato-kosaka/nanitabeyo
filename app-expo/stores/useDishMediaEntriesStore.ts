@@ -482,7 +482,11 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 
 				// 2. 並び順の末尾に追加
 				const mediaIds = response.data.map((item) => String(item.dish_media.id));
-				updateMediaIdsByKey(key, (prevIds) => [...prevIds, ...mediaIds]);
+				updateMediaIdsByKey(key, (prevIds) => {
+					// #CodeQL 【バグ】重複IDを排除して追加（paginationで同じIDが返る場合に備える）
+					const newIds = mediaIds.filter(id => !prevIds.includes(id));
+					return [...prevIds, ...newIds];
+				});
 
 				// 3. nextCursorByKey[key] を更新
 				set((prevState) => ({
