@@ -299,12 +299,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			if (!items.length) return state;
 			const { nextEntriesById, nextReviewsById, addedMediaIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.mediaIdsByKey[key] ?? [];
+			// 既存IDは push しない（重複防止）
+			const newIds = addedMediaIds.filter((id) => !prevIds.includes(id));
 			return {
 				entriesByMediaId: nextEntriesById,
 				reviewsByReviewId: nextReviewsById,
 				mediaIdsByKey: {
 					...state.mediaIdsByKey,
-					[key]: [...prevIds, ...addedMediaIds],
+					[key]: [...prevIds, ...newIds],
 				},
 			};
 		}),
@@ -314,12 +316,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			if (!items.length) return state;
 			const { nextEntriesById, nextReviewsById, addedMediaIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.mediaIdsByKey[key] ?? [];
+			// 既存IDを削除してから unshift（先頭に追加）
+			const filteredPrevIds = prevIds.filter((id) => !addedMediaIds.includes(id));
 			return {
 				entriesByMediaId: nextEntriesById,
 				reviewsByReviewId: nextReviewsById,
 				mediaIdsByKey: {
 					...state.mediaIdsByKey,
-					[key]: [...addedMediaIds, ...prevIds],
+					[key]: [...addedMediaIds, ...filteredPrevIds],
 				},
 			};
 		}),
@@ -329,12 +333,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			if (!items.length) return state;
 			const { nextEntriesById, nextReviewsById, addedMyReviewIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
+			// 既存IDは push しない（重複防止）
+			const newIds = addedMyReviewIds.filter((id) => !prevIds.includes(id));
 			return {
 				entriesByMediaId: nextEntriesById,
 				reviewsByReviewId: nextReviewsById,
 				myReviewIdsByKey: {
 					...state.myReviewIdsByKey,
-					[key]: [...prevIds, ...addedMyReviewIds],
+					[key]: [...prevIds, ...newIds],
 				},
 			};
 		}),
@@ -344,12 +350,14 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			if (!items.length) return state;
 			const { nextEntriesById, nextReviewsById, addedMyReviewIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
+			// 既存IDを削除してから unshift（先頭に追加）
+			const filteredPrevIds = prevIds.filter((id) => !addedMyReviewIds.includes(id));
 			return {
 				entriesByMediaId: nextEntriesById,
 				reviewsByReviewId: nextReviewsById,
 				myReviewIdsByKey: {
 					...state.myReviewIdsByKey,
-					[key]: [...addedMyReviewIds, ...prevIds],
+					[key]: [...addedMyReviewIds, ...filteredPrevIds],
 				},
 			};
 		}),

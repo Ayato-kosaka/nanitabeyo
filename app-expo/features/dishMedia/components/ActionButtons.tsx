@@ -12,7 +12,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
-import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
+import type { DishMediaReactionBodyDto, QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
+import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getCacheKeyForImage } from "@/lib/image";
@@ -86,6 +87,14 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 					method: "POST",
 					requestPayload: { action_type: "like" },
 				});
+				// いいね成功時に DishMediaEntry を "liked" キーへ unshift
+				const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+					method: "GET",
+					requestPayload: { ids: [dishMediaId] },
+				});
+				if (response.items.length > 0) {
+					useDishMediaEntriesStore.getState().unshiftEntriesByKey("liked", response.items);
+				}
 			} else {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",
@@ -131,6 +140,14 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 					method: "POST",
 					requestPayload: { action_type: "save" },
 				});
+				// 保存成功時に DishMediaEntry を "saved" キーへ unshift
+				const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+					method: "GET",
+					requestPayload: { ids: [dishMediaId] },
+				});
+				if (response.items.length > 0) {
+					useDishMediaEntriesStore.getState().unshiftEntriesByKey("saved", response.items);
+				}
 			} else {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",

@@ -28,13 +28,19 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
-import { CreateDishDto, type CreateDishMediaDto, type CreateDishReviewDto } from "@shared/api/v1/dto";
+import {
+	CreateDishDto,
+	type CreateDishMediaDto,
+	type CreateDishReviewDto,
+	type QueryDishMediaByIdsDto,
+} from "@shared/api/v1/dto";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import type {
 	CreateDishMediaResponse,
 	CreateDishResponse,
 	CreateDishReviewResponse,
 	DishMediaEntry,
+	QueryDishMediaByIdsResponse,
 } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -42,6 +48,7 @@ import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -419,6 +426,15 @@ export function ReviewForm({
 					createdDishMediaId: dishMediaId,
 				},
 			});
+
+			// レビュー投稿成功時に DishMediaEntry を "reviews" キーへ unshift
+			const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+				method: "GET",
+				requestPayload: { ids: [dishMediaId] },
+			});
+			if (response.items.length > 0) {
+				useDishMediaEntriesStore.getState().unshiftEntriesWithMyReviewsByKey("reviews", response.items);
+			}
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",
