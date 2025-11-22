@@ -11,23 +11,23 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 export default function PostsScreen() {
 	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
 	const { callBackend } = useAPICall();
-	const pushEntriesByKeyAsync = useDishMediaEntriesStore((s) => s.pushEntriesByKeyAsync);
-	const clearByKey = useDishMediaEntriesStore((s) => s.clearByKey);
 	const entriesKey = "PostsScreen";
 
 	useMemo(() => {
+		const { upsertDishMediaEntries, updateMediaIdsByKeyAsync, clearByKey } = useDishMediaEntriesStore.getState();
 		const fetchData = async () => {
 			const idArray =
 				typeof ids === "string" ? ids.split(",") : Array.isArray(ids) ? ids.flatMap((v) => v.split(",")) : [];
 			const requestPayload: QueryDishMediaByIdsDto = { ids: idArray };
-			const response = callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+			const responsePromise = callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
 				method: "GET",
 				requestPayload,
 			});
-			pushEntriesByKeyAsync(
-				entriesKey,
-				response.then((res) => res.items),
-			);
+			const idsPromise = responsePromise.then((res) => {
+				upsertDishMediaEntries(res.items);
+				return res.items.map((item) => String(item.dish_media.id));
+			});
+			updateMediaIdsByKeyAsync(entriesKey, idsPromise, (_, fetchedIds) => fetchedIds);
 		};
 		fetchData();
 		return () => {

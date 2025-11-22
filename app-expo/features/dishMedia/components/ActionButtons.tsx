@@ -61,7 +61,8 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 		const willLike = !isLiked;
 		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
 		let newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
-		useDishMediaEntriesStore.getState().updateEntry(dishMediaId, (entry) => ({
+		const { updateEntry, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
+		updateEntry(String(dishMediaId), (entry) => ({
 			...entry,
 			dish_media: {
 				...entry.dish_media,
@@ -81,16 +82,22 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 		});
 
 		try {
+			// #460 【設計】いいね ON → liked タブの先頭に移動、いいね OFF → liked タブから除外
 			if (willLike) {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "POST",
 					requestPayload: { action_type: "like" },
+				});
+				updateMediaIdsByKey("liked", (prev) => {
+					const without = prev.filter((id) => id !== String(dishMediaId));
+					return [String(dishMediaId), ...without];
 				});
 			} else {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",
 					requestPayload: { action_type: "like" },
 				});
+				updateMediaIdsByKey("liked", (prev) => prev.filter((id) => id !== String(dishMediaId)));
 			}
 		} catch (error) {
 			logFrontendEvent({
@@ -109,7 +116,10 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 	const handleSave = useCallback(async () => {
 		lightImpact();
 		const willSave = !isSaved;
-		useDishMediaEntriesStore.getState().updateEntry(dishMediaId, (entry) => ({
+		const { updateEntry, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
+
+		// #460 【設計】エンティティ更新
+		updateEntry(String(dishMediaId), (entry) => ({
 			...entry,
 			dish_media: {
 				...entry.dish_media,
@@ -126,16 +136,22 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 		});
 
 		try {
+			// #460 【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
 			if (willSave) {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "POST",
 					requestPayload: { action_type: "save" },
+				});
+				updateMediaIdsByKey("saved", (prev) => {
+					const without = prev.filter((id) => id !== String(dishMediaId));
+					return [String(dishMediaId), ...without];
 				});
 			} else {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",
 					requestPayload: { action_type: "save" },
 				});
+				updateMediaIdsByKey("saved", (prev) => prev.filter((id) => id !== String(dishMediaId)));
 			}
 		} catch (error) {
 			logFrontendEvent({

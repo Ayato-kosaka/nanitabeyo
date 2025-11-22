@@ -42,6 +42,7 @@ import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
+import { SupabaseDishMedia } from "@shared/converters/convert_dish_media";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -351,8 +352,7 @@ export function ReviewForm({
 
 		try {
 			// #400 【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
-			let dishId: string;
-			let dishMediaId: string;
+			let dishMedia: SupabaseDishMedia;
 			if (!prefilledMedia) {
 				if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
 					logFrontendEvent({
@@ -363,18 +363,18 @@ export function ReviewForm({
 					throw new Error(i18n.t("errors.videoProcessingFailed"));
 				}
 
-				dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+				let dish = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
 					method: "POST",
 					requestPayload: {
 						restaurantId: restaurant.id,
 						dishCategoryId: dishCategoryId,
 					},
-				}).then((res) => res.id);
+				});
 
 				// dish-media.media_path をアップロード
 				const mediaPath = await mediaUploadFile(mediaState.media.uri, {
 					mimeType: mediaState.media.mimeType,
-					baseFileName: `${dishId}-media`,
+					baseFileName: `${dish.id}-media`,
 				});
 				// dish-media.thumbnail_path をアップロード
 				let thumbnailPath = mediaPath; // 画像の場合は mediaPath と同じにする
@@ -382,7 +382,7 @@ export function ReviewForm({
 					if (!mediaState.media.thumbnailUri) throw new Error("Missing thumbnail for video");
 					thumbnailPath = await thumbnailUploadFile(mediaState.media.thumbnailUri, {
 						mimeType: "image/jpeg",
-						baseFileName: `${dishId}-thumbnail`,
+						baseFileName: `${dish.id}-thumbnail`,
 					});
 				}
 
@@ -390,35 +390,67 @@ export function ReviewForm({
 				 * Video のアップロードが完了してからでないと、
 				 * transcoer API が失敗する可能性があるため、直列で実行する
 				 */
-				const dishMedia = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
+				dishMedia = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
 					method: "POST",
 					requestPayload: {
-						dishId,
+						dishId: dish.id,
 						mediaPath,
 						thumbnailPath,
 						mediaType: mediaState.media.type,
 						videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
 					},
 				});
-				dishMediaId = dishMedia.id;
 			} else {
-				// prefilleMedia が指定されている場合は、その dishId と dishMediaId を利用する
-				dishId = prefilledMedia.dish_id;
-				dishMediaId = prefilledMedia.id;
+				// prefilleMedia が指定されている場合は、それを利用
+				dishMedia = prefilledMedia;
 			}
 
 			await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
 				requestPayload: {
-					dishId,
+					dishId: dishMedia.dish_id,
 					comment: reviewText,
 					languageCode: locale,
 					priceCents: parsedPrice,
 					currencyCode: currencyCode ?? undefined,
 					rating,
-					createdDishMediaId: dishMediaId,
+					createdDishMediaId: dishMedia.id,
 				},
 			});
+
+			// #460 【TODO】レビュー投稿後の即時反映（/v1/dish-reviews が void を返すため未実装）
+			// CreateDishReviewResponse が DishReview を返すように変更されれば、
+			// 以下のように実装可能:
+			// const { upsertDishMediaEntries, updateMyReviewIdsByKey } = useDishMediaEntriesStore.getState();
+			// upsertDishMediaEntries([
+			// 	{
+			// 		restaurant,
+			// 		dish: {
+			// 			id: dishMedia.dish_id,
+			// 			restaurant_id: restaurant.id,
+			// 			category_id: dishCategoryId,
+			// 			name: dishCategoryName,
+			// 			created_at: new Date().toISOString(),
+			// 			updated_at: new Date().toISOString(),
+			// 			lock_no: 0,
+			// 			reviewCount: 1,
+			// 			averageRating: rating,
+			// 		},
+			// 		dish_media: {
+			// 			...dishMedia,
+			// 			isMine: true,
+			// 			isSaved: false,
+			// 			isLiked: false,
+			// 			likeCount: 0,
+			// 			mediaUrl: dishMedia.media_path,
+			// 			thumbnailImageUrl: dishMedia.thumbnail_path,
+			// 		},
+			// 		dish_reviews: [createdDishReview],
+			// 	},
+			// ]);
+
+			// const reviewId = String(createdDishReview.id);
+			// updateMyReviewIdsByKey("reviews", (prev) => [reviewId, ...prev]);
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",
