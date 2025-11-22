@@ -43,7 +43,6 @@ import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
 import { SupabaseDishMedia } from "@shared/converters/convert_dish_media";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
