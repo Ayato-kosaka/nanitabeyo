@@ -539,8 +539,11 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 				const myReviewIds = response.data
 					.filter((item) => item.dish_reviews.length > 0)
 					.map((item) => String(item.dish_reviews[0].id));
-				updateMyReviewIdsByKey(key, (prevIds) => [...prevIds, ...myReviewIds]);
-
+				// #CodeQL 【バグ】レビューID重複防止のため、既存IDと重複しないもののみ追加
+				updateMyReviewIdsByKey(key, (prevIds) => {
+					const newIds = myReviewIds.filter(id => !prevIds.includes(id));
+					return [...prevIds, ...newIds];
+				});
 				// 3. nextCursorByKey[key] を更新
 				set((prevState) => ({
 					nextCursorByKey: { ...prevState.nextCursorByKey, [key]: response.nextCursor ?? null },
