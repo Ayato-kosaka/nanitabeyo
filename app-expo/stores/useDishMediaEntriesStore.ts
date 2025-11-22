@@ -105,9 +105,13 @@ export type DishMediaEntriesStore = {
 
 	/**
 	 * 指定した DishMediaEntry（dish_media.id）をピンポイントに更新する。
-	 * 並び順には影響を与えない。
 	 */
 	updateEntry: (dishMediaId: string, entryUpdater: (entry: NormalizedDishMediaEntry) => NormalizedDishMediaEntry) => void;
+
+	/**
+	 * 指定した DishReview（dish_review.id）をピンポイントに更新する。
+	 */
+	updateReview: (dishReviewId: string, reviewUpdater: (review: DishReview) => DishReview) => void;
 
 	// ------ public 挿入メソッド（非同期ラッパー） ------
 
@@ -232,7 +236,7 @@ export const selectIdsByKey =
 		};
 
 /**
- * dish_media.id から正規化済み DishMediaEntry を取得するセレクタ。
+ * id, key から正規化済み DishMediaEntry を取得するセレクタ。
  * レビュー情報が必要な場合は selectReviewById や selectReviewsForEntry を併用する。
  */
 export const selectEntryById =
@@ -240,7 +244,7 @@ export const selectEntryById =
 		(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
 			const { key } = option || {};
 			if (key === "reviews") {
-				const review = selectReviewById(id)(state);
+				const review = state.reviewsByReviewId[id];
 				if (!review) return null;
 				const mediaId = String(review.created_dish_media_id);
 				return state.entriesByMediaId[mediaId] ?? null;
@@ -249,12 +253,18 @@ export const selectEntryById =
 		};
 
 /**
- * dish_review.id から DishReview を取得するセレクタ。
+ * id, key  から正規化済み  DishReview[] を取得するセレクタ。
  */
-export const selectReviewById =
-	(reviewId: string) =>
-		(state: DishMediaEntriesStore): DishReview | null => {
-			return state.reviewsByReviewId[reviewId] ?? null;
+export const selectReviewsByReviewId =
+	(id: string, option?: { key?: string }) =>
+		(state: DishMediaEntriesStore): DishReview[] => {
+			const { key } = option || {};
+			if (key === "reviews") return state.reviewsByReviewId[id] ? [state.reviewsByReviewId[id]] : [];
+			const entry = selectEntryById(id, option)(state);
+			if (!entry) return [];
+			return entry.dishReviewIds
+				.map((reviewId) => state.reviewsByReviewId[reviewId])
+				.filter((r): r is DishReview => !!r);
 		};
 
 /**
@@ -355,6 +365,18 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 					entriesByMediaId: {
 						...state.entriesByMediaId,
 						[dishMediaId]: entryUpdater(state.entriesByMediaId[dishMediaId]),
+					},
+				};
+		}),
+
+	updateReview: (dishReviewId, reviewUpdater) =>
+		set((state) => {
+			return state.reviewsByReviewId[dishReviewId] === undefined
+				? state
+				: {
+					reviewsByReviewId: {
+						...state.reviewsByReviewId,
+						[dishReviewId]: reviewUpdater(state.reviewsByReviewId[dishReviewId]),
 					},
 				};
 		}),

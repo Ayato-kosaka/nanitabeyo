@@ -88,7 +88,8 @@ export default function DishMediaContent({
 			</View>
 
 			<DishReviewsSection
-				reviews={dishMediaEntry.dish_reviews}
+				id={id}
+				entriesKey={source}
 				paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
 				carouselRef={carouselRef}
 			/>

@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
 import { Heart } from "lucide-react-native";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import { formatLikeCount, sliceByUnitLimit } from "../utils/text";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { useLogger } from "@/hooks/useLogger";
@@ -11,18 +10,30 @@ import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
 import i18n from "@/lib/i18n";
+import {
+	DishMediaEntriesStore,
+	selectReviewsByReviewId,
+	useDishMediaEntriesStore,
+} from "@/stores/useDishMediaEntriesStore";
 
 interface DishReviewsSectionProps {
-	reviews: DishMediaEntry["dish_reviews"];
+	id: string;
+	entriesKey: string;
 	paddingRight: number;
 	carouselRef: React.RefObject<any> | undefined;
 }
 
 // コメントの表示のみを担当。状態変更は親側のコールバックに委譲
-export function DishReviewsSection({ reviews, paddingRight, carouselRef }: DishReviewsSectionProps) {
+export function DishReviewsSection({ id, entriesKey, paddingRight, carouselRef }: DishReviewsSectionProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectReviewsByReviewId(id, { key: entriesKey })(state),
+		[id, entriesKey],
+	);
+	const reviews = useDishMediaEntriesStore(selector);
 
 	// コメントを最下部までスクロールする
 	const scrollViewRef = useRef<ScrollView>(null);
@@ -65,63 +76,47 @@ export function DishReviewsSection({ reviews, paddingRight, carouselRef }: DishR
 		});
 	};
 
-	const [reviewLikes, setReviewLikes] = useState(
-		reviews.reduce(
-			(acc, review) => {
-				acc[review.id] = { isLiked: review.isLiked, count: review.likeCount };
-				return acc;
-			},
-			{} as { [key: string]: { isLiked: boolean; count: number } },
-		),
-	);
 	const handleReviewLike = async (reviewId: string) => {
 		lightImpact();
-		const currentLikeState = reviewLikes[reviewId]?.isLiked || false;
+		const { reviewsByReviewId, updateReview } = useDishMediaEntriesStore.getState();
+		const review = reviewsByReviewId[reviewId];
+		if (!review) return;
+		const currentLikeState = review.isLiked || false;
 		const willLike = !currentLikeState;
-
-		setReviewLikes((prev) => ({
-			...prev,
-			[reviewId]: {
-				isLiked: willLike,
-				count: currentLikeState ? (prev[reviewId]?.count || 0) - 1 : (prev[reviewId]?.count || 0) + 1,
-			},
+		let newLikeCount = willLike ? review.likeCount + 1 : Math.max(0, review.likeCount - 1);
+		updateReview(review.id, (r) => ({
+			...r,
+			isLiked: willLike,
+			likeCount: newLikeCount,
 		}));
 
 		logFrontendEvent({
 			event_name: currentLikeState ? "review_unliked" : "review_liked",
 			error_level: "log",
 			payload: {
-				reviewId,
+				reviewId: review.id,
 			},
 		});
 
 		try {
 			if (willLike) {
-				await callBackend<{}, void>(`v1/dish-reviews/${reviewId}/likes`, {
+				await callBackend<{}, void>(`v1/dish-reviews/${review.id}/likes`, {
 					method: "POST",
 					requestPayload: {},
 				});
 			} else {
-				await callBackend<{}, void>(`v1/dish-reviews/${reviewId}/likes`, {
+				await callBackend<{}, void>(`v1/dish-reviews/${review.id}/likes`, {
 					method: "DELETE",
 					requestPayload: {},
 				});
 			}
 		} catch (error) {
-			// Revert state on error
-			setReviewLikes((prev) => ({
-				...prev,
-				[reviewId]: {
-					isLiked: currentLikeState,
-					count: currentLikeState ? (prev[reviewId]?.count || 0) + 1 : (prev[reviewId]?.count || 0) - 1,
-				},
-			}));
 			logFrontendEvent({
 				event_name: "review_like_reaction_failed",
 				error_level: "log",
 				payload: {
 					error: error instanceof Error ? error.message : String(error),
-					target_id: reviewId,
+					target_id: review.id,
 					action_type: "like",
 				},
 			});
@@ -136,7 +131,7 @@ export function DishReviewsSection({ reviews, paddingRight, carouselRef }: DishR
 				showsVerticalScrollIndicator={false}
 				nestedScrollEnabled={Platform.OS === "android"}
 				simultaneousHandlers={carouselRef}>
-				{reviews.map((review) => {
+				{reviews.map((review, index) => {
 					const unitLimit = commentExpandedChars[review.id]!;
 					const { substring, isTruncated } = sliceByUnitLimit(review.comment, unitLimit);
 					const displayText = substring;
@@ -163,12 +158,12 @@ export function DishReviewsSection({ reviews, paddingRight, carouselRef }: DishR
 									<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleReviewLike(review.id)}>
 										<Heart
 											size={14}
-											color={reviewLikes[review.id].isLiked ? "#FF3040" : "#CCCCCC"}
-											fill={reviewLikes[review.id].isLiked ? "#FF3040" : "transparent"}
+											color={review.isLiked ? "#FF3040" : "#CCCCCC"}
+											fill={review.isLiked ? "#FF3040" : "transparent"}
 										/>
 									</TouchableOpacity>
-									{reviewLikes[review.id].count > 0 && (
-										<Text style={styles.commentLikeCount}>{formatLikeCount(reviewLikes[review.id].count)}</Text>
+									{review.likeCount > 0 && (
+										<Text style={styles.commentLikeCount}>{formatLikeCount(review.likeCount)}</Text>
 									)}
 								</View>
 							</View>
