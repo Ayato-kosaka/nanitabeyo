@@ -1,21 +1,16 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X } from "lucide-react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 
 export default function ProfileSearchResultScreen() {
-	const { topicId } = useLocalSearchParams<{ topicId: string }>();
+	const { entriesKey } = useLocalSearchParams<{ entriesKey: string }>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-
-	const { currentIndex, showCompletionModal, handleIndexChange, handleClose, handleReturnToCards } = useSearchResult(
-		topicId as string,
-	);
 
 	useEffect(() => {
 		// Log screen view with search parameters
@@ -24,20 +19,19 @@ export default function ProfileSearchResultScreen() {
 			error_level: "log",
 			payload: {
 				screen: "search_result",
-				topicId,
-				hasTopicId: !!topicId,
+				entriesKey,
 			},
 		});
-	}, [topicId, logFrontendEvent]);
+	}, [entriesKey, logFrontendEvent]);
 
 	const handleCloseWithHaptic = () => {
 		lightImpact();
 		logFrontendEvent({
 			event_name: "search_result_closed",
 			error_level: "log",
-			payload: { topicId, currentIndex },
+			payload: { entriesKey },
 		});
-		handleClose();
+		router.back();
 	};
 
 	return (
@@ -51,7 +45,7 @@ export default function ProfileSearchResultScreen() {
 
 			{/* Feed Content */}
 			{/* <DishMediaFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-			<DishMediaMap onIndexChange={handleIndexChange} source={topicId} />
+			<DishMediaMap source={entriesKey} />
 		</LinearGradient>
 	);
 }

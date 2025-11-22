@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { ThumbsUp, X } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -34,8 +34,6 @@ export default function TopicsScreen() {
 	}, [searchParams]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
-	// #460 【設計】upsertDishMediaEntries + updateMediaIdsByKey に移行
-	const { upsertDishMediaEntries, updateMediaIdsByKey } = useDishMediaEntriesStore();
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
@@ -58,26 +56,25 @@ export default function TopicsScreen() {
 		}
 	}, [params, searchTopics, showSnackbar]);
 
-	const handleViewDetails = (topic: Topic) => {
-		// #460 【設計】Promise を await して upsertDishMediaEntries + updateMediaIdsByKey を呼ぶ
-		topic.dishItemsPromise
-			.then((items) => {
+	const handleViewDetails = useCallback(
+		(topic: Topic) => {
+			const { upsertDishMediaEntries, updateMediaIdsByKeyAsync } = useDishMediaEntriesStore.getState();
+			const idsPromise = topic.dishItemsPromise.then((items) => {
 				upsertDishMediaEntries(items);
-				const mediaIds = items.map((item) => String(item.dish_media.id));
-				updateMediaIdsByKey(topic.categoryId, () => mediaIds);
-			})
-			.catch((error) => {
-				console.error("Failed to load topic items:", error);
+				return items.map((item) => String(item.dish_media.id));
 			});
-		router.push({
-			pathname: "/[locale]/(tabs)/search/result",
-			params: {
-				locale,
-				topicId: topic.categoryId,
-				...(params && { location: JSON.stringify(params.location) }),
-			},
-		});
-	};
+			updateMediaIdsByKeyAsync(topic.categoryId, idsPromise, (_, fetchedIds) => fetchedIds);
+			router.push({
+				pathname: "/[locale]/(tabs)/search/result",
+				params: {
+					locale,
+					topicId: topic.categoryId,
+					...(params && { location: JSON.stringify(params.location) }),
+				},
+			});
+		},
+		[locale, params],
+	);
 
 	const handleBack = () => {
 		router.back();

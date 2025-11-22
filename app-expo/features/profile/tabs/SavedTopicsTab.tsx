@@ -27,8 +27,6 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
-	// #460 【設計】upsertDishMediaEntries + updateMediaIdsByKey に移行
-	const { upsertDishMediaEntries, updateMediaIdsByKey } = useDishMediaEntriesStore();
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
 
@@ -100,25 +98,26 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				// Close modal first
 				closeLocationModal();
 
-				// Get location details including coordinates and language code
-				const locationDetails = await getLocationDetails(location);
+				const { mediaIdsByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } = useDishMediaEntriesStore.getState();
+				const entriesKey = `saved-topic-${selectedTopic.id}-${location.place_id}`;
 
-				const dishItemsPromise = createDishItemsPromise(
-					selectedTopic.id,
-					selectedTopic.label_en,
-					locationDetails.location.latitude,
-					locationDetails.location.longitude,
-					locationDetails.localLanguageCode,
-				);
+				if (!mediaIdsByKey[entriesKey]) {
+					// Get location details including coordinates and language code
+					const locationDetails = await getLocationDetails(location);
 
-				// #460 【設計】Promise を await して upsertDishMediaEntries + updateMediaIdsByKey を呼ぶ
-				try {
-					const items = await dishItemsPromise;
-					upsertDishMediaEntries(items);
-					const mediaIds = items.map((item) => String(item.dish_media.id));
-					updateMediaIdsByKey(selectedTopic.id, () => mediaIds);
-				} catch (error) {
-					console.error("Failed to load topic items:", error);
+					const dishItemsPromise = createDishItemsPromise(
+						selectedTopic.id,
+						selectedTopic.label_en,
+						locationDetails.location.latitude,
+						locationDetails.location.longitude,
+						locationDetails.localLanguageCode,
+					);
+
+					const idsPromise = dishItemsPromise.then((items) => {
+						upsertDishMediaEntries(items);
+						return items.map((item) => String(item.dish_media.id));
+					});
+					updateMediaIdsByKeyAsync(entriesKey, idsPromise, (_, ids) => ids);
 				}
 
 				// Navigate to result screen (referenced from topics.tsx handleViewDetails)
@@ -127,7 +126,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					pathname: "/[locale]/(tabs)/profile/search-results",
 					params: {
 						locale,
-						topicId: selectedTopic.id,
+						entriesKey,
 					},
 				});
 
@@ -152,16 +151,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				});
 			}
 		},
-		[
-			selectedTopic,
-			closeLocationModal,
-			createDishItemsPromise,
-			upsertDishMediaEntries,
-			updateMediaIdsByKey,
-			locale,
-			logFrontendEvent,
-			getLocationDetails,
-		],
+		[selectedTopic, closeLocationModal, createDishItemsPromise, locale, logFrontendEvent, getLocationDetails],
 	);
 
 	const handleLocationCancel = useCallback(() => {
