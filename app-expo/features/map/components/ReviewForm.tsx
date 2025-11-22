@@ -420,6 +420,20 @@ export function ReviewForm({
 				},
 			});
 
+			// #460 【TODO】レビュー投稿後の即時反映（API が void を返すため未実装）
+			// CreateDishReviewResponse が DishMediaEntry または DishReview を返すように変更されれば、
+			// 以下のように実装可能:
+			// const store = useDishMediaEntriesStore.getState();
+			// store.upsertDishMediaEntries([createdEntry]);
+			// const firstReview = createdEntry.dish_reviews[0];
+			// if (firstReview) {
+			//   const reviewId = String(firstReview.id);
+			//   store.updateMyReviewIdsByKey("reviews", (prev) => {
+			//     const without = prev.filter((id) => id !== reviewId);
+			//     return [reviewId, ...without];
+			//   });
+			// }
+
 			logFrontendEvent({
 				event_name: "dish_review_submitted",
 				error_level: "log",
