@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaClient, Prisma } from '../../../shared/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { withMetrics } from './middlewares/metrics.middleware';
 import { env } from 'src/core/config/env';
@@ -36,9 +36,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const enableQueryLogs = env.API_NODE_ENV !== 'production';
     const isWatchMode = process.env.NODE_ENV !== 'production';
 
-    const url = new URL(env.DATABASE_URL)
-    url.searchParams.delete('sslmode')
-    const connectionString = url.toString()
+    const url = new URL(env.DATABASE_URL);
+    url.searchParams.delete('sslmode');
+    const connectionString = url.toString();
 
     const pool = new Pool({
       connectionString,
@@ -51,10 +51,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       adapter,
       log: enableQueryLogs
         ? ([
-          { emit: 'event', level: 'query' } as Prisma.LogDefinition,
-          'warn',
-          'error',
-        ] as any)
+            { emit: 'event', level: 'query' } as Prisma.LogDefinition,
+            'warn',
+            'error',
+          ] as any)
         : (['info', 'warn', 'error'] as Prisma.LogLevel[]),
     });
 
