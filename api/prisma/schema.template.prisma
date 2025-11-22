@@ -13,6 +13,5 @@ generator client {
 /// @see https://www.prisma.io/docs/orm/prisma-schema/data-model/multi-schema#specifying-multiple-schemas
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
   schemas  = ["__SCHEMA__"] // ⬅️ ビルド時にこの値を差し替える運用を想定
 }
