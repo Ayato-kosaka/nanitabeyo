@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
   schemas  = ["dev"]
 }
 
@@ -474,7 +473,7 @@ model users {
   created_at       DateTime           @default(now()) @db.Timestamptz(6)
   updated_at       DateTime           @default(now()) @db.Timestamptz(6)
   lock_no          Int                @default(0)
-  username         String             @db.Citext
+  username         String             @unique(map: "uq_users_username") @db.Citext
   preferred_locale String
   avatar_path      String?
   dish_media       dish_media[]
