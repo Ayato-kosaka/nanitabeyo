@@ -15,9 +15,13 @@ import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo, ActivityIndi
 import DishMediaContent from "./DishMediaContent";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
-import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import {
+	DishMediaEntriesStore,
+	NormalizedDishMediaEntry,
+	selectIdsByKey,
+	useDishMediaEntriesStore,
+} from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { Text } from "react-native";
 import i18n from "@/lib/i18n";
@@ -33,11 +37,9 @@ interface DishMediaFeedProps {
 	// 表示中インデックスが変化した際のコールバック
 	onIndexChange?: (index: number) => void;
 	// 各アイテムのタイトル取得関数
-	getTitle?: (item: DishMediaEntry) => string | null;
+	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
 	// 呼び出し元コンテキスト
 	source: string;
-	// keyExtractor（省略時は dish_media.id を使用）
-	keyExtractor?: (item: DishMediaEntry) => string;
 }
 
 // --- 本体 --------------------------------------------------------------------

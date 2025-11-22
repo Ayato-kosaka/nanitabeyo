@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, SafeAreaView } from "react-native";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
@@ -8,18 +7,13 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
-import {
-	selectEntryById,
-	selectEntryByReviewId,
-	useDishMediaEntriesStore,
-	denormalizeEntry,
-} from "@/stores/useDishMediaEntriesStore";
+import { NormalizedDishMediaEntry, selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 interface DishMediaContentProps {
 	id: string;
 	carouselRef?: React.RefObject<any>;
 	isActive: boolean;
-	getTitle?: (item: DishMediaEntry) => string | null;
+	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
 	sessionId: string;
 	source: string;
 }
@@ -32,20 +26,11 @@ export default function DishMediaContent({
 	sessionId,
 	source,
 }: DishMediaContentProps) {
-	// #457 【設計】正規化ストアから DishMediaEntry を復元
 	const dishMediaEntry = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		if (source === "reviews") {
-			// レビュー画面では selectEntryByReviewId を使用
-			const entry = selectEntryByReviewId(id)(state);
-			if (!entry) throw new Error("DishMediaContent: entry is undefined");
-			return entry;
-		} else {
-			// 通常画面では selectEntryById + denormalizeEntry を使用
-			const normalizedEntry = selectEntryById(id)(state);
-			if (!normalizedEntry) throw new Error("DishMediaContent: entry is undefined");
-			return denormalizeEntry(normalizedEntry, state);
-		}
+		const entry = selectEntryById(id, { key: source })(state);
+		if (!entry) throw new Error("DishMediaContent: entry is undefined");
+		return entry;
 	}, [id, source]);
 
 	const insets = useSafeAreaInsets();

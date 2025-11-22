@@ -7,13 +7,7 @@ import Stars from "@/components/Stars";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryRestaurantDishMediaDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
-import { useLocale } from "@/hooks/useLocale";
-import {
-	useDishMediaEntriesStore,
-	selectIdsByKey,
-	selectEntryById,
-	denormalizeEntry,
-} from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/stores/useDishMediaEntriesStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
@@ -78,11 +72,8 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	// グリッドアイテムのレンダリング関数
 	const renderReviewItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			// #457 【設計】正規化済みエントリを取得して復元
-			const state = useDishMediaEntriesStore.getState();
-			const normalizedEntry = selectEntryById(item.id)(state);
-			if (!normalizedEntry) return <View />; // エントリが存在しない場合は空ビューを返す
-			const entry = denormalizeEntry(normalizedEntry, state);
+			const entry = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
+			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			return (
 				<ImageCard

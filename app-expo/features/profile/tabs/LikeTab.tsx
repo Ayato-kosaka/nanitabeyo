@@ -8,12 +8,7 @@ import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import {
-	useDishMediaEntriesStore,
-	selectIdsByKey,
-	selectEntryById,
-	denormalizeEntry,
-} from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
@@ -86,11 +81,8 @@ export function LikeTab() {
 
 	const renderLikeItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			// #457 【設計】正規化済みエントリを取得して復元
-			const state = useDishMediaEntriesStore.getState();
-			const normalizedEntry = selectEntryById(item.id)(state);
-			if (!normalizedEntry) return <View />; // エントリが存在しない場合は空ビューを返す
-			const entry = denormalizeEntry(normalizedEntry, state);
+			const entry = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
+			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {
 				id: item.id,

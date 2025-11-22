@@ -1,14 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { StyleSheet, View, Dimensions, Text } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
-import MapView, { Marker, Region } from "@/components/MapView";
+import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
 import {
 	DishMediaEntriesStore,
+	NormalizedDishMediaEntry,
 	selectEntryById,
 	selectIdsByKey,
 	useDishMediaEntriesStore,
@@ -31,7 +31,7 @@ interface DishMediaMapProps {
 		latitude: number;
 		longitude: number;
 	};
-	getTitle?: (item: DishMediaEntry) => string | null;
+	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
 	// 呼び出し元コンテキスト
 	source: string;
 }
@@ -56,7 +56,7 @@ export default function DishMediaMap({
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) => selectEntryById(id, { key: source })(state)?.entry?.restaurant)
+			.map((id) => selectEntryById(id, { key: source })(state)?.restaurant)
 			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
 			.map((restaurant) => ({
 				id: restaurant.id,

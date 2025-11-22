@@ -35,7 +35,7 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {
-			const { entry } = selectEntryById(id, { key: entriesKey })(state);
+			const entry = selectEntryById(id, { key: entriesKey })(state);
 			if (!entry) throw new Error("ActionButtons: entry is undefined");
 			return {
 				isSaved: entry.dish_media.isSaved,
@@ -49,7 +49,7 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 
 	const { dishMediaId, restaurant } = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const { entry } = selectEntryById(id, { key: entriesKey })(state);
+		const entry = selectEntryById(id, { key: entriesKey })(state);
 		if (!entry) throw new Error("ActionButtons: entry is undefined");
 		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
 	}, [id]);
