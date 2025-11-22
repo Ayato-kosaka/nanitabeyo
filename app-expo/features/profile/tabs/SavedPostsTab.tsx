@@ -90,7 +90,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	const renderPostItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const { entry } = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
+			const entry = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
 			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {

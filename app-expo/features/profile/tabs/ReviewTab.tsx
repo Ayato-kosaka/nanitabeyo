@@ -58,8 +58,9 @@ export function ReviewTab() {
 	// #454 【設計】フィルタリングは表示時に ids から行う
 	const filteredIds = useMemo(() => {
 		if (!onlyMyPhotoVideoReviews || !targetUserId) return ids;
+		// #457 【設計】正規化ストアから復元したエントリでフィルタ
 		return ids.filter((id) => {
-			const { entry } = selectEntryById(id, { key: entriesKey })(useDishMediaEntriesStore.getState());
+			const entry = selectEntryById(id, { key: entriesKey })(useDishMediaEntriesStore.getState());
 			return entry?.dish_media.isMine;
 		});
 	}, [onlyMyPhotoVideoReviews, ids, targetUserId, entriesKey]);
@@ -82,7 +83,7 @@ export function ReviewTab() {
 
 	const renderReviewItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const { entry } = selectEntryById(item.id, { key: entriesKey })(useDishMediaEntriesStore.getState());
+			const entry = selectEntryById(item.id, { key: entriesKey })(useDishMediaEntriesStore.getState());
 			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {

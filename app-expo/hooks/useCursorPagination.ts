@@ -25,12 +25,9 @@ export const useCursorPagination = <TReq, TItem>(fetcher: Fetcher<TReq, TItem>) 
 	const controller = controllerRef.current;
 	const state = controller.getState();
 
-	const loadInitial = useCallback(
-		async (request?: TReq) => {
-			await controller.loadInitial(request);
-		},
-		[],
-	);
+	const loadInitial = useCallback(async (request?: TReq) => {
+		await controller.loadInitial(request);
+	}, []);
 
 	const loadMore = useCallback(async () => {
 		await controller.loadMore();

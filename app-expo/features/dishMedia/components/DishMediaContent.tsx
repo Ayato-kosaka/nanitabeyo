@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, SafeAreaView } from "react-native";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
@@ -8,13 +7,13 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
-import { selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { NormalizedDishMediaEntry, selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 interface DishMediaContentProps {
 	id: string;
 	carouselRef?: React.RefObject<any>;
 	isActive: boolean;
-	getTitle?: (item: DishMediaEntry) => string | null;
+	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
 	sessionId: string;
 	source: string;
 }
@@ -29,10 +28,9 @@ export default function DishMediaContent({
 }: DishMediaContentProps) {
 	const dishMediaEntry = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const { entry, myReview } = selectEntryById(id, { key: source })(state);
+		const entry = selectEntryById(id, { key: source })(state);
 		if (!entry) throw new Error("DishMediaContent: entry is undefined");
-		if (myReview) return { ...entry, dish_reviews: [myReview] };
-		else return entry;
+		return entry;
 	}, [id, source]);
 
 	const insets = useSafeAreaInsets();
@@ -90,7 +88,8 @@ export default function DishMediaContent({
 			</View>
 
 			<DishReviewsSection
-				reviews={dishMediaEntry.dish_reviews}
+				id={id}
+				entriesKey={source}
 				paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
 				carouselRef={carouselRef}
 			/>
