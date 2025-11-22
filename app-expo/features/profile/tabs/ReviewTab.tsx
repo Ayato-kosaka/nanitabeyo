@@ -63,7 +63,7 @@ export function ReviewTab() {
 			const entry = selectEntryById(id, { key: entriesKey })(useDishMediaEntriesStore.getState());
 			return entry?.dish_media.isMine;
 		});
-	}, [onlyMyPhotoVideoReviews, ids, targetUserId]);
+	}, [onlyMyPhotoVideoReviews, ids, targetUserId, entriesKey]);
 
 	const handleItemPress = useCallback(
 		(reviewId: string, index: number) => {
