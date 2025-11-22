@@ -106,7 +106,10 @@ export type DishMediaEntriesStore = {
 	/**
 	 * 指定した DishMediaEntry（dish_media.id）をピンポイントに更新する。
 	 */
-	updateEntry: (dishMediaId: string, entryUpdater: (entry: NormalizedDishMediaEntry) => NormalizedDishMediaEntry) => void;
+	updateEntry: (
+		dishMediaId: string,
+		entryUpdater: (entry: NormalizedDishMediaEntry) => NormalizedDishMediaEntry,
+	) => void;
 
 	/**
 	 * 指定した DishReview（dish_review.id）をピンポイントに更新する。
@@ -214,26 +217,26 @@ export type DishMediaEntriesStore = {
  */
 export const selectIdsByKey =
 	(key: string) =>
-		(
-			state: DishMediaEntriesStore,
-		): {
-			ids: string[];
-			isLoading: boolean;
-			error: string | null;
-			hasFetchedInitial: boolean;
-			hasNextPage: boolean;
-			isLoadingMore: boolean;
-		} => {
-			const ids = (key === "reviews" ? state.myReviewIdsByKey[key] : state.mediaIdsByKey[key]) || [];
-			return {
-				ids,
-				isLoading: state.isLoadingByKey[key] ?? false,
-				error: state.errorByKey[key] ?? null,
-				hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
-				hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
-				isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
-			};
+	(
+		state: DishMediaEntriesStore,
+	): {
+		ids: string[];
+		isLoading: boolean;
+		error: string | null;
+		hasFetchedInitial: boolean;
+		hasNextPage: boolean;
+		isLoadingMore: boolean;
+	} => {
+		const ids = (key === "reviews" ? state.myReviewIdsByKey[key] : state.mediaIdsByKey[key]) || [];
+		return {
+			ids,
+			isLoading: state.isLoadingByKey[key] ?? false,
+			error: state.errorByKey[key] ?? null,
+			hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
+			hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
+			isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
 		};
+	};
 
 /**
  * id, key から正規化済み DishMediaEntry を取得するセレクタ。
@@ -241,42 +244,40 @@ export const selectIdsByKey =
  */
 export const selectEntryById =
 	(id: string, option?: { key?: string }) =>
-		(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
-			const { key } = option || {};
-			if (key === "reviews") {
-				const review = state.reviewsByReviewId[id];
-				if (!review) return null;
-				const mediaId = String(review.created_dish_media_id);
-				return state.entriesByMediaId[mediaId] ?? null;
-			}
-			return state.entriesByMediaId[id] ?? null;
-		};
+	(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
+		const { key } = option || {};
+		if (key === "reviews") {
+			const review = state.reviewsByReviewId[id];
+			if (!review) return null;
+			const mediaId = String(review.created_dish_media_id);
+			return state.entriesByMediaId[mediaId] ?? null;
+		}
+		return state.entriesByMediaId[id] ?? null;
+	};
 
 /**
  * id, key  から正規化済み  DishReview[] を取得するセレクタ。
  */
 export const selectReviewsByReviewId =
 	(id: string, option?: { key?: string }) =>
-		(state: DishMediaEntriesStore): DishReview[] => {
-			const { key } = option || {};
-			if (key === "reviews") return state.reviewsByReviewId[id] ? [state.reviewsByReviewId[id]] : [];
-			const entry = selectEntryById(id, option)(state);
-			if (!entry) return [];
-			return entry.dishReviewIds
-				.map((reviewId) => state.reviewsByReviewId[reviewId])
-				.filter((r): r is DishReview => !!r);
-		};
+	(state: DishMediaEntriesStore): DishReview[] => {
+		const { key } = option || {};
+		if (key === "reviews") return state.reviewsByReviewId[id] ? [state.reviewsByReviewId[id]] : [];
+		const entry = selectEntryById(id, option)(state);
+		if (!entry) return [];
+		return entry.dishReviewIds.map((reviewId) => state.reviewsByReviewId[reviewId]).filter((r): r is DishReview => !!r);
+	};
 
 /**
  * dish_media.id に紐づく全レビューを取得するセレクタ。
  */
 export const selectReviewsForEntry =
 	(mediaId: string) =>
-		(state: DishMediaEntriesStore): DishReview[] => {
-			const entry = state.entriesByMediaId[mediaId];
-			if (!entry) return [];
-			return entry.dishReviewIds.map((id) => state.reviewsByReviewId[id]).filter((r): r is DishReview => !!r);
-		};
+	(state: DishMediaEntriesStore): DishReview[] => {
+		const entry = state.entriesByMediaId[mediaId];
+		if (!entry) return [];
+		return entry.dishReviewIds.map((id) => state.reviewsByReviewId[id]).filter((r): r is DishReview => !!r);
+	};
 
 export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesStore>()((set, get) => ({
 	// ------ 初期状態 ------
@@ -296,8 +297,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	pushEntriesByKey: (key, items) =>
 		set((state) => {
 			if (!items.length) return state;
-			const { nextEntriesById, nextReviewsById, addedMediaIds } =
-				normalizeDishMediaItems(state, items);
+			const { nextEntriesById, nextReviewsById, addedMediaIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.mediaIdsByKey[key] ?? [];
 			return {
 				entriesByMediaId: nextEntriesById,
@@ -312,8 +312,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	unshiftEntriesByKey: (key, items) =>
 		set((state) => {
 			if (!items.length) return state;
-			const { nextEntriesById, nextReviewsById, addedMediaIds } =
-				normalizeDishMediaItems(state, items);
+			const { nextEntriesById, nextReviewsById, addedMediaIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.mediaIdsByKey[key] ?? [];
 			return {
 				entriesByMediaId: nextEntriesById,
@@ -328,8 +327,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	pushEntriesWithMyReviewsByKey: (key, items) =>
 		set((state) => {
 			if (!items.length) return state;
-			const { nextEntriesById, nextReviewsById, addedMyReviewIds } =
-				normalizeDishMediaItems(state, items);
+			const { nextEntriesById, nextReviewsById, addedMyReviewIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
 			return {
 				entriesByMediaId: nextEntriesById,
@@ -344,8 +342,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	unshiftEntriesWithMyReviewsByKey: (key, items) =>
 		set((state) => {
 			if (!items.length) return state;
-			const { nextEntriesById, nextReviewsById, addedMyReviewIds } =
-				normalizeDishMediaItems(state, items);
+			const { nextEntriesById, nextReviewsById, addedMyReviewIds } = normalizeDishMediaItems(state, items);
 			const prevIds = state.myReviewIdsByKey[key] ?? [];
 			return {
 				entriesByMediaId: nextEntriesById,
@@ -362,11 +359,11 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			return state.entriesByMediaId[dishMediaId] === undefined
 				? state
 				: {
-					entriesByMediaId: {
-						...state.entriesByMediaId,
-						[dishMediaId]: entryUpdater(state.entriesByMediaId[dishMediaId]),
-					},
-				};
+						entriesByMediaId: {
+							...state.entriesByMediaId,
+							[dishMediaId]: entryUpdater(state.entriesByMediaId[dishMediaId]),
+						},
+					};
 		}),
 
 	updateReview: (dishReviewId, reviewUpdater) =>
@@ -374,11 +371,11 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			return state.reviewsByReviewId[dishReviewId] === undefined
 				? state
 				: {
-					reviewsByReviewId: {
-						...state.reviewsByReviewId,
-						[dishReviewId]: reviewUpdater(state.reviewsByReviewId[dishReviewId]),
-					},
-				};
+						reviewsByReviewId: {
+							...state.reviewsByReviewId,
+							[dishReviewId]: reviewUpdater(state.reviewsByReviewId[dishReviewId]),
+						},
+					};
 		}),
 
 	// ------ 非同期ラッパーメソッド ------
@@ -608,17 +605,13 @@ const handleAsyncAction = <T>(
 		});
 };
 
-
 // ------ 正規化ヘルパー ------
 /**
  * DishMediaEntry[] を正規化するヘルパー関数。
  * entriesByMediaId と reviewsByReviewId を更新し、
  * 追加された mediaId と reviewId の配列を返す。
  */
-function normalizeDishMediaItems(
-	state: DishMediaEntriesStore,
-	items: DishMediaEntry[],
-) {
+function normalizeDishMediaItems(state: DishMediaEntriesStore, items: DishMediaEntry[]) {
 	const nextEntriesById = { ...state.entriesByMediaId };
 	const nextReviewsById = { ...state.reviewsByReviewId };
 
@@ -640,9 +633,7 @@ function normalizeDishMediaItems(
 
 		// 既存 entry に紐づく dishReviewIds をマージ（重複排除）
 		const existingIds = nextEntriesById[mediaId]?.dishReviewIds ?? [];
-		dishReviewIds.push(
-			...existingIds.filter((id: string) => !dishReviewIds.includes(id)),
-		);
+		dishReviewIds.push(...existingIds.filter((id: string) => !dishReviewIds.includes(id)));
 
 		// entry を上書き（常に最新で上書き）
 		nextEntriesById[mediaId] = { ...rest, dishReviewIds };
