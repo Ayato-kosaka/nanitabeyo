@@ -12,7 +12,8 @@ export default function PostsScreen() {
 	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
 	const { callBackend } = useAPICall();
 	const pushEntriesByKeyAsync = useDishMediaEntriesStore((s) => s.pushEntriesByKeyAsync);
-	const source = "PostsScreen";
+	const clearByKey = useDishMediaEntriesStore((s) => s.clearByKey);
+	const entriesKey = "PostsScreen";
 
 	useMemo(() => {
 		const fetchData = async () => {
@@ -24,16 +25,19 @@ export default function PostsScreen() {
 				requestPayload,
 			});
 			pushEntriesByKeyAsync(
-				source,
+				entriesKey,
 				response.then((res) => res.items),
 			);
 		};
 		fetchData();
+		return () => {
+			clearByKey(entriesKey);
+		};
 	}, [ids, callBackend]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<DishMediaMap source={source} />
+			<DishMediaMap source={entriesKey} />
 		</LinearGradient>
 	);
 }
