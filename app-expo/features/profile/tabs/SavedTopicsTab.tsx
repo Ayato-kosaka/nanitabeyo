@@ -27,7 +27,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
-	const pushEntriesByKeyAsync = useDishMediaEntriesStore((s) => s.pushEntriesByKeyAsync);
+	// #460 【設計】upsertDishMediaEntries + updateMediaIdsByKey に移行
+	const { upsertDishMediaEntries, updateMediaIdsByKey } = useDishMediaEntriesStore();
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
 
@@ -110,7 +111,15 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 					locationDetails.localLanguageCode,
 				);
 
-				pushEntriesByKeyAsync(selectedTopic.id, dishItemsPromise);
+				// #460 【設計】Promise を await して upsertDishMediaEntries + updateMediaIdsByKey を呼ぶ
+				try {
+					const items = await dishItemsPromise;
+					upsertDishMediaEntries(items);
+					const mediaIds = items.map((item) => String(item.dish_media.id));
+					updateMediaIdsByKey(selectedTopic.id, () => mediaIds);
+				} catch (error) {
+					console.error("Failed to load topic items:", error);
+				}
 
 				// Navigate to result screen (referenced from topics.tsx handleViewDetails)
 				// Stay within profile tab as required
@@ -147,7 +156,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 			selectedTopic,
 			closeLocationModal,
 			createDishItemsPromise,
-			pushEntriesByKeyAsync,
+			upsertDishMediaEntries,
+			updateMediaIdsByKey,
 			locale,
 			logFrontendEvent,
 			getLocationDetails,

@@ -61,7 +61,11 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 		const willLike = !isLiked;
 		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
 		let newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
-		useDishMediaEntriesStore.getState().updateEntry(dishMediaId, (entry) => ({
+
+		const store = useDishMediaEntriesStore.getState();
+
+		// #460 【設計】エンティティ更新
+		store.updateEntry(String(dishMediaId), (entry) => ({
 			...entry,
 			dish_media: {
 				...entry.dish_media,
@@ -69,6 +73,16 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 				likeCount: newLikeCount,
 			},
 		}));
+
+		// #460 【設計】いいね ON → liked タブの先頭に移動、いいね OFF → liked タブから除外
+		if (willLike) {
+			store.updateMediaIdsByKey("liked", (prev) => {
+				const without = prev.filter((id) => id !== String(dishMediaId));
+				return [String(dishMediaId), ...without];
+			});
+		} else {
+			store.updateMediaIdsByKey("liked", (prev) => prev.filter((id) => id !== String(dishMediaId)));
+		}
 
 		logFrontendEvent({
 			event_name: willLike ? "dish_liked" : "dish_unliked",
@@ -109,13 +123,27 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 	const handleSave = useCallback(async () => {
 		lightImpact();
 		const willSave = !isSaved;
-		useDishMediaEntriesStore.getState().updateEntry(dishMediaId, (entry) => ({
+
+		const store = useDishMediaEntriesStore.getState();
+
+		// #460 【設計】エンティティ更新
+		store.updateEntry(String(dishMediaId), (entry) => ({
 			...entry,
 			dish_media: {
 				...entry.dish_media,
 				isSaved: willSave,
 			},
 		}));
+
+		// #460 【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
+		if (willSave) {
+			store.updateMediaIdsByKey("saved", (prev) => {
+				const without = prev.filter((id) => id !== String(dishMediaId));
+				return [String(dishMediaId), ...without];
+			});
+		} else {
+			store.updateMediaIdsByKey("saved", (prev) => prev.filter((id) => id !== String(dishMediaId)));
+		}
 
 		logFrontendEvent({
 			event_name: willSave ? "dish_saved" : "dish_unsaved",

@@ -34,7 +34,8 @@ export default function TopicsScreen() {
 	}, [searchParams]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
-	const pushEntriesByKeyAsync = useDishMediaEntriesStore((s) => s.pushEntriesByKeyAsync);
+	// #460 【設計】upsertDishMediaEntries + updateMediaIdsByKey に移行
+	const { upsertDishMediaEntries, updateMediaIdsByKey } = useDishMediaEntriesStore();
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
@@ -58,7 +59,16 @@ export default function TopicsScreen() {
 	}, [params, searchTopics, showSnackbar]);
 
 	const handleViewDetails = (topic: Topic) => {
-		pushEntriesByKeyAsync(topic.categoryId, topic.dishItemsPromise);
+		// #460 【設計】Promise を await して upsertDishMediaEntries + updateMediaIdsByKey を呼ぶ
+		topic.dishItemsPromise
+			.then((items) => {
+				upsertDishMediaEntries(items);
+				const mediaIds = items.map((item) => String(item.dish_media.id));
+				updateMediaIdsByKey(topic.categoryId, () => mediaIds);
+			})
+			.catch((error) => {
+				console.error("Failed to load topic items:", error);
+			});
 		router.push({
 			pathname: "/[locale]/(tabs)/search/result",
 			params: {
