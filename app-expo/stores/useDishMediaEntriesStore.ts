@@ -280,10 +280,16 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	upsertDishMediaEntries: (items) =>
 		set((state) => {
 			if (!items.length) return state;
-			const { nextEntriesById, nextReviewsById } = normalizeDishMediaItems(state, items);
+			const { entriesPatch, reviewsPatch } = buildDishMediaPatches(state, items);
 			return {
-				entriesByMediaId: nextEntriesById,
-				reviewsByReviewId: nextReviewsById,
+				entriesByMediaId: {
+					...state.entriesByMediaId,
+					...entriesPatch,
+				},
+				reviewsByReviewId: {
+					...state.reviewsByReviewId,
+					...reviewsPatch,
+				},
 			};
 		}),
 
@@ -586,37 +592,43 @@ const handleAsyncAction = <T>(
 
 // ------ 正規化ヘルパー ------
 /**
- * DishMediaEntry[] を正規化するヘルパー関数。
- * entriesByMediaId と reviewsByReviewId を更新し、
- * 追加された mediaId と reviewId の配列を返す。
+ * DishMediaEntry 配列を正規化してパッチを生成するヘルパー。
  */
-function normalizeDishMediaItems(state: DishMediaEntriesStore, items: DishMediaEntry[]) {
-	const nextEntriesById = { ...state.entriesByMediaId };
-	const nextReviewsById = { ...state.reviewsByReviewId };
+function buildDishMediaPatches(
+	state: DishMediaEntriesStore,
+	items: DishMediaEntry[],
+): {
+	entriesPatch: Record<string, NormalizedDishMediaEntry>;
+	reviewsPatch: Record<string, DishReview>;
+} {
+	const entriesPatch: Record<string, NormalizedDishMediaEntry> = {};
+	const reviewsPatch: Record<string, DishReview> = {};
 
 	for (const item of items) {
 		const { dish_reviews = [], ...rest } = item;
-
 		const mediaId = String(item.dish_media.id);
 		const dishReviewIds: string[] = [];
 
-		// reviews を正規化
+		// reviews をパッチに積む
 		for (const review of dish_reviews) {
 			const reviewId = String(review.id);
-			nextReviewsById[reviewId] = review;
+			reviewsPatch[reviewId] = review;
 			dishReviewIds.push(reviewId);
 		}
 
-		// 既存 entry に紐づく dishReviewIds をマージ（重複排除）
-		const existingIds = nextEntriesById[mediaId]?.dishReviewIds ?? [];
-		dishReviewIds.push(...existingIds.filter((id: string) => !dishReviewIds.includes(id)));
+		// 既存 entry から dishReviewIds をマージ（重複排除）
+		const existingEntry = entriesPatch[mediaId] ?? state.entriesByMediaId[mediaId];
+		if (existingEntry) {
+			for (const id of existingEntry.dishReviewIds) {
+				if (!dishReviewIds.includes(id)) {
+					dishReviewIds.push(id);
+				}
+			}
+		}
 
-		// entry を上書き（常に最新で上書き）
-		nextEntriesById[mediaId] = { ...rest, dishReviewIds };
+		entriesPatch[mediaId] = { ...rest, dishReviewIds };
 	}
 
-	return {
-		nextEntriesById,
-		nextReviewsById,
-	};
+	return { entriesPatch, reviewsPatch };
 }
+

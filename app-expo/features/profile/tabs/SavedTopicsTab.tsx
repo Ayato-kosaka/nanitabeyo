@@ -94,62 +94,50 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		async (location: AutocompleteLocation) => {
 			if (!selectedTopic) return;
 
-			try {
-				// Close modal first
-				closeLocationModal();
+			// Close modal first
+			closeLocationModal();
 
-				const { mediaIdsByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } = useDishMediaEntriesStore.getState();
-				const entriesKey = `saved-topic-${selectedTopic.id}-${location.place_id}`;
+			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
+				useDishMediaEntriesStore.getState();
+			const entriesKey = `saved-topic-${selectedTopic.id}-${location.place_id}`;
 
-				if (!mediaIdsByKey[entriesKey]) {
+			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
+				const getIds = async () => {
 					// Get location details including coordinates and language code
 					const locationDetails = await getLocationDetails(location);
 
-					const dishItemsPromise = createDishItemsPromise(
+					const dishItems = await createDishItemsPromise(
 						selectedTopic.id,
 						selectedTopic.label_en,
 						locationDetails.location.latitude,
 						locationDetails.location.longitude,
 						locationDetails.localLanguageCode,
 					);
-
-					const idsPromise = dishItemsPromise.then((items) => {
-						upsertDishMediaEntries(items);
-						return items.map((item) => String(item.dish_media.id));
-					});
-					updateMediaIdsByKeyAsync(entriesKey, idsPromise, (_, ids) => ids);
-				}
-
-				// Navigate to result screen (referenced from topics.tsx handleViewDetails)
-				// Stay within profile tab as required
-				router.push({
-					pathname: "/[locale]/(tabs)/profile/search-results",
-					params: {
-						locale,
-						entriesKey,
-					},
-				});
-
-				logFrontendEvent({
-					event_name: "saved_topic_location_selected",
-					error_level: "log",
-					payload: {
-						topicId: selectedTopic.id,
-						location: location.text,
-						categoryId: selectedTopic.id,
-					},
-				});
-			} catch (error) {
-				console.error("Error handling location selection:", error);
-				logFrontendEvent({
-					event_name: "saved_topic_navigation_failed",
-					error_level: "error",
-					payload: {
-						selectedTopic,
-						error: error instanceof Error ? error.message : String(error),
-					},
-				});
+					upsertDishMediaEntries(dishItems);
+					return dishItems.map((item) => String(item.dish_media.id));
+				};
+				updateMediaIdsByKeyAsync(entriesKey, getIds(), (_, ids) => ids);
 			}
+
+			// Navigate to result screen (referenced from topics.tsx handleViewDetails)
+			// Stay within profile tab as required
+			router.push({
+				pathname: "/[locale]/(tabs)/profile/search-results",
+				params: {
+					locale,
+					entriesKey,
+				},
+			});
+
+			logFrontendEvent({
+				event_name: "saved_topic_location_selected",
+				error_level: "log",
+				payload: {
+					topicId: selectedTopic.id,
+					location: location.text,
+					categoryId: selectedTopic.id,
+				},
+			});
 		},
 		[selectedTopic, closeLocationModal, createDishItemsPromise, locale, logFrontendEvent, getLocationDetails],
 	);
