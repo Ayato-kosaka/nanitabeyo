@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -63,10 +63,10 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const reviews = await this.dishMediaRepo.findDishReviewsByUser(
-      userId,
-      dto.cursor,
-    );
+    const reviews = await this.dishMediaRepo.findDishReviewsByUser(userId, {
+      type: 'cursor',
+      cursor: dto.cursor,
+    });
 
     const uniqueDishMediaIds = Array.from(
       new Set(reviews.map((r) => r.created_dish_media_id)),
