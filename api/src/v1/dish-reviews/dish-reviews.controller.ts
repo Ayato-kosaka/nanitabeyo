@@ -52,7 +52,11 @@ export class DishReviewsController {
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: '料理レビュー登録' })
-  @ApiResponse({ status: 201, description: 'レビュー登録成功' })
+  @ApiResponse({
+    status: 201,
+    description: 'レビュー登録成功',
+    type: Object,
+  })
   async createDishReview(
     @Body() dto: CreateDishReviewDto,
     @CurrentUser() user: RequestUser,

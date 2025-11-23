@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) { }
+  ) {}
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);

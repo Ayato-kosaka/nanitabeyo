@@ -52,6 +52,14 @@ export class DishReviewsService {
       reviewId: result.id,
       dishId: dto.dishId,
     });
+
+    // #460 【設計】作成されたレビュー情報を username, isLiked, likeCount 付きで返却
+    const fullReview = await this.repo.getFullReviewById(result.id, userId);
+    if (!fullReview) {
+      throw new NotFoundException('Created review not found');
+    }
+
+    return fullReview;
   }
 
   /* ------------------------------------------------------------------ */

@@ -43,6 +43,7 @@ import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
 import { SupabaseDishMedia } from "@shared/converters/convert_dish_media";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -405,7 +406,7 @@ export function ReviewForm({
 				dishMedia = prefilledMedia;
 			}
 
-			await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
+			const createdDishReview = await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
 				requestPayload: {
 					dishId: dishMedia.dish_id,
@@ -418,39 +419,43 @@ export function ReviewForm({
 				},
 			});
 
-			// #460 【TODO】レビュー投稿後の即時反映（/v1/dish-reviews が void を返すため未実装）
-			// CreateDishReviewResponse が DishReview を返すように変更されれば、
-			// 以下のように実装可能:
-			// const { upsertDishMediaEntries, updateMyReviewIdsByKey } = useDishMediaEntriesStore.getState();
-			// upsertDishMediaEntries([
-			// 	{
-			// 		restaurant,
-			// 		dish: {
-			// 			id: dishMedia.dish_id,
-			// 			restaurant_id: restaurant.id,
-			// 			category_id: dishCategoryId,
-			// 			name: dishCategoryName,
-			// 			created_at: new Date().toISOString(),
-			// 			updated_at: new Date().toISOString(),
-			// 			lock_no: 0,
-			// 			reviewCount: 1,
-			// 			averageRating: rating,
-			// 		},
-			// 		dish_media: {
-			// 			...dishMedia,
-			// 			isMine: true,
-			// 			isSaved: false,
-			// 			isLiked: false,
-			// 			likeCount: 0,
-			// 			mediaUrl: dishMedia.media_path,
-			// 			thumbnailImageUrl: dishMedia.thumbnail_path,
-			// 		},
-			// 		dish_reviews: [createdDishReview],
-			// 	},
-			// ]);
+			// #460 【設計】レビュー投稿後の即時反映：API から返却された DishReview をストアに反映
+			const { upsertDishMediaEntries, updateMyReviewIdsByKey } = useDishMediaEntriesStore.getState();
 
-			// const reviewId = String(createdDishReview.id);
-			// updateMyReviewIdsByKey("reviews", (prev) => [reviewId, ...prev]);
+			// 既存の dish_media から dish 情報を取得、または新規作成
+			const dish = prefilledMedia?.dish ?? {
+				id: dishMedia.dish_id,
+				restaurant_id: restaurant.id,
+				category_id: dishCategoryId!,
+				name: dishCategoryName,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				lock_no: 0,
+			};
+
+			upsertDishMediaEntries([
+				{
+					restaurant,
+					dish: {
+						...dish,
+						reviewCount: 1,
+						averageRating: rating,
+					},
+					dish_media: {
+						...dishMedia,
+						isMine: true,
+						isSaved: false,
+						isLiked: false,
+						likeCount: 0,
+						mediaUrl: dishMedia.media_path,
+						thumbnailImageUrl: dishMedia.thumbnail_path,
+					},
+					dish_reviews: [createdDishReview],
+				},
+			]);
+
+			const reviewId = String(createdDishReview.id);
+			updateMyReviewIdsByKey("reviews", (prev) => [reviewId, ...prev]);
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",
