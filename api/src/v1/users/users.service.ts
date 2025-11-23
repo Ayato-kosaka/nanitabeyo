@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -117,7 +117,9 @@ export class UsersService {
                 ...review,
                 ...convertPrismaToSupabase_DishReviews(review),
               },
-              ...dishMediaEntryItem.dish_reviews,
+              ...dishMediaEntryItem.dish_reviews.filter(
+                (dr) => dr.id !== review.id,
+              ),
             ],
           };
         })
