@@ -23,7 +23,7 @@ export class DishReviewsService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly cloudTasks: CloudTasksService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-reviews (投稿)                   */
