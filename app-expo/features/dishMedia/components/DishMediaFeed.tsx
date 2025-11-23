@@ -75,9 +75,6 @@ export default function DishMediaFeed({
 	// initialIndex を常に範囲内へ
 	const clampedInitialIndex = useMemo(() => clampIndex(initialIndex, ids.length), [initialIndex, ids.length]);
 
-	// contentOffset を「初回マウント時のみ」適用するためのフラグ
-	const didSetInitialOffset = useRef(false);
-
 	// 現在の表示インデックス（状態）＋最新値ミラー用Ref（Viewabilityコールバックで参照）
 	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, ids.length));
 	const currentIndexRef = useRef(currentIndex);
@@ -112,25 +109,6 @@ export default function DishMediaFeed({
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
-
-	// --- レイアウト確定後の初期再配置（既存ロジックを変更しない） ------------
-	useEffect(() => {
-		if (pageHeight <= 0 || ids.length === 0) return;
-
-		const clamped = clampIndex(initialIndex, ids.length);
-
-		if (clamped !== currentIndex) {
-			setCurrentIndex(clamped);
-		}
-
-		// レイアウト確定後の scrollToIndex（rAFは既存のタイミング踏襲）
-		requestAnimationFrame(() => {
-			listRef.current?.scrollToIndex({
-				index: clamped,
-				animated: false,
-			});
-		});
-	}, [ids.length, initialIndex, pageHeight]);
 
 	// --- getItemLayout（高さ=画面高を提供; 初期スクロール安定化の要） --------
 	const getItemLayout = useMemo(
@@ -212,8 +190,10 @@ export default function DishMediaFeed({
 					<View style={styles.centerContainer}>
 						<Text style={styles.errorText}>{error}</Text>
 					</View>
-				) : (
+				) : ids.length > 0 ? (
 					<FlatList
+						// pageHeight が変わったときはリマウントさせたいため key を付ける
+						key={`${entriesKey}-${pageHeight}`}
 						ref={listRef}
 						data={ids}
 						renderItem={renderItem}
@@ -223,12 +203,6 @@ export default function DishMediaFeed({
 						pagingEnabled
 						// 既存方針：initialScrollIndex はレイアウト後の scrollToIndex と併用
 						initialScrollIndex={clampedInitialIndex}
-						// 初回マウントのみ contentOffset も併用（保険）。既存の意図を保持。
-						contentOffset={!didSetInitialOffset.current ? { x: 0, y: clampedInitialIndex * pageHeight } : undefined}
-						onLayout={() => {
-							// contentOffset は初回マウントフレームのみ適用
-							if (!didSetInitialOffset.current) didSetInitialOffset.current = true;
-						}}
 						// 初期スクロール安定化（高さが一定である前提）
 						getItemLayout={getItemLayout}
 						// 視覚ノイズの低減
@@ -249,7 +223,7 @@ export default function DishMediaFeed({
 						// 可視閾値 = 90%
 						viewabilityConfig={viewabilityConfig}
 					/>
-				)
+				) : null
 			) : null}
 		</View>
 	);
