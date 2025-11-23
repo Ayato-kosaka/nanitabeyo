@@ -25,6 +25,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		setIsSaved(willSave);
 
 		// #<TICKET> 【設計】ActionButtons と同様にストアを更新（保存状態の一貫性担保）
+		// Note: Topic.categoryId は SupabaseDishCategories.id に対応
 		const { updateTopicIdsByKey } = useTopicsStore.getState();
 
 		try {

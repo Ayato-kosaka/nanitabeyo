@@ -324,8 +324,9 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 				// 2. 並び順の末尾に追加
 				const topicIds = response.data.map((item) => item.id);
 				updateTopicIdsByKey(key, (prevIds) => {
-					// #CodeQL 【バグ】重複IDを排除して追加（paginationで同じIDが返る場合に備える）
-					const newIds = topicIds.filter((id) => !prevIds.includes(id));
+					// #CodeQL 【パフォーマンス】重複ID排除を Set で高速化（O(1)ルックアップ）
+					const prevIdSet = new Set(prevIds);
+					const newIds = topicIds.filter((id) => !prevIdSet.has(id));
 					return [...prevIds, ...newIds];
 				});
 

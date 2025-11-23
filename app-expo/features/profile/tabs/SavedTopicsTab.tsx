@@ -44,10 +44,17 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		isLoadingMore,
 	} = useTopicsStore(selectTopicIdsByKey(profileSavedTopicsEntriesKey), shallow);
 
-	// #<TICKET> 【設計】トピックIDから実際のトピックデータを取得
-	const topics = topicIds
-		.map((id) => useTopicsStore.getState().topicById[id])
-		.filter((topic): topic is SupabaseDishCategories => topic !== undefined);
+	// #<TICKET> 【設計】トピックIDから実際のトピックデータを取得（セレクタで都度取得して最新状態を反映）
+	const topics = useTopicsStore(
+		useCallback(
+			(state) =>
+				topicIds
+					.map((id) => state.topicById[id])
+					.filter((topic): topic is SupabaseDishCategories => topic !== undefined),
+			[topicIds],
+		),
+		shallow,
+	);
 
 	// Location search modal state
 	const [selectedTopic, setSelectedTopic] = useState<SupabaseDishCategories | null>(null);
