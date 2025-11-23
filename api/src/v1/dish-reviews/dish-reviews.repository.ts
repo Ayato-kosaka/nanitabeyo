@@ -13,6 +13,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDishReviewDto } from '@shared/v1/dto';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
+// #460 【設計】ユーザー名が取得できない場合のデフォルト値
+const DEFAULT_USERNAME = 'unknown';
+
 @Injectable()
 export class DishReviewsRepository {
   constructor(
@@ -159,7 +162,8 @@ export class DishReviewsRepository {
 
     return {
       ...supabaseReview,
-      username: review.imported_user_name ?? users?.display_name ?? 'unknown',
+      username:
+        review.imported_user_name ?? users?.display_name ?? DEFAULT_USERNAME,
       isLiked: !!userLike,
       likeCount,
     };

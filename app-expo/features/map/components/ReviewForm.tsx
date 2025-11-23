@@ -423,10 +423,15 @@ export function ReviewForm({
 			const { upsertDishMediaEntries, updateMyReviewIdsByKey } = useDishMediaEntriesStore.getState();
 
 			// 既存の dish_media から dish 情報を取得、または新規作成
+			// #460 【バグ】isValid で dishCategoryId の存在を保証済みだが、型安全性のため明示的にチェック
+			if (!dishCategoryId) {
+				throw new Error("dishCategoryId is required but was not set");
+			}
+
 			const dish = prefilledMedia?.dish ?? {
 				id: dishMedia.dish_id,
 				restaurant_id: restaurant.id,
-				category_id: dishCategoryId!,
+				category_id: dishCategoryId,
 				name: dishCategoryName,
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
