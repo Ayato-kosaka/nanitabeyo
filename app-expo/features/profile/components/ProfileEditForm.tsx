@@ -13,14 +13,13 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { UpdateUserProfileDto } from "@shared/api/v1/dto";
 import type { GetUserProfileResponse, UpdateUserProfileResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useProfileStore } from "../stores/useProfileStore";
 
 const FIELD = ["display_name", "avatar", "bio"] as const;
 type ProfileEditFormData = { [K in (typeof FIELD)[number]]: string };
 interface ProfileEditFormProps {
 	/** Initial values for the form */
 	initialValues: GetUserProfileResponse;
-	/** Called to update profile in parent component */
-	setProfile: React.Dispatch<React.SetStateAction<GetUserProfileResponse | null>>;
 	/** Called when user cancels (usually to close modal) */
 	onCancel: () => void;
 	/** Called to close the modal */
@@ -31,8 +30,10 @@ interface ProfileEditFormProps {
  * Profile edit form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
  */
-export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEditFormProps) {
+export function ProfileEditForm({ initialValues, close }: ProfileEditFormProps) {
 	const { mediumImpact } = useHaptics();
+	// #467 【設計】プロフィール更新はストア経由で行う
+	const updateProfile = useProfileStore((state) => state.updateProfile);
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile } = useFileUploader();
@@ -90,7 +91,8 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 					bio: normalizedBio,
 				},
 			});
-			setProfile((prev) => (prev ? { ...prev, avatar: avatar.uri, display_name, bio } : null));
+			// #467 【設計】プロフィール更新はストア経由で行い、UI に即座に反映
+			updateProfile((prev) => (prev ? { ...prev, avatar: avatar.uri, display_name, bio } : null));
 			close();
 			logFrontendEvent({
 				event_name: "profile_edit_saved",
@@ -113,7 +115,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 		}
 	}, [
 		mediumImpact,
-		setProfile,
+		updateProfile,
 		avatar,
 		initialValues,
 		uploadFile,
@@ -122,6 +124,7 @@ export function ProfileEditForm({ initialValues, setProfile, close }: ProfileEdi
 		display_name,
 		bio,
 		close,
+		showSnackbar,
 	]);
 
 	return (

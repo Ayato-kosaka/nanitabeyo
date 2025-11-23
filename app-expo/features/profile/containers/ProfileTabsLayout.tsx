@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { View, StyleSheet, LayoutChangeEvent, Alert } from "react-native";
+import React, { useState, useCallback, useMemo } from "react";
+import { View, StyleSheet, LayoutChangeEvent } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
@@ -20,17 +20,18 @@ import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Image } from "expo-image";
-import { userProfile } from "@/data/profileData";
-import { useAPICall } from "@/hooks/useAPICall";
-import type { GetUserProfileResponse } from "@shared/api/v1/res";
+import { useProfileStore } from "../stores/useProfileStore";
+import { useEnsureOwnProfileLoaded } from "../hooks/useEnsureOwnProfileLoaded";
 
 export function ProfileTabsLayout() {
 	const { userId } = useLocalSearchParams<{ userId?: string }>();
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { callBackend } = useAPICall();
 	const { user } = useAuth();
+
+	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
+	useEnsureOwnProfileLoaded();
+	const profile = useProfileStore((state) => state.profile);
 
 	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const {
@@ -42,35 +43,9 @@ export function ProfileTabsLayout() {
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
-	const [profile, setProfile] = useState<GetUserProfileResponse | null>(null);
 
 	const isOwnProfile = useMemo(() => !userId || userId === "me", [userId]);
 	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
-
-	useEffect(() => {
-		const loadOwnProfile = async () => {
-			if (isGuest) {
-				setProfile(userProfile);
-				return;
-			}
-			try {
-				const data = await callBackend<{}, GetUserProfileResponse>(`v1/users/${userId ?? user?.id}`, {
-					method: "GET",
-					requestPayload: {},
-				});
-				const avatarUrl = data.avatarUrls?.md;
-				avatarUrl && (await Image.prefetch(avatarUrl));
-				setProfile(data);
-			} catch (error: any) {
-				logFrontendEvent({
-					event_name: "load_own_profile_error",
-					error_level: "error",
-					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest },
-				});
-			}
-		};
-		loadOwnProfile();
-	}, [callBackend, isGuest, isOwnProfile, logFrontendEvent, user?.id, userId]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
@@ -284,9 +259,7 @@ export function ProfileTabsLayout() {
 
 			{profile && (
 				<BlurModal>
-					{({ close }) => (
-						<ProfileEditForm initialValues={profile} setProfile={setProfile} close={close} onCancel={close} />
-					)}
+					{({ close }) => <ProfileEditForm initialValues={profile} close={close} onCancel={close} />}
 				</BlurModal>
 			)}
 

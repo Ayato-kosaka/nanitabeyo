@@ -45,6 +45,8 @@ import { Image } from "expo-image";
 import { SupabaseDishMedia } from "@shared/converters/convert_dish_media";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { SupabaseDishes } from "@shared/converters/convert_dishes";
+import { useProfileStore } from "@/features/profile/stores/useProfileStore";
+import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -86,6 +88,10 @@ export function ReviewForm({
 	const { uploadFile: thumbnailUploadFile } = useFileUploader();
 	const { createDishCategoryVariant } = useDishCategorySearch();
 	const { showSnackbar } = useSnackbar();
+
+	// #467 【設計】プロフィールをストアから取得（プロフィール画面を開かなくても利用可能）
+	useEnsureOwnProfileLoaded();
+	const profile = useProfileStore((state) => state.profile);
 
 	// Media selection state
 	const [mediaState, setMediaState] = useState<
@@ -449,7 +455,8 @@ export function ReviewForm({
 					dish_reviews: [
 						{
 							...createdDishReview,
-							username: "me", // TODO: userProfile データは、ストアに集約する
+							// #467 【設計】プロフィールストアから username を取得（プロフィール画面を開かなくても利用可能）
+							username: profile?.username ?? "me",
 							isLiked: false,
 							likeCount: 0,
 						},
