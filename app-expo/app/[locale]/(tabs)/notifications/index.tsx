@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
@@ -7,7 +7,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMarkNotificationsRead";
 import { useRouter } from "expo-router";
-import type { DishMediaEntry, NotificationItem, NotificationResponse } from "@shared/api/v1/res";
+import type { NotificationItem, NotificationResponse } from "@shared/api/v1/res";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useFocusEffect } from "expo-router";
 import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
@@ -52,9 +52,7 @@ export default function NotificationsScreen() {
 				}
 			})();
 			return () => {};
-			// 依存関係はあえて省略。これらの関数は安定している（各フック内で useCallback されている）ため。
-			// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [user?.id]),
+		}, [user?.id, notifications, markAllAsRead, notificationUnreadCountRefresh]),
 	);
 
 	// #通知機能 【仕様】通知タップ時の遷移処理
@@ -75,6 +73,17 @@ export default function NotificationsScreen() {
 				router.push({
 					pathname: "/[locale]/(tabs)/notifications/feed",
 					params: { locale, idType: "dish_media" },
+				});
+			} else if (target_table === "dish_reviews" && notification.dishMediaEntries !== undefined) {
+				// #通知機能 【仕様】dish_reviews の場合は DishMediaFeed へ遷移
+				const { upsertDishMediaEntries, updateReviewIdsByKey } = useDishMediaEntriesStore.getState();
+				const currentDishMedia = notification.dishMediaEntries;
+				upsertDishMediaEntries([currentDishMedia]);
+				const reviewId = String(notification.notification.target_id);
+				updateReviewIdsByKey("notification", () => [reviewId]);
+				router.push({
+					pathname: "/[locale]/(tabs)/notifications/feed",
+					params: { locale, idType: "dish_reviews" },
 				});
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
