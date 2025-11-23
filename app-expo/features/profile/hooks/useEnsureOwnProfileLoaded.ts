@@ -51,6 +51,7 @@ export function useEnsureOwnProfileLoaded() {
 					method: "GET",
 					requestPayload: {},
 				});
+				if (hasLoadedRef.current) return;
 				// #467 【設計】アバター画像をプリフェッチして表示を高速化
 				const avatarUrl = data.avatarUrls?.md;
 				avatarUrl && (await Image.prefetch(avatarUrl));
