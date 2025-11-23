@@ -32,6 +32,7 @@ export default function TopicsScreen() {
 		}
 		return null;
 	}, [searchParams]);
+	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
@@ -116,6 +117,8 @@ export default function TopicsScreen() {
 						data={visibleTopics}
 						renderItem={renderCard}
 						onSnapToItem={handleSnapToItem}
+						onScrollStart={() => setIsScrolling(true)}
+						onScrollEnd={() => setIsScrolling(false)}
 						mode="parallax"
 						modeConfig={{
 							parallaxScrollingScale: 0.9,
@@ -152,6 +155,7 @@ export default function TopicsScreen() {
 						label={i18n.t("Topics.chooseThis")}
 						icon={<ThumbsUp size={20} color="#FFF" />}
 						onPress={() => handleViewDetails(visibleTopics[currentIndex])}
+						disabled={isScrolling}
 					/>
 				</View>
 			)}
