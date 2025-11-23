@@ -14,6 +14,7 @@ import { DishReviewsRepository } from './dish-reviews.repository';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
+import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 
 @Injectable()
 export class DishReviewsService {
@@ -22,7 +23,7 @@ export class DishReviewsService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     POST /v1/dish-reviews (投稿)                   */
@@ -52,6 +53,9 @@ export class DishReviewsService {
       reviewId: result.id,
       dishId: dto.dishId,
     });
+
+    // #460 【設計】作成されたレビュー情報を返却
+    return convertPrismaToSupabase_DishReviews(result);
   }
 
   /* ------------------------------------------------------------------ */

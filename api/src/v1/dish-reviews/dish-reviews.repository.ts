@@ -17,7 +17,7 @@ export class DishReviewsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /**
    * 料理が存在するかチェック
