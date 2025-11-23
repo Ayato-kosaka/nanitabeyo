@@ -28,16 +28,15 @@ export function useEnsureOwnProfileLoaded() {
 	const { user } = useAuth();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
-	const { profile, setProfile } = useProfileStore();
 	const hasLoadedRef = useRef(false);
 
 	const isGuest = user?.is_anonymous !== false;
 
 	useEffect(() => {
 		// #467 【設計】既にプロフィールがロード済みの場合は何もしない
-		if (profile || hasLoadedRef.current) {
-			return;
-		}
+		if (hasLoadedRef.current) return;
+		const { profile, setProfile } = useProfileStore.getState();
+		if (profile) return;
 
 		const loadProfile = async () => {
 			// #467 【設計】ゲストユーザーの場合はダミープロフィールを設定
@@ -67,5 +66,5 @@ export function useEnsureOwnProfileLoaded() {
 		};
 
 		loadProfile();
-	}, [callBackend, isGuest, logFrontendEvent, user?.id, profile, setProfile]);
+	}, [callBackend, isGuest, logFrontendEvent, user?.id]);
 }

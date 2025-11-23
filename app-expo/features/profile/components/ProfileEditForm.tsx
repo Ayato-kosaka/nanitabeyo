@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Text, TextInput, StyleSheet } from "react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -16,10 +16,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useProfileStore } from "../stores/useProfileStore";
 
 const FIELD = ["display_name", "avatar", "bio"] as const;
-type ProfileEditFormData = { [K in (typeof FIELD)[number]]: string };
 interface ProfileEditFormProps {
-	/** Initial values for the form */
-	initialValues: GetUserProfileResponse;
 	/** Called when user cancels (usually to close modal) */
 	onCancel: () => void;
 	/** Called to close the modal */
@@ -30,7 +27,7 @@ interface ProfileEditFormProps {
  * Profile edit form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
  */
-export function ProfileEditForm({ initialValues, close }: ProfileEditFormProps) {
+export function ProfileEditForm({ close }: ProfileEditFormProps) {
 	const { mediumImpact } = useHaptics();
 	// #467 【設計】プロフィール更新はストア経由で行う
 	const updateProfile = useProfileStore((state) => state.updateProfile);
@@ -40,6 +37,7 @@ export function ProfileEditForm({ initialValues, close }: ProfileEditFormProps) 
 	const { showSnackbar } = useSnackbar();
 	const insets = useSafeAreaInsets();
 
+	const initialValues: GetUserProfileResponse = useMemo(() => useProfileStore.getState().profile!, []);
 	// Internal state - isolated from parent re-renders
 	const [avatar, setAvatar] = useState<{ uri: string | null; mimeType: string | null }>({
 		uri: initialValues.avatarUrls?.md || null,

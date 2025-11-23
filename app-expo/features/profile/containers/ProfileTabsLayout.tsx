@@ -257,11 +257,7 @@ export function ProfileTabsLayout() {
 				) : null}
 			</Tabs.Container>
 
-			{profile && (
-				<BlurModal>
-					{({ close }) => <ProfileEditForm initialValues={profile} close={close} onCancel={close} />}
-				</BlurModal>
-			)}
+			{profile && <BlurModal>{({ close }) => <ProfileEditForm close={close} onCancel={close} />}</BlurModal>}
 
 			<FeedbackModal>
 				{({ close }) => (
