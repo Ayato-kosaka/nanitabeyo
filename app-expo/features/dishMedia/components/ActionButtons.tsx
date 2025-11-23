@@ -27,12 +27,11 @@ import { shallow } from "zustand/shallow";
 
 interface ActionButtonsProps {
 	id: string;
-	entriesKey: string;
 	idType: IdType;
 	onLayout: (width: number) => void;
 }
 
-export function ActionButtons({ id, entriesKey, idType, onLayout }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();

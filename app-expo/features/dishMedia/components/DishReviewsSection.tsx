@@ -21,14 +21,13 @@ import { shallow } from "zustand/shallow";
 
 interface DishReviewsSectionProps {
 	id: string;
-	entriesKey: string;
 	idType: IdType;
 	paddingRight: number;
 	carouselRef: React.RefObject<any> | undefined;
 }
 
 // コメントの表示のみを担当。状態変更は親側のコールバックに委譲
-export function DishReviewsSection({ id, entriesKey, idType, paddingRight, carouselRef }: DishReviewsSectionProps) {
+export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: DishReviewsSectionProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();

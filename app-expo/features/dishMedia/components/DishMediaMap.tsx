@@ -8,8 +8,10 @@ import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
 import {
 	DishMediaEntriesStore,
+	IdType,
 	NormalizedDishMediaEntry,
 	selectEntryByMediaId,
+	selectEntryByReviewId,
 	selectIdsByKey,
 	useDishMediaEntriesStore,
 } from "@/stores/useDishMediaEntriesStore";
@@ -34,6 +36,8 @@ interface DishMediaMapProps {
 	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
 	// 呼び出し元コンテキスト（画面用途キー）
 	entriesKey: string;
+	// ID の種類（dish_media / dish_reviews）
+	idType: IdType;
 }
 
 export default function DishMediaMap({
@@ -42,10 +46,11 @@ export default function DishMediaMap({
 	initialLocation,
 	getTitle,
 	entriesKey,
+	idType,
 }: DishMediaMapProps) {
 	const selector = useCallback(
-		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, "dish_media")(state),
-		[entriesKey],
+		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
+		[entriesKey, idType],
 	);
 	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
@@ -59,7 +64,11 @@ export default function DishMediaMap({
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) => selectEntryByMediaId(id)(state)?.restaurant)
+			.map((id) =>
+				idType === "dish_media"
+					? selectEntryByMediaId(id)(state)?.restaurant
+					: selectEntryByReviewId(id)(state)?.restaurant,
+			)
 			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
 			.map((restaurant) => ({
 				id: restaurant.id,
@@ -67,7 +76,7 @@ export default function DishMediaMap({
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
 			}));
-	}, [ids]);
+	}, [ids, idType]);
 
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
@@ -149,7 +158,7 @@ export default function DishMediaMap({
 					getTitle={getTitle}
 					sessionId={sessionId.current}
 					entriesKey={entriesKey}
-					idType="dish_media"
+					idType={idType}
 				/>
 			</View>
 		),

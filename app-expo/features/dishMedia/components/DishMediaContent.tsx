@@ -97,7 +97,6 @@ export default function DishMediaContent({
 
 			<DishReviewsSection
 				id={id}
-				entriesKey={entriesKey}
 				idType={idType}
 				paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
 				carouselRef={carouselRef}
@@ -106,12 +105,7 @@ export default function DishMediaContent({
 			{/* Action Buttons */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
-					<ActionButtons
-						id={id}
-						entriesKey={entriesKey}
-						idType={idType}
-						onLayout={(width) => setRightActionsWidth(width)}
-					/>
+					<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
 				</View>
 			</View>
 		</SafeAreaView>

@@ -37,7 +37,7 @@ export default function PostsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<DishMediaMap source={entriesKey} />
+			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
 		</LinearGradient>
 	);
 }

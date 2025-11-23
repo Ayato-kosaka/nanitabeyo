@@ -1,15 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
+import { IdType } from "@/stores/useDishMediaEntriesStore";
 
 export default function NotificationFeedScreen() {
-	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
-	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
+	const { idType } = useLocalSearchParams<{ idType?: IdType }>();
+	if (idType === undefined) throw new Error("idType is required in NotificationFeedScreen");
 
-	return (
-		<DishMediaFeed
-			initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
-			entriesKey="notification"
-			idType="dish_media"
-		/>
-	);
+	return <DishMediaFeed entriesKey="notification" idType={idType} />;
 }
