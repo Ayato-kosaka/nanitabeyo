@@ -33,8 +33,8 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	const { logFrontendEvent } = useLogger();
 	const locale = useLocale();
 
-	// #454 【設計】画面用途キー "profileSaved" でストアからデータ取得
-	const entriesKey = "profileSaved";
+	// #454 【設計】画面用途キー "profileSavedPosts" でストアからデータ取得
+	const entriesKey = "profileSavedPosts";
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(

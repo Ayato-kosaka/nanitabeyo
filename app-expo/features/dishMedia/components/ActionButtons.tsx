@@ -88,7 +88,7 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 					method: "POST",
 					requestPayload: { action_type: "like" },
 				});
-				updateMediaIdsByKey("liked", (prev) => {
+				updateMediaIdsByKey("profileLikes", (prev) => {
 					const without = prev.filter((id) => id !== String(dishMediaId));
 					return [String(dishMediaId), ...without];
 				});
@@ -97,7 +97,7 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 					method: "DELETE",
 					requestPayload: { action_type: "like" },
 				});
-				updateMediaIdsByKey("liked", (prev) => prev.filter((id) => id !== String(dishMediaId)));
+				updateMediaIdsByKey("profileLikes", (prev) => prev.filter((id) => id !== String(dishMediaId)));
 			}
 		} catch (error) {
 			logFrontendEvent({
@@ -142,7 +142,7 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 					method: "POST",
 					requestPayload: { action_type: "save" },
 				});
-				updateMediaIdsByKey("saved", (prev) => {
+				updateMediaIdsByKey("profileSavedPosts", (prev) => {
 					const without = prev.filter((id) => id !== String(dishMediaId));
 					return [String(dishMediaId), ...without];
 				});
@@ -151,7 +151,7 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 					method: "DELETE",
 					requestPayload: { action_type: "save" },
 				});
-				updateMediaIdsByKey("saved", (prev) => prev.filter((id) => id !== String(dishMediaId)));
+				updateMediaIdsByKey("profileSavedPosts", (prev) => prev.filter((id) => id !== String(dishMediaId)));
 			}
 		} catch (error) {
 			logFrontendEvent({
