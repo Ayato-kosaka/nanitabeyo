@@ -34,7 +34,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const entriesKey = `mapReviews-${restaurantId}`;
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(
+	const { ids, isLoading, hasFetchedInitial } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey, "dish_media"),
 		shallow,
 	);
