@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned, User, Calendar } from "lucide-react-native";
