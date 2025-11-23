@@ -62,6 +62,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 		if (restaurantId && !hasFetchedInitial && !isLoading) {
 			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
+		return () => useDishMediaEntriesStore.getState().clearByKey(entriesKey);
 	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	const onItemPress = useCallback(
