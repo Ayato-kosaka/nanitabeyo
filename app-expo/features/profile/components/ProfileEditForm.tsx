@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import { Text, TextInput, StyleSheet } from "react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -37,14 +37,14 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 	const { showSnackbar } = useSnackbar();
 	const insets = useSafeAreaInsets();
 
-	const initialValues: GetUserProfileResponse = useMemo(() => useProfileStore.getState().profile!, []);
-	// Internal state - isolated from parent re-renders
+	const profile = useProfileStore((s) => s.profile);
+
 	const [avatar, setAvatar] = useState<{ uri: string | null; mimeType: string | null }>({
-		uri: initialValues.avatarUrls?.md || null,
+		uri: profile?.avatarUrls?.md || null,
 		mimeType: null,
 	});
-	const [display_name, setDisplayName] = useState(initialValues.display_name);
-	const [bio, setBio] = useState(initialValues.bio);
+	const [display_name, setDisplayName] = useState(profile?.display_name ?? null);
+	const [bio, setBio] = useState(profile?.bio ?? null);
 
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -57,7 +57,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		let uploadedAvatarPath: string | null | undefined = undefined;
 		if (avatar.uri === null) {
 			uploadedAvatarPath = null;
-		} else if (avatar.uri !== (initialValues.avatarUrls?.md || null)) {
+		} else if (avatar.uri !== (profile?.avatarUrls?.md || null)) {
 			try {
 				if (!avatar.mimeType) throw new Error("Avatar mimeType is missing");
 				uploadedAvatarPath = await uploadFile(avatar.uri, {
@@ -90,7 +90,9 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 				},
 			});
 			// #467 【設計】プロフィール更新はストア経由で行い、UI に即座に反映
-			updateProfile((prev) => (prev ? { ...prev, avatar: uploadedAvatarPath, display_name: normalizedDisplayName, bio: normalizedBio } : null));
+			updateProfile((prev) =>
+				prev ? { ...prev, avatar: uploadedAvatarPath, display_name: normalizedDisplayName, bio: normalizedBio } : null,
+			);
 			close();
 			logFrontendEvent({
 				event_name: "profile_edit_saved",
@@ -115,7 +117,6 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		mediumImpact,
 		updateProfile,
 		avatar,
-		initialValues,
 		uploadFile,
 		logFrontendEvent,
 		callBackend,
@@ -123,6 +124,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		bio,
 		close,
 		showSnackbar,
+		profile,
 	]);
 
 	return (
