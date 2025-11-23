@@ -62,8 +62,14 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 		if (restaurantId && !hasFetchedInitial && !isLoading) {
 			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
-		return () => useDishMediaEntriesStore.getState().clearByKey(entriesKey);
 	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
+
+	// クリーンアップ用（entriesKey が変わる/アンマウント時だけ）
+	useEffect(() => {
+		return () => {
+			useDishMediaEntriesStore.getState().clearByKey(entriesKey);
+		};
+	}, [entriesKey]);
 
 	const onItemPress = useCallback(
 		(index: number) => {
@@ -104,6 +110,8 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const handleRefresh = useCallback(() => {
 		fetchInitialByKey(entriesKey, {}, fetcher);
 	}, [entriesKey, fetchInitialByKey, fetcher]);
+
+	console.log("RestaurantReviewsTab render:", { restaurantId, ids, isLoading, selectedDishMediaIndex });
 
 	return (
 		<>
