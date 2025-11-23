@@ -235,7 +235,7 @@ ${params.restrictions ? `Restrictions: ${params.restrictions}` : ''}`;
       );
 
       // Return in the expected format (maintain backward compatibility)
-      return extractedItems as DishCategoryItem[];
+      return extractedItems;
     } catch (error) {
       this.logger.error(
         'GenerateDishCategoryRecommendationsError',

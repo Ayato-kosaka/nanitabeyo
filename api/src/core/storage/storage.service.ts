@@ -243,8 +243,8 @@ export class StorageService {
     if (ttl <= 0) throw new Error('ttlSeconds must be > 0');
 
     const expires = makeExpires(ttl);
-    const keyName = env.CDN_KEY_NAME as string;
-    const keySecretB64url = env.CDN_KEY_SECRET_B64 as string; // 登録済み Key の「RAW 16byte」を想定
+    const keyName = env.CDN_KEY_NAME;
+    const keySecretB64url = env.CDN_KEY_SECRET_B64; // 登録済み Key の「RAW 16byte」を想定
 
     // 署名方式: URLPrefix か フル URL か
     if (opts?.urlPrefix) {
@@ -295,8 +295,8 @@ export class StorageService {
       assertHttps(u, 'urlPrefix');
       const prefix = normalizePrefixFromUrl(u);
       const expires = makeExpires(env.CDN_SIGNED_COOKIE_TTL_SECONDS);
-      const keyName = env.CDN_KEY_NAME as string;
-      const keySecretB64url = env.CDN_KEY_SECRET_B64 as string;
+      const keyName = env.CDN_KEY_NAME;
+      const keySecretB64url = env.CDN_KEY_SECRET_B64;
 
       const policy = buildCookiePolicy(prefix, expires, keyName);
       const signature = signPolicy(policy, keySecretB64url);

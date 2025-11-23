@@ -72,7 +72,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
           duration_ms: e.duration,
           query: e.query.substring(0, 200),
           params: e.params.substring(0, 200),
-          target: (e as any).target,
+          target: e.target,
           timestamp: new Date().toISOString(),
         };
         // stdout へ

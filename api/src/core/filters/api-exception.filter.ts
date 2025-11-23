@@ -87,7 +87,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const msg = exception.message as ErrorCode;
-      code = Object.values(ErrorCode).includes(msg as ErrorCode)
+      code = Object.values(ErrorCode).includes(msg)
         ? msg
         : ErrorCode.INTERNAL_ERROR;
       message = exception.message;

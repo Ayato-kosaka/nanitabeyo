@@ -111,7 +111,7 @@ export class RestaurantsService {
         (tx: Prisma.TransactionClient) =>
           this.repo.getRestaurantReviewStats(tx, restaurant!.id),
       );
-      let bidStats = await this.prisma.withTransaction(
+      const bidStats = await this.prisma.withTransaction(
         (tx: Prisma.TransactionClient) =>
           this.repo.getRestaurantBidStats(tx, restaurant!.id),
       );

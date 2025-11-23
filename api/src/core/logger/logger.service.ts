@@ -29,7 +29,7 @@ import {
 @Injectable({ scope: Scope.DEFAULT })
 export class AppLoggerService implements INestLoggerService {
   /** 環境ごとの最小レベル */
-  private readonly minLevel = DEFAULT_LOG_LEVEL as LogLevel;
+  private readonly minLevel = DEFAULT_LOG_LEVEL;
 
   constructor(
     private readonly prisma: PrismaService,
