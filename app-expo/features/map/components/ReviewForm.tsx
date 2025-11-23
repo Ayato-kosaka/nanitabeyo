@@ -44,6 +44,7 @@ import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
 import { SupabaseDishMedia } from "@shared/converters/convert_dish_media";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { SupabaseDishes } from "@shared/converters/convert_dishes";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -353,7 +354,8 @@ export function ReviewForm({
 
 		try {
 			// #400 【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
-			let dishMedia: SupabaseDishMedia;
+			let dish_media: DishMediaEntry["dish_media"];
+			let dish: DishMediaEntry["dish"];
 			if (!prefilledMedia) {
 				if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
 					logFrontendEvent({
@@ -364,13 +366,18 @@ export function ReviewForm({
 					throw new Error(i18n.t("errors.videoProcessingFailed"));
 				}
 
-				let dish = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+				const createDishResponse = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
 					method: "POST",
 					requestPayload: {
 						restaurantId: restaurant.id,
 						dishCategoryId: dishCategoryId,
 					},
 				});
+				dish = {
+					...createDishResponse,
+					reviewCount: 1,
+					averageRating: rating,
+				};
 
 				// dish-media.media_path をアップロード
 				const mediaPath = await mediaUploadFile(mediaState.media.uri, {
@@ -391,76 +398,65 @@ export function ReviewForm({
 				 * Video のアップロードが完了してからでないと、
 				 * transcoer API が失敗する可能性があるため、直列で実行する
 				 */
-				dishMedia = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
-					method: "POST",
-					requestPayload: {
-						dishId: dish.id,
-						mediaPath,
-						thumbnailPath,
-						mediaType: mediaState.media.type,
-						videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
+				const createDishMediaResponse = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>(
+					"v1/dish-media",
+					{
+						method: "POST",
+						requestPayload: {
+							dishId: dish.id,
+							mediaPath,
+							thumbnailPath,
+							mediaType: mediaState.media.type,
+							videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
+						},
 					},
-				});
+				);
+				dish_media = {
+					...createDishMediaResponse,
+					isMine: true,
+					isSaved: false,
+					isLiked: false,
+					likeCount: 0,
+					mediaUrl: mediaState.media.uri,
+					thumbnailImageUrl: mediaState.media.type === "video" ? mediaState.media.thumbnailUri! : mediaState.media.uri,
+				};
 			} else {
 				// prefilleMedia が指定されている場合は、それを利用
-				dishMedia = prefilledMedia;
+				dish_media = prefilledMedia;
+				dish = prefilledMedia.dish;
 			}
 
 			const createdDishReview = await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
 				requestPayload: {
-					dishId: dishMedia.dish_id,
+					dishId: dish_media.dish_id,
 					comment: reviewText,
 					languageCode: locale,
 					priceCents: parsedPrice,
 					currencyCode: currencyCode ?? undefined,
 					rating,
-					createdDishMediaId: dishMedia.id,
+					createdDishMediaId: dish_media.id,
 				},
 			});
 
 			// #460 【設計】レビュー投稿後の即時反映：API から返却された DishReview をストアに反映
 			const { upsertDishMediaEntries, updateMyReviewIdsByKey } = useDishMediaEntriesStore.getState();
-
-			// 既存の dish_media から dish 情報を取得、または新規作成
-			// #460 【バグ】isValid で dishCategoryId の存在を保証済みだが、型安全性のため明示的にチェック
-			if (!dishCategoryId) {
-				throw new Error("dishCategoryId is required but was not set");
-			}
-
-			const dish = prefilledMedia?.dish ?? {
-				id: dishMedia.dish_id,
-				restaurant_id: restaurant.id,
-				category_id: dishCategoryId,
-				name: dishCategoryName,
-				created_at: new Date().toISOString(),
-				updated_at: new Date().toISOString(),
-				lock_no: 0,
-			};
-
 			upsertDishMediaEntries([
 				{
 					restaurant,
-					dish: {
-						...dish,
-						reviewCount: 1,
-						averageRating: rating,
-					},
-					dish_media: {
-						...dishMedia,
-						isMine: true,
-						isSaved: false,
-						isLiked: false,
-						likeCount: 0,
-						mediaUrl: dishMedia.media_path,
-						thumbnailImageUrl: dishMedia.thumbnail_path,
-					},
-					dish_reviews: [createdDishReview],
+					dish,
+					dish_media,
+					dish_reviews: [
+						{
+							...createdDishReview,
+							username: "me", // TODO: userProfile データは、ストアに集約する
+							isLiked: false,
+							likeCount: 0,
+						},
+					],
 				},
 			]);
-
-			const reviewId = String(createdDishReview.id);
-			updateMyReviewIdsByKey("reviews", (prev) => [reviewId, ...prev]);
+			updateMyReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",

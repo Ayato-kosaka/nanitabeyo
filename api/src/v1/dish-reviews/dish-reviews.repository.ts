@@ -11,17 +11,13 @@ import { CLS_KEY_APP_VERSION } from '../../core/cls/cls.constants';
 import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDishReviewDto } from '@shared/v1/dto';
-import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
-
-// #460 【設計】ユーザー名が取得できない場合のデフォルト値
-const DEFAULT_USERNAME = 'unknown';
 
 @Injectable()
 export class DishReviewsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /**
    * 料理が存在するかチェック
@@ -115,57 +111,5 @@ export class DishReviewsRepository {
         },
       },
     });
-  }
-
-  /**
-   * レビューIDから完全なレビュー情報を取得（username, isLiked, likeCount を含む）
-   */
-  async getFullReviewById(reviewId: string, userId: string) {
-    // レビュー本体を取得
-    const review = await this.prisma.prisma.dish_reviews.findUnique({
-      where: { id: reviewId },
-      include: {
-        users: {
-          select: {
-            display_name: true,
-          },
-        },
-      },
-    });
-
-    if (!review) return null;
-
-    // いいね数を集計
-    const likeCount = await this.prisma.prisma.reactions.count({
-      where: {
-        target_type: 'dish_reviews',
-        target_id: reviewId,
-        action_type: 'like',
-      },
-    });
-
-    // ユーザーがいいねしているかチェック
-    const userLike = await this.prisma.prisma.reactions.findUnique({
-      where: {
-        user_id_target_type_target_id_action_type: {
-          user_id: userId,
-          target_type: 'dish_reviews',
-          target_id: reviewId,
-          action_type: 'like',
-        },
-      },
-    });
-
-    // Prisma型からSupabase型に変換
-    const { users, ...reviewData } = review;
-    const supabaseReview = convertPrismaToSupabase_DishReviews(reviewData);
-
-    return {
-      ...supabaseReview,
-      username:
-        review.imported_user_name ?? users?.display_name ?? DEFAULT_USERNAME,
-      isLiked: !!userLike,
-      likeCount,
-    };
   }
 }
