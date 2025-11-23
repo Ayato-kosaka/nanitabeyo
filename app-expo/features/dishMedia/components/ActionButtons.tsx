@@ -24,6 +24,8 @@ import {
 	IdType,
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
+import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
+import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
 
 interface ActionButtonsProps {
 	id: string;
@@ -94,7 +96,7 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 					method: "POST",
 					requestPayload: { action_type: "like" },
 				});
-				updateMediaIdsByKey("profileLikes", (prev) => {
+				updateMediaIdsByKey(profileLikesEntriesKey, (prev) => {
 					const without = prev.filter((id) => id !== String(dishMediaId));
 					return [String(dishMediaId), ...without];
 				});
@@ -103,7 +105,7 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 					method: "DELETE",
 					requestPayload: { action_type: "like" },
 				});
-				updateMediaIdsByKey("profileLikes", (prev) => prev.filter((id) => id !== String(dishMediaId)));
+				updateMediaIdsByKey(profileLikesEntriesKey, (prev) => prev.filter((id) => id !== String(dishMediaId)));
 			}
 		} catch (error) {
 			logFrontendEvent({
@@ -148,7 +150,7 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 					method: "POST",
 					requestPayload: { action_type: "save" },
 				});
-				updateMediaIdsByKey("profileSavedPosts", (prev) => {
+				updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => {
 					const without = prev.filter((id) => id !== String(dishMediaId));
 					return [String(dishMediaId), ...without];
 				});
@@ -157,7 +159,7 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 					method: "DELETE",
 					requestPayload: { action_type: "save" },
 				});
-				updateMediaIdsByKey("profileSavedPosts", (prev) => prev.filter((id) => id !== String(dishMediaId)));
+				updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => prev.filter((id) => id !== String(dishMediaId)));
 			}
 		} catch (error) {
 			logFrontendEvent({

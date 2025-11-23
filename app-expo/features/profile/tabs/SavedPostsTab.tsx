@@ -18,6 +18,8 @@ interface SavedPostsTabProps {
 	isOwnProfile: boolean;
 }
 
+export const profileSavedPostsEntriesKey = "profileSavedPosts";
+
 export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	if (!isOwnProfile) {
 		return (
@@ -35,11 +37,10 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	const locale = useLocale();
 
 	// #454 【設計】画面用途キー "profileSavedPosts" でストアからデータ取得
-	const entriesKey = "profileSavedPosts";
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
-		selectIdsByKey(entriesKey, "dish_media"),
+		selectIdsByKey(profileSavedPostsEntriesKey, "dish_media"),
 		shallow,
 	);
 
@@ -63,32 +64,32 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	useEffect(() => {
 		if (hasFetchedInitial || isLoading) return;
-		fetchInitialByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
+		fetchInitialByKey(profileSavedPostsEntriesKey, {}, fetcher);
+	}, [profileSavedPostsEntriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	const handleItemPress = useCallback(
 		(dishMediaId: string, index: number) => {
 			lightImpact();
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
-				params: { locale, startIndex: index, tabName: entriesKey },
+				params: { locale, startIndex: index, tabName: profileSavedPostsEntriesKey },
 			});
 			logFrontendEvent({
 				event_name: "dish_media_entry_selected",
 				error_level: "log",
-				payload: { dishMediaId, entriesKey },
+				payload: { dishMediaId, entriesKey: profileSavedPostsEntriesKey },
 			});
 		},
 		[lightImpact, locale, logFrontendEvent],
 	);
 
 	const handleLoadMore = useCallback(() => {
-		fetchMoreByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchMoreByKey, fetcher]);
+		fetchMoreByKey(profileSavedPostsEntriesKey, {}, fetcher);
+	}, [profileSavedPostsEntriesKey, fetchMoreByKey, fetcher]);
 
 	const handleRefresh = useCallback(() => {
-		fetchInitialByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialByKey, fetcher]);
+		fetchInitialByKey(profileSavedPostsEntriesKey, {}, fetcher);
+	}, [profileSavedPostsEntriesKey, fetchInitialByKey, fetcher]);
 
 	const renderPostItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {

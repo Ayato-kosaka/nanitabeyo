@@ -14,6 +14,8 @@ import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
 import { shallow } from "zustand/shallow";
 
+export const profileLikesEntriesKey = "profileLikes" as const;
+
 export function LikeTab() {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
@@ -21,11 +23,10 @@ export function LikeTab() {
 	const locale = useLocale();
 
 	// #454 【設計】画面用途キー "profileLikes" でストアからデータ取得
-	const entriesKey = "profileLikes";
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
-		selectIdsByKey(entriesKey, "dish_media"),
+		selectIdsByKey(profileLikesEntriesKey, "dish_media"),
 		shallow,
 	);
 
@@ -49,20 +50,20 @@ export function LikeTab() {
 
 	useEffect(() => {
 		if (hasFetchedInitial || isLoading) return;
-		fetchInitialByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
+		fetchInitialByKey(profileLikesEntriesKey, {}, fetcher);
+	}, [profileLikesEntriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	const handleItemPress = useCallback(
 		(dishMediaId: string, index: number) => {
 			lightImpact();
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
-				params: { locale, startIndex: index, tabName: entriesKey },
+				params: { locale, startIndex: index, tabName: profileLikesEntriesKey },
 			});
 			logFrontendEvent({
 				event_name: "dish_media_entry_selected",
 				error_level: "log",
-				payload: { dishMediaId, entriesKey },
+				payload: { dishMediaId, entriesKey: profileLikesEntriesKey },
 			});
 		},
 		[lightImpact, locale, logFrontendEvent],
@@ -106,12 +107,12 @@ export function LikeTab() {
 	);
 
 	const handleLoadMore = useCallback(() => {
-		fetchMoreByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchMoreByKey, fetcher]);
+		fetchMoreByKey(profileLikesEntriesKey, {}, fetcher);
+	}, [profileLikesEntriesKey, fetchMoreByKey, fetcher]);
 
 	const handleRefresh = useCallback(() => {
-		fetchInitialByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialByKey, fetcher]);
+		fetchInitialByKey(profileLikesEntriesKey, {}, fetcher);
+	}, [profileLikesEntriesKey, fetchInitialByKey, fetcher]);
 
 	const renderEmptyState = useCallback(() => {
 		if (error) {
