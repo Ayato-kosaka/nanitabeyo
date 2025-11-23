@@ -32,7 +32,6 @@ export function useEnsureOwnProfileLoaded() {
 
 	const isGuest = user?.is_anonymous !== false;
 
-
 	// ★セッション（userId / isGuest）が変わったらキャッシュをリセット
 	useEffect(() => {
 		useProfileStore.getState().resetProfile();
