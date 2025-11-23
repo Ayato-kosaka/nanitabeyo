@@ -7,7 +7,13 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
-import { NormalizedDishMediaEntry, selectEntryByMediaId, selectEntryByReviewId, useDishMediaEntriesStore, IdType } from "@/stores/useDishMediaEntriesStore";
+import {
+	NormalizedDishMediaEntry,
+	selectEntryByMediaId,
+	selectEntryByReviewId,
+	useDishMediaEntriesStore,
+	IdType,
+} from "@/stores/useDishMediaEntriesStore";
 
 interface DishMediaContentProps {
 	id: string;
@@ -30,9 +36,7 @@ export default function DishMediaContent({
 }: DishMediaContentProps) {
 	const dishMediaEntry = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const entry = idType === "dish_media" 
-			? selectEntryByMediaId(id)(state)
-			: selectEntryByReviewId(id)(state);
+		const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
 		if (!entry) throw new Error("DishMediaContent: entry is undefined");
 		return entry;
 	}, [id, idType]);
@@ -102,7 +106,12 @@ export default function DishMediaContent({
 			{/* Action Buttons */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
-					<ActionButtons id={id} entriesKey={entriesKey} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
+					<ActionButtons
+						id={id}
+						entriesKey={entriesKey}
+						idType={idType}
+						onLayout={(width) => setRightActionsWidth(width)}
+					/>
 				</View>
 			</View>
 		</SafeAreaView>

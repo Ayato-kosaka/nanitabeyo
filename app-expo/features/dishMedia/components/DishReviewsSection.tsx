@@ -72,7 +72,7 @@ export function DishReviewsSection({ id, entriesKey, idType, paddingRight, carou
 		const remoteConfig = getRemoteConfig();
 		const charUnitIncrement = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
 
-		setCommentExpandedChars((prev: { [key: string]: number }) => ({
+		setCommentExpandedChars((prev) => ({
 			...prev,
 			[reviewId]: prev[reviewId] + charUnitIncrement,
 		}));

@@ -34,7 +34,10 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const entriesKey = `mapReviews-${restaurantId}`;
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey, "dish_media"), shallow);
+	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(
+		selectIdsByKey(entriesKey, "dish_media"),
+		shallow,
+	);
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(

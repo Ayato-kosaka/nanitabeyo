@@ -16,7 +16,13 @@ import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getCacheKeyForImage } from "@/lib/image";
-import { DishMediaEntriesStore, selectEntryByMediaId, selectEntryByReviewId, useDishMediaEntriesStore, IdType } from "@/stores/useDishMediaEntriesStore";
+import {
+	DishMediaEntriesStore,
+	selectEntryByMediaId,
+	selectEntryByReviewId,
+	useDishMediaEntriesStore,
+	IdType,
+} from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 
 interface ActionButtonsProps {
@@ -36,9 +42,7 @@ export function ActionButtons({ id, entriesKey, idType, onLayout }: ActionButton
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {
-			const entry = idType === "dish_media"
-				? selectEntryByMediaId(id)(state)
-				: selectEntryByReviewId(id)(state);
+			const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
 			if (!entry) throw new Error("ActionButtons: entry is undefined");
 			return {
 				isSaved: entry.dish_media.isSaved,
@@ -52,9 +56,7 @@ export function ActionButtons({ id, entriesKey, idType, onLayout }: ActionButton
 
 	const { dishMediaId, restaurant } = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const entry = idType === "dish_media"
-			? selectEntryByMediaId(id)(state)
-			: selectEntryByReviewId(id)(state);
+		const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
 		if (!entry) throw new Error("ActionButtons: entry is undefined");
 		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
 	}, [id, idType]);

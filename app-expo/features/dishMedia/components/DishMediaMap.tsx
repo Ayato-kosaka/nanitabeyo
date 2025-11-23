@@ -43,7 +43,10 @@ export default function DishMediaMap({
 	getTitle,
 	entriesKey,
 }: DishMediaMapProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, "dish_media")(state), [entriesKey]);
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, "dish_media")(state),
+		[entriesKey],
+	);
 	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	// 画面を開いた時点の並びを固定するための state

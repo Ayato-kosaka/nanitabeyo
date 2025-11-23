@@ -13,7 +13,10 @@ import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoa
 
 export default function ResultScreen() {
 	const { topicId, location } = useLocalSearchParams<{ topicId: string; location?: string }>();
-	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(topicId, "dish_media")(state), [topicId]);
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectIdsByKey(topicId, "dish_media")(state),
+		[topicId],
+	);
 	const { isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const initialLocation = useMemo(() => {
 		if (typeof location === "string") {

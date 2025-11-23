@@ -46,8 +46,17 @@ interface DishMediaFeedProps {
 }
 
 // --- 本体 --------------------------------------------------------------------
-export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitle, entriesKey, idType }: DishMediaFeedProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state), [entriesKey, idType]);
+export default function DishMediaFeed({
+	initialIndex = 0,
+	onIndexChange,
+	getTitle,
+	entriesKey,
+	idType,
+}: DishMediaFeedProps) {
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
+		[entriesKey, idType],
+	);
 	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	// 画面を開いた時点の並びを固定するための state

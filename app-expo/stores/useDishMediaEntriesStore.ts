@@ -212,7 +212,7 @@ export const selectIdsByKey =
 		hasNextPage: boolean;
 		isLoadingMore: boolean;
 	} => {
-		const ids = idType === "dish_media" ? state.mediaIdsByKey[key] ?? [] : state.reviewIdsByKey[key] ?? [];
+		const ids = idType === "dish_media" ? (state.mediaIdsByKey[key] ?? []) : (state.reviewIdsByKey[key] ?? []);
 		return {
 			ids,
 			isLoading: state.isLoadingByKey[key] ?? false,

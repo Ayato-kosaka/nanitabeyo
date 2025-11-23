@@ -456,7 +456,7 @@ export function ReviewForm({
 					],
 				},
 			]);
-			updateReviewIdsByKey("reviews", (prev: string[]) => [String(createdDishReview.id), ...prev]);
+			updateReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",

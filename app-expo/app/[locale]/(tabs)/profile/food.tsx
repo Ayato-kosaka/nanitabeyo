@@ -9,7 +9,7 @@ import { IdType } from "@/stores/useDishMediaEntriesStore";
 export default function ProfileFoodScreen() {
 	const { startIndex, tabName } = useLocalSearchParams<{ startIndex?: string; tabName?: GroupName }>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
-	
+
 	// 【設計】tabName に応じて idType を決定
 	const idType: IdType = tabName === "reviews" ? "dish_reviews" : "dish_media";
 
