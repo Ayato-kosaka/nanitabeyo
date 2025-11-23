@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,7 +13,7 @@ export default function PostsScreen() {
 	const { callBackend } = useAPICall();
 	const entriesKey = "PostsScreen";
 
-	useMemo(() => {
+	useEffect(() => {
 		const { upsertDishMediaEntries, updateMediaIdsByKeyAsync, clearByKey } = useDishMediaEntriesStore.getState();
 		const fetchData = async () => {
 			const idArray =
