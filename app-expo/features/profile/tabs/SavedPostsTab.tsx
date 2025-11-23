@@ -7,7 +7,7 @@ import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import { router } from "expo-router";
 import type { QueryMeSavedDishMediaDto } from "@shared/api/v1/dto";
@@ -39,7 +39,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
-		selectIdsByKey(entriesKey),
+		selectIdsByKey(entriesKey, "dish_media"),
 		shallow,
 	);
 
@@ -92,7 +92,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 
 	const renderPostItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const entry = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
+			const entry = selectEntryByMediaId(item.id)(useDishMediaEntriesStore.getState());
 			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {

@@ -440,7 +440,7 @@ export function ReviewForm({
 			});
 
 			// #460 【設計】レビュー投稿後の即時反映：API から返却された DishReview をストアに反映
-			const { upsertDishMediaEntries, updateMyReviewIdsByKey } = useDishMediaEntriesStore.getState();
+			const { upsertDishMediaEntries, updateReviewIdsByKey } = useDishMediaEntriesStore.getState();
 			upsertDishMediaEntries([
 				{
 					restaurant,
@@ -456,7 +456,7 @@ export function ReviewForm({
 					],
 				},
 			]);
-			updateMyReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
+			updateReviewIdsByKey("reviews", (prev: string[]) => [String(createdDishReview.id), ...prev]);
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",

@@ -16,16 +16,17 @@ import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getCacheKeyForImage } from "@/lib/image";
-import { DishMediaEntriesStore, selectEntryById, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { DishMediaEntriesStore, selectEntryByMediaId, selectEntryByReviewId, useDishMediaEntriesStore, IdType } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 
 interface ActionButtonsProps {
 	id: string;
 	entriesKey: string;
+	idType: IdType;
 	onLayout: (width: number) => void;
 }
 
-export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) {
+export function ActionButtons({ id, entriesKey, idType, onLayout }: ActionButtonsProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -35,7 +36,9 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {
-			const entry = selectEntryById(id, { key: entriesKey })(state);
+			const entry = idType === "dish_media"
+				? selectEntryByMediaId(id)(state)
+				: selectEntryByReviewId(id)(state);
 			if (!entry) throw new Error("ActionButtons: entry is undefined");
 			return {
 				isSaved: entry.dish_media.isSaved,
@@ -43,16 +46,18 @@ export function ActionButtons({ id, entriesKey, onLayout }: ActionButtonsProps) 
 				likeCount: entry.dish_media.likeCount,
 			};
 		},
-		[id],
+		[id, idType],
 	);
 	const { isSaved, isLiked, likeCount } = useDishMediaEntriesStore(selector, shallow);
 
 	const { dishMediaId, restaurant } = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const entry = selectEntryById(id, { key: entriesKey })(state);
+		const entry = idType === "dish_media"
+			? selectEntryByMediaId(id)(state)
+			: selectEntryByReviewId(id)(state);
 		if (!entry) throw new Error("ActionButtons: entry is undefined");
 		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
-	}, [id]);
+	}, [id, idType]);
 
 	const { BlurModal, open: openMenuModal, close: closeMenuModal } = useBlurModal({ intensity: 100 });
 

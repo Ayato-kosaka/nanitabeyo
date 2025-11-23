@@ -33,7 +33,7 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 	// 現在表示中のアイテムを取得
 	const { restaurant, prefilledMedia } = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const { ids } = selectIdsByKey(entriesKey)(state);
+		const { ids } = selectIdsByKey(entriesKey, "dish_media")(state);
 		const id = ids[currentIndex];
 		const entry = state.entriesByMediaId[id];
 		if (!entry) throw new Error("FeedDishMediaViewer: entry is undefined");
@@ -45,7 +45,8 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 			<DishMediaFeed
 				initialIndex={isNaN(initialIndex) ? 0 : initialIndex}
 				getTitle={(item) => item.dish.name}
-				source={entriesKey}
+				entriesKey={entriesKey}
+				idType="dish_media"
 				onIndexChange={handleIndexChange}
 			/>
 			<PrimaryButton

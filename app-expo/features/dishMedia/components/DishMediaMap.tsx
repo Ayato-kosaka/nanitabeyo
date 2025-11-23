@@ -9,7 +9,7 @@ import * as Crypto from "expo-crypto";
 import {
 	DishMediaEntriesStore,
 	NormalizedDishMediaEntry,
-	selectEntryById,
+	selectEntryByMediaId,
 	selectIdsByKey,
 	useDishMediaEntriesStore,
 } from "@/stores/useDishMediaEntriesStore";
@@ -32,8 +32,8 @@ interface DishMediaMapProps {
 		longitude: number;
 	};
 	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
-	// 呼び出し元コンテキスト
-	source: string;
+	// 呼び出し元コンテキスト（画面用途キー）
+	entriesKey: string;
 }
 
 export default function DishMediaMap({
@@ -41,9 +41,9 @@ export default function DishMediaMap({
 	onIndexChange,
 	initialLocation,
 	getTitle,
-	source,
+	entriesKey,
 }: DishMediaMapProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(source)(state), [source]);
+	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, "dish_media")(state), [entriesKey]);
 	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	// 画面を開いた時点の並びを固定するための state
@@ -56,7 +56,7 @@ export default function DishMediaMap({
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) => selectEntryById(id, { key: source })(state)?.restaurant)
+			.map((id) => selectEntryByMediaId(id)(state)?.restaurant)
 			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
 			.map((restaurant) => ({
 				id: restaurant.id,
@@ -64,7 +64,7 @@ export default function DishMediaMap({
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
 			}));
-	}, [ids, source]);
+	}, [ids]);
 
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
@@ -145,11 +145,12 @@ export default function DishMediaMap({
 					isActive={index === currentIndex}
 					getTitle={getTitle}
 					sessionId={sessionId.current}
-					source={source}
+					entriesKey={entriesKey}
+					idType="dish_media"
 				/>
 			</View>
 		),
-		[currentIndex],
+		[currentIndex, getTitle, entriesKey],
 	);
 
 	return (

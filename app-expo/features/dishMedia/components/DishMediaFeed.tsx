@@ -21,6 +21,7 @@ import {
 	NormalizedDishMediaEntry,
 	selectIdsByKey,
 	useDishMediaEntriesStore,
+	IdType,
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { Text } from "react-native";
@@ -38,13 +39,15 @@ interface DishMediaFeedProps {
 	onIndexChange?: (index: number) => void;
 	// 各アイテムのタイトル取得関数
 	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
-	// 呼び出し元コンテキスト
-	source: string;
+	// 呼び出し元コンテキスト（画面用途キー）
+	entriesKey: string;
+	// ID の種類（dish_media / dish_reviews）
+	idType: IdType;
 }
 
 // --- 本体 --------------------------------------------------------------------
-export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitle, source }: DishMediaFeedProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(source)(state), [source]);
+export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitle, entriesKey, idType }: DishMediaFeedProps) {
+	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state), [entriesKey, idType]);
 	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	// 画面を開いた時点の並びを固定するための state
@@ -173,11 +176,12 @@ export default function DishMediaFeed({ initialIndex = 0, onIndexChange, getTitl
 					isActive={index === currentIndex}
 					getTitle={getTitle}
 					sessionId={sessionId.current}
-					source={source}
+					entriesKey={entriesKey}
+					idType={idType}
 				/>
 			</View>
 		),
-		[pageHeight, currentIndex],
+		[pageHeight, currentIndex, getTitle, entriesKey, idType],
 	);
 
 	return (

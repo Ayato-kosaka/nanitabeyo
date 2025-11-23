@@ -12,27 +12,39 @@ import { useAPICall } from "@/hooks/useAPICall";
 import i18n from "@/lib/i18n";
 import {
 	DishMediaEntriesStore,
-	selectReviewsByReviewId,
+	selectReviewsByMediaId,
+	selectReviewByReviewId,
 	useDishMediaEntriesStore,
+	IdType,
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 
 interface DishReviewsSectionProps {
 	id: string;
 	entriesKey: string;
+	idType: IdType;
 	paddingRight: number;
 	carouselRef: React.RefObject<any> | undefined;
 }
 
 // コメントの表示のみを担当。状態変更は親側のコールバックに委譲
-export function DishReviewsSection({ id, entriesKey, paddingRight, carouselRef }: DishReviewsSectionProps) {
+export function DishReviewsSection({ id, entriesKey, idType, paddingRight, carouselRef }: DishReviewsSectionProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
 
 	const selector = useCallback(
-		(state: DishMediaEntriesStore) => selectReviewsByReviewId(id, { key: entriesKey })(state),
-		[id, entriesKey],
+		(state: DishMediaEntriesStore) => {
+			// idType に応じて適切なセレクタを使用
+			if (idType === "dish_media") {
+				return selectReviewsByMediaId(id)(state);
+			} else {
+				// dish_reviews の場合は単一のレビューを配列で返す
+				const review = selectReviewByReviewId(id)(state);
+				return review ? [review] : [];
+			}
+		},
+		[id, idType],
 	);
 	const reviews = useDishMediaEntriesStore(selector, shallow);
 
@@ -60,7 +72,7 @@ export function DishReviewsSection({ id, entriesKey, paddingRight, carouselRef }
 		const remoteConfig = getRemoteConfig();
 		const charUnitIncrement = parseInt(remoteConfig?.v1_dish_comment_review_show_number!, 10);
 
-		setCommentExpandedChars((prev) => ({
+		setCommentExpandedChars((prev: { [key: string]: number }) => ({
 			...prev,
 			[reviewId]: prev[reviewId] + charUnitIncrement,
 		}));
