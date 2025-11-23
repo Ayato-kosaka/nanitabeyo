@@ -97,7 +97,7 @@ export class DishesService {
     }
 
     // レストランの住所情報からローカル言語コードを推測
-    let languageCode = this.locationsService.resolveLocalLanguageCode(
+    const languageCode = this.locationsService.resolveLocalLanguageCode(
       restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
     );
 

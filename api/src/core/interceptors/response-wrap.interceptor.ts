@@ -94,8 +94,8 @@ export class ResponseWrapInterceptor implements NestInterceptor {
           'errorCode' in payload;
 
         /* ---------- バックエンドイベントログ（成功パス） ---------- */
-        const t0 = (req as any)._t0 ?? startedAt;
-        const tBodyEnd = (req as any)._tBodyEnd ?? startedAt;
+        const t0 = req._t0 ?? startedAt;
+        const tBodyEnd = req._tBodyEnd ?? startedAt;
         const queue_ms = startedAt - t0; // ハンドラに入るまで（ボディ受信＋前段）
         const upload_ms = Math.max(0, tBodyEnd - t0); // ボディ受信完了まで
         const app_ms = Date.now() - startedAt; // ハンドラ処理時間

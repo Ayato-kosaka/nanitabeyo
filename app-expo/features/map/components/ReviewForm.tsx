@@ -42,6 +42,9 @@ import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useProfileStore } from "@/features/profile/stores/useProfileStore";
+import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -83,6 +86,10 @@ export function ReviewForm({
 	const { uploadFile: thumbnailUploadFile } = useFileUploader();
 	const { createDishCategoryVariant } = useDishCategorySearch();
 	const { showSnackbar } = useSnackbar();
+
+	// #467 【設計】プロフィールをストアから取得（プロフィール画面を開かなくても利用可能）
+	useEnsureOwnProfileLoaded();
+	const profile = useProfileStore((state) => state.profile);
 
 	// Media selection state
 	const [mediaState, setMediaState] = useState<
@@ -351,8 +358,8 @@ export function ReviewForm({
 
 		try {
 			// #400 【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
-			let dishId: string;
-			let dishMediaId: string;
+			let dish_media: DishMediaEntry["dish_media"];
+			let dish: DishMediaEntry["dish"];
 			if (!prefilledMedia) {
 				if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
 					logFrontendEvent({
@@ -363,18 +370,23 @@ export function ReviewForm({
 					throw new Error(i18n.t("errors.videoProcessingFailed"));
 				}
 
-				dishId = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+				const createDishResponse = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
 					method: "POST",
 					requestPayload: {
 						restaurantId: restaurant.id,
 						dishCategoryId: dishCategoryId,
 					},
-				}).then((res) => res.id);
+				});
+				dish = {
+					...createDishResponse,
+					reviewCount: 1,
+					averageRating: rating,
+				};
 
 				// dish-media.media_path をアップロード
 				const mediaPath = await mediaUploadFile(mediaState.media.uri, {
 					mimeType: mediaState.media.mimeType,
-					baseFileName: `${dishId}-media`,
+					baseFileName: `${dish.id}-media`,
 				});
 				// dish-media.thumbnail_path をアップロード
 				let thumbnailPath = mediaPath; // 画像の場合は mediaPath と同じにする
@@ -382,7 +394,7 @@ export function ReviewForm({
 					if (!mediaState.media.thumbnailUri) throw new Error("Missing thumbnail for video");
 					thumbnailPath = await thumbnailUploadFile(mediaState.media.thumbnailUri, {
 						mimeType: "image/jpeg",
-						baseFileName: `${dishId}-thumbnail`,
+						baseFileName: `${dish.id}-thumbnail`,
 					});
 				}
 
@@ -390,35 +402,66 @@ export function ReviewForm({
 				 * Video のアップロードが完了してからでないと、
 				 * transcoer API が失敗する可能性があるため、直列で実行する
 				 */
-				const dishMedia = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>("v1/dish-media", {
-					method: "POST",
-					requestPayload: {
-						dishId,
-						mediaPath,
-						thumbnailPath,
-						mediaType: mediaState.media.type,
-						videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
+				const createDishMediaResponse = await callBackend<CreateDishMediaDto, CreateDishMediaResponse>(
+					"v1/dish-media",
+					{
+						method: "POST",
+						requestPayload: {
+							dishId: dish.id,
+							mediaPath,
+							thumbnailPath,
+							mediaType: mediaState.media.type,
+							videoDurationMs: mediaState.media.durationSec ? mediaState.media.durationSec * 1000 : undefined,
+						},
 					},
-				});
-				dishMediaId = dishMedia.id;
+				);
+				dish_media = {
+					...createDishMediaResponse,
+					isMine: true,
+					isSaved: false,
+					isLiked: false,
+					likeCount: 0,
+					mediaUrl: mediaState.media.uri,
+					thumbnailImageUrl: mediaState.media.type === "video" ? mediaState.media.thumbnailUri! : mediaState.media.uri,
+				};
 			} else {
-				// prefilleMedia が指定されている場合は、その dishId と dishMediaId を利用する
-				dishId = prefilledMedia.dish_id;
-				dishMediaId = prefilledMedia.id;
+				// prefilleMedia が指定されている場合は、それを利用
+				dish_media = prefilledMedia;
+				dish = prefilledMedia.dish;
 			}
 
-			await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
+			const createdDishReview = await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
 				requestPayload: {
-					dishId,
+					dishId: dish_media.dish_id,
 					comment: reviewText,
 					languageCode: locale,
 					priceCents: parsedPrice,
 					currencyCode: currencyCode ?? undefined,
 					rating,
-					createdDishMediaId: dishMediaId,
+					createdDishMediaId: dish_media.id,
 				},
 			});
+
+			// #460 【設計】レビュー投稿後の即時反映：API から返却された DishReview をストアに反映
+			const { upsertDishMediaEntries, updateReviewIdsByKey } = useDishMediaEntriesStore.getState();
+			upsertDishMediaEntries([
+				{
+					restaurant,
+					dish,
+					dish_media,
+					dish_reviews: [
+						{
+							...createdDishReview,
+							// #467 【設計】プロフィールストアから username を取得（プロフィール画面を開かなくても利用可能）
+							username: profile?.username ?? "me",
+							isLiked: false,
+							likeCount: 0,
+						},
+					],
+				},
+			]);
+			updateReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",

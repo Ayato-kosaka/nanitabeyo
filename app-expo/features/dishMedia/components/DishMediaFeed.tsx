@@ -11,12 +11,21 @@
 // - 副作用（ログ/ハプティクス/analytics）: onViewableItemsChanged 内でのみ実行
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo } from "react-native";
+import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo, ActivityIndicator } from "react-native";
 import DishMediaContent from "./DishMediaContent";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import type { DishMediaEntry } from "@shared/api/v1/res";
 import * as Crypto from "expo-crypto";
+import {
+	DishMediaEntriesStore,
+	NormalizedDishMediaEntry,
+	selectIdsByKey,
+	useDishMediaEntriesStore,
+	IdType,
+} from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
+import { Text } from "react-native";
+import i18n from "@/lib/i18n";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -24,53 +33,63 @@ const clampIndex = (index: number, length: number) => Math.min(Math.max(0, index
 
 // --- Props -------------------------------------------------------------------
 interface DishMediaFeedProps {
-	// 表示対象のメディア配列
-	items: DishMediaEntry[];
 	// 初期表示インデックス（範囲外はクランプ）
 	initialIndex?: number;
 	// 表示中インデックスが変化した際のコールバック
 	onIndexChange?: (index: number) => void;
 	// 各アイテムのタイトル取得関数
-	getTitle?: (item: DishMediaEntry) => string | null;
-	// 呼び出し元コンテキスト
-	source: string;
-	// keyExtractor（省略時は dish_media.id を使用）
-	keyExtractor?: (item: DishMediaEntry) => string;
+	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
+	// 呼び出し元コンテキスト（画面用途キー）
+	entriesKey: string;
+	// ID の種類（dish_media / dish_reviews）
+	idType: IdType;
 }
 
 // --- 本体 --------------------------------------------------------------------
 export default function DishMediaFeed({
-	items,
 	initialIndex = 0,
 	onIndexChange,
 	getTitle,
-	source,
-	keyExtractor = (item) => String(item.dish_media.id),
+	entriesKey,
+	idType,
 }: DishMediaFeedProps) {
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
+		[entriesKey, idType],
+	);
+	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
+
+	// 画面を開いた時点の並びを固定するための state
+	// liked/unlike 等のリアルタイム反映は行わない
+	const [ids, setIds] = useState<string[]>([]);
+	useEffect(() => {
+		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
+	}, [liveIds, ids.length]);
+
 	// 命令的スクロール用の List 参照
-	const listRef = useRef<FlatList<DishMediaEntry>>(null);
+	const listRef = useRef<FlatList<string>>(null);
 
 	// 実レイアウト高（SafeArea等込み）: onLayout で初回確定
 	const [pageHeight, setPageHeight] = useState(0);
 
 	// initialIndex を常に範囲内へ
-	const clampedInitialIndex = useMemo(() => clampIndex(initialIndex, items.length), [initialIndex, items.length]);
+	const clampedInitialIndex = useMemo(() => clampIndex(initialIndex, ids.length), [initialIndex, ids.length]);
 
 	// contentOffset を「初回マウント時のみ」適用するためのフラグ
 	const didSetInitialOffset = useRef(false);
 
 	// 現在の表示インデックス（状態）＋最新値ミラー用Ref（Viewabilityコールバックで参照）
-	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, items.length));
+	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, ids.length));
 	const currentIndexRef = useRef(currentIndex);
 	useEffect(() => {
 		currentIndexRef.current = currentIndex;
 	}, [currentIndex]);
 
 	// items の参照も最新をミラー（onViewableItemsChanged内で安定参照するため）
-	const itemsRef = useRef(items);
+	const itemsRef = useRef(ids);
 	useEffect(() => {
-		itemsRef.current = items;
-	}, [items]);
+		itemsRef.current = ids;
+	}, [ids]);
 
 	// 付随機能（ハプティクス・ログ）
 	const { selectionChanged } = useHaptics();
@@ -85,9 +104,9 @@ export default function DishMediaFeed({
 			event_name: "food_feed_mounted",
 			error_level: "log",
 			payload: {
-				itemCount: items.length,
+				itemCount: ids.length,
 				initialIndex,
-				hasItems: items.length > 0,
+				hasItems: ids.length > 0,
 				impl: "FlatList",
 			},
 		});
@@ -96,9 +115,9 @@ export default function DishMediaFeed({
 
 	// --- レイアウト確定後の初期再配置（既存ロジックを変更しない） ------------
 	useEffect(() => {
-		if (pageHeight <= 0 || items.length === 0) return;
+		if (pageHeight <= 0 || ids.length === 0) return;
 
-		const clamped = clampIndex(initialIndex, items.length);
+		const clamped = clampIndex(initialIndex, ids.length);
 
 		if (clamped !== currentIndex) {
 			setCurrentIndex(clamped);
@@ -111,11 +130,11 @@ export default function DishMediaFeed({
 				animated: false,
 			});
 		});
-	}, [items.length, initialIndex, pageHeight]);
+	}, [ids.length, initialIndex, pageHeight]);
 
 	// --- getItemLayout（高さ=画面高を提供; 初期スクロール安定化の要） --------
 	const getItemLayout = useMemo(
-		() => (_: ArrayLike<DishMediaEntry> | null | undefined, index: number) => ({
+		() => (_: ArrayLike<string> | null | undefined, index: number) => ({
 			length: pageHeight ?? 0,
 			offset: (pageHeight ?? 0) * index,
 			index,
@@ -151,30 +170,28 @@ export default function DishMediaFeed({
 				fromIndex: prev,
 				toIndex: v.index,
 				direction: v.index > prev ? "down" : "up",
-				currentItemId: item?.dish_media.id,
+				currentItemId: item,
 			},
 		});
 	}).current;
 
 	// --- renderItem（再レンダを抑制：pageHeight にのみ依存） -------------------
 	const renderItem = useCallback(
-		({ item, index }: ListRenderItemInfo<DishMediaEntry>) => (
+		({ item, index }: ListRenderItemInfo<string>) => (
 			// 各ページは厳密に画面高に合わせる
 			<View style={{ height: Math.max(1, pageHeight) }}>
 				<DishMediaContent
-					item={item}
+					id={item}
 					isActive={index === currentIndex}
 					getTitle={getTitle}
 					sessionId={sessionId.current}
-					source={source}
+					entriesKey={entriesKey}
+					idType={idType}
 				/>
 			</View>
 		),
-		[pageHeight, currentIndex],
+		[pageHeight, currentIndex, getTitle, entriesKey, idType],
 	);
-
-	// --- 早期リターン：空リスト ----------------------------------------------
-	if (items.length === 0) return null;
 
 	return (
 		<View
@@ -185,44 +202,55 @@ export default function DishMediaFeed({
 				if (h !== pageHeight) setPageHeight(h);
 			}}>
 			{/* pageHeight が確定するまでは描画を遅延（初期スクロール不発を防止） */}
-			{pageHeight > 0 && (
-				<FlatList
-					ref={listRef}
-					data={items}
-					keyExtractor={keyExtractor}
-					renderItem={renderItem}
-					style={styles.list}
-					// ページング：1画面=1ページ
-					pagingEnabled
-					// 既存方針：initialScrollIndex はレイアウト後の scrollToIndex と併用
-					initialScrollIndex={clampedInitialIndex}
-					// 初回マウントのみ contentOffset も併用（保険）。既存の意図を保持。
-					contentOffset={!didSetInitialOffset.current ? { x: 0, y: clampedInitialIndex * pageHeight } : undefined}
-					onLayout={() => {
-						// contentOffset は初回マウントフレームのみ適用
-						if (!didSetInitialOffset.current) didSetInitialOffset.current = true;
-					}}
-					// 初期スクロール安定化（高さが一定である前提）
-					getItemLayout={getItemLayout}
-					// 視覚ノイズの低減
-					showsVerticalScrollIndicator={false}
-					// ページング感の強化
-					decelerationRate="fast"
-					// パフォーマンス調整（既存値を踏襲）
-					windowSize={5}
-					maxToRenderPerBatch={3}
-					// 表示中確定ハンドラ（関数インスタンスは固定）
-					onViewableItemsChanged={onViewableItemsChanged}
-					// 失敗時の再試行（既存挙動を保持）
-					onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
-						setTimeout(() => {
-							listRef.current?.scrollToIndex({ index, animated: false });
-						}, 250);
-					}}
-					// 可視閾値 = 90%
-					viewabilityConfig={viewabilityConfig}
-				/>
-			)}
+			{pageHeight > 0 ? (
+				!!isLoading ? (
+					<View style={styles.centerContainer}>
+						<ActivityIndicator size="large" color="#5EA2FF" />
+						<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
+					</View>
+				) : !!error ? (
+					<View style={styles.centerContainer}>
+						<Text style={styles.errorText}>{error}</Text>
+					</View>
+				) : (
+					<FlatList
+						ref={listRef}
+						data={ids}
+						renderItem={renderItem}
+						keyExtractor={(id) => id}
+						style={styles.list}
+						// ページング：1画面=1ページ
+						pagingEnabled
+						// 既存方針：initialScrollIndex はレイアウト後の scrollToIndex と併用
+						initialScrollIndex={clampedInitialIndex}
+						// 初回マウントのみ contentOffset も併用（保険）。既存の意図を保持。
+						contentOffset={!didSetInitialOffset.current ? { x: 0, y: clampedInitialIndex * pageHeight } : undefined}
+						onLayout={() => {
+							// contentOffset は初回マウントフレームのみ適用
+							if (!didSetInitialOffset.current) didSetInitialOffset.current = true;
+						}}
+						// 初期スクロール安定化（高さが一定である前提）
+						getItemLayout={getItemLayout}
+						// 視覚ノイズの低減
+						showsVerticalScrollIndicator={false}
+						// ページング感の強化
+						decelerationRate="fast"
+						// パフォーマンス調整（既存値を踏襲）
+						windowSize={5}
+						maxToRenderPerBatch={3}
+						// 表示中確定ハンドラ（関数インスタンスは固定）
+						onViewableItemsChanged={onViewableItemsChanged}
+						// 失敗時の再試行（既存挙動を保持）
+						onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
+							setTimeout(() => {
+								listRef.current?.scrollToIndex({ index, animated: false });
+							}, 250);
+						}}
+						// 可視閾値 = 90%
+						viewabilityConfig={viewabilityConfig}
+					/>
+				)
+			) : null}
 		</View>
 	);
 }
@@ -237,5 +265,22 @@ const styles = StyleSheet.create({
 	list: {
 		flex: 1,
 		backgroundColor: "#000", // メディアを引き立てる黒背景
+	},
+	centerContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "#000",
+	},
+	loadingText: {
+		marginTop: 16,
+		color: "#FFF",
+		fontSize: 16,
+	},
+	errorText: {
+		color: "#FF6B6B",
+		fontSize: 16,
+		textAlign: "center",
+		paddingHorizontal: 20,
 	},
 });

@@ -111,16 +111,22 @@ export class DishMediaRepository {
         CAST(${userLat}  AS double precision) AS user_lat,
         CAST(${userLon}  AS double precision) AS user_lon,
         CAST(${radius}  AS double precision) AS radius_m,
-        -- CAST(${'openAt'}  AS timestamptz)      AS open_at,
+        -- CAST('openAt'  AS timestamptz)      AS open_at,
         CAST(${categoryId}  AS text)           AS category_id,
-        -- CAST(${'priceMin'}  AS numeric)          AS price_min,
-        -- CAST(${'priceMax'}  AS numeric)          AS price_max,
+        -- CAST('priceMin'  AS numeric)          AS price_min,
+        -- CAST('priceMax'  AS numeric)          AS price_max,
         CAST(${limit} AS integer) AS limit_count,
         CAST(${GUMBLE_TAU}  AS double precision) AS gumbel_tau, -- ランキングに “ゆらぎ（探索）” をどれだけ入れるかの強さ。
         CAST(${pageSeed}  AS text)             AS page_seed,
         current_timestamp                           AS now_ts,
         -- geography のユーザ位置
-        ST_SetSRID(ST_MakePoint(${userLon}, ${userLat}), 4326)::geography AS user_geog,
+        ST_SetSRID(
+          ST_MakePoint(
+            CAST(${userLon} AS double precision),
+            CAST(${userLat} AS double precision)
+          ),
+          4326
+        )::geography AS user_geog,
         -- 距離減衰パラメタ
         GREATEST(2.0, 0.3 * (${radius}::double precision / 1000.0)) AS d0,
         -- 最大 KNN 候補数
