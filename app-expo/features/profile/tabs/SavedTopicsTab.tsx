@@ -5,7 +5,6 @@ import { SaveTopicTab } from "./save/SaveTopicTab";
 import { LocationSearchForm } from "../components/LocationSearchForm";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
-import { useCursorPagination } from "@/hooks/useCursorPagination";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -13,13 +12,19 @@ import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useLocale } from "@/hooks/useLocale";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useTopicsStore, selectTopicIdsByKey, selectTopicById } from "@/stores/useTopicsStore";
 import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
+import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
+import { shallow } from "zustand/shallow";
 
 interface SavedTopicsTabProps {
 	isOwnProfile: boolean;
 }
+
+// #<TICKET> 【設計】保存トピック用のストアキー定義
+export const profileSavedTopicsEntriesKey = "profileSavedTopics";
 
 export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { userId } = useLocalSearchParams();
@@ -30,8 +35,22 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
 
+	// #<TICKET> 【設計】ストアからトピック状態を取得
+	const {
+		ids: topicIds,
+		isLoading,
+		error,
+		hasNextPage,
+		isLoadingMore,
+	} = useTopicsStore(selectTopicIdsByKey(profileSavedTopicsEntriesKey), shallow);
+
+	// #<TICKET> 【設計】トピックIDから実際のトピックデータを取得
+	const topics = topicIds
+		.map((id) => useTopicsStore.getState().topicById[id])
+		.filter((topic): topic is SupabaseDishCategories => topic !== undefined);
+
 	// Location search modal state
-	const [selectedTopic, setSelectedTopic] = useState<QueryMeSavedDishCategoriesResponse["data"][number] | null>(null);
+	const [selectedTopic, setSelectedTopic] = useState<SupabaseDishCategories | null>(null);
 	const {
 		BlurModal: LocationModal,
 		open: openLocationModal,
@@ -39,6 +58,30 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	} = useBlurModal({
 		intensity: 100,
 	});
+
+	// #<TICKET> 【設計】初回マウント時にストアから保存トピックを取得
+	useEffect(() => {
+		const { fetchInitialByKey, hasFetchedInitialByKey } = useTopicsStore.getState();
+
+		// 既に取得済みの場合はスキップ
+		if (hasFetchedInitialByKey[profileSavedTopicsEntriesKey]) {
+			return;
+		}
+
+		fetchInitialByKey(profileSavedTopicsEntriesKey, {} as QueryMeSavedDishCategoriesDto, async ({ cursor }) => {
+			const response = await callBackend<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse>(
+				"v1/users/me/saved-dish-categories",
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		});
+	}, [callBackend]);
 
 	if (!isOwnProfile) {
 		return (
@@ -50,28 +93,43 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		);
 	}
 
-	const topics = useCursorPagination<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse["data"][number]>(
-		useCallback(
-			async ({ cursor }) => {
-				const response = await callBackend<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse>(
-					"v1/users/me/saved-dish-categories",
-					{
-						method: "GET",
-						requestPayload: cursor ? { cursor } : {},
-					},
-				);
-				return {
-					data: response.data || [],
-					nextCursor: response.nextCursor,
-				};
-			},
-			[callBackend],
-		),
-	);
+	// #<TICKET> 【設計】リフレッシュハンドラ（初期データを再取得）
+	const handleRefresh = useCallback(async () => {
+		const { fetchInitialByKey } = useTopicsStore.getState();
+		await fetchInitialByKey(profileSavedTopicsEntriesKey, {} as QueryMeSavedDishCategoriesDto, async ({ cursor }) => {
+			const response = await callBackend<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse>(
+				"v1/users/me/saved-dish-categories",
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		});
+	}, [callBackend]);
 
-	useEffect(() => {
-		topics.loadInitial();
-	}, []);
+	// #<TICKET> 【設計】追加ページ取得ハンドラ
+	const handleLoadMore = useCallback(async () => {
+		if (!hasNextPage || isLoadingMore) return;
+
+		const { fetchMoreByKey } = useTopicsStore.getState();
+		await fetchMoreByKey(profileSavedTopicsEntriesKey, {} as QueryMeSavedDishCategoriesDto, async ({ cursor }) => {
+			const response = await callBackend<QueryMeSavedDishCategoriesDto, QueryMeSavedDishCategoriesResponse>(
+				"v1/users/me/saved-dish-categories",
+				{
+					method: "GET",
+					requestPayload: cursor ? { cursor } : {},
+				},
+			);
+			return {
+				data: response.data || [],
+				nextCursor: response.nextCursor,
+			};
+		});
+	}, [callBackend, hasNextPage, isLoadingMore]);
 
 	const handleTopicPress = useCallback(
 		(item: any, index: number) => {
@@ -146,20 +204,18 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		closeLocationModal();
 	}, [closeLocationModal]);
 
-	const error = topics.error ? (topics.error instanceof Error ? topics.error.message : String(topics.error)) : null;
-
 	return (
 		<>
 			<SaveTopicTab
-				data={topics.items}
-				isLoading={topics.isLoadingInitial}
-				isLoadingMore={topics.isLoadingMore}
-				refreshing={topics.isLoadingInitial}
-				onRefresh={topics.refresh}
-				onEndReached={topics.loadMore}
+				data={topics}
+				isLoading={isLoading}
+				isLoadingMore={isLoadingMore}
+				refreshing={isLoading}
+				onRefresh={handleRefresh}
+				onEndReached={handleLoadMore}
 				onItemPress={handleTopicPress}
 				error={error}
-				onRetry={topics.refresh}
+				onRetry={handleRefresh}
 			/>
 
 			{/* Location Search Modal - Updated to use render-prop pattern */}
