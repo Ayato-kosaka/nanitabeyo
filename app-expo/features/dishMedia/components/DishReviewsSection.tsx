@@ -15,6 +15,7 @@ import {
 	selectReviewsByReviewId,
 	useDishMediaEntriesStore,
 } from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
 
 interface DishReviewsSectionProps {
 	id: string;
@@ -33,7 +34,7 @@ export function DishReviewsSection({ id, entriesKey, paddingRight, carouselRef }
 		(state: DishMediaEntriesStore) => selectReviewsByReviewId(id, { key: entriesKey })(state),
 		[id, entriesKey],
 	);
-	const reviews = useDishMediaEntriesStore(selector);
+	const reviews = useDishMediaEntriesStore(selector, shallow);
 
 	// コメントを最下部までスクロールする
 	const scrollViewRef = useRef<ScrollView>(null);

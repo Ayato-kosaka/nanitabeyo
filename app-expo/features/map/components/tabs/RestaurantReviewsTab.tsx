@@ -11,6 +11,7 @@ import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/sto
 import { useHaptics } from "@/hooks/useHaptics";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
+import { shallow } from "zustand/shallow";
 
 interface RestaurantReviewsTabProps {
 	/** レストランID（Google Place ID） */
@@ -33,7 +34,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const entriesKey = `mapReviews-${restaurantId}`;
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey));
+	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey), shallow);
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -55,10 +56,10 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 
 	// コンポーネントのマウント時、またはレストランIDが変更された時にデータを初期読み込み
 	useEffect(() => {
-		if (restaurantId && !hasFetchedInitial) {
+		if (restaurantId && !hasFetchedInitial && !isLoading) {
 			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
-	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial]);
+	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	const onItemPress = useCallback(
 		(index: number) => {

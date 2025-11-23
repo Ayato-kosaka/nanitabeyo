@@ -12,6 +12,7 @@ import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/sto
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
+import { shallow } from "zustand/shallow";
 
 export function LikeTab() {
 	const { callBackend } = useAPICall();
@@ -25,6 +26,7 @@ export function LikeTab() {
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey),
+		shallow,
 	);
 
 	// #454 【設計】データ取得用の fetcher 関数
@@ -46,9 +48,9 @@ export function LikeTab() {
 	);
 
 	useEffect(() => {
-		if (hasFetchedInitial) return;
+		if (hasFetchedInitial || isLoading) return;
 		fetchInitialByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial]);
+	}, [entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	const handleItemPress = useCallback(
 		(dishMediaId: string, index: number) => {

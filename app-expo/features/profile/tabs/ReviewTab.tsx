@@ -13,6 +13,7 @@ import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/sto
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryUserDishReviewsResponse } from "@shared/api/v1/res";
 import type { QueryUserDishReviewsDto } from "@shared/api/v1/dto";
+import { shallow } from "zustand/shallow";
 
 export function ReviewTab() {
 	const { userId } = useLocalSearchParams<{ userId?: string }>();
@@ -30,6 +31,7 @@ export function ReviewTab() {
 	const fetchMoreWithMyReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithMyReviewsByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey),
+		shallow,
 	);
 
 	// #454 【設計】データ取得用の fetcher 関数
@@ -51,9 +53,9 @@ export function ReviewTab() {
 	);
 
 	useEffect(() => {
-		if (hasFetchedInitial) return;
+		if (hasFetchedInitial || isLoading) return;
 		fetchInitialWithMyReviewsByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher, hasFetchedInitial]);
+	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	// #454 【設計】フィルタリングは表示時に ids から行う
 	const filteredIds = useMemo(() => {

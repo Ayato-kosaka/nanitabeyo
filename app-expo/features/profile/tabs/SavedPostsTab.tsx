@@ -12,6 +12,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { router } from "expo-router";
 import type { QueryMeSavedDishMediaDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishMediaResponse } from "@shared/api/v1/res";
+import { shallow } from "zustand/shallow";
 
 interface SavedPostsTabProps {
 	isOwnProfile: boolean;
@@ -39,6 +40,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey),
+		shallow,
 	);
 
 	// #454 【設計】データ取得用の fetcher 関数
@@ -60,9 +62,9 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	);
 
 	useEffect(() => {
-		if (hasFetchedInitial) return;
+		if (hasFetchedInitial || isLoading) return;
 		fetchInitialByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial]);
+	}, [entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	const handleItemPress = useCallback(
 		(dishMediaId: string, index: number) => {
