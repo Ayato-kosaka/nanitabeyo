@@ -111,16 +111,22 @@ export class DishMediaRepository {
         CAST(${userLat}  AS double precision) AS user_lat,
         CAST(${userLon}  AS double precision) AS user_lon,
         CAST(${radius}  AS double precision) AS radius_m,
-        -- CAST(${'openAt'}  AS timestamptz)      AS open_at,
+        -- CAST('openAt'  AS timestamptz)      AS open_at,
         CAST(${categoryId}  AS text)           AS category_id,
-        -- CAST(${'priceMin'}  AS numeric)          AS price_min,
-        -- CAST(${'priceMax'}  AS numeric)          AS price_max,
+        -- CAST('priceMin'  AS numeric)          AS price_min,
+        -- CAST('priceMax'  AS numeric)          AS price_max,
         CAST(${limit} AS integer) AS limit_count,
         CAST(${GUMBLE_TAU}  AS double precision) AS gumbel_tau, -- ランキングに “ゆらぎ（探索）” をどれだけ入れるかの強さ。
         CAST(${pageSeed}  AS text)             AS page_seed,
         current_timestamp                           AS now_ts,
         -- geography のユーザ位置
-        ST_SetSRID(ST_MakePoint(${userLon}, ${userLat}), 4326)::geography AS user_geog,
+        ST_SetSRID(
+          ST_MakePoint(
+            CAST(${userLon} AS double precision),
+            CAST(${userLat} AS double precision)
+          ),
+          4326
+        )::geography AS user_geog,
         -- 距離減衰パラメタ
         GREATEST(2.0, 0.3 * (${radius}::double precision / 1000.0)) AS d0,
         -- 最大 KNN 候補数
@@ -430,9 +436,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -790,14 +796,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -813,12 +819,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
