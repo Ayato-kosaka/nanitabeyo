@@ -90,7 +90,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 				},
 			});
 			// #467 【設計】プロフィール更新はストア経由で行い、UI に即座に反映
-			updateProfile((prev) => (prev ? { ...prev, avatar: avatar.uri, display_name, bio } : null));
+			updateProfile((prev) => (prev ? { ...prev, avatar: uploadedAvatarPath, display_name: normalizedDisplayName, bio: normalizedBio } : null));
 			close();
 			logFrontendEvent({
 				event_name: "profile_edit_saved",
