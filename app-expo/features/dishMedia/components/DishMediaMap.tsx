@@ -162,7 +162,7 @@ export default function DishMediaMap({
 				/>
 			</View>
 		),
-		[currentIndex, getTitle, entriesKey],
+		[currentIndex, getTitle, entriesKey, idType],
 	);
 
 	return (
