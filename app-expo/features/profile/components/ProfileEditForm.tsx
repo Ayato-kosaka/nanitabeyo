@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import { Text, TextInput, StyleSheet } from "react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
