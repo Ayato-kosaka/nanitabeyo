@@ -56,11 +56,11 @@ export function useEnsureOwnProfileLoaded() {
 				const avatarUrl = data.avatarUrls?.md;
 				avatarUrl && (await Image.prefetch(avatarUrl));
 				setProfile(data);
-			} catch (error: any) {
+			} catch (error: unknown) {
 				logFrontendEvent({
 					event_name: "load_own_profile_error",
 					error_level: "error",
-					payload: { error: error.message, userId: user?.id, isGuest },
+					payload: { error: (error as Error).message, userId: user?.id, isGuest },
 				});
 			} finally {
 				hasLoadedRef.current = true;
