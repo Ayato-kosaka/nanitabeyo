@@ -24,7 +24,6 @@ import { useProfileStore } from "../stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "../hooks/useEnsureOwnProfileLoaded";
 
 export function ProfileTabsLayout() {
-	const { userId } = useLocalSearchParams<{ userId?: string }>();
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { user } = useAuth();
@@ -44,7 +43,7 @@ export function ProfileTabsLayout() {
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
 
-	const isOwnProfile = useMemo(() => !userId || userId === "me", [userId]);
+	const isOwnProfile = useMemo(() => true, []);
 	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
