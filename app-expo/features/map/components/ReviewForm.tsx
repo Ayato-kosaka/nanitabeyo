@@ -42,9 +42,7 @@ import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
-import { SupabaseDishMedia } from "@shared/converters/convert_dish_media";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { SupabaseDishes } from "@shared/converters/convert_dishes";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 
