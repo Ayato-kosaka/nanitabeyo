@@ -10,6 +10,9 @@ export type NormalizedDishMediaEntry = Omit<DishMediaEntry, "dish_reviews"> & {
 	dishReviewIds: string[];
 };
 
+// 【設計】dish_media と dish_reviews の ID 種類を型で区別
+export type IdType = "dish_media" | "dish_reviews";
+
 /**
  * 料理メディア（dish_media）に関する正規化済みの状態を管理するストア。
  *
@@ -44,9 +47,9 @@ export type DishMediaEntriesStore = {
 	reviewsByReviewId: Record<string, DishReview>;
 
 	/**
-	 * reviews キーの画面用途に対応する dish_review.id の配列（並び順管理用）。
+	 * 画面用途キーごとの dish_review.id の配列（並び順管理用）。
 	 */
-	myReviewIdsByKey: Record<"reviews", string[]>;
+	reviewIdsByKey: Record<string, string[]>;
 
 	/**
 	 * 画面用途キーごとのロード状態。
@@ -88,9 +91,9 @@ export type DishMediaEntriesStore = {
 	updateMediaIdsByKey: (key: string, updater: (prevIds: string[]) => string[]) => void;
 
 	/**
-	 * "reviews" キーの reviewId 配列を更新する（並び順専用）。
+	 * 指定キーの reviewId 配列を更新する（並び順専用）。
 	 */
-	updateMyReviewIdsByKey: (key: "reviews", updater: (prevIds: string[]) => string[]) => void;
+	updateReviewIdsByKey: (key: string, updater: (prevIds: string[]) => string[]) => void;
 
 	/**
 	 * 指定した DishMediaEntry（dish_media.id）をピンポイントに更新する。
@@ -116,10 +119,10 @@ export type DishMediaEntriesStore = {
 	) => Promise<void>;
 
 	/**
-	 * 非同期に取得した reviewId 配列で "reviews" キーの myReviewIdsByKey を更新する。
+	 * 非同期に取得した reviewId 配列で指定キーの reviewIdsByKey を更新する。
 	 */
-	updateMyReviewIdsByKeyAsync: (
-		key: "reviews",
+	updateReviewIdsByKeyAsync: (
+		key: string,
 		idsPromise: Promise<string[]>,
 		updater: (prevIds: string[], fetchedIds: string[]) => string[],
 	) => Promise<void>;
@@ -167,8 +170,8 @@ export type DishMediaEntriesStore = {
 	/**
 	 * 初期取得 + store への反映（レビュー用）
 	 */
-	fetchInitialWithMyReviewsByKey: <TReq>(
-		key: "reviews",
+	fetchInitialWithReviewsByKey: <TReq>(
+		key: string,
 		request: TReq,
 		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
 			data: DishMediaEntry[];
@@ -179,8 +182,8 @@ export type DishMediaEntriesStore = {
 	/**
 	 * 追加ページ取得 + store への追記（レビュー用）
 	 */
-	fetchMoreWithMyReviewsByKey: <TReq>(
-		key: "reviews",
+	fetchMoreWithReviewsByKey: <TReq>(
+		key: string,
 		request: TReq | undefined,
 		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
 			data: DishMediaEntry[];
@@ -198,68 +201,68 @@ export type DishMediaEntriesStore = {
  * - isLoadingMore: 追加ページ取得中かどうか（デフォルト false）
  */
 export const selectIdsByKey =
-	(key: string) =>
-	(
-		state: DishMediaEntriesStore,
-	): {
-		ids: string[];
-		isLoading: boolean;
-		error: string | null;
-		hasFetchedInitial: boolean;
-		hasNextPage: boolean;
-		isLoadingMore: boolean;
-	} => {
-		const ids = (key === "reviews" ? state.myReviewIdsByKey[key] : state.mediaIdsByKey[key]) || [];
-		return {
-			ids,
-			isLoading: state.isLoadingByKey[key] ?? false,
-			error: state.errorByKey[key] ?? null,
-			hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
-			hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
-			isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
+	(key: string, idType: IdType) =>
+		(
+			state: DishMediaEntriesStore,
+		): {
+			ids: string[];
+			isLoading: boolean;
+			error: string | null;
+			hasFetchedInitial: boolean;
+			hasNextPage: boolean;
+			isLoadingMore: boolean;
+		} => {
+			const ids = idType === "dish_media" ? (state.mediaIdsByKey[key] ?? []) : (state.reviewIdsByKey[key] ?? []);
+			return {
+				ids,
+				isLoading: state.isLoadingByKey[key] ?? false,
+				error: state.errorByKey[key] ?? null,
+				hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
+				hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
+				isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
+			};
 		};
-	};
 
 /**
- * id, key から正規化済み DishMediaEntry を取得するセレクタ。
- * レビュー情報が必要な場合は selectReviewById や selectReviewsForEntry を併用する。
+ * dish_media.id から正規化済み DishMediaEntry を取得するセレクタ。
+ * レビュー情報が必要な場合は selectReviewsByMediaId や selectReviewByReviewId を併用する。
  */
-export const selectEntryById =
-	(id: string, option?: { key?: string }) =>
-	(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
-		const { key } = option || {};
-		if (key === "reviews") {
-			const review = state.reviewsByReviewId[id];
+export const selectEntryByMediaId =
+	(mediaId: string) =>
+		(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null =>
+			state.entriesByMediaId[mediaId] ?? null;
+
+/**
+ * dish_review.id から正規化済み DishMediaEntry を取得するセレクタ。
+ * レビューに紐づく料理メディアエントリを返す。
+ */
+export const selectEntryByReviewId =
+	(reviewId: string) =>
+		(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
+			const review = state.reviewsByReviewId[reviewId];
 			if (!review) return null;
 			const mediaId = String(review.created_dish_media_id);
 			return state.entriesByMediaId[mediaId] ?? null;
-		}
-		return state.entriesByMediaId[id] ?? null;
-	};
-
-/**
- * id, key  から正規化済み  DishReview[] を取得するセレクタ。
- */
-export const selectReviewsByReviewId =
-	(id: string, option?: { key?: string }) =>
-	(state: DishMediaEntriesStore): DishReview[] => {
-		const { key } = option || {};
-		if (key === "reviews") return state.reviewsByReviewId[id] ? [state.reviewsByReviewId[id]] : [];
-		const entry = selectEntryById(id, option)(state);
-		if (!entry) return [];
-		return entry.dishReviewIds.map((reviewId) => state.reviewsByReviewId[reviewId]).filter((r): r is DishReview => !!r);
-	};
+		};
 
 /**
  * dish_media.id に紐づく全レビューを取得するセレクタ。
  */
-export const selectReviewsForEntry =
+export const selectReviewsByMediaId =
 	(mediaId: string) =>
-	(state: DishMediaEntriesStore): DishReview[] => {
-		const entry = state.entriesByMediaId[mediaId];
-		if (!entry) return [];
-		return entry.dishReviewIds.map((id) => state.reviewsByReviewId[id]).filter((r): r is DishReview => !!r);
-	};
+		(state: DishMediaEntriesStore): DishReview[] => {
+			const entry = state.entriesByMediaId[mediaId];
+			if (!entry) return [];
+			return entry.dishReviewIds.map((id) => state.reviewsByReviewId[id]).filter((r): r is DishReview => !!r);
+		};
+
+/**
+ * dish_review.id から特定のレビューを取得するセレクタ。
+ */
+export const selectReviewByReviewId =
+	(reviewId: string) =>
+		(state: DishMediaEntriesStore): DishReview | null =>
+			state.reviewsByReviewId[reviewId] ?? null;
 
 export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesStore>()((set, get) => ({
 	// ------ 初期状態 ------
@@ -267,7 +270,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 	entriesByMediaId: {},
 	mediaIdsByKey: {},
 	reviewsByReviewId: {},
-	myReviewIdsByKey: { reviews: [] },
+	reviewIdsByKey: {},
 	isLoadingByKey: {},
 	errorByKey: {},
 	hasFetchedInitialByKey: {},
@@ -306,13 +309,13 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			};
 		}),
 
-	updateMyReviewIdsByKey: (key, updater) =>
+	updateReviewIdsByKey: (key, updater) =>
 		set((state) => {
-			const prevIds = state.myReviewIdsByKey[key] ?? [];
+			const prevIds = state.reviewIdsByKey[key] ?? [];
 			const nextIds = updater(prevIds);
 			return {
-				myReviewIdsByKey: {
-					...state.myReviewIdsByKey,
+				reviewIdsByKey: {
+					...state.reviewIdsByKey,
 					[key]: nextIds,
 				},
 			};
@@ -323,11 +326,11 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			return state.entriesByMediaId[dishMediaId] === undefined
 				? state
 				: {
-						entriesByMediaId: {
-							...state.entriesByMediaId,
-							[dishMediaId]: entryUpdater(state.entriesByMediaId[dishMediaId]),
-						},
-					};
+					entriesByMediaId: {
+						...state.entriesByMediaId,
+						[dishMediaId]: entryUpdater(state.entriesByMediaId[dishMediaId]),
+					},
+				};
 		}),
 
 	updateReview: (dishReviewId, reviewUpdater) =>
@@ -335,11 +338,11 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			return state.reviewsByReviewId[dishReviewId] === undefined
 				? state
 				: {
-						reviewsByReviewId: {
-							...state.reviewsByReviewId,
-							[dishReviewId]: reviewUpdater(state.reviewsByReviewId[dishReviewId]),
-						},
-					};
+					reviewsByReviewId: {
+						...state.reviewsByReviewId,
+						[dishReviewId]: reviewUpdater(state.reviewsByReviewId[dishReviewId]),
+					},
+				};
 		}),
 
 	// ------ 非同期挿入・更新メソッド ------
@@ -348,9 +351,9 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			get().updateMediaIdsByKey(key, (prevIds) => updater(prevIds, fetchedIds)),
 		),
 
-	updateMyReviewIdsByKeyAsync: async (key, promise, updater) =>
+	updateReviewIdsByKeyAsync: async (key, promise, updater) =>
 		handleAsyncAction(set, key, promise, (fetchedIds) =>
-			get().updateMyReviewIdsByKey(key, (prevIds) => updater(prevIds, fetchedIds)),
+			get().updateReviewIdsByKey(key, (prevIds) => updater(prevIds, fetchedIds)),
 		),
 
 	// ------ 削除メソッド ------
@@ -363,7 +366,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 					entriesByMediaId: {},
 					mediaIdsByKey: {},
 					reviewsByReviewId: {},
-					myReviewIdsByKey: { reviews: [] },
+					reviewIdsByKey: {},
 					isLoadingByKey: {},
 					errorByKey: {},
 					hasFetchedInitialByKey: {},
@@ -372,9 +375,9 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 				};
 			}
 
-			// 該当キーを削除した mediaIdsByKey / myReviewIdsByKey / isLoadingByKey / errorByKey を作成
+			// 該当キーを削除した mediaIdsByKey / reviewIdsByKey / isLoadingByKey / errorByKey を作成
 			const nextMediaIdsByKey = { ...state.mediaIdsByKey };
-			const nextMyReviewIdsByKey = { ...state.myReviewIdsByKey };
+			const nextReviewIdsByKey = { ...state.reviewIdsByKey };
 			const nextIsLoadingByKey = { ...state.isLoadingByKey };
 			const nextErrorByKey = { ...state.errorByKey };
 			const nextHasFetchedInitialByKey = { ...state.hasFetchedInitialByKey };
@@ -382,15 +385,12 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			const nextIsLoadingMoreByKey = { ...state.isLoadingMoreByKey };
 
 			delete nextMediaIdsByKey[key];
+			delete nextReviewIdsByKey[key];
 			delete nextIsLoadingByKey[key];
 			delete nextErrorByKey[key];
 			delete nextHasFetchedInitialByKey[key];
 			delete nextNextCursorByKey[key];
 			delete nextIsLoadingMoreByKey[key];
-
-			if (key === "reviews") {
-				nextMyReviewIdsByKey.reviews = [];
-			}
 
 			// 残っているキーから参照されている mediaId のみを entriesByMediaId に残す
 			const remainingMediaIds = new Set<string>();
@@ -401,10 +401,12 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			}
 
 			// reviews 側から参照されている mediaId も残す
-			for (const reviewId of nextMyReviewIdsByKey.reviews) {
-				const review = state.reviewsByReviewId[reviewId];
-				if (review) {
-					remainingMediaIds.add(String(review.created_dish_media_id));
+			for (const reviewIds of Object.values(nextReviewIdsByKey)) {
+				for (const reviewId of reviewIds) {
+					const review = state.reviewsByReviewId[reviewId];
+					if (review) {
+						remainingMediaIds.add(String(review.created_dish_media_id));
+					}
 				}
 			}
 
@@ -419,9 +421,11 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 
 			// #457 【設計】reviewsByReviewId をクリーンアップ（参照されているもののみ残す）
 			const remainingReviewIds = new Set<string>();
-			// myReviewIdsByKey.reviews から参照されているレビュー
-			for (const id of nextMyReviewIdsByKey.reviews) {
-				remainingReviewIds.add(id);
+			// reviewIdsByKey から参照されているレビュー
+			for (const reviewIds of Object.values(nextReviewIdsByKey)) {
+				for (const id of reviewIds) {
+					remainingReviewIds.add(id);
+				}
 			}
 			// entriesByMediaId から参照されているレビュー
 			for (const entry of Object.values(nextEntriesById)) {
@@ -440,7 +444,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 				entriesByMediaId: nextEntriesById,
 				mediaIdsByKey: nextMediaIdsByKey,
 				reviewsByReviewId: nextReviewsByReviewId,
-				myReviewIdsByKey: nextMyReviewIdsByKey,
+				reviewIdsByKey: nextReviewIdsByKey,
 				isLoadingByKey: nextIsLoadingByKey,
 				errorByKey: nextErrorByKey,
 				hasFetchedInitialByKey: nextHasFetchedInitialByKey,
@@ -503,10 +507,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 		);
 	},
 
-	fetchInitialWithMyReviewsByKey: async (key, request, fetcher) =>
+	fetchInitialWithReviewsByKey: async (key, request, fetcher) =>
 		handleAsyncAction(set, key, fetcher({ request }), (response) => {
-			const { clearByKey, upsertDishMediaEntries, updateMyReviewIdsByKey } = get();
-			// mediaIdsByKey[key] を初期化してから新規データを反映
+			const { clearByKey, upsertDishMediaEntries, updateReviewIdsByKey } = get();
+			// reviewIdsByKey[key] を初期化してから新規データを反映
 			clearByKey(key);
 
 			// 1. エンティティを正規化して反映
@@ -516,7 +520,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			const myReviewIds = response.data
 				.filter((item) => item.dish_reviews.length > 0)
 				.map((item) => String(item.dish_reviews[0].id));
-			updateMyReviewIdsByKey(key, () => myReviewIds);
+			updateReviewIdsByKey(key, () => myReviewIds);
 
 			// 3. nextCursor / hasFetchedInitial の更新
 			set((state) => ({
@@ -525,9 +529,9 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			}));
 		}),
 
-	// #460 【設計】fetchMoreWithMyReviewsByKey を新API（upsertDishMediaEntries + updateMyReviewIdsByKey）に移行
-	fetchMoreWithMyReviewsByKey: async (key, request, fetcher) => {
-		const { nextCursorByKey, upsertDishMediaEntries, updateMyReviewIdsByKey } = get();
+	// #460 【設計】fetchMoreWithReviewsByKey を新API（upsertDishMediaEntries + updateReviewIdsByKey）に移行
+	fetchMoreWithReviewsByKey: async (key, request, fetcher) => {
+		const { nextCursorByKey, upsertDishMediaEntries, updateReviewIdsByKey } = get();
 		const nextCursor = nextCursorByKey[key];
 
 		// nextCursor が null の場合は何もしない
@@ -546,7 +550,7 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 					.filter((item) => item.dish_reviews.length > 0)
 					.map((item) => String(item.dish_reviews[0].id));
 				// #CodeQL 【バグ】レビューID重複防止のため、既存IDと重複しないもののみ追加
-				updateMyReviewIdsByKey(key, (prevIds) => {
+				updateReviewIdsByKey(key, (prevIds) => {
 					const newIds = myReviewIds.filter((id) => !prevIds.includes(id));
 					return [...prevIds, ...newIds];
 				});

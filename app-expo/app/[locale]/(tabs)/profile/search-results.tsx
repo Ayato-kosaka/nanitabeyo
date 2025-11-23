@@ -45,7 +45,7 @@ export default function ProfileSearchResultScreen() {
 
 			{/* Feed Content */}
 			{/* <DishMediaFeed items={dishes} onIndexChange={handleIndexChange} /> */}
-			<DishMediaMap source={entriesKey} />
+			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
 		</LinearGradient>
 	);
 }

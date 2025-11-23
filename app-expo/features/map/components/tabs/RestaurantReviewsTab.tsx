@@ -7,7 +7,7 @@ import Stars from "@/components/Stars";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryRestaurantDishMediaDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
-import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
@@ -34,7 +34,10 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const entriesKey = `mapReviews-${restaurantId}`;
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(selectIdsByKey(entriesKey), shallow);
+	const { ids, isLoading, hasFetchedInitial } = useDishMediaEntriesStore(
+		selectIdsByKey(entriesKey, "dish_media"),
+		shallow,
+	);
 
 	// #454 【設計】データ取得用の fetcher 関数
 	const fetcher = useCallback(
@@ -73,7 +76,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	// グリッドアイテムのレンダリング関数
 	const renderReviewItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const entry = selectEntryById(item.id)(useDishMediaEntriesStore.getState());
+			const entry = selectEntryByMediaId(item.id)(useDishMediaEntriesStore.getState());
 			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			return (

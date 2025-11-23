@@ -1,9 +1,12 @@
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
+import { IdType } from "@/stores/useDishMediaEntriesStore";
 
 export default function NotificationFeedScreen() {
-	const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
-	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
+	const { idType } = useLocalSearchParams<{ idType?: string }>();
+	if (idType !== "dish_media" && idType !== "dish_reviews") {
+		throw new Error(`Invalid idType: ${idType}. Expected "dish_media" or "dish_reviews"`);
+	}
 
-	return <DishMediaFeed initialIndex={isNaN(initialIndex) ? 0 : initialIndex} source="notification" />;
+	return <DishMediaFeed entriesKey="notification" idType={idType} />;
 }

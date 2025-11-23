@@ -74,7 +74,7 @@ export default function NotificationsScreen() {
 				updateMediaIdsByKey("notification", () => [mediaId]);
 				router.push({
 					pathname: "/[locale]/(tabs)/notifications/feed",
-					params: { locale, startIndex: 0 },
+					params: { locale, idType: "dish_media" },
 				});
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定

@@ -8,8 +8,10 @@ import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
 import {
 	DishMediaEntriesStore,
+	IdType,
 	NormalizedDishMediaEntry,
-	selectEntryById,
+	selectEntryByMediaId,
+	selectEntryByReviewId,
 	selectIdsByKey,
 	useDishMediaEntriesStore,
 } from "@/stores/useDishMediaEntriesStore";
@@ -32,8 +34,10 @@ interface DishMediaMapProps {
 		longitude: number;
 	};
 	getTitle?: (item: NormalizedDishMediaEntry) => string | null;
-	// 呼び出し元コンテキスト
-	source: string;
+	// 呼び出し元コンテキスト（画面用途キー）
+	entriesKey: string;
+	// ID の種類（dish_media / dish_reviews）
+	idType: IdType;
 }
 
 export default function DishMediaMap({
@@ -41,9 +45,13 @@ export default function DishMediaMap({
 	onIndexChange,
 	initialLocation,
 	getTitle,
-	source,
+	entriesKey,
+	idType,
 }: DishMediaMapProps) {
-	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(source)(state), [source]);
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
+		[entriesKey, idType],
+	);
 	const { ids: liveIds, isLoading, error } = useDishMediaEntriesStore(selector, shallow);
 
 	// 画面を開いた時点の並びを固定するための state
@@ -56,7 +64,11 @@ export default function DishMediaMap({
 		if (ids.length === 0) return [];
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		return ids
-			.map((id) => selectEntryById(id, { key: source })(state)?.restaurant)
+			.map((id) =>
+				idType === "dish_media"
+					? selectEntryByMediaId(id)(state)?.restaurant
+					: selectEntryByReviewId(id)(state)?.restaurant,
+			)
 			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
 			.map((restaurant) => ({
 				id: restaurant.id,
@@ -64,7 +76,7 @@ export default function DishMediaMap({
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
 			}));
-	}, [ids, source]);
+	}, [ids, idType]);
 
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
@@ -145,11 +157,12 @@ export default function DishMediaMap({
 					isActive={index === currentIndex}
 					getTitle={getTitle}
 					sessionId={sessionId.current}
-					source={source}
+					entriesKey={entriesKey}
+					idType={idType}
 				/>
 			</View>
 		),
-		[currentIndex],
+		[currentIndex, getTitle, entriesKey, idType],
 	);
 
 	return (

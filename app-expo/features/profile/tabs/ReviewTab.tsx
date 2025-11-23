@@ -9,7 +9,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useDishMediaEntriesStore, selectIdsByKey, selectEntryById } from "@/stores/useDishMediaEntriesStore";
+import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByReviewId } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import type { QueryUserDishReviewsResponse } from "@shared/api/v1/res";
 import type { QueryUserDishReviewsDto } from "@shared/api/v1/dto";
@@ -27,10 +27,10 @@ export function ReviewTab() {
 
 	// #454 【設計】画面用途キー "reviews" でストアからデータ取得
 	const entriesKey = "reviews" as const;
-	const fetchInitialWithMyReviewsByKey = useDishMediaEntriesStore((s) => s.fetchInitialWithMyReviewsByKey);
-	const fetchMoreWithMyReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithMyReviewsByKey);
+	const fetchInitialWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchInitialWithReviewsByKey);
+	const fetchMoreWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithReviewsByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
-		selectIdsByKey(entriesKey),
+		selectIdsByKey(entriesKey, "dish_reviews"),
 		shallow,
 	);
 
@@ -54,18 +54,18 @@ export function ReviewTab() {
 
 	useEffect(() => {
 		if (hasFetchedInitial || isLoading) return;
-		fetchInitialWithMyReviewsByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher, hasFetchedInitial, isLoading]);
+		fetchInitialWithReviewsByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchInitialWithReviewsByKey, fetcher, hasFetchedInitial, isLoading]);
 
 	// #454 【設計】フィルタリングは表示時に ids から行う
 	const filteredIds = useMemo(() => {
 		if (!onlyMyPhotoVideoReviews || !targetUserId) return ids;
 		// #457 【設計】正規化ストアから復元したエントリでフィルタ
 		return ids.filter((id) => {
-			const entry = selectEntryById(id, { key: entriesKey })(useDishMediaEntriesStore.getState());
+			const entry = selectEntryByReviewId(id)(useDishMediaEntriesStore.getState());
 			return entry?.dish_media.isMine;
 		});
-	}, [onlyMyPhotoVideoReviews, ids, targetUserId, entriesKey]);
+	}, [onlyMyPhotoVideoReviews, ids, targetUserId]);
 
 	const handleItemPress = useCallback(
 		(reviewId: string, index: number) => {
@@ -85,7 +85,7 @@ export function ReviewTab() {
 
 	const renderReviewItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
-			const entry = selectEntryById(item.id, { key: entriesKey })(useDishMediaEntriesStore.getState());
+			const entry = selectEntryByReviewId(item.id)(useDishMediaEntriesStore.getState());
 			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
 
 			const gridItem = {
@@ -104,16 +104,16 @@ export function ReviewTab() {
 				</ImageCard>
 			);
 		},
-		[handleItemPress, entriesKey],
+		[handleItemPress],
 	);
 
 	const handleLoadMore = useCallback(() => {
-		fetchMoreWithMyReviewsByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchMoreWithMyReviewsByKey, fetcher]);
+		fetchMoreWithReviewsByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchMoreWithReviewsByKey, fetcher]);
 
 	const handleRefresh = useCallback(() => {
-		fetchInitialWithMyReviewsByKey(entriesKey, {}, fetcher);
-	}, [entriesKey, fetchInitialWithMyReviewsByKey, fetcher]);
+		fetchInitialWithReviewsByKey(entriesKey, {}, fetcher);
+	}, [entriesKey, fetchInitialWithReviewsByKey, fetcher]);
 
 	const header = useMemo(
 		() => (
