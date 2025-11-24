@@ -348,11 +348,11 @@
 			"dishCategoryInvalidInput": "잘못된 요리 카테고리 이름",
 			"reviewSubmitFailed": "리뷰 게시 실패"
 		},
-		"consent_review_prefix": "By continuing, you agree to our ",
-		"consent_review_guidelines": "Community Guidelines",
-		"consent_review_and": " and ",
-		"consent_review_copyright": "Copyright",
-		"consent_review_suffix": "."
+		"consent_review_prefix": "계속 진행하면 ",
+		"consent_review_guidelines": "커뮤니티 가이드라인",
+		"consent_review_and": " 및 ",
+		"consent_review_copyright": "저작권",
+		"consent_review_suffix": "에 동의하는 것으로 간주됩니다."
 	},
 	"Restaurant": {
 		"Loading": {
@@ -444,11 +444,11 @@
 		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
 		"conflict_dialog_switch": "전환",
 		"conflict_dialog_cancel": "취소",
-		"consent_login_prefix": "By continuing, you agree to our ",
-		"consent_login_terms": "Terms of Service",
-		"consent_login_and": " and ",
-		"consent_login_privacy": "Privacy Policy",
-		"consent_login_suffix": "."
+		"consent_login_prefix": "계속 진행하면 ",
+		"consent_login_terms": "이용약관",
+		"consent_login_and": " 및 ",
+		"consent_login_privacy": "개인정보 보호정책",
+		"consent_login_suffix": "에 동의하는 것으로 간주됩니다."
 	},
 	"Settings": {
 		"title": "설정",

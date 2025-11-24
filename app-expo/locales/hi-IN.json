@@ -349,11 +349,11 @@
 			"dishCategoryInvalidInput": "Invalid dish category name",
 			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
 		},
-		"consent_review_prefix": "By continuing, you agree to our ",
-		"consent_review_guidelines": "Community Guidelines",
-		"consent_review_and": " and ",
-		"consent_review_copyright": "Copyright",
-		"consent_review_suffix": "."
+		"consent_review_prefix": "जारी रखकर, आप हमारी ",
+		"consent_review_guidelines": "समुदाय दिशानिर्देश",
+		"consent_review_and": " और ",
+		"consent_review_copyright": "कॉपीराइट",
+		"consent_review_suffix": " से सहमत होते हैं।"
 	},
 	"Restaurant": {
 		"Loading": {
@@ -445,11 +445,11 @@
 		"conflict_dialog_message": "यह खाता पहले से ही किसी अन्य उपयोगकर्ता से जुड़ा हुआ है। यदि आप स्विच करते हैं, तो अतिथि के रूप में बनाया गया डेटा स्थानांतरित नहीं होगा। क्या आप मौजूदा खाते पर स्विच करना चाहते हैं?",
 		"conflict_dialog_switch": "स्विच करें",
 		"conflict_dialog_cancel": "रद्द करें",
-		"consent_login_prefix": "By continuing, you agree to our ",
-		"consent_login_terms": "Terms of Service",
-		"consent_login_and": " and ",
-		"consent_login_privacy": "Privacy Policy",
-		"consent_login_suffix": "."
+		"consent_login_prefix": "जारी रखकर, आप हमारी ",
+		"consent_login_terms": "सेवा की शर्तें",
+		"consent_login_and": " और ",
+		"consent_login_privacy": "गोपनीयता नीति",
+		"consent_login_suffix": " से सहमत होते हैं।"
 	},
 	"Settings": {
 		"title": "सेटिंग्स",

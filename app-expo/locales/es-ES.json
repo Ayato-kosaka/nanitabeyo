@@ -348,10 +348,10 @@
 			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido",
 			"reviewSubmitFailed": "Error al publicar la reseña"
 		},
-		"consent_review_prefix": "By continuing, you agree to our ",
-		"consent_review_guidelines": "Community Guidelines",
-		"consent_review_and": " and ",
-		"consent_review_copyright": "Copyright",
+		"consent_review_prefix": "Al continuar, aceptas nuestras ",
+		"consent_review_guidelines": "Directrices de la Comunidad",
+		"consent_review_and": " y ",
+		"consent_review_copyright": "Derechos de Autor",
 		"consent_review_suffix": "."
 	},
 	"Restaurant": {
@@ -444,10 +444,10 @@
 		"conflict_dialog_message": "Esta cuenta ya está vinculada a otro usuario. Si cambias, los datos creados como invitado no se transferirán. ¿Deseas cambiar a la cuenta existente?",
 		"conflict_dialog_switch": "Cambiar",
 		"conflict_dialog_cancel": "Cancelar",
-		"consent_login_prefix": "By continuing, you agree to our ",
-		"consent_login_terms": "Terms of Service",
-		"consent_login_and": " and ",
-		"consent_login_privacy": "Privacy Policy",
+		"consent_login_prefix": "Al continuar, aceptas nuestros ",
+		"consent_login_terms": "Términos de Servicio",
+		"consent_login_and": " y ",
+		"consent_login_privacy": "Política de Privacidad",
 		"consent_login_suffix": "."
 	},
 	"Settings": {
