@@ -45,7 +45,7 @@ function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuIte
 export default function SettingsScreen() {
 	const router = useRouter();
 	const locale = useLocale();
-	const { logout } = useAuth();
+	const { logout, user } = useAuth();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const {
@@ -163,16 +163,22 @@ export default function SettingsScreen() {
 						/>
 						<SettingsMenuItem label={i18n.t("Settings.terms")} onPress={() => handleLegalDocument("terms")} />
 						<SettingsMenuItem label={i18n.t("Settings.privacy")} onPress={() => handleLegalDocument("privacy")} />
-						<SettingsMenuItem label={i18n.t("Settings.copyright")} onPress={() => handleLegalDocument("copyright")} />
 						<SettingsMenuItem
-							label={i18n.t("Settings.logout")}
-							onPress={handleLogout}
-							textStyle={{
-								color: "#FF3E33",
-								fontWeight: "700",
-							}}
-							isLast
+							label={i18n.t("Settings.copyright")}
+							onPress={() => handleLegalDocument("copyright")}
+							isLast={!!user?.is_anonymous}
 						/>
+						{!user?.is_anonymous && (
+							<SettingsMenuItem
+								label={i18n.t("Settings.logout")}
+								onPress={handleLogout}
+								textStyle={{
+									color: "#FF3E33",
+									fontWeight: "700",
+								}}
+								isLast
+							/>
+						)}
 					</Card>
 				</ScrollView>
 			</SafeAreaView>
