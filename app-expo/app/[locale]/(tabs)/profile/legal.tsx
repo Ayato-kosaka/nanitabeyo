@@ -1,24 +1,10 @@
-import React, { useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet, SafeAreaView } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
+import Markdown from "react-native-markdown-display";
 import i18n from "@/lib/i18n";
-
-// #設定画面 【設計】Legal ドキュメントを locale に応じて読み込む
-const legalDocuments = {
-	"ja-JP": {
-		guidelines: require("@/features/settings/assets/legal/ja-JP/guidelines.md"),
-		terms: require("@/features/settings/assets/legal/ja-JP/terms.md"),
-		privacy: require("@/features/settings/assets/legal/ja-JP/privacy.md"),
-		copyright: require("@/features/settings/assets/legal/ja-JP/copyright.md"),
-	},
-	"en-US": {
-		guidelines: require("@/features/settings/assets/legal/en-US/guidelines.md"),
-		terms: require("@/features/settings/assets/legal/en-US/terms.md"),
-		privacy: require("@/features/settings/assets/legal/en-US/privacy.md"),
-		copyright: require("@/features/settings/assets/legal/en-US/copyright.md"),
-	},
-};
+import { legalDocuments } from "@/features/settings/data/legalDocuments";
 
 type LegalLocale = "ja-JP" | "en-US";
 type DocumentType = "guidelines" | "terms" | "privacy" | "copyright";
@@ -44,14 +30,9 @@ export default function LegalDocumentScreen() {
 		}
 	}, [documentType]);
 
-	// #設定画面 【設計】Markdown コンテンツを取得（実際の内容は fetch で読み込む必要があるが、暫定的に require を使用）
-	// TODO: 本来は fetch または react-native-fs で .md ファイルを読み込む必要があるが、
-	//       Metro bundler の require は asset として扱われるため、uri が返される可能性がある
-	//       暫定的には、markdown を静的に表示するためのシンプルな実装とする
-	const documentContent = useMemo(() => {
-		// Markdown レンダリングライブラリがない場合は、暫定的にプレーンテキストとして表示
-		// 実際には react-native-markdown-display などを使用する
-		return `Legal document content for ${documentType} in ${legalLocale} locale.\n\nThis is a placeholder. Please implement proper Markdown rendering.`;
+	// #設定画面 【設計】Markdown コンテンツを取得
+	const markdownContent = useMemo(() => {
+		return legalDocuments[legalLocale]?.[documentType] || "";
 	}, [documentType, legalLocale]);
 
 	return (
@@ -60,9 +41,10 @@ export default function LegalDocumentScreen() {
 				<View style={styles.header}>
 					<Text style={styles.title}>{title}</Text>
 				</View>
+
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 					<View style={styles.contentContainer}>
-						<Text style={styles.content}>{documentContent}</Text>
+						<Markdown style={markdownStyles}>{markdownContent}</Markdown>
 					</View>
 				</ScrollView>
 			</SafeAreaView>
@@ -99,9 +81,86 @@ const styles = StyleSheet.create({
 	contentContainer: {
 		paddingHorizontal: 20,
 	},
-	content: {
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	errorContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 20,
+	},
+	errorText: {
+		fontSize: 16,
+		color: "#DC2626",
+		textAlign: "center",
+	},
+});
+
+// #設定画面 【設計】Markdown のスタイル設定
+const markdownStyles = {
+	body: {
 		fontSize: 15,
 		lineHeight: 24,
 		color: "#374151",
 	},
-});
+	heading1: {
+		fontSize: 24,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		marginTop: 24,
+		marginBottom: 12,
+	},
+	heading2: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		marginTop: 20,
+		marginBottom: 10,
+	},
+	heading3: {
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#1A1A1A",
+		marginTop: 16,
+		marginBottom: 8,
+	},
+	paragraph: {
+		marginBottom: 12,
+	},
+	link: {
+		color: "#5EA2FF",
+	},
+	bullet_list: {
+		marginBottom: 12,
+	},
+	ordered_list: {
+		marginBottom: 12,
+	},
+	list_item: {
+		marginBottom: 4,
+	},
+	code_inline: {
+		backgroundColor: "#F3F4F6",
+		paddingHorizontal: 4,
+		paddingVertical: 2,
+		borderRadius: 4,
+		fontFamily: "monospace",
+	},
+	code_block: {
+		backgroundColor: "#F3F4F6",
+		padding: 12,
+		borderRadius: 8,
+		marginBottom: 12,
+	},
+	blockquote: {
+		backgroundColor: "#F8F9FA",
+		borderLeftWidth: 4,
+		borderLeftColor: "#5EA2FF",
+		paddingLeft: 12,
+		paddingVertical: 8,
+		marginBottom: 12,
+	},
+};
