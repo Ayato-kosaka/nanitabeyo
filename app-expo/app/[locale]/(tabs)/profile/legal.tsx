@@ -127,7 +127,6 @@ const markdownStyles = {
 	},
 	link: {
 		color: "#2563EB",
-		textDecorationLine: "underline",
 	},
 	bullet_list: {
 		marginTop: 4,
