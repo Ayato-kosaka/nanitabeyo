@@ -52,7 +52,7 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 				onIndexChange={handleIndexChange}
 			/>
 			{/* #【設計】匿名ユーザー（user.is_anonymous === true）の場合はレビュー投稿ボタンを非表示 */}
-			{user && !user.is_anonymous && (
+			{user?.is_anonymous === false && (
 				<PrimaryButton
 					style={styles.writeReviewButton}
 					label={i18n.t("Map.actions.writeReviewForThisDish")}

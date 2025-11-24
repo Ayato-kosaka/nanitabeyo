@@ -98,7 +98,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
 		// #【設計】匿名ユーザーの場合は LoginbackModal を BlurModal 経由で表示、非匿名ユーザーの場合は ReviewForm を表示
-		if (user?.is_anonymous) {
+		if (user?.is_anonymous !== false) {
 			openLoginModal();
 		} else {
 			// Open modal immediately - media selection will happen inside ReviewForm
