@@ -22,6 +22,8 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
+import { useAuth } from "@/contexts/AuthProvider";
+import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -48,6 +50,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
+	const { user } = useAuth(); // #【設計】匿名ユーザー判定のため useAuth から user を取得
 
 	// Modals
 	const {
@@ -60,6 +63,11 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 		open: openBidModal,
 		close: closeBidModal,
 	} = useBlurModal({ intensity: 100, zIndex: 1300 });
+	const {
+		BlurModal: LoginBlurModal,
+		open: openLoginModal,
+		close: closeLoginModal,
+	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -89,8 +97,13 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
-		// Open modal immediately - media selection will happen inside ReviewForm
-		openReviewModal();
+		// #【設計】匿名ユーザーの場合は LoginbackModal を BlurModal 経由で表示、非匿名ユーザーの場合は ReviewForm を表示
+		if (user?.is_anonymous) {
+			openLoginModal();
+		} else {
+			// Open modal immediately - media selection will happen inside ReviewForm
+			openReviewModal();
+		}
 	};
 
 	const handleOpenGoogleMaps = async () => {
@@ -239,6 +252,9 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			<BidBlurModal>
 				{({ close }) => <BidForm onSubmit={handleBid} onCancel={close} isProcessing={isProcessing} />}
 			</BidBlurModal>
+
+			{/* Login Modal */}
+			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 		</View>
 	);
 }
