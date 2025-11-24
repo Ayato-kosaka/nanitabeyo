@@ -165,7 +165,6 @@ export function ProfileTabsLayout() {
 				onLayout={handleHeaderLayout}
 				onBack={handleBack}
 				onShare={handleShareProfile}
-				onSettings={() => {}}
 				onEditProfile={handleEditProfile}
 				onFollow={handleFollow}
 				onMessage={() => {}}

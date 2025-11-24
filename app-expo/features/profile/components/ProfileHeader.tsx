@@ -17,7 +17,6 @@ interface ProfileHeaderProps {
 	onLayout?: (event: LayoutChangeEvent) => void;
 	onBack?: () => void;
 	onShare?: () => void;
-	onSettings?: () => void;
 	onEditProfile?: () => void;
 	onFollow?: () => void;
 	onMessage?: () => void;
@@ -43,7 +42,6 @@ export function ProfileHeader({
 	onLayout,
 	onBack,
 	onShare,
-	onSettings,
 	onEditProfile,
 	onFollow,
 	onMessage,
@@ -65,7 +63,7 @@ export function ProfileHeader({
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.settingButton} onPress={onSettings || (() => {})}>
+					<TouchableOpacity style={styles.settingButton} onPress={(() => {})}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
 				</View>
