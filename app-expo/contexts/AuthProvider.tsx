@@ -10,6 +10,7 @@ import * as WebBrowser from "expo-web-browser";
 import { Href, useRouter } from "expo-router";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useTopicsStore } from "@/stores/useTopicsStore";
+import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 
 type AuthContextType = {
 	user: User | null;
@@ -116,6 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// ✅ ユーザーが切り替わったときにストアをクリア
 				useDishMediaEntriesStore.getState().clearByKey();
 				useTopicsStore.getState().clearByKey();
+				useProfileStore.getState().resetProfile();
 			}
 
 			if (event === "INITIAL_SESSION") {
