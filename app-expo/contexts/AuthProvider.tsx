@@ -8,6 +8,8 @@ import { Platform } from "react-native";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { Href, useRouter } from "expo-router";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { useTopicsStore } from "@/stores/useTopicsStore";
 
 type AuthContextType = {
 	user: User | null;
@@ -102,17 +104,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		 */
 		const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
 			const newUserId = session?.user?.id ?? null;
+			const prevUser = sessionRef.current?.user ?? null;
+			const hasUserChanged = (prevUser?.id ?? null) !== (newUserId ?? null);
 			logFrontendEvent({
 				event_name: `onAuthStateChange:${event}`,
 				error_level: "debug",
 				payload: { user_id: newUserId, event },
 			});
 
+			if (hasUserChanged) {
+				// ✅ ユーザーが切り替わったときにストアをクリア
+				useDishMediaEntriesStore.getState().clearByKey();
+				useTopicsStore.getState().clearByKey();
+			}
+
 			if (event === "INITIAL_SESSION") {
 				// initializeAuth で処理済
 			} else if (event === "SIGNED_IN") {
 				if (!session) return;
-				if (sessionRef.current?.user.id && sessionRef.current?.user.id !== session.user.id) {
+				if (hasUserChanged) {
 					// signInWithOAuth は、未登録なら新規ユーザーを作り、匿名ユーザーから切り替わる可能性がある
 					// そのため、 user.id の変化を検出してログを出す
 					logFrontendEvent({
