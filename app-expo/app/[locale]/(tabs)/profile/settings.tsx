@@ -1,5 +1,15 @@
 import React, { useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Platform } from "react-native";
+import {
+	View,
+	Text,
+	TouchableOpacity,
+	StyleSheet,
+	ScrollView,
+	SafeAreaView,
+	Platform,
+	StyleProp,
+	TextStyle,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
@@ -17,13 +27,14 @@ interface SettingsMenuItemProps {
 	label: string;
 	onPress: () => void;
 	isLast?: boolean;
+	textStyle?: StyleProp<TextStyle>;
 }
 
-function SettingsMenuItem({ label, onPress, isLast }: SettingsMenuItemProps) {
+function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuItemProps) {
 	return (
 		<>
 			<TouchableOpacity style={styles.menuItem} onPress={onPress}>
-				<Text style={styles.menuItemText}>{label}</Text>
+				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
 				<ChevronRight size={20} color="#9CA3AF" />
 			</TouchableOpacity>
 			{!isLast && <View style={styles.separator} />}
@@ -153,7 +164,15 @@ export default function SettingsScreen() {
 						<SettingsMenuItem label={i18n.t("Settings.terms")} onPress={() => handleLegalDocument("terms")} />
 						<SettingsMenuItem label={i18n.t("Settings.privacy")} onPress={() => handleLegalDocument("privacy")} />
 						<SettingsMenuItem label={i18n.t("Settings.copyright")} onPress={() => handleLegalDocument("copyright")} />
-						<SettingsMenuItem label={i18n.t("Settings.logout")} onPress={handleLogout} isLast />
+						<SettingsMenuItem
+							label={i18n.t("Settings.logout")}
+							onPress={handleLogout}
+							textStyle={{
+								color: "#FF3E33",
+								fontWeight: "700",
+							}}
+							isLast
+						/>
 					</Card>
 				</ScrollView>
 			</SafeAreaView>
