@@ -23,6 +23,8 @@ import i18n from "@/lib/i18n";
 import { Provider } from "@supabase/supabase-js";
 import * as AuthSession from "expo-auth-session";
 import { useProfile } from "@/features/profile/hooks/useProfile";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { Card } from "@/components/Card";
 
 /**
  * OAuth認証のコールバック画面
@@ -34,7 +36,7 @@ export default function AuthCallbackScreen() {
 	const { createUserProfile } = useProfile();
 	const { logFrontendEvent } = useLogger();
 	const { locale, ...rest } = useLocalSearchParams<{ locale: string; [k: string]: string }>();
-	const [showConflictDialog, setShowConflictDialog] = useState(false);
+	const { BlurModal: ConflictModal, open: openConflictModal, close: closeConflictModal } = useBlurModal();
 	const [conflictProvider, setConflictProvider] = useState<Provider | null>(null);
 
 	useEffect(() => {
@@ -67,6 +69,7 @@ export default function AuthCallbackScreen() {
 						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
 					});
 				}
+				router.replace({ pathname: "/[locale]/profile", params: { locale } });
 			} catch (error: unknown) {
 				// linkIdentity による identity_already_exists エラーの場合は警告ダイアログを表示
 				const err = error as any;
@@ -77,8 +80,10 @@ export default function AuthCallbackScreen() {
 						payload: { provider: err.provider, error_code: err.error_code },
 					});
 					setConflictProvider(err.provider);
-					setShowConflictDialog(true);
+					openConflictModal();
 					return;
+				} else {
+					router.replace({ pathname: "/[locale]/profile", params: { locale } });
 				}
 
 				logFrontendEvent({
@@ -86,12 +91,6 @@ export default function AuthCallbackScreen() {
 					error_level: "error",
 					payload: { error: error instanceof Error ? error.message : String(error), url },
 				});
-			} finally {
-				// プロフィール画面にリダイレクト
-				if (!showConflictDialog) {
-					router.replace({ pathname: "/[locale]/profile", params: { locale } });
-					return;
-				}
 			}
 		};
 
@@ -101,7 +100,7 @@ export default function AuthCallbackScreen() {
 	const handleSwitchToExisting = async () => {
 		if (!conflictProvider) return;
 
-		setShowConflictDialog(false);
+		closeConflictModal();
 
 		try {
 			logFrontendEvent({
@@ -129,7 +128,7 @@ export default function AuthCallbackScreen() {
 			payload: { provider: conflictProvider },
 		});
 
-		setShowConflictDialog(false);
+		closeConflictModal();
 		router.replace("/(tabs)/profile");
 	};
 
@@ -139,22 +138,20 @@ export default function AuthCallbackScreen() {
 			<Text style={styles.text}>{i18n.t("Common.processing")}</Text>
 
 			{/* Conflict Warning Dialog */}
-			<Modal visible={showConflictDialog} transparent animationType="fade">
-				<View style={styles.modalOverlay}>
-					<View style={styles.dialogContainer}>
-						<Text style={styles.dialogTitle}>{i18n.t("auth.conflict_dialog_title")}</Text>
-						<Text style={styles.dialogMessage}>{i18n.t("auth.conflict_dialog_message")}</Text>
-						<View style={styles.dialogButtons}>
-							<TouchableOpacity style={styles.secondaryButton} onPress={handleCancelSwitch}>
-								<Text style={styles.secondaryButtonText}>{i18n.t("auth.conflict_dialog_cancel")}</Text>
-							</TouchableOpacity>
-							<TouchableOpacity style={styles.primaryButton} onPress={handleSwitchToExisting}>
-								<Text style={styles.primaryButtonText}>{i18n.t("auth.conflict_dialog_switch")}</Text>
-							</TouchableOpacity>
-						</View>
+			<ConflictModal>
+				<Card>
+					<Text style={styles.dialogTitle}>{i18n.t("auth.conflict_dialog_title")}</Text>
+					<Text style={styles.dialogMessage}>{i18n.t("auth.conflict_dialog_message")}</Text>
+					<View style={styles.dialogButtons}>
+						<TouchableOpacity style={styles.secondaryButton} onPress={handleCancelSwitch}>
+							<Text style={styles.secondaryButtonText}>{i18n.t("auth.conflict_dialog_cancel")}</Text>
+						</TouchableOpacity>
+						<TouchableOpacity style={styles.primaryButton} onPress={handleSwitchToExisting}>
+							<Text style={styles.primaryButtonText}>{i18n.t("auth.conflict_dialog_switch")}</Text>
+						</TouchableOpacity>
 					</View>
-				</View>
-			</Modal>
+				</Card>
+			</ConflictModal>
 		</View>
 	);
 }
@@ -172,25 +169,6 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#6B7280",
 		textAlign: "center",
-	},
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 24,
-	},
-	dialogContainer: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 16,
-		padding: 24,
-		width: "100%",
-		maxWidth: 400,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.1,
-		shadowRadius: 8,
-		elevation: 5,
 	},
 	dialogTitle: {
 		fontSize: 20,
