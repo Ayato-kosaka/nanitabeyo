@@ -14,7 +14,6 @@ export default function LegalDocumentScreen() {
 	const { documentType } = useLocalSearchParams<{ documentType: DocumentType }>();
 	const locale = useLocale();
 
-	// 【設計】タイトルを i18n から取得
 	const title = useMemo(() => {
 		switch (documentType) {
 			case "guidelines":
@@ -30,7 +29,6 @@ export default function LegalDocumentScreen() {
 		}
 	}, [documentType]);
 
-	// 【設計】Markdown コンテンツを取得
 	const markdownContent = useMemo(() => {
 		return locale in legalDocuments && documentType in legalDocuments[locale as LegalLocale]
 			? legalDocuments[locale as LegalLocale][documentType as DocumentType]
@@ -94,7 +92,6 @@ const styles = StyleSheet.create({
 	},
 });
 
-// #設定画面 【設計】Markdown のスタイル設定
 const markdownStyles = {
 	body: {
 		fontSize: 16,

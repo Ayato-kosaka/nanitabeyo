@@ -1,6 +1,5 @@
-// #設定画面 【設計】Legal ドキュメントの内容を文字列として export
-// Metro bundler は .md ファイルを直接文字列として読み込めないため、
-// 各ドキュメントの内容をここに定義する（実際のファイルから手動でコピー）
+// #317 【設計】Legal ドキュメントの内容を文字列として export
+// Metro bundler は .md ファイルを直接文字列として読み込めないため、各ドキュメントの内容をここに定義する
 
 import { copyrightEnUs } from "./en-US/copyright";
 import { guidelinesEnUs } from "./en-US/guidelines";

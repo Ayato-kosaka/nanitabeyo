@@ -43,7 +43,7 @@ export default function SettingsScreen() {
 		close: closeFeedbackModal,
 	} = useBlurModal({ intensity: 100 });
 
-	// #設定画面 【設計】フィードバック送信モーダルを起動
+	// フィードバック送信モーダルを起動
 	const handleSendFeedback = useCallback(() => {
 		lightImpact();
 		openFeedbackModal();
@@ -54,7 +54,7 @@ export default function SettingsScreen() {
 		});
 	}, [lightImpact, openFeedbackModal, logFrontendEvent]);
 
-	// #設定画面 【設計】アプリストアのレビュー画面を起動（ネイティブのみ）
+	// アプリストアのレビュー画面を起動（ネイティブのみ）
 	const handleLeaveReview = useCallback(async () => {
 		lightImpact();
 		logFrontendEvent({
@@ -68,7 +68,7 @@ export default function SettingsScreen() {
 		}
 	}, [lightImpact, logFrontendEvent]);
 
-	// #設定画面 【設計】Legal ドキュメント閲覧画面へ遷移（locale に応じて ja-JP or en-US を選択）
+	// Legal ドキュメント閲覧画面へ遷移
 	const handleLegalDocument = useCallback(
 		(documentType: "guidelines" | "terms" | "privacy" | "copyright") => {
 			lightImpact();
@@ -86,7 +86,7 @@ export default function SettingsScreen() {
 		[locale, router, lightImpact, logFrontendEvent],
 	);
 
-	// #設定画面 【設計】ログアウト処理を実行
+	// ログアウト処理を実行
 	const handleLogout = useCallback(async () => {
 		mediumImpact();
 		logFrontendEvent({
@@ -133,8 +133,12 @@ export default function SettingsScreen() {
 
 					{/* Card 1: フィードバック・レビュー */}
 					<Card style={styles.card}>
-						<SettingsMenuItem label={i18n.t("Settings.sendFeedback")} onPress={handleSendFeedback} />
-						{/* #設定画面 【設計】Leave Review は web では非表示 */}
+						<SettingsMenuItem
+							label={i18n.t("Settings.sendFeedback")}
+							onPress={handleSendFeedback}
+							isLast={Platform.OS === "web"}
+						/>
+						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
 							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} isLast />
 						)}
