@@ -23,10 +23,24 @@ export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number)
 	try {
 		const u = new URL(originalUrl);
 		const parts = u.pathname.split("/"); // ["", "wikipedia", "commons", d1, d2, file]
+		const width = Math.min(Math.max(Math.round(widthPx), 1024), 1280); // 1024〜1280にクランプ
+
+		// 例: ["", "wikipedia", "commons", "thumb", "8", "8b", "Sushi.jpg", "400px-Sushi.jpg"]
+		const thumbIndex = parts.indexOf("thumb");
+		if (thumbIndex !== -1) {
+			// すでに thumb URL の場合 => 末尾の "<width>px-<file>" を差し替え
+			const file = parts[thumbIndex + 4]; // file name (例 "Sushi.jpg")
+			if (!file) return originalUrl;
+
+			parts[parts.length - 1] = `${width}px-${file}`;
+			u.pathname = parts.join("/");
+			return u.toString();
+		}
+
+		// 通常URLの場合
+		// ["", "wikipedia", "commons", d1, d2, file]
 		const file = parts[5];
 		if (!file) return originalUrl;
-
-		const width = Math.min(Math.max(Math.round(widthPx), 1024), 1280); // 1024〜1280にクランプ
 		parts.splice(3, 0, "thumb"); // "commons" の次に "thumb" を挿入
 		parts.push(`${width}px-${file}`); // 末尾に "<width>px<File>" を追加
 		u.pathname = parts.join("/");

@@ -15,23 +15,24 @@ import i18n from "@/lib/i18n";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
+import { DishCategory, selectTopicById, useTopicsStore } from "@/stores/useTopicsStore";
 
 interface SaveTopicTabProps {
-	data: QueryMeSavedDishCategoriesResponse["data"];
+	topicIds: string[];
 	isLoading?: boolean;
 	isLoadingMore?: boolean;
 	refreshing?: boolean;
 	onRefresh?: () => void;
 	onEndReached?: () => void;
-	onItemPress?: (item: QueryMeSavedDishCategoriesResponse["data"][number], index: number) => void;
-	onScroll?: FlatListProps<QueryMeSavedDishCategoriesResponse["data"]>["onScroll"];
+	onItemPress?: (item: DishCategory, index: number) => void;
+	onScroll?: FlatListProps<DishCategory>["onScroll"];
 	contentContainerStyle?: StyleProp<ViewStyle>;
 	error?: string | null;
 	onRetry?: () => void;
 }
 
 export function SaveTopicTab({
-	data,
+	topicIds,
 	isLoading = false,
 	isLoadingMore = false,
 	refreshing = false,
@@ -51,17 +52,19 @@ export function SaveTopicTab({
 	const cardWidth = (deviceWidth - 16 * 2 - 8 * (2 - 1)) / 2;
 
 	const renderTopicItem = useCallback(
-		({ item, index }: { item: QueryMeSavedDishCategoriesResponse["data"][number]; index: number }) => {
+		({ item, index }: { item: { id: string }; index: number }) => {
+			const topic = selectTopicById(item.id)(useTopicsStore.getState());
+			if (!topic) return <View />;
 			return (
 				<ImageCard
 					item={{
-						id: item.id,
-						imageUrl: wikimediaThumbFromOriginal(item.image_url, cardWidth),
+						id: topic.id,
+						imageUrl: wikimediaThumbFromOriginal(topic.image_url, cardWidth),
 					}}
-					onPress={() => onItemPress?.(item, index)}>
+					onPress={() => onItemPress?.(topic, index)}>
 					<View style={styles.topicCardOverlay}>
 						<Text style={styles.topicName}>
-							{(item.labels as { [key: string]: string })[locales.split("-")[0]] ?? item.label_en}
+							{(topic.labels as { [key: string]: string })[locales.split("-")[0]] ?? topic.label_en}
 						</Text>
 					</View>
 				</ImageCard>
@@ -95,8 +98,8 @@ export function SaveTopicTab({
 
 	return (
 		<GridList
-			data={data}
-			renderItem={renderTopicItem}
+			data={topicIds.map((id) => ({ id }))}
+			renderItem={({ item, index }) => renderTopicItem({ item, index })}
 			numColumns={3}
 			contentContainerStyle={[styles.gridContent, contentContainerStyle]}
 			columnWrapperStyle={styles.gridRow}
