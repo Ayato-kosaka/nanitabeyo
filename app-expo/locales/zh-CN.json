@@ -347,7 +347,12 @@
 			"dishCategoryNotFound": "未找到菜品类别",
 			"dishCategoryInvalidInput": "无效的菜品类别名称",
 			"reviewSubmitFailed": "评论发布失败"
-		}
+		},
+		"consent_review_prefix": "By continuing, you agree to our ",
+		"consent_review_guidelines": "Community Guidelines",
+		"consent_review_and": " and ",
+		"consent_review_copyright": "Copyright",
+		"consent_review_suffix": "."
 	},
 	"Restaurant": {
 		"Loading": {
@@ -438,7 +443,12 @@
 		"conflict_dialog_title": "找到现有账户",
 		"conflict_dialog_message": "此账户已链接到另一个用户。如果您切换，作为访客创建的数据将不会被转移。您要切换到现有账户吗？",
 		"conflict_dialog_switch": "切换",
-		"conflict_dialog_cancel": "取消"
+		"conflict_dialog_cancel": "取消",
+		"consent_login_prefix": "By continuing, you agree to our ",
+		"consent_login_terms": "Terms of Service",
+		"consent_login_and": " and ",
+		"consent_login_privacy": "Privacy Policy",
+		"consent_login_suffix": "."
 	},
 	"Settings": {
 		"title": "设置",

@@ -347,7 +347,12 @@
 			"dishCategoryNotFound": "料理カテゴリが見つかりません",
 			"dishCategoryInvalidInput": "無効な料理カテゴリ名です",
 			"reviewSubmitFailed": "レビューの投稿に失敗しました"
-		}
+		},
+		"consent_review_prefix": "このまま続行すると、",
+		"consent_review_guidelines": "コミュニティガイドライン",
+		"consent_review_and": " と ",
+		"consent_review_copyright": "著作権",
+		"consent_review_suffix": " に同意したことになります。"
 	},
 	"Restaurant": {
 		"Loading": {
@@ -438,7 +443,12 @@
 		"conflict_dialog_title": "既存アカウントが見つかりました",
 		"conflict_dialog_message": "対象のアカウントは既に別ユーザーに紐づいています。切り替えるとゲストで作成したデータは引き継がれません。既存アカウントに切り替えますか？",
 		"conflict_dialog_switch": "切り替える",
-		"conflict_dialog_cancel": "キャンセル"
+		"conflict_dialog_cancel": "キャンセル",
+		"consent_login_prefix": "このまま続行すると、",
+		"consent_login_terms": "利用規約",
+		"consent_login_and": " と ",
+		"consent_login_privacy": "プライバシーポリシー",
+		"consent_login_suffix": " に同意したことになります。"
 	},
 	"Settings": {
 		"title": "設定",

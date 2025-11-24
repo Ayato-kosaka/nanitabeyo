@@ -347,7 +347,12 @@
 			"dishCategoryNotFound": "요리 카테고리를 찾을 수 없습니다",
 			"dishCategoryInvalidInput": "잘못된 요리 카테고리 이름",
 			"reviewSubmitFailed": "리뷰 게시 실패"
-		}
+		},
+		"consent_review_prefix": "By continuing, you agree to our ",
+		"consent_review_guidelines": "Community Guidelines",
+		"consent_review_and": " and ",
+		"consent_review_copyright": "Copyright",
+		"consent_review_suffix": "."
 	},
 	"Restaurant": {
 		"Loading": {
@@ -438,7 +443,12 @@
 		"conflict_dialog_title": "기존 계정을 찾았습니다",
 		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
 		"conflict_dialog_switch": "전환",
-		"conflict_dialog_cancel": "취소"
+		"conflict_dialog_cancel": "취소",
+		"consent_login_prefix": "By continuing, you agree to our ",
+		"consent_login_terms": "Terms of Service",
+		"consent_login_and": " and ",
+		"consent_login_privacy": "Privacy Policy",
+		"consent_login_suffix": "."
 	},
 	"Settings": {
 		"title": "설정",

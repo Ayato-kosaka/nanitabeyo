@@ -347,7 +347,12 @@
 			"dishCategoryNotFound": "Dish category not found",
 			"dishCategoryInvalidInput": "Invalid dish category name",
 			"reviewSubmitFailed": "Failed to post review"
-		}
+		},
+		"consent_review_prefix": "By continuing, you agree to our ",
+		"consent_review_guidelines": "Community Guidelines",
+		"consent_review_and": " and ",
+		"consent_review_copyright": "Copyright",
+		"consent_review_suffix": "."
 	},
 	"Restaurant": {
 		"Loading": {
@@ -438,7 +443,12 @@
 		"conflict_dialog_title": "Existing Account Found",
 		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
 		"conflict_dialog_switch": "Switch",
-		"conflict_dialog_cancel": "Cancel"
+		"conflict_dialog_cancel": "Cancel",
+		"consent_login_prefix": "By continuing, you agree to our ",
+		"consent_login_terms": "Terms of Service",
+		"consent_login_and": " and ",
+		"consent_login_privacy": "Privacy Policy",
+		"consent_login_suffix": "."
 	},
 	"Settings": {
 		"title": "Settings",

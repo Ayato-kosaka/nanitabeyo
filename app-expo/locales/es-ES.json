@@ -347,7 +347,12 @@
 			"dishCategoryNotFound": "Categoría de plato no encontrada",
 			"dishCategoryInvalidInput": "Nombre de categoría de plato inválido",
 			"reviewSubmitFailed": "Error al publicar la reseña"
-		}
+		},
+		"consent_review_prefix": "By continuing, you agree to our ",
+		"consent_review_guidelines": "Community Guidelines",
+		"consent_review_and": " and ",
+		"consent_review_copyright": "Copyright",
+		"consent_review_suffix": "."
 	},
 	"Restaurant": {
 		"Loading": {
@@ -438,7 +443,12 @@
 		"conflict_dialog_title": "Cuenta Existente Encontrada",
 		"conflict_dialog_message": "Esta cuenta ya está vinculada a otro usuario. Si cambias, los datos creados como invitado no se transferirán. ¿Deseas cambiar a la cuenta existente?",
 		"conflict_dialog_switch": "Cambiar",
-		"conflict_dialog_cancel": "Cancelar"
+		"conflict_dialog_cancel": "Cancelar",
+		"consent_login_prefix": "By continuing, you agree to our ",
+		"consent_login_terms": "Terms of Service",
+		"consent_login_and": " and ",
+		"consent_login_privacy": "Privacy Policy",
+		"consent_login_suffix": "."
 	},
 	"Settings": {
 		"title": "Configuración",
