@@ -135,33 +135,33 @@ export type TopicsStore = {
  */
 export const selectTopicIdsByKey =
 	(key: string) =>
-		(
-			state: TopicsStore,
-		): {
-			ids: string[];
-			isLoading: boolean;
-			error: string | null;
-			hasFetchedInitial: boolean;
-			hasNextPage: boolean;
-			isLoadingMore: boolean;
-		} => {
-			return {
-				ids: state.topicIdsByKey[key] ?? [],
-				isLoading: state.isLoadingByKey[key] ?? false,
-				error: state.errorByKey[key] ?? null,
-				hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
-				hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
-				isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
-			};
+	(
+		state: TopicsStore,
+	): {
+		ids: string[];
+		isLoading: boolean;
+		error: string | null;
+		hasFetchedInitial: boolean;
+		hasNextPage: boolean;
+		isLoadingMore: boolean;
+	} => {
+		return {
+			ids: state.topicIdsByKey[key] ?? [],
+			isLoading: state.isLoadingByKey[key] ?? false,
+			error: state.errorByKey[key] ?? null,
+			hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
+			hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
+			isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
 		};
+	};
 
 /**
  * topic.id から正規化済み DishCategory を取得するセレクタ。
  */
 export const selectTopicById =
 	(topicId: string) =>
-		(state: TopicsStore): DishCategory | null =>
-			state.topicById[topicId] ?? null;
+	(state: TopicsStore): DishCategory | null =>
+		state.topicById[topicId] ?? null;
 
 export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => ({
 	// ------ 初期状態 ------
@@ -211,11 +211,11 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 			return state.topicById[topicId] === undefined
 				? state
 				: {
-					topicById: {
-						...state.topicById,
-						[topicId]: topicUpdater(state.topicById[topicId]),
-					},
-				};
+						topicById: {
+							...state.topicById,
+							[topicId]: topicUpdater(state.topicById[topicId]),
+						},
+					};
 		}),
 
 	// ------ 非同期挿入・更新メソッド ------

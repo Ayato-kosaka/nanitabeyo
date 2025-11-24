@@ -63,7 +63,7 @@ export function ProfileHeader({
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.settingButton} onPress={(() => {})}>
+					<TouchableOpacity style={styles.settingButton} onPress={() => {}}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
 				</View>
