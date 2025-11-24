@@ -83,7 +83,12 @@ export function ProfileHeader({
 						<ArrowLeft size={24} color="#1A1A1A" />
 					</TouchableOpacity>
 				)}
-				<Text style={styles.headerTitle}>{profile.username}</Text>
+
+				{/* Display Name */}
+				<Text style={[styles.displayName]} pointerEvents="none">
+					{profile.display_name}
+				</Text>
+				{/* <Text style={styles.headerTitle}>{profile.username}</Text> */}
 				<View style={{ flexDirection: "row", gap: 8 }}>
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
@@ -131,11 +136,6 @@ export function ProfileHeader({
 							</View>
 						)} */}
 					</View>
-
-					{/* Display Name */}
-					<Text style={[styles.displayName]} pointerEvents="none">
-						{profile.display_name}
-					</Text>
 
 					{/* Bio */}
 					<Text style={[styles.bio]} pointerEvents="none">
