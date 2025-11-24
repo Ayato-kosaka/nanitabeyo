@@ -140,17 +140,6 @@ export function ProfileTabsLayout() {
 		});
 	}, [lightImpact, openLoginModal, logFrontendEvent, user?.id]);
 
-	// #設定画面 【設計】設定画面へ遷移するハンドラを追加
-	const handleSettings = useCallback(() => {
-		lightImpact();
-		router.push(`/(tabs)/profile/settings`);
-		logFrontendEvent({
-			event_name: "settings_screen_opened",
-			error_level: "log",
-			payload: { userId: user?.id },
-		});
-	}, [lightImpact, logFrontendEvent, user?.id]);
-
 	const handleTabChange = useCallback(
 		(index: number) => {
 			const tabName = tabRoutes[index];
@@ -181,7 +170,6 @@ export function ProfileTabsLayout() {
 				onMessage={() => {}}
 				onFeedback={handleFeedback}
 				onLogin={handleLogin}
-				onSettings={handleSettings}
 			/>
 		);
 	}, [
@@ -196,7 +184,6 @@ export function ProfileTabsLayout() {
 		handleFollow,
 		handleFeedback,
 		handleLogin,
-		handleSettings,
 	]);
 
 	const renderTabBar = useCallback(

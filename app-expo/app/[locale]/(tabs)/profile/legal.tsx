@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, ScrollView, StyleSheet, SafeAreaView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import Markdown from "react-native-markdown-display";
 import i18n from "@/lib/i18n";
-import { legalDocuments } from "@/features/settings/data/legalDocuments";
+import { legalDocuments } from "@/features/settings/assets/legal/legalDocuments";
+import { useLocale } from "@/hooks/useLocale";
 
 type LegalLocale = "ja-JP" | "en-US";
 type DocumentType = "guidelines" | "terms" | "privacy" | "copyright";
 
 export default function LegalDocumentScreen() {
-	const params = useLocalSearchParams<{ type: DocumentType; locale: LegalLocale }>();
-	const documentType = params.type || "terms";
-	const legalLocale = (params.locale || "en-US") as LegalLocale;
+	const { documentType } = useLocalSearchParams<{ documentType: DocumentType }>();
+	const locale = useLocale();
 
-	// #設定画面 【設計】タイトルを i18n から取得
+	// 【設計】タイトルを i18n から取得
 	const title = useMemo(() => {
 		switch (documentType) {
 			case "guidelines":
@@ -30,10 +30,12 @@ export default function LegalDocumentScreen() {
 		}
 	}, [documentType]);
 
-	// #設定画面 【設計】Markdown コンテンツを取得
+	// 【設計】Markdown コンテンツを取得
 	const markdownContent = useMemo(() => {
-		return legalDocuments[legalLocale]?.[documentType] || "";
-	}, [documentType, legalLocale]);
+		return locale in legalDocuments && documentType in legalDocuments[locale as LegalLocale]
+			? legalDocuments[locale as LegalLocale][documentType as DocumentType]
+			: legalDocuments["en-US"][documentType as DocumentType];
+	}, [documentType, locale]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
@@ -65,8 +67,6 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		paddingHorizontal: 16,
 		paddingVertical: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#F3F4F6",
 	},
 	backButton: {
 		padding: 4,
@@ -97,52 +97,50 @@ const styles = StyleSheet.create({
 // #設定画面 【設計】Markdown のスタイル設定
 const markdownStyles = {
 	body: {
-		fontSize: 15,
-		lineHeight: 24,
-		color: "#374151",
+		fontSize: 16,
+		lineHeight: 26,
+		color: "#111827",
 	},
 	heading1: {
 		fontSize: 24,
 		fontWeight: "700",
-		color: "#1A1A1A",
+		color: "#111827",
 		marginTop: 24,
 		marginBottom: 12,
 	},
 	heading2: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginTop: 20,
-		marginBottom: 10,
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#111827",
+		marginTop: 32,
+		marginBottom: 12,
 	},
 	heading3: {
 		fontSize: 18,
 		fontWeight: "600",
-		color: "#1A1A1A",
+		color: "#111827",
 		marginTop: 16,
 		marginBottom: 8,
 	},
 	paragraph: {
-		marginBottom: 12,
+		marginBottom: 16,
 	},
 	link: {
-		color: "#5EA2FF",
+		color: "#2563EB",
+		textDecorationLine: "underline",
 	},
 	bullet_list: {
-		marginBottom: 12,
+		marginTop: 4,
+		marginBottom: 16,
+		paddingLeft: 20,
 	},
 	ordered_list: {
-		marginBottom: 12,
+		marginTop: 4,
+		marginBottom: 16,
+		paddingLeft: 20,
 	},
 	list_item: {
-		marginBottom: 4,
-	},
-	code_inline: {
-		backgroundColor: "#F3F4F6",
-		paddingHorizontal: 4,
-		paddingVertical: 2,
-		borderRadius: 4,
-		fontFamily: "monospace",
+		marginBottom: 6,
 	},
 	code_block: {
 		backgroundColor: "#F3F4F6",
@@ -151,11 +149,11 @@ const markdownStyles = {
 		marginBottom: 12,
 	},
 	blockquote: {
-		backgroundColor: "#F8F9FA",
-		borderLeftWidth: 4,
-		borderLeftColor: "#5EA2FF",
+		backgroundColor: "#F9FAFB",
+		borderLeftWidth: 3,
+		borderLeftColor: "#D1D5DB",
 		paddingLeft: 12,
 		paddingVertical: 8,
-		marginBottom: 12,
+		marginVertical: 12,
 	},
 };

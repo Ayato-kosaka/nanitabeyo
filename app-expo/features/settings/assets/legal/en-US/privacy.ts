@@ -1,3 +1,4 @@
+export const privacyEnUS = `
 # Privacy Policy
 
 Last Updated: November 2025
@@ -107,3 +108,4 @@ For inquiries and deletion requests, please contact us via:
 ---
 
 End of document
+`;

@@ -78,9 +78,10 @@ export default function SettingsScreen() {
 				payload: { documentType },
 			});
 
-			// locale === "ja-JP" の場合は ja-JP、それ以外は en-US
-			const legalLocale = locale === "ja-JP" ? "ja-JP" : "en-US";
-			router.push(`/${locale}/(tabs)/profile/legal?type=${documentType}&locale=${legalLocale}`);
+			router.push({
+				pathname: "/[locale]/(tabs)/profile/legal",
+				params: { locale, documentType },
+			});
 		},
 		[locale, router, lightImpact, logFrontendEvent],
 	);
@@ -126,6 +127,10 @@ export default function SettingsScreen() {
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea}>
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+					<View style={styles.header}>
+						<Text style={styles.title}>{i18n.t("Settings.title")}</Text>
+					</View>
+
 					{/* Card 1: フィードバック・レビュー */}
 					<Card style={styles.card}>
 						<SettingsMenuItem label={i18n.t("Settings.sendFeedback")} onPress={handleSendFeedback} />
@@ -168,8 +173,18 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	scrollContent: {
-		paddingTop: 16,
 		paddingBottom: 32,
+	},
+	header: {
+		paddingHorizontal: 32,
+		paddingVertical: 12,
+	},
+	title: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		letterSpacing: -0.5,
+		flex: 1,
 	},
 	card: {
 		padding: 0,
