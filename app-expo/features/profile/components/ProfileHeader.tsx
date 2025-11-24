@@ -72,7 +72,7 @@ export function ProfileHeader({
 			error_level: "log",
 			payload: { userId: user?.id },
 		});
-	}, [lightImpact, logFrontendEvent, user?.id]);
+	}, [lightImpact, logFrontendEvent, user?.id, locale]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
