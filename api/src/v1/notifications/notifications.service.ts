@@ -17,7 +17,10 @@ import {
   NotificationResponse,
   DishMediaEntry,
 } from '@shared/v1/res';
-import { convertPrismaToSupabase_Notifications, PrismaNotifications } from '../../../../shared/converters/convert_notifications';
+import {
+  convertPrismaToSupabase_Notifications,
+  PrismaNotifications,
+} from '../../../../shared/converters/convert_notifications';
 import { UsersService } from '../users/users.service';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { UsersAssembler } from '../users/users.assembler';
@@ -73,7 +76,12 @@ export class NotificationsService {
         .filter((item) => item.notifications.target_table === 'dish_reviews')
         .map((item) => item.notifications.target_id),
     });
-    const reviewMap = new Map(reviews.map((r) => [r.id, { ...r, ...convertPrismaToSupabase_DishReviews(r) }]));
+    const reviewMap = new Map(
+      reviews.map((r) => [
+        r.id,
+        { ...r, ...convertPrismaToSupabase_DishReviews(r) },
+      ]),
+    );
 
     // dish_media ターゲットのエンティティを一括取得
     const uniqueDishMediaIds = Array.from(
@@ -105,10 +113,10 @@ export class NotificationsService {
           ? dishMediaMap.get(item.notifications.target_id)
           : item.notifications.target_table === 'dish_reviews'
             ? this.buildDishMediaEntryForReviewNotification(
-              item,
-              reviewMap,
-              dishMediaMap,
-            )
+                item,
+                reviewMap,
+                dishMediaMap,
+              )
             : undefined,
     }));
 
@@ -131,7 +139,10 @@ export class NotificationsService {
 
     return {
       ...dishME,
-      dish_reviews: [review, ...dishME.dish_reviews.filter((dr) => dr.id !== review.id)],
+      dish_reviews: [
+        review,
+        ...dishME.dish_reviews.filter((dr) => dr.id !== review.id),
+      ],
     };
   }
 

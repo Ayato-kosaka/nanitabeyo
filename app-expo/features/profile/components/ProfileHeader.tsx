@@ -22,6 +22,7 @@ interface ProfileHeaderProps {
 	onMessage?: () => void;
 	onFeedback?: () => void;
 	onLogin?: () => void;
+	onSettings?: () => void;
 }
 
 const formatNumber = (num: number): string => {
@@ -47,6 +48,7 @@ export function ProfileHeader({
 	onMessage,
 	onFeedback,
 	onLogin,
+	onSettings,
 }: ProfileHeaderProps) {
 	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
 	return (
@@ -63,7 +65,7 @@ export function ProfileHeader({
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.settingButton} onPress={(() => {})}>
+					<TouchableOpacity style={styles.settingButton} onPress={onSettings || (() => {})}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
 				</View>

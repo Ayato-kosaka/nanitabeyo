@@ -439,5 +439,15 @@
 		"conflict_dialog_message": "此账户已链接到另一个用户。如果您切换，作为访客创建的数据将不会被转移。您要切换到现有账户吗？",
 		"conflict_dialog_switch": "切换",
 		"conflict_dialog_cancel": "取消"
+	},
+	"Settings": {
+		"title": "设置",
+		"sendFeedback": "发送反馈",
+		"leaveReview": "留下评价",
+		"communityGuidelines": "社区准则",
+		"terms": "条款和条件",
+		"privacy": "隐私政策",
+		"copyright": "版权",
+		"logout": "登出"
 	}
 }

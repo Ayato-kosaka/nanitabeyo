@@ -439,5 +439,15 @@
 		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
 		"conflict_dialog_switch": "전환",
 		"conflict_dialog_cancel": "취소"
+	},
+	"Settings": {
+		"title": "설정",
+		"sendFeedback": "피드백 보내기",
+		"leaveReview": "리뷰 남기기",
+		"communityGuidelines": "커뮤니티 가이드라인",
+		"terms": "이용약관",
+		"privacy": "개인정보 처리방침",
+		"copyright": "저작권",
+		"logout": "로그아웃"
 	}
 }

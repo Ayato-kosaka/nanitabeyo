@@ -439,5 +439,15 @@
 		"conflict_dialog_message": "هذا الحساب مرتبط بالفعل بمستخدم آخر. إذا قمت بالتبديل، لن يتم نقل البيانات التي تم إنشاؤها كضيف. هل تريد التبديل إلى الحساب الموجود؟",
 		"conflict_dialog_switch": "تبديل",
 		"conflict_dialog_cancel": "إلغاء"
+	},
+	"Settings": {
+		"title": "الإعدادات",
+		"sendFeedback": "إرسال ملاحظات",
+		"leaveReview": "اترك تقييم",
+		"communityGuidelines": "إرشادات المجتمع",
+		"terms": "الشروط والأحكام",
+		"privacy": "سياسة الخصوصية",
+		"copyright": "حقوق النشر",
+		"logout": "تسجيل الخروج"
 	}
 }

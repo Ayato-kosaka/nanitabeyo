@@ -439,5 +439,15 @@
 		"conflict_dialog_message": "対象のアカウントは既に別ユーザーに紐づいています。切り替えるとゲストで作成したデータは引き継がれません。既存アカウントに切り替えますか？",
 		"conflict_dialog_switch": "切り替える",
 		"conflict_dialog_cancel": "キャンセル"
+	},
+	"Settings": {
+		"title": "設定",
+		"sendFeedback": "ご意見・不具合",
+		"leaveReview": "レビューを書く",
+		"communityGuidelines": "コミュニティガイドライン",
+		"terms": "利用規約",
+		"privacy": "プライバシーポリシー",
+		"copyright": "著作権",
+		"logout": "ログアウト"
 	}
 }
