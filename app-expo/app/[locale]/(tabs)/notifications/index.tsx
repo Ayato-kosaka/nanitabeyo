@@ -220,35 +220,38 @@ export default function NotificationsScreen() {
 			{/* Notifications List */}
 			<View style={styles.notificationContainer}>
 				<View style={styles.sheet}>
-					<FlatList
-						data={notifications.items}
-						renderItem={renderNotificationItem}
-						keyExtractor={(item) => item.notification.id}
-						onEndReached={notifications.loadMore}
-						onEndReachedThreshold={0.5}
-						refreshing={notifications.isLoadingInitial}
-						onRefresh={notifications.refresh}
-						ListEmptyComponent={
-							notifications.isLoadingInitial ? (
-								<View style={styles.loadingContainer}>
-									<ActivityIndicator size="large" color="#5EA2FF" />
-								</View>
-							) : (
+					{/* 初回ロードはリストをレンダリングせずローディング表示を出す */}
+					{notifications.isLoadingInitial && notifications.items.length === 0 ? (
+						<View style={styles.loadingContainer}>
+							<ActivityIndicator size="large" color="#5EA2FF" />
+						</View>
+					) : (
+						<FlatList
+							data={notifications.items}
+							renderItem={renderNotificationItem}
+							keyExtractor={(item) => item.notification.id}
+							onEndReached={notifications.loadMore}
+							onEndReachedThreshold={0.5}
+							refreshing={notifications.isLoadingInitial}
+							onRefresh={notifications.refresh}
+							// 初回ロードが終わった後に表示する「空」表示
+							ListEmptyComponent={
 								<View style={styles.emptyContainer}>
 									<Text style={styles.emptyText}>{i18n.t("Notifications.empty")}</Text>
 								</View>
-							)
-						}
-						ListFooterComponent={
-							notifications.isLoadingMore ? (
-								<View style={styles.loadingContainer}>
-									<ActivityIndicator size="small" color="#5EA2FF" />
-									<Text style={styles.loadingText}>{i18n.t("Notifications.loadingMore")}</Text>
-								</View>
-							) : null
-						}
-						contentContainerStyle={styles.scrollContent}
-					/>
+							}
+							// フッターローダーは items が存在する場合にのみ表示する
+							ListFooterComponent={
+								notifications.isLoadingMore && notifications.items.length > 0 ? (
+									<View style={styles.loadingContainer}>
+										<ActivityIndicator size="small" color="#5EA2FF" />
+										<Text style={styles.loadingText}>{i18n.t("Notifications.loadingMore")}</Text>
+									</View>
+								) : null
+							}
+							contentContainerStyle={styles.scrollContent}
+						/>
+					)}
 				</View>
 			</View>
 		</SafeAreaView>
