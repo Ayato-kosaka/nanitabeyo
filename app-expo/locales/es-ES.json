@@ -439,5 +439,15 @@
 		"conflict_dialog_message": "Esta cuenta ya está vinculada a otro usuario. Si cambias, los datos creados como invitado no se transferirán. ¿Deseas cambiar a la cuenta existente?",
 		"conflict_dialog_switch": "Cambiar",
 		"conflict_dialog_cancel": "Cancelar"
+	},
+	"Settings": {
+		"title": "Configuración",
+		"sendFeedback": "Enviar comentarios",
+		"leaveReview": "Dejar reseña",
+		"communityGuidelines": "Directrices de la comunidad",
+		"terms": "Términos y condiciones",
+		"privacy": "Política de privacidad",
+		"copyright": "Derechos de autor",
+		"logout": "Cerrar sesión"
 	}
 }

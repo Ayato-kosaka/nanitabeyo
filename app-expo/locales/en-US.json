@@ -439,5 +439,15 @@
 		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
 		"conflict_dialog_switch": "Switch",
 		"conflict_dialog_cancel": "Cancel"
+	},
+	"Settings": {
+		"title": "Settings",
+		"sendFeedback": "Send Feedback",
+		"leaveReview": "Leave Review",
+		"communityGuidelines": "Community Guidelines",
+		"terms": "Terms and Conditions",
+		"privacy": "Privacy Policy",
+		"copyright": "Copyright",
+		"logout": "Logout"
 	}
 }

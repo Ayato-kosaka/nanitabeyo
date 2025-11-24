@@ -1,3 +1,4 @@
+export const copyrightEnUs = `
 # Copyright & Intellectual Property Policy
 
 Last Updated: November 2025
@@ -67,3 +68,4 @@ This policy may be updated at any time and becomes effective when published.
 ---
 
 End of document
+`;

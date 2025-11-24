@@ -1,3 +1,4 @@
+export const termsEnUs = `
 # Terms of Service
 
 Last Updated: November 2025
@@ -98,3 +99,4 @@ For requests, inquiries or deletion of posted content, please contact us via the
 ---
 
 End of Terms
+`;

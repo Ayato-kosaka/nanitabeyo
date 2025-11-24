@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,6 +8,11 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { GetUserProfileResponse } from "@shared/api/v1/res";
 import { getCacheKeyForImage } from "@/lib/image";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
+import { router } from "expo-router";
+import { useAuth } from "@/contexts/AuthProvider";
+import { useLocale } from "@/hooks/useLocale";
 
 interface ProfileHeaderProps {
 	profile: GetUserProfileResponse;
@@ -48,7 +53,27 @@ export function ProfileHeader({
 	onFeedback,
 	onLogin,
 }: ProfileHeaderProps) {
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const { user } = useAuth();
+	const locale = useLocale();
+
 	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
+
+	// #設定画面 【設計】設定画面へ遷移するハンドラを追加
+	const handleSettings = useCallback(() => {
+		lightImpact();
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/settings",
+			params: { locale },
+		});
+		logFrontendEvent({
+			event_name: "settings_screen_opened",
+			error_level: "log",
+			payload: { userId: user?.id },
+		});
+	}, [lightImpact, logFrontendEvent, user?.id, locale]);
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}
@@ -58,12 +83,17 @@ export function ProfileHeader({
 						<ArrowLeft size={24} color="#1A1A1A" />
 					</TouchableOpacity>
 				)}
-				<Text style={styles.headerTitle}>{profile.username}</Text>
+
+				{/* Display Name */}
+				<Text style={[styles.displayName]} pointerEvents="none">
+					{profile.display_name}
+				</Text>
+				{/* <Text style={styles.headerTitle}>{profile.username}</Text> */}
 				<View style={{ flexDirection: "row", gap: 8 }}>
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.settingButton} onPress={() => {}}>
+					<TouchableOpacity style={styles.settingButton} onPress={handleSettings}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
 				</View>
@@ -106,11 +136,6 @@ export function ProfileHeader({
 							</View>
 						)} */}
 					</View>
-
-					{/* Display Name */}
-					<Text style={[styles.displayName]} pointerEvents="none">
-						{profile.display_name}
-					</Text>
 
 					{/* Bio */}
 					<Text style={[styles.bio]} pointerEvents="none">

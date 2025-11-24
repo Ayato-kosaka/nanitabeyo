@@ -125,9 +125,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				sessionRef.current = session;
 				// router.replace('/');
 			} else if (event === "SIGNED_OUT") {
-				// setUser(null);
-				// setSession(null);
-				// router.replace('/login');
+				setUser(null);
+				sessionRef.current = null;
+				router.replace("/");
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
 			} else if (event === "TOKEN_REFRESHED") {

@@ -1,3 +1,4 @@
+export const guidelinesEnUs = `
 # Community Guidelines
 
 Last Updated: November 2025
@@ -70,3 +71,4 @@ Users are responsible for reviewing the latest version.
 ---
 
 End of document
+`;
