@@ -12,18 +12,16 @@ import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useLocale } from "@/hooks/useLocale";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { useTopicsStore, selectTopicIdsByKey, selectTopicById } from "@/stores/useTopicsStore";
+import { useTopicsStore, selectTopicIdsByKey, DishCategory } from "@/stores/useTopicsStore";
 import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
-import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
 import { shallow } from "zustand/shallow";
 
 interface SavedTopicsTabProps {
 	isOwnProfile: boolean;
 }
 
-// #<TICKET> 【設計】保存トピック用のストアキー定義
 export const profileSavedTopicsEntriesKey = "profileSavedTopics";
 
 export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
@@ -35,7 +33,6 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
 
-	// #<TICKET> 【設計】ストアからトピック状態を取得
 	const {
 		ids: topicIds,
 		isLoading,
@@ -44,20 +41,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		isLoadingMore,
 	} = useTopicsStore(selectTopicIdsByKey(profileSavedTopicsEntriesKey), shallow);
 
-	// #<TICKET> 【設計】トピックIDから実際のトピックデータを取得（セレクタで都度取得して最新状態を反映）
-	const topics = useTopicsStore(
-		useCallback(
-			(state) =>
-				topicIds
-					.map((id) => state.topicById[id])
-					.filter((topic): topic is SupabaseDishCategories => topic !== undefined),
-			[topicIds],
-		),
-		shallow,
-	);
-
 	// Location search modal state
-	const [selectedTopic, setSelectedTopic] = useState<SupabaseDishCategories | null>(null);
+	const [selectedTopic, setSelectedTopic] = useState<DishCategory | null>(null);
 	const {
 		BlurModal: LocationModal,
 		open: openLocationModal,
@@ -66,7 +51,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		intensity: 100,
 	});
 
-	// #<TICKET> 【設計】初回マウント時にストアから保存トピックを取得
+	// #472 【設計】初回マウント時にストアから保存トピックを取得
 	useEffect(() => {
 		const { fetchInitialByKey, hasFetchedInitialByKey } = useTopicsStore.getState();
 
@@ -90,17 +75,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		});
 	}, [callBackend]);
 
-	if (!isOwnProfile) {
-		return (
-			<View style={styles.privateContainer}>
-				<View style={styles.privateCard}>
-					<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
-				</View>
-			</View>
-		);
-	}
-
-	// #<TICKET> 【設計】リフレッシュハンドラ（初期データを再取得）
+	// #472 【設計】リフレッシュハンドラ（初期データを再取得）
 	const handleRefresh = useCallback(async () => {
 		const { fetchInitialByKey } = useTopicsStore.getState();
 		await fetchInitialByKey(profileSavedTopicsEntriesKey, {} as QueryMeSavedDishCategoriesDto, async ({ cursor }) => {
@@ -118,7 +93,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		});
 	}, [callBackend]);
 
-	// #<TICKET> 【設計】追加ページ取得ハンドラ
+	// #472 【設計】追加ページ取得ハンドラ
 	const handleLoadMore = useCallback(async () => {
 		if (!hasNextPage || isLoadingMore) return;
 
@@ -139,7 +114,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	}, [callBackend, hasNextPage, isLoadingMore]);
 
 	const handleTopicPress = useCallback(
-		(item: any, index: number) => {
+		(item: DishCategory, index: number) => {
 			lightImpact();
 			logFrontendEvent({
 				event_name: "saved_topic_selected",
@@ -211,10 +186,20 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		closeLocationModal();
 	}, [closeLocationModal]);
 
+	if (!isOwnProfile) {
+		return (
+			<View style={styles.privateContainer}>
+				<View style={styles.privateCard}>
+					<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
+				</View>
+			</View>
+		);
+	}
+
 	return (
 		<>
 			<SaveTopicTab
-				data={topics}
+				topicIds={topicIds}
 				isLoading={isLoading}
 				isLoadingMore={isLoadingMore}
 				refreshing={isLoading}

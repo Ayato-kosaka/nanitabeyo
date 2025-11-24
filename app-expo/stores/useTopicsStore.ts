@@ -2,7 +2,8 @@ import i18n from "@/lib/i18n";
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
 import { createWithEqualityFn } from "zustand/traditional";
 
-// #<TICKET> 【設計】保存トピック（SupabaseDishCategories）を正規化してストア管理
+// #472 【設計】保存トピック（DishCategory）を正規化してストア管理
+export type DishCategory = Pick<SupabaseDishCategories, "id" | "image_url" | "labels" | "label_en">;
 
 /**
  * 保存トピック（dish_categories）に関する正規化済みの状態を管理するストア。
@@ -18,10 +19,10 @@ export type TopicsStore = {
 	// ------ 内部状態（直接参照せず、セレクタ経由で読むことを推奨） ------
 
 	/**
-	 * topic.id をキーにした正規化済み SupabaseDishCategories のマップ。
+	 * topic.id をキーにした正規化済み DishCategory のマップ。
 	 * ここがトピック情報の唯一のソース・オブ・トゥルース。
 	 */
-	topicById: Record<string, SupabaseDishCategories>;
+	topicById: Record<string, DishCategory>;
 
 	/**
 	 * 画面用途キー（例: "profileSavedTopics"）ごとの topic.id の配列。
@@ -57,10 +58,10 @@ export type TopicsStore = {
 	// ------ public 挿入・更新メソッド（同期） ------
 
 	/**
-	 * SupabaseDishCategories 配列を正規化して topicById を更新する。
+	 * DishCategory 配列を正規化して topicById を更新する。
 	 * 並び順（topicIdsByKey）には触れない。
 	 */
-	upsertTopics: (items: SupabaseDishCategories[]) => void;
+	upsertTopics: (items: DishCategory[]) => void;
 
 	/**
 	 * 指定キーの topicId 配列を更新する（並び順専用）。
@@ -68,9 +69,9 @@ export type TopicsStore = {
 	updateTopicIdsByKey: (key: string, updater: (prevIds: string[]) => string[]) => void;
 
 	/**
-	 * 指定した SupabaseDishCategories（topic.id）をピンポイントに更新する。
+	 * 指定した DishCategory（topic.id）をピンポイントに更新する。
 	 */
-	updateTopic: (topicId: string, topicUpdater: (topic: SupabaseDishCategories) => SupabaseDishCategories) => void;
+	updateTopic: (topicId: string, topicUpdater: (topic: DishCategory) => DishCategory) => void;
 
 	// ------ public 挿入・更新メソッド（非同期ラッパー） ------
 
@@ -106,7 +107,7 @@ export type TopicsStore = {
 		key: string,
 		request: TReq,
 		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
-			data: SupabaseDishCategories[];
+			data: DishCategory[];
 			nextCursor?: string | null;
 		}>,
 	) => Promise<void>;
@@ -118,7 +119,7 @@ export type TopicsStore = {
 		key: string,
 		request: TReq | undefined,
 		fetcher: (params: { cursor?: string | null; request?: TReq }) => Promise<{
-			data: SupabaseDishCategories[];
+			data: DishCategory[];
 			nextCursor?: string | null;
 		}>,
 	) => Promise<void>;
@@ -134,33 +135,33 @@ export type TopicsStore = {
  */
 export const selectTopicIdsByKey =
 	(key: string) =>
-	(
-		state: TopicsStore,
-	): {
-		ids: string[];
-		isLoading: boolean;
-		error: string | null;
-		hasFetchedInitial: boolean;
-		hasNextPage: boolean;
-		isLoadingMore: boolean;
-	} => {
-		return {
-			ids: state.topicIdsByKey[key] ?? [],
-			isLoading: state.isLoadingByKey[key] ?? false,
-			error: state.errorByKey[key] ?? null,
-			hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
-			hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
-			isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
+		(
+			state: TopicsStore,
+		): {
+			ids: string[];
+			isLoading: boolean;
+			error: string | null;
+			hasFetchedInitial: boolean;
+			hasNextPage: boolean;
+			isLoadingMore: boolean;
+		} => {
+			return {
+				ids: state.topicIdsByKey[key] ?? [],
+				isLoading: state.isLoadingByKey[key] ?? false,
+				error: state.errorByKey[key] ?? null,
+				hasFetchedInitial: state.hasFetchedInitialByKey[key] ?? false,
+				hasNextPage: (state.nextCursorByKey[key] ?? null) !== null,
+				isLoadingMore: state.isLoadingMoreByKey[key] ?? false,
+			};
 		};
-	};
 
 /**
- * topic.id から正規化済み SupabaseDishCategories を取得するセレクタ。
+ * topic.id から正規化済み DishCategory を取得するセレクタ。
  */
 export const selectTopicById =
 	(topicId: string) =>
-	(state: TopicsStore): SupabaseDishCategories | null =>
-		state.topicById[topicId] ?? null;
+		(state: TopicsStore): DishCategory | null =>
+			state.topicById[topicId] ?? null;
 
 export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => ({
 	// ------ 初期状態 ------
@@ -178,7 +179,7 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 	upsertTopics: (items) =>
 		set((state) => {
 			if (!items.length) return state;
-			const topicPatch: Record<string, SupabaseDishCategories> = {};
+			const topicPatch: Record<string, DishCategory> = {};
 
 			for (const item of items) {
 				const topicId = item.id;
@@ -210,11 +211,11 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 			return state.topicById[topicId] === undefined
 				? state
 				: {
-						topicById: {
-							...state.topicById,
-							[topicId]: topicUpdater(state.topicById[topicId]),
-						},
-					};
+					topicById: {
+						...state.topicById,
+						[topicId]: topicUpdater(state.topicById[topicId]),
+					},
+				};
 		}),
 
 	// ------ 非同期挿入・更新メソッド ------
@@ -265,7 +266,7 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 			}
 
 			// topicById をクリーンアップ
-			const nextTopicById: Record<string, SupabaseDishCategories> = {};
+			const nextTopicById: Record<string, DishCategory> = {};
 			for (const id of remainingTopicIds) {
 				const topic = state.topicById[id];
 				if (topic) {

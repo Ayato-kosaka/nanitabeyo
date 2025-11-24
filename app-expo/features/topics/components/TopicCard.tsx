@@ -24,9 +24,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		lightImpact();
 		setIsSaved(willSave);
 
-		// #<TICKET> 【設計】ActionButtons と同様にストアを更新（保存状態の一貫性担保）
-		// Note: Topic.categoryId は SupabaseDishCategories.id に対応
-		const { updateTopicIdsByKey } = useTopicsStore.getState();
+		const { updateTopicIdsByKey, upsertTopics } = useTopicsStore.getState();
 
 		try {
 			await toggleReaction({
@@ -36,8 +34,16 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 				willReact: willSave,
 			});
 
-			// #<TICKET> 【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
+			// #472【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
 			if (willSave) {
+				upsertTopics([
+					{
+						id: item.categoryId,
+						image_url: item.imageUrl,
+						labels: {},
+						label_en: item.topicTitle,
+					},
+				]);
 				updateTopicIdsByKey(profileSavedTopicsEntriesKey, (prev) => {
 					const without = prev.filter((id) => id !== item.categoryId);
 					return [item.categoryId, ...without];
@@ -47,7 +53,6 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 			}
 		} catch (error) {
 			// Revert state on error
-			setIsSaved(!willSave);
 			logFrontendEvent({
 				event_name: "topic_save_reaction_failed",
 				error_level: "log",
