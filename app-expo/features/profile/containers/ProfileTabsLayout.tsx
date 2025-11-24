@@ -112,24 +112,6 @@ export function ProfileTabsLayout() {
 		});
 	}, [lightImpact, openEditModal, logFrontendEvent]);
 
-	const handleFeedback = useCallback(() => {
-		lightImpact();
-		openFeedbackModal();
-		logFrontendEvent({
-			event_name: "feedback_modal_opened",
-			error_level: "log",
-			payload: { userId: user?.id },
-		});
-	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
-
-	const handleFeedbackSubmit = useCallback(
-		(data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
-			closeFeedbackModal();
-			// Additional success handling could be added here if needed
-		},
-		[closeFeedbackModal],
-	);
-
 	const handleLogin = useCallback(() => {
 		lightImpact();
 		openLoginModal();
@@ -168,7 +150,6 @@ export function ProfileTabsLayout() {
 				onEditProfile={handleEditProfile}
 				onFollow={handleFollow}
 				onMessage={() => {}}
-				onFeedback={handleFeedback}
 				onLogin={handleLogin}
 			/>
 		);
@@ -182,7 +163,6 @@ export function ProfileTabsLayout() {
 		handleShareProfile,
 		handleEditProfile,
 		handleFollow,
-		handleFeedback,
 		handleLogin,
 	]);
 
@@ -256,18 +236,6 @@ export function ProfileTabsLayout() {
 			</Tabs.Container>
 
 			{profile && <BlurModal>{({ close }) => <ProfileEditForm close={close} onCancel={close} />}</BlurModal>}
-
-			<FeedbackModal>
-				{({ close }) => (
-					<FeedbackForm
-						onSubmit={(data) => {
-							handleFeedbackSubmit(data);
-							close();
-						}}
-						onCancel={close}
-					/>
-				)}
-			</FeedbackModal>
 
 			<LoginModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginModal>
 		</View>

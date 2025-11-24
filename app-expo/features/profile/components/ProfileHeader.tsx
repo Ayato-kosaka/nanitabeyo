@@ -25,7 +25,6 @@ interface ProfileHeaderProps {
 	onEditProfile?: () => void;
 	onFollow?: () => void;
 	onMessage?: () => void;
-	onFeedback?: () => void;
 	onLogin?: () => void;
 }
 
@@ -50,7 +49,6 @@ export function ProfileHeader({
 	onEditProfile,
 	onFollow,
 	onMessage,
-	onFeedback,
 	onLogin,
 }: ProfileHeaderProps) {
 	const { lightImpact } = useHaptics();
@@ -153,12 +151,6 @@ export function ProfileHeader({
 							/>
 						) : isGuest && isOwnProfile ? (
 							<PrimaryButton style={{ flex: 1 }} onPress={onLogin || (() => {})} label={i18n.t("auth.btn_login")} />
-						) : isGuest ? (
-							<PrimaryButton
-								style={{ flex: 1 }}
-								onPress={onFeedback || (() => {})}
-								label={i18n.t("Profile.buttons.sendFeedback")}
-							/>
 						) : (
 							<>
 								<TouchableOpacity

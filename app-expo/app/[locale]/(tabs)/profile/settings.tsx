@@ -54,17 +54,6 @@ export default function SettingsScreen() {
 		close: closeFeedbackModal,
 	} = useBlurModal({ intensity: 100 });
 
-	// フィードバック送信モーダルを起動
-	const handleSendFeedback = useCallback(() => {
-		lightImpact();
-		openFeedbackModal();
-		logFrontendEvent({
-			event_name: "settings_send_feedback_pressed",
-			error_level: "log",
-			payload: {},
-		});
-	}, [lightImpact, openFeedbackModal, logFrontendEvent]);
-
 	// アプリストアのレビュー画面を起動（ネイティブのみ）
 	const handleLeaveReview = useCallback(async () => {
 		lightImpact();
@@ -122,13 +111,19 @@ export default function SettingsScreen() {
 		}
 	}, [logout, mediumImpact, logFrontendEvent]);
 
+	// フィードバック送信モーダルを起動
+	const handleSendFeedback = useCallback(() => {
+		lightImpact();
+		openFeedbackModal();
+		logFrontendEvent({
+			event_name: "settings_send_feedback_pressed",
+			error_level: "log",
+			payload: { userId: user?.id },
+		});
+	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
+
 	const handleFeedbackSubmit = useCallback(
 		(data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
-			logFrontendEvent({
-				event_name: "feedback_submitted_from_settings",
-				error_level: "log",
-				payload: { issueNumber: data.issueNumber },
-			});
 			closeFeedbackModal();
 		},
 		[closeFeedbackModal, logFrontendEvent],
