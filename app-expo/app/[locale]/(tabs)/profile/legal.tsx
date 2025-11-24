@@ -60,16 +60,27 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	header: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 		paddingHorizontal: 16,
-		paddingVertical: 16,
+		paddingVertical: 12,
 		borderBottomWidth: 1,
 		borderBottomColor: "#F3F4F6",
 	},
+	backButton: {
+		padding: 4,
+	},
 	title: {
-		fontSize: 24,
+		fontSize: 20,
 		fontWeight: "700",
 		color: "#1A1A1A",
 		letterSpacing: -0.5,
+		flex: 1,
+		textAlign: "center",
+	},
+	placeholder: {
+		width: 32,
 	},
 	scrollView: {
 		flex: 1,
@@ -80,22 +91,6 @@ const styles = StyleSheet.create({
 	},
 	contentContainer: {
 		paddingHorizontal: 20,
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	errorContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 20,
-	},
-	errorText: {
-		fontSize: 16,
-		color: "#DC2626",
-		textAlign: "center",
 	},
 });
 
