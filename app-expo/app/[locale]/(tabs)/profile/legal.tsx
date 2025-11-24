@@ -32,9 +32,8 @@ export default function LegalDocumentScreen() {
 
 	// 【設計】Markdown コンテンツを取得
 	const markdownContent = useMemo(() => {
-		return locale in legalDocuments && documentType in legalDocuments[locale as LegalLocale]
-			? legalDocuments[locale as LegalLocale][documentType as DocumentType]
-			: legalDocuments["en-US"][documentType as DocumentType];
+		const localeData = locale in legalDocuments ? legalDocuments[locale as LegalLocale] : legalDocuments["en-US"];
+		return localeData[documentType as DocumentType] || legalDocuments["en-US"][documentType as DocumentType] || "";
 	}, [documentType, locale]);
 
 	return (
