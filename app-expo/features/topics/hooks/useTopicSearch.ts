@@ -37,7 +37,7 @@ export const useTopicSearch = () => {
 			category: Topic["category"],
 			latitude: number,
 			longitude: number,
-			languageCode: string,
+			searchLocationLanguageCode: string,
 			radius: number = 500, // Default 500m
 			priceLevels: string[] = [
 				"PRICE_LEVEL_INEXPENSIVE",
@@ -84,7 +84,7 @@ export const useTopicSearch = () => {
 						categoryId: categoryId,
 						categoryName: category,
 						minRating: 3.0, // Fixed value as per requirement
-						languageCode: languageCode, // First part of locale (e.g., "ja" from "ja-JP")
+						languageCode: searchLocationLanguageCode, // First part of locale (e.g., "ja" from "ja-JP")
 						// Only include priceLevels if not all are selected
 						...(isAllPriceLevelsSelected ? {} : { priceLevels: priceLevels }),
 					};
@@ -218,8 +218,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												typeof createDishCategoryVariantResponse.labels === "object" &&
+												params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
