@@ -20,11 +20,9 @@ export type QueryRestaurantsResponse = {
 }[];
 
 /** POST /v1/restaurants のレスポンス型 */
-export type CreateRestaurantResponse = RestaurantsEntity & {
-	reviewCount: number;
-	averageRating: number;
-	totalCents: number;
-	maxEndDate: string | null;
+export type CreateRestaurantResponse = {
+	restaurant: RestaurantsEntity;
+	meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
 };
 
 /** POST /v1/restaurants/:id/bids/intents のレスポンス型 */

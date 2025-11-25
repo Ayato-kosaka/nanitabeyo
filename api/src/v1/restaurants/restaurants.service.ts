@@ -47,7 +47,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -93,14 +93,14 @@ export class RestaurantsService {
         this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
     );
     let restaurantReviewStats: Pick<
-      CreateRestaurantResponse,
+      CreateRestaurantResponse['meta'],
       'reviewCount' | 'averageRating'
     > = {
       reviewCount: 0,
       averageRating: 0,
     };
     let restaurantBidStats: Pick<
-      CreateRestaurantResponse,
+      CreateRestaurantResponse['meta'],
       'totalCents' | 'maxEndDate'
     > = {
       totalCents: 0,
@@ -144,7 +144,7 @@ export class RestaurantsService {
       } catch (error) {
         throw new Error(
           'Failed to determine restaurant language code: ' +
-            (error as Error).message,
+          (error as Error).message,
         );
       }
 
@@ -270,15 +270,19 @@ export class RestaurantsService {
     }
 
     return {
-      ...convertPrismaToSupabase_Restaurants(restaurant),
-      imageUrls: imageSignedUrl
-        ? {
+      restaurant: {
+        ...convertPrismaToSupabase_Restaurants(restaurant),
+        imageUrls: imageSignedUrl
+          ? {
             sm: imageSignedUrl,
             md: imageSignedUrl,
           }
-        : undefined,
-      ...restaurantReviewStats,
-      ...restaurantBidStats,
+          : undefined,
+      },
+      meta: {
+        ...restaurantReviewStats,
+        ...restaurantBidStats,
+      }
     };
   }
 

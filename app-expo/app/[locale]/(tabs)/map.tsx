@@ -24,7 +24,7 @@ export default function MapScreen() {
 	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
-	const [isLoadingRestaurants, setIsLoadingRestaurants] = useState(false);
+	const [isLoadingNearbyRestaurants, setIsLoadingNearbyRestaurants] = useState(false);
 	const [isLoadingPoiRestaurant, setIsLoadingPoiRestaurant] = useState(false);
 	const {
 		BlurModal: RestaurantBlurModal,
@@ -45,9 +45,9 @@ export default function MapScreen() {
 	// Search nearby restaurants when region changes
 	const searchNearbyRestaurants = useCallback(
 		async (region: Region) => {
-			if (isLoadingRestaurants) return;
+			if (isLoadingNearbyRestaurants) return;
 
-			setIsLoadingRestaurants(true);
+			setIsLoadingNearbyRestaurants(true);
 			try {
 				const results = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>("v1/restaurants/search", {
 					method: "GET",
@@ -71,10 +71,10 @@ export default function MapScreen() {
 					payload: { error, lat: region.latitude, lng: region.longitude },
 				});
 			} finally {
-				setIsLoadingRestaurants(false);
+				setIsLoadingNearbyRestaurants(false);
 			}
 		},
-		[callBackend, isLoadingRestaurants, logFrontendEvent],
+		[callBackend, isLoadingNearbyRestaurants, logFrontendEvent],
 	);
 
 	useEffect(() => {
@@ -104,7 +104,7 @@ export default function MapScreen() {
 		openRestaurantModal();
 	};
 
-	// #issue【設計】POI押下時にレストラン情報を取得してモーダル表示
+	// POI押下時にレストラン情報を取得してモーダル表示
 	const handlePoiPress = async (event: PoiClickEvent) => {
 		const googlePlaceId = event.nativeEvent.placeId;
 		if (!googlePlaceId) {
@@ -124,12 +124,7 @@ export default function MapScreen() {
 				method: "POST",
 				requestPayload: { googlePlaceId },
 			});
-			// CreateRestaurantResponse を QueryRestaurantsResponse[number] 形式に変換
-			const { reviewCount, averageRating, totalCents, maxEndDate, ...restaurant } = response;
-			setSelectedPlace({
-				restaurant,
-				meta: { reviewCount, averageRating, totalCents, maxEndDate },
-			});
+			setSelectedPlace(response);
 			openRestaurantModal();
 		} catch (error) {
 			logFrontendEvent({
@@ -142,7 +137,7 @@ export default function MapScreen() {
 		}
 	};
 
-	const handleSearchSelect = async (prediction: AutocompleteLocation) => {
+	const handleAutocompleteSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
 		try {
 			const { location } = await getLocationDetails(prediction);
@@ -220,7 +215,7 @@ export default function MapScreen() {
 				<LocationAutocomplete
 					value={searchQuery}
 					onChangeText={setSearchQuery}
-					onSelectSuggestion={handleSearchSelect}
+					onSelectSuggestion={handleAutocompleteSelect}
 					onClear={() => setSearchQuery("")}
 					placeholder={i18n.t("Map.placeholders.searchRestaurants")}
 					renderInputRight={
@@ -239,20 +234,12 @@ export default function MapScreen() {
 					colors={["#ffffff", "#ffffff"]}
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A" }}
-					loading={isLoadingRestaurants}
+					loading={isLoadingNearbyRestaurants}
 				/>
 			</View>
 
 			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
-				{selectedPlace && (
-					<SelectedRestaurantDetails
-						{...selectedPlace.restaurant}
-						reviewCount={selectedPlace.meta.reviewCount}
-						averageRating={selectedPlace.meta.averageRating}
-						totalCents={selectedPlace.meta.totalCents}
-						maxEndDate={selectedPlace.meta.maxEndDate}
-					/>
-				)}
+				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}
 			</RestaurantBlurModal>
 		</SafeAreaView>
 	);
