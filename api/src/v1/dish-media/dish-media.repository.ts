@@ -545,7 +545,7 @@ export class DishMediaRepository {
     const hasMore = options.type === 'cursor' && limit !== undefined && reviews.length > limit;
     const reviewsToReturn = hasMore ? reviews.slice(0, limit) : reviews;
     const nextCursor =
-      options.type === 'cursor' && hasMore
+      options.type === 'cursor' && hasMore && reviewsToReturn.length > 0
         ? reviewsToReturn[reviewsToReturn.length - 1].created_at.toISOString()
         : null;
 
