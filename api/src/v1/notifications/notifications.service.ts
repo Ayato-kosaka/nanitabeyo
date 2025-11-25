@@ -70,12 +70,16 @@ export class NotificationsService {
       ]),
     );
 
-    const reviews = await this.dishMediaRepo.findDishReviewsByUser(userId, {
-      type: 'ids',
-      ids: items
-        .filter((item) => item.notifications.target_table === 'dish_reviews')
-        .map((item) => item.notifications.target_id),
-    });
+    // #479 【設計】Repository から items を取得（ids モードは nextCursor 不要）
+    const { items: reviews } = await this.dishMediaRepo.findDishReviewsByUser(
+      userId,
+      {
+        type: 'ids',
+        ids: items
+          .filter((item) => item.notifications.target_table === 'dish_reviews')
+          .map((item) => item.notifications.target_id),
+      },
+    );
     const reviewMap = new Map(
       reviews.map((r) => [
         r.id,

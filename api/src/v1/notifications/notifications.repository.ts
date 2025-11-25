@@ -23,6 +23,7 @@ export class NotificationsRepository {
    * @param recipientId 受信者ID
    * @param cursor ページングカーソル（形式: {thread_updated_at}_{notificationId}）
    * @param limit 取得件数
+   * #479 【設計】limit+1 方式でページ終端を正確に判定
    */
   async findNotificationsByRecipient(
     recipientId: string,
@@ -65,7 +66,8 @@ export class NotificationsRepository {
       ];
     }
 
-    const items = await this.prisma.prisma.notification_recipients.findMany({
+    // #479 【設計】limit+1 件取得して次ページ存在を判定
+    const results = await this.prisma.prisma.notification_recipients.findMany({
       where,
       // #通知機能 【設計】thread_updated_at DESC で最新の更新が先頭に来る
       // スキーマ変更後のフィールドのため型アサーションを使用
@@ -73,15 +75,17 @@ export class NotificationsRepository {
         { thread_updated_at: 'desc' } as any,
         { notification_id: 'desc' },
       ],
-      take: limit,
+      take: limit + 1,
       include: {
         notifications: true,
       },
     });
 
-    // 次ページカーソルを生成（thread_updated_at を使用）
+    // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
+    const hasMore = results.length > limit;
+    const items = hasMore ? results.slice(0, limit) : results;
     const last = items[items.length - 1];
-    const nextCursor = last
+    const nextCursor = hasMore
       ? `${(last as any).thread_updated_at?.toISOString() ?? last.created_at.toISOString()}_${last.notification_id}`
       : null;
 
