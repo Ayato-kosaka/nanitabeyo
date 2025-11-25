@@ -50,7 +50,7 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
-	const { user } = useAuth(); // #【設計】匿名ユーザー判定のため useAuth から user を取得
+	const { user } = useAuth();
 
 	// Modals
 	const {
@@ -97,11 +97,11 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
-		// #【設計】匿名ユーザーの場合は LoginbackModal を BlurModal 経由で表示、非匿名ユーザーの場合は ReviewForm を表示
+		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
 		if (user?.is_anonymous !== false) {
 			openLoginModal();
 		} else {
-			// Open modal immediately - media selection will happen inside ReviewForm
+			// ReviewForm を開くと同時にメディア選択が行われる
 			openReviewModal();
 		}
 	};

@@ -16,7 +16,7 @@ type FeedDishMediaViewerProps = {
 
 export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaViewerProps) {
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
-	const { user } = useAuth(); // #【設計】匿名ユーザー判定のため useAuth から user を取得
+	const { user } = useAuth();
 
 	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
 	const { BlurModal: ReviewFormModal, open: openReviewModal, close: closeReviewModal } = useBlurModal({});
@@ -51,7 +51,7 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 				idType="dish_media"
 				onIndexChange={handleIndexChange}
 			/>
-			{/* #【設計】匿名ユーザー（user.is_anonymous === true）の場合はレビュー投稿ボタンを非表示 */}
+			{/* #477【設計】匿名ユーザーの場合はレビュー投稿ボタンを非表示 */}
 			{user?.is_anonymous === false && (
 				<PrimaryButton
 					style={styles.writeReviewButton}
