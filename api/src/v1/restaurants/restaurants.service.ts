@@ -31,6 +31,7 @@ import { LocationsService } from '../locations/locations.service';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { StorageService } from 'src/core/storage/storage.service';
 import { RestaurantsAssembler } from './restaurants.assembler';
+import { protos } from '@googlemaps/places';
 
 @Injectable()
 export class RestaurantsService {
@@ -46,7 +47,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -83,10 +84,10 @@ export class RestaurantsService {
     dto: CreateRestaurantDto,
   ): Promise<CreateRestaurantResponse> {
     this.logger.debug('CreateRestaurant', 'createRestaurant', {
-      googlePlaceId: dto.googlePlaceId,
+      dto,
     });
 
-    // 1. Check if restaurant already exists
+    // 対象の Google Place ID の restaurant が存在するか確認
     let restaurant = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
         this.repo.findRestaurantByGooglePlaceId(tx, dto.googlePlaceId),
@@ -106,7 +107,9 @@ export class RestaurantsService {
       maxEndDate: null,
     };
     let imageSignedUrl: string | undefined;
+
     if (restaurant) {
+      // 既にレストランが存在する場合はレビュー・入札統計情報を取得して返すのみ
       restaurantReviewStats = await this.prisma.withTransaction(
         (tx: Prisma.TransactionClient) =>
           this.repo.getRestaurantReviewStats(tx, restaurant!.id),
@@ -122,7 +125,22 @@ export class RestaurantsService {
           : null,
       };
     } else {
-      // 2. Call Google Place Details API to get detailed information
+      // 対象の Google Place ID の restaurant の現地の言語コードを特定
+      let restaurantLanguageCode: string;
+      try {
+        const fieldMask = "addressComponents";
+        const placeDetail = await this.externalApi.callPlaceDetails(
+          fieldMask,
+          dto.googlePlaceId,
+          'en',
+        );
+        if (!placeDetail.addressComponents) throw new Error('No address components for restaurant language code detection');
+        restaurantLanguageCode = this.locationsService.resolveLocalLanguageCode(placeDetail.addressComponents);
+      } catch (error) {
+        throw new Error('Failed to determine restaurant language code: ' + (error as Error).message);
+      }
+
+      // Google Place Details API を呼び出して店舗情報を取得
       try {
         const fieldMask = [
           'id',
@@ -135,7 +153,7 @@ export class RestaurantsService {
         const placeDetail = await this.externalApi.callPlaceDetails(
           fieldMask,
           dto.googlePlaceId,
-          dto.languageCode, // Use dynamic language code from request
+          restaurantLanguageCode,
         );
 
         // Check required fields with proper validation for latitude/longitude
@@ -185,7 +203,7 @@ export class RestaurantsService {
           id: 'unknown', // Will be assigned by database
           google_place_id: dto.googlePlaceId,
           name: placeDetail.displayName!.text!,
-          name_language_code: dto.languageCode,
+          name_language_code: restaurantLanguageCode,
           latitude: placeDetail.location!.latitude!,
           longitude: placeDetail.location!.longitude!,
           image_url: '', // 【非推奨カラム】
@@ -247,9 +265,9 @@ export class RestaurantsService {
       ...convertPrismaToSupabase_Restaurants(restaurant),
       imageUrls: imageSignedUrl
         ? {
-            sm: imageSignedUrl,
-            md: imageSignedUrl,
-          }
+          sm: imageSignedUrl,
+          md: imageSignedUrl,
+        }
         : undefined,
       ...restaurantReviewStats,
       ...restaurantBidStats,
