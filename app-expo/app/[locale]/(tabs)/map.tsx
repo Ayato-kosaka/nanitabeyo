@@ -96,9 +96,9 @@ export default function MapScreen() {
 		setCurrentRegion(region);
 	}, []);
 
-	const handleMarkerPress = (bid: QueryRestaurantsResponse[number]) => {
+	const handleMarkerPress = (pressedPlace: QueryRestaurantsResponse[number]) => {
 		lightImpact();
-		setSelectedPlace(bid);
+		setSelectedPlace(pressedPlace);
 		openRestaurantModal();
 	};
 
