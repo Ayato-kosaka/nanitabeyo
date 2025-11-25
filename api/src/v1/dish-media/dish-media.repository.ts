@@ -533,8 +533,9 @@ export class DishMediaRepository {
     }
 
     // #479 【設計】cursor モードの場合は limit+1 件取得して次ページ存在を判定
+    // ids モードの場合は limit を超えない件数を取得（nextCursor は常に null）
     const limit = options.limit ?? 42;
-    const take = options.type === 'cursor' ? limit + 1 : options.limit;
+    const take = options.type === 'cursor' ? limit + 1 : limit;
 
     const reviews = await this.prisma.prisma.dish_reviews.findMany({
       where: whereClause,
