@@ -28,10 +28,9 @@ export const useNotifications = () => {
 				method: "GET",
 				requestPayload: params,
 			});
-
 			return {
-				data: response.items,
-				nextCursor: response.nextCursor ?? null,
+				data: response.data || [],
+				nextCursor: response.nextCursor,
 			};
 		},
 		[callBackend],

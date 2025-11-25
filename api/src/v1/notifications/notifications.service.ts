@@ -70,7 +70,6 @@ export class NotificationsService {
       ]),
     );
 
-    // #479 【設計】Repository から items を取得（ids モードは nextCursor 不要）
     const { items: reviews } = await this.dishMediaRepo.findDishReviewsByUser(
       userId,
       {
@@ -117,10 +116,10 @@ export class NotificationsService {
           ? dishMediaMap.get(item.notifications.target_id)
           : item.notifications.target_table === 'dish_reviews'
             ? this.buildDishMediaEntryForReviewNotification(
-                item,
-                reviewMap,
-                dishMediaMap,
-              )
+              item,
+              reviewMap,
+              dishMediaMap,
+            )
             : undefined,
     }));
 

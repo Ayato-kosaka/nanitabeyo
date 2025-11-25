@@ -40,7 +40,7 @@ import { Response } from 'express';
 @ApiTags('Notifications')
 @Controller('v1/notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly notificationsService: NotificationsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/notifications                         */
@@ -77,7 +77,7 @@ export class NotificationsController {
     );
 
     return {
-      items: result.items,
+      data: result.items,
       nextCursor: result.nextCursor,
     };
   }

@@ -59,7 +59,7 @@ export class DishMediaRepository {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -428,7 +428,6 @@ export class DishMediaRepository {
 
   /* ------------------------------------------------------------------ */
   /*    レストランの料理メディアを取得（各料理のメディア1件、いいね数が最大のもの） */
-  /*    #479 【設計】limit+1 方式でページ終端を正確に判定               */
   /* ------------------------------------------------------------------ */
   async findDishMediaByRestaurant(
     tx: Prisma.TransactionClient,
@@ -437,9 +436,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -450,7 +449,6 @@ export class DishMediaRepository {
         `
       : Prisma.empty;
 
-    // #479 【設計】limit+1 件取得して次ページ存在を判定
     const rows = await tx.$queryRaw<
       { dish_media_id: string; dish_id: string; like_count: number }[]
     >(Prisma.sql`
@@ -499,13 +497,12 @@ export class DishMediaRepository {
 
   /* ------------------------------------------------------------------ */
   /*   ユーザーがレビューした料理レビューを取得する                     */
-  /*   #479 【設計】cursor モードは limit+1 方式でページ終端を正確に判定 */
   /* ------------------------------------------------------------------ */
   async findDishReviewsByUser(
     userId: string,
     options:
       | { type: 'cursor'; cursor?: string; limit?: number }
-      | { type: 'ids'; ids: string[]; limit?: number },
+      | { type: 'ids'; ids: string[]; },
   ): Promise<{
     items: DishMediaEntryEntity['dish_reviews'];
     nextCursor: string | null;
@@ -532,10 +529,8 @@ export class DishMediaRepository {
       };
     }
 
-    // #479 【設計】cursor モードの場合は limit+1 件取得して次ページ存在を判定
-    // ids モードの場合は limit を超えない件数を取得（nextCursor は常に null）
-    const limit = options.limit ?? 42;
-    const take = options.type === 'cursor' ? limit + 1 : limit;
+    const limit = options.type === 'cursor' ? options.limit ?? 42 : undefined;
+    const take = limit ? limit + 1 : undefined;
 
     const reviews = await this.prisma.prisma.dish_reviews.findMany({
       where: whereClause,
@@ -547,7 +542,7 @@ export class DishMediaRepository {
     });
 
     // #479 【設計】cursor モードで limit+1 件取得できた場合のみ nextCursor を返す
-    const hasMore = options.type === 'cursor' && reviews.length > limit;
+    const hasMore = options.type === 'cursor' && reviews.length > limit!;
     const reviewsToReturn = hasMore ? reviews.slice(0, limit) : reviews;
     const nextCursor =
       options.type === 'cursor' && hasMore
@@ -576,7 +571,6 @@ export class DishMediaRepository {
 
   /* ------------------------------------------------------------------ */
   /*        ユーザーが「いいね」した dish_media を取得                 */
-  /*        #479 【設計】limit+1 方式でページ終端を正確に判定          */
   /* ------------------------------------------------------------------ */
   async findDishMediaByLikedUser(
     userId: string,
@@ -606,7 +600,6 @@ export class DishMediaRepository {
         whereClause.created_at = { lt: new Date(cursor) };
       }
 
-      // #479 【設計】limit+1 件取得して次ページ存在を判定
       const likes = await this.prisma.prisma.reactions.findMany({
         where: whereClause,
         orderBy: { created_at: 'desc' },
@@ -627,7 +620,6 @@ export class DishMediaRepository {
         whereClause.created_at = { lt: new Date(cursor) };
       }
 
-      // #479 【設計】limit+1 件取得して次ページ存在を判定
       const likes = await this.prisma.prisma.dish_media_likes.findMany({
         where: whereClause,
         orderBy: { created_at: 'desc' },
@@ -659,7 +651,6 @@ export class DishMediaRepository {
 
   /* ------------------------------------------------------------------ */
   /*        ユーザーが「保存」した dish_media を取得                  */
-  /*        #479 【設計】limit+1 方式でページ終端を正確に判定          */
   /* ------------------------------------------------------------------ */
   async findDishMediaBySavedUser(
     userId: string,
@@ -684,7 +675,6 @@ export class DishMediaRepository {
       whereClause.created_at = { lt: new Date(cursor) };
     }
 
-    // #479 【設計】limit+1 件取得して次ページ存在を判定
     const saves = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
       orderBy: { created_at: 'desc' },
@@ -847,14 +837,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -870,12 +860,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>

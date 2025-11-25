@@ -42,7 +42,7 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
@@ -63,7 +63,6 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    // #479 【設計】Repository から nextCursor を受け取る
     const { items: reviews, nextCursor } =
       await this.dishMediaRepo.findDishReviewsByUser(userId, {
         type: 'cursor',
@@ -138,7 +137,6 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    // #479 【設計】Repository から nextCursor を受け取る
     const { items: likes, nextCursor } =
       await this.dishMediaRepo.findDishMediaByLikedUser(
         userId,
@@ -173,7 +171,6 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    // #479 【設計】Repository から nextCursor を受け取る
     const { items: records, nextCursor } = await this.repo.findUserPayouts(
       userId,
       dto.cursor,
@@ -199,7 +196,6 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    // #479 【設計】Repository から nextCursor を受け取る
     const { items: records, nextCursor } =
       await this.repo.findUserRestaurantBids(userId, dto.cursor);
 
@@ -226,7 +222,6 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    // #479 【設計】Repository から nextCursor を受け取る
     const { items: records, nextCursor } =
       await this.dishCategoriesRepo.findDishCategoriesBySavedUser(
         userId,
@@ -257,7 +252,6 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    // #479 【設計】Repository から nextCursor を受け取る
     const { items: saves, nextCursor } =
       await this.dishMediaRepo.findDishMediaBySavedUser(userId, dto.cursor);
 

@@ -12,7 +12,7 @@ export class DishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   async findDishCategoryById(id: string) {
     this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
@@ -65,7 +65,6 @@ export class DishCategoriesRepository {
 
   /**
    * ユーザーが保存した料理カテゴリを取得 (moved from UsersRepository)
-   * #479 【設計】limit+1 方式でページ終端を正確に判定
    */
   async findDishCategoriesBySavedUser(
     userId: string,
@@ -92,7 +91,6 @@ export class DishCategoriesRepository {
       whereClause.created_at = { lt: new Date(cursor) };
     }
 
-    // #479 【設計】limit+1 件取得して次ページ存在を判定
     const savedEntries = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
       orderBy: { created_at: 'desc' },

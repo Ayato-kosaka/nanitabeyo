@@ -13,11 +13,10 @@ export class UsersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * ユーザーの収益一覧を取得
-   * #479 【設計】limit+1 方式でページ終端を正確に判定
    */
   async findUserPayouts(
     userId: string,
@@ -45,7 +44,6 @@ export class UsersRepository {
       };
     }
 
-    // #479 【設計】limit+1 件取得して次ページ存在を判定
     const result = await this.prisma.prisma.payouts.findMany({
       where: whereClause,
       orderBy: {
@@ -71,7 +69,6 @@ export class UsersRepository {
 
   /**
    * ユーザーの入札履歴を取得
-   * #479 【設計】limit+1 方式でページ終端を正確に判定
    */
   async findUserRestaurantBids(
     userId: string,
@@ -99,7 +96,6 @@ export class UsersRepository {
       };
     }
 
-    // #479 【設計】limit+1 件取得して次ページ存在を判定
     const result = await this.prisma.prisma.restaurant_bids.findMany({
       where: whereClause,
       orderBy: {
