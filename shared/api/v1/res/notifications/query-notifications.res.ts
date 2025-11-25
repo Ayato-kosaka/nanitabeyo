@@ -28,4 +28,4 @@ export interface NotificationItem {
 /**
  * GET /v1/notifications レスポンス
  */
-export type QueryNotificationsResponse = PaginatedResponse<NotificationItem>
+export type QueryNotificationsResponse = PaginatedResponse<NotificationItem>;

@@ -12,7 +12,7 @@ export class DishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   async findDishCategoryById(id: string) {
     this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
@@ -100,9 +100,10 @@ export class DishCategoriesRepository {
     // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
     const hasMore = savedEntries.length > limit;
     const entries = hasMore ? savedEntries.slice(0, limit) : savedEntries;
-    const nextCursor = hasMore && entries.length > 0
-      ? entries[entries.length - 1].created_at.toISOString()
-      : null;
+    const nextCursor =
+      hasMore && entries.length > 0
+        ? entries[entries.length - 1].created_at.toISOString()
+        : null;
 
     const categoryIds = entries.map((e) => e.target_id);
     const result = await this.prisma.prisma.dish_categories.findMany({

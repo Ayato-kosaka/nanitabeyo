@@ -116,10 +116,10 @@ export class NotificationsService {
           ? dishMediaMap.get(item.notifications.target_id)
           : item.notifications.target_table === 'dish_reviews'
             ? this.buildDishMediaEntryForReviewNotification(
-              item,
-              reviewMap,
-              dishMediaMap,
-            )
+                item,
+                reviewMap,
+                dishMediaMap,
+              )
             : undefined,
     }));
 
