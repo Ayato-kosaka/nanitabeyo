@@ -278,8 +278,8 @@ export function ReviewForm({
 	}, [onCancel, lightImpact]);
 
 	// Animated height for InitialMediaPreview
-	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - バッファ
-	const mediaHeight = useMemo(() => height - 370 - 60 - 120, []);
+	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - 同意メッセージ - バッファ
+	const mediaHeight = useMemo(() => height - 370 - 60 - 36 - 120, []);
 	const mediaHeightAnim = useRef(new Animated.Value(mediaHeight)).current;
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
@@ -789,7 +789,7 @@ const styles = StyleSheet.create({
 	},
 	consentText: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: "#fff",
 		textAlign: "center",
 		lineHeight: 18,
 	},

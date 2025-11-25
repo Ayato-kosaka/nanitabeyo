@@ -4,6 +4,7 @@ import Markdown from "react-native-markdown-display";
 import i18n from "@/lib/i18n";
 import { legalDocuments } from "@/features/settings/assets/legal/legalDocuments";
 import { useLocale } from "@/hooks/useLocale";
+import { useSafeAreaFrame } from "react-native-safe-area-context";
 
 type LegalLocale = "ja-JP" | "en-US";
 type DocumentType = "guidelines" | "terms" | "privacy" | "copyright";
@@ -35,8 +36,9 @@ export function LegalDocument({ documentType }: LegalDocumentProps) {
 		return localeData[documentType as DocumentType] || legalDocuments["en-US"][documentType as DocumentType] || "";
 	}, [documentType, locale]);
 
+	const frame = useSafeAreaFrame();
 	return (
-		<View style={styles.container}>
+		<View style={{ height: frame.height }}>
 			<View style={styles.header}>
 				<Text style={styles.title}>{title}</Text>
 			</View>
@@ -51,13 +53,6 @@ export function LegalDocument({ documentType }: LegalDocumentProps) {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-		borderRadius: 16,
-		overflow: "hidden",
-		maxHeight: "80%",
-	},
 	header: {
 		flexDirection: "row",
 		alignItems: "center",
