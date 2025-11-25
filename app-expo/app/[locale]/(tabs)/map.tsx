@@ -107,7 +107,15 @@ export default function MapScreen() {
 	// #issue【設計】POI押下時にレストラン情報を取得してモーダル表示
 	const handlePoiPress = async (event: PoiClickEvent) => {
 		const googlePlaceId = event.nativeEvent.placeId;
-		if (!googlePlaceId) return;
+		if (!googlePlaceId) {
+			// placeId が取得できない場合はログのみ記録（通常発生しないため user feedback は不要）
+			logFrontendEvent({
+				event_name: "poi_press_missing_place_id",
+				error_level: "warn",
+				payload: { nativeEvent: event.nativeEvent },
+			});
+			return;
+		}
 
 		lightImpact();
 		setIsLoadingPoiRestaurant(true);
