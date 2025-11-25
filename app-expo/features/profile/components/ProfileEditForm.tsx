@@ -15,6 +15,10 @@ import type { GetUserProfileResponse, UpdateUserProfileResponse } from "@shared/
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useProfileStore } from "../stores/useProfileStore";
 
+// #481 【仕様】APIと揃えた文字数制限
+const DISPLAY_NAME_MAX_LENGTH = 30;
+const BIO_MAX_LENGTH = 150;
+
 const FIELD = ["display_name", "avatar", "bio"] as const;
 interface ProfileEditFormProps {
 	/** Called when user cancels (usually to close modal) */
@@ -45,12 +49,55 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 	});
 	const [display_name, setDisplayName] = useState(profile?.display_name ?? null);
 	const [bio, setBio] = useState(profile?.bio ?? null);
+	const [displayNameError, setDisplayNameError] = useState("");
+	const [bioError, setBioError] = useState("");
 
 	const [isLoading, setIsLoading] = useState(false);
+
+	// 入力時にエラーをクリア（FeedbackForm パターン）
+	const handleDisplayNameChange = useCallback(
+		(text: string) => {
+			setDisplayName(text);
+			if (displayNameError) {
+				setDisplayNameError("");
+			}
+		},
+		[displayNameError],
+	);
+
+	const handleBioChange = useCallback(
+		(text: string) => {
+			setBio(text);
+			if (bioError) {
+				setBioError("");
+			}
+		},
+		[bioError],
+	);
 
 	const handleSave = useCallback(async () => {
 		mediumImpact();
 		setIsLoading(true);
+
+		// バリデーションエラーをクリア
+		setDisplayNameError("");
+		setBioError("");
+
+		// 空文字は null に正規化
+		const normalizedDisplayName = display_name === "" ? null : (display_name ?? null);
+		const normalizedBio = bio === "" ? null : (bio ?? null);
+
+		// #481 【設計】文字数バリデーション（API 呼び出し前にフロントで検証）
+		if (normalizedDisplayName !== null && normalizedDisplayName.length > DISPLAY_NAME_MAX_LENGTH) {
+			setDisplayNameError(i18n.t("Profile.errors.displayNameLength"));
+			setIsLoading(false);
+			return;
+		}
+		if (normalizedBio !== null && normalizedBio.length > BIO_MAX_LENGTH) {
+			setBioError(i18n.t("Profile.errors.bioLength"));
+			setIsLoading(false);
+			return;
+		}
 
 		// アバター画像のアップロード
 		// null は「既存アバターを削除」, string は「新規アップロード済みパス」, undefined は「変更なし」
@@ -77,10 +124,6 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		}
 
 		try {
-			// display_name / bio を null 許容で明確に整形
-			// 例：空文字は null に正規化するポリシー
-			const normalizedDisplayName = display_name === "" ? null : (display_name ?? null);
-			const normalizedBio = bio === "" ? null : (bio ?? null);
 			await callBackend<UpdateUserProfileDto, UpdateUserProfileResponse>("v1/users/me", {
 				method: "POST",
 				requestPayload: {
@@ -146,24 +189,30 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 					<Card onLayout={recordY("display_name")}>
 						<Text style={styles.label}>{i18n.t("Profile.labels.displayName")}</Text>
 						<TextInput
-							style={styles.input}
+							style={[styles.input, displayNameError && styles.inputError]}
 							value={display_name ?? undefined}
-							onChangeText={setDisplayName}
+							onChangeText={handleDisplayNameChange}
 							onFocus={onFocusFactory("display_name")}
 							multiline={false}
 							placeholder={i18n.t("Profile.placeholders.enterDisplayName")}
 							placeholderTextColor="#666"
 							textAlignVertical="center"
 							returnKeyType="next"
+							maxLength={DISPLAY_NAME_MAX_LENGTH}
+							editable={!isLoading}
 						/>
+						<Text style={styles.characterCount}>
+							{(display_name ?? "").length}/{DISPLAY_NAME_MAX_LENGTH}
+						</Text>
+						{displayNameError ? <Text style={styles.errorText}>{displayNameError}</Text> : null}
 					</Card>
 
 					<Card onLayout={recordY("bio")}>
 						<Text style={styles.label}>{i18n.t("Profile.labels.bio")}</Text>
 						<TextInput
-							style={[styles.input, styles.bioInput]}
+							style={[styles.input, styles.bioInput, bioError && styles.inputError]}
 							value={bio ?? undefined}
-							onChangeText={setBio}
+							onChangeText={handleBioChange}
 							onFocus={onFocusFactory("bio")}
 							multiline
 							numberOfLines={4}
@@ -171,7 +220,13 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 							placeholderTextColor="#666"
 							textAlignVertical="top"
 							returnKeyType="default"
+							maxLength={BIO_MAX_LENGTH}
+							editable={!isLoading}
 						/>
+						<Text style={styles.characterCount}>
+							{(bio ?? "").length}/{BIO_MAX_LENGTH}
+						</Text>
+						{bioError ? <Text style={styles.errorText}>{bioError}</Text> : null}
 					</Card>
 				</>
 			)}
@@ -201,4 +256,22 @@ const styles = StyleSheet.create({
 		minHeight: 48,
 	},
 	bioInput: { minHeight: 80 },
+	// #481 【設計】FeedbackForm パターンに合わせたエラー/カウンター表示スタイル
+	inputError: {
+		borderWidth: 1,
+		borderColor: "#DC2626",
+		backgroundColor: "#FEF2F2",
+	},
+	characterCount: {
+		fontSize: 12,
+		color: "#6B7280",
+		textAlign: "right",
+		marginTop: 4,
+	},
+	errorText: {
+		fontSize: 14,
+		color: "#DC2626",
+		fontWeight: "500",
+		marginTop: 4,
+	},
 });
