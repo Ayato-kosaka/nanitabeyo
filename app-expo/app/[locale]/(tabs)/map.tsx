@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Navigation } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
+import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useAPICall } from "@/hooks/useAPICall";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
-import type { AutocompleteLocation, QueryRestaurantsResponse } from "@shared/api/v1/res";
-import type { QueryRestaurantsDto } from "@shared/api/v1/dto";
+import type { AutocompleteLocation, QueryRestaurantsResponse, CreateRestaurantResponse } from "@shared/api/v1/res";
+import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -23,7 +24,8 @@ export default function MapScreen() {
 	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
-	const [isLoadingRestaurants, setIsLoadingRestaurants] = useState(false);
+	const [isLoadingNearbyRestaurants, setIsLoadingNearbyRestaurants] = useState(false);
+	const [isLoadingPoiRestaurant, setIsLoadingPoiRestaurant] = useState(false);
 	const {
 		BlurModal: RestaurantBlurModal,
 		open: openRestaurantModal,
@@ -43,9 +45,9 @@ export default function MapScreen() {
 	// Search nearby restaurants when region changes
 	const searchNearbyRestaurants = useCallback(
 		async (region: Region) => {
-			if (isLoadingRestaurants) return;
+			if (isLoadingNearbyRestaurants) return;
 
-			setIsLoadingRestaurants(true);
+			setIsLoadingNearbyRestaurants(true);
 			try {
 				const results = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>("v1/restaurants/search", {
 					method: "GET",
@@ -69,10 +71,10 @@ export default function MapScreen() {
 					payload: { error, lat: region.latitude, lng: region.longitude },
 				});
 			} finally {
-				setIsLoadingRestaurants(false);
+				setIsLoadingNearbyRestaurants(false);
 			}
 		},
-		[callBackend, isLoadingRestaurants, logFrontendEvent],
+		[callBackend, isLoadingNearbyRestaurants, logFrontendEvent],
 	);
 
 	useEffect(() => {
@@ -102,7 +104,40 @@ export default function MapScreen() {
 		openRestaurantModal();
 	};
 
-	const handleSearchSelect = async (prediction: AutocompleteLocation) => {
+	// POI押下時にレストラン情報を取得してモーダル表示
+	const handlePoiPress = async (event: PoiClickEvent) => {
+		const googlePlaceId = event.nativeEvent.placeId;
+		if (!googlePlaceId) {
+			// placeId が取得できない場合はログのみ記録（通常発生しないため user feedback は不要）
+			logFrontendEvent({
+				event_name: "poi_press_missing_place_id",
+				error_level: "warn",
+				payload: { nativeEvent: event.nativeEvent },
+			});
+			return;
+		}
+
+		lightImpact();
+		setIsLoadingPoiRestaurant(true);
+		try {
+			const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("v1/restaurants", {
+				method: "POST",
+				requestPayload: { googlePlaceId },
+			});
+			setSelectedPlace(response);
+			openRestaurantModal();
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "poi_press_error",
+				error_level: "error",
+				payload: { error, googlePlaceId },
+			});
+		} finally {
+			setIsLoadingPoiRestaurant(false);
+		}
+	};
+
+	const handleAutocompleteSelect = async (prediction: AutocompleteLocation) => {
 		lightImpact();
 		try {
 			const { location } = await getLocationDetails(prediction);
@@ -152,7 +187,8 @@ export default function MapScreen() {
 				ref={mapRef}
 				style={styles.map}
 				region={currentRegion}
-				onRegionChangeComplete={handleRegionChangeComplete}>
+				onRegionChangeComplete={handleRegionChangeComplete}
+				onPoiClick={handlePoiPress}>
 				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
 					<AvatarBubbleMarker
 						key={restaurantData.restaurant.id}
@@ -167,12 +203,19 @@ export default function MapScreen() {
 				))}
 			</MapView>
 
+			{/* POI Loading Indicator */}
+			{isLoadingPoiRestaurant && (
+				<View style={styles.loadingOverlay}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
+				</View>
+			)}
+
 			{/* Search Bar */}
 			<View style={styles.searchContainer}>
 				<LocationAutocomplete
 					value={searchQuery}
 					onChangeText={setSearchQuery}
-					onSelectSuggestion={handleSearchSelect}
+					onSelectSuggestion={handleAutocompleteSelect}
 					onClear={() => setSearchQuery("")}
 					placeholder={i18n.t("Map.placeholders.searchRestaurants")}
 					renderInputRight={
@@ -191,20 +234,12 @@ export default function MapScreen() {
 					colors={["#ffffff", "#ffffff"]}
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A" }}
-					loading={isLoadingRestaurants}
+					loading={isLoadingNearbyRestaurants}
 				/>
 			</View>
 
 			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
-				{selectedPlace && (
-					<SelectedRestaurantDetails
-						{...selectedPlace.restaurant}
-						reviewCount={selectedPlace.meta.reviewCount}
-						averageRating={selectedPlace.meta.averageRating}
-						totalCents={selectedPlace.meta.totalCents}
-						maxEndDate={selectedPlace.meta.maxEndDate}
-					/>
-				)}
+				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}
 			</RestaurantBlurModal>
 		</SafeAreaView>
 	);
@@ -236,5 +271,16 @@ const styles = StyleSheet.create({
 		padding: 16,
 		borderLeftWidth: 0.5,
 		borderLeftColor: "#E5E7EB",
+	},
+	loadingOverlay: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "rgba(0, 0, 0, 0.3)",
+		zIndex: 20,
 	},
 });

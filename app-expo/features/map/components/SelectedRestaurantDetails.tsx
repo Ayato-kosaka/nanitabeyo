@@ -15,7 +15,7 @@ import { RestaurantBidsTab } from "@/features/map/components/tabs/RestaurantBids
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
-import type { CreateRestaurantResponse } from "@shared/api/v1/res";
+import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -45,7 +45,7 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) {
+export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: QueryRestaurantsResponse[number]) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
@@ -162,9 +162,9 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 						<View style={styles.restaurantDetails}>
 							<Text style={styles.restaurantName}>{restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={restaurant.averageRating} />
-								<Text style={styles.ratingText}>{restaurant.averageRating}</Text>
-								<Text style={styles.reviewCount}>({restaurant.reviewCount})</Text>
+								<Stars rating={restaurantMeta.averageRating} />
+								<Text style={styles.ratingText}>{restaurantMeta.averageRating}</Text>
+								<Text style={styles.reviewCount}>({restaurantMeta.reviewCount})</Text>
 							</View>
 							<PrimaryButton
 								onPress={handleOpenGoogleMaps}
@@ -178,18 +178,20 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 					</View>
 				</Card>
 
-				{restaurant.maxEndDate && (
+				{restaurantMeta.maxEndDate && (
 					<View style={styles.bidAmountContainer}>
 						<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
 						<Text style={styles.bidAmount}>
 							{i18n.t("Search.currencySuffix")}
-							{restaurant.totalCents.toLocaleString()}
+							{restaurantMeta.totalCents.toLocaleString()}
 						</Text>
 						<Text style={styles.remainingDays}>
 							{i18n.t("Common.daysRemaining", {
 								count: Math.max(
 									0,
-									Math.ceil((new Date(restaurant.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+									Math.ceil(
+										(new Date(restaurantMeta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+									),
 								),
 							})}
 						</Text>

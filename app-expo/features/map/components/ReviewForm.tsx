@@ -624,10 +624,8 @@ export function ReviewForm({
 						))}
 					</View>
 				</View>
-			</Card>
 
-			{/* 同意メッセージ */}
-			<View style={styles.consentContainer}>
+				{/* 同意メッセージ */}
 				<Text style={styles.consentText}>
 					{i18n.t("Map.consent_review_prefix")}
 					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("guidelines")}>
@@ -639,7 +637,7 @@ export function ReviewForm({
 					</Text>
 					{i18n.t("Map.consent_review_suffix")}
 				</Text>
-			</View>
+			</Card>
 
 			<PrimaryButton
 				label={i18n.t("Common.post")}
@@ -783,14 +781,10 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		paddingHorizontal: 4,
 	},
-	consentContainer: {
-		marginVertical: 12,
-		paddingHorizontal: 20,
-	},
 	consentText: {
 		fontSize: 12,
-		color: "#fff",
-		textAlign: "center",
+		color: "#6B7280",
+		textAlign: "left",
 		lineHeight: 18,
 	},
 	consentLink: {
