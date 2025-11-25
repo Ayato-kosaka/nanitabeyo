@@ -38,6 +38,7 @@ import type {
 } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
@@ -107,6 +108,7 @@ export function ReviewForm({
 	const [price, setPrice] = useState(initialPrice);
 	const [reviewText, setReviewText] = useState(initialReviewText);
 	const [rating, setRating] = useState(initialRating);
+	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"guidelines" | "copyright" | null>(null);
 
 	const locale = useLocale();
 
@@ -135,6 +137,13 @@ export function ReviewForm({
 		keyboardVerticalOffset: Platform.OS === "ios" ? 0 : 0,
 		dismissKeyboardFirst: true,
 	});
+
+	// useBlurModal for legal documents
+	const {
+		BlurModal: LegalDocumentModal,
+		open: openLegalDocumentModal,
+		close: closeLegalDocumentModal,
+	} = useBlurModal({ intensity: 100 });
 
 	// マウント時にメディア選択を実行
 	useEffect(() => {
@@ -269,8 +278,8 @@ export function ReviewForm({
 	}, [onCancel, lightImpact]);
 
 	// Animated height for InitialMediaPreview
-	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - バッファ
-	const mediaHeight = useMemo(() => height - 370 - 60 - 120, []);
+	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - 同意メッセージ - バッファ
+	const mediaHeight = useMemo(() => height - 370 - 60 - 36 - 120, []);
 	const mediaHeightAnim = useRef(new Animated.Value(mediaHeight)).current;
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
@@ -503,6 +512,15 @@ export function ReviewForm({
 		showSnackbar,
 	]);
 
+	// Legal ドキュメント表示用のハンドラ
+	const handleOpenLegalDocument = useCallback(
+		(documentType: "guidelines" | "copyright") => {
+			setSelectedLegalDocument(documentType);
+			openLegalDocumentModal();
+		},
+		[openLegalDocumentModal],
+	);
+
 	const handleCancel = useCallback(() => {
 		onCancel();
 	}, [onCancel]);
@@ -608,6 +626,21 @@ export function ReviewForm({
 				</View>
 			</Card>
 
+			{/* 同意メッセージ */}
+			<View style={styles.consentContainer}>
+				<Text style={styles.consentText}>
+					{i18n.t("Map.consent_review_prefix")}
+					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("guidelines")}>
+						{i18n.t("Map.consent_review_guidelines")}
+					</Text>
+					{i18n.t("Map.consent_review_and")}
+					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("copyright")}>
+						{i18n.t("Map.consent_review_copyright")}
+					</Text>
+					{i18n.t("Map.consent_review_suffix")}
+				</Text>
+			</View>
+
 			<PrimaryButton
 				label={i18n.t("Common.post")}
 				onPress={handleSubmit}
@@ -624,6 +657,11 @@ export function ReviewForm({
 					testID="dish-category-search"
 				/>
 			</DishCategoryModal>
+
+			{/* Legal ドキュメントモーダル */}
+			<LegalDocumentModal>
+				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
+			</LegalDocumentModal>
 		</>
 	);
 }
@@ -744,5 +782,19 @@ const styles = StyleSheet.create({
 		color: "#DC2626",
 		fontSize: 12,
 		paddingHorizontal: 4,
+	},
+	consentContainer: {
+		marginVertical: 12,
+		paddingHorizontal: 20,
+	},
+	consentText: {
+		fontSize: 12,
+		color: "#fff",
+		textAlign: "center",
+		lineHeight: 18,
+	},
+	consentLink: {
+		color: "#2563EB",
+		textDecorationLine: "underline",
 	},
 });

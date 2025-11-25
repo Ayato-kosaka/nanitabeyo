@@ -13,6 +13,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
+import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 
@@ -25,9 +26,15 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [errors, setErrors] = useState<{ phone?: string }>({});
 	const [hasExistingAccount, setHasExistingAccount] = useState(false);
+	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"terms" | "privacy" | null>(null);
 
 	const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
 	const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
+	const {
+		BlurModal: LegalDocumentModal,
+		open: openLegalDocumentModal,
+		close: closeLegalDocumentModal,
+	} = useBlurModal({ intensity: 100 });
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 
@@ -110,6 +117,15 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 			}
 		},
 		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount],
+	);
+
+	// Legal ドキュメント表示用のハンドラ
+	const handleOpenLegalDocument = useCallback(
+		(documentType: "terms" | "privacy") => {
+			setSelectedLegalDocument(documentType);
+			openLegalDocumentModal();
+		},
+		[openLegalDocumentModal],
 	);
 
 	return (
@@ -228,6 +244,21 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 			</View>
 			{/* </View> */}
 
+			{/* 同意メッセージ */}
+			<View style={styles.consentContainer}>
+				<Text style={styles.consentText}>
+					{i18n.t("auth.consent_login_prefix")}
+					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("terms")}>
+						{i18n.t("auth.consent_login_terms")}
+					</Text>
+					{i18n.t("auth.consent_login_and")}
+					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("privacy")}>
+						{i18n.t("auth.consent_login_privacy")}
+					</Text>
+					{i18n.t("auth.consent_login_suffix")}
+				</Text>
+			</View>
+
 			<OtpModalComponent>
 				{({ close }) => (
 					<OtpModal
@@ -239,6 +270,11 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					/>
 				)}
 			</OtpModalComponent>
+
+			{/* Legal ドキュメントモーダル */}
+			<LegalDocumentModal>
+				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
+			</LegalDocumentModal>
 		</View>
 	);
 }
@@ -368,5 +404,19 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#1A1A1A",
 		lineHeight: 22,
+	},
+	consentContainer: {
+		marginTop: 16,
+		paddingHorizontal: 4,
+	},
+	consentText: {
+		fontSize: 12,
+		color: "#6B7280",
+		textAlign: "center",
+		lineHeight: 18,
+	},
+	consentLink: {
+		color: "#2563EB",
+		textDecorationLine: "underline",
 	},
 });

@@ -347,7 +347,12 @@
 			"dishCategoryNotFound": "لم يتم العثور على فئة الطبق",
 			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح",
 			"reviewSubmitFailed": "فشل في نشر المراجعة"
-		}
+		},
+		"consent_review_prefix": "بالمتابعة، فإنك توافق على ",
+		"consent_review_guidelines": "إرشادات المجتمع",
+		"consent_review_and": " و",
+		"consent_review_copyright": "حقوق النشر",
+		"consent_review_suffix": " الخاصة بنا."
 	},
 	"Restaurant": {
 		"Loading": {
@@ -438,7 +443,12 @@
 		"conflict_dialog_title": "تم العثور على حساب موجود",
 		"conflict_dialog_message": "هذا الحساب مرتبط بالفعل بمستخدم آخر. إذا قمت بالتبديل، لن يتم نقل البيانات التي تم إنشاؤها كضيف. هل تريد التبديل إلى الحساب الموجود؟",
 		"conflict_dialog_switch": "تبديل",
-		"conflict_dialog_cancel": "إلغاء"
+		"conflict_dialog_cancel": "إلغاء",
+		"consent_login_prefix": "بالمتابعة، فإنك توافق على ",
+		"consent_login_terms": "شروط الخدمة",
+		"consent_login_and": " و",
+		"consent_login_privacy": "سياسة الخصوصية",
+		"consent_login_suffix": " الخاصة بنا."
 	},
 	"Settings": {
 		"title": "الإعدادات",

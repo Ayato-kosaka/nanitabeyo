@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
 	View,
 	Text,
@@ -11,7 +11,6 @@ import {
 	TextStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import * as StoreReview from "expo-store-review";
 import { Card } from "@/components/Card";
@@ -19,9 +18,9 @@ import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedbackForm } from "@/features/profile/components/FeedbackForm";
+import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { useLocale } from "@/hooks/useLocale";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -43,15 +42,21 @@ function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuIte
 }
 
 export default function SettingsScreen() {
-	const router = useRouter();
-	const locale = useLocale();
 	const { logout, user } = useAuth();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
+		"guidelines" | "terms" | "privacy" | "copyright" | null
+	>(null);
 	const {
 		BlurModal: FeedbackModal,
 		open: openFeedbackModal,
 		close: closeFeedbackModal,
+	} = useBlurModal({ intensity: 100 });
+	const {
+		BlurModal: LegalDocumentModal,
+		open: openLegalDocumentModal,
+		close: closeLegalDocumentModal,
 	} = useBlurModal({ intensity: 100 });
 
 	// アプリストアのレビュー画面を起動（ネイティブのみ）
@@ -68,7 +73,7 @@ export default function SettingsScreen() {
 		}
 	}, [lightImpact, logFrontendEvent]);
 
-	// Legal ドキュメント閲覧画面へ遷移
+	// Legal ドキュメント閲覧をモーダルで表示
 	const handleLegalDocument = useCallback(
 		(documentType: "guidelines" | "terms" | "privacy" | "copyright") => {
 			lightImpact();
@@ -78,12 +83,10 @@ export default function SettingsScreen() {
 				payload: { documentType },
 			});
 
-			router.push({
-				pathname: "/[locale]/(tabs)/profile/legal",
-				params: { locale, documentType },
-			});
+			setSelectedLegalDocument(documentType);
+			openLegalDocumentModal();
 		},
-		[locale, router, lightImpact, logFrontendEvent],
+		[lightImpact, logFrontendEvent, openLegalDocumentModal],
 	);
 
 	// ログアウト処理を実行
@@ -182,6 +185,11 @@ export default function SettingsScreen() {
 			<FeedbackModal>
 				<FeedbackForm onSubmit={handleFeedbackSubmit} onCancel={closeFeedbackModal} />
 			</FeedbackModal>
+
+			{/* Legal ドキュメントモーダル */}
+			<LegalDocumentModal>
+				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
+			</LegalDocumentModal>
 		</LinearGradient>
 	);
 }
