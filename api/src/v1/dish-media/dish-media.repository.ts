@@ -636,7 +636,7 @@ export class DishMediaRepository {
     // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
     const hasMore = result.length > limit;
     const items = hasMore ? result.slice(0, limit) : result;
-    const nextCursor = hasMore
+    const nextCursor = hasMore && items.length > 0
       ? items[items.length - 1].created_at.toISOString()
       : null;
 
