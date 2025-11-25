@@ -85,7 +85,7 @@ export class NotificationsRepository {
     const hasMore = results.length > limit;
     const items = hasMore ? results.slice(0, limit) : results;
     const last = items[items.length - 1];
-    const nextCursor = hasMore
+    const nextCursor = hasMore && last
       ? `${(last as any).thread_updated_at?.toISOString() ?? last.created_at.toISOString()}_${last.notification_id}`
       : null;
 
