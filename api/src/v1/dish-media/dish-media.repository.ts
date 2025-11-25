@@ -543,7 +543,7 @@ export class DishMediaRepository {
 
     // #479 【設計】cursor モードで limit+1 件取得できた場合のみ nextCursor を返す
     const hasMore = options.type === 'cursor' && limit !== undefined && reviews.length > limit;
-    const reviewsToReturn = hasMore ? reviews.slice(0, limit) : reviews;
+    const reviewsToReturn = hasMore && limit !== undefined ? reviews.slice(0, limit) : reviews;
     const nextCursor =
       options.type === 'cursor' && hasMore && reviewsToReturn.length > 0
         ? reviewsToReturn[reviewsToReturn.length - 1].created_at.toISOString()
