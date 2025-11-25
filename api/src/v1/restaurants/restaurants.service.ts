@@ -47,7 +47,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -128,16 +128,24 @@ export class RestaurantsService {
       // 対象の Google Place ID の restaurant の現地の言語コードを特定
       let restaurantLanguageCode: string;
       try {
-        const fieldMask = "addressComponents";
+        const fieldMask = 'addressComponents';
         const placeDetail = await this.externalApi.callPlaceDetails(
           fieldMask,
           dto.googlePlaceId,
           'en',
         );
-        if (!placeDetail.addressComponents) throw new Error('No address components for restaurant language code detection');
-        restaurantLanguageCode = this.locationsService.resolveLocalLanguageCode(placeDetail.addressComponents);
+        if (!placeDetail.addressComponents)
+          throw new Error(
+            'No address components for restaurant language code detection',
+          );
+        restaurantLanguageCode = this.locationsService.resolveLocalLanguageCode(
+          placeDetail.addressComponents,
+        );
       } catch (error) {
-        throw new Error('Failed to determine restaurant language code: ' + (error as Error).message);
+        throw new Error(
+          'Failed to determine restaurant language code: ' +
+            (error as Error).message,
+        );
       }
 
       // Google Place Details API を呼び出して店舗情報を取得
@@ -265,9 +273,9 @@ export class RestaurantsService {
       ...convertPrismaToSupabase_Restaurants(restaurant),
       imageUrls: imageSignedUrl
         ? {
-          sm: imageSignedUrl,
-          md: imageSignedUrl,
-        }
+            sm: imageSignedUrl,
+            md: imageSignedUrl,
+          }
         : undefined,
       ...restaurantReviewStats,
       ...restaurantBidStats,
