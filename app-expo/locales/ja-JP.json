@@ -262,7 +262,9 @@
 		"errors": {
 			"permissionDenied": "画像へのアクセスが許可されていません",
 			"uploadFailed": "画像のアップロードに失敗しました",
-			"invalidImage": "無効な画像ファイルです"
+			"invalidImage": "無効な画像ファイルです",
+			"displayNameLength": "表示名は30文字以内で入力してください",
+			"bioLength": "自己紹介は150文字以内で入力してください"
 		},
 		"savedCount": "{{count}}件保存",
 		"guestBio": "ようこそ、ゲストさん 👋\n新感覚グルメアプリ「なに食べよ」を使って頂きありがとうございます😊\nアカウント機能含め、近日アップデートしていきます！"

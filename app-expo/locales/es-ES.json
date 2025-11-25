@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "Permiso para acceder a imágenes denegado",
 			"uploadFailed": "Error al cargar la imagen",
-			"invalidImage": "Archivo de imagen no válido"
+			"invalidImage": "Archivo de imagen no válido",
+			"displayNameLength": "El nombre para mostrar debe tener 30 caracteres o menos",
+			"bioLength": "La biografía debe tener 150 caracteres o menos"
 		}
 	},
 	"NotFound": {

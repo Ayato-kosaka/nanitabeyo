@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "이미지 액세스 권한이 거부되었습니다",
 			"uploadFailed": "이미지 업로드 실패",
-			"invalidImage": "잘못된 이미지 파일"
+			"invalidImage": "잘못된 이미지 파일",
+			"displayNameLength": "표시 이름은 30자 이하여야 합니다",
+			"bioLength": "자기소개는 150자 이하여야 합니다"
 		}
 	},
 	"NotFound": {

@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "छवियों तक पहुंचने की अनुमति अस्वीकृत",
 			"uploadFailed": "छवि अपलोड करने में विफल",
-			"invalidImage": "अमान्य छवि फ़ाइल"
+			"invalidImage": "अमान्य छवि फ़ाइल",
+			"displayNameLength": "प्रदर्शन नाम 30 वर्ण या उससे कम होना चाहिए",
+			"bioLength": "परिचय 150 वर्ण या उससे कम होना चाहिए"
 		}
 	},
 	"NotFound": {

@@ -7,12 +7,12 @@ import { IsOptional, IsString, Matches, MaxLength } from "class-validator";
 export class UpdateUserProfileDto {
 	@IsOptional()
 	@IsString()
-	@MaxLength(100)
+	@MaxLength(30)
 	display_name?: string | null;
 
 	@IsOptional()
 	@IsString()
-	@MaxLength(500)
+	@MaxLength(150)
 	bio?: string | null;
 
 	/**

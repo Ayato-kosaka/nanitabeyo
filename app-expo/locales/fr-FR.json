@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "Permission d'accéder aux images refusée",
 			"uploadFailed": "Échec du téléchargement de l'image",
-			"invalidImage": "Fichier image non valide"
+			"invalidImage": "Fichier image non valide",
+			"displayNameLength": "Le nom d'affichage doit contenir 30 caractères ou moins",
+			"bioLength": "La bio doit contenir 150 caractères ou moins"
 		}
 	},
 	"NotFound": {
