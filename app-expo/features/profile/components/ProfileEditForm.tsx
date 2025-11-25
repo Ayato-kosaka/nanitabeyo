@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
+import { Text, TextInput, StyleSheet } from "react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
@@ -202,11 +202,9 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 							maxLength={DISPLAY_NAME_MAX_LENGTH}
 							editable={!isLoading}
 						/>
-						<View style={styles.fieldFooter}>
-							<Text style={styles.characterCount}>
-								{(display_name ?? "").length}/{DISPLAY_NAME_MAX_LENGTH}
-							</Text>
-						</View>
+						<Text style={styles.characterCount}>
+							{(display_name ?? "").length}/{DISPLAY_NAME_MAX_LENGTH}
+						</Text>
 						{displayNameError ? <Text style={styles.errorText}>{displayNameError}</Text> : null}
 					</Card>
 
@@ -226,11 +224,9 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 							maxLength={BIO_MAX_LENGTH}
 							editable={!isLoading}
 						/>
-						<View style={styles.fieldFooter}>
-							<Text style={styles.characterCount}>
-								{(bio ?? "").length}/{BIO_MAX_LENGTH}
-							</Text>
-						</View>
+						<Text style={styles.characterCount}>
+							{(bio ?? "").length}/{BIO_MAX_LENGTH}
+						</Text>
 						{bioError ? <Text style={styles.errorText}>{bioError}</Text> : null}
 					</Card>
 				</>
@@ -267,14 +263,11 @@ const styles = StyleSheet.create({
 		borderColor: "#DC2626",
 		backgroundColor: "#FEF2F2",
 	},
-	fieldFooter: {
-		flexDirection: "row",
-		justifyContent: "flex-end",
-		marginTop: 4,
-	},
 	characterCount: {
 		fontSize: 12,
 		color: "#6B7280",
+		textAlign: "right",
+		marginTop: 4,
 	},
 	errorText: {
 		fontSize: 14,
