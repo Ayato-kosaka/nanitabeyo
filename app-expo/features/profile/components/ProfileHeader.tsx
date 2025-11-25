@@ -193,7 +193,8 @@ const styles = StyleSheet.create({
 		letterSpacing: -0.5,
 	},
 	settingButton: {
-		padding: 4,
+		paddingVertical: 4,
+		paddingHorizontal: 8,
 	},
 	shareButton: {
 		padding: 4,
@@ -240,10 +241,11 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	displayName: {
+		flexShrink: 1,
 		fontSize: 18,
 		fontWeight: "700",
 		color: "#1A1A1A",
-		textAlign: "center",
+		textAlign: "left",
 		marginBottom: 8,
 		letterSpacing: -0.3,
 	},

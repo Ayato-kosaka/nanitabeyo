@@ -49,13 +49,12 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 	});
 	const [display_name, setDisplayName] = useState(profile?.display_name ?? null);
 	const [bio, setBio] = useState(profile?.bio ?? null);
-	// #481 【設計】バリデーションエラー状態（FeedbackForm パターン）
 	const [displayNameError, setDisplayNameError] = useState("");
 	const [bioError, setBioError] = useState("");
 
 	const [isLoading, setIsLoading] = useState(false);
 
-	// #481 【設計】入力時にエラーをクリア（FeedbackForm パターン）
+	// 入力時にエラーをクリア（FeedbackForm パターン）
 	const handleDisplayNameChange = useCallback(
 		(text: string) => {
 			setDisplayName(text);
@@ -80,11 +79,11 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		mediumImpact();
 		setIsLoading(true);
 
-		// #481 【設計】バリデーションエラーをクリア
+		// バリデーションエラーをクリア
 		setDisplayNameError("");
 		setBioError("");
 
-		// #481 【設計】空文字は null に正規化（既存ポリシー）
+		// 空文字は null に正規化
 		const normalizedDisplayName = display_name === "" ? null : (display_name ?? null);
 		const normalizedBio = bio === "" ? null : (bio ?? null);
 
