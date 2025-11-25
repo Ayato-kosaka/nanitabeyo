@@ -488,7 +488,7 @@ export class DishMediaRepository {
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
     const last = items[items.length - 1];
-    const nextCursor: string | null = hasMore
+    const nextCursor: string | null = hasMore && items.length > 0
       ? `${last.like_count}_${last.dish_media_id}`
       : null;
 
