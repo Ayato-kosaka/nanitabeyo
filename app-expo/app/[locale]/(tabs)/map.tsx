@@ -25,7 +25,7 @@ export default function MapScreen() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
 	const [isLoadingNearbyRestaurants, setIsLoadingNearbyRestaurants] = useState(false);
-	const [isLoadingPoiRestaurant, setIsLoadingPoiRestaurant] = useState(false);
+	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
 	const {
 		BlurModal: RestaurantBlurModal,
 		open: openRestaurantModal,
@@ -98,68 +98,82 @@ export default function MapScreen() {
 		setCurrentRegion(region);
 	}, []);
 
-	const handleMarkerPress = (pressedPlace: QueryRestaurantsResponse[number]) => {
-		lightImpact();
-		setSelectedPlace(pressedPlace);
-		openRestaurantModal();
-	};
+	// 独自のマーカー押下時にレストラン詳細モーダルを表示
+	const handleMarkerPress = useCallback(
+		(pressedPlace: QueryRestaurantsResponse[number]) => {
+			lightImpact();
+			setSelectedPlace(pressedPlace);
+			openRestaurantModal();
+		},
+		[lightImpact, openRestaurantModal],
+	);
+
+	// レストラン作成＆詳細モーダル表示を行う関数
+	const createAndOpenRestaurant = useCallback(
+		async (googlePlaceId: string) => {
+			setIsLoadingRestaurantCreation(true);
+			try {
+				const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("v1/restaurants", {
+					method: "POST",
+					requestPayload: { googlePlaceId },
+				});
+				setSelectedPlace(response);
+				openRestaurantModal();
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "poi_press_error",
+					error_level: "error",
+					payload: { error, googlePlaceId },
+				});
+			} finally {
+				setIsLoadingRestaurantCreation(false);
+			}
+		},
+		[callBackend, logFrontendEvent, openRestaurantModal],
+	);
 
 	// POI押下時にレストラン情報を取得してモーダル表示
-	const handlePoiPress = async (event: PoiClickEvent) => {
-		const googlePlaceId = event.nativeEvent.placeId;
-		if (!googlePlaceId) {
-			// placeId が取得できない場合はログのみ記録（通常発生しないため user feedback は不要）
-			logFrontendEvent({
-				event_name: "poi_press_missing_place_id",
-				error_level: "warn",
-				payload: { nativeEvent: event.nativeEvent },
-			});
-			return;
-		}
+	const handlePoiPress = useCallback(
+		async (event: PoiClickEvent) => {
+			lightImpact();
+			createAndOpenRestaurant(event.nativeEvent.placeId);
+		},
+		[createAndOpenRestaurant, lightImpact],
+	);
 
-		lightImpact();
-		setIsLoadingPoiRestaurant(true);
-		try {
-			const response = await callBackend<CreateRestaurantDto, CreateRestaurantResponse>("v1/restaurants", {
-				method: "POST",
-				requestPayload: { googlePlaceId },
-			});
-			setSelectedPlace(response);
-			openRestaurantModal();
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "poi_press_error",
-				error_level: "error",
-				payload: { error, googlePlaceId },
-			});
-		} finally {
-			setIsLoadingPoiRestaurant(false);
-		}
-	};
+	// オートコンプリート選択時の処理
+	const handleAutocompleteSelect = useCallback(
+		async (prediction: AutocompleteLocation) => {
+			lightImpact();
+			if (prediction.types.some((type) => ["restaurant", "cafe", "bar", "wine_bar"].includes(type))) {
+				// 飲食店カテゴリの場合はレストラン作成＆詳細表示
+				createAndOpenRestaurant(prediction.place_id);
+			} else {
+				// 一般の場所の場合は地図移動のみ
+				try {
+					const { location } = await getLocationDetails(prediction);
+					const newRegion = {
+						latitude: location.latitude,
+						longitude: location.longitude,
+						latitudeDelta: 0.01,
+						longitudeDelta: 0.01,
+					};
+					setCurrentRegion(newRegion);
+					mapRef.current?.animateToRegion(newRegion, 1000);
+					setSearchQuery("");
+				} catch (error) {
+					logFrontendEvent({
+						event_name: "MapSearchError",
+						error_level: "error",
+						payload: { error, prediction },
+					});
+				}
+			}
+		},
+		[createAndOpenRestaurant, getLocationDetails, lightImpact, logFrontendEvent],
+	);
 
-	const handleAutocompleteSelect = async (prediction: AutocompleteLocation) => {
-		lightImpact();
-		try {
-			const { location } = await getLocationDetails(prediction);
-			const newRegion = {
-				latitude: location.latitude,
-				longitude: location.longitude,
-				latitudeDelta: 0.01,
-				longitudeDelta: 0.01,
-			};
-			setCurrentRegion(newRegion);
-			mapRef.current?.animateToRegion(newRegion, 1000);
-			setSearchQuery("");
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "MapSearchError",
-				error_level: "error",
-				payload: { error, prediction },
-			});
-		}
-	};
-
-	const handleCurrentLocation = async () => {
+	const handleCurrentLocation = useCallback(async () => {
 		lightImpact();
 		try {
 			const { location } = await getCurrentLocation();
@@ -178,7 +192,7 @@ export default function MapScreen() {
 				payload: { error },
 			});
 		}
-	};
+	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
 	return (
 		<SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
@@ -204,7 +218,7 @@ export default function MapScreen() {
 			</MapView>
 
 			{/* POI Loading Indicator */}
-			{isLoadingPoiRestaurant && (
+			{isLoadingRestaurantCreation && (
 				<View style={styles.loadingOverlay}>
 					<ActivityIndicator size="large" color="#5EA2FF" />
 				</View>
