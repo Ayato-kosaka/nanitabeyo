@@ -13,12 +13,21 @@ export class UsersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * ユーザーの収益一覧を取得
    */
-  async findUserPayouts(userId: string, cursor?: string, limit = 42) {
+  async findUserPayouts(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<{
+    items: Awaited<
+      ReturnType<typeof this.prisma.prisma.payouts.findMany>
+    >[number][];
+    nextCursor: string | null;
+  }> {
     this.logger.debug('FindUserPayouts', 'findUserPayouts', {
       userId,
       cursor,
@@ -40,20 +49,37 @@ export class UsersRepository {
       orderBy: {
         created_at: 'desc',
       },
-      take: limit,
+      take: limit + 1,
     });
+
+    // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
+    const hasMore = result.length > limit;
+    const items = hasMore ? result.slice(0, limit) : result;
+    const nextCursor = hasMore && items.length > 0
+      ? items[items.length - 1].created_at.toISOString()
+      : null;
 
     this.logger.debug('UserPayoutsFound', 'findUserPayouts', {
-      count: result.length,
+      count: items.length,
+      hasMore,
     });
 
-    return result;
+    return { items, nextCursor };
   }
 
   /**
    * ユーザーの入札履歴を取得
    */
-  async findUserRestaurantBids(userId: string, cursor?: string, limit = 42) {
+  async findUserRestaurantBids(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<{
+    items: Awaited<
+      ReturnType<typeof this.prisma.prisma.restaurant_bids.findMany>
+    >[number][];
+    nextCursor: string | null;
+  }> {
     this.logger.debug('FindUserRestaurantBids', 'findUserRestaurantBids', {
       userId,
       cursor,
@@ -75,14 +101,22 @@ export class UsersRepository {
       orderBy: {
         created_at: 'desc',
       },
-      take: limit,
+      take: limit + 1,
     });
+
+    // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
+    const hasMore = result.length > limit;
+    const items = hasMore ? result.slice(0, limit) : result;
+    const nextCursor = hasMore && items.length > 0
+      ? items[items.length - 1].created_at.toISOString()
+      : null;
 
     this.logger.debug('UserRestaurantBidsFound', 'findUserRestaurantBids', {
-      count: result.length,
+      count: items.length,
+      hasMore,
     });
 
-    return result;
+    return { items, nextCursor };
   }
 
   /**

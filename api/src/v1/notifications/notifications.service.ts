@@ -70,12 +70,15 @@ export class NotificationsService {
       ]),
     );
 
-    const reviews = await this.dishMediaRepo.findDishReviewsByUser(userId, {
-      type: 'ids',
-      ids: items
-        .filter((item) => item.notifications.target_table === 'dish_reviews')
-        .map((item) => item.notifications.target_id),
-    });
+    const { items: reviews } = await this.dishMediaRepo.findDishReviewsByUser(
+      userId,
+      {
+        type: 'ids',
+        ids: items
+          .filter((item) => item.notifications.target_table === 'dish_reviews')
+          .map((item) => item.notifications.target_id),
+      },
+    );
     const reviewMap = new Map(
       reviews.map((r) => [
         r.id,
@@ -113,10 +116,10 @@ export class NotificationsService {
           ? dishMediaMap.get(item.notifications.target_id)
           : item.notifications.target_table === 'dish_reviews'
             ? this.buildDishMediaEntryForReviewNotification(
-                item,
-                reviewMap,
-                dishMediaMap,
-              )
+              item,
+              reviewMap,
+              dishMediaMap,
+            )
             : undefined,
     }));
 

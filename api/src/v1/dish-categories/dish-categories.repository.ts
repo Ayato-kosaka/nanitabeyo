@@ -12,7 +12,7 @@ export class DishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   async findDishCategoryById(id: string) {
     this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
@@ -70,7 +70,12 @@ export class DishCategoriesRepository {
     userId: string,
     cursor?: string,
     limit = 42,
-  ) {
+  ): Promise<{
+    items: Awaited<
+      ReturnType<typeof this.prisma.prisma.dish_categories.findMany>
+    >;
+    nextCursor: string | null;
+  }> {
     this.logger.debug(
       'findDishCategoriesBySavedUser',
       'findDishCategoriesBySavedUser',
@@ -89,10 +94,17 @@ export class DishCategoriesRepository {
     const savedEntries = await this.prisma.prisma.reactions.findMany({
       where: whereClause,
       orderBy: { created_at: 'desc' },
-      take: limit,
+      take: limit + 1,
     });
 
-    const categoryIds = savedEntries.map((e) => e.target_id);
+    // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
+    const hasMore = savedEntries.length > limit;
+    const entries = hasMore ? savedEntries.slice(0, limit) : savedEntries;
+    const nextCursor = hasMore && entries.length > 0
+      ? entries[entries.length - 1].created_at.toISOString()
+      : null;
+
+    const categoryIds = entries.map((e) => e.target_id);
     const result = await this.prisma.prisma.dish_categories.findMany({
       where: { id: { in: categoryIds } },
     });
@@ -100,9 +112,9 @@ export class DishCategoriesRepository {
     this.logger.debug(
       'UserSavedDishCategoriesFound',
       'findDishCategoriesBySavedUser',
-      { count: result.length },
+      { count: result.length, hasMore },
     );
 
-    return result;
+    return { items: result, nextCursor };
   }
 }
