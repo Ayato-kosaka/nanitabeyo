@@ -1,5 +1,6 @@
 import { SupabaseNotifications } from "../../../../converters/convert_notifications";
 import { DishMediaEntry } from "../dish-media.response";
+import { PaginatedResponse } from "../paginated-response";
 import { UserProfile } from "../users.response";
 
 /**
@@ -27,7 +28,4 @@ export interface NotificationItem {
 /**
  * GET /v1/notifications レスポンス
  */
-export interface QueryNotificationsResponse {
-	items: NotificationItem[];
-	nextCursor: string | null;
-}
+export type QueryNotificationsResponse = PaginatedResponse<NotificationItem>;

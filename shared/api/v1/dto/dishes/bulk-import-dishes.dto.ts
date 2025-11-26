@@ -27,7 +27,7 @@ export class BulkImportDishesDto {
 	@Max(5)
 	minRating!: number;
 
-	/** 言語コード (2〜5文字) */
+	/** レストランの所属する地域の言語コード (2〜5文字) */
 	@IsString()
 	@Length(2, 5)
 	languageCode!: string;

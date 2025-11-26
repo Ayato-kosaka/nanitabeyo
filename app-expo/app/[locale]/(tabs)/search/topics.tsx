@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { ThumbsUp, X } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -32,9 +32,9 @@ export default function TopicsScreen() {
 		}
 		return null;
 	}, [searchParams]);
+	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
-	const setDishes = useDishMediaEntriesStore((state) => state.setDishePromises);
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
@@ -57,17 +57,25 @@ export default function TopicsScreen() {
 		}
 	}, [params, searchTopics, showSnackbar]);
 
-	const handleViewDetails = (topic: Topic) => {
-		setDishes(topic.categoryId, topic.dishItemsPromise);
-		router.push({
-			pathname: "/[locale]/(tabs)/search/result",
-			params: {
-				locale,
-				topicId: topic.categoryId,
-				...(params && { location: JSON.stringify(params.location) }),
-			},
-		});
-	};
+	const handleViewDetails = useCallback(
+		(topic: Topic) => {
+			const { upsertDishMediaEntries, updateMediaIdsByKeyAsync } = useDishMediaEntriesStore.getState();
+			const idsPromise = topic.dishItemsPromise.then((items) => {
+				upsertDishMediaEntries(items);
+				return items.map((item) => String(item.dish_media.id));
+			});
+			updateMediaIdsByKeyAsync(topic.categoryId, idsPromise, (_, fetchedIds) => fetchedIds);
+			router.push({
+				pathname: "/[locale]/(tabs)/search/result",
+				params: {
+					locale,
+					topicId: topic.categoryId,
+					...(params && { location: JSON.stringify(params.location) }),
+				},
+			});
+		},
+		[locale, params],
+	);
 
 	const handleBack = () => {
 		router.back();
@@ -109,6 +117,8 @@ export default function TopicsScreen() {
 						data={visibleTopics}
 						renderItem={renderCard}
 						onSnapToItem={handleSnapToItem}
+						onScrollStart={() => setIsScrolling(true)}
+						onScrollEnd={() => setIsScrolling(false)}
 						mode="parallax"
 						modeConfig={{
 							parallaxScrollingScale: 0.9,
@@ -145,6 +155,7 @@ export default function TopicsScreen() {
 						label={i18n.t("Topics.chooseThis")}
 						icon={<ThumbsUp size={20} color="#FFF" />}
 						onPress={() => handleViewDetails(visibleTopics[currentIndex])}
+						disabled={isScrolling}
 					/>
 				</View>
 			)}

@@ -126,8 +126,8 @@
 			"confirm": "숨기기"
 		},
 		"Loading": {
-			"title": "당신에게 딱 맞는 요리를 찾고 있어요",
-			"subtitle": "잠시만 기다려 주세요..."
+			"title": "당신을 위한 완벽한 요리 6개를 엄선하고 있어요",
+			"subtitle": "추천을 곧 보여드릴게요!"
 		},
 		"errors": {
 			"fetchFailed": "요리를 가져오지 못했습니다",
@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "이미지 액세스 권한이 거부되었습니다",
 			"uploadFailed": "이미지 업로드 실패",
-			"invalidImage": "잘못된 이미지 파일"
+			"invalidImage": "잘못된 이미지 파일",
+			"displayNameLength": "표시 이름은 30자 이하여야 합니다",
+			"bioLength": "자기소개는 150자 이하여야 합니다"
 		}
 	},
 	"NotFound": {
@@ -347,9 +349,18 @@
 			"dishCategoryNotFound": "요리 카테고리를 찾을 수 없습니다",
 			"dishCategoryInvalidInput": "잘못된 요리 카테고리 이름",
 			"reviewSubmitFailed": "리뷰 게시 실패"
-		}
+		},
+		"consent_review_prefix": "계속 진행하면 ",
+		"consent_review_guidelines": "커뮤니티 가이드라인",
+		"consent_review_and": " 및 ",
+		"consent_review_copyright": "저작권",
+		"consent_review_suffix": "에 동의하는 것으로 간주됩니다."
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "선택하기 쉽도록 레스토랑 5곳을 엄선하고 있어요",
+			"subtitle": "추천을 곧 보여드릴게요!"
+		},
 		"placeholders": {
 			"searchLocation": "위치/지역 검색"
 		},
@@ -434,6 +445,21 @@
 		"conflict_dialog_title": "기존 계정을 찾았습니다",
 		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
 		"conflict_dialog_switch": "전환",
-		"conflict_dialog_cancel": "취소"
+		"conflict_dialog_cancel": "취소",
+		"consent_login_prefix": "계속 진행하면 ",
+		"consent_login_terms": "이용약관",
+		"consent_login_and": " 및 ",
+		"consent_login_privacy": "개인정보 보호정책",
+		"consent_login_suffix": "에 동의하는 것으로 간주됩니다."
+	},
+	"Settings": {
+		"title": "설정",
+		"sendFeedback": "피드백 보내기",
+		"leaveReview": "리뷰 남기기",
+		"communityGuidelines": "커뮤니티 가이드라인",
+		"terms": "이용약관",
+		"privacy": "개인정보 처리방침",
+		"copyright": "저작권",
+		"logout": "로그아웃"
 	}
 }

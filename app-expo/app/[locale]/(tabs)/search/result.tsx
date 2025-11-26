@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -7,9 +7,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
+import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
 
+const idType = "dish_media" as const;
 export default function ResultScreen() {
 	const { topicId, location } = useLocalSearchParams<{ topicId: string; location?: string }>();
+	const selector = useCallback((state: DishMediaEntriesStore) => selectIdsByKey(topicId, idType)(state), [topicId]);
+	const { isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const initialLocation = useMemo(() => {
 		if (typeof location === "string") {
 			try {
@@ -23,8 +29,9 @@ export default function ResultScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	const { currentIndex, showCompletionModal, dishesPromise, handleIndexChange, handleClose, handleReturnToCards } =
-		useSearchResult(topicId as string);
+	const { currentIndex, showCompletionModal, handleIndexChange, handleClose, handleReturnToCards } = useSearchResult(
+		topicId as string,
+	);
 
 	useEffect(() => {
 		// Log screen view with search parameters
@@ -49,6 +56,9 @@ export default function ResultScreen() {
 		handleClose();
 	};
 
+	// #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
+	if (isLoading) return <RestaurantLoading />;
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
@@ -61,10 +71,10 @@ export default function ResultScreen() {
 			{/* Feed Content */}
 			{/* <DishMediaFeed items={dishes} onIndexChange={handleIndexChange} /> */}
 			<DishMediaMap
-				itemsPromise={dishesPromise}
 				onIndexChange={handleIndexChange}
 				initialLocation={initialLocation}
-				source="search-result"
+				entriesKey={topicId}
+				idType={idType}
 			/>
 		</LinearGradient>
 	);

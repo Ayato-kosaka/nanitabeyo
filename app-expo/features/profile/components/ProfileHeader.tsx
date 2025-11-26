@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,6 +8,11 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { GetUserProfileResponse } from "@shared/api/v1/res";
 import { getCacheKeyForImage } from "@/lib/image";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
+import { router } from "expo-router";
+import { useAuth } from "@/contexts/AuthProvider";
+import { useLocale } from "@/hooks/useLocale";
 
 interface ProfileHeaderProps {
 	profile: GetUserProfileResponse;
@@ -17,11 +22,9 @@ interface ProfileHeaderProps {
 	onLayout?: (event: LayoutChangeEvent) => void;
 	onBack?: () => void;
 	onShare?: () => void;
-	onSettings?: () => void;
 	onEditProfile?: () => void;
 	onFollow?: () => void;
 	onMessage?: () => void;
-	onFeedback?: () => void;
 	onLogin?: () => void;
 }
 
@@ -43,14 +46,32 @@ export function ProfileHeader({
 	onLayout,
 	onBack,
 	onShare,
-	onSettings,
 	onEditProfile,
 	onFollow,
 	onMessage,
-	onFeedback,
 	onLogin,
 }: ProfileHeaderProps) {
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const { user } = useAuth();
+	const locale = useLocale();
+
 	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
+
+	// #設定画面 【設計】設定画面へ遷移するハンドラを追加
+	const handleSettings = useCallback(() => {
+		lightImpact();
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/settings",
+			params: { locale },
+		});
+		logFrontendEvent({
+			event_name: "settings_screen_opened",
+			error_level: "log",
+			payload: { userId: user?.id },
+		});
+	}, [lightImpact, logFrontendEvent, user?.id, locale]);
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}
@@ -60,12 +81,17 @@ export function ProfileHeader({
 						<ArrowLeft size={24} color="#1A1A1A" />
 					</TouchableOpacity>
 				)}
-				<Text style={styles.headerTitle}>{profile.username}</Text>
+
+				{/* Display Name */}
+				<Text style={[styles.displayName]} pointerEvents="none">
+					{profile.display_name}
+				</Text>
+				{/* <Text style={styles.headerTitle}>{profile.username}</Text> */}
 				<View style={{ flexDirection: "row", gap: 8 }}>
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.settingButton} onPress={onSettings || (() => {})}>
+					<TouchableOpacity style={styles.settingButton} onPress={handleSettings}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
 				</View>
@@ -109,11 +135,6 @@ export function ProfileHeader({
 						)} */}
 					</View>
 
-					{/* Display Name */}
-					<Text style={[styles.displayName]} pointerEvents="none">
-						{profile.display_name}
-					</Text>
-
 					{/* Bio */}
 					<Text style={[styles.bio]} pointerEvents="none">
 						{isGuest ? i18n.t("Profile.guestBio") : profile.bio}
@@ -130,12 +151,6 @@ export function ProfileHeader({
 							/>
 						) : isGuest && isOwnProfile ? (
 							<PrimaryButton style={{ flex: 1 }} onPress={onLogin || (() => {})} label={i18n.t("auth.btn_login")} />
-						) : isGuest ? (
-							<PrimaryButton
-								style={{ flex: 1 }}
-								onPress={onFeedback || (() => {})}
-								label={i18n.t("Profile.buttons.sendFeedback")}
-							/>
 						) : (
 							<>
 								<TouchableOpacity
@@ -178,7 +193,8 @@ const styles = StyleSheet.create({
 		letterSpacing: -0.5,
 	},
 	settingButton: {
-		padding: 4,
+		paddingVertical: 4,
+		paddingHorizontal: 8,
 	},
 	shareButton: {
 		padding: 4,
@@ -225,10 +241,11 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	displayName: {
+		flexShrink: 1,
 		fontSize: 18,
 		fontWeight: "700",
 		color: "#1A1A1A",
-		textAlign: "center",
+		textAlign: "left",
 		marginBottom: 8,
 		letterSpacing: -0.3,
 	},

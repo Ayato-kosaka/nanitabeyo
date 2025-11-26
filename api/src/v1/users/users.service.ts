@@ -55,7 +55,7 @@ export class UsersService {
     userId: string,
     dto: QueryUserDishReviewsDto,
   ): Promise<{
-    data: (DishMediaEntry & { dish_media: { isMe: boolean } })[];
+    data: DishMediaEntry[];
     nextCursor: string | null;
   }> {
     this.logger.debug('GetUserDishReviews', 'getUserDishReviews', {
@@ -63,10 +63,11 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const reviews = await this.dishMediaRepo.findDishReviewsByUser(
-      userId,
-      dto.cursor,
-    );
+    const { items: reviews, nextCursor } =
+      await this.dishMediaRepo.findDishReviewsByUser(userId, {
+        type: 'cursor',
+        cursor: dto.cursor,
+      });
 
     const uniqueDishMediaIds = Array.from(
       new Set(reviews.map((r) => r.created_dish_media_id)),
@@ -74,7 +75,6 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
         userId,
-        reviewLimit: 0,
       });
 
     const dishMediaMap = new Map<
@@ -83,11 +83,6 @@ export class UsersService {
     >(
       dishMediaEntryItemsResult.items.map((item) => [item.dish_media.id, item]),
     );
-
-    const nextCursor =
-      reviews.length > 0
-        ? reviews[reviews.length - 1].created_at.toISOString()
-        : null;
 
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: reviews.length,
@@ -113,15 +108,14 @@ export class UsersService {
           }
           return {
             ...dishMediaEntryItem,
-            dish_media: {
-              ...dishMediaEntryItem?.dish_media,
-              isMe: dishMediaEntryItem?.dish_media.user_id === userId,
-            },
             dish_reviews: [
               {
                 ...review,
                 ...convertPrismaToSupabase_DishReviews(review),
               },
+              ...dishMediaEntryItem.dish_reviews.filter(
+                (dr) => dr.id !== review.id,
+              ),
             ],
           };
         })
@@ -143,11 +137,12 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const likes = await this.dishMediaRepo.findDishMediaByLikedUser(
-      userId,
-      isAnonymous,
-      dto.cursor,
-    );
+    const { items: likes, nextCursor } =
+      await this.dishMediaRepo.findDishMediaByLikedUser(
+        userId,
+        isAnonymous,
+        dto.cursor,
+      );
 
     const dishMediaIds = likes.map((l) => l.dish_media_id);
 
@@ -155,11 +150,6 @@ export class UsersService {
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
       });
-
-    const nextCursor =
-      likes.length > 0
-        ? likes[likes.length - 1].created_at.toISOString()
-        : null;
 
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
       count: dishMediaEntryItemsResult.items.length,
@@ -181,13 +171,10 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const records = await this.repo.findUserPayouts(userId, dto.cursor);
-
-    // Generate nextCursor from last item's created_at
-    const nextCursor =
-      records.length > 0
-        ? records[records.length - 1].created_at.toISOString()
-        : null;
+    const { items: records, nextCursor } = await this.repo.findUserPayouts(
+      userId,
+      dto.cursor,
+    );
 
     this.logger.debug('GetMePayoutsResult', 'getMePayouts', {
       count: records.length,
@@ -209,13 +196,8 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const records = await this.repo.findUserRestaurantBids(userId, dto.cursor);
-
-    // Generate nextCursor from last item's created_at
-    const nextCursor =
-      records.length > 0
-        ? records[records.length - 1].created_at.toISOString()
-        : null;
+    const { items: records, nextCursor } =
+      await this.repo.findUserRestaurantBids(userId, dto.cursor);
 
     this.logger.debug('GetMeRestaurantBidsResult', 'getMeRestaurantBids', {
       count: records.length,
@@ -240,29 +222,24 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const records = await this.dishCategoriesRepo.findDishCategoriesBySavedUser(
-      userId,
-      dto.cursor,
-    );
+    const { items: records, nextCursor } =
+      await this.dishCategoriesRepo.findDishCategoriesBySavedUser(
+        userId,
+        dto.cursor,
+      );
 
     this.logger.debug(
       'GetMeSavedDishCategoriesResult',
       'getMeSavedDishCategories',
       {
         count: records.length,
-        nextCursor:
-          records.length > 0
-            ? records[records.length - 1].created_at.toISOString()
-            : null,
+        nextCursor,
       },
     );
 
     return {
       data: records,
-      nextCursor:
-        records.length > 0
-          ? records[records.length - 1].created_at.toISOString()
-          : null,
+      nextCursor,
     };
   }
 
@@ -275,10 +252,8 @@ export class UsersService {
       cursor: dto.cursor,
     });
 
-    const saves = await this.dishMediaRepo.findDishMediaBySavedUser(
-      userId,
-      dto.cursor,
-    );
+    const { items: saves, nextCursor } =
+      await this.dishMediaRepo.findDishMediaBySavedUser(userId, dto.cursor);
 
     const dishMediaIds = saves.map((s) => s.dish_media_id);
 
@@ -286,11 +261,6 @@ export class UsersService {
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
       });
-
-    const nextCursor =
-      saves.length > 0
-        ? saves[saves.length - 1].created_at.toISOString()
-        : null;
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
       count: dishMediaEntryItemsResult.items.length,

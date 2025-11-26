@@ -1,9 +1,17 @@
 #!/bin/bash
 
 set -e
-set -a
-source api/.env
-set +a
+# set -a
+# source api/.env
+# set +a
+
+# --- safer: read only the variables we need from api/.env ---
+DB_SCHEMA=$(grep -E '^DB_SCHEMA=' api/.env | cut -d'=' -f2-)
+export DB_SCHEMA
+
+# If you rely on other variables from api/.env, list them explicitly here:
+# EXAMPLE_VAR=$(grep -E '^EXAMPLE_VAR=' api/.env | cut -d'=' -f2-)
+# export EXAMPLE_VAR
 
 if [ -z "$DB_SCHEMA" ]; then
   echo "❌ DB_SCHEMA is not set in api/.env"
@@ -53,7 +61,7 @@ fi
 
 echo "📦 Extracted Supabase Project ID: $PROJECT_ID"
 echo "🧬 Generating Supabase types..."
-pnpx supabase gen types typescript --project-id "$PROJECT_ID" --schema $DB_SCHEMA > shared/supabase/database.types.ts
+npx supabase gen types typescript --project-id "$PROJECT_ID" --schema "$DB_SCHEMA" > shared/supabase/database.types.ts
 
 echo "✅ Supabase types generated at shared/supabase/database.types.ts"
 

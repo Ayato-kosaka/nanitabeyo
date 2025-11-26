@@ -126,8 +126,8 @@
 			"confirm": "Hide"
 		},
 		"Loading": {
-			"title": "Searching for dishes perfect for you",
-			"subtitle": "Please wait a moment..."
+			"title": "Curating 6 perfect dishes for you",
+			"subtitle": "Your recommendations will be ready soon!"
 		},
 		"errors": {
 			"fetchFailed": "Failed to fetch dishes",
@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "Permission to access images denied",
 			"uploadFailed": "Failed to upload image",
-			"invalidImage": "Invalid image file"
+			"invalidImage": "Invalid image file",
+			"displayNameLength": "Display name must be 30 characters or less",
+			"bioLength": "Bio must be 150 characters or less"
 		}
 	},
 	"NotFound": {
@@ -347,9 +349,18 @@
 			"dishCategoryNotFound": "Dish category not found",
 			"dishCategoryInvalidInput": "Invalid dish category name",
 			"reviewSubmitFailed": "Failed to post review"
-		}
+		},
+		"consent_review_prefix": "By continuing, you agree to our ",
+		"consent_review_guidelines": "Community Guidelines",
+		"consent_review_and": " and ",
+		"consent_review_copyright": "Copyright",
+		"consent_review_suffix": "."
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "Selecting 5 restaurants to make choosing easier",
+			"subtitle": "Your recommendations will be ready soon!"
+		},
 		"placeholders": {
 			"searchLocation": "Search location/area"
 		},
@@ -434,6 +445,21 @@
 		"conflict_dialog_title": "Existing Account Found",
 		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
 		"conflict_dialog_switch": "Switch",
-		"conflict_dialog_cancel": "Cancel"
+		"conflict_dialog_cancel": "Cancel",
+		"consent_login_prefix": "By continuing, you agree to our ",
+		"consent_login_terms": "Terms of Service",
+		"consent_login_and": " and ",
+		"consent_login_privacy": "Privacy Policy",
+		"consent_login_suffix": "."
+	},
+	"Settings": {
+		"title": "Settings",
+		"sendFeedback": "Send Feedback",
+		"leaveReview": "Leave Review",
+		"communityGuidelines": "Community Guidelines",
+		"terms": "Terms and Conditions",
+		"privacy": "Privacy Policy",
+		"copyright": "Copyright",
+		"logout": "Logout"
 	}
 }

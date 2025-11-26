@@ -126,8 +126,8 @@
 			"confirm": "非表示にする"
 		},
 		"Loading": {
-			"title": "あなたにぴったりの料理を探しています",
-			"subtitle": "少々お待ちください..."
+			"title": "あなたにぴったりの料理を 6つ厳選しています",
+			"subtitle": "まもなくおすすめをお見せします！"
 		},
 		"errors": {
 			"fetchFailed": "料理の取得に失敗しました",
@@ -262,7 +262,9 @@
 		"errors": {
 			"permissionDenied": "画像へのアクセスが許可されていません",
 			"uploadFailed": "画像のアップロードに失敗しました",
-			"invalidImage": "無効な画像ファイルです"
+			"invalidImage": "無効な画像ファイルです",
+			"displayNameLength": "表示名は30文字以内で入力してください",
+			"bioLength": "自己紹介は150文字以内で入力してください"
 		},
 		"savedCount": "{{count}}件保存",
 		"guestBio": "ようこそ、ゲストさん 👋\n新感覚グルメアプリ「なに食べよ」を使って頂きありがとうございます😊\nアカウント機能含め、近日アップデートしていきます！"
@@ -347,9 +349,18 @@
 			"dishCategoryNotFound": "料理カテゴリが見つかりません",
 			"dishCategoryInvalidInput": "無効な料理カテゴリ名です",
 			"reviewSubmitFailed": "レビューの投稿に失敗しました"
-		}
+		},
+		"consent_review_prefix": "このまま続行すると、",
+		"consent_review_guidelines": "コミュニティガイドライン",
+		"consent_review_and": " と ",
+		"consent_review_copyright": "著作権",
+		"consent_review_suffix": " に同意したことになります。"
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "決めやすいように、お店を5つ厳選しています",
+			"subtitle": "まもなくおすすめをお見せします！"
+		},
 		"placeholders": {
 			"searchLocation": "地点・地域を検索"
 		},
@@ -434,6 +445,21 @@
 		"conflict_dialog_title": "既存アカウントが見つかりました",
 		"conflict_dialog_message": "対象のアカウントは既に別ユーザーに紐づいています。切り替えるとゲストで作成したデータは引き継がれません。既存アカウントに切り替えますか？",
 		"conflict_dialog_switch": "切り替える",
-		"conflict_dialog_cancel": "キャンセル"
+		"conflict_dialog_cancel": "キャンセル",
+		"consent_login_prefix": "このまま続行すると、",
+		"consent_login_terms": "利用規約",
+		"consent_login_and": " と ",
+		"consent_login_privacy": "プライバシーポリシー",
+		"consent_login_suffix": " に同意したことになります。"
+	},
+	"Settings": {
+		"title": "設定",
+		"sendFeedback": "ご意見・不具合",
+		"leaveReview": "レビューを書く",
+		"communityGuidelines": "コミュニティガイドライン",
+		"terms": "利用規約",
+		"privacy": "プライバシーポリシー",
+		"copyright": "著作権",
+		"logout": "ログアウト"
 	}
 }

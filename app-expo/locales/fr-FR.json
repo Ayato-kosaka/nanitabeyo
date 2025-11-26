@@ -126,8 +126,8 @@
 			"confirm": "Masquer"
 		},
 		"Loading": {
-			"title": "Nous recherchons des plats faits pour vous",
-			"subtitle": "Veuillez patienter..."
+			"title": "Sélection de 6 plats parfaits pour vous",
+			"subtitle": "Vos recommandations seront bientôt prêtes !"
 		},
 		"errors": {
 			"fetchFailed": "Échec de récupération des plats",
@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "Permission d'accéder aux images refusée",
 			"uploadFailed": "Échec du téléchargement de l'image",
-			"invalidImage": "Fichier image non valide"
+			"invalidImage": "Fichier image non valide",
+			"displayNameLength": "Le nom d'affichage doit contenir 30 caractères ou moins",
+			"bioLength": "La bio doit contenir 150 caractères ou moins"
 		}
 	},
 	"NotFound": {
@@ -347,9 +349,18 @@
 			"dishCategoryNotFound": "Catégorie de plat introuvable",
 			"dishCategoryInvalidInput": "Nom de catégorie de plat invalide",
 			"reviewSubmitFailed": "Échec de la publication de l'avis"
-		}
+		},
+		"consent_review_prefix": "En continuant, vous acceptez nos ",
+		"consent_review_guidelines": "Directives de la communauté",
+		"consent_review_and": " et ",
+		"consent_review_copyright": "Droits d'auteur",
+		"consent_review_suffix": "."
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "Sélection de 5 restaurants pour faciliter votre choix",
+			"subtitle": "Vos recommandations seront bientôt prêtes !"
+		},
 		"placeholders": {
 			"searchLocation": "Rechercher un lieu/région"
 		},
@@ -434,6 +445,21 @@
 		"conflict_dialog_title": "Compte Existant Trouvé",
 		"conflict_dialog_message": "Ce compte est déjà lié à un autre utilisateur. Si vous changez, les données créées en tant qu'invité ne seront pas transférées. Voulez-vous passer au compte existant?",
 		"conflict_dialog_switch": "Changer",
-		"conflict_dialog_cancel": "Annuler"
+		"conflict_dialog_cancel": "Annuler",
+		"consent_login_prefix": "En continuant, vous acceptez nos ",
+		"consent_login_terms": "Conditions d'utilisation",
+		"consent_login_and": " et ",
+		"consent_login_privacy": "Politique de confidentialité",
+		"consent_login_suffix": "."
+	},
+	"Settings": {
+		"title": "Paramètres",
+		"sendFeedback": "Envoyer des commentaires",
+		"leaveReview": "Laisser un avis",
+		"communityGuidelines": "Directives de la communauté",
+		"terms": "Conditions générales",
+		"privacy": "Politique de confidentialité",
+		"copyright": "Droits d'auteur",
+		"logout": "Se déconnecter"
 	}
 }

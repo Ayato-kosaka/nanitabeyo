@@ -11,6 +11,7 @@ export type DishMediaEntry = {
 		averageRating: number;
 	};
 	dish_media: SupabaseDishMedia & {
+		isMine: boolean;
 		isSaved: boolean;
 		isLiked: boolean;
 		likeCount: number;

@@ -58,6 +58,10 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 			(map: google.maps.Map) => {
 				innerMapRef.current = map;
 
+				// #362 MapView の POI 表示を「飲食系のみに制限」する
+				map.setOptions({
+					mapId: "4e9ea5ba5d0c3d1099d6c348",
+				});
 				const div = map.getDiv();
 				const width = div?.offsetWidth ?? 0;
 				if (region?.longitudeDelta && width > 0) {

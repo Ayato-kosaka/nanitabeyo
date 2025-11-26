@@ -128,7 +128,7 @@ export class UsersController {
       query,
     );
 
-    return this.usersMapper.toUserDishReviewsResponse({ data, nextCursor });
+    return { data, nextCursor };
   }
 
   /* ------------------------------------------------------------------ */

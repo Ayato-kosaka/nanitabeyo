@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { View, StyleSheet, LayoutChangeEvent, Alert } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import React, { useState, useCallback, useMemo } from "react";
+import { View, StyleSheet, LayoutChangeEvent } from "react-native";
+import { router } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileTabsBar } from "../components/ProfileTabsBar";
@@ -16,61 +16,29 @@ import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { mockBids, mockEarnings } from "../constants";
 import { ProfileEditForm } from "../components/ProfileEditForm";
-import { FeedbackForm } from "../components/FeedbackForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Image } from "expo-image";
-import { userProfile } from "@/data/profileData";
-import { useAPICall } from "@/hooks/useAPICall";
-import type { GetUserProfileResponse } from "@shared/api/v1/res";
+import { useProfileStore } from "../stores/useProfileStore";
+import { useEnsureOwnProfileLoaded } from "../hooks/useEnsureOwnProfileLoaded";
 
 export function ProfileTabsLayout() {
-	const { userId } = useLocalSearchParams<{ userId?: string }>();
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { callBackend } = useAPICall();
 	const { user } = useAuth();
 
-	const { BlurModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
-	const {
-		BlurModal: FeedbackModal,
-		open: openFeedbackModal,
-		close: closeFeedbackModal,
-	} = useBlurModal({ intensity: 100 });
+	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
+	useEnsureOwnProfileLoaded();
+	const profile = useProfileStore((state) => state.profile);
+
+	const { BlurModal: ProfileEditModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 	const { BlurModal: LoginModal, open: openLoginModal, close: closeLoginModal } = useBlurModal({ intensity: 100 });
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
-	const [profile, setProfile] = useState<GetUserProfileResponse | null>(null);
 
-	const isOwnProfile = useMemo(() => !userId || userId === "me", [userId]);
+	const isOwnProfile = useMemo(() => true, []);
 	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
-
-	useEffect(() => {
-		const loadOwnProfile = async () => {
-			if (isGuest) {
-				setProfile(userProfile);
-				return;
-			}
-			try {
-				const data = await callBackend<{}, GetUserProfileResponse>(`v1/users/${userId ?? user?.id}`, {
-					method: "GET",
-					requestPayload: {},
-				});
-				const avatarUrl = data.avatarUrls?.md;
-				avatarUrl && (await Image.prefetch(avatarUrl));
-				setProfile(data);
-			} catch (error: any) {
-				logFrontendEvent({
-					event_name: "load_own_profile_error",
-					error_level: "error",
-					payload: { error: error.message, userId: userId ?? user?.id, isOwnProfile, isGuest },
-				});
-			}
-		};
-		loadOwnProfile();
-	}, [callBackend, isGuest, isOwnProfile, logFrontendEvent, user?.id, userId]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
@@ -138,24 +106,6 @@ export function ProfileTabsLayout() {
 		});
 	}, [lightImpact, openEditModal, logFrontendEvent]);
 
-	const handleFeedback = useCallback(() => {
-		lightImpact();
-		openFeedbackModal();
-		logFrontendEvent({
-			event_name: "feedback_modal_opened",
-			error_level: "log",
-			payload: { userId: user?.id },
-		});
-	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
-
-	const handleFeedbackSubmit = useCallback(
-		(data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
-			closeFeedbackModal();
-			// Additional success handling could be added here if needed
-		},
-		[closeFeedbackModal],
-	);
-
 	const handleLogin = useCallback(() => {
 		lightImpact();
 		openLoginModal();
@@ -191,11 +141,9 @@ export function ProfileTabsLayout() {
 				onLayout={handleHeaderLayout}
 				onBack={handleBack}
 				onShare={handleShareProfile}
-				onSettings={() => {}}
 				onEditProfile={handleEditProfile}
 				onFollow={handleFollow}
 				onMessage={() => {}}
-				onFeedback={handleFeedback}
 				onLogin={handleLogin}
 			/>
 		);
@@ -209,7 +157,6 @@ export function ProfileTabsLayout() {
 		handleShareProfile,
 		handleEditProfile,
 		handleFollow,
-		handleFeedback,
 		handleLogin,
 	]);
 
@@ -283,24 +230,8 @@ export function ProfileTabsLayout() {
 			</Tabs.Container>
 
 			{profile && (
-				<BlurModal>
-					{({ close }) => (
-						<ProfileEditForm initialValues={profile} setProfile={setProfile} close={close} onCancel={close} />
-					)}
-				</BlurModal>
+				<ProfileEditModal>{({ close }) => <ProfileEditForm close={close} onCancel={close} />}</ProfileEditModal>
 			)}
-
-			<FeedbackModal>
-				{({ close }) => (
-					<FeedbackForm
-						onSubmit={(data) => {
-							handleFeedbackSubmit(data);
-							close();
-						}}
-						onCancel={close}
-					/>
-				)}
-			</FeedbackModal>
 
 			<LoginModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginModal>
 		</View>

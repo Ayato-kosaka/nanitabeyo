@@ -20,25 +20,16 @@ export type QueryRestaurantsResponse = {
 }[];
 
 /** POST /v1/restaurants のレスポンス型 */
-export type CreateRestaurantResponse = RestaurantsEntity & {
-	reviewCount: number;
-	averageRating: number;
-	totalCents: number;
-	maxEndDate: string | null;
+export type CreateRestaurantResponse = {
+	restaurant: RestaurantsEntity;
+	meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
 };
 
 /** POST /v1/restaurants/:id/bids/intents のレスポンス型 */
 export type CreateRestaurantBidIntentResponse = { clientSecret: string };
 
 /** GET /v1/restaurants/:id/dish-media のレスポンス型 */
-export type QueryRestaurantDishMediaResponse = PaginatedResponse<
-	DishMediaEntry & {
-		dish: {
-			reviewCount: number;
-			averageRating: number;
-		};
-	}
->;
+export type QueryRestaurantDishMediaResponse = PaginatedResponse<DishMediaEntry>;
 
 /** GET /v1/restaurants/:id/restaurant-bids のレスポンス型 */
 export type QueryRestaurantBidsResponse = SupabaseRestaurantBids[];

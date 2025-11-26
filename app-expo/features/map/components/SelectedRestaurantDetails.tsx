@@ -15,13 +15,15 @@ import { RestaurantBidsTab } from "@/features/map/components/tabs/RestaurantBids
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
-import type { CreateRestaurantResponse } from "@shared/api/v1/res";
+import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
+import { useAuth } from "@/contexts/AuthProvider";
+import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -43,11 +45,12 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) {
+export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: QueryRestaurantsResponse[number]) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
+	const { user } = useAuth();
 
 	// Modals
 	const {
@@ -60,6 +63,11 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 		open: openBidModal,
 		close: closeBidModal,
 	} = useBlurModal({ intensity: 100, zIndex: 1300 });
+	const {
+		BlurModal: LoginBlurModal,
+		open: openLoginModal,
+		close: closeLoginModal,
+	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -89,8 +97,13 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
-		// Open modal immediately - media selection will happen inside ReviewForm
-		openReviewModal();
+		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
+		if (user?.is_anonymous !== false) {
+			openLoginModal();
+		} else {
+			// ReviewForm を開くと同時にメディア選択が行われる
+			openReviewModal();
+		}
 	};
 
 	const handleOpenGoogleMaps = async () => {
@@ -149,9 +162,9 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 						<View style={styles.restaurantDetails}>
 							<Text style={styles.restaurantName}>{restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={restaurant.averageRating} />
-								<Text style={styles.ratingText}>{restaurant.averageRating}</Text>
-								<Text style={styles.reviewCount}>({restaurant.reviewCount})</Text>
+								<Stars rating={restaurantMeta.averageRating} />
+								<Text style={styles.ratingText}>{restaurantMeta.averageRating}</Text>
+								<Text style={styles.reviewCount}>({restaurantMeta.reviewCount})</Text>
 							</View>
 							<PrimaryButton
 								onPress={handleOpenGoogleMaps}
@@ -165,18 +178,20 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 					</View>
 				</Card>
 
-				{restaurant.maxEndDate && (
+				{restaurantMeta.maxEndDate && (
 					<View style={styles.bidAmountContainer}>
 						<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
 						<Text style={styles.bidAmount}>
 							{i18n.t("Search.currencySuffix")}
-							{restaurant.totalCents.toLocaleString()}
+							{restaurantMeta.totalCents.toLocaleString()}
 						</Text>
 						<Text style={styles.remainingDays}>
 							{i18n.t("Common.daysRemaining", {
 								count: Math.max(
 									0,
-									Math.ceil((new Date(restaurant.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+									Math.ceil(
+										(new Date(restaurantMeta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+									),
 								),
 							})}
 						</Text>
@@ -239,6 +254,9 @@ export function SelectedRestaurantDetails(restaurant: CreateRestaurantResponse) 
 			<BidBlurModal>
 				{({ close }) => <BidForm onSubmit={handleBid} onCancel={close} isProcessing={isProcessing} />}
 			</BidBlurModal>
+
+			{/* Login Modal */}
+			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 		</View>
 	);
 }

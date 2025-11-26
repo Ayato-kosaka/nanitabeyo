@@ -77,7 +77,7 @@ export class NotificationsController {
     );
 
     return {
-      items: result.items,
+      data: result.items,
       nextCursor: result.nextCursor,
     };
   }

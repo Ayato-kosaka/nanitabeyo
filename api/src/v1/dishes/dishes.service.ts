@@ -97,7 +97,7 @@ export class DishesService {
     }
 
     // レストランの住所情報からローカル言語コードを推測
-    let languageCode = this.locationsService.resolveLocalLanguageCode(
+    const languageCode = this.locationsService.resolveLocalLanguageCode(
       restaurant.address_components as protos.google.maps.places.v1.Place.IAddressComponent[],
     );
 
@@ -291,6 +291,7 @@ export class DishesService {
             ...dishMedia,
             mediaUrl: photoMedia.photoUri,
             thumbnailImageUrl: photoMedia.photoUri,
+            isMine: false, // インポートなので自分のものではない
             isSaved: false, // 初期状態では保存されていない
             isLiked: false, // 初期状態ではいいねされていない
             likeCount: 0, // 初期状態ではいいね数は0

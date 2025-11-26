@@ -126,8 +126,8 @@
 			"confirm": "隐藏"
 		},
 		"Loading": {
-			"title": "正在为你寻找合适的菜品",
-			"subtitle": "请稍候..."
+			"title": "正在为您精选6道完美菜品",
+			"subtitle": "推荐即将准备好！"
 		},
 		"errors": {
 			"fetchFailed": "获取菜品失败",
@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "访问图片权限被拒绝",
 			"uploadFailed": "上传图片失败",
-			"invalidImage": "无效的图片文件"
+			"invalidImage": "无效的图片文件",
+			"displayNameLength": "显示名称不能超过30个字符",
+			"bioLength": "简介不能超过150个字符"
 		}
 	},
 	"NotFound": {
@@ -347,9 +349,18 @@
 			"dishCategoryNotFound": "未找到菜品类别",
 			"dishCategoryInvalidInput": "无效的菜品类别名称",
 			"reviewSubmitFailed": "评论发布失败"
-		}
+		},
+		"consent_review_prefix": "继续即表示您同意我们的",
+		"consent_review_guidelines": "社区准则",
+		"consent_review_and": "和",
+		"consent_review_copyright": "版权",
+		"consent_review_suffix": "。"
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "正在精选5家餐厅让您更容易选择",
+			"subtitle": "推荐即将准备好！"
+		},
 		"placeholders": {
 			"searchLocation": "搜索地点/区域"
 		},
@@ -434,6 +445,21 @@
 		"conflict_dialog_title": "找到现有账户",
 		"conflict_dialog_message": "此账户已链接到另一个用户。如果您切换，作为访客创建的数据将不会被转移。您要切换到现有账户吗？",
 		"conflict_dialog_switch": "切换",
-		"conflict_dialog_cancel": "取消"
+		"conflict_dialog_cancel": "取消",
+		"consent_login_prefix": "继续即表示您同意我们的",
+		"consent_login_terms": "服务条款",
+		"consent_login_and": "和",
+		"consent_login_privacy": "隐私政策",
+		"consent_login_suffix": "。"
+	},
+	"Settings": {
+		"title": "设置",
+		"sendFeedback": "发送反馈",
+		"leaveReview": "留下评价",
+		"communityGuidelines": "社区准则",
+		"terms": "条款和条件",
+		"privacy": "隐私政策",
+		"copyright": "版权",
+		"logout": "登出"
 	}
 }

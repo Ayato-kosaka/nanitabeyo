@@ -126,8 +126,8 @@
 			"confirm": "छिपाएँ"
 		},
 		"Loading": {
-			"title": "आपके लिए उपयुक्त व्यंजन खोज रहे हैं",
-			"subtitle": "कृपया प्रतीक्षा करें..."
+			"title": "आपके लिए 6 आदर्श व्यंजनों का चयन कर रहे हैं",
+			"subtitle": "आपकी सिफारिशें जल्द ही तैयार होंगी!"
 		},
 		"errors": {
 			"fetchFailed": "व्यंजन प्राप्त करने में विफल",
@@ -264,7 +264,9 @@
 		"errors": {
 			"permissionDenied": "छवियों तक पहुंचने की अनुमति अस्वीकृत",
 			"uploadFailed": "छवि अपलोड करने में विफल",
-			"invalidImage": "अमान्य छवि फ़ाइल"
+			"invalidImage": "अमान्य छवि फ़ाइल",
+			"displayNameLength": "प्रदर्शन नाम 30 वर्ण या उससे कम होना चाहिए",
+			"bioLength": "परिचय 150 वर्ण या उससे कम होना चाहिए"
 		}
 	},
 	"NotFound": {
@@ -348,9 +350,18 @@
 			"dishCategoryNotFound": "Dish category not found",
 			"dishCategoryInvalidInput": "Invalid dish category name",
 			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
-		}
+		},
+		"consent_review_prefix": "जारी रखकर, आप हमारी ",
+		"consent_review_guidelines": "समुदाय दिशानिर्देश",
+		"consent_review_and": " और ",
+		"consent_review_copyright": "कॉपीराइट",
+		"consent_review_suffix": " से सहमत होते हैं।"
 	},
 	"Restaurant": {
+		"Loading": {
+			"title": "आपकी पसंद आसान बनाने के लिए 5 रेस्तरां चुन रहे हैं",
+			"subtitle": "आपकी सिफारिशें जल्द ही तैयार होंगी!"
+		},
 		"placeholders": {
 			"searchLocation": "स्थान/क्षेत्र खोजें"
 		},
@@ -435,6 +446,21 @@
 		"conflict_dialog_title": "मौजूदा खाता मिला",
 		"conflict_dialog_message": "यह खाता पहले से ही किसी अन्य उपयोगकर्ता से जुड़ा हुआ है। यदि आप स्विच करते हैं, तो अतिथि के रूप में बनाया गया डेटा स्थानांतरित नहीं होगा। क्या आप मौजूदा खाते पर स्विच करना चाहते हैं?",
 		"conflict_dialog_switch": "स्विच करें",
-		"conflict_dialog_cancel": "रद्द करें"
+		"conflict_dialog_cancel": "रद्द करें",
+		"consent_login_prefix": "जारी रखकर, आप हमारी ",
+		"consent_login_terms": "सेवा की शर्तें",
+		"consent_login_and": " और ",
+		"consent_login_privacy": "गोपनीयता नीति",
+		"consent_login_suffix": " से सहमत होते हैं।"
+	},
+	"Settings": {
+		"title": "सेटिंग्स",
+		"sendFeedback": "प्रतिक्रिया भेजें",
+		"leaveReview": "समीक्षा छोड़ें",
+		"communityGuidelines": "समुदाय दिशानिर्देश",
+		"terms": "नियम और शर्तें",
+		"privacy": "गोपनीयता नीति",
+		"copyright": "कॉपीराइट",
+		"logout": "लॉग आउट"
 	}
 }

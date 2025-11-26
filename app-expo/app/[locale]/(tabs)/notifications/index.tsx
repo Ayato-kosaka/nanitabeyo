@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
@@ -7,13 +7,14 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMarkNotificationsRead";
 import { useRouter } from "expo-router";
-import type { DishMediaEntry, NotificationItem, NotificationResponse } from "@shared/api/v1/res";
+import type { NotificationItem, NotificationResponse } from "@shared/api/v1/res";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useFocusEffect } from "expo-router";
 import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
 import { getCacheKeyForImage } from "@/lib/image";
+import { dateStringToTimestamp } from "@/lib/frontend-utils";
 
 /**
  * 🔔 通知一覧画面
@@ -31,7 +32,6 @@ export default function NotificationsScreen() {
 	const notifications = useNotifications();
 	const { markAllAsRead } = useMarkNotificationsRead();
 	const { unreadCount, refresh: notificationUnreadCountRefresh } = useNotificationUnreadCount();
-	const { setDishePromises } = useDishMediaEntriesStore();
 	const locale = useLocale();
 
 	// #通知機能 【設計】画面入場時に通知を取得し、未読数をリフレッシュして全件既読にする
@@ -52,9 +52,7 @@ export default function NotificationsScreen() {
 				}
 			})();
 			return () => {};
-			// 依存関係はあえて省略。これらの関数は安定している（各フック内で useCallback されている）ため。
-			// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [user?.id]),
+		}, [user?.id, notifications, markAllAsRead, notificationUnreadCountRefresh]),
 	);
 
 	// #通知機能 【仕様】通知タップ時の遷移処理
@@ -67,17 +65,30 @@ export default function NotificationsScreen() {
 
 			if (target_table === "dish_media" && notification.dishMediaEntries !== undefined) {
 				// #通知機能 【仕様】dish_media の場合は DishMediaFeed へ遷移
-				// #通知機能 【設計】通知からの遷移時は単一 DishMedia のみを表示（unique 廃止）
+				const { upsertDishMediaEntries, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
 				const currentDishMedia = notification.dishMediaEntries;
-				setDishePromises("notification", Promise.resolve([currentDishMedia]));
+				upsertDishMediaEntries([currentDishMedia]);
+				const mediaId = String(currentDishMedia.dish_media.id);
+				updateMediaIdsByKey("notification", () => [mediaId]);
 				router.push({
 					pathname: "/[locale]/(tabs)/notifications/feed",
-					params: { locale, startIndex: 0 },
+					params: { locale, idType: "dish_media" },
+				});
+			} else if (target_table === "dish_reviews" && notification.dishMediaEntries !== undefined) {
+				// #通知機能 【仕様】dish_reviews の場合は DishMediaFeed へ遷移
+				const { upsertDishMediaEntries, updateReviewIdsByKey } = useDishMediaEntriesStore.getState();
+				const currentDishMedia = notification.dishMediaEntries;
+				upsertDishMediaEntries([currentDishMedia]);
+				const reviewId = String(notification.notification.target_id);
+				updateReviewIdsByKey("notification", () => [reviewId]);
+				router.push({
+					pathname: "/[locale]/(tabs)/notifications/feed",
+					params: { locale, idType: "dish_reviews" },
 				});
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
-		[lightImpact, router, setDishePromises, locale],
+		[lightImpact, router, locale],
 	);
 
 	// #通知機能 【仕様】通知アイテムのアイコンを取得
@@ -158,7 +169,8 @@ export default function NotificationsScreen() {
 							<Text style={styles.username}>{actorNames}</Text>
 							<Text style={styles.message}> {message}</Text>
 						</Text>
-						<Text style={styles.timestamp}>{new Date(item.notification.created_at).toLocaleDateString()}</Text>
+						{/* #450 【設計】DishReviewsSection と同様に dateStringToTimestamp で相対時間表示（xx秒前 / xx分前等） */}
+						<Text style={styles.timestamp}>{dateStringToTimestamp(item.notification.created_at)}</Text>
 					</View>
 
 					{/* Right: Post Thumbnail */}
@@ -208,35 +220,38 @@ export default function NotificationsScreen() {
 			{/* Notifications List */}
 			<View style={styles.notificationContainer}>
 				<View style={styles.sheet}>
-					<FlatList
-						data={notifications.items}
-						renderItem={renderNotificationItem}
-						keyExtractor={(item) => item.notification.id}
-						onEndReached={notifications.loadMore}
-						onEndReachedThreshold={0.5}
-						refreshing={notifications.isLoadingInitial}
-						onRefresh={notifications.refresh}
-						ListEmptyComponent={
-							notifications.isLoadingInitial ? (
-								<View style={styles.loadingContainer}>
-									<ActivityIndicator size="large" color="#5EA2FF" />
-								</View>
-							) : (
+					{/* 初回ロードはリストをレンダリングせずローディング表示を出す */}
+					{notifications.isLoadingInitial && notifications.items.length === 0 ? (
+						<View style={styles.loadingContainer}>
+							<ActivityIndicator size="large" color="#5EA2FF" />
+						</View>
+					) : (
+						<FlatList
+							data={notifications.items}
+							renderItem={renderNotificationItem}
+							keyExtractor={(item) => item.notification.id}
+							onEndReached={notifications.loadMore}
+							onEndReachedThreshold={0.5}
+							refreshing={notifications.isLoadingInitial}
+							onRefresh={notifications.refresh}
+							// 初回ロードが終わった後に表示する「空」表示
+							ListEmptyComponent={
 								<View style={styles.emptyContainer}>
 									<Text style={styles.emptyText}>{i18n.t("Notifications.empty")}</Text>
 								</View>
-							)
-						}
-						ListFooterComponent={
-							notifications.isLoadingMore ? (
-								<View style={styles.loadingContainer}>
-									<ActivityIndicator size="small" color="#5EA2FF" />
-									<Text style={styles.loadingText}>{i18n.t("Notifications.loadingMore")}</Text>
-								</View>
-							) : null
-						}
-						contentContainerStyle={styles.scrollContent}
-					/>
+							}
+							// フッターローダーは items が存在する場合にのみ表示する
+							ListFooterComponent={
+								notifications.isLoadingMore && notifications.items.length > 0 ? (
+									<View style={styles.loadingContainer}>
+										<ActivityIndicator size="small" color="#5EA2FF" />
+										<Text style={styles.loadingText}>{i18n.t("Notifications.loadingMore")}</Text>
+									</View>
+								) : null
+							}
+							contentContainerStyle={styles.scrollContent}
+						/>
+					)}
 				</View>
 			</View>
 		</SafeAreaView>

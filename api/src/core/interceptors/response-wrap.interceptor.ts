@@ -46,7 +46,7 @@ export class ResponseWrapInterceptor implements NestInterceptor {
     private readonly reflector: Reflector,
     private readonly logger: AppLoggerService,
     private readonly cookieQueue: CookieQueueService,
-  ) { }
+  ) {}
 
   intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
     /* ――― 除外判定 ――― */
@@ -79,7 +79,10 @@ export class ResponseWrapInterceptor implements NestInterceptor {
           this.logger.warn(
             'CookieQueueServiceNotAvailable',
             'ResponseWrapInterceptor',
-            { message: 'CookieQueueService not available, skipping cookie flush.' },
+            {
+              message:
+                'CookieQueueService not available, skipping cookie flush.',
+            },
           );
         }
 
@@ -91,8 +94,8 @@ export class ResponseWrapInterceptor implements NestInterceptor {
           'errorCode' in payload;
 
         /* ---------- バックエンドイベントログ（成功パス） ---------- */
-        const t0 = (req as any)._t0 ?? startedAt;
-        const tBodyEnd = (req as any)._tBodyEnd ?? startedAt;
+        const t0 = req._t0 ?? startedAt;
+        const tBodyEnd = req._tBodyEnd ?? startedAt;
         const queue_ms = startedAt - t0; // ハンドラに入るまで（ボディ受信＋前段）
         const upload_ms = Math.max(0, tBodyEnd - t0); // ボディ受信完了まで
         const app_ms = Date.now() - startedAt; // ハンドラ処理時間

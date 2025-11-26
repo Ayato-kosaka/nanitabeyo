@@ -70,7 +70,7 @@ export class DishMediaService {
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-media?ids=...                      */
   /* ------------------------------------------------------------------ */
-  async findByIds(ids: string[], viewerId?: string) {
+  async findByIds(ids: string[], viewerId: string) {
     this.logger.debug('FindByIds', 'findByIds', {
       count: ids.length,
       viewer: viewerId ?? 'anon',
@@ -101,7 +101,7 @@ export class DishMediaService {
   public async fetchDishMediaEntryItems(
     dishMediaIds: string[],
     option: {
-      userId?: string;
+      userId: string;
       reviewLimit?: number;
     },
   ): Promise<{ items: DishMediaEntry[] }> {

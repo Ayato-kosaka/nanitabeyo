@@ -8,6 +8,8 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
+import { useTopicsStore } from "@/stores/useTopicsStore";
+import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
@@ -22,6 +24,8 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		lightImpact();
 		setIsSaved(willSave);
 
+		const { updateTopicIdsByKey, upsertTopics } = useTopicsStore.getState();
+
 		try {
 			await toggleReaction({
 				target_type: "dish_categories",
@@ -29,9 +33,26 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 				action_type: "save",
 				willReact: willSave,
 			});
+
+			// #472【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
+			if (willSave) {
+				upsertTopics([
+					{
+						id: item.categoryId,
+						image_url: item.imageUrl,
+						labels: {},
+						label_en: item.topicTitle,
+					},
+				]);
+				updateTopicIdsByKey(profileSavedTopicsEntriesKey, (prev) => {
+					const without = prev.filter((id) => id !== item.categoryId);
+					return [item.categoryId, ...without];
+				});
+			} else {
+				updateTopicIdsByKey(profileSavedTopicsEntriesKey, (prev) => prev.filter((id) => id !== item.categoryId));
+			}
 		} catch (error) {
 			// Revert state on error
-			setIsSaved(!willSave);
 			logFrontendEvent({
 				event_name: "topic_save_reaction_failed",
 				error_level: "log",
