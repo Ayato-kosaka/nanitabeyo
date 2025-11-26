@@ -1,20 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import {
-	View,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	StyleSheet,
-	ScrollView,
-	Platform,
-	AccessibilityInfo,
-	ActivityIndicator,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
-import { MapPin, X } from "lucide-react-native";
+import { MapPin, Utensils, X } from "lucide-react-native";
+
+export const FOOD_AND_DRINK_TYPES = ["restaurant", "cafe", "bar", "wine_bar"];
 
 interface LocationAutocompleteProps {
 	/** Current value of the input */
@@ -201,7 +193,11 @@ export function LocationAutocomplete({
 								accessibilityLabel={suggestion.text}
 								accessibilityHint="Select this location"
 								testID={`${testID}-suggestion-${index}`}>
-								<MapPin size={16} color="#6B7280" />
+								{suggestion.types.some((type) => FOOD_AND_DRINK_TYPES.includes(type)) ? (
+									<Utensils size={16} color="#6B7280" />
+								) : (
+									<MapPin size={16} color="#6B7280" />
+								)}
 								<View style={styles.suggestionText}>
 									<Text style={styles.suggestionMainText}>{suggestion.mainText}</Text>
 									{suggestion.secondaryText && (
