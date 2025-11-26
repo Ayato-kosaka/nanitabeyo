@@ -12,23 +12,23 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class LogsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * フロントエンドログを frontend_event_logs テーブルに書き込む
    * @param dto フロントエンドログ DTO
-   * @param userId 認証済みユーザーID（オプション）
+   * @param userId 認証済みユーザーID
    * @returns 常に { received: true } を返す
    */
   async createFrontendLog(
     dto: CreateFrontendLogDto,
-    userId?: string,
+    userId: string,
   ): Promise<CreateFrontendLogResponseDto> {
     try {
       await this.prisma.prisma.frontend_event_logs.create({
         data: {
           id: randomUUID(),
-          user_id: userId ?? dto.user_id ?? null,
+          user_id: userId,
           event_name: dto.event_name,
           path_name: dto.path_name,
           payload: JSON.stringify(dto.payload),

@@ -32,9 +32,4 @@ export class CreateFrontendLogDto {
 	/** コミットID */
 	@IsString()
 	created_commit_id!: string;
-
-	/** ユーザーID（オプション、認証済みの場合はサーバー側で補完） */
-	@IsOptional()
-	@IsString()
-	user_id?: string;
 }

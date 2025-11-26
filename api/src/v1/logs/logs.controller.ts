@@ -28,10 +28,10 @@ import { LogsService } from './logs.service';
 @ApiTags('Logs')
 @Controller('v1/logs')
 export class LogsController {
-  constructor(private readonly logsService: LogsService) {}
+  constructor(private readonly logsService: LogsService) { }
 
   /* ------------------------------------------------------------------ */
-  /*                    POST /v1/logs/frontend (任意認証)               */
+  /*                    POST /v1/logs/frontend                          */
   /* ------------------------------------------------------------------ */
   @Post('frontend')
   @UseGuards(OptionalJwtAuthGuard)
@@ -42,8 +42,8 @@ export class LogsController {
   @ApiResponse({ status: 201, description: 'ログ受信成功' })
   async createFrontendLog(
     @Body() dto: CreateFrontendLogDto,
-    @CurrentUser() user?: RequestUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<CreateFrontendLogResponseDto> {
-    return this.logsService.createFrontendLog(dto, user?.id);
+    return this.logsService.createFrontendLog(dto, user.id);
   }
 }

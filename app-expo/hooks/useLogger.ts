@@ -5,6 +5,7 @@ import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
 import { Platform } from "react-native";
+import { fetchWithAuth } from "./useAPICall";
 
 /**
  * ログレベルの優先度マッピング。
@@ -63,10 +64,12 @@ export const useLogger = () => {
 				data: { session },
 			} = await supabase.auth.getSession();
 			const accessToken = session?.access_token;
+			if (!accessToken) {
+				throw new Error("User is not authenticated: Supabase access_token is missing.");
+			}
 
 			const now = new Date().toISOString();
 
-			// #489 【設計】Backend API へログを送信
 			const logDto: CreateFrontendLogDto = {
 				event_name,
 				path_name,
@@ -77,29 +80,18 @@ export const useLogger = () => {
 				created_commit_id: Env.COMMIT_ID,
 			};
 
-			const headers: Record<string, string> = {
-				"Content-Type": "application/json",
-				"x-app-version": Env.APP_VERSION,
-			};
-
-			// 認証トークンがあれば付与（OptionalJwtAuthGuard 対応）
-			if (accessToken) {
-				headers["Authorization"] = `Bearer ${accessToken}`;
-			}
-
-			await fetch(`${Env.BACKEND_BASE_URL}/v1/logs/frontend`, {
+			await fetchWithAuth("v1/logs/frontend", {
 				method: "POST",
-				headers,
-				body: JSON.stringify(logDto),
-				// Include credentials for web to receive CDN signed cookies
-				credentials: Platform.OS === "web" ? "include" : "same-origin",
-			});
+				requestPayload: logDto,
+				isMultipart: false,
+			},
+				accessToken);
 
 			if (Env.NODE_ENV === "development") {
 				console.log(`📤 [${error_level}] [${path_name}] ${event_name}`, payload);
 			}
 		} catch (err: any) {
-			// #489 【設計】送信失敗は黙殺（ログ出力のみ）
+			// 【設計】送信失敗は黙殺（ログ出力のみ）
 			if (Env.NODE_ENV === "development") {
 				console.error(`🚨 Failed to log event [${event_name}] on screen [${path_name}]`, {
 					message: err.message,
