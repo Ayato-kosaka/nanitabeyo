@@ -11,6 +11,7 @@ import { FeedbackModule } from './feedback/feedback.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { UserUploadsModule } from './user-uploads/user-uploads.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     RestaurantsModule,
     UserUploadsModule,
     NotificationsModule,
+    LogsModule,
   ],
 })
 export class V1Module {}

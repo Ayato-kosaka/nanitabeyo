@@ -1,17 +1,15 @@
 import { usePathname } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
-import * as Crypto from "expo-crypto";
 import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
-import { EnumLiteral } from "@shared/utils/devDB.types";
-import { DeepNonNullable } from "@shared/utils/types";
-import { SupabaseFrontendEventLogs } from "@shared/converters/convert_frontend_event_logs";
+import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
+import { Platform } from "react-native";
 
 /**
  * ログレベルの優先度マッピング。
  */
-const errorLevelPriority: Record<EnumLiteral<"frontend_event_logs_error_level">, number> = {
+const errorLevelPriority: Record<CreateFrontendLogDto["error_level"], number> = {
 	verbose: 0,
 	debug: 1,
 	log: 2,
@@ -19,20 +17,18 @@ const errorLevelPriority: Record<EnumLiteral<"frontend_event_logs_error_level">,
 	error: 4,
 };
 
-type FrontendEventLogInput = DeepNonNullable<
-	Omit<
-		SupabaseFrontendEventLogs,
-		"id" | "user_id" | "path_name" | "payload" | "created_at" | "created_app_version" | "created_commit_id"
-	>
-> & {
+type FrontendEventLogInput = {
+	event_name: string;
+	error_level: CreateFrontendLogDto["error_level"];
 	payload: Record<string, any>;
 };
 
 /**
  * 📄 ログ記録用のカスタムフック。
+ * #489 【設計】フロントログ送信経路変更（Supabase → Backend API 経由）
  *
  * `useLogger()` を呼び出すことで `logFrontendEvent()` を利用可能になる。
- * - user_id は Supabase Auth から自動取得
+ * - user_id は Supabase Auth から自動取得（オプション）
  * - path_name は `usePathname()` により自動補完
  *
  * @returns `logFrontendEvent()` ログ送信関数
@@ -46,7 +42,7 @@ export const useLogger = () => {
 	}, [pathname]);
 
 	/**
-	 * Supabase にフロントエンドイベントログを送信する。
+	 * Backend API にフロントエンドイベントログを送信する。
 	 *
 	 * @param event_name - イベント名称（例: "onCapture", "playAudio" など）
 	 * @param error_level - エラーレベル（"verbose", "debug", "log", "warn", "error" のいずれか）
@@ -66,13 +62,12 @@ export const useLogger = () => {
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
-			const user = session?.user;
+			const accessToken = session?.access_token;
 
 			const now = new Date().toISOString();
 
-			await supabase.from("frontend_event_logs").insert({
-				id: Crypto.randomUUID(),
-				user_id: user?.id,
+			// #489 【設計】Backend API へログを送信
+			const logDto: CreateFrontendLogDto = {
 				event_name,
 				path_name,
 				payload,
@@ -80,12 +75,31 @@ export const useLogger = () => {
 				created_at: now,
 				created_app_version: Env.APP_VERSION,
 				created_commit_id: Env.COMMIT_ID,
+			};
+
+			const headers: Record<string, string> = {
+				"Content-Type": "application/json",
+				"x-app-version": Env.APP_VERSION,
+			};
+
+			// 認証トークンがあれば付与（OptionalJwtAuthGuard 対応）
+			if (accessToken) {
+				headers["Authorization"] = `Bearer ${accessToken}`;
+			}
+
+			await fetch(`${Env.BACKEND_BASE_URL}/v1/logs/frontend`, {
+				method: "POST",
+				headers,
+				body: JSON.stringify(logDto),
+				// Include credentials for web to receive CDN signed cookies
+				credentials: Platform.OS === "web" ? "include" : "same-origin",
 			});
 
 			if (Env.NODE_ENV === "development") {
 				console.log(`📤 [${error_level}] [${path_name}] ${event_name}`, payload);
 			}
 		} catch (err: any) {
+			// #489 【設計】送信失敗は黙殺（ログ出力のみ）
 			if (Env.NODE_ENV === "development") {
 				console.error(`🚨 Failed to log event [${event_name}] on screen [${path_name}]`, {
 					message: err.message,
