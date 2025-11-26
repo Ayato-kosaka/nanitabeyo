@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Pressable, Text } from "react-native";
 import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
 import { setAudioModeAsync } from "expo-audio"; // Threshold for detecting video loop (when currentTime returns to near start)
@@ -37,6 +37,7 @@ function VideoPlayer({
 }: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [isPlaying, setIsPlaying] = useState<boolean>(false);
 	const lastLoopTime = useRef(0);
 	const { logFrontendEvent } = useLogger();
 
@@ -73,12 +74,13 @@ function VideoPlayer({
 		})();
 	}, []);
 
+	// Sync with external shouldPlay prop.
 	useEffect(() => {
 		if (shouldPlay) {
 			player.play();
 		} else {
 			player.pause();
-			// Reset video position when paused to ensure fresh start on next play
+			// Reset video position when paused by external prop to ensure fresh start on next external play
 			player.currentTime = 0;
 		}
 	}, [shouldPlay, player]);
@@ -88,7 +90,7 @@ function VideoPlayer({
 	}, [isLooping, player]);
 
 	useEffect(() => {
-		const subscription = player.addListener("statusChange", (status) => {
+		const statusChangeSubscription = player.addListener("statusChange", (status) => {
 			if (status.status === "readyToPlay") {
 				setIsLoading(false);
 				setError(null);
@@ -97,9 +99,13 @@ function VideoPlayer({
 				setError(status.error?.message || "Video playback error");
 			}
 		});
+		const playingChangeSubscription = player.addListener("playingChange", (payload) => {
+			setIsPlaying(payload.isPlaying);
+		});
 
 		return () => {
-			subscription.remove();
+			statusChangeSubscription.remove();
+			playingChangeSubscription.remove();
 		};
 	}, [player]);
 
@@ -132,6 +138,16 @@ function VideoPlayer({
 		return () => clearInterval(interval);
 	}, [player, onProgress, onLoop]);
 
+	// Toggle play/pause on tap
+	const handleTogglePlay = () => {
+		if (isPlaying) {
+			player.pause();
+			// Do NOT reset currentTime when user taps pause; keep position for resume
+		} else {
+			player.play();
+		}
+	};
+
 	// For iOS/Android, use expo-video VideoView
 	return (
 		<View style={[styles.container, style]}>
@@ -140,7 +156,17 @@ function VideoPlayer({
 					<ActivityIndicator size="large" color="#fff" />
 				</View>
 			)}
-			<VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} contentFit={resizeMode} />
+			{/* Pressable covers the video area and toggles playback on tap */}
+			<Pressable style={StyleSheet.absoluteFill} onPress={handleTogglePlay}>
+				{/* Video is rendered underneath but Pressable must be transparent */}
+				<VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} contentFit={resizeMode} />
+				{/* When paused, show a faint centered play icon like TikTok */}
+				{!isPlaying && !isLoading && !error && (
+					<View pointerEvents="none" style={styles.playOverlay}>
+						<Text style={styles.playIcon}>▶</Text>
+					</View>
+				)}
+			</Pressable>
 		</View>
 	);
 }
@@ -157,5 +183,20 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.5)",
 		zIndex: 1,
+	},
+	playOverlay: {
+		...StyleSheet.absoluteFillObject,
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 2,
+	},
+	playIcon: {
+		fontSize: 72,
+		color: "#fff",
+		opacity: 0.65,
+		// A slight text shadow to make the icon readable on variable backgrounds
+		textShadowColor: "rgba(0,0,0,0.6)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
 	},
 });
