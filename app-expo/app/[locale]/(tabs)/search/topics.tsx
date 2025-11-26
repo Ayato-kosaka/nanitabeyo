@@ -19,6 +19,7 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLogger } from "@/hooks/useLogger";
 
 export default function TopicsScreen() {
 	const insets = useSafeAreaInsets();
@@ -34,6 +35,7 @@ export default function TopicsScreen() {
 		}
 		return null;
 	}, [searchParams]);
+	const { logFrontendEvent } = useLogger();
 	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
@@ -74,6 +76,11 @@ export default function TopicsScreen() {
 					topicId: topic.categoryId,
 					...(params && { location: JSON.stringify(params.location) }),
 				},
+			});
+			logFrontendEvent({
+				event_name: "topic_view_details",
+				error_level: "log",
+				payload: { topic_id: topic.categoryId },
 			});
 		},
 		[locale, params],
