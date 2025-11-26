@@ -49,6 +49,7 @@ export function useBlurModal({
 	keyboardVerticalOffset = 0,
 	dismissKeyboardFirst = true,
 }: BlurModalOptions = {}) {
+	const insets = useSafeAreaInsets();
 	const [visible, setVisible] = useState(false);
 	const isKeyboardVisibleRef = useRef(false);
 
@@ -128,8 +129,6 @@ export function useBlurModal({
 				const contenContinerWrapperStyle: StyleProp<ViewStyle> = {
 					paddingVertical,
 				};
-
-				const insets = useSafeAreaInsets();
 
 				return (
 					<Portal>
