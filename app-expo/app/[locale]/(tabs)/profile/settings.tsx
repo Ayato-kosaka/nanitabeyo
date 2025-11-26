@@ -1,15 +1,5 @@
 import React, { useCallback, useState } from "react";
-import {
-	View,
-	Text,
-	TouchableOpacity,
-	StyleSheet,
-	ScrollView,
-	SafeAreaView,
-	Platform,
-	StyleProp,
-	TextStyle,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, StyleProp, TextStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronRight } from "lucide-react-native";
 import * as StoreReview from "expo-store-review";
@@ -21,6 +11,7 @@ import { FeedbackForm } from "@/features/profile/components/FeedbackForm";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -134,7 +125,7 @@ export default function SettingsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<SafeAreaView style={styles.safeArea}>
+			<SafeAreaView style={styles.safeArea} edges={["top"]}>
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 					<View style={styles.header}>
 						<Text style={styles.title}>{i18n.t("Settings.title")}</Text>

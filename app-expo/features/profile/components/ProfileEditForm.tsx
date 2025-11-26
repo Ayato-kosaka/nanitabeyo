@@ -4,7 +4,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAwareForm } from "@/features/blurModal/components/form";
+import { KeyboardAwareForm } from "@/features/blurModal/components/KeyboardAwareForm";
 import { AvatarImageCard } from "./AvatarImageCard";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";

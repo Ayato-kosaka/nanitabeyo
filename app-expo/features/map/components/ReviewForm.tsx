@@ -46,6 +46,7 @@ import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -547,7 +548,7 @@ export function ReviewForm({
 	}
 
 	return (
-		<>
+		<SafeAreaView edges={["top"]}>
 			<Animated.View style={{ height: mediaHeightAnim }}>
 				{mediaState.status === "loading" ? (
 					<View style={styles.loadingContainer}>
@@ -660,7 +661,7 @@ export function ReviewForm({
 			<LegalDocumentModal>
 				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
 			</LegalDocumentModal>
-		</>
+		</SafeAreaView>
 	);
 }
 

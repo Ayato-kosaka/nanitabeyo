@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { DialogProvider } from "@/contexts/DialogProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
@@ -82,32 +81,30 @@ export default function RootLayout() {
 	return (
 		<>
 			<SeoHead />
-			<SafeAreaProvider>
-				<PaperProvider theme={theme}>
-					<SnackbarProvider>
-						<DialogProvider>
-							<AuthProvider>
-								<PushTokenRegistration />
-								<GestureHandlerRootView style={{ flex: 1 }}>
-									<Portal.Host>
-										<SplashHandler>
-											<HealthCheckInitializer>
-												<AppProvider>
-													<Stack screenOptions={{ header: () => null }}>
-														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-														<Stack.Screen name="+not-found" />
-													</Stack>
-													<StatusBar style="light" />
-												</AppProvider>
-											</HealthCheckInitializer>
-										</SplashHandler>
-									</Portal.Host>
-								</GestureHandlerRootView>
-							</AuthProvider>
-						</DialogProvider>
-					</SnackbarProvider>
-				</PaperProvider>
-			</SafeAreaProvider>
+			<PaperProvider theme={theme}>
+				<SnackbarProvider>
+					<DialogProvider>
+						<AuthProvider>
+							<PushTokenRegistration />
+							<GestureHandlerRootView style={{ flex: 1 }}>
+								<Portal.Host>
+									<SplashHandler>
+										<HealthCheckInitializer>
+											<AppProvider>
+												<Stack screenOptions={{ header: () => null }}>
+													<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+													<Stack.Screen name="+not-found" />
+												</Stack>
+												<StatusBar style="light" />
+											</AppProvider>
+										</HealthCheckInitializer>
+									</SplashHandler>
+								</Portal.Host>
+							</GestureHandlerRootView>
+						</AuthProvider>
+					</DialogProvider>
+				</SnackbarProvider>
+			</PaperProvider>
 		</>
 	);
 }

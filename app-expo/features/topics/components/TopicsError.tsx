@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -15,23 +15,18 @@ export const TopicsError = ({ error, onBack }: { error: string; onBack: () => vo
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.errorContainer}>
-			<SafeAreaView style={styles.errorContent}>
-				<View style={styles.errorCard}>
-					<Text style={styles.errorText}>{error}</Text>
-					<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-						<Text style={styles.retryButtonText}>{i18n.t("Common.back")}</Text>
-					</TouchableOpacity>
-				</View>
-			</SafeAreaView>
+			<View style={styles.errorCard}>
+				<Text style={styles.errorText}>{error}</Text>
+				<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
+					<Text style={styles.retryButtonText}>{i18n.t("Common.back")}</Text>
+				</TouchableOpacity>
+			</View>
 		</LinearGradient>
 	);
 };
 
 const styles = StyleSheet.create({
 	errorContainer: {
-		flex: 1,
-	},
-	errorContent: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
