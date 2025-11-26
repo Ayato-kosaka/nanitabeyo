@@ -14,6 +14,7 @@ import { BlurView } from "expo-blur";
 import { X } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { Portal } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /* -------------------------------------------------------------------------- */
 /*                                Hook 定義                                   */
@@ -128,6 +129,8 @@ export function useBlurModal({
 					paddingVertical,
 				};
 
+				const insets = useSafeAreaInsets();
+
 				return (
 					<Portal>
 						{/* Fullscreen layer */}
@@ -178,8 +181,8 @@ export function useBlurModal({
 									style={[
 										styles.closeButton,
 										{
-											top: 16,
-											right: 16,
+											top: insets.top,
+											right: insets.right,
 											zIndex: zIndex + 1,
 										},
 									]}>
@@ -204,5 +207,6 @@ const styles = StyleSheet.create({
 	closeButton: {
 		position: "absolute",
 		backgroundColor: "transparent",
+		paddingHorizontal: 12,
 	},
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
@@ -7,30 +7,25 @@ import i18n from "@/lib/i18n";
 // #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
 export const RestaurantLoading = () => (
 	<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.loadingContainer}>
-		<SafeAreaView style={styles.loadingContent}>
-			<View style={styles.loadingCard}>
-				<View style={styles.loadingIconContainer}>
-					<Image
-						source={require("@/assets/images/icon.png")}
-						style={styles.loadingIcon}
-						contentFit="cover"
-						transition={0}
-						cachePolicy={"memory-disk"}
-					/>
-				</View>
-				<ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
-				<Text style={styles.loadingTitle}>{i18n.t("Restaurant.Loading.title")}</Text>
-				<Text style={styles.loadingSubtitle}>{i18n.t("Restaurant.Loading.subtitle")}</Text>
+		<View style={styles.loadingCard}>
+			<View style={styles.loadingIconContainer}>
+				<Image
+					source={require("@/assets/images/icon.png")}
+					style={styles.loadingIcon}
+					contentFit="cover"
+					transition={0}
+					cachePolicy={"memory-disk"}
+				/>
 			</View>
-		</SafeAreaView>
+			<ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
+			<Text style={styles.loadingTitle}>{i18n.t("Restaurant.Loading.title")}</Text>
+			<Text style={styles.loadingSubtitle}>{i18n.t("Restaurant.Loading.subtitle")}</Text>
+		</View>
 	</LinearGradient>
 );
 
 const styles = StyleSheet.create({
 	loadingContainer: {
-		flex: 1,
-	},
-	loadingContent: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, StyleSheet, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
@@ -60,7 +60,7 @@ export default function DishMediaContent({
 	);
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<View style={styles.container}>
 			{/* Background Media (Image or Video) */}
 			{dishMediaEntry.dish_media.media_type === "video" ? (
 				<VideoPlayer
@@ -108,7 +108,7 @@ export default function DishMediaContent({
 					<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
 				</View>
 			</View>
-		</SafeAreaView>
+		</View>
 	);
 }
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
-import { Divider } from "react-native-paper";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -34,6 +33,7 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -214,7 +214,7 @@ export default function SearchScreen() {
 	};
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>

@@ -18,8 +18,10 @@ import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TopicsScreen() {
+	const insets = useSafeAreaInsets();
 	const locale = useLocale();
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
 	const params = useMemo(() => {
@@ -100,77 +102,79 @@ export default function TopicsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			{/* Header with Back Button */}
-			<View style={styles.backButtonContainer}>
-				<TouchableOpacity style={styles.backButton} onPress={handleBack}>
-					<X size={24} color="#000" />
-				</TouchableOpacity>
-			</View>
-
-			{/* Cards Carousel */}
-			{visibleTopics.length > 0 ? (
-				<View style={styles.carouselContainer}>
-					<Carousel
-						ref={carouselRef}
-						width={CARD_WIDTH}
-						height={CARD_HEIGHT}
-						data={visibleTopics}
-						renderItem={renderCard}
-						onSnapToItem={handleSnapToItem}
-						onScrollStart={() => setIsScrolling(true)}
-						onScrollEnd={() => setIsScrolling(false)}
-						mode="parallax"
-						modeConfig={{
-							parallaxScrollingScale: 0.9,
-							parallaxScrollingOffset: 100,
-						}}
-						style={styles.carousel}
-					/>
+			<SafeAreaView style={styles.container} edges={["top"]}>
+				{/* Header with Back Button */}
+				<View style={[styles.backButtonContainer, { top: insets.top, right: insets.right }]}>
+					<TouchableOpacity style={styles.backButton} onPress={handleBack}>
+						<X size={24} color="#000" />
+					</TouchableOpacity>
 				</View>
-			) : (
-				<View style={styles.emptyContainer}>
-					<View style={styles.emptyCard}>
-						<Text style={styles.emptyText}>{i18n.t("Topics.empty")}</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-							<Text style={styles.retryButtonText}>{i18n.t("Topics.retry")}</Text>
-						</TouchableOpacity>
+
+				{/* Cards Carousel */}
+				{visibleTopics.length > 0 ? (
+					<View style={styles.carouselContainer}>
+						<Carousel
+							ref={carouselRef}
+							width={CARD_WIDTH}
+							height={CARD_HEIGHT}
+							data={visibleTopics}
+							renderItem={renderCard}
+							onSnapToItem={handleSnapToItem}
+							onScrollStart={() => setIsScrolling(true)}
+							onScrollEnd={() => setIsScrolling(false)}
+							mode="parallax"
+							modeConfig={{
+								parallaxScrollingScale: 0.9,
+								parallaxScrollingOffset: 100,
+							}}
+							style={styles.carousel}
+						/>
 					</View>
-				</View>
-			)}
-
-			{/* Page Indicator */}
-			<View style={styles.pageIndicatorContainer}>
-				{visibleTopics.map((_, index) => (
-					<View
-						key={index}
-						style={[styles.pageIndicatorDot, currentIndex === index && styles.pageIndicatorDotActive]}
-					/>
-				))}
-			</View>
-
-			{/* Fixed Bottom Action Button */}
-			{visibleTopics.length > 0 && (
-				<View style={styles.bottomActionContainer}>
-					<PrimaryButton
-						label={i18n.t("Topics.chooseThis")}
-						icon={<ThumbsUp size={20} color="#FFF" />}
-						onPress={() => handleViewDetails(visibleTopics[currentIndex])}
-						disabled={isScrolling}
-					/>
-				</View>
-			)}
-
-			{/* Hide Card Modal */}
-			<HideTopicBlurModal>
-				{({ close }) => (
-					<HideTopicForm
-						onSubmit={(hideReason) => {
-							confirmHideCard(hideReason);
-						}}
-						onCancel={close}
-					/>
+				) : (
+					<View style={styles.emptyContainer}>
+						<View style={styles.emptyCard}>
+							<Text style={styles.emptyText}>{i18n.t("Topics.empty")}</Text>
+							<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
+								<Text style={styles.retryButtonText}>{i18n.t("Topics.retry")}</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
 				)}
-			</HideTopicBlurModal>
+
+				{/* Page Indicator */}
+				<View style={styles.pageIndicatorContainer}>
+					{visibleTopics.map((_, index) => (
+						<View
+							key={index}
+							style={[styles.pageIndicatorDot, currentIndex === index && styles.pageIndicatorDotActive]}
+						/>
+					))}
+				</View>
+
+				{/* Fixed Bottom Action Button */}
+				{visibleTopics.length > 0 && (
+					<View style={styles.bottomActionContainer}>
+						<PrimaryButton
+							label={i18n.t("Topics.chooseThis")}
+							icon={<ThumbsUp size={20} color="#FFF" />}
+							onPress={() => handleViewDetails(visibleTopics[currentIndex])}
+							disabled={isScrolling}
+						/>
+					</View>
+				)}
+
+				{/* Hide Card Modal */}
+				<HideTopicBlurModal>
+					{({ close }) => (
+						<HideTopicForm
+							onSubmit={(hideReason) => {
+								confirmHideCard(hideReason);
+							}}
+							onCancel={close}
+						/>
+					)}
+				</HideTopicBlurModal>
+			</SafeAreaView>
 		</LinearGradient>
 	);
 }

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Navigation } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -16,6 +15,7 @@ import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRes
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import MapViewClass from "react-native-maps";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
@@ -32,10 +32,12 @@ export default function MapScreen() {
 		close: closeRestaurantModal,
 	} = useBlurModal({ intensity: 100 });
 
-	const mapRef = useRef<any>(null);
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
-	const [currentRegion, setCurrentRegion] = useState<Region>({
+	// MapView のアニメーションを制御するための ref
+	const mapRef = useRef<MapViewClass>(null);
+	// 現在の地図の表示領域
+	const currentRegion = useRef<Region>({
 		latitude: 35.6762,
 		longitude: 139.6503,
 		latitudeDelta: 0.01,
@@ -85,7 +87,7 @@ export default function MapScreen() {
 				latitudeDelta: 0.01,
 				longitudeDelta: 0.01,
 			};
-			setCurrentRegion(newRegion);
+			currentRegion.current = newRegion;
 			mapRef.current?.animateToRegion(newRegion, 1000);
 			// Search restaurants at current location
 			searchNearbyRestaurants(newRegion);
@@ -95,7 +97,7 @@ export default function MapScreen() {
 
 	// Handle region change with debouncing
 	const handleRegionChangeComplete = useCallback((region: Region) => {
-		setCurrentRegion(region);
+		currentRegion.current = region;
 	}, []);
 
 	// 独自のマーカー押下時にレストラン詳細モーダルを表示
@@ -158,7 +160,7 @@ export default function MapScreen() {
 						latitudeDelta: 0.01,
 						longitudeDelta: 0.01,
 					};
-					setCurrentRegion(newRegion);
+					currentRegion.current = newRegion;
 					mapRef.current?.animateToRegion(newRegion, 1000);
 					setSearchQuery("");
 				} catch (error) {
@@ -183,7 +185,7 @@ export default function MapScreen() {
 				latitudeDelta: 0.01,
 				longitudeDelta: 0.01,
 			};
-			setCurrentRegion(newRegion);
+			currentRegion.current = newRegion;
 			mapRef.current?.animateToRegion(newRegion, 1000);
 		} catch (error) {
 			logFrontendEvent({
@@ -195,12 +197,12 @@ export default function MapScreen() {
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
 	return (
-		<SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+		<View style={styles.container}>
 			{/* Map */}
 			<MapView
 				ref={mapRef}
 				style={styles.map}
-				region={currentRegion}
+				// region={currentRegion}
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
 				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
@@ -244,7 +246,7 @@ export default function MapScreen() {
 			<View style={styles.bottomActionContainer}>
 				<PrimaryButton
 					label={i18n.t("Map.buttons.searchNearby")}
-					onPress={() => searchNearbyRestaurants(currentRegion)}
+					onPress={() => searchNearbyRestaurants(currentRegion.current)}
 					colors={["#ffffff", "#ffffff"]}
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A" }}
@@ -255,7 +257,7 @@ export default function MapScreen() {
 			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
 				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}
 			</RestaurantBlurModal>
-		</SafeAreaView>
+		</View>
 	);
 }
 

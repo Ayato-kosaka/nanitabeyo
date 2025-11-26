@@ -2,15 +2,17 @@ import { Tabs } from "expo-router";
 import { MapPinned, Bell, User, Search } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
 
 export default function TabLayout() {
 	const { user } = useAuth();
+	const insets = useSafeAreaInsets();
 	return (
 		<Tabs
 			initialRouteName="search"
-			safeAreaInsets={{ bottom: 0, top: 0 }}
+			safeAreaInsets={{ bottom: insets.bottom, top: 0 }}
 			screenOptions={{
 				header: () => null,
 				tabBarIconStyle: {
