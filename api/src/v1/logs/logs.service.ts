@@ -12,7 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class LogsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * フロントエンドログを frontend_event_logs テーブルに書き込む

@@ -80,12 +80,15 @@ export const useLogger = () => {
 				created_commit_id: Env.COMMIT_ID,
 			};
 
-			await fetchWithAuth("v1/logs/frontend", {
-				method: "POST",
-				requestPayload: logDto,
-				isMultipart: false,
-			},
-				accessToken);
+			await fetchWithAuth(
+				"v1/logs/frontend",
+				{
+					method: "POST",
+					requestPayload: logDto,
+					isMultipart: false,
+				},
+				accessToken,
+			);
 
 			if (Env.NODE_ENV === "development") {
 				console.log(`📤 [${error_level}] [${path_name}] ${event_name}`, payload);
