@@ -202,7 +202,6 @@ export default function MapScreen() {
 			<MapView
 				ref={mapRef}
 				style={styles.map}
-				// region={currentRegion}
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
 				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
