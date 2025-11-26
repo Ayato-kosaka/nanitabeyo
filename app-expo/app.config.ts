@@ -21,7 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
-		associatedDomains: [`applinks:food-scroll.web.app`],
+		associatedDomains: [`applinks:app.nanitabeyo.net`],
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleURLTypes: [
@@ -52,7 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				data: [
 					{
 						scheme: "https",
-						host: "food-scroll.web.app",
+						host: "app.nanitabeyo.net",
 						pathPrefix: "/",
 					},
 					{
