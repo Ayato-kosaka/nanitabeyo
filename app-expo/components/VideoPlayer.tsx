@@ -140,7 +140,7 @@ function VideoPlayer({
 					<ActivityIndicator size="large" color="#fff" />
 				</View>
 			)}
-			<VideoView player={player} style={StyleSheet.absoluteFill} nativeControls contentFit={resizeMode} />
+			<VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} contentFit={resizeMode} />
 		</View>
 	);
 }
