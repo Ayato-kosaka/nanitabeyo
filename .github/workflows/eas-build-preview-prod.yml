@@ -1,4 +1,4 @@
-name: EAS Build Preview Prod
+name: EAS Build Preview
 
 on:
   workflow_dispatch:
@@ -14,8 +14,8 @@ on:
           - android
 
 jobs:
-  build-preview-prod:
-    name: EAS Build (Preview Prod)
+  build-preview:
+    name: EAS Build (Preview)
     runs-on: ubuntu-latest
 
     defaults:
@@ -49,5 +49,5 @@ jobs:
       - name: ✨ Update environment variable
         run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
 
-      - name: 🚀 Build app (production preview)
+      - name: 🚀 Build app (preview)
         run: pnpx eas-cli build --profile preview --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait --clear-cache
