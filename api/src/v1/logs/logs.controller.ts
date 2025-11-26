@@ -36,7 +36,9 @@ export class LogsController {
   @Post('frontend')
   @UseGuards(OptionalJwtAuthGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-  @ApiOperation({ summary: 'フロントエンドログを Cloud Logging へ送信' })
+  @ApiOperation({
+    summary: 'フロントエンドログを frontend_event_logs テーブルへ書き込み',
+  })
   @ApiResponse({ status: 201, description: 'ログ受信成功' })
   async createFrontendLog(
     @Body() dto: CreateFrontendLogDto,
