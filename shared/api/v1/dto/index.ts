@@ -36,3 +36,5 @@ export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categ
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
+
+export { UpdateDishCategoryImagesDto, UpdateDishCategoryImageItem } from "./tools/update-dish-category-images.dto";

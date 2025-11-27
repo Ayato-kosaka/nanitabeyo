@@ -22,7 +22,7 @@ import { Check } from "lucide-react-native";
 
 import { useAPICall } from "@/hooks/useAPICall";
 import { useWithLoading } from "@/hooks/useWithLoading";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useBlurModal } from "@/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
