@@ -60,7 +60,7 @@ export function useFileUploader() {
 				logFrontendEvent({
 					event_name: "file_upload_started",
 					error_level: "log",
-					payload: { uri, mimeType, objectPath: signedUrlResponse.objectPath },
+					payload: { mimeType, objectPath: signedUrlResponse.objectPath },
 				});
 
 				if (Platform.OS === "web") {

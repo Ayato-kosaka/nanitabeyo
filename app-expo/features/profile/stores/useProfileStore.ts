@@ -1,4 +1,4 @@
-import type { GetUserProfileResponse } from "@shared/api/v1/res";
+import type { UserProfile } from "@shared/api/v1/res";
 import { createWithEqualityFn } from "zustand/traditional";
 
 /**
@@ -12,13 +12,13 @@ import { createWithEqualityFn } from "zustand/traditional";
  */
 export type ProfileStore = {
 	/** 現在のプロフィール情報（未ロード時は null） */
-	profile: GetUserProfileResponse | null;
+	profile: UserProfile | null;
 
 	/** プロフィール全体を設定する（初回ロード・再ロード用） */
-	setProfile: (profile: GetUserProfileResponse | null) => void;
+	setProfile: (profile: UserProfile | null) => void;
 
 	/** プロフィールを部分的に更新する（編集フォーム用） */
-	updateProfile: (updater: (prev: GetUserProfileResponse | null) => GetUserProfileResponse | null) => void;
+	updateProfile: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
 
 	/** プロフィールをリセットする（ログアウト時用） */
 	resetProfile: () => void;

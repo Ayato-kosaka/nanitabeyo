@@ -134,7 +134,20 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 			});
 			// #467 【設計】プロフィール更新はストア経由で行い、UI に即座に反映
 			updateProfile((prev) =>
-				prev ? { ...prev, avatar: uploadedAvatarPath, display_name: normalizedDisplayName, bio: normalizedBio } : null,
+				prev
+					? {
+							...prev,
+							avatar: uploadedAvatarPath,
+							display_name: normalizedDisplayName,
+							bio: normalizedBio,
+							avatarUrls: avatar.uri
+								? {
+										sm: avatar.uri,
+										md: avatar.uri,
+									}
+								: undefined,
+						}
+					: null,
 			);
 			close();
 			logFrontendEvent({
