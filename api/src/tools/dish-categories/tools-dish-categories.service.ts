@@ -3,16 +3,13 @@
 // Service for tools dish categories business logic
 //
 
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ToolsDishCategoriesRepository } from './tools-dish-categories.repository';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { env } from '../../core/config/env';
-import {
-  UpdateDishCategoryImagesDto,
-  UpdateDishCategoryImageItem,
-} from '@shared/v1/dto';
+import { UpdateDishCategoryImagesDto } from '@shared/v1/dto';
 import {
   PopularDishCategoriesWithMediaResponse,
   PopularDishCategoryWithMedia,
@@ -119,19 +116,26 @@ export class ToolsDishCategoriesService {
     });
 
     try {
-      // バリデーション: 全てのdishMediaIdとdishCategoryIdが存在するか確認
+      // #494 【パフォーマンス】バッチでバリデーション用データを取得
+      const mediaIds = dto.items.map((item) => item.dishMediaId);
+      const categoryIds = dto.items.map((item) => item.dishCategoryId);
+
+      const [mediaList, categoryList] = await Promise.all([
+        this.repo.findDishMediaByIds(mediaIds),
+        this.repo.findDishCategoriesByIds(categoryIds),
+      ]);
+
+      // マップを作成して検証
+      const mediaMap = new Map(mediaList.map((m) => [m.id, m]));
+      const categoryMap = new Map(categoryList.map((c) => [c.id, c]));
+
       const validationErrors: string[] = [];
 
       for (const item of dto.items) {
-        const media = await this.repo.findDishMediaById(item.dishMediaId);
-        if (!media) {
+        if (!mediaMap.has(item.dishMediaId)) {
           validationErrors.push(`dish_media not found: ${item.dishMediaId}`);
         }
-
-        const categories = await this.repo.findDishCategoriesByIds([
-          item.dishCategoryId,
-        ]);
-        if (categories.length === 0) {
+        if (!categoryMap.has(item.dishCategoryId)) {
           validationErrors.push(
             `dish_category not found: ${item.dishCategoryId}`,
           );
@@ -153,12 +157,8 @@ export class ToolsDishCategoriesService {
         let count = 0;
 
         for (const item of dto.items) {
-          const media = await this.repo.findDishMediaById(item.dishMediaId);
-          if (!media) {
-            throw new BadRequestException(
-              `dish_media not found: ${item.dishMediaId}`,
-            );
-          }
+          // 事前にバリデーション済みなのでnon-nullアサーション
+          const media = mediaMap.get(item.dishMediaId)!;
 
           // 新しい画像URLを構築（サムネイルパスをCDN URLに変換）
           const newImageUrl = `https://${env.CDN_HOST}/${media.thumbnail_path}`;

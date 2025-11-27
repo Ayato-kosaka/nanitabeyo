@@ -29,12 +29,16 @@ export class ToolsDishCategoriesRepository {
   async findPopularCategoriesWithWikimediaImages(
     limit: number,
   ): Promise<PopularCategoryRow[]> {
+    // #494 【セキュリティ】limitパラメータの検証
+    const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
+
     this.logger.debug(
       'FindPopularCategoriesWithWikimediaImages',
       'findPopularCategoriesWithWikimediaImages',
-      { limit },
+      { limit: safeLimit },
     );
 
+    // #494 【設計】Prisma $queryRaw テンプレートリテラルは自動的にパラメータ化される
     const result = await this.prisma.prisma.$queryRaw<PopularCategoryRow[]>`
       SELECT
         dc.id AS dish_category_id,
@@ -44,7 +48,7 @@ export class ToolsDishCategoriesRepository {
       WHERE dc.image_url LIKE 'https://upload.wikimedia.org%'
       GROUP BY dc.id
       ORDER BY dish_count DESC
-      LIMIT ${limit}
+      LIMIT ${safeLimit}
     `;
 
     this.logger.debug(
@@ -88,6 +92,15 @@ export class ToolsDishCategoriesRepository {
   async findDishMediaById(id: string) {
     return this.prisma.prisma.dish_media.findUnique({
       where: { id },
+    });
+  }
+
+  /**
+   * #494 【設計】複数のdish_mediaをIDで一括取得
+   */
+  async findDishMediaByIds(ids: string[]) {
+    return this.prisma.prisma.dish_media.findMany({
+      where: { id: { in: ids } },
     });
   }
 
