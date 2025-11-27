@@ -11,6 +11,7 @@ import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
+import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
 import { useColorScheme } from "react-native";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
@@ -86,6 +87,7 @@ export default function RootLayout() {
 					<DialogProvider>
 						<AuthProvider>
 							<PushTokenRegistration />
+							<MetaAppEventsInitializer />
 							<GestureHandlerRootView style={{ flex: 1 }}>
 								<Portal.Host>
 									<SplashHandler>
