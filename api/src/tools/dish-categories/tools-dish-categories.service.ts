@@ -8,7 +8,6 @@ import { ToolsDishCategoriesRepository } from './tools-dish-categories.repositor
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { env } from '../../core/config/env';
 import { UpdateDishCategoryImagesDto } from '@shared/v1/dto';
 import {
   PopularDishCategoriesWithMediaResponse,
