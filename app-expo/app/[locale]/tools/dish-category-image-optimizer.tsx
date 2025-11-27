@@ -14,6 +14,7 @@ import {
 	FlatList,
 	ListRenderItemInfo,
 	useWindowDimensions,
+	TouchableOpacity,
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -63,6 +64,8 @@ export default function DishCategoryImageOptimizerPage() {
 	const [selectedMap, setSelectedMap] = useState<SelectedMap>({});
 	// #494 【設計】モーダル用: 現在選択中のカテゴリ
 	const [activeCategory, setActiveCategory] = useState<PopularDishCategoryWithMedia | null>(null);
+	// #494 【設計】説明文表示フラグ
+	const [showDescription, setShowDescription] = useState(false);
 
 	const { BlurModal, open: openModal, close: closeModal } = useBlurModal({ intensity: 80 });
 
@@ -290,6 +293,35 @@ export default function DishCategoryImageOptimizerPage() {
 			{/* ヘッダー */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Tools.DishCategoryImageOptimizer.title")}</Text>
+			</View>
+
+			{/* 使い方説明 */}
+			<View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+				<TouchableOpacity
+					onPress={() => setShowDescription(!showDescription)}
+					style={{ flexDirection: "row", alignItems: "center", paddingVertical: 6 }}>
+					<Text style={{ fontSize: 14, fontWeight: "600", flex: 1 }}>
+						{showDescription ? "この画面の使い方を閉じる" : "この画面の使い方を開く"}
+					</Text>
+					<Text style={{ fontSize: 16 }}>{showDescription ? "▲" : "▼"}</Text>
+				</TouchableOpacity>
+
+				{showDescription && (
+					<Text style={{ fontSize: 12, lineHeight: 18, color: "#4B5563", marginTop: 4 }}>
+						料理提案画面に表示される画像を、より高品質な写真へ差し替えるための管理ツールです。
+						{"\n\n"}
+						1. 下のグリッドから、画像を変更したい料理をタップします。
+						{"\n"}
+						2. 候補画像が表示されるので、美味しそうと思える写真を1枚選びます。
+						{"\n"}
+						3. 変更したい料理にチェックが付け終えたら、画面下の「画像を更新」を押してください。
+						{"\n"}
+						4. サーバーへ反映され、画像が更新されます。
+						{"\n\n"}※ 美味しそうと思える写真がない場合は、何も選ばずにモーダルを閉じてください。
+						{"\n"}※ 選択した候補画像を再度選択すると、選択が解除されます。
+						{"\n"}※ 「リセット」ボタンで、選択をすべて解除できます。
+					</Text>
+				)}
 			</View>
 
 			{/* ローディング */}
