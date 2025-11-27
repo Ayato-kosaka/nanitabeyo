@@ -26,22 +26,24 @@ export const MetaAppEventsInitializer = () => {
 		if (Platform.OS === "web") return;
 
 		try {
-			// #492 【設計】iOS14+ では ATT 許可をリクエスト
+			// #492 【設計】iOS14+ では ATT 許可をリクエストし、結果に基づいて広告 ID 収集を設定
+			let trackingEnabled = true; // Android はデフォルトで有効
 			if (Platform.OS === "ios") {
-				const { status } = await getTrackingPermissionsAsync();
+				let { status } = await getTrackingPermissionsAsync();
 				if (status === "undetermined") {
-					await requestTrackingPermissionsAsync();
+					const result = await requestTrackingPermissionsAsync();
+					status = result.status;
 				}
+				// #492 【設計】ATT 許可ステータスに基づいて広告 ID 収集を設定
+				trackingEnabled = status === "granted";
 			}
+			Settings.setAdvertiserTrackingEnabled(trackingEnabled);
 
 			// #492 【設計】初回起動かどうかを AsyncStorage で確認
 			const hasActivated = await AsyncStorage.getItem("@meta_app_activated");
 			if (hasActivated) {
 				return;
 			}
-
-			// #492 【設計】Meta SDK の広告 ID 収集を有効化
-			Settings.setAdvertiserTrackingEnabled(true);
 
 			// #492 【設計】fb_mobile_activate_app イベントを送信（初回のみ）
 			AppEventsLogger.logEvent("fb_mobile_activate_app");

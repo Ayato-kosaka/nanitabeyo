@@ -29,10 +29,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 					CFBundleURLName: "nanitabeyo",
 					CFBundleURLSchemes: ["nanitabeyo"],
 				},
-				{
-					// #492 【設計】Meta SDK OAuth 用 URL スキーム
-					CFBundleURLSchemes: [`fb${process.env.EXPO_PUBLIC_FACEBOOK_APP_ID}`],
-				},
+				// #492 【設計】Meta SDK OAuth 用 URL スキーム（環境変数が設定されている場合のみ）
+				...(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID
+					? [{ CFBundleURLSchemes: [`fb${process.env.EXPO_PUBLIC_FACEBOOK_APP_ID}`] }]
+					: []),
 			],
 			CFBundleAllowMixedLocalizations: true,
 			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],
