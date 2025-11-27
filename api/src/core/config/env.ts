@@ -64,6 +64,7 @@ const envSchema = z.object({
     .string()
     .default('600')
     .transform((v) => Number(v)),
+  CDN_PUBLIC_HOST: z.string(),
 });
 
 /**

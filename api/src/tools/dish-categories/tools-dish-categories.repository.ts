@@ -8,18 +8,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { Prisma } from '../../../../shared/prisma/client';
 
-/** #494 【設計】人気カテゴリ取得の生SQLクエリ結果型 */
-export interface PopularCategoryRow {
-  dish_category_id: string;
-  dish_count: bigint;
-}
 
 @Injectable()
 export class ToolsDishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * #494 【設計】Wikimedia画像を持つ人気dish_categoriesを取得
@@ -28,36 +23,44 @@ export class ToolsDishCategoriesRepository {
    */
   async findPopularCategoriesWithWikimediaImages(
     limit: number,
-  ): Promise<PopularCategoryRow[]> {
-    // #494 【セキュリティ】limitパラメータの検証
+  ): Promise<{
+    dish_category_id: string;
+    dish_count: number;
+  }[]> {
+    // 【セキュリティ】limitパラメータの検証
     const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
 
-    this.logger.debug(
-      'FindPopularCategoriesWithWikimediaImages',
-      'findPopularCategoriesWithWikimediaImages',
-      { limit: safeLimit },
-    );
-
     // #494 【設計】Prisma $queryRaw テンプレートリテラルは自動的にパラメータ化される
-    const result = await this.prisma.prisma.$queryRaw<PopularCategoryRow[]>`
-      SELECT
-        dc.id AS dish_category_id,
-        COUNT(d.id) AS dish_count
-      FROM dish_categories dc
-      JOIN dishes d ON d.category_id = dc.id
-      WHERE dc.image_url LIKE 'https://upload.wikimedia.org%'
-      GROUP BY dc.id
-      ORDER BY dish_count DESC
-      LIMIT ${safeLimit}
-    `;
+    const result = await this.prisma.prisma.dishes.groupBy({
+      by: ['category_id'],
+      where: {
+        dish_categories: {
+          image_url: {
+            startsWith: 'https://upload.wikimedia.org',
+          },
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      orderBy: {
+        _count: {
+          category_id: 'desc',
+        },
+      },
+      take: safeLimit,
+    });
 
     this.logger.debug(
       'PopularCategoriesFound',
       'findPopularCategoriesWithWikimediaImages',
-      { count: result.length },
+      { count: result.length, limit: safeLimit },
     );
 
-    return result;
+    return result.map((r) => ({
+      dish_category_id: r.category_id,
+      dish_count: r._count._all,
+    }));
   }
 
   /**
@@ -101,6 +104,7 @@ export class ToolsDishCategoriesRepository {
   async findDishMediaByIds(ids: string[]) {
     return this.prisma.prisma.dish_media.findMany({
       where: { id: { in: ids } },
+      include: { dishes: true },
     });
   }
 
@@ -112,23 +116,7 @@ export class ToolsDishCategoriesRepository {
     tx: Prisma.TransactionClient,
     categoryId: string,
     newImageUrl: string,
-    metadata: Record<string, unknown>,
   ) {
-    // 現在のmetadataを取得してマージ
-    const current = await tx.dish_categories.findUnique({
-      where: { id: categoryId },
-      select: { tags: true },
-    });
-
-    // tagsフィールドにmetadataをJSON文字列として格納（schema上tags: String[]なので制限あり）
-    // 代替: 直接SQLでJSONフィールドを更新するか、別途metadata_jsonカラムを追加する
-    // 本実装ではimage_urlのみ更新し、metadataはログに記録
-    this.logger.debug('UpdateDishCategoryImage', 'updateDishCategoryImage', {
-      categoryId,
-      newImageUrl,
-      metadata,
-    });
-
     return tx.dish_categories.update({
       where: { id: categoryId },
       data: {

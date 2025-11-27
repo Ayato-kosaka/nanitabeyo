@@ -18,11 +18,7 @@ import {
 } from '@shared/v1/res';
 import { convertPrismaToSupabase_DishCategories } from '../../../../shared/converters/convert_dish_categories';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
-
-/** #494 【設計】候補メディア取得上限 */
-const CANDIDATE_MEDIA_LIMIT = 42;
-/** #494 【設計】人気カテゴリ取得上限 */
-const POPULAR_CATEGORY_LIMIT = 42;
+import { buildResizedPath } from 'src/core/storage/storage.utils';
 
 @Injectable()
 export class ToolsDishCategoriesService {
@@ -31,19 +27,14 @@ export class ToolsDishCategoriesService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /**
    * #494 【設計】人気カテゴリと候補メディア一覧を取得
    */
   async getPopularCategoriesWithMedia(): Promise<PopularDishCategoriesWithMediaResponse> {
-    this.logger.debug(
-      'GetPopularCategoriesWithMedia',
-      'getPopularCategoriesWithMedia',
-      {},
-    );
-
     // 1. 人気カテゴリIDと件数を取得
+    const POPULAR_CATEGORY_LIMIT = 21;
     const popularRows =
       await this.repo.findPopularCategoriesWithWikimediaImages(
         POPULAR_CATEGORY_LIMIT,
@@ -62,6 +53,7 @@ export class ToolsDishCategoriesService {
 
     // 3. 各カテゴリの候補メディアを取得
     const result: PopularDishCategoryWithMedia[] = [];
+    const CANDIDATE_MEDIA_LIMIT = 21;
 
     for (const row of popularRows) {
       const category = categoryMap.get(row.dish_category_id);
@@ -73,22 +65,35 @@ export class ToolsDishCategoriesService {
       );
 
       // メディアにCDN署名付きサムネイルURLを付与
-      const candidateMedia = await Promise.all(
-        mediaList.map(async (media) => {
-          const thumbnailUrl = this.storage.generateCdnSignedURL(
-            `https://${env.CDN_HOST}/${media.thumbnail_path}`,
-          );
-          return {
-            ...convertPrismaToSupabase_DishMedia(media),
-            thumbnailUrl,
-          };
-        }),
-      );
+      const candidateMedia = mediaList.map((media) => {
+        const mediaSignedUrl = this.storage.generateCdnSignedURL(
+          buildResizedPath(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: media.id,
+              size: 1024,
+              originalPath: media.media_path,
+            },
+            'cdn',
+          )
+        );
+        return {
+          ...convertPrismaToSupabase_DishMedia(media),
+          mediaSignedUrl,
+        };
+      });
+
+      const Supabase_DishCategories = convertPrismaToSupabase_DishCategories(category);
 
       result.push({
-        dishCategory: convertPrismaToSupabase_DishCategories(category),
+        dishCategory: {
+          id: Supabase_DishCategories.id,
+          image_url: Supabase_DishCategories.image_url,
+          name: Supabase_DishCategories.labels?.['ja'] || Supabase_DishCategories.label_en,
+        },
         dishCount: Number(row.dish_count),
-        candidateMedia,
+        candidateMedia: candidateMedia.map((cm) => ({ id: cm.id, mediaSignedUrl: cm.mediaSignedUrl })),
       });
     }
 
@@ -135,6 +140,11 @@ export class ToolsDishCategoriesService {
         if (!mediaMap.has(item.dishMediaId)) {
           validationErrors.push(`dish_media not found: ${item.dishMediaId}`);
         }
+        if (mediaMap.get(item.dishMediaId)?.dishes.category_id !== item.dishCategoryId) {
+          validationErrors.push(
+            `dish_media ${item.dishMediaId} is not linked to category ${item.dishCategoryId}`,
+          );
+        }
         if (!categoryMap.has(item.dishCategoryId)) {
           validationErrors.push(
             `dish_category not found: ${item.dishCategoryId}`,
@@ -152,36 +162,47 @@ export class ToolsDishCategoriesService {
         };
       }
 
+      // private バケットから public バケットへコピー
+      const updateDataList = await Promise.all(dto.items
+        .filter((item) => categoryMap.get(item.dishCategoryId)?.image_url.startsWith("https://upload.wikimedia.org"))
+        .map(async (item) => {
+          const media = mediaMap.get(item.dishMediaId)!;
+
+          const sourcePath = buildResizedPath(
+            {
+              table: 'dish_media',
+              column: 'media_path',
+              recordId: media.id,
+              size: 1024,
+              originalPath: media.media_path,
+            },
+          )
+
+          // メタデータを構築
+          const transferMetadata = {
+            source_type: 'dish_media',
+            source_dish_media_id: item.dishMediaId,
+            source_path: sourcePath,
+            transferred_at: new Date().toISOString(),
+          };
+
+          const { publicUrl } = await this.storage.copyToPublic(sourcePath,
+            `transferred/dish_categories/image_url/${item.dishCategoryId}/${media.id}/1024.webp`,
+            { metadata: transferMetadata }
+          );
+          return { ...item, newImageUrl: publicUrl };
+        }));
+
       // トランザクションで一括更新
       const updatedCount = await this.prisma.withTransaction(async (tx) => {
         let count = 0;
 
-        for (const item of dto.items) {
-          // 事前にバリデーション済みなのでnon-nullアサーション
-          const media = mediaMap.get(item.dishMediaId)!;
-
-          // 新しい画像URLを構築（サムネイルパスをCDN URLに変換）
-          const newImageUrl = `https://${env.CDN_HOST}/${media.thumbnail_path}`;
-
-          // メタデータを構築
-          const transferMetadata = {
-            image_source: {
-              type: 'dish_media',
-              dish_media_id: item.dishMediaId,
-              original_thumbnail_path: media.thumbnail_path,
-            },
-            image_transfer: {
-              transferred_at: new Date().toISOString(),
-            },
-          };
-
+        for (const item of updateDataList) {
           await this.repo.updateDishCategoryImage(
             tx,
             item.dishCategoryId,
-            newImageUrl,
-            transferMetadata,
+            item.newImageUrl,
           );
-
           count++;
         }
 

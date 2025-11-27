@@ -27,7 +27,6 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
-import { getCacheKeyForImage } from "@/lib/image";
 
 import type {
 	PopularDishCategoriesWithMediaResponse,
@@ -50,7 +49,7 @@ type SelectedMap = Record<string, string>; // categoryId -> dishMediaId
 
 export default function DishCategoryImageOptimizerPage() {
 	const insets = useSafeAreaInsets();
-	const { width: screenWidth } = useWindowDimensions();
+	const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { lightImpact } = useHaptics();
@@ -72,14 +71,15 @@ export default function DishCategoryImageOptimizerPage() {
 	const GAP = 8;
 	const PADDING_HORIZONTAL = 16;
 	const cardWidth = (screenWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
-	const cardHeight = cardWidth * 1.2;
+	const cardHeight = (cardWidth / 9) * 16;
 
 	// #494 【設計】候補画像グリッドの列数とサイズ
 	const MODAL_COLUMNS = 3;
 	const MODAL_GAP = 4;
 	const MODAL_PADDING = 16;
 	const modalCardWidth = (screenWidth - MODAL_PADDING * 2 - MODAL_GAP * (MODAL_COLUMNS - 1)) / MODAL_COLUMNS;
-	const modalCardHeight = modalCardWidth;
+	const modalCardHeight = (modalCardWidth / 9) * 16;
+	const modalScrollViewHeight = screenHeight - 120;
 
 	/* ------------------------------------------------------------------ */
 	/*                             API呼び出し                             */
@@ -88,10 +88,11 @@ export default function DishCategoryImageOptimizerPage() {
 	/** #494 【API①】人気カテゴリと候補メディア一覧を取得 */
 	const fetchCategories = useCallback(async () => {
 		try {
-			const result = await callBackend<Record<string, never>, PopularDishCategoriesWithMediaResponse>(
+			const result = await callBackend<{}, PopularDishCategoriesWithMediaResponse>(
 				"tools/dish-categories/popular-with-media",
 				{ method: "GET", requestPayload: {} },
 			);
+
 			setCategories(result);
 			logFrontendEvent({
 				event_name: "tools_categories_loaded",
@@ -220,23 +221,18 @@ export default function DishCategoryImageOptimizerPage() {
 				: null;
 
 			// 選択済みの場合は選択したメディアのサムネイルを表示、未選択の場合は元のカテゴリ画像
-			const imageUrl = selectedMedia?.thumbnailUrl || item.dishCategory.image_url;
+			const imageUrl = selectedMedia?.mediaSignedUrl || item.dishCategory.image_url;
 
 			return (
 				<Pressable
 					style={[styles.categoryCard, { width: cardWidth, height: cardHeight }]}
 					onPress={() => handleCategoryPress(item)}
 					android_ripple={{ color: "rgba(0,0,0,0.1)" }}>
-					<Image
-						source={{ uri: imageUrl, cacheKey: getCacheKeyForImage(imageUrl) }}
-						style={StyleSheet.absoluteFill}
-						contentFit="cover"
-						transition={100}
-					/>
+					<Image source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={100} />
 					{/* オーバーレイ */}
 					<View style={styles.categoryOverlay}>
 						<Text style={styles.categoryLabel} numberOfLines={2}>
-							{item.dishCategory.label_en}
+							{item.dishCategory.name}
 						</Text>
 						<Text style={styles.categoryCount}>
 							{i18n.t("Tools.DishCategoryImageOptimizer.dishCount", { count: item.dishCount })}
@@ -271,7 +267,7 @@ export default function DishCategoryImageOptimizerPage() {
 					onPress={() => handleMediaSelect(activeCategory.dishCategory.id, media.id)}
 					android_ripple={{ color: "rgba(0,0,0,0.1)" }}>
 					<Image
-						source={{ uri: media.thumbnailUrl, cacheKey: getCacheKeyForImage(media.thumbnailUrl) }}
+						source={{ uri: media.mediaSignedUrl }}
 						style={StyleSheet.absoluteFill}
 						contentFit="cover"
 						transition={100}
@@ -350,11 +346,11 @@ export default function DishCategoryImageOptimizerPage() {
 			<BlurModal contentContainerStyle={styles.modalContent}>
 				{activeCategory && (
 					<View style={{ flex: 1 }}>
-						<Text style={styles.modalTitle}>{activeCategory.dishCategory.label_en}</Text>
+						<Text style={styles.modalTitle}>{activeCategory.dishCategory.name}</Text>
 						<Text style={styles.modalSubtitle}>{i18n.t("Tools.DishCategoryImageOptimizer.candidateImages")}</Text>
 
 						{activeCategory.candidateMedia.length > 0 ? (
-							<ScrollView contentContainerStyle={styles.candidateGrid}>
+							<ScrollView style={{ height: modalScrollViewHeight }} contentContainerStyle={styles.candidateGrid}>
 								<View style={styles.candidateGridInner}>{activeCategory.candidateMedia.map(renderCandidateMedia)}</View>
 							</ScrollView>
 						) : (
@@ -460,9 +456,8 @@ const styles = StyleSheet.create({
 		borderTopColor: "#E5E7EB",
 	},
 	modalContent: {
-		flex: 1,
 		paddingHorizontal: 16,
-		paddingTop: 60,
+		paddingTop: 16,
 	},
 	modalTitle: {
 		fontSize: 18,

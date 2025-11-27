@@ -1,12 +1,11 @@
 import { SupabaseDishCategories } from "../../../converters/convert_dish_categories";
-import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
 
 /**
- * 候補メディア情報（サムネイルURL付き）
+ * 候補メディア情報（メディアURL付き）
  */
-export type CandidateDishMedia = SupabaseDishMedia & {
-	/** CDN署名付きサムネイルURL */
-	thumbnailUrl: string;
+export type CandidateDishMedia = {
+	id: string;
+	mediaSignedUrl: string;
 };
 
 /**
@@ -14,7 +13,9 @@ export type CandidateDishMedia = SupabaseDishMedia & {
  */
 export type PopularDishCategoryWithMedia = {
 	/** カテゴリ情報 */
-	dishCategory: SupabaseDishCategories;
+	dishCategory: Pick<SupabaseDishCategories, 'id' | 'image_url'> & {
+		name: string;
+	};
 	/** 紐づく dishes の件数 */
 	dishCount: number;
 	/** 候補となる dish_media 一覧（最大42件） */

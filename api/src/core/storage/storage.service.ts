@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Bucket, Storage } from '@google-cloud/storage';
+import { Bucket, CopyOptions, Storage } from '@google-cloud/storage';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { STORAGE_CLIENT } from './storage.constants';
@@ -329,6 +329,24 @@ export class StorageService {
       });
       throw err;
     }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /*                          Copy to Public Bucket                         */
+  /* ---------------------------------------------------------------------- */
+  async copyToPublic(srcPath: string, destPath: string, copyOptions?: CopyOptions) {
+    const srcBucket = this.bucket;
+    const destBucket = this.storage.bucket(env.GCS_BUCKET_PUBLIC_NAME);
+
+    const srcFile = srcBucket.file(srcPath);
+    const destFile = destBucket.file(destPath);
+
+    // GCS の copy API を利用
+    await srcFile.copy(destFile, copyOptions);
+
+    // 公開 URL を返すなど
+    const publicUrl = `https://${env.CDN_PUBLIC_HOST}/${destPath}`;
+    return { publicUrl };
   }
 }
 
