@@ -89,14 +89,6 @@ export class ToolsDishCategoriesRepository {
     });
   }
 
-  /**
-   * #494 【設計】dish_mediaを単一取得
-   */
-  async findDishMediaById(id: string) {
-    return this.prisma.prisma.dish_media.findUnique({
-      where: { id },
-    });
-  }
 
   /**
    * #494 【設計】複数のdish_mediaをIDで一括取得
