@@ -461,5 +461,22 @@
 		"privacy": "Privacy Policy",
 		"copyright": "Copyright",
 		"logout": "Logout"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "Dish Category Image Optimizer",
+			"loading": "Loading categories...",
+			"empty": "No categories found",
+			"selectImage": "Select an image",
+			"candidateImages": "Candidate Images",
+			"noCandidates": "No candidate images available",
+			"submit": "Update Images",
+			"submitting": "Updating...",
+			"submitSuccess": "{{count}} images updated successfully",
+			"submitError": "Failed to update images",
+			"reset": "Reset",
+			"selected": "Selected",
+			"dishCount": "{{count}} dishes"
+		}
 	}
 }

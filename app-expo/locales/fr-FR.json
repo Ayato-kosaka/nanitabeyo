@@ -461,5 +461,22 @@
 		"privacy": "Politique de confidentialité",
 		"copyright": "Droits d'auteur",
 		"logout": "Se déconnecter"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "Optimiseur d'images de catégories",
+			"loading": "Chargement des catégories...",
+			"empty": "Aucune catégorie trouvée",
+			"selectImage": "Sélectionner une image",
+			"candidateImages": "Images candidates",
+			"noCandidates": "Aucune image candidate disponible",
+			"submit": "Mettre à jour les images",
+			"submitting": "Mise à jour en cours...",
+			"submitSuccess": "{{count}} images mises à jour avec succès",
+			"submitError": "Échec de la mise à jour des images",
+			"reset": "Réinitialiser",
+			"selected": "Sélectionné",
+			"dishCount": "{{count}} plats"
+		}
 	}
 }

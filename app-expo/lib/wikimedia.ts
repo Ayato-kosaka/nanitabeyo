@@ -22,6 +22,11 @@ import { Platform } from "react-native";
 export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number): string {
 	try {
 		const u = new URL(originalUrl);
+		if (u.host !== "upload.wikimedia.org") {
+			// 対象外のホストはそのまま返す
+			return originalUrl;
+		}
+
 		const parts = u.pathname.split("/"); // ["", "wikipedia", "commons", d1, d2, file]
 		const width = Math.min(Math.max(Math.round(widthPx), 1024), 1280); // 1024〜1280にクランプ
 

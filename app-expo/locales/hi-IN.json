@@ -462,5 +462,22 @@
 		"privacy": "गोपनीयता नीति",
 		"copyright": "कॉपीराइट",
 		"logout": "लॉग आउट"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "व्यंजन श्रेणी छवि अनुकूलक",
+			"loading": "श्रेणियां लोड हो रही हैं...",
+			"empty": "कोई श्रेणी नहीं मिली",
+			"selectImage": "छवि चुनें",
+			"candidateImages": "उम्मीदवार छवियां",
+			"noCandidates": "कोई उम्मीदवार छवि उपलब्ध नहीं",
+			"submit": "छवियां अपडेट करें",
+			"submitting": "अपडेट हो रहा है...",
+			"submitSuccess": "{{count}} छवियां सफलतापूर्वक अपडेट की गईं",
+			"submitError": "छवियां अपडेट करने में विफल",
+			"reset": "रीसेट",
+			"selected": "चयनित",
+			"dishCount": "{{count}} व्यंजन"
+		}
 	}
 }
