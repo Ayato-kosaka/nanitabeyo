@@ -335,18 +335,28 @@ export class StorageService {
   /*                          Copy to Public Bucket                         */
   /* ---------------------------------------------------------------------- */
   async copyToPublic(srcPath: string, destPath: string, copyOptions?: CopyOptions) {
-    const srcBucket = this.bucket;
-    const destBucket = this.storage.bucket(env.GCS_BUCKET_PUBLIC_NAME);
+    try {
+      const srcBucket = this.bucket;
+      const destBucket = this.storage.bucket(env.GCS_BUCKET_PUBLIC_NAME);
 
-    const srcFile = srcBucket.file(srcPath);
-    const destFile = destBucket.file(destPath);
+      const srcFile = srcBucket.file(srcPath);
+      const destFile = destBucket.file(destPath);
 
-    // GCS の copy API を利用
-    await srcFile.copy(destFile, copyOptions);
+      // GCS の copy API を利用
+      await srcFile.copy(destFile, copyOptions);
 
-    // 公開 URL を返すなど
-    const publicUrl = `https://${env.CDN_PUBLIC_HOST}/${destPath}`;
-    return { publicUrl };
+      // 公開 URL を返すなど
+      const publicUrl = `https://${env.CDN_PUBLIC_HOST}/${destPath}`;
+      return { publicUrl };
+    } catch (err) {
+      this.logger.error('CopyToPublicError', 'copyToPublic', {
+        error_message: (err as Error).message,
+        srcPath,
+        destPath,
+        copyOptions,
+      });
+      throw err;
+    }
   }
 }
 
