@@ -342,5 +342,64 @@
 			"messageLength": "Le message doit contenir entre 10 et 2000 caractères",
 			"submitFailed": "Échec de l'envoi des commentaires. Veuillez réessayer."
 		}
+	},
+	"auth": {
+		"login_title": "Se connecter",
+		"create_title": "Créer un compte",
+		"field_phone": "Téléphone",
+		"field_name": "Nom",
+		"hint_sms": "Nous vous enverrons un code unique par SMS pour vous connecter.",
+		"btn_login": "Se connecter",
+		"btn_create": "Créer un compte",
+		"divider_or": "Ou se connecter avec",
+		"agree_tos": "J'accepte les Conditions de Service",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "Entrer le code",
+		"otp_send_again": "Renvoyer le code",
+		"otp_enter_all_digits": "Veuillez saisir les 6 chiffres",
+		"login_success": "Connexion réussie !",
+		"error_required": "Ce champ est obligatoire",
+		"error_invalid_phone": "Numéro de téléphone invalide",
+		"tos_link_text": "Conditions de Service",
+		"existing_account_checkbox": "Avez-vous déjà un compte?",
+		"conflict_dialog_title": "Compte Existant Trouvé",
+		"conflict_dialog_message": "Ce compte est déjà lié à un autre utilisateur. Si vous changez, les données créées en tant qu'invité ne seront pas transférées. Voulez-vous passer au compte existant?",
+		"conflict_dialog_switch": "Changer",
+		"conflict_dialog_cancel": "Annuler",
+		"consent_login_prefix": "En continuant, vous acceptez nos ",
+		"consent_login_terms": "Conditions d'utilisation",
+		"consent_login_and": " et ",
+		"consent_login_privacy": "Politique de confidentialité",
+		"consent_login_suffix": "."
+	},
+	"Settings": {
+		"title": "Paramètres",
+		"sendFeedback": "Envoyer des commentaires",
+		"leaveReview": "Laisser un avis",
+		"communityGuidelines": "Directives de la communauté",
+		"terms": "Conditions générales",
+		"privacy": "Politique de confidentialité",
+		"copyright": "Droits d'auteur",
+		"logout": "Se déconnecter"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "Optimiseur d'images de catégories",
+			"loading": "Chargement des catégories...",
+			"empty": "Aucune catégorie trouvée",
+			"selectImage": "Sélectionner une image",
+			"candidateImages": "Images candidates",
+			"noCandidates": "Aucune image candidate disponible",
+			"submit": "Mettre à jour les images",
+			"submitting": "Mise à jour en cours...",
+			"submitSuccess": "{{count}} images mises à jour avec succès",
+			"submitError": "Échec de la mise à jour des images",
+			"reset": "Réinitialiser",
+			"selected": "Sélectionné",
+			"dishCount": "{{count}} plats"
+		}
 	}
 }

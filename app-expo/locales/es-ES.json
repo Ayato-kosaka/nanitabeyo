@@ -342,5 +342,64 @@
 			"messageLength": "El mensaje debe tener entre 10 y 2000 caracteres",
 			"submitFailed": "Error al enviar comentarios. Por favor, inténtelo de nuevo."
 		}
+	},
+	"auth": {
+		"login_title": "Iniciar Sesión",
+		"create_title": "Crear Cuenta",
+		"field_phone": "Teléfono",
+		"field_name": "Nombre",
+		"hint_sms": "Te enviaremos un código único por SMS para iniciar sesión.",
+		"btn_login": "Iniciar Sesión",
+		"btn_create": "Crear una Cuenta",
+		"divider_or": "O Inicia sesión con",
+		"agree_tos": "Acepto los Términos de Servicio",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "Introducir Código",
+		"otp_send_again": "Reenviar Código",
+		"otp_enter_all_digits": "Por favor ingresa los 6 dígitos",
+		"login_success": "¡Inicio de sesión exitoso!",
+		"error_required": "Este campo es obligatorio",
+		"error_invalid_phone": "Número de teléfono inválido",
+		"tos_link_text": "Términos de Servicio",
+		"existing_account_checkbox": "¿Ya tienes una cuenta?",
+		"conflict_dialog_title": "Cuenta Existente Encontrada",
+		"conflict_dialog_message": "Esta cuenta ya está vinculada a otro usuario. Si cambias, los datos creados como invitado no se transferirán. ¿Deseas cambiar a la cuenta existente?",
+		"conflict_dialog_switch": "Cambiar",
+		"conflict_dialog_cancel": "Cancelar",
+		"consent_login_prefix": "Al continuar, aceptas nuestros ",
+		"consent_login_terms": "Términos de Servicio",
+		"consent_login_and": " y ",
+		"consent_login_privacy": "Política de Privacidad",
+		"consent_login_suffix": "."
+	},
+	"Settings": {
+		"title": "Configuración",
+		"sendFeedback": "Enviar comentarios",
+		"leaveReview": "Dejar reseña",
+		"communityGuidelines": "Directrices de la comunidad",
+		"terms": "Términos y condiciones",
+		"privacy": "Política de privacidad",
+		"copyright": "Derechos de autor",
+		"logout": "Cerrar sesión"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "Optimizador de imágenes de categorías",
+			"loading": "Cargando categorías...",
+			"empty": "No se encontraron categorías",
+			"selectImage": "Seleccionar imagen",
+			"candidateImages": "Imágenes candidatas",
+			"noCandidates": "No hay imágenes candidatas",
+			"submit": "Actualizar imágenes",
+			"submitting": "Actualizando...",
+			"submitSuccess": "{{count}} imágenes actualizadas con éxito",
+			"submitError": "Error al actualizar las imágenes",
+			"reset": "Restablecer",
+			"selected": "Seleccionado",
+			"dishCount": "{{count}} platos"
+		}
 	}
 }

@@ -342,5 +342,64 @@
 			"messageLength": "메시지는 10자 이상 2000자 이하여야 합니다",
 			"submitFailed": "피드백 제출에 실패했습니다. 다시 시도해주세요."
 		}
+	},
+	"auth": {
+		"login_title": "로그인",
+		"create_title": "계정 생성",
+		"field_phone": "전화번호",
+		"field_name": "이름",
+		"hint_sms": "로그인을 위해 SMS로 일회용 코드를 보내드립니다.",
+		"btn_login": "로그인",
+		"btn_create": "계정 생성",
+		"divider_or": "또는 다음으로 로그인",
+		"agree_tos": "서비스 약관에 동의합니다",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "코드 입력",
+		"otp_send_again": "코드 재전송",
+		"otp_enter_all_digits": "6자리 모두 입력해 주세요",
+		"login_success": "성공적으로 로그인되었습니다!",
+		"error_required": "필수 입력 항목입니다",
+		"error_invalid_phone": "유효하지 않은 전화번호입니다",
+		"tos_link_text": "서비스 약관",
+		"existing_account_checkbox": "이미 계정이 있으신가요?",
+		"conflict_dialog_title": "기존 계정을 찾았습니다",
+		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
+		"conflict_dialog_switch": "전환",
+		"conflict_dialog_cancel": "취소",
+		"consent_login_prefix": "계속 진행하면 ",
+		"consent_login_terms": "이용약관",
+		"consent_login_and": " 및 ",
+		"consent_login_privacy": "개인정보 보호정책",
+		"consent_login_suffix": "에 동의하는 것으로 간주됩니다."
+	},
+	"Settings": {
+		"title": "설정",
+		"sendFeedback": "피드백 보내기",
+		"leaveReview": "리뷰 남기기",
+		"communityGuidelines": "커뮤니티 가이드라인",
+		"terms": "이용약관",
+		"privacy": "개인정보 처리방침",
+		"copyright": "저작권",
+		"logout": "로그아웃"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "요리 카테고리 이미지 최적화",
+			"loading": "카테고리 로딩 중...",
+			"empty": "카테고리를 찾을 수 없습니다",
+			"selectImage": "이미지 선택",
+			"candidateImages": "후보 이미지",
+			"noCandidates": "후보 이미지 없음",
+			"submit": "이미지 업데이트",
+			"submitting": "업데이트 중...",
+			"submitSuccess": "{{count}}개 이미지가 성공적으로 업데이트되었습니다",
+			"submitError": "이미지 업데이트 실패",
+			"reset": "초기화",
+			"selected": "선택됨",
+			"dishCount": "{{count}}개 요리"
+		}
 	}
 }

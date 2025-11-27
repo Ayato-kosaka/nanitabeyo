@@ -342,5 +342,64 @@
 			"messageLength": "يجب أن تكون الرسالة بين 10 و 2000 حرف",
 			"submitFailed": "فشل في إرسال الملاحظات. يرجى المحاولة مرة أخرى."
 		}
+	},
+	"auth": {
+		"login_title": "تسجيل الدخول",
+		"create_title": "إنشاء حساب",
+		"field_phone": "الهاتف",
+		"field_name": "الاسم",
+		"hint_sms": "سنرسل لك رمز لمرة واحدة عبر الرسائل النصية لتسجيل الدخول.",
+		"btn_login": "تسجيل الدخول",
+		"btn_create": "إنشاء حساب",
+		"divider_or": "أو تسجيل الدخول باستخدام",
+		"agree_tos": "أوافق على شروط الخدمة",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "أدخل الرمز",
+		"otp_send_again": "إعادة إرسال الرمز",
+		"otp_enter_all_digits": "يرجى إدخال الأرقام الستة كاملة",
+		"login_success": "تم تسجيل الدخول بنجاح!",
+		"error_required": "هذا الحقل مطلوب",
+		"error_invalid_phone": "رقم الهاتف غير صحيح",
+		"tos_link_text": "شروط الخدمة",
+		"existing_account_checkbox": "هل لديك حساب بالفعل؟",
+		"conflict_dialog_title": "تم العثور على حساب موجود",
+		"conflict_dialog_message": "هذا الحساب مرتبط بالفعل بمستخدم آخر. إذا قمت بالتبديل، لن يتم نقل البيانات التي تم إنشاؤها كضيف. هل تريد التبديل إلى الحساب الموجود؟",
+		"conflict_dialog_switch": "تبديل",
+		"conflict_dialog_cancel": "إلغاء",
+		"consent_login_prefix": "بالمتابعة، فإنك توافق على ",
+		"consent_login_terms": "شروط الخدمة",
+		"consent_login_and": " و",
+		"consent_login_privacy": "سياسة الخصوصية",
+		"consent_login_suffix": " الخاصة بنا."
+	},
+	"Settings": {
+		"title": "الإعدادات",
+		"sendFeedback": "إرسال ملاحظات",
+		"leaveReview": "اترك تقييم",
+		"communityGuidelines": "إرشادات المجتمع",
+		"terms": "الشروط والأحكام",
+		"privacy": "سياسة الخصوصية",
+		"copyright": "حقوق النشر",
+		"logout": "تسجيل الخروج"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "مُحسِّن صور فئات الأطباق",
+			"loading": "جارٍ تحميل الفئات...",
+			"empty": "لم يتم العثور على فئات",
+			"selectImage": "اختر صورة",
+			"candidateImages": "الصور المرشحة",
+			"noCandidates": "لا توجد صور مرشحة",
+			"submit": "تحديث الصور",
+			"submitting": "جارٍ التحديث...",
+			"submitSuccess": "تم تحديث {{count}} صورة بنجاح",
+			"submitError": "فشل تحديث الصور",
+			"reset": "إعادة تعيين",
+			"selected": "محدد",
+			"dishCount": "{{count}} أطباق"
+		}
 	}
 }

@@ -342,5 +342,64 @@
 			"messageLength": "संदेश 10 से 2000 वर्णों के बीच होना चाहिए",
 			"submitFailed": "फीडबैक भेजने में विफल। कृपया पुनः प्रयास करें।"
 		}
+	},
+	"auth": {
+		"login_title": "लॉग इन करें",
+		"create_title": "खाता बनाएं",
+		"field_phone": "फोन",
+		"field_name": "नाम",
+		"hint_sms": "हम आपको लॉग इन करने के लिए SMS के माध्यम से एक वन-टाइम कोड भेजेंगे।",
+		"btn_login": "लॉग इन करें",
+		"btn_create": "खाता बनाएं",
+		"divider_or": "या इसके साथ साइन इन करें",
+		"agree_tos": "मैं सेवा की शर्तों से सहमत हूं",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "कोड दर्ज करें",
+		"otp_send_again": "कोड पुनः भेजें",
+		"otp_enter_all_digits": "कृपया सभी 6 अंक दर्ज करें",
+		"login_success": "सफलतापूर्वक लॉग इन हो गया!",
+		"error_required": "यह फ़ील्ड आवश्यक है",
+		"error_invalid_phone": "अमान्य फोन नंबर",
+		"tos_link_text": "सेवा की शर्तें",
+		"existing_account_checkbox": "क्या आपके पास पहले से खाता है?",
+		"conflict_dialog_title": "मौजूदा खाता मिला",
+		"conflict_dialog_message": "यह खाता पहले से ही किसी अन्य उपयोगकर्ता से जुड़ा हुआ है। यदि आप स्विच करते हैं, तो अतिथि के रूप में बनाया गया डेटा स्थानांतरित नहीं होगा। क्या आप मौजूदा खाते पर स्विच करना चाहते हैं?",
+		"conflict_dialog_switch": "स्विच करें",
+		"conflict_dialog_cancel": "रद्द करें",
+		"consent_login_prefix": "जारी रखकर, आप हमारी ",
+		"consent_login_terms": "सेवा की शर्तें",
+		"consent_login_and": " और ",
+		"consent_login_privacy": "गोपनीयता नीति",
+		"consent_login_suffix": " से सहमत होते हैं।"
+	},
+	"Settings": {
+		"title": "सेटिंग्स",
+		"sendFeedback": "प्रतिक्रिया भेजें",
+		"leaveReview": "समीक्षा छोड़ें",
+		"communityGuidelines": "समुदाय दिशानिर्देश",
+		"terms": "नियम और शर्तें",
+		"privacy": "गोपनीयता नीति",
+		"copyright": "कॉपीराइट",
+		"logout": "लॉग आउट"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "व्यंजन श्रेणी छवि अनुकूलक",
+			"loading": "श्रेणियां लोड हो रही हैं...",
+			"empty": "कोई श्रेणी नहीं मिली",
+			"selectImage": "छवि चुनें",
+			"candidateImages": "उम्मीदवार छवियां",
+			"noCandidates": "कोई उम्मीदवार छवि उपलब्ध नहीं",
+			"submit": "छवियां अपडेट करें",
+			"submitting": "अपडेट हो रहा है...",
+			"submitSuccess": "{{count}} छवियां सफलतापूर्वक अपडेट की गईं",
+			"submitError": "छवियां अपडेट करने में विफल",
+			"reset": "रीसेट",
+			"selected": "चयनित",
+			"dishCount": "{{count}} व्यंजन"
+		}
 	}
 }

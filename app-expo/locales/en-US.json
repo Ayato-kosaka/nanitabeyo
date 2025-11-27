@@ -342,5 +342,64 @@
 			"messageLength": "Message must be between 10 and 2000 characters",
 			"submitFailed": "Failed to submit feedback. Please try again."
 		}
+	},
+	"auth": {
+		"login_title": "Log In",
+		"create_title": "Create Account",
+		"field_phone": "Phone",
+		"field_name": "Name",
+		"hint_sms": "We will send you a one-time code via SMS to log in.",
+		"btn_login": "Login",
+		"btn_create": "Create an Account",
+		"divider_or": "Or Sign in with",
+		"agree_tos": "I agree to the Terms of Service",
+		"provider_google": "Google",
+		"provider_facebook": "Facebook",
+		"provider_twitter": "Twitter",
+		"provider_apple": "Apple",
+		"otp_title": "Enter Code",
+		"otp_send_again": "Resend Code",
+		"otp_enter_all_digits": "Please enter all 6 digits",
+		"login_success": "Successfully logged in!",
+		"error_required": "This field is required",
+		"error_invalid_phone": "Invalid phone number",
+		"tos_link_text": "Terms of Service",
+		"existing_account_checkbox": "Do you already have an account?",
+		"conflict_dialog_title": "Existing Account Found",
+		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
+		"conflict_dialog_switch": "Switch",
+		"conflict_dialog_cancel": "Cancel",
+		"consent_login_prefix": "By continuing, you agree to our ",
+		"consent_login_terms": "Terms of Service",
+		"consent_login_and": " and ",
+		"consent_login_privacy": "Privacy Policy",
+		"consent_login_suffix": "."
+	},
+	"Settings": {
+		"title": "Settings",
+		"sendFeedback": "Send Feedback",
+		"leaveReview": "Leave Review",
+		"communityGuidelines": "Community Guidelines",
+		"terms": "Terms and Conditions",
+		"privacy": "Privacy Policy",
+		"copyright": "Copyright",
+		"logout": "Logout"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "Dish Category Image Optimizer",
+			"loading": "Loading categories...",
+			"empty": "No categories found",
+			"selectImage": "Select an image",
+			"candidateImages": "Candidate Images",
+			"noCandidates": "No candidate images available",
+			"submit": "Update Images",
+			"submitting": "Updating...",
+			"submitSuccess": "{{count}} images updated successfully",
+			"submitError": "Failed to update images",
+			"reset": "Reset",
+			"selected": "Selected",
+			"dishCount": "{{count}} dishes"
+		}
 	}
 }
