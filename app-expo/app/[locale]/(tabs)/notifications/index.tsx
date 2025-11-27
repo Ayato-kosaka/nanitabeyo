@@ -148,7 +148,7 @@ export default function NotificationsScreen() {
 			const iconBgColor = getIconBackgroundColor(item.notification.action_type);
 			const actorNames = formatActorNames(item.actors);
 			const message = getNotificationMessage(item);
-			const avatar = item.actors[0].avatarUrls?.sm || "https://via.placeholder.com/50";
+			const avatar = item.actors?.[0].avatarUrls?.sm || "https://via.placeholder.com/50";
 
 			return (
 				<TouchableOpacity
