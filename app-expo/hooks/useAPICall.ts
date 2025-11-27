@@ -64,7 +64,7 @@ export const useAPICall = () => {
 				},
 			});
 
-			const response = await fetchWithAuth(
+			const { response, endpoint } = await fetchWithAuth(
 				endpointName,
 				{
 					method,
@@ -93,7 +93,7 @@ export const useAPICall = () => {
 					event_name: "api_call_error",
 					error_level: "error",
 					payload: {
-						endpoint: endpointName,
+						endpoint,
 						method,
 						status: response.status,
 						requestId,
@@ -238,7 +238,7 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 		isMultipart?: boolean;
 	},
 	accessToken: string,
-): Promise<Response> {
+) {
 	const appVersion = Env.APP_VERSION;
 	// 🧾 リクエストヘッダー構築
 	const headers: Record<string, string> = {
@@ -255,11 +255,14 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 	const willSendBody = method === "POST" || (method === "DELETE" && !shouldUseQuery);
 
 	if (willSendBody && !isMultipart) headers["Content-Type"] = "application/json";
-	return await fetch(endpoint, {
-		method,
-		headers,
-		body: buildRequestBody(method, shouldUseQuery, isMultipart, requestPayload),
-		// Include credentials for web to receive CDN signed cookies
-		credentials: Platform.OS === "web" ? "include" : "same-origin",
-	});
+	return {
+		response: await fetch(endpoint, {
+			method,
+			headers,
+			body: buildRequestBody(method, shouldUseQuery, isMultipart, requestPayload),
+			// Include credentials for web to receive CDN signed cookies
+			credentials: Platform.OS === "web" ? "include" : "same-origin",
+		}),
+		endpoint,
+	};
 }
