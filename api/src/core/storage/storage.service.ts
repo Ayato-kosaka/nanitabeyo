@@ -334,7 +334,11 @@ export class StorageService {
   /* ---------------------------------------------------------------------- */
   /*                          Copy to Public Bucket                         */
   /* ---------------------------------------------------------------------- */
-  async copyToPublic(srcPath: string, destPath: string, copyOptions?: CopyOptions) {
+  async copyToPublic(
+    srcPath: string,
+    destPath: string,
+    copyOptions?: CopyOptions,
+  ) {
     try {
       const srcBucket = this.bucket;
       const destBucket = this.storage.bucket(env.GCS_BUCKET_PUBLIC_NAME);

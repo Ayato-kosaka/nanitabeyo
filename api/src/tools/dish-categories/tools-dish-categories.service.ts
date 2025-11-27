@@ -27,7 +27,7 @@ export class ToolsDishCategoriesService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * #494 【設計】人気カテゴリと候補メディア一覧を取得
@@ -76,7 +76,7 @@ export class ToolsDishCategoriesService {
               originalPath: media.media_path,
             },
             'cdn',
-          )
+          ),
         );
         return {
           ...convertPrismaToSupabase_DishMedia(media),
@@ -84,16 +84,22 @@ export class ToolsDishCategoriesService {
         };
       });
 
-      const Supabase_DishCategories = convertPrismaToSupabase_DishCategories(category);
+      const Supabase_DishCategories =
+        convertPrismaToSupabase_DishCategories(category);
 
       result.push({
         dishCategory: {
           id: Supabase_DishCategories.id,
           image_url: Supabase_DishCategories.image_url,
-          name: Supabase_DishCategories.labels?.['ja'] || Supabase_DishCategories.label_en,
+          name:
+            Supabase_DishCategories.labels?.['ja'] ||
+            Supabase_DishCategories.label_en,
         },
         dishCount: Number(row.dish_count),
-        candidateMedia: candidateMedia.map((cm) => ({ id: cm.id, mediaSignedUrl: cm.mediaSignedUrl })),
+        candidateMedia: candidateMedia.map((cm) => ({
+          id: cm.id,
+          mediaSignedUrl: cm.mediaSignedUrl,
+        })),
       });
     }
 
@@ -139,8 +145,10 @@ export class ToolsDishCategoriesService {
       for (const item of dto.items) {
         if (!mediaMap.has(item.dishMediaId)) {
           validationErrors.push(`dish_media not found: ${item.dishMediaId}`);
-        }
-        if (mediaMap.get(item.dishMediaId)?.dishes.category_id !== item.dishCategoryId) {
+        } else if (
+          mediaMap.get(item.dishMediaId)?.dishes.category_id !==
+          item.dishCategoryId
+        ) {
           validationErrors.push(
             `dish_media ${item.dishMediaId} is not linked to category ${item.dishCategoryId}`,
           );
@@ -163,35 +171,42 @@ export class ToolsDishCategoriesService {
       }
 
       // private バケットから public バケットへコピー
-      const updateDataList = await Promise.all(dto.items
-        .filter((item) => categoryMap.get(item.dishCategoryId)?.image_url.startsWith("https://upload.wikimedia.org"))
-        .map(async (item) => {
-          const media = mediaMap.get(item.dishMediaId)!;
+      // その後の処理でエラーが生じた場合、コピー先のオブジェクトが残るが許容する
+      const updateDataList = await Promise.all(
+        dto.items
+          // Wikimedia画像のみ更新対象とする（後から制約を緩めてもOK）
+          .filter((item) =>
+            categoryMap
+              .get(item.dishCategoryId)
+              ?.image_url.startsWith('https://upload.wikimedia.org'),
+          )
+          .map(async (item) => {
+            const media = mediaMap.get(item.dishMediaId)!;
 
-          const sourcePath = buildResizedPath(
-            {
+            const sourcePath = buildResizedPath({
               table: 'dish_media',
               column: 'media_path',
               recordId: media.id,
               size: 1024,
               originalPath: media.media_path,
-            },
-          )
+            });
 
-          // メタデータを構築
-          const transferMetadata = {
-            source_type: 'dish_media',
-            source_dish_media_id: item.dishMediaId,
-            source_path: sourcePath,
-            transferred_at: new Date().toISOString(),
-          };
+            // メタデータを構築
+            const transferMetadata = {
+              source_type: 'dish_media',
+              source_dish_media_id: item.dishMediaId,
+              source_path: sourcePath,
+              transferred_at: new Date().toISOString(),
+            };
 
-          const { publicUrl } = await this.storage.copyToPublic(sourcePath,
-            `transferred/dish_categories/image_url/${item.dishCategoryId}/${media.id}/1024.webp`,
-            { metadata: transferMetadata }
-          );
-          return { ...item, newImageUrl: publicUrl };
-        }));
+            const { publicUrl } = await this.storage.copyToPublic(
+              sourcePath,
+              `transferred/dish_categories/image_url/${item.dishCategoryId}/${media.id}/1024.webp`,
+              { metadata: transferMetadata },
+            );
+            return { ...item, newImageUrl: publicUrl };
+          }),
+      );
 
       // トランザクションで一括更新
       const updatedCount = await this.prisma.withTransaction(async (tx) => {

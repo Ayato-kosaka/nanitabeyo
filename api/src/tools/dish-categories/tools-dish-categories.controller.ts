@@ -34,7 +34,7 @@ import { ToolsDishCategoriesService } from './tools-dish-categories.service';
 export class ToolsDishCategoriesController {
   constructor(
     private readonly toolsDishCategoriesService: ToolsDishCategoriesService,
-  ) { }
+  ) {}
 
   /**
    * #494 よく使われるカテゴリ + 候補画像取得

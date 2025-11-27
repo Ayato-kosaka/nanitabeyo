@@ -13,7 +13,7 @@ export type CandidateDishMedia = {
  */
 export type PopularDishCategoryWithMedia = {
 	/** カテゴリ情報 */
-	dishCategory: Pick<SupabaseDishCategories, 'id' | 'image_url'> & {
+	dishCategory: Pick<SupabaseDishCategories, "id" | "image_url"> & {
 		name: string;
 	};
 	/** 紐づく dishes の件数 */

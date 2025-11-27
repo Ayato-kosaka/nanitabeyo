@@ -8,25 +8,24 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { Prisma } from '../../../../shared/prisma/client';
 
-
 @Injectable()
 export class ToolsDishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * #494 【設計】Wikimedia画像を持つ人気dish_categoriesを取得
    * - dishes件数の多い順にソート
    * - image_urlがhttps://upload.wikimedia.org%で始まるもののみ
    */
-  async findPopularCategoriesWithWikimediaImages(
-    limit: number,
-  ): Promise<{
-    dish_category_id: string;
-    dish_count: number;
-  }[]> {
+  async findPopularCategoriesWithWikimediaImages(limit: number): Promise<
+    {
+      dish_category_id: string;
+      dish_count: number;
+    }[]
+  > {
     // 【セキュリティ】limitパラメータの検証
     const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
 
@@ -88,7 +87,6 @@ export class ToolsDishCategoriesRepository {
       take: limit,
     });
   }
-
 
   /**
    * #494 【設計】複数のdish_mediaをIDで一括取得
