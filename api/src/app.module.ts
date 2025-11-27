@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { V1Module } from './v1/v1.module';
 import { V2Module } from './v2/v2.module';
 import { InternalModule } from './internal/internal.module';
+import { ToolsModule } from './tools/tools.module';
 import { HealthModule } from './health/health.module';
 import { ResponseWrapInterceptor } from './core/interceptors/response-wrap.interceptor';
 import { CoreModule } from './core/core.module';
@@ -23,6 +24,7 @@ import { CoreModule } from './core/core.module';
     V1Module,
     V2Module,
     InternalModule, // Internal endpoints for Cloud Tasks
+    ToolsModule, // Tools endpoints for admin use
     HealthModule, // Add HealthModule
     CoreModule,
   ],

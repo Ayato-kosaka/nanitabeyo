@@ -461,5 +461,22 @@
 		"privacy": "سياسة الخصوصية",
 		"copyright": "حقوق النشر",
 		"logout": "تسجيل الخروج"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "مُحسِّن صور فئات الأطباق",
+			"loading": "جارٍ تحميل الفئات...",
+			"empty": "لم يتم العثور على فئات",
+			"selectImage": "اختر صورة",
+			"candidateImages": "الصور المرشحة",
+			"noCandidates": "لا توجد صور مرشحة",
+			"submit": "تحديث الصور",
+			"submitting": "جارٍ التحديث...",
+			"submitSuccess": "تم تحديث {{count}} صورة بنجاح",
+			"submitError": "فشل تحديث الصور",
+			"reset": "إعادة تعيين",
+			"selected": "محدد",
+			"dishCount": "{{count}} أطباق"
+		}
 	}
 }

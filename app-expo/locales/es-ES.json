@@ -461,5 +461,22 @@
 		"privacy": "Política de privacidad",
 		"copyright": "Derechos de autor",
 		"logout": "Cerrar sesión"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "Optimizador de imágenes de categorías",
+			"loading": "Cargando categorías...",
+			"empty": "No se encontraron categorías",
+			"selectImage": "Seleccionar imagen",
+			"candidateImages": "Imágenes candidatas",
+			"noCandidates": "No hay imágenes candidatas",
+			"submit": "Actualizar imágenes",
+			"submitting": "Actualizando...",
+			"submitSuccess": "{{count}} imágenes actualizadas con éxito",
+			"submitError": "Error al actualizar las imágenes",
+			"reset": "Restablecer",
+			"selected": "Seleccionado",
+			"dishCount": "{{count}} platos"
+		}
 	}
 }

@@ -1,0 +1,516 @@
+// app-expo/app/[locale]/tools/dish-category-image-optimizer.tsx
+//
+// #494 【フロント】dish_categories 用 画像最適化ツールページ
+// 運営用ツール - ユーザー向けアプリからの導線は不要
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+	View,
+	StyleSheet,
+	ScrollView,
+	ActivityIndicator,
+	Pressable,
+	Text,
+	FlatList,
+	ListRenderItemInfo,
+	useWindowDimensions,
+} from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Check } from "lucide-react-native";
+
+import { useAPICall } from "@/hooks/useAPICall";
+import { useWithLoading } from "@/hooks/useWithLoading";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import i18n from "@/lib/i18n";
+import { getCacheKeyForImage } from "@/lib/image";
+
+import type {
+	PopularDishCategoriesWithMediaResponse,
+	PopularDishCategoryWithMedia,
+	CandidateDishMedia,
+	UpdateDishCategoryImagesResponse,
+} from "@shared/api/v1/res";
+import type { UpdateDishCategoryImagesDto } from "@shared/api/v1/dto";
+
+/* -------------------------------------------------------------------------- */
+/*                                    型定義                                   */
+/* -------------------------------------------------------------------------- */
+
+/** #494 【設計】選択状態を管理するマップ型 */
+type SelectedMap = Record<string, string>; // categoryId -> dishMediaId
+
+/* -------------------------------------------------------------------------- */
+/*                                  メインページ                               */
+/* -------------------------------------------------------------------------- */
+
+export default function DishCategoryImageOptimizerPage() {
+	const insets = useSafeAreaInsets();
+	const { width: screenWidth } = useWindowDimensions();
+	const { callBackend } = useAPICall();
+	const { showSnackbar } = useSnackbar();
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const { isLoading: isLoadingCategories, withLoading: withLoadingCategories } = useWithLoading();
+	const { isLoading: isSubmitting, withLoading: withSubmitting } = useWithLoading();
+
+	// #494 【設計】ローカルstate: カテゴリ一覧
+	const [categories, setCategories] = useState<PopularDishCategoriesWithMediaResponse>([]);
+	// #494 【設計】ローカルstate: 選択マップ (categoryId -> dishMediaId)
+	const [selectedMap, setSelectedMap] = useState<SelectedMap>({});
+	// #494 【設計】モーダル用: 現在選択中のカテゴリ
+	const [activeCategory, setActiveCategory] = useState<PopularDishCategoryWithMedia | null>(null);
+
+	const { BlurModal, open: openModal, close: closeModal } = useBlurModal({ intensity: 80 });
+
+	// #494 【設計】カテゴリグリッドの列数とサイズ計算
+	const COLUMNS = 3;
+	const GAP = 8;
+	const PADDING_HORIZONTAL = 16;
+	const cardWidth = (screenWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
+	const cardHeight = cardWidth * 1.2;
+
+	// #494 【設計】候補画像グリッドの列数とサイズ
+	const MODAL_COLUMNS = 3;
+	const MODAL_GAP = 4;
+	const MODAL_PADDING = 16;
+	const modalCardWidth = (screenWidth - MODAL_PADDING * 2 - MODAL_GAP * (MODAL_COLUMNS - 1)) / MODAL_COLUMNS;
+	const modalCardHeight = modalCardWidth;
+
+	/* ------------------------------------------------------------------ */
+	/*                             API呼び出し                             */
+	/* ------------------------------------------------------------------ */
+
+	/** #494 【API①】人気カテゴリと候補メディア一覧を取得 */
+	const fetchCategories = useCallback(async () => {
+		try {
+			const result = await callBackend<Record<string, never>, PopularDishCategoriesWithMediaResponse>(
+				"tools/dish-categories/popular-with-media",
+				{ method: "GET", requestPayload: {} },
+			);
+			setCategories(result);
+			logFrontendEvent({
+				event_name: "tools_categories_loaded",
+				error_level: "log",
+				payload: { count: result.length },
+			});
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "tools_categories_error",
+				error_level: "error",
+				payload: { error },
+			});
+			showSnackbar(i18n.t("Common.error"));
+		}
+	}, [callBackend, logFrontendEvent, showSnackbar]);
+
+	/** #494 【API②】選択されたメディアでカテゴリ画像を一括更新 */
+	const submitUpdates = useCallback(async () => {
+		const items = Object.entries(selectedMap).map(([dishCategoryId, dishMediaId]) => ({
+			dishCategoryId,
+			dishMediaId,
+		}));
+
+		if (items.length === 0) {
+			showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.empty"));
+			return;
+		}
+
+		try {
+			const result = await callBackend<UpdateDishCategoryImagesDto, UpdateDishCategoryImagesResponse>(
+				"tools/dish-categories/update-images",
+				{
+					method: "POST",
+					requestPayload: { items },
+				},
+			);
+
+			if (result.success) {
+				showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitSuccess", { count: result.updatedCount }));
+				// 成功後はリセット
+				setSelectedMap({});
+				// カテゴリを再取得
+				await fetchCategories();
+			} else {
+				showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
+			}
+
+			logFrontendEvent({
+				event_name: "tools_images_updated",
+				error_level: "log",
+				payload: { count: items.length, success: result.success },
+			});
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "tools_images_update_error",
+				error_level: "error",
+				payload: { error },
+			});
+			showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
+		}
+	}, [selectedMap, callBackend, showSnackbar, fetchCategories, logFrontendEvent]);
+
+	/* ------------------------------------------------------------------ */
+	/*                           イベントハンドラ                          */
+	/* ------------------------------------------------------------------ */
+
+	/** #494 【設計】カテゴリカードタップ → モーダルを開く */
+	const handleCategoryPress = useCallback(
+		(category: PopularDishCategoryWithMedia) => {
+			lightImpact();
+			setActiveCategory(category);
+			openModal();
+		},
+		[lightImpact, openModal],
+	);
+
+	/** #494 【設計】候補画像タップ → 選択状態を更新 */
+	const handleMediaSelect = useCallback(
+		(categoryId: string, mediaId: string) => {
+			lightImpact();
+			setSelectedMap((prev) => {
+				if (prev[categoryId] === mediaId) {
+					// 同じものをタップしたら選択解除
+					const { [categoryId]: _, ...rest } = prev;
+					return rest;
+				}
+				return { ...prev, [categoryId]: mediaId };
+			});
+			closeModal();
+		},
+		[lightImpact, closeModal],
+	);
+
+	/** #494 【設計】リセットボタン */
+	const handleReset = useCallback(() => {
+		lightImpact();
+		setSelectedMap({});
+	}, [lightImpact]);
+
+	/* ------------------------------------------------------------------ */
+	/*                           初期データ取得                            */
+	/* ------------------------------------------------------------------ */
+
+	useEffect(() => {
+		withLoadingCategories(fetchCategories)();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	/* ------------------------------------------------------------------ */
+	/*                             選択件数                                */
+	/* ------------------------------------------------------------------ */
+
+	const selectedCount = Object.keys(selectedMap).length;
+
+	/* ------------------------------------------------------------------ */
+	/*                             レンダリング                            */
+	/* ------------------------------------------------------------------ */
+
+	/** #494 【設計】カテゴリカードのレンダリング */
+	const renderCategoryCard = useCallback(
+		(info: ListRenderItemInfo<PopularDishCategoryWithMedia>) => {
+			const { item } = info;
+			const isSelected = !!selectedMap[item.dishCategory.id];
+			const selectedMedia = isSelected
+				? item.candidateMedia.find((m) => m.id === selectedMap[item.dishCategory.id])
+				: null;
+
+			// 選択済みの場合は選択したメディアのサムネイルを表示、未選択の場合は元のカテゴリ画像
+			const imageUrl = selectedMedia?.thumbnailUrl || item.dishCategory.image_url;
+
+			return (
+				<Pressable
+					style={[styles.categoryCard, { width: cardWidth, height: cardHeight }]}
+					onPress={() => handleCategoryPress(item)}
+					android_ripple={{ color: "rgba(0,0,0,0.1)" }}>
+					<Image
+						source={{ uri: imageUrl, cacheKey: getCacheKeyForImage(imageUrl) }}
+						style={StyleSheet.absoluteFill}
+						contentFit="cover"
+						transition={100}
+					/>
+					{/* オーバーレイ */}
+					<View style={styles.categoryOverlay}>
+						<Text style={styles.categoryLabel} numberOfLines={2}>
+							{item.dishCategory.label_en}
+						</Text>
+						<Text style={styles.categoryCount}>
+							{i18n.t("Tools.DishCategoryImageOptimizer.dishCount", { count: item.dishCount })}
+						</Text>
+					</View>
+					{/* 選択チェックマーク */}
+					{isSelected && (
+						<View style={styles.checkBadge}>
+							<Check size={16} color="#FFF" />
+						</View>
+					)}
+				</Pressable>
+			);
+		},
+		[cardWidth, cardHeight, selectedMap, handleCategoryPress],
+	);
+
+	/** #494 【設計】候補画像のレンダリング */
+	const renderCandidateMedia = useCallback(
+		(media: CandidateDishMedia) => {
+			if (!activeCategory) return null;
+			const isSelected = selectedMap[activeCategory.dishCategory.id] === media.id;
+
+			return (
+				<Pressable
+					key={media.id}
+					style={[
+						styles.candidateCard,
+						{ width: modalCardWidth, height: modalCardHeight },
+						isSelected && styles.candidateCardSelected,
+					]}
+					onPress={() => handleMediaSelect(activeCategory.dishCategory.id, media.id)}
+					android_ripple={{ color: "rgba(0,0,0,0.1)" }}>
+					<Image
+						source={{ uri: media.thumbnailUrl, cacheKey: getCacheKeyForImage(media.thumbnailUrl) }}
+						style={StyleSheet.absoluteFill}
+						contentFit="cover"
+						transition={100}
+					/>
+					{isSelected && (
+						<View style={styles.candidateCheckBadge}>
+							<Check size={20} color="#FFF" />
+						</View>
+					)}
+				</Pressable>
+			);
+		},
+		[activeCategory, selectedMap, modalCardWidth, modalCardHeight, handleMediaSelect],
+	);
+
+	const keyExtractor = useCallback((item: PopularDishCategoryWithMedia) => item.dishCategory.id, []);
+
+	return (
+		<View style={[styles.container, { paddingTop: insets.top }]}>
+			{/* ヘッダー */}
+			<View style={styles.header}>
+				<Text style={styles.headerTitle}>{i18n.t("Tools.DishCategoryImageOptimizer.title")}</Text>
+			</View>
+
+			{/* ローディング */}
+			{isLoadingCategories && (
+				<View style={styles.loadingContainer}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
+					<Text style={styles.loadingText}>{i18n.t("Tools.DishCategoryImageOptimizer.loading")}</Text>
+				</View>
+			)}
+
+			{/* カテゴリグリッド */}
+			{!isLoadingCategories && categories.length > 0 && (
+				<FlatList
+					data={categories}
+					renderItem={renderCategoryCard}
+					keyExtractor={keyExtractor}
+					numColumns={COLUMNS}
+					columnWrapperStyle={{ gap: GAP }}
+					contentContainerStyle={[styles.gridContainer, { paddingHorizontal: PADDING_HORIZONTAL }]}
+					showsVerticalScrollIndicator={false}
+				/>
+			)}
+
+			{/* 空状態 */}
+			{!isLoadingCategories && categories.length === 0 && (
+				<View style={styles.emptyContainer}>
+					<Text style={styles.emptyText}>{i18n.t("Tools.DishCategoryImageOptimizer.empty")}</Text>
+				</View>
+			)}
+
+			{/* フッター: 送信ボタン */}
+			{selectedCount > 0 && (
+				<View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+					<PrimaryButton
+						label={
+							isSubmitting
+								? i18n.t("Tools.DishCategoryImageOptimizer.submitting")
+								: `${i18n.t("Tools.DishCategoryImageOptimizer.submit")} (${selectedCount})`
+						}
+						onPress={withSubmitting(submitUpdates)}
+						loading={isSubmitting}
+						disabled={isSubmitting}
+					/>
+					<PrimaryButton
+						label={i18n.t("Tools.DishCategoryImageOptimizer.reset")}
+						onPress={handleReset}
+						colors={["#6B7280", "#4B5563"]}
+						style={{ marginTop: 8 }}
+					/>
+				</View>
+			)}
+
+			{/* 候補画像選択モーダル */}
+			<BlurModal contentContainerStyle={styles.modalContent}>
+				{activeCategory && (
+					<View style={{ flex: 1 }}>
+						<Text style={styles.modalTitle}>{activeCategory.dishCategory.label_en}</Text>
+						<Text style={styles.modalSubtitle}>{i18n.t("Tools.DishCategoryImageOptimizer.candidateImages")}</Text>
+
+						{activeCategory.candidateMedia.length > 0 ? (
+							<ScrollView contentContainerStyle={styles.candidateGrid}>
+								<View style={styles.candidateGridInner}>{activeCategory.candidateMedia.map(renderCandidateMedia)}</View>
+							</ScrollView>
+						) : (
+							<View style={styles.noCandidatesContainer}>
+								<Text style={styles.noCandidatesText}>{i18n.t("Tools.DishCategoryImageOptimizer.noCandidates")}</Text>
+							</View>
+						)}
+					</View>
+				)}
+			</BlurModal>
+		</View>
+	);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               スタイル定義                                  */
+/* -------------------------------------------------------------------------- */
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: "#F8F9FA",
+	},
+	header: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		backgroundColor: "#FFF",
+		borderBottomWidth: 1,
+		borderBottomColor: "#E5E7EB",
+	},
+	headerTitle: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#1A1A1A",
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	loadingText: {
+		marginTop: 12,
+		fontSize: 14,
+		color: "#6B7280",
+	},
+	gridContainer: {
+		paddingTop: 16,
+		paddingBottom: 120,
+		gap: 8,
+	},
+	categoryCard: {
+		backgroundColor: "#E5E7EB",
+		borderRadius: 8,
+		overflow: "hidden",
+		position: "relative",
+	},
+	categoryOverlay: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+		padding: 8,
+		backgroundColor: "rgba(0,0,0,0.5)",
+	},
+	categoryLabel: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#FFF",
+	},
+	categoryCount: {
+		fontSize: 10,
+		color: "rgba(255,255,255,0.8)",
+		marginTop: 2,
+	},
+	checkBadge: {
+		position: "absolute",
+		top: 8,
+		right: 8,
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		backgroundColor: "#22C55E",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	emptyContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	emptyText: {
+		fontSize: 14,
+		color: "#6B7280",
+	},
+	footer: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+		padding: 16,
+		backgroundColor: "#FFF",
+		borderTopWidth: 1,
+		borderTopColor: "#E5E7EB",
+	},
+	modalContent: {
+		flex: 1,
+		paddingHorizontal: 16,
+		paddingTop: 60,
+	},
+	modalTitle: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		marginBottom: 4,
+	},
+	modalSubtitle: {
+		fontSize: 14,
+		color: "#6B7280",
+		marginBottom: 16,
+	},
+	candidateGrid: {
+		paddingBottom: 32,
+	},
+	candidateGridInner: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 4,
+	},
+	candidateCard: {
+		backgroundColor: "#E5E7EB",
+		borderRadius: 4,
+		overflow: "hidden",
+		position: "relative",
+	},
+	candidateCardSelected: {
+		borderWidth: 3,
+		borderColor: "#22C55E",
+	},
+	candidateCheckBadge: {
+		position: "absolute",
+		top: 4,
+		right: 4,
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		backgroundColor: "#22C55E",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	noCandidatesContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	noCandidatesText: {
+		fontSize: 14,
+		color: "#6B7280",
+	},
+});

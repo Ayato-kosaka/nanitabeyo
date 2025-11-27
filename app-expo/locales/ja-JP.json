@@ -461,5 +461,22 @@
 		"privacy": "プライバシーポリシー",
 		"copyright": "著作権",
 		"logout": "ログアウト"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "料理カテゴリ画像最適化",
+			"loading": "カテゴリを読み込み中...",
+			"empty": "カテゴリが見つかりません",
+			"selectImage": "画像を選択",
+			"candidateImages": "候補画像",
+			"noCandidates": "候補画像がありません",
+			"submit": "画像を更新",
+			"submitting": "更新中...",
+			"submitSuccess": "{{count}}件の画像を更新しました",
+			"submitError": "画像の更新に失敗しました",
+			"reset": "リセット",
+			"selected": "選択済み",
+			"dishCount": "{{count}}件の料理"
+		}
 	}
 }

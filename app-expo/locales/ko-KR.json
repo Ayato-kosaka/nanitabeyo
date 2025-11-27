@@ -461,5 +461,22 @@
 		"privacy": "개인정보 처리방침",
 		"copyright": "저작권",
 		"logout": "로그아웃"
+	},
+	"Tools": {
+		"DishCategoryImageOptimizer": {
+			"title": "요리 카테고리 이미지 최적화",
+			"loading": "카테고리 로딩 중...",
+			"empty": "카테고리를 찾을 수 없습니다",
+			"selectImage": "이미지 선택",
+			"candidateImages": "후보 이미지",
+			"noCandidates": "후보 이미지 없음",
+			"submit": "이미지 업데이트",
+			"submitting": "업데이트 중...",
+			"submitSuccess": "{{count}}개 이미지가 성공적으로 업데이트되었습니다",
+			"submitError": "이미지 업데이트 실패",
+			"reset": "초기화",
+			"selected": "선택됨",
+			"dishCount": "{{count}}개 요리"
+		}
 	}
 }
