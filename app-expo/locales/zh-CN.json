@@ -257,7 +257,7 @@
 			"enterAvatar": "请输入您的头像图片URL..."
 		},
 		"savedCount": "{{count}} 次收藏",
-		"guestBio": "欢迎，访客 👋\n感谢您使用新概念美食应用《CraveCatch》😊\n账户功能和更多更新即将推出！",
+		"guestBio": "欢迎，访客 👋\n感谢体验 CraveCatch 😊\n创建账号，通过发布照片和视频评论\n分享美食的快乐 📸✨",
 		"hints": {
 			"tapToSelectImage": "点击选择图片"
 		},
