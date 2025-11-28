@@ -69,7 +69,10 @@ export const useCdnCookieStore = createWithEqualityFn<CdnCookieStore>()((set, ge
 		// Cloud-CDN-Cookie の形式: "Cloud-CDN-Cookie=xxxx; Path=/; ..."
 		const newCookies: CdnCookie[] = [];
 
-		// Set-Cookie ヘッダを解析（カンマまたは改行で分割されることがある）
+		// #501 【設計】Set-Cookie ヘッダを解析
+		// 正規表現 /,(?=[^;]*=)/ は「次の Cookie 名が続くカンマ」でのみ分割する。
+		// これにより Expires=Thu, 01 Jan 2099 のような日付内のカンマでは分割されない。
+		// パターン解説: カンマの直後にセミコロンを含まない文字列と `=` が続く場合のみマッチ
 		const cookieLines = setCookieHeader.split(/,(?=[^;]*=)/);
 		for (const line of cookieLines) {
 			// 各 cookie 行は "name=value; attr1; attr2=val" 形式
@@ -104,11 +107,8 @@ export const useCdnCookieStore = createWithEqualityFn<CdnCookieStore>()((set, ge
 		});
 	},
 
-	getCookieHeader: () => {
-		const { cookies } = get();
-		if (cookies.length === 0) return "";
-		return cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-	},
+	// #501 【設計】selectCookieHeader と同じロジック（内部利用用）
+	getCookieHeader: () => selectCookieHeader(get()),
 
 	clearCookies: () => set({ cookies: [] }),
 }));
