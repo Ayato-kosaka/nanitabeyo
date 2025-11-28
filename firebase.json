@@ -6,7 +6,7 @@
 			"redirects": [
 				{
 					"source": "/:path*",
-					"destination": "https://app-nanitabeyo-net.web.app/:path",
+					"destination": "https://app.nanitabeyo.net/:path",
 					"type": 301
 				}
 			]
