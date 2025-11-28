@@ -195,12 +195,14 @@ export class ToolsDishCategoriesService {
               source_type: 'dish_media',
               source_dish_media_id: item.dishMediaId,
               source_path: sourcePath,
+              before_url: categoryMap.get(item.dishCategoryId)?.image_url ?? null,
+              size: 1024,
               transferred_at: new Date().toISOString(),
             };
 
             const { publicUrl } = await this.storage.copyToPublic(
               sourcePath,
-              `transferred/dish_categories/image_url/${item.dishCategoryId}/${media.id}/1024.webp`,
+              `dish_categories/image_url/${item.dishCategoryId}/${media.id}.webp`,
               { metadata: transferMetadata },
             );
             return { ...item, newImageUrl: publicUrl };
