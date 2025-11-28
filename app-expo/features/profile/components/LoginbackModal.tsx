@@ -105,6 +105,9 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					error_level: "log",
 					payload: { provider, isUpgrade: isAnonymous && !hasExistingAccount, hasExistingAccount },
 				});
+
+				// OAuth 成功時に明示的にモーダルを閉じる（Android で戻ったときに残る問題を解消）
+				onClose();
 			} catch (error: unknown) {
 				logFrontendEvent({
 					event_name: "oauth_signin_error",
@@ -116,7 +119,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				setIsLoading(false);
 			}
 		},
-		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount],
+		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount, onClose],
 	);
 
 	// Legal ドキュメント表示用のハンドラ
