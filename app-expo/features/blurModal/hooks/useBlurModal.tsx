@@ -37,6 +37,8 @@ export interface BlurModalOptions {
 	keyboardVerticalOffset?: number;
 	/** バックドロップ/戻るキーで、まずキーボードだけ閉じる */
 	dismissKeyboardFirst?: boolean;
+	/** バックドロップ押下でモーダルを閉じるかどうか */
+	closeOnBackdropPress?: boolean;
 }
 
 export function useBlurModal({
@@ -48,6 +50,7 @@ export function useBlurModal({
 	zIndex = 1100,
 	keyboardVerticalOffset = 0,
 	dismissKeyboardFirst = true,
+	closeOnBackdropPress = false,
 }: BlurModalOptions = {}) {
 	const insets = useSafeAreaInsets();
 	const [visible, setVisible] = useState(false);
@@ -99,8 +102,8 @@ export function useBlurModal({
 			Keyboard.dismiss();
 			return;
 		}
-		close();
-	}, [dismissKeyboardFirst, close]);
+		if (closeOnBackdropPress) close();
+	}, [dismissKeyboardFirst, closeOnBackdropPress, close]);
 
 	/* ── モーダル Component ───────────────────────────────────────── */
 	const BlurModal = useCallback(

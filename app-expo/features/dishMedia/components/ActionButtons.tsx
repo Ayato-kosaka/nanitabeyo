@@ -62,7 +62,11 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
 	}, [id, idType]);
 
-	const { BlurModal, open: openMenuModal, close: closeMenuModal } = useBlurModal({ intensity: 100 });
+	const {
+		BlurModal,
+		open: openMenuModal,
+		close: closeMenuModal,
+	} = useBlurModal({ intensity: 100, closeOnBackdropPress: true });
 
 	const handleLike = useCallback(async () => {
 		lightImpact();
