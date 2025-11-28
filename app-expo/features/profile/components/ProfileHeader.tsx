@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "rea
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
@@ -102,19 +103,31 @@ export function ProfileHeader({
 				<Card style={styles.card} pointerEvents="box-none">
 					{/* Avatar and Stats */}
 					<View style={[styles.profileHeader]} pointerEvents="none">
-						{(isGuest || avatarUrl) && (
+						{isGuest ? (
+							// ゲストは従来通りアプリアイコンを表示
 							<Image
-								key={avatarUrl || "placeholder"}
-								source={
-									isGuest
-										? require("@/assets/images/icon.png")
-										: { uri: avatarUrl, cacheKey: getCacheKeyForImage(avatarUrl) }
-								}
+								key={"guest-icon"}
+								source={require("@/assets/images/icon.png")}
 								style={styles.avatar}
 								contentFit="cover"
 								transition={0}
 								cachePolicy={"disk"}
 							/>
+						) : avatarUrl ? (
+							// avatarUrl がある場合はその画像を表示
+							<Image
+								key={avatarUrl}
+								source={{ uri: avatarUrl, cacheKey: getCacheKeyForImage(avatarUrl) }}
+								style={styles.avatar}
+								contentFit="cover"
+								transition={0}
+								cachePolicy={"disk"}
+							/>
+						) : (
+							// avatarUrl がない場合のフォールバック
+							<View style={styles.avatarPlaceholder}>
+								<Ionicons name="person-circle-outline" size={48} color="#999" />
+							</View>
 						)}
 
 						{/* {!isGuest && (
@@ -214,6 +227,21 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		borderWidth: 3,
 		borderColor: "#FFFFFF",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.15,
+		shadowRadius: 8,
+		elevation: 6,
+	},
+	avatarPlaceholder: {
+		width: 80,
+		height: 80,
+		borderRadius: 20,
+		borderWidth: 3,
+		borderColor: "#FFFFFF",
+		backgroundColor: "#F3F4F6",
+		justifyContent: "center",
+		alignItems: "center",
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.15,
