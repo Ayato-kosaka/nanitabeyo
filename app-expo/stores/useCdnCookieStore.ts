@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { createWithEqualityFn } from "zustand/traditional";
 
 // #501 【設計】CDN 向け Cookie を保持する型定義
@@ -63,7 +64,7 @@ export const useCdnCookieStore = createWithEqualityFn<CdnCookieStore>()((set, ge
 		// NOTE: ブラウザの fetch では Set-Cookie ヘッダが取得できないことが多いが、
 		//       ネイティブ環境（React Native）では取得可能
 		const setCookieHeader = headers.get("set-cookie");
-		if (!setCookieHeader) return;
+		if (!setCookieHeader || Platform.OS === "web") return;
 
 		// 複数の Set-Cookie がカンマ区切りで返る場合と、セミコロン区切りの場合がある
 		// Cloud-CDN-Cookie の形式: "Cloud-CDN-Cookie=xxxx; Path=/; ..."

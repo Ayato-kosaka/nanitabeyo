@@ -23,7 +23,6 @@ export const useAPICall = () => {
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
 	const { getSession } = useAuth();
-	const setFromResponseHeaders = useCdnCookieStore((state) => state.setFromResponseHeaders);
 
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
@@ -77,7 +76,9 @@ export const useAPICall = () => {
 			);
 
 			// #501 【設計】CDN サインド Cookie をレスポンスヘッダから抽出してストアに保存
-			setFromResponseHeaders(response.headers);
+			if (response.headers.get("set-cookie")) {
+				useCdnCookieStore.getState().setFromResponseHeaders(response.headers);
+			}
 
 			const requestId = response.headers.get("x-request-id");
 			const duration = Date.now() - startTime;
@@ -207,7 +208,7 @@ export const useAPICall = () => {
 			// data のみを返す
 			return json.data;
 		},
-		[logFrontendEvent, getSession, showDialog, setFromResponseHeaders],
+		[logFrontendEvent, getSession, showDialog],
 	);
 
 	return { callBackend };

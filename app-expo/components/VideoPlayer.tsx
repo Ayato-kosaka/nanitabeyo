@@ -39,17 +39,20 @@ function VideoPlayer({
 	onLoop,
 }: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
+	const { logFrontendEvent } = useLogger();
 	const [error, setError] = useState<string | null>(null);
 	const [isPlaying, setIsPlaying] = useState<boolean>(false);
 	const lastLoopTime = useRef(0);
-	const { logFrontendEvent } = useLogger();
 
-	// #501 【設計】CDN Cookie を取得し、動画リクエストの Cookie ヘッダに設定する
-	// cookies の変更を監視して再レンダリングをトリガーするため、selectCookieHeader を使用
-	const cdnCookieHeader = useCdnCookieStore(selectCookieHeader);
+	// #501 【設計】動画の再試行用トークンと再試行済みフラグ
+	const [retryToken, setRetryToken] = useState(0);
+	const hasRetriedWithNewCookie = useRef(false);
 
-	// #501 【設計】VideoSource を構築（Cookie ヘッダを含む）
 	const videoSource: VideoSource = useMemo(() => {
+		// #501 【設計】CDN Cookie を取得し、動画リクエストの Cookie ヘッダに設定する
+		// VideoPlayer マウント時 / URI 変更時、および retryToken 変更時に再評価されるようにする。
+		// retryToken は 403 エラー発生時に最新 Cookie を取得して再試行するために使用する。
+		const cdnCookieHeader = selectCookieHeader(useCdnCookieStore.getState());
 		if (!cdnCookieHeader) {
 			// Cookie がない場合は URI のみ指定
 			return uri;
@@ -60,7 +63,7 @@ function VideoPlayer({
 				Cookie: cdnCookieHeader,
 			},
 		};
-	}, [uri, cdnCookieHeader]);
+	}, [uri, retryToken]);
 
 	const player = useVideoPlayer(videoSource, (player) => {
 		player.loop = isLooping;
@@ -115,9 +118,24 @@ function VideoPlayer({
 			if (status.status === "readyToPlay") {
 				setIsLoading(false);
 				setError(null);
+				hasRetriedWithNewCookie.current = false;
 			} else if (status.status === "error") {
-				setIsLoading(false);
-				setError(status.error?.message || "Video playback error");
+				const message = status.error?.message;
+				if (
+					!hasRetriedWithNewCookie.current &&
+					message &&
+					(message.toLowerCase().includes("403") || message.toLowerCase().includes("forbidden"))
+				) {
+					// 403 ぽいエラーかつ、まだリトライしていないなら再試行する
+					hasRetriedWithNewCookie.current = true;
+					// 最新 Cookie を store から取り直すため、retryToken をインクリメント
+					setIsLoading(true);
+					setError(null);
+					setRetryToken((prev) => prev + 1);
+				} else {
+					setIsLoading(false);
+					setError(message || "Video playback error");
+				}
 			}
 		});
 		const playingChangeSubscription = player.addListener("playingChange", (payload) => {
