@@ -1,16 +1,16 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from "expo-tracking-transparency";
-import { AppEventsLogger, Settings } from "react-native-fbsdk-next";
+import { Settings } from "react-native-fbsdk-next";
 import { Env } from "@/constants/Env";
 
 /**
  * #492 【設計】Meta (Facebook) App Events 初期化用コンポーネント。
  *
+ * - Meta SDK を明示的に初期化
  * - 初回起動時に ATT (App Tracking Transparency) 許可ダイアログを表示（iOS のみ）
- * - 初回起動時に `fb_mobile_activate_app` イベントを Meta へ送信
- * - 二重送信を防ぐため AsyncStorage でフラグ管理
+ * - ATT 許可ステータスに基づいて広告 ID 収集を設定
+ * - `fb_mobile_activate_app` は `autoLogAppEventsEnabled: true` により SDK が自動送信するため手動送信しない
  * - Expo Go では動作しない（EAS Build / Dev Client が必要）
  *
  * @returns null（UI を持たない初期化専用コンポーネント）
@@ -26,6 +26,9 @@ export const MetaAppEventsInitializer = () => {
 		if (Platform.OS === "web") return;
 
 		try {
+			// #492 【設計】SDK を明示的に初期化（他の Settings 呼び出しより先に実行）
+			Settings.initializeSDK();
+
 			// #492 【設計】iOS14+ では ATT 許可をリクエストし、結果に基づいて広告 ID 収集を設定
 			let trackingEnabled = true; // Android はデフォルトで有効
 			if (Platform.OS === "ios") {
@@ -39,24 +42,12 @@ export const MetaAppEventsInitializer = () => {
 			}
 			Settings.setAdvertiserTrackingEnabled(trackingEnabled);
 
-			// #492 【設計】初回起動かどうかを AsyncStorage で確認
-			const hasActivated = await AsyncStorage.getItem("@meta_app_activated");
-			if (hasActivated) {
-				return;
-			}
-
-			// #492 【設計】fb_mobile_activate_app イベントを送信（初回のみ）
-			AppEventsLogger.logEvent("fb_mobile_activate_app");
-
-			// #492 【設計】初回起動フラグを保存（二重送信防止）
-			await AsyncStorage.setItem("@meta_app_activated", "true");
-
 			if (Env.NODE_ENV === "development") {
-				console.log("[MetaAppEventsInitializer] fb_mobile_activate_app event sent");
+				console.log("[MetaAppEventsInitializer] Meta SDK initialized, tracking:", trackingEnabled);
 			}
 		} catch (error) {
 			if (Env.NODE_ENV === "development") {
-				console.error("[MetaAppEventsInitializer] Failed to initialize Meta App Events:", error);
+				console.error("[MetaAppEventsInitializer] Failed to initialize Meta SDK:", error);
 			}
 		}
 	}, []);
