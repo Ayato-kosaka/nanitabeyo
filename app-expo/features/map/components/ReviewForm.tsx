@@ -463,8 +463,8 @@ export function ReviewForm({
 					dish_reviews: [
 						{
 							...createdDishReview,
-							// #467 【設計】プロフィールストアから username を取得（プロフィール画面を開かなくても利用可能）
-							username: profile?.username ?? "me",
+							// #467 【設計】プロフィールストアから display_name を取得（プロフィール画面を開かなくても利用可能）
+							username: profile?.display_name ?? "me",
 							isLiked: false,
 							likeCount: 0,
 						},
