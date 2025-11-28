@@ -1,8 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { View, StyleSheet, ActivityIndicator, Pressable, Text } from "react-native";
-import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
+import { VideoView, useVideoPlayer, VideoContentFit, VideoSource } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
-import { setAudioModeAsync } from "expo-audio"; // Threshold for detecting video loop (when currentTime returns to near start)
+import { setAudioModeAsync } from "expo-audio";
+import { useCdnCookieStore, selectCookieHeader } from "@/stores/useCdnCookieStore";
+
+// Threshold for detecting video loop (when currentTime returns to near start)
 export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
 // Progress tracking interval in milliseconds
 const PROGRESS_CHECK_INTERVAL_MS = 250;
@@ -21,10 +24,10 @@ export interface VideoPlayerProps {
  * VideoPlayer component for HLS video playback
  *
  * Supports:
- * - iOS/Android: Uses expo-video VideoView component with automatic cookie handling
+ * - iOS/Android: Uses expo-video VideoView component with CDN Cookie header injection
  *
- * The CDN signed cookies are automatically sent by the platform:
- * - iOS/Android: expo-video automatically includes cookies in HLS requests
+ * #501 【設計】ネイティブ（Android / iOS）では expo-video の headers オプションを使用し、
+ * CDN サインド Cookie を明示的に付与する。
  */
 function VideoPlayer({
 	uri,
@@ -36,12 +39,33 @@ function VideoPlayer({
 	onLoop,
 }: VideoPlayerProps) {
 	const [isLoading, setIsLoading] = useState(true);
+	const { logFrontendEvent } = useLogger();
 	const [error, setError] = useState<string | null>(null);
 	const [isPlaying, setIsPlaying] = useState<boolean>(false);
 	const lastLoopTime = useRef(0);
-	const { logFrontendEvent } = useLogger();
 
-	const player = useVideoPlayer(uri, (player) => {
+	// #501 【設計】動画の再試行用トークンと再試行済みフラグ
+	const [retryToken, setRetryToken] = useState(0);
+	const hasRetriedWithNewCookie = useRef(false);
+
+	const videoSource: VideoSource = useMemo(() => {
+		// #501 【設計】CDN Cookie を取得し、動画リクエストの Cookie ヘッダに設定する
+		// VideoPlayer マウント時 / URI 変更時、および retryToken 変更時に再評価されるようにする。
+		// retryToken は 403 エラー発生時に最新 Cookie を取得して再試行するために使用する。
+		const cdnCookieHeader = selectCookieHeader(useCdnCookieStore.getState());
+		if (!cdnCookieHeader) {
+			// Cookie がない場合は URI のみ指定
+			return uri;
+		}
+		return {
+			uri,
+			headers: {
+				Cookie: cdnCookieHeader,
+			},
+		};
+	}, [uri, retryToken]);
+
+	const player = useVideoPlayer(videoSource, (player) => {
 		player.loop = isLooping;
 		player.muted = false;
 		player.volume = 1.0;
@@ -94,9 +118,24 @@ function VideoPlayer({
 			if (status.status === "readyToPlay") {
 				setIsLoading(false);
 				setError(null);
+				hasRetriedWithNewCookie.current = false;
 			} else if (status.status === "error") {
-				setIsLoading(false);
-				setError(status.error?.message || "Video playback error");
+				const message = status.error?.message;
+				if (
+					!hasRetriedWithNewCookie.current &&
+					message &&
+					(message.toLowerCase().includes("403") || message.toLowerCase().includes("forbidden"))
+				) {
+					// 403 ぽいエラーかつ、まだリトライしていないなら再試行する
+					hasRetriedWithNewCookie.current = true;
+					// 最新 Cookie を store から取り直すため、retryToken をインクリメント
+					setIsLoading(true);
+					setError(null);
+					setRetryToken((prev) => prev + 1);
+				} else {
+					setIsLoading(false);
+					setError(message || "Video playback error");
+				}
 			}
 		});
 		const playingChangeSubscription = player.addListener("playingChange", (payload) => {

@@ -11,6 +11,7 @@ import { Href, useRouter } from "expo-router";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useTopicsStore } from "@/stores/useTopicsStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
+import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 
 type AuthContextType = {
 	user: User | null;
@@ -118,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				useDishMediaEntriesStore.getState().clearByKey();
 				useTopicsStore.getState().clearByKey();
 				useProfileStore.getState().resetProfile();
+				useCdnCookieStore.getState().clearCookies();
 			}
 
 			if (event === "INITIAL_SESSION") {

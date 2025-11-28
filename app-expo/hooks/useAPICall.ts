@@ -6,6 +6,7 @@ import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Linking, Platform } from "react-native";
 import type { BaseResponse } from "@shared/api/v1/res";
+import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 
 /**
  * ☁️ API 呼び出しフック
@@ -73,6 +74,11 @@ export const useAPICall = () => {
 				},
 				accessToken,
 			);
+
+			// #501 【設計】CDN サインド Cookie をレスポンスヘッダから抽出してストアに保存
+			if (response.headers.get("set-cookie")) {
+				useCdnCookieStore.getState().setFromResponseHeaders(response.headers);
+			}
 
 			const requestId = response.headers.get("x-request-id");
 			const duration = Date.now() - startTime;
