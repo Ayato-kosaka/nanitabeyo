@@ -89,12 +89,17 @@ export const useTopicSearch = () => {
 						...(isAllPriceLevelsSelected ? {} : { priceLevels: priceLevels }),
 					};
 
-					const importResponse = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dishes/bulk-import", {
-						method: "POST",
-						requestPayload,
-					});
-					dishItems = dishItems.concat(importResponse.filter((imported) =>
-						!dishItems.find((existing) => existing.dish_media.id === imported.dish_media.id))
+					const importResponse = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>(
+						"v1/dishes/bulk-import",
+						{
+							method: "POST",
+							requestPayload,
+						},
+					);
+					dishItems = dishItems.concat(
+						importResponse.filter(
+							(imported) => !dishItems.find((existing) => existing.dish_media.id === imported.dish_media.id),
+						),
 					);
 				}
 
@@ -221,8 +226,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-												typeof createDishCategoryVariantResponse.labels === "object" &&
-												params.localLanguageCode in createDishCategoryVariantResponse.labels
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
