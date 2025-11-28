@@ -195,7 +195,8 @@ export class ToolsDishCategoriesService {
               source_type: 'dish_media',
               source_dish_media_id: item.dishMediaId,
               source_path: sourcePath,
-              before_url: categoryMap.get(item.dishCategoryId)?.image_url ?? null,
+              before_url:
+                categoryMap.get(item.dishCategoryId)?.image_url ?? null,
               size: 1024,
               transferred_at: new Date().toISOString(),
             };

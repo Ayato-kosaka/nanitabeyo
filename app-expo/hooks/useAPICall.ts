@@ -6,6 +6,7 @@ import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Linking, Platform } from "react-native";
 import type { BaseResponse } from "@shared/api/v1/res";
+import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 
 /**
  * ☁️ API 呼び出しフック
@@ -22,6 +23,7 @@ export const useAPICall = () => {
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
 	const { getSession } = useAuth();
+	const setFromResponseHeaders = useCdnCookieStore((state) => state.setFromResponseHeaders);
 
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
@@ -73,6 +75,9 @@ export const useAPICall = () => {
 				},
 				accessToken,
 			);
+
+			// #501 【設計】CDN サインド Cookie をレスポンスヘッダから抽出してストアに保存
+			setFromResponseHeaders(response.headers);
 
 			const requestId = response.headers.get("x-request-id");
 			const duration = Date.now() - startTime;
@@ -202,7 +207,7 @@ export const useAPICall = () => {
 			// data のみを返す
 			return json.data;
 		},
-		[logFrontendEvent, getSession, showDialog],
+		[logFrontendEvent, getSession, showDialog, setFromResponseHeaders],
 	);
 
 	return { callBackend };

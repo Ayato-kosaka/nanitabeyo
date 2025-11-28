@@ -1,8 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { View, StyleSheet, ActivityIndicator, Pressable, Text } from "react-native";
-import { VideoView, useVideoPlayer, VideoContentFit } from "expo-video";
+import { VideoView, useVideoPlayer, VideoContentFit, VideoSource } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
-import { setAudioModeAsync } from "expo-audio"; // Threshold for detecting video loop (when currentTime returns to near start)
+import { setAudioModeAsync } from "expo-audio";
+import { useCdnCookieStore, selectCookieHeader } from "@/stores/useCdnCookieStore";
+
+// Threshold for detecting video loop (when currentTime returns to near start)
 export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
 // Progress tracking interval in milliseconds
 const PROGRESS_CHECK_INTERVAL_MS = 250;
@@ -21,10 +24,10 @@ export interface VideoPlayerProps {
  * VideoPlayer component for HLS video playback
  *
  * Supports:
- * - iOS/Android: Uses expo-video VideoView component with automatic cookie handling
+ * - iOS/Android: Uses expo-video VideoView component with CDN Cookie header injection
  *
- * The CDN signed cookies are automatically sent by the platform:
- * - iOS/Android: expo-video automatically includes cookies in HLS requests
+ * #501 【設計】ネイティブ（Android / iOS）では expo-video の headers オプションを使用し、
+ * CDN サインド Cookie を明示的に付与する。
  */
 function VideoPlayer({
 	uri,
@@ -41,7 +44,25 @@ function VideoPlayer({
 	const lastLoopTime = useRef(0);
 	const { logFrontendEvent } = useLogger();
 
-	const player = useVideoPlayer(uri, (player) => {
+	// #501 【設計】CDN Cookie を取得し、動画リクエストの Cookie ヘッダに設定する
+	// cookies の変更を監視して再レンダリングをトリガーするため、selectCookieHeader を使用
+	const cdnCookieHeader = useCdnCookieStore(selectCookieHeader);
+
+	// #501 【設計】VideoSource を構築（Cookie ヘッダを含む）
+	const videoSource: VideoSource = useMemo(() => {
+		if (!cdnCookieHeader) {
+			// Cookie がない場合は URI のみ指定
+			return uri;
+		}
+		return {
+			uri,
+			headers: {
+				Cookie: cdnCookieHeader,
+			},
+		};
+	}, [uri, cdnCookieHeader]);
+
+	const player = useVideoPlayer(videoSource, (player) => {
 		player.loop = isLooping;
 		player.muted = false;
 		player.volume = 1.0;
