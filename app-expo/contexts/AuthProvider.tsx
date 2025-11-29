@@ -23,7 +23,7 @@ type AuthContextType = {
 	signInWithOAuth: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
-	linkIdentity: (provider: Provider) => Promise<void>;
+	linkIdentity: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
 	handleOAuthResultUrl: (url?: string | null) => Promise<User | null | undefined>;
 };
 
@@ -139,9 +139,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				sessionRef.current = session;
 				// router.replace('/');
 			} else if (event === "SIGNED_OUT") {
-				setUser(null);
 				sessionRef.current = null;
-				router.replace("/");
+				setUser(null);
+
+				try {
+					const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+					if (!anonError && anonData?.session) {
+						sessionRef.current = anonData.session;
+						setUser(anonData.session.user);
+					}
+				} finally {
+					router.replace("/");
+				}
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
 			} else if (event === "TOKEN_REFRESHED") {
@@ -183,14 +192,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
 	const signInWithOAuth = async (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => {
-		const { queryParams } = options || {};
+		const { queryParams = {} } = options || {};
+
+		// Google のときはデフォルトで毎回アカウント選択を出す
+		const defaultQueryParamsForProvider: Record<Provider, { [k: string]: string }> = {
+			google: { prompt: "select_account" },
+			// 他のプロバイダ用に何かあればここに書く
+		} as any;
+
+		const mergedQueryParams = {
+			...(defaultQueryParamsForProvider[provider] ?? {}),
+			...queryParams, // 呼び出し側で上書きしたければこちらが優先
+		};
+
 		const redirectTo =
 			Platform.OS === "web"
 				? `${window.location.origin}/${locale}/auth/callback?intent=signin`
 				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback?intent=signin` });
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
-			options: { redirectTo, queryParams, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
+			options: {
+				redirectTo,
+				queryParams: mergedQueryParams,
+				...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }),
+			},
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
@@ -237,7 +262,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * ただし、既に他のユーザーにリンク済みの OAuth であれば失敗する。
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
-	const linkIdentity = async (provider: Provider): Promise<void> => {
+	const linkIdentity = async (
+		provider: Provider,
+		options?: { queryParams?: { [key: string]: string } },
+	): Promise<void> => {
+		const { queryParams = {} } = options || {};
+
+		// Google のときはデフォルトで毎回アカウント選択を出す
+		const defaultQueryParamsForProvider: Record<Provider, { [k: string]: string }> = {
+			google: { prompt: "select_account" },
+			// 他のプロバイダ用に何かあればここに書く
+		} as any;
+
+		const mergedQueryParams = {
+			...(defaultQueryParamsForProvider[provider] ?? {}),
+			...queryParams, // 呼び出し側で上書きしたければこちらが優先
+		};
+
 		const redirectTo =
 			Platform.OS === "web"
 				? // linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
@@ -248,7 +289,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					});
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
-			options: { redirectTo, ...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }) },
+			options: {
+				redirectTo,
+				queryParams: mergedQueryParams,
+				...(Platform.OS === "web" ? {} : { skipBrowserRedirect: true }),
+			},
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
