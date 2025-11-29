@@ -41,7 +41,10 @@ export function PushTokenRegistration() {
 			try {
 				// #通知機能 【設計】物理デバイスのみ Push 通知を有効化
 				// web は、 expo-server-sdk で対応していないため除外
-				if (Platform.OS === "web" || !Device.isDevice) {
+				// エミュレータでスキップしないと致命的に困ることはあまりないが、
+				// DB が肥大化するのを防ぐため、開発環境以外ではスキップする
+				const isDevBuild = Env.NODE_ENV === "development";
+				if (Platform.OS === "web" || (!Device.isDevice && !isDevBuild)) {
 					logFrontendEvent({
 						event_name: "push_registration_skipped_not_physical_device",
 						error_level: "log",

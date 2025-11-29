@@ -45,6 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},
+		googleServicesFile: "./google-services.json",
 		intentFilters: [
 			{
 				action: "VIEW",
