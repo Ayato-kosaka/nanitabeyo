@@ -90,7 +90,7 @@ export default function SettingsScreen() {
 		});
 
 		try {
-			await logout();
+			await logout({ scope: "local" });
 			logFrontendEvent({
 				event_name: "logout_success",
 				error_level: "log",

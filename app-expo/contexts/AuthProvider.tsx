@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { Session, User, Provider } from "@supabase/supabase-js";
+import { Session, User, Provider, SignOut } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
@@ -18,7 +18,7 @@ type AuthContextType = {
 	getSession: () => Session | null;
 	loading: boolean;
 	loginWithEmail: (email: string, password: string) => Promise<void>;
-	logout: () => Promise<void>;
+	logout: (options?: SignOut) => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
 	signInWithOAuth: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
 	signInWithOtp: (phone: string) => Promise<void>;
@@ -363,8 +363,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	/**
 	 * 現在のセッションをログアウトする。
 	 */
-	const logout = async () => {
-		const { error } = await supabase.auth.signOut();
+	const logout = async (options?: SignOut) => {
+		const { error } = await supabase.auth.signOut(options);
 		if (error) throw error;
 	};
 
