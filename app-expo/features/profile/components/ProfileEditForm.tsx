@@ -83,12 +83,19 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		setDisplayNameError("");
 		setBioError("");
 
-		// 空文字は null に正規化
-		const normalizedDisplayName = display_name === "" ? null : (display_name ?? null);
+		// 表示名は trim して空白のみも空文字として扱う
+		const trimmedDisplayName = (display_name ?? "").trim();
 		const normalizedBio = bio === "" ? null : (bio ?? null);
 
+		// #issue 【設計】表示名の必須チェック（1文字以上）- 空文字/空白のみは NG
+		if (trimmedDisplayName.length === 0) {
+			setDisplayNameError(i18n.t("Profile.errors.displayNameRequired"));
+			setIsLoading(false);
+			return;
+		}
+
 		// #481 【設計】文字数バリデーション（API 呼び出し前にフロントで検証）
-		if (normalizedDisplayName !== null && normalizedDisplayName.length > DISPLAY_NAME_MAX_LENGTH) {
+		if (trimmedDisplayName.length > DISPLAY_NAME_MAX_LENGTH) {
 			setDisplayNameError(i18n.t("Profile.errors.displayNameLength"));
 			setIsLoading(false);
 			return;
@@ -128,7 +135,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 				method: "POST",
 				requestPayload: {
 					avatar_path: uploadedAvatarPath,
-					display_name: normalizedDisplayName,
+					display_name: trimmedDisplayName,
 					bio: normalizedBio,
 				},
 			});
@@ -138,7 +145,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 					? {
 							...prev,
 							avatar: uploadedAvatarPath,
-							display_name: normalizedDisplayName,
+							display_name: trimmedDisplayName,
 							bio: normalizedBio,
 							avatarUrls: avatar.uri
 								? {

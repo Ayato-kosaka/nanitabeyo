@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 /**
  * POST /v1/users/me のリクエストボディ
@@ -7,6 +7,7 @@ import { IsOptional, IsString, Matches, MaxLength } from "class-validator";
 export class UpdateUserProfileDto {
 	@IsOptional()
 	@IsString()
+	@MinLength(1)
 	@MaxLength(30)
 	display_name?: string | null;
 

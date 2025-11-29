@@ -265,6 +265,7 @@
 			"permissionDenied": "Permission to access images denied",
 			"uploadFailed": "Failed to upload image",
 			"invalidImage": "Invalid image file",
+			"displayNameRequired": "Display name is required",
 			"displayNameLength": "Display name must be 30 characters or less",
 			"bioLength": "Bio must be 150 characters or less"
 		}
