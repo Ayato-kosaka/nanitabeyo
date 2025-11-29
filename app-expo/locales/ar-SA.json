@@ -265,6 +265,7 @@
 			"permissionDenied": "تم رفض الإذن للوصول إلى الصور",
 			"uploadFailed": "فشل تحميل الصورة",
 			"invalidImage": "ملف صورة غير صالح",
+			"displayNameRequired": "اسم العرض مطلوب",
 			"displayNameLength": "يجب ألا يتجاوز اسم العرض 30 حرفًا",
 			"bioLength": "يجب ألا تتجاوز النبذة 150 حرفًا"
 		}

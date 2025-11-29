@@ -265,6 +265,7 @@
 			"permissionDenied": "访问图片权限被拒绝",
 			"uploadFailed": "上传图片失败",
 			"invalidImage": "无效的图片文件",
+			"displayNameRequired": "显示名称为必填项",
 			"displayNameLength": "显示名称不能超过30个字符",
 			"bioLength": "简介不能超过150个字符"
 		}
