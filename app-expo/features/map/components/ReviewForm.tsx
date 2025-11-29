@@ -527,25 +527,24 @@ export function ReviewForm({
 	}, [onCancel]);
 
 	// Error state
-	if (mediaState.status === "error") {
-		return (
-			<View style={styles.centeredContainer}>
-				<Card style={styles.errorCard}>
-					<Text style={styles.errorTitle}>{i18n.t("Map.media.mediaSelectionFailed")}</Text>
-					<Text style={styles.errorMessage}>{mediaState.error}</Text>
-					<View style={styles.errorButtons}>
-						<PrimaryButton label={i18n.t("Common.retry")} onPress={handleRetry} style={{ flex: 1 }} borderRadius={8} />
-						<PrimaryButton
-							label={i18n.t("Common.close")}
-							onPress={handleCancel}
-							style={{ flex: 1, backgroundColor: "#6B7280" }}
-							borderRadius={8}
-						/>
-					</View>
-				</Card>
-			</View>
-		);
-	}
+        if (mediaState.status === "error") {
+                return (
+                        <View style={styles.centeredContainer}>
+                                <Card style={styles.errorCard}>
+                                        <Text style={styles.errorTitle}>{i18n.t("Map.media.mediaSelectionFailed")}</Text>
+                                        <Text style={styles.errorMessage}>{mediaState.error}</Text>
+                                        <View style={styles.errorButtons}>
+                                                <TouchableOpacity style={styles.secondaryButton} onPress={handleCancel}>
+                                                        <Text style={styles.secondaryButtonText}>{i18n.t("Common.close")}</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
+                                                        <Text style={styles.primaryButtonText}>{i18n.t("Common.retry")}</Text>
+                                                </TouchableOpacity>
+                                        </View>
+                                </Card>
+                        </View>
+                );
+        }
 
 	return (
 		<SafeAreaView edges={["top"]}>
@@ -666,13 +665,14 @@ export function ReviewForm({
 }
 
 const styles = StyleSheet.create({
-	centeredContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 16,
-		minHeight: 400,
-	},
+        centeredContainer: {
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: "#FFFFFF",
+                paddingHorizontal: 24,
+                minHeight: 400,
+        },
 	loadingContainer: {
 		flex: 1,
 		justifyContent: "center",
@@ -683,30 +683,52 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#666",
 	},
-	errorCard: {
-		padding: 24,
-		alignItems: "center",
-		gap: 16,
-		width: "100%",
-	},
-	errorTitle: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#DC2626",
-		textAlign: "center",
-	},
-	errorMessage: {
-		fontSize: 14,
-		color: "#666",
-		textAlign: "center",
-		lineHeight: 20,
-	},
-	errorButtons: {
-		flexDirection: "row",
-		gap: 12,
-		width: "100%",
-		marginTop: 8,
-	},
+        errorCard: {
+                padding: 24,
+                width: "100%",
+        },
+        errorTitle: {
+                fontSize: 20,
+                fontWeight: "700",
+                color: "#1A1A1A",
+                marginBottom: 12,
+                textAlign: "center",
+        },
+        errorMessage: {
+                fontSize: 16,
+                color: "#6B7280",
+                lineHeight: 24,
+                marginBottom: 24,
+                textAlign: "center",
+        },
+        errorButtons: {
+                flexDirection: "row",
+                gap: 12,
+        },
+        primaryButton: {
+                flex: 1,
+                backgroundColor: "#5EA2FF",
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: "center",
+        },
+        primaryButtonText: {
+                fontSize: 16,
+                fontWeight: "600",
+                color: "#FFFFFF",
+        },
+        secondaryButton: {
+                flex: 1,
+                backgroundColor: "#F3F4F6",
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: "center",
+        },
+        secondaryButtonText: {
+                fontSize: 16,
+                fontWeight: "600",
+                color: "#6B7280",
+        },
 	inputLabel: {
 		fontSize: 16,
 		fontWeight: "600",
