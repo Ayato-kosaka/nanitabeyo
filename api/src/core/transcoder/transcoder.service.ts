@@ -19,6 +19,10 @@ export interface CreateTranscodeJobParams {
   outputUri: string;
   /** レコードID（dish_media.id） */
   recordId: string;
+  /** リトライ回数（0: 初回、1: video-only リトライ） */
+  retry?: number;
+  /** video-only モード（音声トラックなしで再実行） */
+  videoOnly?: boolean;
 }
 
 @Injectable()
@@ -37,12 +41,20 @@ export class TranscoderService {
    * - master.m3u8 プレイリスト
    */
   async createTranscodeJob(params: CreateTranscodeJobParams): Promise<string> {
-    const { inputUri, outputUri, recordId } = params;
+    const {
+      inputUri,
+      outputUri,
+      recordId,
+      retry = 0,
+      videoOnly = false,
+    } = params;
 
     this.logger.log('CreateTranscodeJobStarted', 'createTranscodeJob', {
       inputUri,
       outputUri,
       recordId,
+      retry,
+      videoOnly,
     });
 
     const parent = this.client.locationPath(
@@ -51,85 +63,9 @@ export class TranscoderService {
     );
 
     // HLS 形式での出力設定
-    const job: protos.google.cloud.video.transcoder.v1.IJob = {
-      inputUri,
-      outputUri,
-      config: {
-        // 複数のビットレートでエンコード（ABR: Adaptive Bitrate Streaming）
-        elementaryStreams: [
-          // 1080p video stream
-          {
-            key: 'video-1080p',
-            videoStream: {
-              h264: {
-                // heightPixels だけ指定 → 入力比率を保って widthPixels を自動算出
-                heightPixels: 1080,
-                bitrateBps: 8000000,
-                frameRate: 30,
-              },
-            },
-          },
-          // 720p video stream
-          {
-            key: 'video-720p',
-            videoStream: {
-              h264: {
-                heightPixels: 720,
-                bitrateBps: 5000000,
-                frameRate: 30,
-              },
-            },
-          },
-          // 480p video stream
-          {
-            key: 'video-480p',
-            videoStream: {
-              h264: {
-                heightPixels: 480,
-                bitrateBps: 2500000,
-                frameRate: 30,
-              },
-            },
-          },
-          // Audio stream
-          {
-            key: 'audio',
-            audioStream: {
-              codec: 'aac',
-              bitrateBps: 128000,
-              channelCount: 2,
-              sampleRateHertz: 48000,
-            },
-          },
-        ],
-        // HLS マルチビットレート設定
-        muxStreams: [
-          {
-            key: 'hls-1080p',
-            container: 'ts',
-            elementaryStreams: ['video-1080p', 'audio'],
-          },
-          {
-            key: 'hls-720p',
-            container: 'ts',
-            elementaryStreams: ['video-720p', 'audio'],
-          },
-          {
-            key: 'hls-480p',
-            container: 'ts',
-            elementaryStreams: ['video-480p', 'audio'],
-          },
-        ],
-        // HLS マニフェスト設定
-        manifests: [
-          {
-            fileName: 'master.m3u8',
-            type: 'HLS' as const,
-            muxStreams: ['hls-1080p', 'hls-720p', 'hls-480p'],
-          },
-        ],
-      },
-    };
+    const job: protos.google.cloud.video.transcoder.v1.IJob = videoOnly
+      ? this.buildVideoOnlyJobConfig(inputUri, outputUri, recordId, retry)
+      : this.buildDefaultJobConfig(inputUri, outputUri, recordId, retry);
 
     try {
       const [response] = await this.client.createJob({
@@ -170,5 +106,176 @@ export class TranscoderService {
       });
       throw error;
     }
+  }
+
+  /**
+   * デフォルト（音声あり）の Job 設定を構築
+   */
+  private buildDefaultJobConfig(
+    inputUri: string,
+    outputUri: string,
+    recordId: string,
+    retry: number,
+  ): protos.google.cloud.video.transcoder.v1.IJob {
+    return {
+      inputUri,
+      outputUri,
+      labels: {
+        dish_media_id: recordId,
+        retry: String(retry),
+      },
+      config: {
+        pubsubDestination: env.TRANSCODER_PUBSUB_TOPIC
+          ? { topic: env.TRANSCODER_PUBSUB_TOPIC }
+          : undefined,
+        elementaryStreams: [
+          {
+            key: 'video-1080p',
+            videoStream: {
+              h264: {
+                heightPixels: 1080,
+                bitrateBps: 8000000,
+                frameRate: 30,
+              },
+            },
+          },
+          {
+            key: 'video-720p',
+            videoStream: {
+              h264: {
+                heightPixels: 720,
+                bitrateBps: 5000000,
+                frameRate: 30,
+              },
+            },
+          },
+          {
+            key: 'video-480p',
+            videoStream: {
+              h264: {
+                heightPixels: 480,
+                bitrateBps: 2500000,
+                frameRate: 30,
+              },
+            },
+          },
+          {
+            key: 'audio',
+            audioStream: {
+              codec: 'aac',
+              bitrateBps: 128000,
+              channelCount: 2,
+              sampleRateHertz: 48000,
+            },
+          },
+        ],
+        muxStreams: [
+          {
+            key: 'hls-1080p',
+            container: 'ts',
+            elementaryStreams: ['video-1080p', 'audio'],
+          },
+          {
+            key: 'hls-720p',
+            container: 'ts',
+            elementaryStreams: ['video-720p', 'audio'],
+          },
+          {
+            key: 'hls-480p',
+            container: 'ts',
+            elementaryStreams: ['video-480p', 'audio'],
+          },
+        ],
+        manifests: [
+          {
+            fileName: 'master.m3u8',
+            type: 'HLS' as const,
+            muxStreams: ['hls-1080p', 'hls-720p', 'hls-480p'],
+          },
+        ],
+      },
+    };
+  }
+
+  /**
+   * video-only（音声なし）の Job 設定を構築
+   * AudioMissing エラー時のリトライ用
+   */
+  private buildVideoOnlyJobConfig(
+    inputUri: string,
+    outputUri: string,
+    recordId: string,
+    retry: number,
+  ): protos.google.cloud.video.transcoder.v1.IJob {
+    return {
+      inputUri,
+      outputUri,
+      labels: {
+        dish_media_id: recordId,
+        retry: String(retry),
+        video_only: 'true',
+      },
+      config: {
+        pubsubDestination: env.TRANSCODER_PUBSUB_TOPIC
+          ? { topic: env.TRANSCODER_PUBSUB_TOPIC }
+          : undefined,
+        elementaryStreams: [
+          {
+            key: 'video-1080p',
+            videoStream: {
+              h264: {
+                heightPixels: 1080,
+                bitrateBps: 8000000,
+                frameRate: 30,
+              },
+            },
+          },
+          {
+            key: 'video-720p',
+            videoStream: {
+              h264: {
+                heightPixels: 720,
+                bitrateBps: 5000000,
+                frameRate: 30,
+              },
+            },
+          },
+          {
+            key: 'video-480p',
+            videoStream: {
+              h264: {
+                heightPixels: 480,
+                bitrateBps: 2500000,
+                frameRate: 30,
+              },
+            },
+          },
+        ],
+        muxStreams: [
+          {
+            key: 'hls-1080p',
+            container: 'ts',
+            elementaryStreams: ['video-1080p'],
+          },
+          {
+            key: 'hls-720p',
+            container: 'ts',
+            elementaryStreams: ['video-720p'],
+          },
+          {
+            key: 'hls-480p',
+            container: 'ts',
+            elementaryStreams: ['video-480p'],
+          },
+        ],
+        manifests: [
+          {
+            fileName: 'master.m3u8',
+            type: 'HLS' as const,
+            muxStreams: ['hls-1080p', 'hls-720p', 'hls-480p'],
+          },
+        ],
+      },
+    };
   }
 }

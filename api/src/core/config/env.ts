@@ -25,6 +25,7 @@ const envSchema = z.object({
   GCP_PROJECT: z.string(),
   TASKS_LOCATION: z.string(),
   TRANSCODER_LOCATION: z.string(),
+  TRANSCODER_PUBSUB_TOPIC: z.string().optional(),
   CLOUD_RUN_URL: z.string(),
   TASKS_INVOKER_SA: z.string(),
   GCS_DEV_SERVICE_ACCOUNT_BASE64: z.string().optional(),

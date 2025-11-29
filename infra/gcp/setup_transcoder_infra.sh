@@ -101,25 +101,30 @@ gcloud storage buckets add-iam-policy-binding "gs://${OUTPUT_BUCKET}" \
   --quiet || true
 
 # --- 6) Pub/Sub 通知（任意） -------------------------------------------------
-# if [[ -n "${PUBSUB_TOPIC}" ]]; then
-#   echo "🔔 Ensuring Pub/Sub topic & publisher binding…"
+if [[ -n "${PUBSUB_TOPIC}" ]]; then
+  echo "🔔 Ensuring Pub/Sub topic & publisher binding…"
 
-#   # トピック存在チェック（存在しなければ作成）
-#   if ! gcloud pubsub topics describe "${PUBSUB_TOPIC}" --quiet >/dev/null 2>&1; then
-#     echo "📌 Creating topic: ${PUBSUB_TOPIC}"
-#     gcloud pubsub topics create "${PUBSUB_TOPIC}" --quiet
-#   else
-#     echo "ℹ️  Topic exists. Skipping creation."
-#   fi
+  # トピック名を抽出（projects/xxx/topics/yyy → yyy）
+  TOPIC_SHORT_NAME="${PUBSUB_TOPIC##*/}"
 
-#   # Transcoder Service Agent に Publisher 付与
-#   gcloud pubsub topics add-iam-policy-binding "${PUBSUB_TOPIC}" \
-#     --member="serviceAccount:${TRANSCODER_SA}" \
-#     --role="roles/pubsub.publisher" \
-#     --quiet
-# else
-#   echo "ℹ️  Pub/Sub topic is not specified. Skipping Pub/Sub bindings."
-# fi
+  # トピック存在チェック（存在しなければ作成）
+  if ! gcloud pubsub topics describe "${TOPIC_SHORT_NAME}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    echo "📌 Creating topic: ${TOPIC_SHORT_NAME}"
+    gcloud pubsub topics create "${TOPIC_SHORT_NAME}" --project="${PROJECT_ID}" --quiet
+  else
+    echo "ℹ️  Topic exists. Skipping creation."
+  fi
+
+  # Transcoder Service Agent に Publisher 付与
+  gcloud pubsub topics add-iam-policy-binding "${TOPIC_SHORT_NAME}" \
+    --project="${PROJECT_ID}" \
+    --member="serviceAccount:${TRANSCODER_SA}" \
+    --role="roles/pubsub.publisher" \
+    --quiet
+  echo "✅ Pub/Sub publisher role granted."
+else
+  echo "ℹ️  Pub/Sub topic is not specified. Skipping Pub/Sub bindings."
+fi
 
 # --- 7) 動作チェックのための軽い出力 -----------------------------------------
 echo "✅ Setup completed."
