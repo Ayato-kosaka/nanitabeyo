@@ -173,9 +173,23 @@ export class TranscoderWebhookService {
         error: job.error as TranscoderJobFailureDetail | null | undefined,
       };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const isNotFound =
+        errorMessage.includes('NOT_FOUND') ||
+        errorMessage.includes('not found');
+      const isPermissionDenied =
+        errorMessage.includes('PERMISSION_DENIED') ||
+        errorMessage.includes('permission');
+
       this.logger.error('GetJobDetailsError', 'getJobDetails', {
         jobId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
+        errorType: isNotFound
+          ? 'NOT_FOUND'
+          : isPermissionDenied
+            ? 'PERMISSION_DENIED'
+            : 'UNKNOWN',
       });
       throw error;
     }

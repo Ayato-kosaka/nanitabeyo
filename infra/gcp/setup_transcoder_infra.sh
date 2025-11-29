@@ -104,8 +104,13 @@ gcloud storage buckets add-iam-policy-binding "gs://${OUTPUT_BUCKET}" \
 if [[ -n "${PUBSUB_TOPIC}" ]]; then
   echo "🔔 Ensuring Pub/Sub topic & publisher binding…"
 
-  # トピック名を抽出（projects/xxx/topics/yyy → yyy）
-  TOPIC_SHORT_NAME="${PUBSUB_TOPIC##*/}"
+  # トピック名を抽出（projects/xxx/topics/yyy → yyy、または単純名をそのまま使用）
+  if [[ "${PUBSUB_TOPIC}" == projects/*/topics/* ]]; then
+    TOPIC_SHORT_NAME="${PUBSUB_TOPIC##*/}"
+  else
+    TOPIC_SHORT_NAME="${PUBSUB_TOPIC}"
+  fi
+  echo "ℹ️  Topic short name: ${TOPIC_SHORT_NAME}"
 
   # トピック存在チェック（存在しなければ作成）
   if ! gcloud pubsub topics describe "${TOPIC_SHORT_NAME}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
