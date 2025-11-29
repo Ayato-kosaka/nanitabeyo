@@ -619,7 +619,7 @@ function buildDishMediaPatches(
 		const { dish_reviews = [], ...rest } = item;
 		const mediaId = String(item.dish_media.id);
 
-		// #509 【設計】新しい reviewId を末尾に追加し、既存 ID は重複排除して末尾に移動
+		// #509 【設計】API から受け取った reviewIds を末尾に追加し、重複する既存 ID は除外
 		// API から [古い → 新しい] 順で受け取った reviewIds を順に処理
 		const newReviewIds = dish_reviews.map((review) => String(review.id));
 
