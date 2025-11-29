@@ -47,6 +47,7 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { mapReviewsKey } from "./tabs/RestaurantReviewsTab";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -454,7 +455,7 @@ export function ReviewForm({
 			});
 
 			// #460 【設計】レビュー投稿後の即時反映：API から返却された DishReview をストアに反映
-			const { upsertDishMediaEntries, updateReviewIdsByKey } = useDishMediaEntriesStore.getState();
+			const { upsertDishMediaEntries, updateReviewIdsByKey, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
 			upsertDishMediaEntries([
 				{
 					restaurant,
@@ -472,6 +473,8 @@ export function ReviewForm({
 				},
 			]);
 			updateReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
+			if (!prefilledMedia)
+				updateMediaIdsByKey(mapReviewsKey(restaurant.id), (prev) => [String(dish_media.id), ...prev]);
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",

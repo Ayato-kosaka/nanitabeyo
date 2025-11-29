@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
@@ -18,6 +18,8 @@ interface RestaurantReviewsTabProps {
 	restaurantId: string;
 }
 
+export const mapReviewsKey = (id: string) => `mapReviews-${id}`;
+
 /**
  * レストランのレビュー（料理メディア）タブコンポーネント
  *
@@ -31,7 +33,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 	const [selectedDishMediaIndex, setSelectedDishMediaIndex] = useState<number>(0);
 
 	// #454 【設計】画面用途キー "mapReviews" でストアからデータ取得
-	const entriesKey = `mapReviews-${restaurantId}`;
+	const entriesKey = useMemo(() => mapReviewsKey(restaurantId), [restaurantId]);
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
 	const { ids, isLoading, hasFetchedInitial } = useDishMediaEntriesStore(
