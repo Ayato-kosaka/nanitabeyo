@@ -263,6 +263,7 @@
 			"permissionDenied": "画像へのアクセスが許可されていません",
 			"uploadFailed": "画像のアップロードに失敗しました",
 			"invalidImage": "無効な画像ファイルです",
+			"displayNameRequired": "表示名は1文字以上で入力してください",
 			"displayNameLength": "表示名は30文字以内で入力してください",
 			"bioLength": "自己紹介は150文字以内で入力してください"
 		},
