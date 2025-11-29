@@ -618,24 +618,25 @@ function buildDishMediaPatches(
 	for (const item of items) {
 		const { dish_reviews = [], ...rest } = item;
 		const mediaId = String(item.dish_media.id);
-		const dishReviewIds: string[] = [];
+
+		// #509 【設計】API から受け取った reviewIds を末尾に追加し、重複する既存 ID は除外
+		// API から [古い → 新しい] 順で受け取った reviewIds を順に処理
+		const newReviewIds = dish_reviews.map((review) => String(review.id));
 
 		// reviews をパッチに積む
 		for (const review of dish_reviews) {
-			const reviewId = String(review.id);
-			reviewsPatch[reviewId] = review;
-			dishReviewIds.push(reviewId);
+			reviewsPatch[String(review.id)] = review;
 		}
 
-		// 既存 entry から dishReviewIds をマージ（重複排除）
+		// 既存 entry から dishReviewIds を取得（重複排除して末尾に移動）
 		const existingEntry = entriesPatch[mediaId] ?? state.entriesByMediaId[mediaId];
-		if (existingEntry) {
-			for (const id of existingEntry.dishReviewIds) {
-				if (!dishReviewIds.includes(id)) {
-					dishReviewIds.push(id);
-				}
-			}
-		}
+		const existingReviewIds = existingEntry?.dishReviewIds ?? [];
+
+		// 既存の reviewIds から新しい reviewIds を除外（後で末尾に追加するため）
+		const filteredExistingIds = existingReviewIds.filter((id) => !newReviewIds.includes(id));
+
+		// 既存の reviewIds + 新しい reviewIds で [古い → 新しい] の順序を維持
+		const dishReviewIds = [...filteredExistingIds, ...newReviewIds];
 
 		entriesPatch[mediaId] = { ...rest, dishReviewIds };
 	}
