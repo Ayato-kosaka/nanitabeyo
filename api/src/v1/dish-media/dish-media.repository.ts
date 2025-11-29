@@ -736,7 +736,7 @@ export class DishMediaRepository {
           include: {
             restaurants: true,
             dish_reviews: {
-              orderBy: { created_at: 'desc' },
+              orderBy: { created_at: 'asc' }, // #509 【設計】dish_reviews の並び順を古い→新しいに統一
               take: reviewLimit,
               include: { users: true },
             },
