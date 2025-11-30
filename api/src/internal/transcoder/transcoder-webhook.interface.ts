@@ -3,12 +3,14 @@
 // Pub/Sub メッセージおよび Transcoder Job 通知のインターフェース
 //
 
+import { protos } from "@google-cloud/video-transcoder";
+
 /**
  * Pub/Sub Push メッセージの形式
  */
 export interface PubSubPushMessage {
   message: {
-    data: string; // Base64 encoded
+    data: string; // Base64 encoded JSON
     messageId: string;
     publishTime: string;
     attributes?: Record<string, string>;
@@ -17,11 +19,17 @@ export interface PubSubPushMessage {
 }
 
 /**
- * Transcoder Job 完了通知の attributes（Pub/Sub message attributes）
+ * PubSubPushMessage の message.data 部分のデコード後ペイロード
  */
-export interface TranscoderJobNotificationAttributes {
-  jobId: string;
-  state: string;
+export interface TranscoderJobPayload {
+  job: {
+    name: string;
+    state: string;
+    error?: protos.google.rpc.IStatus | null;
+    labels?: TranscoderJobLabels | null;
+    inputUri?: string | null;
+    outputUri?: string | null;
+  };
 }
 
 /**
@@ -34,3 +42,4 @@ export type TranscoderJobLabels = Record<string, string> & {
   retry?: string;
   video_only?: 'true' | 'false';
 };
+

@@ -18,6 +18,7 @@ import { TranscoderWebhookDto } from './transcoder-webhook.dto';
 import { TranscoderWebhookService } from './transcoder-webhook.service';
 import { OIDCGuard } from '../oidc.guard';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { TranscoderJobPayload } from './transcoder-webhook.interface';
 
 /**
  * 内部処理専用コントローラー
@@ -35,14 +36,13 @@ export class TranscoderWebhookController {
    * POST /internal/transcoder/webhook
    *
    * Pub/Sub Push から呼び出される Transcoder Job 完了通知エンドポイント
-   * - message.attributes から Job ID とステータスを取得
-   * - Job ステータスに応じた処理（成功/失敗/AudioMissing リトライ）
+   * - Job の状態を確認し、AudioMissing エラー時のリトライを実行
    */
   @Post('webhook')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async handleTranscoderWebhook(
-    @Body() dto: TranscoderWebhookDto,
+    @Body() dto: TranscoderWebhookDto, // 中身は PubSubPushMessage 相当
   ): Promise<void> {
     const { message, subscription } = dto;
 
@@ -55,18 +55,46 @@ export class TranscoderWebhookController {
       },
     );
 
-    // attributes から jobId と state を取得
-    const attributes = message.attributes || {};
-    const jobId = attributes['jobId'];
-    const state = attributes['state'];
-
-    if (!jobId || !state) {
+    if (!message.data) {
       this.logger.warn(
-        'TranscoderWebhookMissingAttributes',
+        'TranscoderWebhookMissingData',
         'handleTranscoderWebhook',
         {
           messageId: message.messageId,
-          attributes,
+        },
+      );
+      return;
+    }
+
+    // --- ここから data を decode & parse ---
+    let payload: TranscoderJobPayload | any;
+    try {
+      const json = Buffer.from(message.data, 'base64').toString('utf8');
+      payload = JSON.parse(json);
+    } catch (error) {
+      this.logger.error(
+        'TranscoderWebhookInvalidPayload',
+        'handleTranscoderWebhook',
+        {
+          messageId: message.messageId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
+      return;
+    }
+
+    const job = payload.job ?? payload; // 念のため fallback
+
+    const jobId: string | undefined = job?.name;
+    const state: string | undefined = job?.state;
+
+    if (!jobId || !state) {
+      this.logger.warn(
+        'TranscoderWebhookMissingJobFields',
+        'handleTranscoderWebhook',
+        {
+          messageId: message.messageId,
+          payload,
         },
       );
       return;
