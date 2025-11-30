@@ -73,7 +73,10 @@ export class OIDCGuard implements CanActivate {
    */
   private async verifyOIDCToken(token: string): Promise<void> {
     const audience = env.CLOUD_RUN_URL;
-    const allowedSa = env.TASKS_INVOKER_SA.toLowerCase();
+    const allowedSaList = [
+      env.TASKS_INVOKER_SA.toLowerCase(),
+      env.PUBSUB_PUSH_SA.toLowerCase(),
+    ];
 
     // 1) IDトークン検証（署名/exp/aud/iss）
     const ticket = await this.client.verifyIdToken({
@@ -87,7 +90,7 @@ export class OIDCGuard implements CanActivate {
       throw new UnauthorizedException('Invalid issuer');
     }
     const email = (payload.email || '').toLowerCase();
-    if (email !== allowedSa) {
+    if (!allowedSaList.includes(email)) {
       throw new ForbiddenException('Service account not allowed');
     }
 

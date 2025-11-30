@@ -72,9 +72,6 @@ TRANSCODER_SA="service-${PROJECT_NUMBER}@gcp-sa-transcoder.iam.gserviceaccount.c
 echo "ℹ️  Transcoder Service SA : ${TRANSCODER_SA}"
 
 # --- 3) プロジェクト番号 & Transcoder Service Agent -------------------------
-PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
-TRANSCODER_SA="service-${PROJECT_NUMBER}@gcp-sa-transcoder.iam.gserviceaccount.com"
-
 echo "ℹ️  Project Number        : ${PROJECT_NUMBER}"
 echo "ℹ️  Transcoder Service SA : ${TRANSCODER_SA}"
 
@@ -160,5 +157,5 @@ TASKS_LOCATION=${LOCATION}
 TRANSCODER_LOCATION=${LOCATION}   # createJob parent: projects/${PROJECT_ID}/locations/${LOCATION}
 INPUT_BUCKET=gs://${INPUT_BUCKET}
 OUTPUT_BUCKET=gs://${OUTPUT_BUCKET}
-PUBSUB_TOPIC=${PUBSUB_TOPIC:-'(optional)'}
+TRANSCODER_PUBSUB_TOPIC=${PUBSUB_TOPIC:-'(optional)'}
 ENV
