@@ -11,18 +11,15 @@ import {
 } from '@google-cloud/video-transcoder';
 import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
+import { TranscoderJobLabels } from 'src/internal/transcoder/transcoder-webhook.interface';
 
 export interface CreateTranscodeJobParams {
   /** 入力動画の GCS URI (例: gs://bucket/uploads/video.mp4) */
   inputUri: string;
   /** 出力先の GCS URI prefix (例: gs://bucket/transcoded/dish_media/media_path/recordId/) */
   outputUri: string;
-  /** レコードID（dish_media.id） */
-  recordId: string;
-  /** リトライ回数（0: 初回、1: video-only リトライ） */
-  retry?: number;
-  /** video-only モード（音声トラックなしで再実行） */
-  videoOnly?: boolean;
+  /** Transcoder Job の labels（tableName, columnName, recordId など） */
+  labels: TranscoderJobLabels;
 }
 
 @Injectable()
@@ -44,17 +41,12 @@ export class TranscoderService {
     const {
       inputUri,
       outputUri,
-      recordId,
-      retry = 0,
-      videoOnly = false,
+      labels,
     } = params;
-
     this.logger.log('CreateTranscodeJobStarted', 'createTranscodeJob', {
       inputUri,
       outputUri,
-      recordId,
-      retry,
-      videoOnly,
+      labels
     });
 
     const parent = this.client.locationPath(
@@ -63,9 +55,11 @@ export class TranscoderService {
     );
 
     // HLS 形式での出力設定
-    const job: protos.google.cloud.video.transcoder.v1.IJob = videoOnly
-      ? this.buildVideoOnlyJobConfig(inputUri, outputUri, recordId, retry)
-      : this.buildDefaultJobConfig(inputUri, outputUri, recordId, retry);
+    const job = this.buildJobConfig(
+      inputUri,
+      outputUri,
+      labels,
+    );
 
     try {
       const [response] = await this.client.createJob({
@@ -77,7 +71,7 @@ export class TranscoderService {
 
       this.logger.log('CreateTranscodeJobSuccess', 'createTranscodeJob', {
         jobName,
-        recordId,
+        labels,
       });
 
       return jobName;
@@ -85,7 +79,7 @@ export class TranscoderService {
       this.logger.error('CreateTranscodeJobError', 'createTranscodeJob', {
         inputUri,
         outputUri,
-        recordId,
+        labels,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
@@ -108,173 +102,73 @@ export class TranscoderService {
     }
   }
 
-  /**
-   * デフォルト（音声あり）の Job 設定を構築
-   */
-  private buildDefaultJobConfig(
-    inputUri: string,
-    outputUri: string,
-    recordId: string,
-    retry: number,
-  ): protos.google.cloud.video.transcoder.v1.IJob {
-    return {
-      inputUri,
-      outputUri,
-      labels: {
-        dish_media_id: recordId,
-        retry: String(retry),
-      },
-      config: {
-        pubsubDestination: env.TRANSCODER_PUBSUB_TOPIC
-          ? { topic: env.TRANSCODER_PUBSUB_TOPIC }
-          : undefined,
-        elementaryStreams: [
-          {
-            key: 'video-1080p',
-            videoStream: {
-              h264: {
-                heightPixels: 1080,
-                bitrateBps: 8000000,
-                frameRate: 30,
-              },
-            },
-          },
-          {
-            key: 'video-720p',
-            videoStream: {
-              h264: {
-                heightPixels: 720,
-                bitrateBps: 5000000,
-                frameRate: 30,
-              },
-            },
-          },
-          {
-            key: 'video-480p',
-            videoStream: {
-              h264: {
-                heightPixels: 480,
-                bitrateBps: 2500000,
-                frameRate: 30,
-              },
-            },
-          },
-          {
-            key: 'audio',
-            audioStream: {
-              codec: 'aac',
-              bitrateBps: 128000,
-              channelCount: 2,
-              sampleRateHertz: 48000,
-            },
-          },
-        ],
-        muxStreams: [
-          {
-            key: 'hls-1080p',
-            container: 'ts',
-            elementaryStreams: ['video-1080p', 'audio'],
-          },
-          {
-            key: 'hls-720p',
-            container: 'ts',
-            elementaryStreams: ['video-720p', 'audio'],
-          },
-          {
-            key: 'hls-480p',
-            container: 'ts',
-            elementaryStreams: ['video-480p', 'audio'],
-          },
-        ],
-        manifests: [
-          {
-            fileName: 'master.m3u8',
-            type: 'HLS' as const,
-            muxStreams: ['hls-1080p', 'hls-720p', 'hls-480p'],
-          },
-        ],
-      },
-    };
-  }
 
   /**
-   * video-only（音声なし）の Job 設定を構築
-   * AudioMissing エラー時のリトライ用
+   * トランスコードジョブの設定を構築
    */
-  private buildVideoOnlyJobConfig(
+  private buildJobConfig(
     inputUri: string,
     outputUri: string,
-    recordId: string,
-    retry: number,
+    labels: TranscoderJobLabels,
   ): protos.google.cloud.video.transcoder.v1.IJob {
+    const isAudioInclude = labels.videoOnly !== 'true';
+
+    const resolutions = [
+      { key: 'video-1080p', hlsKey: 'hls-1080p', height: 1080, bitrate: 8_000_000 },
+      { key: 'video-720p', hlsKey: 'hls-720p', height: 720, bitrate: 5_000_000 },
+      { key: 'video-480p', hlsKey: 'hls-480p', height: 480, bitrate: 2_500_000 },
+    ];
+
+    // elementaryStreams: 常に video ストリームを追加し、必要なら audio を追加
+    const elementaryStreams: protos.google.cloud.video.transcoder.v1.IElementaryStream[] = [
+      ...resolutions.map(r => ({
+        key: r.key,
+        videoStream: {
+          h264: {
+            heightPixels: r.height,
+            bitrateBps: r.bitrate,
+            frameRate: 30,
+          },
+        },
+      })),
+    ];
+
+    if (isAudioInclude) {
+      elementaryStreams.push({
+        key: 'audio',
+        audioStream: {
+          codec: 'aac',
+          bitrateBps: 128000,
+          channelCount: 2,
+          sampleRateHertz: 48000,
+        },
+      });
+    }
+
+    // muxStreams: video 毎に対応する mux を作成し、audio の有無で elementaryStreams を切り替える
+    const muxStreams = resolutions.map(r => ({
+      key: r.hlsKey,
+      container: 'ts',
+      elementaryStreams: isAudioInclude ? [r.key, 'audio'] : [r.key],
+    }));
+
+    const manifests = [
+      {
+        fileName: 'master.m3u8',
+        type: 'HLS' as const,
+        muxStreams: muxStreams.map(m => m.key),
+      },
+    ];
+
     return {
       inputUri,
       outputUri,
-      labels: {
-        dish_media_id: recordId,
-        retry: String(retry),
-        video_only: 'true',
-      },
+      labels,
       config: {
-        pubsubDestination: env.TRANSCODER_PUBSUB_TOPIC
-          ? { topic: env.TRANSCODER_PUBSUB_TOPIC }
-          : undefined,
-        elementaryStreams: [
-          {
-            key: 'video-1080p',
-            videoStream: {
-              h264: {
-                heightPixels: 1080,
-                bitrateBps: 8000000,
-                frameRate: 30,
-              },
-            },
-          },
-          {
-            key: 'video-720p',
-            videoStream: {
-              h264: {
-                heightPixels: 720,
-                bitrateBps: 5000000,
-                frameRate: 30,
-              },
-            },
-          },
-          {
-            key: 'video-480p',
-            videoStream: {
-              h264: {
-                heightPixels: 480,
-                bitrateBps: 2500000,
-                frameRate: 30,
-              },
-            },
-          },
-        ],
-        muxStreams: [
-          {
-            key: 'hls-1080p',
-            container: 'ts',
-            elementaryStreams: ['video-1080p'],
-          },
-          {
-            key: 'hls-720p',
-            container: 'ts',
-            elementaryStreams: ['video-720p'],
-          },
-          {
-            key: 'hls-480p',
-            container: 'ts',
-            elementaryStreams: ['video-480p'],
-          },
-        ],
-        manifests: [
-          {
-            fileName: 'master.m3u8',
-            type: 'HLS' as const,
-            muxStreams: ['hls-1080p', 'hls-720p', 'hls-480p'],
-          },
-        ],
+        pubsubDestination: { topic: env.TRANSCODER_PUBSUB_TOPIC },
+        elementaryStreams,
+        muxStreams,
+        manifests,
       },
     };
   }

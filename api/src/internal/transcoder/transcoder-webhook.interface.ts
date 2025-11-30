@@ -25,10 +25,12 @@ export interface TranscoderJobNotificationAttributes {
 }
 
 /**
- * Transcoder Job の labels（dish_media_id, retry などを格納）
+ * Transcoder Job の labels（tableName, columnName, recordId など）
  */
-export interface TranscoderJobLabels {
-  dish_media_id?: string;
+export type TranscoderJobLabels = Record<string, string> & {
+  tableName: string;
+  columnName: string;
+  recordId: string;
   retry?: string;
-  video_only?: string;
+  videoOnly?: 'true' | 'false';
 }

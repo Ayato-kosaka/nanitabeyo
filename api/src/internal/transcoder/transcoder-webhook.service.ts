@@ -37,39 +37,14 @@ export class TranscoderWebhookService {
 
     // Job の詳細情報を取得
     const jobDetails = await this.getJobDetails(jobId);
-    const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
-    const dishMediaId = labels?.dish_media_id;
-    const retryCount = parseInt(labels?.retry || '0', 10);
-    const inputUri = jobDetails.inputUri;
-    const outputUri = jobDetails.outputUri;
-
-    if (!dishMediaId) {
-      this.logger.warn(
-        'TranscoderWebhookMissingLabel',
-        'handleJobNotification',
-        {
-          jobId,
-          state,
-          message: 'dish_media_id label not found',
-        },
-      );
-      return;
-    }
 
     switch (state) {
       case 'SUCCEEDED':
-        this.handleSucceeded(jobId, dishMediaId);
+        this.handleSucceeded(jobId, jobDetails);
         break;
 
       case 'FAILED':
-        await this.handleFailed(
-          jobId,
-          dishMediaId,
-          retryCount,
-          inputUri || '',
-          outputUri || '',
-          jobDetails.error,
-        );
+        await this.handleFailed(jobId, jobDetails);
         break;
 
       default:
@@ -78,7 +53,6 @@ export class TranscoderWebhookService {
           'handleJobNotification',
           {
             jobId,
-            dishMediaId,
             state,
           },
         );
@@ -90,11 +64,11 @@ export class TranscoderWebhookService {
    */
   private handleSucceeded(
     jobId: string,
-    dishMediaId: string,
+    jobDetails: protos.google.cloud.video.transcoder.v1.IJob
   ): void {
     this.logger.log('TranscoderJobSucceeded', 'handleSucceeded', {
       jobId,
-      dishMediaId,
+      labels: jobDetails.labels,
     });
   }
 
@@ -104,44 +78,53 @@ export class TranscoderWebhookService {
    */
   private async handleFailed(
     jobId: string,
-    dishMediaId: string,
-    retryCount: number,
-    inputUri: string,
-    outputUri: string,
-    errorStatus: protos.google.rpc.IStatus | null | undefined,
+    jobDetails: protos.google.cloud.video.transcoder.v1.IJob
   ): Promise<void> {
+    const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
+    const { tableName, columnName, recordId } = labels || {};
+
+    if (!labels || !tableName || !recordId || !columnName) {
+      this.logger.warn(
+        'TranscoderWebhookMissingLabel',
+        'handleFailed',
+        {
+          jobId,
+          message: 'Missing required labels (tableName, columnName, recordId)',
+        },
+      );
+      return;
+    }
+
+    const errorStatus = jobDetails.error;
     const errorDescription = errorStatus?.details;
     const isAudioMissing = this.isAudioMissingError(errorStatus);
 
     this.logger.log('TranscoderJobFailed', 'handleFailed', {
       jobId,
-      dishMediaId,
-      retryCount,
+      labels,
       errorStatus,
       isAudioMissing,
     });
 
     // AudioMissing かつ retry=0 の場合のみリトライ
+    const retryCount = parseInt(labels.retry ?? '0', 10);
     if (isAudioMissing && retryCount === 0) {
-      this.logger.log('TranscoderJobRetryingVideoOnly', 'handleFailed', {
-        jobId,
-        dishMediaId,
-        inputUri,
-        outputUri,
-      });
-
       try {
+        const { inputUri, outputUri } = jobDetails;
+        if (!inputUri || !outputUri) throw new Error('InputUri or OutputUri is missing');
         await this.transcoderService.createTranscodeJob({
           inputUri,
           outputUri,
-          recordId: dishMediaId,
-          retry: 1,
-          videoOnly: true,
+          labels: {
+            ...labels,
+            retry: '1',
+            videoOnly: 'true',
+          }
         });
       } catch (error) {
         this.logger.error('TranscoderJobRetryError', 'handleFailed', {
           jobId,
-          dishMediaId,
+          labels,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -152,8 +135,7 @@ export class TranscoderWebhookService {
     // その他の失敗はログ記録のみ
     this.logger.error('TranscoderJobFailedPermanent', 'handleFailed', {
       jobId,
-      dishMediaId,
-      retryCount,
+      labels,
       errorDescription,
     });
   }
