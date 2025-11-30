@@ -174,7 +174,7 @@ export default function NotificationsScreen() {
 					</View>
 
 					{/* Right: Post Thumbnail */}
-					{item.dishMediaEntries && (
+					{item.dishMediaEntries && item.dishMediaEntries.dish_media.mediaUrl && (
 						<View style={styles.rightContainer}>
 							<Image
 								source={{

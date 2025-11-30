@@ -10,7 +10,8 @@ import {
   buildTranscodedPath,
 } from '../../core/storage/storage.utils';
 import { DishMediaEntryEntity } from './dish-media.repository';
-import { DishMediaEntry } from '@shared/v1/res';
+import { DishMediaEntry, MediaProcessingStatus } from '@shared/v1/res';
+import { env } from '../../core/config/env';
 
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
@@ -79,7 +80,9 @@ export class DishMediaAssembler {
 
     // #427 【設計】動画公開用プレフィックスの CDN Signed Cookie を生成してキューに登録
     const firstVideoUrl = items.find(
-      (entry) => entry.dish_media.media_type === 'video',
+      (entry) =>
+        entry.dish_media.media_type === 'video' &&
+        entry.dish_media.mediaUrl !== null,
     )?.dish_media.mediaUrl;
     if (firstVideoUrl) {
       try {
@@ -107,70 +110,92 @@ export class DishMediaAssembler {
   }
 
   /**
-   * dish_media エンティティから media_path の CDN URL を生成して付与
+   * #511 【設計】dish_media エンティティから media_path の URL を生成
    *
    * 動画の場合:
-   *   - プレーンな CDN URL を返す（署名なし）
+   *   - media_processing_status が 'completed' の場合のみ CDN URL を返す
+   *   - それ以外は null を返す（URLを返さない）
    *
    * 画像の場合:
-   *   - 従来通り Signed URL を返す（単一ファイルアクセスのため Cookie 不要）
+   *   - media_processing_status が 'completed' の場合はリサイズ済みパスの Signed URL を返す
+   *   - それ以外はオリジナルパスの Signed URL を返す
    */
   private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
-    mediaUrl: string;
+    mediaUrl: string | null;
   } {
-    const cdnUrl =
-      dishMedia.media_type === 'video'
-        ? // 動画の場合の HLS マスター再生リスト CDN URL
-          buildTranscodedPath(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: dishMedia.id,
-              originalPath: dishMedia.media_path,
-            },
-            'cdn',
-          )
-        : // 画像の場合のリサイズ CDN URL
-          buildResizedPath(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: dishMedia.id,
-              size: 1024,
-              originalPath: dishMedia.media_path,
-            },
-            'cdn',
-          );
+    const status =
+      dishMedia.media_processing_status as MediaProcessingStatus | null;
 
     if (dishMedia.media_type === 'video') {
-      // 動画: プレーンな CDN URL を返し、Cookie 設定用のプレフィックスも返す
-      return {
-        mediaUrl: cdnUrl,
-      };
+      // #511 【設計】動画: processing_status が 'completed' の場合のみ URL を返す
+      if (status !== 'completed') {
+        return { mediaUrl: null };
+      }
+      // 動画の場合の HLS マスター再生リスト CDN URL
+      const cdnUrl = buildTranscodedPath(
+        {
+          table: 'dish_media',
+          column: 'media_path',
+          recordId: dishMedia.id,
+          originalPath: dishMedia.media_path,
+        },
+        'cdn',
+      );
+      return { mediaUrl: cdnUrl };
     } else {
-      // 画像: 派生サイズの署名付き CDN URL を生成
-      const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl);
-      return { mediaUrl };
+      // #511 【設計】画像: processing_status に応じてリサイズ済み or オリジナルを返す
+      if (status === 'completed') {
+        // 画像の場合のリサイズ CDN URL
+        const cdnUrl = buildResizedPath(
+          {
+            table: 'dish_media',
+            column: 'media_path',
+            recordId: dishMedia.id,
+            size: 1024,
+            originalPath: dishMedia.media_path,
+          },
+          'cdn',
+        );
+        const mediaUrl = this.storage.generateCdnSignedURL(cdnUrl);
+        return { mediaUrl };
+      } else {
+        // #511 【設計】未完了時はオリジナルパスの CDN Signed URL を返す
+        const originalCdnUrl = `https://${env.CDN_HOST}/${dishMedia.media_path}`;
+        const mediaUrl = this.storage.generateCdnSignedURL(originalCdnUrl);
+        return { mediaUrl };
+      }
     }
   }
 
+  /**
+   * #511 【設計】dish_media エンティティからサムネイル画像の URL を生成
+   *
+   * thumbnail_processing_status が 'completed' の場合はリサイズ済みパスを返す
+   * それ以外はオリジナルパスを返す
+   */
   private getThumbnailImageUrl(
     dishMedia: DishMediaEntryEntity['dish_media'],
   ): string {
-    const cdnUrl = buildResizedPath(
-      {
-        table: 'dish_media',
-        column: 'thumbnail_path',
-        recordId: dishMedia.id,
-        size: 256,
-        originalPath: dishMedia.thumbnail_path,
-      },
-      'cdn',
-    );
+    const status =
+      dishMedia.thumbnail_processing_status as MediaProcessingStatus | null;
 
-    // 派生サイズの署名付き CDN URL を生成
-    const thumbnailImageUrl = this.storage.generateCdnSignedURL(cdnUrl);
-
-    return thumbnailImageUrl;
+    if (status === 'completed') {
+      // リサイズ済みサムネイルパス
+      const cdnUrl = buildResizedPath(
+        {
+          table: 'dish_media',
+          column: 'thumbnail_path',
+          recordId: dishMedia.id,
+          size: 256,
+          originalPath: dishMedia.thumbnail_path,
+        },
+        'cdn',
+      );
+      return this.storage.generateCdnSignedURL(cdnUrl);
+    } else {
+      // #511 【設計】未完了時はオリジナルパスの CDN Signed URL を返す
+      const originalCdnUrl = `https://${env.CDN_HOST}/${dishMedia.thumbnail_path}`;
+      return this.storage.generateCdnSignedURL(originalCdnUrl);
+    }
   }
 }

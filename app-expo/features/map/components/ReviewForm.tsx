@@ -151,11 +151,13 @@ export function ReviewForm({
 	useEffect(() => {
 		const handleSetMediaState = async () => {
 			if (!prefilledMedia || !mountedRef.current) return;
+			// #511 【設計】mediaUrl が null の場合（処理中）は早期 return
+			const mediaUrl = prefilledMedia.mediaUrl;
+			if (!mediaUrl) return;
 			try {
-				const mediaUrl = prefilledMedia.mediaUrl;
 				if (prefilledMedia.media_type === "image") {
 					setMediaState({ status: "loading" });
-					mediaUrl && (await Image.prefetch(mediaUrl));
+					await Image.prefetch(mediaUrl);
 				}
 				const thumbnailUrl = prefilledMedia.thumbnailImageUrl;
 				thumbnailUrl && (await Image.prefetch(thumbnailUrl));

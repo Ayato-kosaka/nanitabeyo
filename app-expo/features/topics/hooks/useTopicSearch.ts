@@ -106,7 +106,8 @@ export const useTopicSearch = () => {
 				// Preload dish media images
 				await Promise.allSettled(
 					dishItems.map(async (dishItem) => {
-						if (dishItem.dish_media.media_type === "image") {
+						// #511 【設計】mediaUrl が null の場合（処理中）はスキップ
+						if (dishItem.dish_media.media_type === "image" && dishItem.dish_media.mediaUrl) {
 							try {
 								await Image.prefetch(dishItem.dish_media.mediaUrl);
 							} catch (error) {

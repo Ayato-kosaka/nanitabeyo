@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
@@ -7,6 +7,7 @@ import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
+import i18n from "@/lib/i18n";
 import {
 	NormalizedDishMediaEntry,
 	selectEntryByMediaId,
@@ -14,6 +15,7 @@ import {
 	useDishMediaEntriesStore,
 	IdType,
 } from "@/stores/useDishMediaEntriesStore";
+import type { MediaProcessingStatus } from "@shared/api/v1/res";
 
 interface DishMediaContentProps {
 	id: string;
@@ -53,23 +55,67 @@ export default function DishMediaContent({
 
 	const mediaSource = useMemo(
 		() => ({
-			uri: dishMediaEntry.dish_media.mediaUrl,
-			cacheKey: getCacheKeyForImage(dishMediaEntry.dish_media.mediaUrl),
+			uri: dishMediaEntry.dish_media.mediaUrl ?? "",
+			cacheKey: getCacheKeyForImage(dishMediaEntry.dish_media.mediaUrl ?? ""),
 		}),
 		[dishMediaEntry.dish_media],
 	);
 
+	// #511 【設計】サムネイル画像ソースは常に用意
+	const thumbnailSource = useMemo(
+		() => ({
+			uri: dishMediaEntry.dish_media.thumbnailImageUrl,
+			cacheKey: getCacheKeyForImage(dishMediaEntry.dish_media.thumbnailImageUrl),
+		}),
+		[dishMediaEntry.dish_media],
+	);
+
+	// #511 【設計】動画の処理ステータスを取得
+	const mediaProcessingStatus = dishMediaEntry.dish_media.media_processing_status as MediaProcessingStatus;
+	const isVideo = dishMediaEntry.dish_media.media_type === "video";
+	const hasVideoUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
+
+	// #511 【設計】動画の場合、処理中/失敗時はオーバーレイを表示
+	const showProcessingOverlay = isVideo && mediaProcessingStatus === "processing";
+	const showErrorOverlay = isVideo && mediaProcessingStatus === "failed";
+
 	return (
 		<View style={styles.container}>
 			{/* Background Media (Image or Video) */}
-			{dishMediaEntry.dish_media.media_type === "video" ? (
-				<VideoPlayer
-					uri={dishMediaEntry.dish_media.mediaUrl}
-					style={StyleSheet.absoluteFill}
-					shouldPlay={isActive}
-					onProgress={handleVideoProgress}
-					onLoop={handleVideoLoop}
-				/>
+			{isVideo ? (
+				<>
+					{/* #511 【設計】動画の場合: サムネイルを常に背景として表示 */}
+					<Image
+						source={thumbnailSource}
+						cachePolicy="memory-disk"
+						transition={100}
+						style={StyleSheet.absoluteFill}
+						contentFit="cover"
+					/>
+					{/* #511 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
+					{hasVideoUrl && !showProcessingOverlay && !showErrorOverlay && (
+						<VideoPlayer
+							uri={dishMediaEntry.dish_media.mediaUrl!}
+							style={StyleSheet.absoluteFill}
+							shouldPlay={isActive}
+							onProgress={handleVideoProgress}
+							onLoop={handleVideoLoop}
+						/>
+					)}
+					{/* #511 【設計】処理中オーバーレイ */}
+					{showProcessingOverlay && (
+						<View style={styles.processingOverlay}>
+							<ActivityIndicator size="large" color="#fff" />
+							<Text style={styles.processingText}>{i18n.t("Common.processing")}</Text>
+						</View>
+					)}
+					{/* #511 【設計】エラーオーバーレイ */}
+					{showErrorOverlay && (
+						<View style={styles.errorOverlay}>
+							<Text style={styles.errorText}>{i18n.t("Common.error")}</Text>
+						</View>
+					)}
+				</>
 			) : (
 				<Image
 					source={mediaSource}
@@ -205,5 +251,36 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "flex-end",
 		justifyContent: "flex-end",
+	},
+	// #511 【設計】処理中オーバーレイスタイル
+	processingOverlay: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: "rgba(0, 0, 0, 0.6)",
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 5,
+	},
+	processingText: {
+		color: "#fff",
+		fontSize: 16,
+		marginTop: 12,
+		textShadowColor: "rgba(0, 0, 0, 0.5)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
+	},
+	// #511 【設計】エラーオーバーレイスタイル
+	errorOverlay: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: "rgba(0, 0, 0, 0.6)",
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 5,
+	},
+	errorText: {
+		color: "#fff",
+		fontSize: 16,
+		textShadowColor: "rgba(0, 0, 0, 0.5)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
 	},
 });

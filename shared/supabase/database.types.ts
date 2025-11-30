@@ -140,8 +140,10 @@ export type Database = {
 					id: string;
 					lock_no: number;
 					media_path: string;
+					media_processing_status: string;
 					media_type: string;
 					thumbnail_path: string;
+					thumbnail_processing_status: string;
 					updated_at: string;
 					user_id: string | null;
 					video_duration_ms: number | null;
@@ -152,8 +154,10 @@ export type Database = {
 					id?: string;
 					lock_no?: number;
 					media_path: string;
+					media_processing_status?: string;
 					media_type: string;
 					thumbnail_path: string;
+					thumbnail_processing_status?: string;
 					updated_at?: string;
 					user_id?: string | null;
 					video_duration_ms?: number | null;
@@ -164,8 +168,10 @@ export type Database = {
 					id?: string;
 					lock_no?: number;
 					media_path?: string;
+					media_processing_status?: string;
 					media_type?: string;
 					thumbnail_path?: string;
+					thumbnail_processing_status?: string;
 					updated_at?: string;
 					user_id?: string | null;
 					video_duration_ms?: number | null;

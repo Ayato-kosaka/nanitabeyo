@@ -12,6 +12,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { ResizeImageResult } from './resize-image.interface';
 import { buildResizedPath } from 'src/core/storage/storage.utils';
 import { ResizeImageDto } from './resize-image.dto';
+import { MediaProcessingStatus } from '@shared/v1/res';
 
 // 識別子の簡易バリデーション（必要に応じて厳しく）
 function isSafeIdentifier(name: string) {
@@ -289,6 +290,47 @@ export class ResizeImageService {
   }
 
   /**
+   * #511 【設計】dish_media テーブルの processing_status を更新
+   * @param recordId dish_media レコードの ID
+   * @param column 対象カラム（media_path / thumbnail_path）
+   * @param status 更新後のステータス
+   */
+  private async updateDishMediaProcessingStatus(
+    recordId: string,
+    column: string,
+    status: MediaProcessingStatus,
+  ): Promise<void> {
+    const statusColumn =
+      column === 'media_path'
+        ? 'media_processing_status'
+        : 'thumbnail_processing_status';
+
+    try {
+      await this.prisma.prisma.dish_media.update({
+        where: { id: recordId },
+        data: {
+          [statusColumn]: status,
+          updated_at: new Date(),
+        },
+      });
+
+      this.logger.log('DishMediaProcessingStatusUpdated', 'updateDishMediaProcessingStatus', {
+        recordId,
+        statusColumn,
+        status,
+      });
+    } catch (error) {
+      this.logger.error('UpdateDishMediaProcessingStatusError', 'updateDishMediaProcessingStatus', {
+        recordId,
+        statusColumn,
+        status,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // ステータス更新失敗はリサイズ処理自体の失敗とは別扱い（ログのみ）
+    }
+  }
+
+  /**
    * Main method to resize and store image
    */
   async resizeAndStoreImage(
@@ -309,6 +351,15 @@ export class ResizeImageService {
         this.logger.debug('ResizedImageAlreadyExists', 'resizeAndStoreImage', {
           resizedPath,
         });
+
+        // #511 【設計】dish_media テーブルの場合はステータスを completed に更新
+        if (params.table === 'dish_media') {
+          await this.updateDishMediaProcessingStatus(
+            params.recordId,
+            params.column,
+            'completed',
+          );
+        }
 
         // Generate signed URL for existing resized image
         const signedUrl = await this.storage.generateSignedUrl(resizedPath);
@@ -349,6 +400,15 @@ export class ResizeImageService {
         },
       });
 
+      // #511 【設計】dish_media テーブルの場合はステータスを completed に更新
+      if (params.table === 'dish_media') {
+        await this.updateDishMediaProcessingStatus(
+          params.recordId,
+          params.column,
+          'completed',
+        );
+      }
+
       this.logger.log('ResizeImageCompleted', 'resizeAndStoreImage', {
         resizedPath: result.path,
         size: params.size,
@@ -360,6 +420,15 @@ export class ResizeImageService {
         alreadyExisted: false,
       };
     } catch (error) {
+      // #511 【設計】dish_media テーブルの場合はステータスを failed に更新
+      if (params.table === 'dish_media') {
+        await this.updateDishMediaProcessingStatus(
+          params.recordId,
+          params.column,
+          'failed',
+        );
+      }
+
       // #423 【設計】恒久エラーも含めすべてのエラーをログに記録
       if (error instanceof PermanentImageError) {
         this.logger.error(
