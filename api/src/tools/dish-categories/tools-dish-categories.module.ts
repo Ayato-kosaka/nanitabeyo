@@ -14,12 +14,14 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module';
 import { StorageModule } from '../../core/storage/storage.module';
+import { RemoteConfigModule } from 'src/core/remote-config/remote-config.module';
 
 @Module({
   imports: [
     PrismaModule,
     LoggerModule,
     StorageModule,
+    RemoteConfigModule,
     forwardRef(() => AuthModule),
   ],
   controllers: [ToolsDishCategoriesController],

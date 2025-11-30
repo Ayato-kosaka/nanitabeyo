@@ -21,6 +21,7 @@ export const remoteConfigSchema = z.object({
 	v1_search_result_restaurants_number: z.string(),
 	v1_dish_comment_review_show_number: z.string(),
 	v1_dish_media_image_completion_threshold_ms: z.string(),
+	TOOLS_DISH_CATEGORIES_POPULAR_EXCLUDED_CATEGORY_IDS: z.string(),
 });
 
 export type RemoteConfigValues = z.infer<typeof remoteConfigSchema>;

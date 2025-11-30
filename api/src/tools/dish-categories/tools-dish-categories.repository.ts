@@ -7,12 +7,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { Prisma } from '../../../../shared/prisma/client';
+import { RemoteConfigService } from 'src/core/remote-config/remote-config.service';
 
 @Injectable()
 export class ToolsDishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
+    private readonly remoteConfigService: RemoteConfigService,
   ) {}
 
   /**
@@ -29,6 +31,10 @@ export class ToolsDishCategoriesRepository {
     // 【セキュリティ】limitパラメータの検証
     const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
 
+    const EXCLUDED_CATEGORY_IDS_STRING: string = await this.remoteConfigService.getRemoteConfigValue(
+      'TOOLS_DISH_CATEGORIES_POPULAR_EXCLUDED_CATEGORY_IDS',
+    );
+
     // #494 【設計】Prisma $queryRaw テンプレートリテラルは自動的にパラメータ化される
     const result = await this.prisma.prisma.dishes.groupBy({
       by: ['category_id'],
@@ -37,6 +43,9 @@ export class ToolsDishCategoriesRepository {
           image_url: {
             startsWith: 'https://upload.wikimedia.org',
           },
+          id: {
+            notIn: EXCLUDED_CATEGORY_IDS_STRING.split(',').map((s) => s.trim()),
+          }
         },
       },
       _count: {
@@ -53,7 +62,7 @@ export class ToolsDishCategoriesRepository {
     this.logger.debug(
       'PopularCategoriesFound',
       'findPopularCategoriesWithWikimediaImages',
-      { count: result.length, limit: safeLimit },
+      { count: result.length, safeLimit, EXCLUDED_CATEGORY_IDS_STRING },
     );
 
     return result.map((r) => ({
