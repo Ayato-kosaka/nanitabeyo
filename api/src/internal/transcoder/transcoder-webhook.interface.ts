@@ -33,4 +33,4 @@ export type TranscoderJobLabels = Record<string, string> & {
   recordId: string;
   retry?: string;
   videoOnly?: 'true' | 'false';
-}
+};

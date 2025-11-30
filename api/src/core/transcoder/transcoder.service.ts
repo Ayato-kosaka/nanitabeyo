@@ -38,15 +38,11 @@ export class TranscoderService {
    * - master.m3u8 プレイリスト
    */
   async createTranscodeJob(params: CreateTranscodeJobParams): Promise<string> {
-    const {
-      inputUri,
-      outputUri,
-      labels,
-    } = params;
+    const { inputUri, outputUri, labels } = params;
     this.logger.log('CreateTranscodeJobStarted', 'createTranscodeJob', {
       inputUri,
       outputUri,
-      labels
+      labels,
     });
 
     const parent = this.client.locationPath(
@@ -55,11 +51,7 @@ export class TranscoderService {
     );
 
     // HLS 形式での出力設定
-    const job = this.buildJobConfig(
-      inputUri,
-      outputUri,
-      labels,
-    );
+    const job = this.buildJobConfig(inputUri, outputUri, labels);
 
     try {
       const [response] = await this.client.createJob({
@@ -102,7 +94,6 @@ export class TranscoderService {
     }
   }
 
-
   /**
    * トランスコードジョブの設定を構築
    */
@@ -114,24 +105,40 @@ export class TranscoderService {
     const isAudioInclude = labels.videoOnly !== 'true';
 
     const resolutions = [
-      { key: 'video-1080p', hlsKey: 'hls-1080p', height: 1080, bitrate: 8_000_000 },
-      { key: 'video-720p', hlsKey: 'hls-720p', height: 720, bitrate: 5_000_000 },
-      { key: 'video-480p', hlsKey: 'hls-480p', height: 480, bitrate: 2_500_000 },
+      {
+        key: 'video-1080p',
+        hlsKey: 'hls-1080p',
+        height: 1080,
+        bitrate: 8_000_000,
+      },
+      {
+        key: 'video-720p',
+        hlsKey: 'hls-720p',
+        height: 720,
+        bitrate: 5_000_000,
+      },
+      {
+        key: 'video-480p',
+        hlsKey: 'hls-480p',
+        height: 480,
+        bitrate: 2_500_000,
+      },
     ];
 
     // elementaryStreams: 常に video ストリームを追加し、必要なら audio を追加
-    const elementaryStreams: protos.google.cloud.video.transcoder.v1.IElementaryStream[] = [
-      ...resolutions.map(r => ({
-        key: r.key,
-        videoStream: {
-          h264: {
-            heightPixels: r.height,
-            bitrateBps: r.bitrate,
-            frameRate: 30,
+    const elementaryStreams: protos.google.cloud.video.transcoder.v1.IElementaryStream[] =
+      [
+        ...resolutions.map((r) => ({
+          key: r.key,
+          videoStream: {
+            h264: {
+              heightPixels: r.height,
+              bitrateBps: r.bitrate,
+              frameRate: 30,
+            },
           },
-        },
-      })),
-    ];
+        })),
+      ];
 
     if (isAudioInclude) {
       elementaryStreams.push({
@@ -146,7 +153,7 @@ export class TranscoderService {
     }
 
     // muxStreams: video 毎に対応する mux を作成し、audio の有無で elementaryStreams を切り替える
-    const muxStreams = resolutions.map(r => ({
+    const muxStreams = resolutions.map((r) => ({
       key: r.hlsKey,
       container: 'ts',
       elementaryStreams: isAudioInclude ? [r.key, 'audio'] : [r.key],
@@ -156,7 +163,7 @@ export class TranscoderService {
       {
         fileName: 'master.m3u8',
         type: 'HLS' as const,
-        muxStreams: muxStreams.map(m => m.key),
+        muxStreams: muxStreams.map((m) => m.key),
       },
     ];
 

@@ -5,13 +5,13 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { protos, TranscoderServiceClient } from '@google-cloud/video-transcoder';
+import {
+  protos,
+  TranscoderServiceClient,
+} from '@google-cloud/video-transcoder';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
-import {
-  TranscoderJobLabels,
-} from './transcoder-webhook.interface';
-
+import { TranscoderJobLabels } from './transcoder-webhook.interface';
 
 @Injectable()
 export class TranscoderWebhookService {
@@ -64,7 +64,7 @@ export class TranscoderWebhookService {
    */
   private handleSucceeded(
     jobId: string,
-    jobDetails: protos.google.cloud.video.transcoder.v1.IJob
+    jobDetails: protos.google.cloud.video.transcoder.v1.IJob,
   ): void {
     this.logger.log('TranscoderJobSucceeded', 'handleSucceeded', {
       jobId,
@@ -78,20 +78,16 @@ export class TranscoderWebhookService {
    */
   private async handleFailed(
     jobId: string,
-    jobDetails: protos.google.cloud.video.transcoder.v1.IJob
+    jobDetails: protos.google.cloud.video.transcoder.v1.IJob,
   ): Promise<void> {
     const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
     const { tableName, columnName, recordId } = labels || {};
 
     if (!labels || !tableName || !recordId || !columnName) {
-      this.logger.warn(
-        'TranscoderWebhookMissingLabel',
-        'handleFailed',
-        {
-          jobId,
-          message: 'Missing required labels (tableName, columnName, recordId)',
-        },
-      );
+      this.logger.warn('TranscoderWebhookMissingLabel', 'handleFailed', {
+        jobId,
+        message: 'Missing required labels (tableName, columnName, recordId)',
+      });
       return;
     }
 
@@ -111,7 +107,8 @@ export class TranscoderWebhookService {
     if (isAudioMissing && retryCount === 0) {
       try {
         const { inputUri, outputUri } = jobDetails;
-        if (!inputUri || !outputUri) throw new Error('InputUri or OutputUri is missing');
+        if (!inputUri || !outputUri)
+          throw new Error('InputUri or OutputUri is missing');
         await this.transcoderService.createTranscodeJob({
           inputUri,
           outputUri,
@@ -119,7 +116,7 @@ export class TranscoderWebhookService {
             ...labels,
             retry: '1',
             videoOnly: 'true',
-          }
+          },
         });
       } catch (error) {
         this.logger.error('TranscoderJobRetryError', 'handleFailed', {
@@ -140,7 +137,9 @@ export class TranscoderWebhookService {
     });
   }
 
-  private isAudioMissingError(errorStatus: protos.google.rpc.IStatus | null | undefined): boolean {
+  private isAudioMissingError(
+    errorStatus: protos.google.rpc.IStatus | null | undefined,
+  ): boolean {
     // AudioMissing エラーの判定文字列
     const AUDIO_MISSING_ERROR = 'AudioMissing';
 
@@ -166,7 +165,9 @@ export class TranscoderWebhookService {
   /**
    * Transcoder Job の詳細情報を取得
    */
-  private async getJobDetails(jobId: string): Promise<protos.google.cloud.video.transcoder.v1.IJob> {
+  private async getJobDetails(
+    jobId: string,
+  ): Promise<protos.google.cloud.video.transcoder.v1.IJob> {
     try {
       const [job] = await this.client.getJob({ name: jobId });
 
