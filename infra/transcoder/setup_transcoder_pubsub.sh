@@ -9,11 +9,11 @@
 #
 # 使い方:
 #   chmod +x setup_transcoder_pubsub.sh
-#   ./setup_transcoder_pubsub.sh <PROJECT_ID> <CLOUD_RUN_URL> <PUSH_SA_EMAIL> <RUN_SERVICE_NAME> <RUN_REGION>
+#   ./setup_transcoder_pubsub.sh <PROJECT_ID> <CLOUD_RUN_URL> <PUSH_SA_EMAIL> <RUN_SERVICE_NAME> <RUN_REGION> <TOPIC_NAME>
 #
 # 例:
 #   ./setup_transcoder_pubsub.sh food-scroll https://api-xxx.run.app \
-#     cloud-tasks-invoker@food-scroll.iam.gserviceaccount.com api-service asia-northeast1
+#     cloud-tasks-invoker@food-scroll.iam.gserviceaccount.com api-service asia-northeast1 transcoder-job-events
 #
 # 必要条件:
 #   - gcloud CLI がログイン済み
@@ -31,14 +31,14 @@ CLOUD_RUN_URL="${2:-}"
 PUSH_SA="${3:-}"  # Push 認証用 SA（OIDC トークン発行）
 RUN_SERVICE_NAME="${4:-}"  # Cloud Run サービス名
 RUN_REGION="${5:-}"        # Cloud Run リージョン
+TOPIC_NAME="${6:-}"        # Pub/Sub トピック名（引数で指定）
 
-TOPIC_NAME="transcoder-job-events"
 SUBSCRIPTION_NAME="transcoder-webhook-push"
 WEBHOOK_PATH="/internal/transcoder/webhook"
 
-if [[ -z "${PROJECT_ID}" || -z "${CLOUD_RUN_URL}" || -z "${PUSH_SA}" || -z "${RUN_SERVICE_NAME}" || -z "${RUN_REGION}" ]]; then
+if [[ -z "${PROJECT_ID}" || -z "${CLOUD_RUN_URL}" || -z "${PUSH_SA}" || -z "${RUN_SERVICE_NAME}" || -z "${RUN_REGION}" || -z "${TOPIC_NAME}" ]]; then
   echo "❌ 引数不足です。"
-  echo "使い方: $0 <PROJECT_ID> <CLOUD_RUN_URL> <PUSH_SA_EMAIL> <RUN_SERVICE_NAME> <RUN_REGION>"
+  echo "使い方: $0 <PROJECT_ID> <CLOUD_RUN_URL> <PUSH_SA_EMAIL> <RUN_SERVICE_NAME> <RUN_REGION> <TOPIC_NAME>"
   exit 1
 fi
 
