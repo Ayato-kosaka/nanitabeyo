@@ -20,6 +20,13 @@ import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 import { CookieQueueService } from '../../core/cookie-queue/cookie-queue.service';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 
+/**
+ * #511 【設計】GCS パスから CDN URL を生成するユーティリティ関数
+ */
+function buildCdnUrlFromPath(gcsPath: string): string {
+  return `https://${env.CDN_HOST}/${gcsPath}`;
+}
+
 @Injectable()
 export class DishMediaAssembler {
   constructor(
@@ -160,7 +167,7 @@ export class DishMediaAssembler {
         return { mediaUrl };
       } else {
         // #511 【設計】未完了時はオリジナルパスの CDN Signed URL を返す
-        const originalCdnUrl = `https://${env.CDN_HOST}/${dishMedia.media_path}`;
+        const originalCdnUrl = buildCdnUrlFromPath(dishMedia.media_path);
         const mediaUrl = this.storage.generateCdnSignedURL(originalCdnUrl);
         return { mediaUrl };
       }
@@ -194,7 +201,7 @@ export class DishMediaAssembler {
       return this.storage.generateCdnSignedURL(cdnUrl);
     } else {
       // #511 【設計】未完了時はオリジナルパスの CDN Signed URL を返す
-      const originalCdnUrl = `https://${env.CDN_HOST}/${dishMedia.thumbnail_path}`;
+      const originalCdnUrl = buildCdnUrlFromPath(dishMedia.thumbnail_path);
       return this.storage.generateCdnSignedURL(originalCdnUrl);
     }
   }

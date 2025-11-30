@@ -314,18 +314,26 @@ export class ResizeImageService {
         },
       });
 
-      this.logger.log('DishMediaProcessingStatusUpdated', 'updateDishMediaProcessingStatus', {
-        recordId,
-        statusColumn,
-        status,
-      });
+      this.logger.log(
+        'DishMediaProcessingStatusUpdated',
+        'updateDishMediaProcessingStatus',
+        {
+          recordId,
+          statusColumn,
+          status,
+        },
+      );
     } catch (error) {
-      this.logger.error('UpdateDishMediaProcessingStatusError', 'updateDishMediaProcessingStatus', {
-        recordId,
-        statusColumn,
-        status,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      this.logger.error(
+        'UpdateDishMediaProcessingStatusError',
+        'updateDishMediaProcessingStatus',
+        {
+          recordId,
+          statusColumn,
+          status,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
       // ステータス更新失敗はリサイズ処理自体の失敗とは別扱い（ログのみ）
     }
   }

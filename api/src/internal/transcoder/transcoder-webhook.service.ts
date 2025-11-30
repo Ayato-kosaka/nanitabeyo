@@ -78,16 +78,24 @@ export class TranscoderWebhookService {
         },
       });
 
-      this.logger.log('DishMediaProcessingStatusUpdated', 'updateDishMediaProcessingStatus', {
-        recordId,
-        status,
-      });
+      this.logger.log(
+        'DishMediaProcessingStatusUpdated',
+        'updateDishMediaProcessingStatus',
+        {
+          recordId,
+          status,
+        },
+      );
     } catch (error) {
-      this.logger.error('UpdateDishMediaProcessingStatusError', 'updateDishMediaProcessingStatus', {
-        recordId,
-        status,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      this.logger.error(
+        'UpdateDishMediaProcessingStatusError',
+        'updateDishMediaProcessingStatus',
+        {
+          recordId,
+          status,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
       // ステータス更新失敗はトランスコード処理自体の失敗とは別扱い（ログのみ）
     }
   }

@@ -93,9 +93,9 @@ export default function DishMediaContent({
 						contentFit="cover"
 					/>
 					{/* #511 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
-					{hasVideoUrl && !showProcessingOverlay && !showErrorOverlay && (
+					{hasVideoUrl && !showProcessingOverlay && !showErrorOverlay && dishMediaEntry.dish_media.mediaUrl && (
 						<VideoPlayer
-							uri={dishMediaEntry.dish_media.mediaUrl!}
+							uri={dishMediaEntry.dish_media.mediaUrl}
 							style={StyleSheet.absoluteFill}
 							shouldPlay={isActive}
 							onProgress={handleVideoProgress}

@@ -4,7 +4,6 @@ import { VideoView, useVideoPlayer, VideoContentFit, VideoSource } from "expo-vi
 import { useLogger } from "@/hooks/useLogger";
 import { setAudioModeAsync } from "expo-audio";
 import { useCdnCookieStore, selectCookieHeader } from "@/stores/useCdnCookieStore";
-import type { MediaProcessingStatus } from "@shared/api/v1/res";
 
 // Threshold for detecting video loop (when currentTime returns to near start)
 export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
@@ -19,10 +18,6 @@ export interface VideoPlayerProps {
 	resizeMode?: VideoContentFit;
 	onProgress?: (progress: { currentTime: number; duration: number; playableDuration?: number }) => void;
 	onLoop?: () => void;
-	// #511 【設計】処理ステータス表示用のプロパティ（オプション）
-	dishMediaId?: string;
-	mediaProcessingStatus?: MediaProcessingStatus;
-	entriesKey?: string;
 }
 
 /**
