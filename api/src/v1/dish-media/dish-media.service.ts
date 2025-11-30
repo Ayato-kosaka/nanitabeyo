@@ -163,7 +163,11 @@ export class DishMediaService {
       await this.transcoder.createTranscodeJob({
         inputUri,
         outputUri,
-        recordId: result.id,
+        labels: {
+          tableName: 'dish_media',
+          columnName: 'media_path',
+          recordId: result.id,
+        },
       });
 
       this.logger.log('TranscodeJobCreated', 'createDishMedia', {
