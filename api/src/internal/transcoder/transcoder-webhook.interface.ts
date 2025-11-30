@@ -32,10 +32,3 @@ export interface TranscoderJobLabels {
   retry?: string;
   video_only?: string;
 }
-
-/**
- * Transcoder Job の失敗詳細
- */
-export interface TranscoderJobFailureDetail {
-  description?: string;
-}

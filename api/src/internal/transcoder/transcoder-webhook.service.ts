@@ -5,18 +5,13 @@
 //
 
 import { Injectable } from '@nestjs/common';
-import { TranscoderServiceClient } from '@google-cloud/video-transcoder';
+import { protos, TranscoderServiceClient } from '@google-cloud/video-transcoder';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import {
   TranscoderJobLabels,
-  TranscoderJobFailureDetail,
 } from './transcoder-webhook.interface';
 
-/**
- * AudioMissing エラーの判定文字列
- */
-const AUDIO_MISSING_ERROR = 'AudioMissing';
 
 @Injectable()
 export class TranscoderWebhookService {
@@ -42,7 +37,7 @@ export class TranscoderWebhookService {
 
     // Job の詳細情報を取得
     const jobDetails = await this.getJobDetails(jobId);
-    const labels = jobDetails.labels as TranscoderJobLabels | undefined;
+    const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
     const dishMediaId = labels?.dish_media_id;
     const retryCount = parseInt(labels?.retry || '0', 10);
     const inputUri = jobDetails.inputUri;
@@ -63,7 +58,7 @@ export class TranscoderWebhookService {
 
     switch (state) {
       case 'SUCCEEDED':
-        await this.handleSucceeded(jobId, dishMediaId);
+        this.handleSucceeded(jobId, dishMediaId);
         break;
 
       case 'FAILED':
@@ -93,10 +88,10 @@ export class TranscoderWebhookService {
   /**
    * Job 成功時の処理
    */
-  private async handleSucceeded(
+  private handleSucceeded(
     jobId: string,
     dishMediaId: string,
-  ): Promise<void> {
+  ): void {
     this.logger.log('TranscoderJobSucceeded', 'handleSucceeded', {
       jobId,
       dishMediaId,
@@ -113,16 +108,16 @@ export class TranscoderWebhookService {
     retryCount: number,
     inputUri: string,
     outputUri: string,
-    error: TranscoderJobFailureDetail | null | undefined,
+    errorStatus: protos.google.rpc.IStatus | null | undefined,
   ): Promise<void> {
-    const errorDescription = error?.description || '';
-    const isAudioMissing = errorDescription.includes(AUDIO_MISSING_ERROR);
+    const errorDescription = errorStatus?.details;
+    const isAudioMissing = this.isAudioMissingError(errorStatus);
 
     this.logger.log('TranscoderJobFailed', 'handleFailed', {
       jobId,
       dishMediaId,
       retryCount,
-      errorDescription,
+      errorStatus,
       isAudioMissing,
     });
 
@@ -135,13 +130,21 @@ export class TranscoderWebhookService {
         outputUri,
       });
 
-      await this.transcoderService.createTranscodeJob({
-        inputUri,
-        outputUri,
-        recordId: dishMediaId,
-        retry: 1,
-        videoOnly: true,
-      });
+      try {
+        await this.transcoderService.createTranscodeJob({
+          inputUri,
+          outputUri,
+          recordId: dishMediaId,
+          retry: 1,
+          videoOnly: true,
+        });
+      } catch (error) {
+        this.logger.error('TranscoderJobRetryError', 'handleFailed', {
+          jobId,
+          dishMediaId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
 
       return;
     }
@@ -155,23 +158,37 @@ export class TranscoderWebhookService {
     });
   }
 
+  private isAudioMissingError(errorStatus: protos.google.rpc.IStatus | null | undefined): boolean {
+    // AudioMissing エラーの判定文字列
+    const AUDIO_MISSING_ERROR = 'AudioMissing';
+
+    if (!errorStatus) return false;
+
+    // まず message をチェック
+    if (errorStatus.message?.includes(AUDIO_MISSING_ERROR)) return true;
+
+    // details をまとめて JSON 化して文字列検索
+    if (errorStatus.details && errorStatus.details.length > 0) {
+      try {
+        const serialized = JSON.stringify(errorStatus.details);
+        if (serialized.includes(AUDIO_MISSING_ERROR)) {
+          return true;
+        }
+      } catch {
+        // stringify に失敗しても無視（判定は false のまま）
+      }
+    }
+    return false;
+  }
+
   /**
    * Transcoder Job の詳細情報を取得
    */
-  private async getJobDetails(jobId: string): Promise<{
-    labels: Record<string, string> | null | undefined;
-    inputUri: string | null | undefined;
-    outputUri: string | null | undefined;
-    error: TranscoderJobFailureDetail | null | undefined;
-  }> {
+  private async getJobDetails(jobId: string): Promise<protos.google.cloud.video.transcoder.v1.IJob> {
     try {
       const [job] = await this.client.getJob({ name: jobId });
-      return {
-        labels: job.labels,
-        inputUri: job.inputUri,
-        outputUri: job.outputUri,
-        error: job.error as TranscoderJobFailureDetail | null | undefined,
-      };
+
+      return job;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
