@@ -35,7 +35,7 @@ export class TranscoderWebhookController {
    * POST /internal/transcoder/webhook
    *
    * Pub/Sub Push から呼び出される Transcoder Job 完了通知エンドポイント
-   * - Base64 デコードしてメッセージ解析
+   * - message.attributes から Job ID とステータスを取得
    * - Job ステータスに応じた処理（成功/失敗/AudioMissing リトライ）
    */
   @Post('webhook')
