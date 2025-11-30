@@ -33,7 +33,7 @@ RUN_SERVICE_NAME="${4:-}"  # Cloud Run サービス名
 RUN_REGION="${5:-}"        # Cloud Run リージョン
 TOPIC_NAME="${6:-}"        # Pub/Sub トピック名（引数で指定）
 
-SUBSCRIPTION_NAME="transcoder-webhook-push"
+SUBSCRIPTION_NAME="transcoder-webhook-push-${TOPIC_NAME}"
 WEBHOOK_PATH="/internal/transcoder/webhook"
 
 if [[ -z "${PROJECT_ID}" || -z "${CLOUD_RUN_URL}" || -z "${PUSH_SA}" || -z "${RUN_SERVICE_NAME}" || -z "${RUN_REGION}" || -z "${TOPIC_NAME}" ]]; then
