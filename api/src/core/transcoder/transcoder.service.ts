@@ -102,7 +102,7 @@ export class TranscoderService {
     outputUri: string,
     labels: TranscoderJobLabels,
   ): protos.google.cloud.video.transcoder.v1.IJob {
-    const isAudioInclude = labels.videoOnly !== 'true';
+    const isAudioInclude = labels.video_only !== 'true';
 
     const resolutions = [
       {

@@ -81,12 +81,12 @@ export class TranscoderWebhookService {
     jobDetails: protos.google.cloud.video.transcoder.v1.IJob,
   ): Promise<void> {
     const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
-    const { tableName, columnName, recordId } = labels || {};
+    const { table_name, column_name, record_id } = labels || {};
 
-    if (!labels || !tableName || !recordId || !columnName) {
+    if (!labels || !table_name || !record_id || !column_name) {
       this.logger.warn('TranscoderWebhookMissingLabel', 'handleFailed', {
         jobId,
-        message: 'Missing required labels (tableName, columnName, recordId)',
+        message: 'Missing required labels (table_name, column_name, record_id)',
       });
       return;
     }
@@ -115,7 +115,7 @@ export class TranscoderWebhookService {
           labels: {
             ...labels,
             retry: '1',
-            videoOnly: 'true',
+            video_only: 'true',
           },
         });
       } catch (error) {

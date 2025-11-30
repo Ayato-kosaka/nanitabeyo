@@ -164,9 +164,9 @@ export class DishMediaService {
         inputUri,
         outputUri,
         labels: {
-          tableName: 'dish_media',
-          columnName: 'media_path',
-          recordId: result.id,
+          table_name: 'dish_media',
+          column_name: 'media_path',
+          record_id: result.id,
         },
       });
 

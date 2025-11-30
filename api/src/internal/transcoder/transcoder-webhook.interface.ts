@@ -28,9 +28,9 @@ export interface TranscoderJobNotificationAttributes {
  * Transcoder Job の labels（tableName, columnName, recordId など）
  */
 export type TranscoderJobLabels = Record<string, string> & {
-  tableName: string;
-  columnName: string;
-  recordId: string;
+  table_name: string;
+  column_name: string;
+  record_id: string;
   retry?: string;
-  videoOnly?: 'true' | 'false';
+  video_only?: 'true' | 'false';
 };
