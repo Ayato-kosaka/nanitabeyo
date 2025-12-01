@@ -239,8 +239,8 @@ export class DishesService {
           media_type: 'image',
           thumbnail_path: mediaPath,
           video_duration_ms: null,
-          media_processing_status: 'completed', // #511 【設計】インポートデータは加工済み扱い
-          thumbnail_processing_status: 'completed',
+          media_processing_status: 'processing', // #511 【設計】後続のジョブでリサイズ処理を行う
+          thumbnail_processing_status: 'processing',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           lock_no: 0,

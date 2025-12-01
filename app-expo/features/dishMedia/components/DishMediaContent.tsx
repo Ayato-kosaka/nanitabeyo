@@ -55,8 +55,10 @@ export default function DishMediaContent({
 
 	const mediaSource = useMemo(
 		() => ({
-			uri: dishMediaEntry.dish_media.mediaUrl ?? "",
-			cacheKey: getCacheKeyForImage(dishMediaEntry.dish_media.mediaUrl ?? ""),
+			uri: dishMediaEntry.dish_media.mediaUrl ?? undefined,
+			cacheKey: dishMediaEntry.dish_media.mediaUrl
+				? getCacheKeyForImage(dishMediaEntry.dish_media.mediaUrl)
+				: undefined,
 		}),
 		[dishMediaEntry.dish_media],
 	);
