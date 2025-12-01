@@ -198,18 +198,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-font",
 		"expo-web-browser",
 		"expo-localization",
-		[
-			// #492 【設計】Meta SDK (react-native-fbsdk-next) プラグイン設定
-			"react-native-fbsdk-next",
-			{
-				appID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
-				clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
-				displayName: "nanitabeyo",
-				advertiserIDCollectionEnabled: true,
-				autoLogAppEventsEnabled: true,
-				isAutoInitEnabled: true,
-			},
-		],
+		...(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID && process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN
+			? [
+				[
+					// #492 【設計】Meta SDK (react-native-fbsdk-next) プラグイン設定
+					// expo config は eas build 実行の際に走るため、環境変数がないと落ちる。そのため、env が無ければスキップにする
+					"react-native-fbsdk-next",
+					{
+						appID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
+						clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
+						displayName: "nanitabeyo",
+						advertiserIDCollectionEnabled: true,
+						autoLogAppEventsEnabled: true,
+						isAutoInitEnabled: true,
+					},
+				] as [string, any],
+			] : []),
 		[
 			// #492 【設計】ATT (App Tracking Transparency) ダイアログ設定
 			"expo-tracking-transparency",
