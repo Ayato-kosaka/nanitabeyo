@@ -49,5 +49,8 @@ jobs:
       - name: ✨ Update environment variable
         run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
 
+      - name: 🛠️ Sync environment variables from EAS CLI
+        run: pnpx eas-cli env:pull preview --non-interactive
+
       - name: 🚀 Build app (preview)
         run: pnpx eas-cli build --profile preview --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait --clear-cache
