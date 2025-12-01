@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Check, Circle, CheckCircle2 } from "lucide-react-native";
+import { Check, Circle, CheckCircle2, ArrowRight } from "lucide-react-native";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -33,10 +33,8 @@ import type { SupabaseDishCategories } from "@shared/converters/convert_dish_cat
 /* -------------------------------------------------------------------------- */
 
 /** #516 【設計】変更前/変更後のカテゴリ情報の型 */
-type DishCategoryItem = {
-	dishCategory: Pick<SupabaseDishCategories, "id" | "image_url"> & {
-		name: string;
-	};
+type DishCategoryItem = Pick<SupabaseDishCategories, "id" | "image_url"> & {
+	name: string;
 };
 
 /** #516 【設計】選択状態の型 */
@@ -55,64 +53,46 @@ type CategorySelection = {
 // #516 【設計】変更前のカテゴリデータ（ハードコード）
 const BEFORE_DISH_CATEGORIES: DishCategoryItem[] = [
 	{
-		dishCategory: {
-			id: "category-001",
-			name: "カレー",
-			image_url: "https://placehold.co/400x600/FFD700/000000?text=カレー（変更前）",
-		},
+		id: "category-001",
+		name: "カレー",
+		image_url: "https://placehold.co/400x600/FFD700/000000?text=カレー（変更前）",
 	},
 	{
-		dishCategory: {
-			id: "category-002",
-			name: "ラーメン",
-			image_url: "https://placehold.co/400x600/FFA500/FFFFFF?text=ラーメン（変更前）",
-		},
+		id: "category-002",
+		name: "ラーメン",
+		image_url: "https://placehold.co/400x600/FFA500/FFFFFF?text=ラーメン（変更前）",
 	},
 	{
-		dishCategory: {
-			id: "category-003",
-			name: "寿司",
-			image_url: "https://placehold.co/400x600/FF6347/FFFFFF?text=寿司（変更前）",
-		},
+		id: "category-003",
+		name: "寿司",
+		image_url: "https://placehold.co/400x600/FF6347/FFFFFF?text=寿司（変更前）",
 	},
 ];
 
 // #516 【設計】変更後のカテゴリデータ（ハードコード）- id・nameは同じだが image_url が異なる
 const AFTER_DISH_CATEGORIES: DishCategoryItem[] = [
 	{
-		dishCategory: {
-			id: "category-001",
-			name: "カレー",
-			image_url: "https://placehold.co/400x600/DAA520/000000?text=カレー（変更後）",
-		},
+		id: "category-001",
+		name: "カレー",
+		image_url: "https://placehold.co/400x600/DAA520/000000?text=カレー（変更後）",
 	},
 	{
-		dishCategory: {
-			id: "category-002",
-			name: "ラーメン",
-			image_url: "https://placehold.co/400x600/FF8C00/FFFFFF?text=ラーメン（変更後）",
-		},
+		id: "category-002",
+		name: "ラーメン",
+		image_url: "https://placehold.co/400x600/FF8C00/FFFFFF?text=ラーメン（変更後）",
 	},
 	{
-		dishCategory: {
-			id: "category-003",
-			name: "寿司",
-			image_url: "https://placehold.co/400x600/DC143C/FFFFFF?text=寿司（変更後）",
-		},
+		id: "category-003",
+		name: "寿司",
+		image_url: "https://placehold.co/400x600/DC143C/FFFFFF?text=寿司（変更後）",
 	},
 ];
 
 // #516 【設計】理由候補のラジオボタン用文字列
-const REASON_OPTIONS = [
-	"変更後の料理が違う料理になっている",
-	"変更後の画像のクオリティが低い",
-	"色味が不自然で美味しそうに見えない",
-] as const;
+const REASON_OPTIONS = ["変更後の料理が違う料理になっている", "変更後の画像のクオリティが低い"] as const;
 
 // #516 【パフォーマンス】変更後カテゴリのIDによるルックアップ用Map
-const AFTER_CATEGORY_MAP = new Map<string, DishCategoryItem>(
-	AFTER_DISH_CATEGORIES.map((item) => [item.dishCategory.id, item]),
-);
+const AFTER_CATEGORY_MAP = new Map<string, DishCategoryItem>(AFTER_DISH_CATEGORIES.map((item) => [item.id, item]));
 
 /* -------------------------------------------------------------------------- */
 /*                                  メインページ                               */
@@ -156,7 +136,7 @@ export default function DishCategoryImageReviewPage() {
 	const PADDING_HORIZONTAL = 16;
 	const GAP = 12;
 	const cardWidth = screenWidth - PADDING_HORIZONTAL * 2;
-	const imageWidth = (cardWidth - GAP * 3) / 2;
+	const imageWidth = (cardWidth - GAP * 3 - 80) / 2;
 	const imageHeight = (imageWidth / 9) * 16;
 
 	// #516 【設計】モーダル内の画像サイズ
@@ -170,7 +150,7 @@ export default function DishCategoryImageReviewPage() {
 	useEffect(() => {
 		const initial: Record<string, CategorySelection> = {};
 		BEFORE_DISH_CATEGORIES.forEach((item) => {
-			initial[item.dishCategory.id] = { choice: null, reason: "" };
+			initial[item.id] = { choice: null, reason: "" };
 		});
 		setSelectionMap(initial);
 	}, []);
@@ -188,7 +168,7 @@ export default function DishCategoryImageReviewPage() {
 	// #516 【設計】送信ボタン活性条件: 全カテゴリでchoice決定 & beforeの場合はreason必須
 	const canSubmit = useMemo(() => {
 		return BEFORE_DISH_CATEGORIES.every((item) => {
-			const sel = selectionMap[item.dishCategory.id];
+			const sel = selectionMap[item.id];
 			if (!sel || sel.choice === null) return false;
 			if (sel.choice === "before" && sel.reason.trim().length === 0) return false;
 			return true;
@@ -217,7 +197,7 @@ export default function DishCategoryImageReviewPage() {
 			lightImpact();
 			setActiveCategory(category);
 			// 既存の選択状態があればそれを復元
-			const existingSel = selectionMap[category.dishCategory.id];
+			const existingSel = selectionMap[category.id];
 			if (existingSel && existingSel.choice === "before") {
 				setModalReason(existingSel.reason);
 				// 理由候補に一致するものがあればインデックスをセット
@@ -259,7 +239,7 @@ export default function DishCategoryImageReviewPage() {
 		lightImpact();
 		setSelectionMap((prev) => ({
 			...prev,
-			[activeCategory.dishCategory.id]: {
+			[activeCategory.id]: {
 				choice: "before",
 				reason: modalReason.trim(),
 			},
@@ -276,7 +256,7 @@ export default function DishCategoryImageReviewPage() {
 		lightImpact();
 		const initial: Record<string, CategorySelection> = {};
 		BEFORE_DISH_CATEGORIES.forEach((item) => {
-			initial[item.dishCategory.id] = { choice: null, reason: "" };
+			initial[item.id] = { choice: null, reason: "" };
 		});
 		setSelectionMap(initial);
 	}, [lightImpact]);
@@ -288,14 +268,14 @@ export default function DishCategoryImageReviewPage() {
 		lightImpact();
 
 		const payload = BEFORE_DISH_CATEGORIES.map((beforeItem) => {
-			const afterItem = AFTER_CATEGORY_MAP.get(beforeItem.dishCategory.id);
-			const sel = selectionMap[beforeItem.dishCategory.id];
+			const afterItem = AFTER_CATEGORY_MAP.get(beforeItem.id);
+			const sel = selectionMap[beforeItem.id];
 
 			return {
-				beforeId: beforeItem.dishCategory.id,
-				beforeImageUrl: beforeItem.dishCategory.image_url,
-				name: beforeItem.dishCategory.name,
-				afterImageUrl: afterItem?.dishCategory.image_url ?? null,
+				beforeId: beforeItem.id,
+				beforeImageUrl: beforeItem.image_url,
+				name: beforeItem.name,
+				afterImageUrl: afterItem?.image_url ?? null,
 				choice: sel?.choice ?? null,
 				reason: sel?.choice === "before" ? sel.reason.trim() : "",
 			};
@@ -304,7 +284,7 @@ export default function DishCategoryImageReviewPage() {
 		logFrontendEvent({
 			event_name: "tools_dish_category_image_review_submitted",
 			error_level: "log",
-			payload,
+			payload: { submission: payload },
 		});
 
 		showSnackbar("送信しました");
@@ -312,7 +292,7 @@ export default function DishCategoryImageReviewPage() {
 		// 送信後リセット
 		const initial: Record<string, CategorySelection> = {};
 		BEFORE_DISH_CATEGORIES.forEach((item) => {
-			initial[item.dishCategory.id] = { choice: null, reason: "" };
+			initial[item.id] = { choice: null, reason: "" };
 		});
 		setSelectionMap(initial);
 	}, [canSubmit, lightImpact, logFrontendEvent, showSnackbar, selectionMap]);
@@ -324,15 +304,15 @@ export default function DishCategoryImageReviewPage() {
 	/** #516 【設計】カテゴリカードのレンダリング */
 	const renderCategoryCard = useCallback(
 		(beforeItem: DishCategoryItem) => {
-			const afterItem = AFTER_CATEGORY_MAP.get(beforeItem.dishCategory.id);
-			const sel = selectionMap[beforeItem.dishCategory.id];
+			const afterItem = AFTER_CATEGORY_MAP.get(beforeItem.id);
+			const sel = selectionMap[beforeItem.id];
 			const isBeforeSelected = sel?.choice === "before";
 			const isAfterSelected = sel?.choice === "after";
 
 			return (
-				<View key={beforeItem.dishCategory.id} style={styles.categoryCard}>
+				<View key={beforeItem.id} style={styles.categoryCard}>
 					{/* カテゴリ名 */}
-					<Text style={styles.categoryName}>{beforeItem.dishCategory.name}</Text>
+					<Text style={styles.categoryName}>{beforeItem.name}</Text>
 
 					{/* 2列: 変更前 / 変更後 */}
 					<View style={styles.imageRow}>
@@ -341,10 +321,9 @@ export default function DishCategoryImageReviewPage() {
 							style={[styles.imageCard, { width: imageWidth }, isBeforeSelected && styles.imageCardSelected]}
 							onPress={() => handleBeforeSelect(beforeItem)}
 							android_ripple={{ color: "rgba(0,0,0,0.1)" }}>
-							<Text style={styles.imageLabel}>変更前</Text>
 							<View style={[styles.imageContainer, { height: imageHeight }]}>
 								<Image
-									source={{ uri: beforeItem.dishCategory.image_url }}
+									source={{ uri: beforeItem.image_url }}
 									style={StyleSheet.absoluteFill}
 									contentFit="cover"
 									transition={100}
@@ -357,15 +336,19 @@ export default function DishCategoryImageReviewPage() {
 							</View>
 						</Pressable>
 
+						{/* 画像間の矢印 */}
+						<View style={styles.arrowContainer}>
+							<ArrowRight size={20} color="#6B7280" />
+						</View>
+
 						{/* 変更後 */}
 						<Pressable
 							style={[styles.imageCard, { width: imageWidth }, isAfterSelected && styles.imageCardSelected]}
-							onPress={() => handleAfterSelect(beforeItem.dishCategory.id)}
+							onPress={() => handleAfterSelect(beforeItem.id)}
 							android_ripple={{ color: "rgba(0,0,0,0.1)" }}>
-							<Text style={styles.imageLabel}>変更後</Text>
 							<View style={[styles.imageContainer, { height: imageHeight }]}>
 								<Image
-									source={{ uri: afterItem?.dishCategory.image_url }}
+									source={{ uri: afterItem?.image_url }}
 									style={StyleSheet.absoluteFill}
 									contentFit="cover"
 									transition={100}
@@ -386,7 +369,7 @@ export default function DishCategoryImageReviewPage() {
 
 	// #516 【設計】モーダル内の変更前/変更後画像を取得
 	const activeBefore = activeCategory;
-	const activeAfter = activeCategory ? AFTER_CATEGORY_MAP.get(activeCategory.dishCategory.id) : null;
+	const activeAfter = activeCategory ? AFTER_CATEGORY_MAP.get(activeCategory.id) : null;
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -461,7 +444,7 @@ export default function DishCategoryImageReviewPage() {
 						style={{ maxHeight: screenHeight - 150 }}
 						showsVerticalScrollIndicator={false}
 						keyboardShouldPersistTaps="handled">
-						<Text style={styles.modalTitle}>{activeCategory.dishCategory.name}</Text>
+						<Text style={styles.modalTitle}>{activeCategory.name}</Text>
 						<Text style={styles.modalSubtitle}>「変更前の画像を採用する理由」を入力してください。</Text>
 
 						{/* 差分画像を表示しないチェックボックス */}
@@ -476,7 +459,7 @@ export default function DishCategoryImageReviewPage() {
 								<Text style={styles.modalImageLabel}>■ 変更前の画像</Text>
 								<View style={[styles.modalImageContainer, { height: modalImageHeight }]}>
 									<Image
-										source={{ uri: activeBefore?.dishCategory.image_url }}
+										source={{ uri: activeBefore?.image_url }}
 										style={StyleSheet.absoluteFill}
 										contentFit="cover"
 										transition={100}
@@ -486,7 +469,7 @@ export default function DishCategoryImageReviewPage() {
 								<Text style={[styles.modalImageLabel, { marginTop: 12 }]}>■ 変更後の画像</Text>
 								<View style={[styles.modalImageContainer, { height: modalImageHeight }]}>
 									<Image
-										source={{ uri: activeAfter?.dishCategory.image_url }}
+										source={{ uri: activeAfter?.image_url }}
 										style={StyleSheet.absoluteFill}
 										contentFit="cover"
 										transition={100}
@@ -629,6 +612,12 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		gap: 12,
+		alignItems: "center",
+	},
+	arrowContainer: {
+		width: 24,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	imageCard: {
 		borderRadius: 8,
@@ -641,12 +630,8 @@ const styles = StyleSheet.create({
 		borderWidth: 3,
 	},
 	imageLabel: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#4B5563",
-		textAlign: "center",
-		paddingVertical: 6,
-		backgroundColor: "#F3F4F6",
+		// 削除: ラベルは使用しない
+		display: "none",
 	},
 	imageContainer: {
 		position: "relative",
