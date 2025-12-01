@@ -254,13 +254,6 @@ export class StorageService {
 
       const sep = u.search ? '&' : '?';
       const signed = `${u.toString()}${sep}${policy}&Signature=${signature}`;
-
-      this.logger.debug('CdnSignedURLGenerated', 'generateCdnSignedURL', {
-        mode: 'URLPrefix',
-        prefix,
-        expires: new Date(expires * 1000).toISOString(),
-        preview: signed.slice(0, 200) + '...',
-      });
       return signed;
     } else {
       // フル URL 署名（URL 全体に Expires/KeyName を付与し、その文字列を HMAC）
@@ -268,12 +261,6 @@ export class StorageService {
       const urlToSign = `${u.toString()}${sep}Expires=${expires}&KeyName=${keyName}`;
       const signature = signPolicy(urlToSign, keySecretB64url);
       const signed = `${urlToSign}&Signature=${signature}`;
-
-      this.logger.debug('CdnSignedURLGenerated', 'generateCdnSignedURL', {
-        mode: 'FullURL',
-        expires: new Date(expires * 1000).toISOString(),
-        preview: signed.slice(0, 200) + '...',
-      });
       return signed;
     }
   }
