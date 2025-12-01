@@ -28,6 +28,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
+import { MediaProcessingStatus } from '@shared/v1/res';
 
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
@@ -59,7 +60,7 @@ export class DishMediaRepository {
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*   料理メディアを位置 + カテゴリ + 未閲覧 で取得（返却数固定）    */
@@ -436,9 +437,9 @@ export class DishMediaRepository {
   ) {
     const cursor = cursorStr
       ? {
-          likeCount: Number(cursorStr.split('_')[0]),
-          mediaId: cursorStr.split('_')[1],
-        }
+        likeCount: Number(cursorStr.split('_')[0]),
+        mediaId: cursorStr.split('_')[1],
+      }
       : null;
     const cursorWhere = cursor
       ? Prisma.sql`
@@ -844,14 +845,14 @@ export class DishMediaRepository {
   }> {
     const reviewLikeCounts = reviewIds.length
       ? await this.prisma.prisma.reactions.groupBy({
-          by: ['target_id'],
-          where: {
-            target_type: 'dish_reviews',
-            target_id: { in: reviewIds },
-            action_type: 'like',
-          },
-          _count: { target_id: true },
-        })
+        by: ['target_id'],
+        where: {
+          target_type: 'dish_reviews',
+          target_id: { in: reviewIds },
+          action_type: 'like',
+        },
+        _count: { target_id: true },
+      })
       : [];
     const reviewLikeCountMap = new Map(
       reviewLikeCounts.map((r) => [r.target_id, r._count.target_id]),
@@ -867,12 +868,12 @@ export class DishMediaRepository {
     const targetIds = [...dishMediaIds, ...reviewIds];
     const userReactions = targetIds.length
       ? await this.prisma.prisma.reactions.findMany({
-          where: {
-            user_id: userId,
-            target_id: { in: targetIds },
-          },
-          select: { target_type: true, target_id: true, action_type: true },
-        })
+        where: {
+          user_id: userId,
+          target_id: { in: targetIds },
+        },
+        select: { target_type: true, target_id: true, action_type: true },
+      })
       : [];
     const reactionSet = new Set(
       userReactions.map((r) =>
@@ -899,17 +900,24 @@ export class DishMediaRepository {
   async createDishMedia(
     tx: Prisma.TransactionClient,
     dto: CreateDishMediaDto,
-    creatorId: string,
-    thumbnailPath: string,
+    dish_media: {
+      user_id: string,
+      thumbnail_path: string,
+      media_processing_status: MediaProcessingStatus,
+      thumbnail_processing_status: MediaProcessingStatus,
+    },
   ) {
+    const { user_id, thumbnail_path, media_processing_status, thumbnail_processing_status } = dish_media;
     // 画像は既に Storage へアップ済みとして mediaPath を受け取る
     const newMedia = await tx.dish_media.create({
       data: {
         dish_id: dto.dishId,
-        user_id: creatorId,
+        user_id,
         media_path: dto.mediaPath,
+        media_processing_status,
         media_type: dto.mediaType,
-        thumbnail_path: thumbnailPath,
+        thumbnail_path,
+        thumbnail_processing_status,
         video_duration_ms: dto.videoDurationMs,
       },
     });
