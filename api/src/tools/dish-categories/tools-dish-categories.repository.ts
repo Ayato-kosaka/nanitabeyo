@@ -31,10 +31,9 @@ export class ToolsDishCategoriesRepository {
     // 【セキュリティ】limitパラメータの検証
     const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
 
-    const EXCLUDED_CATEGORY_IDS_STRING: string =
-      await this.remoteConfigService.getRemoteConfigValue(
-        'TOOLS_DISH_CATEGORIES_POPULAR_EXCLUDED_CATEGORY_IDS',
-      );
+    const EXCLUDED_CATEGORY_IDS_STRING: string = await this.remoteConfigService.getRemoteConfigValue(
+      'TOOLS_DISH_CATEGORIES_POPULAR_EXCLUDED_CATEGORY_IDS',
+    );
 
     // #494 【設計】Prisma $queryRaw テンプレートリテラルは自動的にパラメータ化される
     const result = await this.prisma.prisma.dishes.groupBy({
@@ -46,7 +45,7 @@ export class ToolsDishCategoriesRepository {
           },
           id: {
             notIn: EXCLUDED_CATEGORY_IDS_STRING.split(',').map((s) => s.trim()),
-          },
+          }
         },
       },
       _count: {

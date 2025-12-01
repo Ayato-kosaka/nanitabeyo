@@ -3,7 +3,7 @@
 // Pub/Sub メッセージおよび Transcoder Job 通知のインターフェース
 //
 
-import { protos } from '@google-cloud/video-transcoder';
+import { protos } from "@google-cloud/video-transcoder";
 
 /**
  * Pub/Sub Push メッセージの形式
@@ -42,3 +42,4 @@ export type TranscoderJobLabels = Record<string, string> & {
   retry?: string;
   video_only?: 'true' | 'false';
 };
+
