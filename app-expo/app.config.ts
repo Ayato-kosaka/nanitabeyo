@@ -29,6 +29,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 					CFBundleURLName: "nanitabeyo",
 					CFBundleURLSchemes: ["nanitabeyo"],
 				},
+				// #492 【設計】Meta SDK OAuth 用 URL スキーム（環境変数が設定されている場合のみ）
+				...(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID
+					? [{ CFBundleURLSchemes: [`fb${process.env.EXPO_PUBLIC_FACEBOOK_APP_ID}`] }]
+					: []),
 			],
 			CFBundleAllowMixedLocalizations: true,
 			CFBundleLocalizations: ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"],
@@ -194,6 +198,26 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-font",
 		"expo-web-browser",
 		"expo-localization",
+		[
+			// #492 【設計】Meta SDK (react-native-fbsdk-next) プラグイン設定
+			"react-native-fbsdk-next",
+			{
+				appID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
+				clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
+				displayName: "nanitabeyo",
+				advertiserIDCollectionEnabled: true,
+				autoLogAppEventsEnabled: true,
+				isAutoInitEnabled: true,
+			},
+		],
+		[
+			// #492 【設計】ATT (App Tracking Transparency) ダイアログ設定
+			"expo-tracking-transparency",
+			{
+				userTrackingPermission:
+					"This identifier will be used to deliver personalized ads to you. By allowing, you help us improve our service.",
+			},
+		],
 	],
 	experiments: {
 		typedRoutes: true,
@@ -218,5 +242,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID,
 		EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID: process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_UNIT_ID,
 		EXPO_PUBLIC_WEB_BASE_URL: process.env.EXPO_PUBLIC_WEB_BASE_URL,
+		// #492 【設計】Meta SDK 用環境変数
+		EXPO_PUBLIC_FACEBOOK_APP_ID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
+		EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
 	},
 });
