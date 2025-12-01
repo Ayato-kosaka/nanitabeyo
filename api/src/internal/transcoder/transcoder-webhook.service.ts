@@ -154,9 +154,17 @@ export class TranscoderWebhookService {
     const retryCount = parseInt(labels.retry ?? '0', 10);
     if (isAudioMissing && retryCount === 0) {
       try {
-        const { inputUri, outputUri } = jobDetails;
-        if (!inputUri || !outputUri)
+        const inputUri = jobDetails.config?.inputs?.[0]?.uri;
+        const outputUri = jobDetails.config?.output?.uri;
+        if (!inputUri || !outputUri) {
+          this.logger.error('TranscoderJobRetryError', 'handleFailed', {
+            jobId,
+            labels,
+            jobDetails,
+            message: 'InputUri or OutputUri is missing in jobDetails.config',
+          });
           throw new Error('InputUri or OutputUri is missing');
+        }
         await this.transcoderService.createTranscodeJob({
           inputUri,
           outputUri,
@@ -188,6 +196,7 @@ export class TranscoderWebhookService {
     this.logger.error('TranscoderJobFailedPermanent', 'handleFailed', {
       jobId,
       labels,
+      jobDetails,
       errorDescription,
     });
   }
@@ -195,24 +204,10 @@ export class TranscoderWebhookService {
   private isAudioMissingError(
     errorStatus: protos.google.rpc.IStatus | null | undefined,
   ): boolean {
-    // AudioMissing エラーの判定文字列
-    const AUDIO_MISSING_ERROR = 'AudioMissing';
-
     if (!errorStatus) return false;
 
-    // まず message をチェック
-    if (errorStatus.message?.includes(AUDIO_MISSING_ERROR)) return true;
-
-    // details をまとめて JSON 化して文字列検索
-    if (errorStatus.details && errorStatus.details.length > 0) {
-      try {
-        const serialized = JSON.stringify(errorStatus.details);
-        if (serialized.includes(AUDIO_MISSING_ERROR)) {
-          return true;
-        }
-      } catch {
-        // stringify に失敗しても無視（判定は false のまま）
-      }
+    if (errorStatus.message?.includes('with an audio track')) {
+      return true;
     }
     return false;
   }
