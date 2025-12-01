@@ -660,8 +660,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 7.0.0
-   * Query Engine version: 0c19ccc313cf9911a90d99d2ac2eb0280c76c513
+   * Prisma Client JS version: 7.0.1
+   * Query Engine version: f09f2815f091dbba658cdcd2264306d88bb5bda6
    */
   export type PrismaVersion = {
     client: string
@@ -34336,8 +34336,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
-    media_processing_status?: string
-    thumbnail_processing_status?: string
+    media_processing_status: string
+    thumbnail_processing_status: string
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -34358,8 +34358,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
-    media_processing_status?: string
-    thumbnail_processing_status?: string
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -34418,8 +34418,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
-    media_processing_status?: string
-    thumbnail_processing_status?: string
+    media_processing_status: string
+    thumbnail_processing_status: string
   }
 
   export type dish_mediaUpdateManyMutationInput = {
@@ -36595,6 +36595,8 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     video_duration_ms?: SortOrder
+    media_processing_status?: SortOrder
+    thumbnail_processing_status?: SortOrder
   }
 
   export type dish_mediaAvgOrderByAggregateInput = {
@@ -36613,6 +36615,8 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     video_duration_ms?: SortOrder
+    media_processing_status?: SortOrder
+    thumbnail_processing_status?: SortOrder
   }
 
   export type dish_mediaMinOrderByAggregateInput = {
@@ -36626,6 +36630,8 @@ export namespace Prisma {
     updated_at?: SortOrder
     lock_no?: SortOrder
     video_duration_ms?: SortOrder
+    media_processing_status?: SortOrder
+    thumbnail_processing_status?: SortOrder
   }
 
   export type dish_mediaSumOrderByAggregateInput = {
@@ -40016,6 +40022,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
@@ -40035,6 +40043,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -40066,6 +40076,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
@@ -40085,6 +40097,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -40100,6 +40114,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -40119,6 +40135,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -40182,6 +40200,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -40201,6 +40221,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -40232,6 +40254,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -40251,6 +40275,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_views?: dish_media_viewsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -40319,6 +40345,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -40338,6 +40366,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -40396,6 +40426,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -40415,6 +40447,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -40469,6 +40503,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -40488,6 +40524,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -40672,6 +40710,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
@@ -40690,6 +40730,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -40843,6 +40885,8 @@ export namespace Prisma {
     updated_at?: DateTimeFilter<"dish_media"> | Date | string
     lock_no?: IntFilter<"dish_media"> | number
     video_duration_ms?: IntNullableFilter<"dish_media"> | number | null
+    media_processing_status?: StringFilter<"dish_media"> | string
+    thumbnail_processing_status?: StringFilter<"dish_media"> | string
   }
 
   export type dish_reviewsUpsertWithWhereUniqueWithoutDishesInput = {
@@ -41113,6 +41157,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -41132,6 +41178,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -41206,6 +41254,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -41225,6 +41275,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -41676,6 +41728,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsCreateNestedManyWithoutDish_mediaInput
@@ -41694,6 +41748,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -42149,6 +42205,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
   }
 
   export type dish_reviewsCreateManyDishesInput = {
@@ -42174,6 +42232,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
@@ -42192,6 +42252,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -42209,6 +42271,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
   }
 
   export type dish_reviewsUpdateWithoutDishesInput = {
@@ -42473,6 +42537,8 @@ export namespace Prisma {
     updated_at?: Date | string
     lock_no?: number
     video_duration_ms?: number | null
+    media_processing_status: string
+    thumbnail_processing_status: string
   }
 
   export type dish_media_likesCreateManyUsersInput = {
@@ -42519,6 +42585,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUpdateManyWithoutDish_mediaNestedInput
@@ -42537,6 +42605,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -42554,6 +42624,8 @@ export namespace Prisma {
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
     video_duration_ms?: NullableIntFieldUpdateOperationsInput | number | null
+    media_processing_status?: StringFieldUpdateOperationsInput | string
+    thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
   }
 
   export type dish_media_likesUpdateWithoutUsersInput = {
