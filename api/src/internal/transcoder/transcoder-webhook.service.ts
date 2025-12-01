@@ -188,7 +188,7 @@ export class TranscoderWebhookService {
 
     // #511 【設計】dish_media テーブルの場合はステータスを failed に更新
     // リトライしない場合のみ更新する。リトライの失敗は別途考慮しない。
-    if (table_name === 'dish_media' && column_name === 'media_path' && record_id) {
+    if (table_name === 'dish_media' && column_name === 'media_path') {
       await this.updateDishMediaProcessingStatus(record_id, 'failed');
     }
 
