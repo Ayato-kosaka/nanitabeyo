@@ -1,39 +1,39 @@
 {
-  "project_info": {
-    "project_number": "386582543095",
-    "project_id": "food-scroll",
-    "storage_bucket": "food-scroll.firebasestorage.app"
-  },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:386582543095:android:2d5e0fd7f6ea4513ba71f2",
-        "android_client_info": {
-          "package_name": "com.nanitabeyo"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "386582543095-0m86l0dag8do7lnmfbqrbvt7vj409j7c.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA35XO1WUXB8X-Ss0tX0tpcfvTo7NQgryc"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "386582543095-0m86l0dag8do7lnmfbqrbvt7vj409j7c.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    }
-  ],
-  "configuration_version": "1"
+	"project_info": {
+		"project_number": "386582543095",
+		"project_id": "food-scroll",
+		"storage_bucket": "food-scroll.firebasestorage.app"
+	},
+	"client": [
+		{
+			"client_info": {
+				"mobilesdk_app_id": "1:386582543095:android:2d5e0fd7f6ea4513ba71f2",
+				"android_client_info": {
+					"package_name": "com.nanitabeyo"
+				}
+			},
+			"oauth_client": [
+				{
+					"client_id": "386582543095-0m86l0dag8do7lnmfbqrbvt7vj409j7c.apps.googleusercontent.com",
+					"client_type": 3
+				}
+			],
+			"api_key": [
+				{
+					"current_key": "AIzaSyA35XO1WUXB8X-Ss0tX0tpcfvTo7NQgryc"
+				}
+			],
+			"services": {
+				"appinvite_service": {
+					"other_platform_oauth_client": [
+						{
+							"client_id": "386582543095-0m86l0dag8do7lnmfbqrbvt7vj409j7c.apps.googleusercontent.com",
+							"client_type": 3
+						}
+					]
+				}
+			}
+		}
+	],
+	"configuration_version": "1"
 }

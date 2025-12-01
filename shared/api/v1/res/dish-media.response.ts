@@ -3,6 +3,15 @@ import { SupabaseDishMedia } from "../../../converters/convert_dish_media";
 import { SupabaseDishReviews } from "../../../converters/convert_dish_reviews";
 import { RestaurantsEntity } from "./restaurants.response";
 
+/**
+ * #511 【設計】メディア加工ステータスの型定義
+ * - 'idle': まだ何もしていない（将来用）
+ * - 'processing': 加工中（リサイズ・トランスコードなど）
+ * - 'completed': 加工完了（リサイズ or トランスコード済み）
+ * - 'failed': 加工失敗（タイムアウト / 形式不正 / 内部エラー等）
+ */
+export type MediaProcessingStatus = "idle" | "processing" | "completed" | "failed";
+
 /** 一つの料理メディア投稿（dish_media）とそれに関連する情報（レストラン、料理、レビュー） */
 export type DishMediaEntry = {
 	restaurant: RestaurantsEntity;
@@ -15,9 +24,13 @@ export type DishMediaEntry = {
 		isSaved: boolean;
 		isLiked: boolean;
 		likeCount: number;
-		/** 投稿メディアの署名付きCDN URL（派生サイズ） */
-		mediaUrl: string;
-		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ） */
+		/**
+		 * 投稿メディアの署名付きCDN URL（派生サイズ）
+		 * - 動画の場合: media_processing_status が 'completed' 以外は null
+		 * - 画像の場合: media_processing_status に応じてオリジナル or リサイズ済みパス
+		 */
+		mediaUrl: string | null;
+		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ or オリジナル） */
 		thumbnailImageUrl: string;
 	};
 	dish_reviews: (SupabaseDishReviews & {

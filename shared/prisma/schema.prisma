@@ -88,6 +88,8 @@ model dish_media {
   updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
   lock_no                     Int                          @default(0)
   video_duration_ms           Int?
+  media_processing_status     String
+  thumbnail_processing_status String
   dishes                      dishes                       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                       users?                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   dish_media_analysis_results dish_media_analysis_results?

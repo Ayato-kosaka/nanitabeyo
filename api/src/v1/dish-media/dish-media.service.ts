@@ -39,7 +39,7 @@ export class DishMediaService {
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                     GET /v1/dish-media/search                      */
@@ -141,7 +141,12 @@ export class DishMediaService {
     // トランザクションで dish_media + 付随レコード作成
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.createDishMedia(tx, dto, creatorId, dto.thumbnailPath),
+        this.repo.createDishMedia(tx, dto, {
+          user_id: creatorId,
+          thumbnail_path: dto.thumbnailPath,
+          media_processing_status: 'processing',
+          thumbnail_processing_status: 'processing',
+        }),
     );
 
     this.logger.log('DishMediaCreated', 'createDishMedia', {

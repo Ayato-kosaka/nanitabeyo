@@ -12,6 +12,8 @@ import {
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { TranscoderService } from '../../core/transcoder/transcoder.service';
 import { TranscoderJobLabels } from './transcoder-webhook.interface';
+import { PrismaService } from '../../prisma/prisma.service';
+import { MediaProcessingStatus } from '@shared/v1/res';
 
 @Injectable()
 export class TranscoderWebhookService {
@@ -20,6 +22,7 @@ export class TranscoderWebhookService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly transcoderService: TranscoderService,
+    private readonly prisma: PrismaService,
   ) {
     this.client = new TranscoderServiceClient();
   }
@@ -40,7 +43,7 @@ export class TranscoderWebhookService {
 
     switch (state) {
       case 'SUCCEEDED':
-        this.handleSucceeded(jobId, jobDetails);
+        await this.handleSucceeded(jobId, jobDetails);
         break;
 
       case 'FAILED':
@@ -60,16 +63,61 @@ export class TranscoderWebhookService {
   }
 
   /**
+   * #511 【設計】dish_media テーブルの processing_status を更新
+   */
+  private async updateDishMediaProcessingStatus(
+    recordId: string,
+    status: MediaProcessingStatus,
+  ): Promise<void> {
+    try {
+      await this.prisma.prisma.dish_media.update({
+        where: { id: recordId },
+        data: {
+          media_processing_status: status,
+          updated_at: new Date(),
+          lock_no: { increment: 1 },
+        },
+      });
+
+      this.logger.log(
+        'DishMediaProcessingStatusUpdated',
+        'updateDishMediaProcessingStatus',
+        {
+          recordId,
+          status,
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        'UpdateDishMediaProcessingStatusError',
+        'updateDishMediaProcessingStatus',
+        {
+          recordId,
+          status,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
+      // ステータス更新失敗はトランスコード処理自体の失敗とは別扱い（ログのみ）
+    }
+  }
+
+  /**
    * Job 成功時の処理
    */
-  private handleSucceeded(
+  private async handleSucceeded(
     jobId: string,
     jobDetails: protos.google.cloud.video.transcoder.v1.IJob,
-  ): void {
+  ): Promise<void> {
     this.logger.log('TranscoderJobSucceeded', 'handleSucceeded', {
       jobId,
       labels: jobDetails.labels,
     });
+
+    // #511 【設計】dish_media テーブルの場合はステータスを completed に更新
+    const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
+    if (labels?.table_name === 'dish_media' && labels.column_name === 'media_path' && labels.record_id) {
+      await this.updateDishMediaProcessingStatus(labels.record_id, 'completed');
+    }
   }
 
   /**
@@ -132,9 +180,16 @@ export class TranscoderWebhookService {
           labels,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
+        throw error;
       }
 
       return;
+    }
+
+    // #511 【設計】dish_media テーブルの場合はステータスを failed に更新
+    // リトライしない場合のみ更新する。リトライの失敗は別途考慮しない。
+    if (table_name === 'dish_media' && column_name === 'media_path') {
+      await this.updateDishMediaProcessingStatus(record_id, 'failed');
     }
 
     // その他の失敗はログ記録のみ
