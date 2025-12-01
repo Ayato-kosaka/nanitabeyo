@@ -75,6 +75,7 @@ export class TranscoderWebhookService {
         data: {
           media_processing_status: status,
           updated_at: new Date(),
+          lock_no: { increment: 1 },
         },
       });
 
@@ -171,12 +172,14 @@ export class TranscoderWebhookService {
           labels,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
+        throw error;
       }
 
       return;
     }
 
     // #511 【設計】dish_media テーブルの場合はステータスを failed に更新
+    // リトライしない場合のみ更新する。リトライの失敗は別途考慮しない。
     if (table_name === 'dish_media' && column_name === 'media_path' && record_id) {
       await this.updateDishMediaProcessingStatus(record_id, 'failed');
     }
