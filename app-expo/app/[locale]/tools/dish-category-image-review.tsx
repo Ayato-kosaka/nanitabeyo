@@ -109,6 +109,11 @@ const REASON_OPTIONS = [
 	"色味が不自然で美味しそうに見えない",
 ] as const;
 
+// #516 【パフォーマンス】変更後カテゴリのIDによるルックアップ用Map
+const AFTER_CATEGORY_MAP = new Map<string, DishCategoryItem>(
+	AFTER_DISH_CATEGORIES.map((item) => [item.dishCategory.id, item]),
+);
+
 /* -------------------------------------------------------------------------- */
 /*                                  メインページ                               */
 /* -------------------------------------------------------------------------- */
@@ -283,7 +288,7 @@ export default function DishCategoryImageReviewPage() {
 		lightImpact();
 
 		const payload = BEFORE_DISH_CATEGORIES.map((beforeItem) => {
-			const afterItem = AFTER_DISH_CATEGORIES.find((a) => a.dishCategory.id === beforeItem.dishCategory.id);
+			const afterItem = AFTER_CATEGORY_MAP.get(beforeItem.dishCategory.id);
 			const sel = selectionMap[beforeItem.dishCategory.id];
 
 			return {
@@ -319,7 +324,7 @@ export default function DishCategoryImageReviewPage() {
 	/** #516 【設計】カテゴリカードのレンダリング */
 	const renderCategoryCard = useCallback(
 		(beforeItem: DishCategoryItem) => {
-			const afterItem = AFTER_DISH_CATEGORIES.find((a) => a.dishCategory.id === beforeItem.dishCategory.id);
+			const afterItem = AFTER_CATEGORY_MAP.get(beforeItem.dishCategory.id);
 			const sel = selectionMap[beforeItem.dishCategory.id];
 			const isBeforeSelected = sel?.choice === "before";
 			const isAfterSelected = sel?.choice === "after";
@@ -381,9 +386,7 @@ export default function DishCategoryImageReviewPage() {
 
 	// #516 【設計】モーダル内の変更前/変更後画像を取得
 	const activeBefore = activeCategory;
-	const activeAfter = activeCategory
-		? AFTER_DISH_CATEGORIES.find((a) => a.dishCategory.id === activeCategory.dishCategory.id)
-		: null;
+	const activeAfter = activeCategory ? AFTER_CATEGORY_MAP.get(activeCategory.dishCategory.id) : null;
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
