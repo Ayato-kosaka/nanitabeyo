@@ -4,8 +4,7 @@ import { supabase } from "../lib/supabase";
 import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
-import { Platform } from "react-native";
-import { fetchWithAuth } from "./useAPICall";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 /**
  * ログレベルの優先度マッピング。
