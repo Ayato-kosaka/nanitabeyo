@@ -1,6 +1,8 @@
 import { mockDishItems } from "@/data/searchMockData";
 import type { QueryRestaurantBidsResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
 
+export const mapReviewsKey = (id: string) => `mapReviews-${id}`;
+
 // Mock data for active bids
 export const mockActiveBids: QueryRestaurantsResponse = mockDishItems.map((dish) => ({
 	restaurant: { ...dish.restaurant },

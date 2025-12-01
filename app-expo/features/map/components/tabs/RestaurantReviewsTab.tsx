@@ -12,13 +12,12 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { FeedDishMediaViewer } from "../FeedDishMediaViewer";
 import { shallow } from "zustand/shallow";
+import { mapReviewsKey } from "../../constants";
 
 interface RestaurantReviewsTabProps {
 	/** レストランID（Google Place ID） */
 	restaurantId: string;
 }
-
-export const mapReviewsKey = (id: string) => `mapReviews-${id}`;
 
 /**
  * レストランのレビュー（料理メディア）タブコンポーネント

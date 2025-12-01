@@ -47,7 +47,7 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { mapReviewsKey } from "./tabs/RestaurantReviewsTab";
+import { mapReviewsKey } from "../constants";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
