@@ -67,14 +67,13 @@ export class TranscoderWebhookService {
    */
   private async updateDishMediaProcessingStatus(
     recordId: string,
-    columnName: 'media_processing_status' | 'thumbnail_processing_status',
     status: MediaProcessingStatus,
   ): Promise<void> {
     try {
       await this.prisma.prisma.dish_media.update({
         where: { id: recordId },
         data: {
-          [columnName]: status,
+          media_processing_status: status,
           updated_at: new Date(),
         },
       });
@@ -84,7 +83,6 @@ export class TranscoderWebhookService {
         'updateDishMediaProcessingStatus',
         {
           recordId,
-          columnName,
           status,
         },
       );
@@ -94,7 +92,6 @@ export class TranscoderWebhookService {
         'updateDishMediaProcessingStatus',
         {
           recordId,
-          columnName,
           status,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
@@ -117,12 +114,8 @@ export class TranscoderWebhookService {
 
     // #511 【設計】dish_media テーブルの場合はステータスを completed に更新
     const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
-    if (labels?.table_name === 'dish_media' && labels.record_id && labels.column_name) {
-      await this.updateDishMediaProcessingStatus(
-        labels.record_id,
-        labels.column_name as 'media_processing_status' | 'thumbnail_processing_status',
-        'completed',
-      );
+    if (labels?.table_name === 'dish_media' && labels.column_name === 'media_path' && labels.record_id) {
+      await this.updateDishMediaProcessingStatus(labels.record_id, 'completed');
     }
   }
 
@@ -184,12 +177,8 @@ export class TranscoderWebhookService {
     }
 
     // #511 【設計】dish_media テーブルの場合はステータスを failed に更新
-    if (table_name === 'dish_media' && record_id && column_name) {
-      await this.updateDishMediaProcessingStatus(
-        record_id,
-        column_name as 'media_processing_status' | 'thumbnail_processing_status',
-        'failed',
-      );
+    if (table_name === 'dish_media' && column_name === 'media_path' && record_id) {
+      await this.updateDishMediaProcessingStatus(record_id, 'failed');
     }
 
     // その他の失敗はログ記録のみ
