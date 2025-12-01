@@ -20,7 +20,6 @@ export const MetaAppEventsInitializer = () => {
 
 	const initializeMetaAppEvents = useCallback(async () => {
 		if (hasInitializedRef.current) return;
-		hasInitializedRef.current = true;
 
 		// #492 【設計】Web は Meta SDK 非対応のためスキップ
 		if (Platform.OS === "web") return;
@@ -38,9 +37,18 @@ export const MetaAppEventsInitializer = () => {
 					status = result.status;
 				}
 				// #492 【設計】ATT 許可ステータスに基づいて広告 ID 収集を設定
-				trackingEnabled = status === "granted";
+				if (status === "granted") {
+					trackingEnabled = true;
+				} else if (status === "denied") {
+					trackingEnabled = false;
+				} else {
+					// unavailable / restricted などは SDK デフォルトに任せる or false で明示的に切る
+					// trackingEnabled = true; // こうする、などポリシーで決める
+				}
 			}
 			Settings.setAdvertiserTrackingEnabled(trackingEnabled);
+
+			hasInitializedRef.current = true;
 
 			if (Env.NODE_ENV === "development") {
 				console.log("[MetaAppEventsInitializer] Meta SDK initialized, tracking:", trackingEnabled);
