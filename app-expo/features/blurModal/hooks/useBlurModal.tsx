@@ -97,7 +97,6 @@ export function useBlurModal({
 
 	/* ---- バックドロップ押下の処理 ---- */
 	const handleBackdropPress = useCallback(() => {
-		console.log("Backdrop pressed");
 		if (dismissKeyboardFirst && isKeyboardVisibleRef.current) {
 			Keyboard.dismiss();
 			return;
