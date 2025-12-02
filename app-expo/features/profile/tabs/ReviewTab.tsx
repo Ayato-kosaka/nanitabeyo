@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
@@ -71,8 +71,13 @@ export function ReviewTab() {
 	}, [onlyMyPhotoVideoReviews, ids, targetUserId]);
 
 	// #519 【設計】フィルタ ON 時のみ filteredIds を専用キーに保存（詳細画面でのスワイプ対象を絞り込むため）
+	const prevFilteredIdsRef = useRef<string[]>([]);
 	useEffect(() => {
 		if (!onlyMyPhotoVideoReviews) return;
+		// #519 【パフォーマンス】配列の内容が変わった場合のみストアを更新
+		const prevIds = prevFilteredIdsRef.current;
+		if (prevIds.length === filteredIds.length && prevIds.every((id, i) => id === filteredIds[i])) return;
+		prevFilteredIdsRef.current = filteredIds;
 		updateReviewIdsByKey(filteredKey, () => filteredIds);
 	}, [onlyMyPhotoVideoReviews, filteredIds, updateReviewIdsByKey]);
 
