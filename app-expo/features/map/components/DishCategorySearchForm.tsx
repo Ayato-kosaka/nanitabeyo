@@ -81,6 +81,6 @@ export function DishCategorySearchForm({
 const styles = StyleSheet.create({
 	autocompleteContainer: {
 		marginHorizontal: 16,
-		minHeight: 200,
+		minHeight: 300,
 	},
 });

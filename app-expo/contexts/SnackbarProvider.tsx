@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { StyleSheet } from "react-native";
 import { Snackbar } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import i18n from "@/lib/i18n";
 
 /**
  * Snackbar の表示制御用 Context の型定義。
@@ -28,6 +31,12 @@ const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined
 export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 	const [visible, setVisible] = useState(false);
 	const [message, setMessage] = useState("");
+	const insets = useSafeAreaInsets();
+
+	// タブバーのおおよその高さ（必要に応じて調整）
+	const TAB_BAR_HEIGHT = 32;
+
+	const bottomOffset = insets.bottom + TAB_BAR_HEIGHT + 8;
 
 	/**
 	 * スナックバーを表示する。
@@ -46,13 +55,25 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 				visible={visible}
 				onDismiss={() => setVisible(false)}
 				duration={4000}
-				style={{ position: "absolute", bottom: 16, left: 16, right: 16 }}
-				testID="global-snackbar">
+				style={[styles.snackbar, { bottom: bottomOffset }]}
+				testID="global-snackbar"
+				action={{
+					label: i18n.t("Common.ok"),
+					onPress: () => setVisible(false),
+				}}>
 				{message}
 			</Snackbar>
 		</SnackbarContext.Provider>
 	);
 };
+
+const styles = StyleSheet.create({
+	snackbar: {
+		position: "absolute",
+		left: 16,
+		right: 16,
+	},
+});
 
 /**
  * useSnackbar フック
