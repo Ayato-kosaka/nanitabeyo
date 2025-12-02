@@ -101,15 +101,39 @@ export const useAPICall = () => {
 				},
 			});
 
-			const { response, endpoint } = await fetchWithAuth(
-				endpointName,
-				{
-					method,
-					requestPayload,
-					isMultipart,
-				},
-				accessToken,
-			);
+			// #525 【設計】fetchWithAuth のネットワークエラーを ApiError 形式に正規化
+			let response: Response;
+			let endpoint: string;
+			try {
+				const result = await fetchWithAuth(
+					endpointName,
+					{
+						method,
+						requestPayload,
+						isMultipart,
+					},
+					accessToken,
+				);
+				response = result.response;
+				endpoint = result.endpoint;
+			} catch (networkError) {
+				logFrontendEvent({
+					event_name: "api_call_error",
+					error_level: "error",
+					payload: {
+						endpoint: endpointName,
+						method,
+						status: 0,
+						error: networkError instanceof Error ? networkError.message : String(networkError),
+					},
+				});
+				throw {
+					code: "network_error",
+					status: 0,
+					message: `Network error while calling ${endpointName}`,
+					raw: networkError,
+				} satisfies ApiError;
+			}
 
 			// #501 【設計】CDN サインド Cookie をレスポンスヘッダから抽出してストアに保存
 			if (response.headers.get("set-cookie")) {
