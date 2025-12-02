@@ -27,8 +27,11 @@ export function ReviewTab() {
 
 	// #454 【設計】画面用途キー "reviews" でストアからデータ取得
 	const entriesKey = "reviews" as const;
+	// #519 【設計】フィルタ ON 時に filteredIds を保存するための専用キー
+	const filteredKey = "profile-filtered-reviews" as const;
 	const fetchInitialWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchInitialWithReviewsByKey);
 	const fetchMoreWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithReviewsByKey);
+	const updateReviewIdsByKey = useDishMediaEntriesStore((s) => s.updateReviewIdsByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey, "dish_reviews"),
 		shallow,
@@ -67,20 +70,28 @@ export function ReviewTab() {
 		});
 	}, [onlyMyPhotoVideoReviews, ids, targetUserId]);
 
+	// #519 【設計】フィルタ ON 時のみ filteredIds を専用キーに保存（詳細画面でのスワイプ対象を絞り込むため）
+	useEffect(() => {
+		if (!onlyMyPhotoVideoReviews) return;
+		updateReviewIdsByKey(filteredKey, () => filteredIds);
+	}, [onlyMyPhotoVideoReviews, filteredIds, updateReviewIdsByKey]);
+
 	const handleItemPress = useCallback(
 		(reviewId: string, index: number) => {
 			lightImpact();
+			// #519 【設計】フィルタ ON 時は filteredKey を渡して詳細画面でもフィルタ後の配列を参照させる
+			const tabName = onlyMyPhotoVideoReviews ? filteredKey : entriesKey;
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
-				params: { locale, startIndex: index, tabName: entriesKey },
+				params: { locale, startIndex: index, tabName },
 			});
 			logFrontendEvent({
 				event_name: "dish_media_entry_selected",
 				error_level: "log",
-				payload: { reviewId, entriesKey },
+				payload: { reviewId, entriesKey: tabName },
 			});
 		},
-		[lightImpact, locale, logFrontendEvent],
+		[lightImpact, locale, onlyMyPhotoVideoReviews, logFrontendEvent],
 	);
 
 	const renderReviewItem = useCallback(
