@@ -4,7 +4,11 @@
 // ❷ Following the pattern from dish-media/dish-media.service.ts
 // ❸ Handles Google Place API integration, restaurant creation/search, dish media queries
 
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { ExternalApiService } from '../../core/external-api/external-api.service';
@@ -138,12 +142,16 @@ export class RestaurantsService {
       } catch (error) {
         throw new Error(
           'Failed to determine restaurant language code: ' +
-          (error as Error).message,
+            (error as Error).message,
         );
       }
 
       // types による飲食店判定
-      if (!isFoodAndDrinkPlaceForUser({ types: placeDetailForLocalLang.types ?? [] })) {
+      if (
+        !isFoodAndDrinkPlaceForUser({
+          types: placeDetailForLocalLang.types ?? [],
+        })
+      ) {
         throw new UnprocessableEntityException({
           code: 'PLACE_NOT_FOOD_AND_DRINK',
           message:
@@ -159,9 +167,10 @@ export class RestaurantsService {
         throw new Error(
           'No address components for restaurant language code detection',
         );
-      const restaurantLanguageCode = this.locationsService.resolveLocalLanguageCode(
-        placeDetailForLocalLang.addressComponents,
-      );
+      const restaurantLanguageCode =
+        this.locationsService.resolveLocalLanguageCode(
+          placeDetailForLocalLang.addressComponents,
+        );
 
       // Google Place Details API を呼び出して店舗情報を取得
       try {
@@ -289,9 +298,9 @@ export class RestaurantsService {
         ...convertPrismaToSupabase_Restaurants(restaurant),
         imageUrls: imageSignedUrl
           ? {
-            sm: imageSignedUrl,
-            md: imageSignedUrl,
-          }
+              sm: imageSignedUrl,
+              md: imageSignedUrl,
+            }
           : undefined,
       },
       meta: {

@@ -24,7 +24,11 @@
 			"months": "il y a {{count}} mois",
 			"years": "il y a {{count}} ans"
 		},
-		"site": "CraveCatch"
+		"site": "CraveCatch",
+		"errors": {
+			"network": "Une erreur réseau s'est produite. Veuillez vérifier votre connexion.",
+			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
@@ -350,7 +354,9 @@
 			"dishCategoryCreateFailed": "Échec de la création de la catégorie de plat",
 			"dishCategoryNotFound": "Catégorie de plat introuvable",
 			"dishCategoryInvalidInput": "Nom de catégorie de plat invalide",
-			"reviewSubmitFailed": "Échec de la publication de l'avis"
+			"reviewSubmitFailed": "Échec de la publication de l'avis",
+			"placeNotRestaurant": "Ce lieu n'est pas un restaurant.",
+			"placeNotFound": "Nous n'avons pas pu récupérer les informations de ce restaurant."
 		},
 		"consent_review_prefix": "En continuant, vous acceptez nos ",
 		"consent_review_guidelines": "Directives de la communauté",
