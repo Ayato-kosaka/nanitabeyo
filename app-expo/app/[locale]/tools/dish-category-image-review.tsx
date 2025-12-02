@@ -90,7 +90,7 @@ const AFTER_DISH_CATEGORIES: DishCategoryItem[] = [
 ];
 
 // #516 【設計】理由候補のラジオボタン用文字列
-const REASON_OPTIONS = ["変更後の料理が違う料理になっている", "変更後の画像のクオリティが低い"] as const;
+const REASON_OPTIONS = ["変更後の料理が違う料理になっている", "変更後の画像のクオリティが下がっている"] as const;
 
 // #516 【パフォーマンス】変更後カテゴリのIDによるルックアップ用Map
 const AFTER_CATEGORY_MAP = new Map<string, DishCategoryItem>(AFTER_DISH_CATEGORIES.map((item) => [item.id, item]));
