@@ -20,7 +20,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
   constructor(
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -90,11 +90,33 @@ export class ApiExceptionFilter implements ExceptionFilter {
       logException(`ValidationError`, exception, status);
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
-      const msg = exception.message as ErrorCode;
-      code = Object.values(ErrorCode).includes(msg)
-        ? msg
-        : ErrorCode.INTERNAL_ERROR;
-      message = exception.message;
+      const exceptionResponse = exception.getResponse();
+
+      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+        const resObj = exceptionResponse as any;
+
+        // ここで code を拾う
+        if (typeof resObj.code === 'string' && Object.values(ErrorCode).includes(resObj.code)) {
+          code = resObj.code as ErrorCode;
+        } else {
+          code = ErrorCode.INTERNAL_ERROR;
+        }
+
+        // message もできるだけレスポンスから
+        if (typeof resObj.message === 'string') {
+          message = resObj.message;
+        } else {
+          message = exception.message;
+        }
+      } else {
+        // 文字列レスポンスなど
+        code = ErrorCode.INTERNAL_ERROR;
+        message =
+          typeof exceptionResponse === 'string'
+            ? exceptionResponse
+            : exception.message;
+      }
+
       logException(`HttpException`, exception.stack, status);
     } else if (exception instanceof Error) {
       message = exception.message;
