@@ -112,13 +112,11 @@ export default function DishMediaContent({
 						</View>
 					)}
 					{/* #511 【設計】エラーオーバーレイ */}
-                                        {showErrorOverlay && (
-                                                <View style={styles.errorOverlay}>
-                                                        <Text style={styles.errorText}>
-                                                                {i18n.t("DishMediaContent.errors.videoUnavailable")}
-                                                        </Text>
-                                                </View>
-                                        )}
+					{showErrorOverlay && (
+						<View style={styles.errorOverlay}>
+							<Text style={styles.errorText}>{i18n.t("DishMediaContent.errors.videoUnavailable")}</Text>
+						</View>
+					)}
 				</>
 			) : (
 				<Image
