@@ -39,7 +39,7 @@ export default function DishMediaContent({
 }: DishMediaContentProps) {
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {
-		const state = useDishMediaEntriesStore.getState();
+		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
 		if (!entry) throw new Error("DishMediaContent: entry is undefined");
 		return entry;
@@ -82,19 +82,17 @@ export default function DishMediaContent({
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
 
-	// #530 【設計】processing 中メディアのポーリング処理
-	// 初回マウント時の id を保持（依存配列の安定性を確保）
-	const mediaIdRef = React.useRef(dishMediaEntry.dish_media.id);
-
 	useEffect(() => {
-		const mediaId = mediaIdRef.current;
 		const media = dishMediaEntry.dish_media;
+		const mediaId = media.id;
 		const shouldPoll = isActive && media.media_processing_status === "processing" && !media.mediaUrl;
 
 		if (!shouldPoll) return;
 
 		let cancelled = false;
 		const INTERVAL = 3000; // 3秒
+
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
 		const poll = async () => {
 			if (cancelled) return;
@@ -145,7 +143,7 @@ export default function DishMediaContent({
 
 			// まだ processing なら再ポーリング
 			if (!cancelled) {
-				setTimeout(poll, INTERVAL);
+				timeoutId = setTimeout(poll, INTERVAL);
 			}
 		};
 
@@ -153,8 +151,11 @@ export default function DishMediaContent({
 
 		return () => {
 			cancelled = true;
+			if (timeoutId !== null) {
+				clearTimeout(timeoutId);
+			}
 		};
-	}, [isActive, callBackend]);
+	}, [isActive, callBackend, dishMediaEntry.dish_media]);
 
 	return (
 		<View style={styles.container}>
