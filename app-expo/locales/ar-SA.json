@@ -178,7 +178,7 @@
 		},
 		"errors": {
 			"mapOpenFailed": "تعذر فتح تطبيق الخرائط",
-			"videoUnavailable": "هذا الفيديو غير متاح حالياً."
+			"mediaUnavailable": "هذا المحتوى غير متاح حالياً."
 		}
 	},
 	"ImageCardGrid": {

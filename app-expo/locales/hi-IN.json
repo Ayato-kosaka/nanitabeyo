@@ -178,7 +178,7 @@
 		},
 		"errors": {
 			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका",
-			"videoUnavailable": "यह वीडियो अभी उपलब्ध नहीं है।"
+			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।"
 		}
 	},
 	"ImageCardGrid": {
