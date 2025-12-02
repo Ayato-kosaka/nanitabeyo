@@ -27,6 +27,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
 
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
+import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -323,7 +324,7 @@ export default function DishCategoryImageReviewPage() {
 							android_ripple={{ color: "rgba(0,0,0,0.1)" }}>
 							<View style={[styles.imageContainer, { height: imageHeight }]}>
 								<Image
-									source={{ uri: beforeItem.image_url }}
+									source={{ uri: wikimediaThumbFromOriginal(beforeItem.image_url, 640) }}
 									style={StyleSheet.absoluteFill}
 									contentFit="cover"
 									transition={100}
@@ -459,7 +460,9 @@ export default function DishCategoryImageReviewPage() {
 								<Text style={styles.modalImageLabel}>■ 変更前の画像</Text>
 								<View style={[styles.modalImageContainer, { height: modalImageHeight }]}>
 									<Image
-										source={{ uri: activeBefore?.image_url }}
+										source={{
+											uri: activeBefore ? wikimediaThumbFromOriginal(activeBefore.image_url, 1280) : undefined,
+										}}
 										style={StyleSheet.absoluteFill}
 										contentFit="cover"
 										transition={100}
