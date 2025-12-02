@@ -83,7 +83,11 @@ export default function DishMediaContent({
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
 
 	// #530 【設計】processing 中メディアのポーリング処理
+	// 初回マウント時の id を保持（依存配列の安定性を確保）
+	const mediaIdRef = React.useRef(dishMediaEntry.dish_media.id);
+
 	useEffect(() => {
+		const mediaId = mediaIdRef.current;
 		const media = dishMediaEntry.dish_media;
 		const shouldPoll = isActive && media.media_processing_status === "processing" && !media.mediaUrl;
 
@@ -96,9 +100,9 @@ export default function DishMediaContent({
 			if (cancelled) return;
 
 			try {
-				const res = await callBackend<{ ids: string[] }, QueryDishMediaByIdsResponse>(`v1/dish-media?ids=${media.id}`, {
+				const res = await callBackend<{ ids: string[] }, QueryDishMediaByIdsResponse>("v1/dish-media", {
 					method: "GET",
-					requestPayload: { ids: [media.id] },
+					requestPayload: { ids: [mediaId] },
 				});
 
 				const updated = res.items[0];
@@ -150,7 +154,7 @@ export default function DishMediaContent({
 		return () => {
 			cancelled = true;
 		};
-	}, [isActive, dishMediaEntry.dish_media.id, callBackend]);
+	}, [isActive, callBackend]);
 
 	return (
 		<View style={styles.container}>
