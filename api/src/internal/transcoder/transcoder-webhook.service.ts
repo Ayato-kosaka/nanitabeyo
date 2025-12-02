@@ -115,7 +115,11 @@ export class TranscoderWebhookService {
 
     // #511 【設計】dish_media テーブルの場合はステータスを completed に更新
     const labels = jobDetails.labels as TranscoderJobLabels | null | undefined;
-    if (labels?.table_name === 'dish_media' && labels.column_name === 'media_path' && labels.record_id) {
+    if (
+      labels?.table_name === 'dish_media' &&
+      labels.column_name === 'media_path' &&
+      labels.record_id
+    ) {
       await this.updateDishMediaProcessingStatus(labels.record_id, 'completed');
     }
   }

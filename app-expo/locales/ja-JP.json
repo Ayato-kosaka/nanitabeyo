@@ -173,10 +173,10 @@
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},
-  "errors": {
-    "mapOpenFailed": "地図アプリを開けませんでした",
-    "videoUnavailable": "この動画は現在ご利用いただけません。"
-  },
+		"errors": {
+			"mapOpenFailed": "地図アプリを開けませんでした",
+			"mediaUnavailable": "このメディアは現在ご利用いただけません。"
+		},
 		"info": {
 			"walkFromShibuya": "渋谷駅から徒歩13分"
 		}
