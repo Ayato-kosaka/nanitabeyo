@@ -83,9 +83,11 @@ export default function DishMediaContent({
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
 
 	useEffect(() => {
-		const media = dishMediaEntry.dish_media;
-		const mediaId = media.id;
-		const shouldPoll = isActive && media.media_processing_status === "processing" && !media.mediaUrl;
+		const mediaId = dishMediaEntry.dish_media.id;
+		const shouldPoll =
+			isActive &&
+			dishMediaEntry.dish_media.media_processing_status === "processing" &&
+			!dishMediaEntry.dish_media.mediaUrl;
 
 		if (!shouldPoll) return;
 
@@ -155,7 +157,13 @@ export default function DishMediaContent({
 				clearTimeout(timeoutId);
 			}
 		};
-	}, [isActive, callBackend, dishMediaEntry.dish_media]);
+	}, [
+		isActive,
+		callBackend,
+		dishMediaEntry.dish_media.id,
+		dishMediaEntry.dish_media.media_processing_status,
+		dishMediaEntry.dish_media.mediaUrl,
+	]);
 
 	return (
 		<View style={styles.container}>
