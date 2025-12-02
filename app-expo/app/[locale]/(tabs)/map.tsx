@@ -6,7 +6,12 @@ import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
-import type { AutocompleteLocation, QueryRestaurantsResponse, CreateRestaurantResponse } from "@shared/api/v1/res";
+import {
+	type AutocompleteLocation,
+	type QueryRestaurantsResponse,
+	type CreateRestaurantResponse,
+	ErrorCode,
+} from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -129,7 +134,7 @@ export default function MapScreen() {
 				const error = rawError as ApiError;
 
 				// 422 + PLACE_NOT_FOOD_AND_DRINK: レストランではない Place
-				if (error.status === 422 && error.errorCode === "PLACE_NOT_FOOD_AND_DRINK") {
+				if (error.status === 422 && error.errorCode === ErrorCode.PLACE_NOT_FOOD_AND_DRINK) {
 					showSnackbar(i18n.t("Map.errors.placeNotRestaurant"));
 					return;
 				}
