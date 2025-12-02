@@ -3,6 +3,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useAuth } from "@/contexts/AuthProvider";
 import { initRemoteConfig } from "@/lib/remoteConfig";
 import { Env } from "@/constants/Env";
+import { retry } from "@/lib/retry";
 
 /**
  * 🧯 アプリ起動時の Splash 画面を制御するコンポーネント。
@@ -25,10 +26,22 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	 */
 	const initializeRemoteConfig = useCallback(async () => {
 		try {
-			await initRemoteConfig();
+			await retry(() => initRemoteConfig(), {
+				retries: 3,
+				initialDelayMs: 500,
+				backoffFactor: 2,
+				shouldRetry: (error) => {
+					// 必要ならここでリトライ対象のエラーを絞り込む
+					// 例: ネットワークエラーのみリトライなど
+					if (Env.NODE_ENV === "development") {
+						console.warn("[SplashHandler] RemoteConfig retry due to error:", error);
+					}
+					return true;
+				},
+			});
 		} catch (err: any) {
 			if (Env.NODE_ENV === "development") {
-				console.error("[SplashHandler] RemoteConfig initialization failed:", err.message);
+				console.error("[SplashHandler] RemoteConfig initialization failed:", err);
 			}
 		} finally {
 			setIsRemoteConfigReady(true);

@@ -42,6 +42,7 @@ const fetchStaticMasterFromCDN = async <T extends keyof Database["dev"]["Tables"
  * @returns 設定データ
  */
 export const initRemoteConfig = async (): Promise<RemoteConfigValues | null> => {
+	if (cachedValues) return cachedValues;
 	// 🔄 静的マスタから設定データを取得
 	const configJson = await fetchStaticMasterFromCDN("config");
 	const config = configJson.reduce(
