@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
-import { useAPICall } from "@/hooks/useAPICall";
+import { ApiError, useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { userProfile } from "@/data/profileData";
 import { useProfileStore } from "../stores/useProfileStore";
 import type { GetUserProfileResponse } from "@shared/api/v1/res";
 import { Image } from "expo-image";
+import { useProfile } from "./useProfile";
 
 /**
  * ログインユーザーのプロフィールをストアに確実にロードするカスタムフック
@@ -28,6 +29,8 @@ export function useEnsureOwnProfileLoaded() {
 	const { user } = useAuth();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
+	const { createUserProfile } = useProfile();
+	// ロード済みフラグとリトライフラグを管理するための ref
 	const hasLoadedRef = useRef(false);
 
 	const isGuest = user?.is_anonymous !== false;
@@ -52,21 +55,38 @@ export function useEnsureOwnProfileLoaded() {
 				return;
 			}
 
+			if (hasLoadedRef.current) return;
 			try {
 				const data = await callBackend<{}, GetUserProfileResponse>(`v1/users/${user?.id}`, {
 					method: "GET",
 					requestPayload: {},
 				});
-				if (hasLoadedRef.current) return;
 				// #467 【設計】アバター画像をプリフェッチして表示を高速化
 				const avatarUrl = data.avatarUrls?.md;
 				avatarUrl && (await Image.prefetch(avatarUrl));
 				setProfile(data);
-			} catch (error: unknown) {
+			} catch (rawError: unknown) {
+				const error = rawError as ApiError;
+				if (error.status === 404) {
+					// #260 【設計】プロフィールが存在しない場合は新規作成(冪等)
+					await createUserProfile({});
+					// 再度ロードを試みる
+					if (hasLoadedRef.current) return;
+					const data = await callBackend<{}, GetUserProfileResponse>(`v1/users/${user?.id}`, {
+						method: "GET",
+						requestPayload: {},
+					});
+					// #467 【設計】アバター画像をプリフェッチして表示を高速化
+					const avatarUrl = data.avatarUrls?.md;
+					avatarUrl && (await Image.prefetch(avatarUrl));
+					setProfile(data);
+					return;
+				}
+				// その他のエラーはログに記録
 				logFrontendEvent({
 					event_name: "load_own_profile_error",
 					error_level: "error",
-					payload: { error: (error as Error).message, userId: user?.id, isGuest },
+					payload: { message: error.message, userId: user?.id, isGuest },
 				});
 			} finally {
 				hasLoadedRef.current = true;
@@ -74,5 +94,5 @@ export function useEnsureOwnProfileLoaded() {
 		};
 
 		loadProfile();
-	}, [callBackend, isGuest, logFrontendEvent, user?.id]);
+	}, [callBackend, isGuest, logFrontendEvent, user?.id, createUserProfile]);
 }
