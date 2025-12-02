@@ -291,6 +291,8 @@ export class DishesService {
           },
           dish_media: {
             ...dishMedia,
+            media_processing_status: 'completed', // クライアント側には処理済みの画像を返す
+            thumbnail_processing_status: 'completed',
             mediaUrl: photoMedia.photoUri,
             thumbnailImageUrl: photoMedia.photoUri,
             isMine: false, // インポートなので自分のものではない
