@@ -10,6 +10,41 @@ import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 /**
+ * #525 【設計】統一されたエラーオブジェクト型
+ * useAPICall が throw するエラーの型を統一し、呼び出し側が扱いやすい形に整備
+ */
+export type ApiError = {
+	/** クライアント側で使う大まかな分類コード */
+	code:
+		| "maintenance_mode"
+		| "unsupported_version"
+		| "forbidden"
+		| "http_error"
+		| "api_error"
+		| "invalid_response"
+		| "network_error";
+
+	/** HTTP ステータス。ネットワークエラー等の場合は undefined or 0 */
+	status?: number;
+
+	/** 人間向け or ログ用メッセージ */
+	message: string;
+
+	/** バックエンドから返ってきた x-request-id（あれば） */
+	requestId?: string;
+
+	/**
+	 * バックエンド独自の errorCode
+	 * BaseResponse<R> の errorCode, あるいは非 2xx レスポンスの JSON の code 等をここに格納
+	 * 例: "PLACE_NOT_FOOD_AND_DRINK"
+	 */
+	errorCode?: string;
+
+	/** 必要があれば生のレスポンスや追加情報 */
+	raw?: unknown;
+};
+
+/**
  * ☁️ API 呼び出しフック
  *
  * - 認証セッションの JWT を Authorization ヘッダーに付与
@@ -66,15 +101,39 @@ export const useAPICall = () => {
 				},
 			});
 
-			const { response, endpoint } = await fetchWithAuth(
-				endpointName,
-				{
-					method,
-					requestPayload,
-					isMultipart,
-				},
-				accessToken,
-			);
+			// #525 【設計】fetchWithAuth のネットワークエラーを ApiError 形式に正規化
+			let response: Response;
+			let endpoint: string;
+			try {
+				const result = await fetchWithAuth(
+					endpointName,
+					{
+						method,
+						requestPayload,
+						isMultipart,
+					},
+					accessToken,
+				);
+				response = result.response;
+				endpoint = result.endpoint;
+			} catch (networkError) {
+				logFrontendEvent({
+					event_name: "api_call_error",
+					error_level: "error",
+					payload: {
+						endpoint: endpointName,
+						method,
+						status: 0,
+						error: networkError instanceof Error ? networkError.message : String(networkError),
+					},
+				});
+				throw {
+					code: "network_error",
+					status: 0,
+					message: `Network error while calling ${endpointName}`,
+					raw: networkError,
+				} satisfies ApiError;
+			}
 
 			// #501 【設計】CDN サインド Cookie をレスポンスヘッダから抽出してストアに保存
 			if (response.headers.get("set-cookie")) {
@@ -88,12 +147,16 @@ export const useAPICall = () => {
 			if (!response.ok) {
 				const errorMessage = `API call to ${endpointName} failed with status ${response.status} (requestId: ${requestId})`;
 
-				let errorPayload: { error?: string; message?: string } = {};
+				// #525 【設計】errorPayload の型を拡張し、バックエンドの code/errorCode を取得できるようにする
+				let errorPayload: { error?: string; message?: string; code?: string; errorCode?: string } = {};
 				try {
 					errorPayload = await response.json();
 				} catch {
 					// レスポンスボディがJSONでない場合はスキップ
 				}
+
+				// #525 【設計】errorCode は errorPayload.errorCode を優先し、なければ errorPayload.code を使用
+				const backendErrorCode = errorPayload.errorCode || errorPayload.code;
 
 				// Log API error
 				logFrontendEvent({
@@ -120,9 +183,12 @@ export const useAPICall = () => {
 					});
 					throw {
 						code: "maintenance_mode",
+						status: response.status,
 						message: errorPayload.message || errorMessage,
-						requestId,
-					};
+						requestId: requestId ?? undefined,
+						errorCode: backendErrorCode,
+						raw: errorPayload,
+					} satisfies ApiError;
 				}
 
 				if (response.status === 426) {
@@ -137,18 +203,24 @@ export const useAPICall = () => {
 					});
 					throw {
 						code: "unsupported_version",
+						status: response.status,
 						message: errorPayload.message || errorMessage,
-						requestId,
-					};
+						requestId: requestId ?? undefined,
+						errorCode: backendErrorCode,
+						raw: errorPayload,
+					} satisfies ApiError;
 				}
 
 				// 既存の403エラー処理（後方互換性のため残す）
 				if (response.status === 403) {
 					throw {
 						code: "forbidden",
+						status: response.status,
 						message: errorPayload.message || errorMessage,
-						requestId,
-					};
+						requestId: requestId ?? undefined,
+						errorCode: backendErrorCode,
+						raw: errorPayload,
+					} satisfies ApiError;
 				}
 
 				// その他の HTTP エラー
@@ -156,8 +228,10 @@ export const useAPICall = () => {
 					code: "http_error",
 					status: response.status,
 					message: `API call to ${endpointName} failed with status ${response.status}`,
-					requestId,
-				};
+					requestId: requestId ?? undefined,
+					errorCode: backendErrorCode,
+					raw: errorPayload,
+				} satisfies ApiError;
 			}
 
 			// 2xx のときのみここに到達
@@ -169,18 +243,18 @@ export const useAPICall = () => {
 				throw {
 					code: "invalid_response",
 					message: `Failed to parse response JSON for ${endpointName}`,
-					requestId,
+					requestId: requestId ?? undefined,
 					status: response.status,
-				};
+				} satisfies ApiError;
 			}
 
 			if (!json || typeof json !== "object" || typeof json.success !== "boolean") {
 				throw {
 					code: "invalid_response",
 					message: `Malformed response for ${endpointName}`,
-					requestId,
+					requestId: requestId ?? undefined,
 					status: response.status,
-				};
+				} satisfies ApiError;
 			}
 
 			if (!json.success) {
@@ -188,9 +262,10 @@ export const useAPICall = () => {
 					code: "api_error",
 					message: json.message || `API returned unsuccessful response for ${endpointName}`,
 					errorCode: json.errorCode,
-					requestId,
+					requestId: requestId ?? undefined,
 					status: response.status,
-				};
+					raw: json,
+				} satisfies ApiError;
 			}
 
 			logFrontendEvent({

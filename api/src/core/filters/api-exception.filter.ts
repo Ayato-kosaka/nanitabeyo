@@ -35,7 +35,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
     let code: ErrorCode = ErrorCode.INTERNAL_ERROR;
     let message = 'Internal server error';
 
-    const logException = (eventName: string, error: unknown, statusOverride?: number) => {
+    const logException = (
+      eventName: string,
+      error: unknown,
+      statusOverride?: number,
+    ) => {
       this.logger.error(eventName, 'ApiExceptionFilter', {
         method: req?.method,
         url: req?.url,
