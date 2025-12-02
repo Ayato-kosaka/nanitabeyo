@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
@@ -27,8 +27,11 @@ export function ReviewTab() {
 
 	// #454 【設計】画面用途キー "reviews" でストアからデータ取得
 	const entriesKey = "reviews" as const;
+	// #519 【設計】フィルタ ON 時に displayIds を保存するための専用キー
+	const filteredKey = "profile-filtered-reviews" as const;
 	const fetchInitialWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchInitialWithReviewsByKey);
 	const fetchMoreWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithReviewsByKey);
+	const updateReviewIdsByKey = useDishMediaEntriesStore((s) => s.updateReviewIdsByKey);
 	const { ids, isLoading, isLoadingMore, error, hasFetchedInitial } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey, "dish_reviews"),
 		shallow,
@@ -57,8 +60,8 @@ export function ReviewTab() {
 		fetchInitialWithReviewsByKey(entriesKey, {}, fetcher);
 	}, [entriesKey, fetchInitialWithReviewsByKey, fetcher, hasFetchedInitial, isLoading]);
 
-	// #454 【設計】フィルタリングは表示時に ids から行う
-	const filteredIds = useMemo(() => {
+	// #454 【設計】フィルタリング ON / OFF に応じて表示する review IDs を切り替え
+	const displayIds = useMemo(() => {
 		if (!onlyMyPhotoVideoReviews || !targetUserId) return ids;
 		// #457 【設計】正規化ストアから復元したエントリでフィルタ
 		return ids.filter((id) => {
@@ -67,20 +70,33 @@ export function ReviewTab() {
 		});
 	}, [onlyMyPhotoVideoReviews, ids, targetUserId]);
 
+	// #519 【設計】フィルタ ON 時のみ displayIds を専用キーに保存（詳細画面でのスワイプ対象を絞り込むため）
+	const prevFilteredIdsRef = useRef<string[]>([]);
+	useEffect(() => {
+		if (!onlyMyPhotoVideoReviews) return;
+		// #519 【パフォーマンス】配列の内容が変わった場合のみストアを更新
+		const prevIds = prevFilteredIdsRef.current;
+		if (prevIds.length === displayIds.length && prevIds.every((id, i) => id === displayIds[i])) return;
+		prevFilteredIdsRef.current = displayIds;
+		updateReviewIdsByKey(filteredKey, () => displayIds);
+	}, [onlyMyPhotoVideoReviews, displayIds, updateReviewIdsByKey]);
+
 	const handleItemPress = useCallback(
 		(reviewId: string, index: number) => {
 			lightImpact();
+			// #519 【設計】フィルタ ON 時は filteredKey を渡して詳細画面でもフィルタ後の配列を参照させる
+			const tabName = onlyMyPhotoVideoReviews ? filteredKey : entriesKey;
 			router.push({
 				pathname: "/[locale]/(tabs)/profile/food",
-				params: { locale, startIndex: index, tabName: entriesKey },
+				params: { locale, startIndex: index, tabName },
 			});
 			logFrontendEvent({
 				event_name: "dish_media_entry_selected",
 				error_level: "log",
-				payload: { reviewId, entriesKey },
+				payload: { reviewId, entriesKey: tabName },
 			});
 		},
-		[lightImpact, locale, logFrontendEvent],
+		[lightImpact, locale, onlyMyPhotoVideoReviews, logFrontendEvent],
 	);
 
 	const renderReviewItem = useCallback(
@@ -155,7 +171,7 @@ export function ReviewTab() {
 
 	return (
 		<GridList
-			data={filteredIds.map((id) => ({ id }))}
+			data={displayIds.map((id) => ({ id }))}
 			renderItem={({ item, index }) => renderReviewItem({ item, index })}
 			ListHeaderComponent={header}
 			numColumns={3}
