@@ -3,10 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Activi
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
-import type { AutocompleteLocation } from "@shared/api/v1/res";
+import { type AutocompleteLocation } from "@shared/api/v1/res";
+import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { MapPin, Utensils, X } from "lucide-react-native";
-
-export const FOOD_AND_DRINK_TYPES = ["restaurant", "cafe", "bar", "wine_bar"];
 
 interface LocationAutocompleteProps {
 	/** Current value of the input */
@@ -193,7 +192,7 @@ export function LocationAutocomplete({
 								accessibilityLabel={suggestion.text}
 								accessibilityHint="Select this location"
 								testID={`${testID}-suggestion-${index}`}>
-								{suggestion.types.some((type) => FOOD_AND_DRINK_TYPES.includes(type)) ? (
+								{isFoodAndDrinkPlaceForUser(suggestion) ? (
 									<Utensils size={16} color="#6B7280" />
 								) : (
 									<MapPin size={16} color="#6B7280" />

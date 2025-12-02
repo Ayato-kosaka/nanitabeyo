@@ -5,7 +5,7 @@ import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useAPICall } from "@/hooks/useAPICall";
-import { FOOD_AND_DRINK_TYPES, LocationAutocomplete } from "@/components/LocationAutocomplete";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import type { AutocompleteLocation, QueryRestaurantsResponse, CreateRestaurantResponse } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
@@ -16,6 +16,7 @@ import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import MapViewClass from "react-native-maps";
+import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
@@ -147,7 +148,7 @@ export default function MapScreen() {
 	const handleAutocompleteSelect = useCallback(
 		async (prediction: AutocompleteLocation) => {
 			lightImpact();
-			if (prediction.types.some((type) => FOOD_AND_DRINK_TYPES.includes(type))) {
+			if (isFoodAndDrinkPlaceForUser(prediction)) {
 				// 飲食店カテゴリの場合はレストラン作成＆詳細表示
 				createAndOpenRestaurant(prediction.place_id);
 			} else {
