@@ -20,7 +20,7 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Circle, CheckCircle2, ArrowRight } from "lucide-react-native";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useBlurModal } from "@/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -1597,7 +1597,6 @@ export default function DishCategoryImageReviewPage() {
 		close: closeModal,
 	} = useBlurModal({
 		intensity: 80,
-		closeOnBackdropPress: false,
 	});
 
 	// #516 【設計】レイアウト計算
