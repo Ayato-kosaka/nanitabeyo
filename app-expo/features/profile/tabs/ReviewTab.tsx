@@ -27,7 +27,7 @@ export function ReviewTab() {
 
 	// #454 【設計】画面用途キー "reviews" でストアからデータ取得
 	const entriesKey = "reviews" as const;
-	// #519 【設計】フィルタ ON 時に filteredIds を保存するための専用キー
+	// #519 【設計】フィルタ ON 時に displayIds を保存するための専用キー
 	const filteredKey = "profile-filtered-reviews" as const;
 	const fetchInitialWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchInitialWithReviewsByKey);
 	const fetchMoreWithReviewsByKey = useDishMediaEntriesStore((s) => s.fetchMoreWithReviewsByKey);
@@ -60,8 +60,8 @@ export function ReviewTab() {
 		fetchInitialWithReviewsByKey(entriesKey, {}, fetcher);
 	}, [entriesKey, fetchInitialWithReviewsByKey, fetcher, hasFetchedInitial, isLoading]);
 
-	// #454 【設計】フィルタリングは表示時に ids から行う
-	const filteredIds = useMemo(() => {
+	// #454 【設計】フィルタリング ON / OFF に応じて表示する review IDs を切り替え
+	const displayIds = useMemo(() => {
 		if (!onlyMyPhotoVideoReviews || !targetUserId) return ids;
 		// #457 【設計】正規化ストアから復元したエントリでフィルタ
 		return ids.filter((id) => {
@@ -70,16 +70,16 @@ export function ReviewTab() {
 		});
 	}, [onlyMyPhotoVideoReviews, ids, targetUserId]);
 
-	// #519 【設計】フィルタ ON 時のみ filteredIds を専用キーに保存（詳細画面でのスワイプ対象を絞り込むため）
+	// #519 【設計】フィルタ ON 時のみ displayIds を専用キーに保存（詳細画面でのスワイプ対象を絞り込むため）
 	const prevFilteredIdsRef = useRef<string[]>([]);
 	useEffect(() => {
 		if (!onlyMyPhotoVideoReviews) return;
 		// #519 【パフォーマンス】配列の内容が変わった場合のみストアを更新
 		const prevIds = prevFilteredIdsRef.current;
-		if (prevIds.length === filteredIds.length && prevIds.every((id, i) => id === filteredIds[i])) return;
-		prevFilteredIdsRef.current = filteredIds;
-		updateReviewIdsByKey(filteredKey, () => filteredIds);
-	}, [onlyMyPhotoVideoReviews, filteredIds, updateReviewIdsByKey]);
+		if (prevIds.length === displayIds.length && prevIds.every((id, i) => id === displayIds[i])) return;
+		prevFilteredIdsRef.current = displayIds;
+		updateReviewIdsByKey(filteredKey, () => displayIds);
+	}, [onlyMyPhotoVideoReviews, displayIds, updateReviewIdsByKey]);
 
 	const handleItemPress = useCallback(
 		(reviewId: string, index: number) => {
@@ -171,7 +171,7 @@ export function ReviewTab() {
 
 	return (
 		<GridList
-			data={filteredIds.map((id) => ({ id }))}
+			data={displayIds.map((id) => ({ id }))}
 			renderItem={({ item, index }) => renderReviewItem({ item, index })}
 			ListHeaderComponent={header}
 			numColumns={3}
