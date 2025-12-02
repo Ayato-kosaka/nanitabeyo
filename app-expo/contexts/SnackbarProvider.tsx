@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Snackbar } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
@@ -56,12 +56,10 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 				onDismiss={() => setVisible(false)}
 				duration={4000}
 				style={[styles.snackbar, { bottom: bottomOffset }]}
-				testID="global-snackbar"
-				action={{
-					label: i18n.t("Common.ok"),
-					onPress: () => setVisible(false),
-				}}>
-				{message}
+				testID="global-snackbar">
+				<TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(false)}>
+					<Text style={{ color: "#FFF" }}>{message}</Text>
+				</TouchableOpacity>
 			</Snackbar>
 		</SnackbarContext.Provider>
 	);
