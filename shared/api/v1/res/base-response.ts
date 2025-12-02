@@ -32,4 +32,6 @@ export enum ErrorCode {
 	VALIDATION_ERROR = "VALIDATION_ERROR",
 	/** 外部サービスエラー */
 	EXTERNAL_SERVICE_ERROR = "EXTERNAL_SERVICE_ERROR",
+	/** 指定された場所はレストランや飲食店ではない */
+	PLACE_NOT_FOOD_AND_DRINK = 'PLACE_NOT_FOOD_AND_DRINK',
 }

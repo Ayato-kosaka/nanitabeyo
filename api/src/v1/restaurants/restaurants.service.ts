@@ -21,6 +21,7 @@ import {
   CreateRestaurantResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
+  ErrorCode,
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
 import { DishesRepository } from '../dishes/dishes.repository';
@@ -48,7 +49,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -145,7 +146,7 @@ export class RestaurantsService {
       // types による飲食店判定
       if (!isFoodAndDrinkPlaceForUser({ types: placeDetailForLocalLang.types ?? [] })) {
         throw new UnprocessableEntityException({
-          code: 'PLACE_NOT_FOOD_AND_DRINK',
+          code: ErrorCode.PLACE_NOT_FOOD_AND_DRINK,
           message:
             'The specified Google Place is not a restaurant or food & drink venue.',
           data: {
