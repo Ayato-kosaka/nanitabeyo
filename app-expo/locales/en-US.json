@@ -173,9 +173,10 @@
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
-		"errors": {
-			"mapOpenFailed": "Could not open map application"
-		},
+  "errors": {
+    "mapOpenFailed": "Could not open map application",
+    "videoUnavailable": "This video is currently unavailable."
+  },
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"
 		}

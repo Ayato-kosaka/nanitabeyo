@@ -176,10 +176,11 @@
 		"info": {
 			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
 		},
-		"errors": {
-			"mapOpenFailed": "تعذر فتح تطبيق الخرائط"
-		}
-	},
+                "errors": {
+                        "mapOpenFailed": "تعذر فتح تطبيق الخرائط",
+                        "videoUnavailable": "هذا الفيديو غير متاح حالياً."
+                }
+        },
 	"ImageCardGrid": {
 		"openItemDetails": "فتح تفاصيل العنصر"
 	},

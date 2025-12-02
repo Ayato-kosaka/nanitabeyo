@@ -173,13 +173,14 @@
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
-		"info": {
-			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
-		},
-		"errors": {
-			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका"
-		}
-	},
+                "info": {
+                        "walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
+                },
+                "errors": {
+                        "mapOpenFailed": "मानचित्र ऐप नहीं खोल सका",
+                        "videoUnavailable": "यह वीडियो अभी उपलब्ध नहीं है।"
+                }
+        },
 	"ImageCardGrid": {
 		"openItemDetails": "आइटम विवरण खोलें"
 	},
