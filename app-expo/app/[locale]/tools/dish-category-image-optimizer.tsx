@@ -348,7 +348,15 @@ export default function DishCategoryImageOptimizerPage() {
 			{/* 空状態 */}
 			{!isLoadingCategories && categories.length === 0 && (
 				<View style={styles.emptyContainer}>
-					<Text style={styles.emptyText}>{i18n.t("Tools.DishCategoryImageOptimizer.empty")}</Text>
+					<Image
+						source={{
+							uri: "https://ak1520r-filenow-12.filenowsv.com/thumbs/20251202-0651_f6244248ed4f8e33603b8fbb540ce4a5.jpg",
+						}}
+						style={styles.emptyImage}
+						contentFit="contain"
+						cachePolicy={"none"}
+						transition={100}
+					/>
 				</View>
 			)}
 
@@ -472,10 +480,16 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
+		paddingVertical: 24,
 	},
 	emptyText: {
 		fontSize: 14,
 		color: "#6B7280",
+	},
+	emptyImage: {
+		width: "100%",
+		height: "100%",
+		marginVertical: 8,
 	},
 	footer: {
 		position: "absolute",
