@@ -173,9 +173,10 @@
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
-		"errors": {
-			"mapOpenFailed": "Impossible d'ouvrir l'application de carte"
-		},
+                "errors": {
+                        "mapOpenFailed": "Impossible d'ouvrir l'application de carte",
+                        "videoUnavailable": "Cette vidéo n'est actuellement pas disponible."
+                },
 		"info": {
 			"walkFromShibuya": "À 13 min à pied de la gare de Shibuya"
 		}

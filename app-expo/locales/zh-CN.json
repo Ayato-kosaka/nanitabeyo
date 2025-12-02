@@ -173,9 +173,10 @@
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
 		},
-		"errors": {
-			"mapOpenFailed": "无法打开地图应用"
-		},
+                "errors": {
+                        "mapOpenFailed": "无法打开地图应用",
+                        "videoUnavailable": "该视频当前不可用。"
+                },
 		"info": {
 			"walkFromShibuya": "距离涩谷站步行13分钟"
 		}
