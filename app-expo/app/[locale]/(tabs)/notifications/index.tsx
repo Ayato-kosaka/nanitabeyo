@@ -174,12 +174,12 @@ export default function NotificationsScreen() {
 					</View>
 
 					{/* Right: Post Thumbnail */}
-					{item.dishMediaEntries && item.dishMediaEntries.dish_media.mediaUrl && (
+					{item.dishMediaEntries && item.dishMediaEntries.dish_media.thumbnailImageUrl && (
 						<View style={styles.rightContainer}>
 							<Image
 								source={{
-									uri: item.dishMediaEntries.dish_media.mediaUrl,
-									cacheKey: getCacheKeyForImage(item.dishMediaEntries.dish_media.mediaUrl),
+									uri: item.dishMediaEntries.dish_media.thumbnailImageUrl,
+									cacheKey: getCacheKeyForImage(item.dishMediaEntries.dish_media.thumbnailImageUrl),
 								}}
 								style={styles.postThumbnail}
 							/>
