@@ -97,7 +97,9 @@ export default function TopicsScreen() {
 		setCurrentIndex(index);
 	};
 
-	const renderCard = ({ item }: { item: Topic }) => <TopicCard item={item} onHide={handleHideCard} />;
+	const renderCard = ({ item }: { item: Topic }) => (
+		<TopicCard key={item.categoryId} item={item} onHide={handleHideCard} />
+	);
 
 	if (isLoading) {
 		return <TopicsLoading />;
