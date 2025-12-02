@@ -188,7 +188,6 @@ export default function DishMediaMap({
 						<AvatarBubbleMarker
 							key={`marker-${index}`}
 							coordinate={restaurant.coordinate}
-							title={restaurant.name}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
 							color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
