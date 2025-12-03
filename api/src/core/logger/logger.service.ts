@@ -4,45 +4,33 @@ import {
   Scope,
 } from '@nestjs/common';
 import { LogLevel, DEFAULT_LOG_LEVEL } from './logger.constants';
-import { PrismaService } from '../../prisma/prisma.service';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
 import { ClsService } from 'nestjs-cls';
-import {
-  CLS_KEY_REQUEST_ID,
-  CLS_KEY_USER_ID,
-  CLS_KEY_API_LOG_BUFFER,
-  CLS_KEY_BE_LOG_BUFFER,
-} from '../cls/cls.constants';
+import { CLS_KEY_REQUEST_ID, CLS_KEY_USER_ID } from '../cls/cls.constants';
 import {
   CreateBackendEventInput,
   CreateExternalApiInput,
-  BufferedBackendEventLog,
-  BufferedExternalApiLog,
+  CreateFrontendEventInput,
 } from './logger.types';
 
 /**
  * AppLoggerService
  *  - Nest LoggerService を実装
- *  - console 出力 + Prisma DB へ永続化
+ *  - Cloud Logging 向けの構造化 JSON を stdout に出力
  */
 @Injectable({ scope: Scope.DEFAULT })
 export class AppLoggerService implements INestLoggerService {
   /** 環境ごとの最小レベル */
   private readonly minLevel = DEFAULT_LOG_LEVEL;
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly cls: ClsService,
-  ) {}
+  constructor(private readonly cls: ClsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
   /* ------------------------------------------------------------------ */
   verbose(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.verbose))
-      this.printStructured('DEBUG', eventName, functionName, payload);
-    this.persistBackendEvent({
+    this.logBackendEvent({
       error_level: LogLevel.verbose,
       payload,
       event_name: eventName,
@@ -50,9 +38,7 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   debug(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.debug))
-      this.printStructured('DEBUG', eventName, functionName, payload);
-    this.persistBackendEvent({
+    this.logBackendEvent({
       error_level: LogLevel.debug,
       payload,
       event_name: eventName,
@@ -60,9 +46,7 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   log(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.log))
-      this.printStructured('INFO', eventName, functionName, payload);
-    this.persistBackendEvent({
+    this.logBackendEvent({
       error_level: LogLevel.log,
       payload,
       event_name: eventName,
@@ -70,9 +54,7 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   warn(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.warn))
-      this.printStructured('WARNING', eventName, functionName, payload);
-    this.persistBackendEvent({
+    this.logBackendEvent({
       error_level: LogLevel.warn,
       payload,
       event_name: eventName,
@@ -80,9 +62,7 @@ export class AppLoggerService implements INestLoggerService {
     });
   }
   error(eventName, functionName, payload: any) {
-    if (this.shouldPrint(LogLevel.error))
-      this.printStructured('ERROR', eventName, functionName, payload);
-    this.persistBackendEvent({
+    this.logBackendEvent({
       error_level: LogLevel.error,
       payload,
       event_name: eventName,
@@ -94,64 +74,83 @@ export class AppLoggerService implements INestLoggerService {
   /*            外部 API コールを詳細に残すための専用メソッド           */
   /* ------------------------------------------------------------------ */
   async externalApi(input: CreateExternalApiInput) {
-    // Cloud Run 構造化ログ
-    this.printStructured('INFO', 'externalApi', input.function_name, {
-      api_name: input.api_name,
-      endpoint: input.endpoint,
-      method: input.method,
-      status_code: input.status_code,
-      response_time_ms: input.response_time_ms,
-    });
+    // #487 【設計】Cloud Logging 向けの構造化 JSON を stdout に出力
+    console.log(
+      JSON.stringify({
+        log_type: 'external_api_logs',
+        id: randomUUID(),
+        request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
+        function_name: input.function_name,
+        api_name: input.api_name,
+        endpoint: input.endpoint,
+        method: input.method,
+        request_payload: input.request_payload,
+        response_payload: input.response_payload ?? undefined,
+        status_code: input.status_code,
+        error_message: input.error_message ?? undefined,
+        response_time_ms: input.response_time_ms,
+        user_id: this.cls.get<string>(CLS_KEY_USER_ID),
+        created_commit_id: env.API_COMMIT_ID,
+      }),
+    );
+  }
 
-    const data: BufferedExternalApiLog = {
-      ...input,
-      response_payload: input.response_payload ?? undefined,
-      id: randomUUID(),
-      user_id: this.cls.get<string>(CLS_KEY_USER_ID),
-      request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
-      created_at: new Date(),
-      created_commit_id: env.API_COMMIT_ID,
-    };
-
-    // Enqueue to buffer instead of direct DB write
-    this.enqueueExternalApiLog(data);
+  /* ------------------------------------------------------------------ */
+  /*                   フロントエンドログ出力メソッド                    */
+  /* ------------------------------------------------------------------ */
+  /**
+   * フロントエンドログを Cloud Logging 向けの構造化 JSON で出力
+   * @param input フロントエンドログ入力
+   */
+  async logFrontendEvent(input: CreateFrontendEventInput) {
+    // #487 【設計】Cloud Logging 向けの構造化 JSON を stdout に出力
+    console.log(
+      JSON.stringify({
+        log_type: 'frontend_event_logs',
+        id: input.id,
+        event_name: input.event_name,
+        user_id: input.user_id,
+        path_name: input.path_name,
+        payload: input.payload,
+        error_level: input.error_level,
+        created_app_version: input.created_app_version,
+        created_commit_id: input.created_commit_id,
+      }),
+    );
   }
 
   /* ------------------------------------------------------------------ */
   /*                           private helpers                          */
   /* ------------------------------------------------------------------ */
-  private async persistBackendEvent(input: CreateBackendEventInput) {
-    const data: BufferedBackendEventLog = {
-      ...input,
-      id: randomUUID(),
-      user_id: this.cls.get<string>(CLS_KEY_USER_ID),
-      request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
-      created_at: new Date(),
-      created_commit_id: env.API_COMMIT_ID,
-    };
-
-    // Enqueue to buffer instead of direct DB write
-    this.enqueueBackendEventLog(data);
+  /**
+   * バックエンドイベントログを Cloud Logging 向けの構造化 JSON で出力
+   * @param input バックエンドイベントログ入力
+   */
+  private logBackendEvent(input: CreateBackendEventInput) {
+    // #487 【設計】Cloud Logging 向けの構造化 JSON を stdout に出力
+    console.log(
+      JSON.stringify({
+        log_type: 'backend_event_logs',
+        id: randomUUID(),
+        event_name: input.event_name,
+        error_level: input.error_level,
+        function_name: input.function_name,
+        user_id: this.cls.get<string>(CLS_KEY_USER_ID),
+        payload: input.payload,
+        request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
+        created_commit_id: env.API_COMMIT_ID,
+      }),
+    );
   }
 
-  /** Cloud Run で見やすい構造化ログを stdout に出力 */
+  /** #487 【パフォーマンス】printStructured を無効化（ログ量削減） */
   private printStructured(
     severity: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR',
     eventName: string,
     functionName: string,
     payload: any,
   ) {
-    const entry = {
-      severity,
-      type: 'app',
-      event_name: eventName,
-      function_name: functionName,
-      request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
-      user_id: this.cls.get<string>(CLS_KEY_USER_ID),
-      payload,
-      timestamp: new Date().toISOString(),
-    };
-    console.log(JSON.stringify(entry));
+    // no-op
   }
 
   /** console へ出力すべきか判定 */
@@ -164,75 +163,5 @@ export class AppLoggerService implements INestLoggerService {
       LogLevel.error,
     ];
     return order.indexOf(level) >= order.indexOf(this.minLevel);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*                        Buffer Management                           */
-  /* ------------------------------------------------------------------ */
-
-  /** Enqueue backend event log to buffer with overflow protection */
-  private enqueueBackendEventLog(data: BufferedBackendEventLog): void {
-    try {
-      const buffer =
-        this.cls.get<BufferedBackendEventLog[]>(CLS_KEY_BE_LOG_BUFFER) || [];
-
-      // Check for buffer overflow and handle it
-      if (buffer.length >= env.LOG_SPILL_THRESHOLD) {
-        // Log warning about buffer overflow (to console only to avoid circular logging)
-        console.warn(
-          'Backend event log buffer overflow, discarding oldest entries',
-          {
-            bufferSize: buffer.length,
-            threshold: env.LOG_SPILL_THRESHOLD,
-            timestamp: new Date().toISOString(),
-          },
-        );
-
-        // Keep only the most recent entries (discard oldest)
-        buffer.splice(0, buffer.length - env.LOG_SPILL_THRESHOLD + 1);
-      }
-
-      buffer.push(data);
-      this.cls.set(CLS_KEY_BE_LOG_BUFFER, buffer);
-    } catch (error) {
-      // Fallback: log error to console only
-      console.error('Failed to enqueue backend event log:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
-  /** Enqueue external API log to buffer with overflow protection */
-  private enqueueExternalApiLog(data: BufferedExternalApiLog): void {
-    try {
-      const buffer =
-        this.cls.get<BufferedExternalApiLog[]>(CLS_KEY_API_LOG_BUFFER) || [];
-
-      // Check for buffer overflow and handle it
-      if (buffer.length >= env.LOG_SPILL_THRESHOLD) {
-        // Log warning about buffer overflow (to console only to avoid circular logging)
-        console.warn(
-          'External API log buffer overflow, discarding oldest entries',
-          {
-            bufferSize: buffer.length,
-            threshold: env.LOG_SPILL_THRESHOLD,
-            timestamp: new Date().toISOString(),
-          },
-        );
-
-        // Keep only the most recent entries (discard oldest)
-        buffer.splice(0, buffer.length - env.LOG_SPILL_THRESHOLD + 1);
-      }
-
-      buffer.push(data);
-      this.cls.set(CLS_KEY_API_LOG_BUFFER, buffer);
-    } catch (error) {
-      // Fallback: log error to console only
-      console.error('Failed to enqueue external API log:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      });
-    }
   }
 }

@@ -1,6 +1,6 @@
 // api/src/v1/logs/logs.controller.ts
 //
-// #489 【設計】フロントログ送信経路変更（Supabase → Backend API 経由）
+// #487 【設計】フロントログ送信経路変更（Prisma 廃止 / Cloud Logging 対応）
 // POST /v1/logs/frontend エンドポイントの実装
 //
 
@@ -37,7 +37,7 @@ export class LogsController {
   @UseGuards(OptionalJwtAuthGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({
-    summary: 'フロントエンドログを frontend_event_logs テーブルへ書き込み',
+    summary: 'フロントエンドログを Cloud Logging へ出力',
   })
   @ApiResponse({ status: 201, description: 'ログ受信成功' })
   async createFrontendLog(
