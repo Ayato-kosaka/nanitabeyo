@@ -157,22 +157,4 @@ describe('AppLoggerService', () => {
       expect(parsed.created_commit_id).toBe('abc123');
     });
   });
-
-  describe('printStructured', () => {
-    it('should be a no-op and not output anything', () => {
-      // Call methods that would previously trigger printStructured
-      service.log('test_event', 'test_function', { foo: 'bar' });
-
-      // Should only have one call (from logBackendEvent), not two (printStructured disabled)
-      expect(mockConsoleLog).toHaveBeenCalledTimes(1);
-
-      const logOutput = mockConsoleLog.mock.calls[0][0];
-      const parsed = JSON.parse(logOutput);
-
-      // Verify it's the backend_event_logs, not the old app log format
-      expect(parsed.log_type).toBe('backend_event_logs');
-      expect(parsed.type).toBeUndefined(); // Old format had 'type: app'
-      expect(parsed.severity).toBeUndefined(); // Old format had 'severity'
-    });
-  });
 });

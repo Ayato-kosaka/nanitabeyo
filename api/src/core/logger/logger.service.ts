@@ -3,7 +3,7 @@ import {
   LoggerService as INestLoggerService,
   Scope,
 } from '@nestjs/common';
-import { LogLevel, DEFAULT_LOG_LEVEL } from './logger.constants';
+import { LogLevel } from './logger.constants';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
 import { ClsService } from 'nestjs-cls';
@@ -21,9 +21,6 @@ import {
  */
 @Injectable({ scope: Scope.DEFAULT })
 export class AppLoggerService implements INestLoggerService {
-  /** 環境ごとの最小レベル */
-  private readonly minLevel = DEFAULT_LOG_LEVEL;
-
   constructor(private readonly cls: ClsService) {}
 
   /* ------------------------------------------------------------------ */
@@ -141,27 +138,5 @@ export class AppLoggerService implements INestLoggerService {
         created_commit_id: env.API_COMMIT_ID,
       }),
     );
-  }
-
-  /** #487 【パフォーマンス】printStructured を無効化（ログ量削減） */
-  private printStructured(
-    severity: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR',
-    eventName: string,
-    functionName: string,
-    payload: any,
-  ) {
-    // no-op
-  }
-
-  /** console へ出力すべきか判定 */
-  private shouldPrint(level: LogLevel): boolean {
-    const order: LogLevel[] = [
-      LogLevel.verbose,
-      LogLevel.debug,
-      LogLevel.log,
-      LogLevel.warn,
-      LogLevel.error,
-    ];
-    return order.indexOf(level) >= order.indexOf(this.minLevel);
   }
 }
