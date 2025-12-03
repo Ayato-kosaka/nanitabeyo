@@ -16,18 +16,13 @@
 -- - backend_event_logs
 -- - external_api_logs
 --
--- ## raw テーブル（Cloud Logging Sink 自動生成）
--- - raw_frontend_event_logs
--- - raw_backend_event_logs
--- - raw_external_api_logs
---
 -- ## 注意
--- - Cloud Logging Sink が --use-partitioned-tables で作成するテーブルは
---   logName に基づいて命名される
+-- - Cloud Logging Sink が --use-partitioned-tables で作成するテーブルから選択
+-- - Sink フィルタは jsonPayload.log_type ベースで動作
 -- - jsonPayload から各フィールドを抽出
 -- - created_at は LogEntry の timestamp を使用
 -- - VIEW 名は Supabase テーブル名と完全互換
--- - raw テーブルは raw_ プレフィックスで命名（VIEW 名との衝突回避）
+-- - 各 VIEW は log_type でフィルタリングしてログ種別を分離
 -- ==============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -37,7 +32,7 @@
 --   id, user_id, event_name, error_level, path_name, payload,
 --   created_at, created_app_version, created_commit_id
 --
--- Cloud Logging Sink raw テーブル: raw_frontend_event_logs（時系列パーティション）
+-- Cloud Logging Sink raw テーブルから log_type="frontend_event_logs" を抽出
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `${DATASET}.frontend_event_logs` AS
 SELECT
@@ -51,7 +46,9 @@ SELECT
   JSON_VALUE(jsonPayload, '$.created_app_version') AS created_app_version,
   JSON_VALUE(jsonPayload, '$.created_commit_id') AS created_commit_id
 FROM
-  `${DATASET}.raw_frontend_event_logs`;
+  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+WHERE
+  JSON_VALUE(jsonPayload, '$.log_type') = 'frontend_event_logs';
 
 -- -----------------------------------------------------------------------------
 -- backend_event_logs VIEW
@@ -60,7 +57,7 @@ FROM
 --   id, event_name, error_level, function_name, user_id, payload,
 --   request_id, created_at, created_commit_id
 --
--- Cloud Logging Sink raw テーブル: raw_backend_event_logs（時系列パーティション）
+-- Cloud Logging Sink raw テーブルから log_type="backend_event_logs" を抽出
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `${DATASET}.backend_event_logs` AS
 SELECT
@@ -74,7 +71,9 @@ SELECT
   timestamp AS created_at,
   JSON_VALUE(jsonPayload, '$.created_commit_id') AS created_commit_id
 FROM
-  `${DATASET}.raw_backend_event_logs`;
+  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+WHERE
+  JSON_VALUE(jsonPayload, '$.log_type') = 'backend_event_logs';
 
 -- -----------------------------------------------------------------------------
 -- external_api_logs VIEW
@@ -84,7 +83,7 @@ FROM
 --   request_payload, response_payload, status_code, error_message,
 --   response_time_ms, user_id, created_at, created_commit_id
 --
--- Cloud Logging Sink raw テーブル: raw_external_api_logs（時系列パーティション）
+-- Cloud Logging Sink raw テーブルから log_type="external_api_logs" を抽出
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `${DATASET}.external_api_logs` AS
 SELECT
@@ -103,4 +102,6 @@ SELECT
   timestamp AS created_at,
   JSON_VALUE(jsonPayload, '$.created_commit_id') AS created_commit_id
 FROM
-  `${DATASET}.raw_external_api_logs`;
+  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+WHERE
+  JSON_VALUE(jsonPayload, '$.log_type') = 'external_api_logs';

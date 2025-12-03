@@ -13,7 +13,7 @@
 #
 # 例:
 #   ./setup_logging_sink.sh food-scroll nanitabeyo_logs_dev logs-to-bq-dev \
-#     'resource.type="cloud_run_revision" logName="projects/food-scroll/logs/frontend_event_logs"'
+#     'resource.type="cloud_run_revision" jsonPayload.log_type="frontend_event_logs"'
 #
 # 必要条件:
 #   - gcloud CLI がログイン済み

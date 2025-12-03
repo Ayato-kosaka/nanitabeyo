@@ -92,8 +92,8 @@ TTL_DAYS_DEV="90"
 TTL_DAYS_PROD="730"
 
 # Sink フィルタ
-# raw_ プレフィックスを使用して、VIEW 名（Supabase 互換）との衝突を避ける
-SINK_FILTER='resource.type="cloud_run_revision" (logName="projects/food-scroll/logs/raw_frontend_event_logs" OR logName="projects/food-scroll/logs/raw_backend_event_logs" OR logName="projects/food-scroll/logs/raw_external_api_logs")'
+# jsonPayload.log_type ベースでフィルタリング（NestJS stdout JSON 出力に対応）
+SINK_FILTER='resource.type="cloud_run_revision" (jsonPayload.log_type="backend_event_logs" OR jsonPayload.log_type="frontend_event_logs" OR jsonPayload.log_type="external_api_logs")'
 
 echo "▶️  MODE           : ${MODE}"
 echo "▶️  PROJECT_ID     : ${PROJECT_ID}"
@@ -237,10 +237,15 @@ echo "📌 ログ出力の確認:"
 echo "  Cloud Run から stdout に JSON ログを出力すると、"
 echo "  Cloud Logging → BigQuery に自動転送されます。"
 echo
-echo "📌 logName の形式（NestJS / Cloud Run から出力）:"
-echo "  ※ raw_ プレフィックスを使用して、VIEW 名との衝突を避けています"
+echo "📌 NestJS / Cloud Run からのログ出力形式:"
+echo "  stdout に JSON を出力し、jsonPayload.log_type でログ種別を識別"
 cat <<LOG
-  - projects/food-scroll/logs/raw_frontend_event_logs
-  - projects/food-scroll/logs/raw_backend_event_logs
-  - projects/food-scroll/logs/raw_external_api_logs
+  jsonPayload.log_type の値:
+    - "backend_event_logs"
+    - "frontend_event_logs"
+    - "external_api_logs"
+
+  logName（参考）:
+    - projects/food-scroll/logs/stdout
+    ※ Cloud Run からの stdout ログは自動的に logName が割り当てられる
 LOG
