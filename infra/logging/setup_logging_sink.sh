@@ -85,17 +85,17 @@ WRITER_IDENTITY=$(gcloud logging sinks describe "${SINK_NAME}" \
 echo "ℹ️  Writer Identity: ${WRITER_IDENTITY}"
 
 # --- 4) BigQuery Dataset に IAM 権限付与 -------------------------------------
-echo "🔗 Granting BigQuery dataEditor role to Sink writer…"
+echo "🔗 Granting BigQuery dataEditor role to Sink writer (project-level)…"
 
 # writerIdentity から serviceAccount: プレフィックスを取得
 # 形式: serviceAccount:p386582543095-xxxxxx@gcp-sa-logging.iam.gserviceaccount.com
-bq add-iam-policy-binding \
-  --project_id="${PROJECT_ID}" \
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="${WRITER_IDENTITY}" \
   --role="roles/bigquery.dataEditor" \
-  "${DATASET_ID}"
+  --quiet
 
-echo "✅ IAM binding added to Dataset."
+echo "✅ IAM binding added to project: ${PROJECT_ID} (roles/bigquery.dataEditor)"
+
 
 # --- 5) 動作チェックのための出力 ---------------------------------------------
 echo ""

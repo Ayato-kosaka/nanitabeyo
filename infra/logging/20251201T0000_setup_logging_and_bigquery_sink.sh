@@ -5,12 +5,12 @@
 # ## 内容
 # - Cloud Logging → BigQuery Sink を dev / prod 環境で構築する。
 # - BigQuery Dataset（nanitabeyo_logs_dev / nanitabeyo_logs_prod）を作成する。
-# - Supabase 互換スキーマの VIEW を作成する。
+#   ※ VIEW 作成は本スクリプトの対象外
 #
 # ## 対象スクリプト
 # - infra/logging/setup_logging_bigquery_dataset.sh
 # - infra/logging/setup_logging_sink.sh
-# - infra/logging/big-query/migration/20251201T0000_create_log_views.sql
+#   ※ VIEW 作成用 SQL は別管理
 #
 # ## 背景
 # - Supabase 上のログテーブル（frontend_event_logs, backend_event_logs, external_api_logs）を
@@ -92,8 +92,18 @@ TTL_DAYS_DEV="90"
 TTL_DAYS_PROD="730"
 
 # Sink フィルタ
-# jsonPayload.log_type ベースでフィルタリング（NestJS stdout JSON 出力に対応）
-SINK_FILTER='resource.type="cloud_run_revision" AND (jsonPayload.log_type="backend_event_logs" OR jsonPayload.log_type="frontend_event_logs" OR jsonPayload.log_type="external_api_logs")'
+# jsonPayload.log_type ベースでフィルタリング（NestJS stdout JSON 出力に対応）（環境別）
+SINK_FILTER_DEV='resource.type="cloud_run_revision"
+  AND resource.labels.service_name="api-development"
+  AND (jsonPayload.log_type="backend_event_logs"
+       OR jsonPayload.log_type="frontend_event_logs"
+       OR jsonPayload.log_type="external_api_logs")'
+
+SINK_FILTER_PROD='resource.type="cloud_run_revision"
+  AND resource.labels.service_name="api-production"
+  AND (jsonPayload.log_type="backend_event_logs"
+       OR jsonPayload.log_type="frontend_event_logs"
+       OR jsonPayload.log_type="external_api_logs")'
 
 echo "▶️  MODE           : ${MODE}"
 echo "▶️  PROJECT_ID     : ${PROJECT_ID}"
@@ -148,71 +158,34 @@ run_sink_setup() {
   local env_name="$1"
   local dataset_id="$2"
   local sink_name="$3"
+  local sink_filter="$4"
 
   echo "🔗 Step2 (${env_name}): setup_logging_sink.sh を実行します…"
   echo "  - SINK_NAME : ${sink_name}"
   echo "  - DATASET   : ${dataset_id}"
+  echo "  - FILTER    : ${sink_filter}"
   echo
 
   ./setup_logging_sink.sh \
     "${PROJECT_ID}" \
     "${dataset_id}" \
     "${sink_name}" \
-    "${SINK_FILTER}"
+    "${sink_filter}"
 
   echo "✅ ${env_name}: Cloud Logging Sink setup 完了"
   echo
 }
 
 if [[ "${MODE}" == "all" || "${MODE}" == "dev" ]]; then
-  run_sink_setup "dev" "${DATASET_DEV}" "${SINK_NAME_DEV}"
+  run_sink_setup "dev" "${DATASET_DEV}" "${SINK_NAME_DEV}" "${SINK_FILTER_DEV}"
 fi
 
 if [[ "${MODE}" == "all" || "${MODE}" == "prod" ]]; then
-  run_sink_setup "prod" "${DATASET_PROD}" "${SINK_NAME_PROD}"
+  run_sink_setup "prod" "${DATASET_PROD}" "${SINK_NAME_PROD}" "${SINK_FILTER_PROD}"
 fi
 
 # ---------------------------------------------------------------------------
-# 3) BigQuery VIEW 作成
-# ---------------------------------------------------------------------------
-
-run_view_creation() {
-  local env_name="$1"
-  local dataset_id="$2"
-
-  echo "📊 Step3 (${env_name}): BigQuery VIEW を作成します…"
-  echo "  - DATASET : ${dataset_id}"
-  echo
-
-  # SQL ファイルから VIEW を作成
-  # Dataset を置換してから bq query で実行
-  local sql_file="./big-query/migration/20251201T0000_create_log_views.sql"
-
-  if [[ ! -f "${sql_file}" ]]; then
-    echo "❌ SQL ファイルが見つかりません: ${sql_file}"
-    exit 1
-  fi
-
-  # DATASET_PLACEHOLDER を実際の Dataset 名に置換して実行
-  sed "s/\${DATASET}/${dataset_id}/g" "${sql_file}" | bq query \
-    --project_id="${PROJECT_ID}" \
-    --use_legacy_sql=false \
-    --quiet
-
-  echo "✅ ${env_name}: BigQuery VIEW 作成完了"
-  echo
-}
-
-if [[ "${MODE}" == "all" || "${MODE}" == "dev" ]]; then
-  run_view_creation "dev" "${DATASET_DEV}"
-fi
-
-if [[ "${MODE}" == "all" || "${MODE}" == "prod" ]]; then
-  run_view_creation "prod" "${DATASET_PROD}"
-fi
-
-# ---------------------------------------------------------------------------
-# 4) 完了メッセージ
+# 3) 完了メッセージ
 # ---------------------------------------------------------------------------
 
 echo "🎉 全ての処理が完了しました。"
@@ -223,14 +196,12 @@ if [[ "${MODE}" == "all" || "${MODE}" == "dev" ]]; then
   echo "【dev 環境】"
   echo "  - Dataset: ${PROJECT_ID}.${DATASET_DEV}"
   echo "  - Sink   : ${SINK_NAME_DEV}"
-  echo "  - VIEWs  : frontend_event_logs, backend_event_logs, external_api_logs"
   echo
 fi
 if [[ "${MODE}" == "all" || "${MODE}" == "prod" ]]; then
   echo "【prod 環境】"
   echo "  - Dataset: ${PROJECT_ID}.${DATASET_PROD}"
   echo "  - Sink   : ${SINK_NAME_PROD}"
-  echo "  - VIEWs  : frontend_event_logs, backend_event_logs, external_api_logs"
   echo
 fi
 echo "📌 ログ出力の確認:"
@@ -249,3 +220,5 @@ cat <<LOG
     - projects/food-scroll/logs/stdout
     ※ Cloud Run からの stdout ログは自動的に logName が割り当てられる
 LOG
+
+exit 0
