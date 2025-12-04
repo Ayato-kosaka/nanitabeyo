@@ -81,8 +81,8 @@ export class AppLoggerService implements INestLoggerService {
         api_name: input.api_name,
         endpoint: input.endpoint,
         method: input.method,
-        request_payload: input.request_payload,
-        response_payload: input.response_payload ?? undefined,
+        request_payload: this.convertToBigQueryRecord(input.request_payload),
+        response_payload: this.convertToBigQueryRecord(input.response_payload),
         status_code: input.status_code,
         error_message: input.error_message ?? undefined,
         response_time_ms: input.response_time_ms,
@@ -108,7 +108,7 @@ export class AppLoggerService implements INestLoggerService {
         event_name: input.event_name,
         user_id: input.user_id,
         path_name: input.path_name,
-        payload: input.payload,
+        payload: this.convertToBigQueryRecord(input.payload),
         error_level: input.error_level,
         created_app_version: input.created_app_version,
         created_commit_id: input.created_commit_id,
@@ -133,10 +133,51 @@ export class AppLoggerService implements INestLoggerService {
         error_level: input.error_level,
         function_name: input.function_name,
         user_id: this.cls.get<string>(CLS_KEY_USER_ID),
-        payload: input.payload,
+        payload: this.convertToBigQueryRecord(input.payload),
         request_id: this.cls.get<string>(CLS_KEY_REQUEST_ID),
         created_commit_id: env.API_COMMIT_ID,
       }),
     );
+  }
+
+  /**
+   * BigQuery に安全に書き込める形に変換するユーティリティ
+   *
+   * 目的:
+   * - ルートが配列だった場合はラップして配列が直接 root にならないようにする
+   * - プリミティブは { value: ... } のようにラップする
+   * - オブジェクトは再帰的に処理して、そのままオブジェクト構造を保持する
+   * - undefined はそのまま undefined を返してフィールド省略できるようにする
+   *
+   * 注意:
+   * - BigQuery 側のテーブルスキーマがこの変換後の形を受け取れることを事前に確認してください。
+   * - 深い入れ子や循環参照がある場合は追加の対処が必要です（現在は循環参照は未サポート）。
+   */
+  private convertToBigQueryRecord(obj: unknown): unknown {
+    if (obj === undefined) return undefined;
+    if (obj === null) return null;
+
+    // 配列はラップして root が配列にならないようにする
+    if (Array.isArray(obj)) {
+      // 要素も再帰的に変換した方が安全だが、要素がプリミティブの場合はそのままでも良い
+      return { array_values: obj };
+    }
+
+    // ルートがオブジェクトなら浅いサニタイズのみ行う（再帰しない）
+    if (typeof obj === 'object') {
+      const out: { [k: string]: any } = {};
+      for (const [k, v] of Object.entries(obj as Record<string, any>)) {
+        // undefined は省略（BigQuery に書きたくない）
+        if (v === undefined) continue;
+        // 関数やシンボルは無視
+        if (typeof v === 'function' || typeof v === 'symbol') continue;
+        // ネストはそのまま渡す（パフォーマンス重視のため再帰はしない）
+        out[k] = v;
+    }
+      return out;
+    }
+
+    // プリミティブはラップして型の曖昧さを避ける
+    return { value: obj };
   }
 }
