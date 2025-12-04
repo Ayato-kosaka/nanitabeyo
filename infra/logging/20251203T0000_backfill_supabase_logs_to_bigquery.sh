@@ -17,11 +17,18 @@
 # 2. BigQuery SQL 実行（ステージング作成 → レガシー作成 → INSERT → VIEW REPLACE）
 #
 # ## 使い方
+#   # デフォルトパスを使用（gs://{bucket}/supabase/*.csv）
 #   ./20251203T0000_backfill_supabase_logs_to_bigquery.sh dev
 #   ./20251203T0000_backfill_supabase_logs_to_bigquery.sh prod
 #
+#   # カスタムGCSパスを指定（pg-table-export.yml のタイムスタンプディレクトリなど）
+#   ./20251203T0000_backfill_supabase_logs_to_bigquery.sh dev "gs://food-scroll-logs-dev/system/PostgreSQL/csv_export/20241203-120000"
+#   ./20251203T0000_backfill_supabase_logs_to_bigquery.sh prod "gs://food-scroll-logs-prod/system/PostgreSQL/csv_export/20241203-120000"
+#
 # ## 引数
 #   ENV: dev または prod
+#   GCS_BASE_PATH (省略可): CSV ファイルが格納されている GCS ディレクトリパス
+#                           省略時は gs://{bucket}/supabase/ を使用
 #
 # ## 注意
 # - 実行前に GCS 上のエクスポートファイルが存在することを確認すること
@@ -41,6 +48,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 ENV="${1:-}"
+GCS_BASE_PATH="${2:-}"
 
 if [[ -z "${ENV}" ]]; then
   echo "❌ 環境を指定してください: dev または prod" >&2
@@ -55,23 +63,44 @@ PROJECT_ID="food-scroll"
 # 環境別設定
 if [[ "${ENV}" == "dev" ]]; then
   DATASET_ID="nanitabeyo_logs_dev"
-  GCS_FRONTEND_PATH="gs://food-scroll-logs-dev/supabase/frontend_event_logs.csv"
-  GCS_BACKEND_PATH="gs://food-scroll-logs-dev/supabase/backend_event_logs.csv"
-  GCS_EXTERNAL_PATH="gs://food-scroll-logs-dev/supabase/external_api_logs.csv"
+  DEFAULT_GCS_BUCKET="food-scroll-logs-dev"
+  if [[ -n "${GCS_BASE_PATH}" ]]; then
+    # カスタムパスが指定された場合
+    GCS_FRONTEND_PATH="${GCS_BASE_PATH}/frontend_event_logs.csv"
+    GCS_BACKEND_PATH="${GCS_BASE_PATH}/backend_event_logs.csv"
+    GCS_EXTERNAL_PATH="${GCS_BASE_PATH}/external_api_logs.csv"
+  else
+    # デフォルトパス
+    GCS_FRONTEND_PATH="gs://${DEFAULT_GCS_BUCKET}/supabase/frontend_event_logs.csv"
+    GCS_BACKEND_PATH="gs://${DEFAULT_GCS_BUCKET}/supabase/backend_event_logs.csv"
+    GCS_EXTERNAL_PATH="gs://${DEFAULT_GCS_BUCKET}/supabase/external_api_logs.csv"
+  fi
 elif [[ "${ENV}" == "prod" ]]; then
   DATASET_ID="nanitabeyo_logs_prod"
-  GCS_FRONTEND_PATH="gs://food-scroll-logs-prod/supabase/frontend_event_logs.csv"
-  GCS_BACKEND_PATH="gs://food-scroll-logs-prod/supabase/backend_event_logs.csv"
-  GCS_EXTERNAL_PATH="gs://food-scroll-logs-prod/supabase/external_api_logs.csv"
+  DEFAULT_GCS_BUCKET="food-scroll-logs-prod"
+  if [[ -n "${GCS_BASE_PATH}" ]]; then
+    # カスタムパスが指定された場合
+    GCS_FRONTEND_PATH="${GCS_BASE_PATH}/frontend_event_logs.csv"
+    GCS_BACKEND_PATH="${GCS_BASE_PATH}/backend_event_logs.csv"
+    GCS_EXTERNAL_PATH="${GCS_BASE_PATH}/external_api_logs.csv"
+  else
+    # デフォルトパス
+    GCS_FRONTEND_PATH="gs://${DEFAULT_GCS_BUCKET}/supabase/frontend_event_logs.csv"
+    GCS_BACKEND_PATH="gs://${DEFAULT_GCS_BUCKET}/supabase/backend_event_logs.csv"
+    GCS_EXTERNAL_PATH="gs://${DEFAULT_GCS_BUCKET}/supabase/external_api_logs.csv"
+  fi
 else
   echo "❌ 不正な環境: ${ENV}" >&2
   echo "   dev または prod を指定してください。" >&2
   exit 1
 fi
 
-echo "▶️  ENV           : ${ENV}"
-echo "▶️  PROJECT_ID    : ${PROJECT_ID}"
-echo "▶️  DATASET_ID    : ${DATASET_ID}"
+echo "▶️  ENV              : ${ENV}"
+echo "▶️  PROJECT_ID       : ${PROJECT_ID}"
+echo "▶️  DATASET_ID       : ${DATASET_ID}"
+echo "▶️  GCS_FRONTEND_PATH: ${GCS_FRONTEND_PATH}"
+echo "▶️  GCS_BACKEND_PATH : ${GCS_BACKEND_PATH}"
+echo "▶️  GCS_EXTERNAL_PATH: ${GCS_EXTERNAL_PATH}"
 echo "────────────────────────────────────────────────────────"
 
 # プロジェクト固定
