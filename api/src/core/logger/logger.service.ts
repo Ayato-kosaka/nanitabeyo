@@ -160,7 +160,7 @@ export class AppLoggerService implements INestLoggerService {
     // 配列はラップして root が配列にならないようにする
     if (Array.isArray(obj)) {
       // 要素も再帰的に変換した方が安全だが、要素がプリミティブの場合はそのままでも良い
-      return { array_values: obj };
+      return JSON.stringify({ array_values: obj });
     }
 
     // ルートがオブジェクトなら浅いサニタイズのみ行う（再帰しない）
@@ -174,10 +174,10 @@ export class AppLoggerService implements INestLoggerService {
         // ネストはそのまま渡す（パフォーマンス重視のため再帰はしない）
         out[k] = v;
     }
-      return out;
+      return JSON.stringify(out);
     }
 
     // プリミティブはラップして型の曖昧さを避ける
-    return { value: obj };
+    return JSON.stringify({ value: obj });
   }
 }
