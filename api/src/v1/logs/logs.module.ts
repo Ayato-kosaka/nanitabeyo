@@ -1,6 +1,6 @@
 // api/src/v1/logs/logs.module.ts
 //
-// #489 【設計】フロントログ送信経路変更（Supabase → Backend API 経由）
+// #487 【設計】フロントログ送信経路変更（Prisma 廃止 / Cloud Logging 対応）
 // Logs モジュール定義
 //
 

@@ -20,7 +20,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
   constructor(
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -96,7 +96,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
         const resObj = exceptionResponse as any;
 
         // ここで code を拾う
-        if (typeof resObj.code === 'string' && Object.values(ErrorCode).includes(resObj.code)) {
+        if (
+          typeof resObj.code === 'string' &&
+          Object.values(ErrorCode).includes(resObj.code)
+        ) {
           code = resObj.code as ErrorCode;
         } else {
           code = ErrorCode.INTERNAL_ERROR;
