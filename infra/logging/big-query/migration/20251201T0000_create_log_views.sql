@@ -36,19 +36,19 @@
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `${DATASET}.frontend_event_logs` AS
 SELECT
-  JSON_VALUE(jsonPayload, '$.id') AS id,
-  JSON_VALUE(jsonPayload, '$.user_id') AS user_id,
-  JSON_VALUE(jsonPayload, '$.event_name') AS event_name,
-  JSON_VALUE(jsonPayload, '$.error_level') AS error_level,
-  JSON_VALUE(jsonPayload, '$.path_name') AS path_name,
-  SAFE.PARSE_JSON(JSON_VALUE(jsonPayload, '$.payload')) AS payload,
+  jsonPayload.id AS id,
+  jsonPayload.user_id AS user_id,
+  jsonPayload.event_name AS event_name,
+  jsonPayload.error_level AS error_level,
+  jsonPayload.path_name AS path_name,
+  TO_JSON(jsonPayload.payload) AS payload, -- or SAFE.PARSE_JSON(TO_JSON_STRING(jsonPayload.payload))
   timestamp AS created_at,
-  JSON_VALUE(jsonPayload, '$.created_app_version') AS created_app_version,
-  JSON_VALUE(jsonPayload, '$.created_commit_id') AS created_commit_id
-FROM
+  jsonPayload.created_app_version AS created_app_version,
+  jsonPayload.created_commit_id AS created_commit_id
+FROM 
   `${DATASET}.cloudrun_googleapis_com_stdout_*`
-WHERE
-  JSON_VALUE(jsonPayload, '$.log_type') = 'frontend_event_logs';
+WHERE 
+  jsonPayload.log_type = 'frontend_event_logs';
 
 -- -----------------------------------------------------------------------------
 -- backend_event_logs VIEW
@@ -61,19 +61,19 @@ WHERE
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `${DATASET}.backend_event_logs` AS
 SELECT
-  JSON_VALUE(jsonPayload, '$.id') AS id,
-  JSON_VALUE(jsonPayload, '$.event_name') AS event_name,
-  JSON_VALUE(jsonPayload, '$.error_level') AS error_level,
-  JSON_VALUE(jsonPayload, '$.function_name') AS function_name,
-  JSON_VALUE(jsonPayload, '$.user_id') AS user_id,
-  SAFE.PARSE_JSON(JSON_VALUE(jsonPayload, '$.payload')) AS payload,
-  JSON_VALUE(jsonPayload, '$.request_id') AS request_id,
+  jsonPayload.id AS id,
+  jsonPayload.event_name AS event_name,
+  jsonPayload.error_level AS error_level,
+  jsonPayload.function_name AS function_name,
+  jsonPayload.user_id AS user_id,
+  TO_JSON(jsonPayload.payload) AS payload,
+  jsonPayload.request_id AS request_id,
   timestamp AS created_at,
-  JSON_VALUE(jsonPayload, '$.created_commit_id') AS created_commit_id
+  jsonPayload.created_commit_id AS created_commit_id
 FROM
   `${DATASET}.cloudrun_googleapis_com_stdout_*`
 WHERE
-  JSON_VALUE(jsonPayload, '$.log_type') = 'backend_event_logs';
+  jsonPayload.log_type = 'backend_event_logs';
 
 -- -----------------------------------------------------------------------------
 -- external_api_logs VIEW
@@ -87,21 +87,21 @@ WHERE
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW `${DATASET}.external_api_logs` AS
 SELECT
-  JSON_VALUE(jsonPayload, '$.id') AS id,
-  JSON_VALUE(jsonPayload, '$.request_id') AS request_id,
-  JSON_VALUE(jsonPayload, '$.function_name') AS function_name,
-  JSON_VALUE(jsonPayload, '$.api_name') AS api_name,
-  JSON_VALUE(jsonPayload, '$.endpoint') AS endpoint,
-  JSON_VALUE(jsonPayload, '$.method') AS method,
-  SAFE.PARSE_JSON(JSON_VALUE(jsonPayload, '$.request_payload')) AS request_payload,
-  SAFE.PARSE_JSON(JSON_VALUE(jsonPayload, '$.response_payload')) AS response_payload,
-  SAFE_CAST(JSON_VALUE(jsonPayload, '$.status_code') AS INT64) AS status_code,
-  JSON_VALUE(jsonPayload, '$.error_message') AS error_message,
-  SAFE_CAST(JSON_VALUE(jsonPayload, '$.response_time_ms') AS INT64) AS response_time_ms,
-  JSON_VALUE(jsonPayload, '$.user_id') AS user_id,
+  jsonPayload.id AS id,
+  jsonPayload.request_id AS request_id,
+  jsonPayload.function_name AS function_name,
+  jsonPayload.api_name AS api_name,
+  jsonPayload.endpoint AS endpoint,
+  jsonPayload.method AS method,
+  TO_JSON(jsonPayload.request_payload) AS request_payload,
+  TO_JSON(jsonPayload.response_payload) AS response_payload,
+  SAFE_CAST(jsonPayload.status_code AS INT64) AS status_code,
+  jsonPayload.error_message AS error_message,
+  SAFE_CAST(jsonPayload.response_time_ms AS INT64) AS response_time_ms,
+  jsonPayload.user_id AS user_id,
   timestamp AS created_at,
-  JSON_VALUE(jsonPayload, '$.created_commit_id') AS created_commit_id
+  jsonPayload.created_commit_id AS created_commit_id
 FROM
   `${DATASET}.cloudrun_googleapis_com_stdout_*`
 WHERE
-  JSON_VALUE(jsonPayload, '$.log_type') = 'external_api_logs';
+  jsonPayload.log_type = 'external_api_logs';

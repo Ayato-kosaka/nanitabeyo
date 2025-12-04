@@ -93,7 +93,7 @@ TTL_DAYS_PROD="730"
 
 # Sink フィルタ
 # jsonPayload.log_type ベースでフィルタリング（NestJS stdout JSON 出力に対応）
-SINK_FILTER='resource.type="cloud_run_revision" (jsonPayload.log_type="backend_event_logs" OR jsonPayload.log_type="frontend_event_logs" OR jsonPayload.log_type="external_api_logs")'
+SINK_FILTER='resource.type="cloud_run_revision" AND (jsonPayload.log_type="backend_event_logs" OR jsonPayload.log_type="frontend_event_logs" OR jsonPayload.log_type="external_api_logs")'
 
 echo "▶️  MODE           : ${MODE}"
 echo "▶️  PROJECT_ID     : ${PROJECT_ID}"
