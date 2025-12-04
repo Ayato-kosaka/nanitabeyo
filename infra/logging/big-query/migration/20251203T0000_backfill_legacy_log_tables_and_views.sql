@@ -12,7 +12,7 @@
 -- ${DATASET} はスクリプト側で置換される。
 --
 -- ## 処理内容
--- 1. ステージングテーブル作成（Supabase 生データ用）
+-- 1. ステージングテーブル作成（Supabase 生データ用） ※CSV インポートで作成されるためコメントアウト
 -- 2. レガシーテーブル作成（VIEW 互換スキーマ）
 -- 3. ステージング → レガシーテーブルへの INSERT（JSON 変換）
 -- 4. VIEW の REPLACE（legacy + Cloud Logging raw の UNION ALL）
@@ -23,57 +23,58 @@
 -- - external_api_logs
 -- ==============================================================================
 
--- -----------------------------------------------------------------------------
--- 1-1. ステージングテーブル作成：stg_frontend_event_logs
--- -----------------------------------------------------------------------------
--- Supabase のテーブル定義に準拠（payload は STRING）
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `${DATASET}.stg_frontend_event_logs` (
-  id STRING,
-  user_id STRING,
-  event_name STRING,
-  error_level STRING,
-  path_name STRING,
-  payload STRING,
-  created_at TIMESTAMP,
-  created_app_version STRING,
-  created_commit_id STRING
-);
 
--- -----------------------------------------------------------------------------
--- 1-2. ステージングテーブル作成：stg_backend_event_logs
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `${DATASET}.stg_backend_event_logs` (
-  id STRING,
-  event_name STRING,
-  error_level STRING,
-  function_name STRING,
-  user_id STRING,
-  payload STRING,
-  request_id STRING,
-  created_at TIMESTAMP,
-  created_commit_id STRING
-);
+-- -- -----------------------------------------------------------------------------
+-- -- 1-1. ステージングテーブル作成：stg_frontend_event_logs
+-- -- -----------------------------------------------------------------------------
+-- -- Supabase のテーブル定義に準拠（payload は STRING）
+-- -- -----------------------------------------------------------------------------
+-- CREATE TABLE IF NOT EXISTS `${DATASET}.stg_frontend_event_logs` (
+--   id STRING,
+--   user_id STRING,
+--   event_name STRING,
+--   error_level STRING,
+--   path_name STRING,
+--   payload STRING,
+--   created_at TIMESTAMP,
+--   created_app_version STRING,
+--   created_commit_id STRING
+-- );
 
--- -----------------------------------------------------------------------------
--- 1-3. ステージングテーブル作成：stg_external_api_logs
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `${DATASET}.stg_external_api_logs` (
-  id STRING,
-  request_id STRING,
-  function_name STRING,
-  api_name STRING,
-  endpoint STRING,
-  method STRING,
-  request_payload STRING,
-  response_payload STRING,
-  status_code INT64,
-  error_message STRING,
-  response_time_ms INT64,
-  user_id STRING,
-  created_at TIMESTAMP,
-  created_commit_id STRING
-);
+-- -- -----------------------------------------------------------------------------
+-- -- 1-2. ステージングテーブル作成：stg_backend_event_logs
+-- -- -----------------------------------------------------------------------------
+-- CREATE TABLE IF NOT EXISTS `${DATASET}.stg_backend_event_logs` (
+--   id STRING,
+--   event_name STRING,
+--   error_level STRING,
+--   function_name STRING,
+--   user_id STRING,
+--   payload STRING,
+--   request_id STRING,
+--   created_at TIMESTAMP,
+--   created_commit_id STRING
+-- );
+
+-- -- -----------------------------------------------------------------------------
+-- -- 1-3. ステージングテーブル作成：stg_external_api_logs
+-- -- -----------------------------------------------------------------------------
+-- CREATE TABLE IF NOT EXISTS `${DATASET}.stg_external_api_logs` (
+--   id STRING,
+--   request_id STRING,
+--   function_name STRING,
+--   api_name STRING,
+--   endpoint STRING,
+--   method STRING,
+--   request_payload STRING,
+--   response_payload STRING,
+--   status_code INT64,
+--   error_message STRING,
+--   response_time_ms INT64,
+--   user_id STRING,
+--   created_at TIMESTAMP,
+--   created_commit_id STRING
+-- );
 
 -- -----------------------------------------------------------------------------
 -- 2-1. レガシーテーブル作成：frontend_event_logs_legacy
@@ -250,7 +251,7 @@ SELECT
   jsonPayload.created_app_version AS created_app_version,
   jsonPayload.created_commit_id AS created_commit_id
 FROM
-  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+  `${DATASET}.run_googleapis_com_stdout`
 WHERE
   jsonPayload.log_type = 'frontend_event_logs';
 
@@ -285,7 +286,7 @@ SELECT
   timestamp AS created_at,
   jsonPayload.created_commit_id AS created_commit_id
 FROM
-  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+  `${DATASET}.run_googleapis_com_stdout`
 WHERE
   jsonPayload.log_type = 'backend_event_logs';
 
@@ -330,6 +331,6 @@ SELECT
   timestamp AS created_at,
   jsonPayload.created_commit_id AS created_commit_id
 FROM
-  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+  `${DATASET}.run_googleapis_com_stdout`
 WHERE
   jsonPayload.log_type = 'external_api_logs';
