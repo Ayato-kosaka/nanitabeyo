@@ -46,7 +46,7 @@ SELECT
   jsonPayload.created_app_version AS created_app_version,
   jsonPayload.created_commit_id AS created_commit_id
 FROM 
-  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+  `${DATASET}.run_googleapis_com_stdout`
 WHERE 
   jsonPayload.log_type = 'frontend_event_logs';
 
@@ -71,7 +71,7 @@ SELECT
   timestamp AS created_at,
   jsonPayload.created_commit_id AS created_commit_id
 FROM
-  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+  `${DATASET}.run_googleapis_com_stdout`
 WHERE
   jsonPayload.log_type = 'backend_event_logs';
 
@@ -102,6 +102,6 @@ SELECT
   timestamp AS created_at,
   jsonPayload.created_commit_id AS created_commit_id
 FROM
-  `${DATASET}.cloudrun_googleapis_com_stdout_*`
+  `${DATASET}.run_googleapis_com_stdout`
 WHERE
   jsonPayload.log_type = 'external_api_logs';

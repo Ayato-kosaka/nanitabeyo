@@ -92,8 +92,18 @@ TTL_DAYS_DEV="90"
 TTL_DAYS_PROD="730"
 
 # Sink フィルタ
-# jsonPayload.log_type ベースでフィルタリング（NestJS stdout JSON 出力に対応）
-SINK_FILTER='resource.type="cloud_run_revision" AND (jsonPayload.log_type="backend_event_logs" OR jsonPayload.log_type="frontend_event_logs" OR jsonPayload.log_type="external_api_logs")'
+# jsonPayload.log_type ベースでフィルタリング（NestJS stdout JSON 出力に対応）（環境別）
+SINK_FILTER_DEV='resource.type="cloud_run_revision"
+  AND resource.labels.service_name="api-development"
+  AND (jsonPayload.log_type="backend_event_logs"
+       OR jsonPayload.log_type="frontend_event_logs"
+       OR jsonPayload.log_type="external_api_logs")'
+
+SINK_FILTER_PROD='resource.type="cloud_run_revision"
+  AND resource.labels.service_name="api-production"
+  AND (jsonPayload.log_type="backend_event_logs"
+       OR jsonPayload.log_type="frontend_event_logs"
+       OR jsonPayload.log_type="external_api_logs")'
 
 echo "▶️  MODE           : ${MODE}"
 echo "▶️  PROJECT_ID     : ${PROJECT_ID}"
@@ -148,28 +158,30 @@ run_sink_setup() {
   local env_name="$1"
   local dataset_id="$2"
   local sink_name="$3"
+  local sink_filter="$4"
 
   echo "🔗 Step2 (${env_name}): setup_logging_sink.sh を実行します…"
   echo "  - SINK_NAME : ${sink_name}"
   echo "  - DATASET   : ${dataset_id}"
+  echo "  - FILTER    : ${sink_filter}"
   echo
 
   ./setup_logging_sink.sh \
     "${PROJECT_ID}" \
     "${dataset_id}" \
     "${sink_name}" \
-    "${SINK_FILTER}"
+    "${sink_filter}"
 
   echo "✅ ${env_name}: Cloud Logging Sink setup 完了"
   echo
 }
 
 if [[ "${MODE}" == "all" || "${MODE}" == "dev" ]]; then
-  run_sink_setup "dev" "${DATASET_DEV}" "${SINK_NAME_DEV}"
+  run_sink_setup "dev" "${DATASET_DEV}" "${SINK_NAME_DEV}" "${SINK_FILTER_DEV}"
 fi
 
 if [[ "${MODE}" == "all" || "${MODE}" == "prod" ]]; then
-  run_sink_setup "prod" "${DATASET_PROD}" "${SINK_NAME_PROD}"
+  run_sink_setup "prod" "${DATASET_PROD}" "${SINK_NAME_PROD}" "${SINK_FILTER_PROD}"
 fi
 
 # ---------------------------------------------------------------------------
