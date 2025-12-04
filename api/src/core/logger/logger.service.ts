@@ -21,7 +21,7 @@ import {
  */
 @Injectable({ scope: Scope.DEFAULT })
 export class AppLoggerService implements INestLoggerService {
-  constructor(private readonly cls: ClsService) {}
+  constructor(private readonly cls: ClsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
@@ -84,7 +84,7 @@ export class AppLoggerService implements INestLoggerService {
         request_payload: this.convertToBigQueryRecord(input.request_payload),
         response_payload: this.convertToBigQueryRecord(input.response_payload),
         status_code: input.status_code,
-        error_message: input.error_message ?? undefined,
+        error_message: input.error_message ?? null,
         response_time_ms: input.response_time_ms,
         user_id: this.cls.get<string>(CLS_KEY_USER_ID),
         created_commit_id: env.API_COMMIT_ID,
@@ -173,7 +173,7 @@ export class AppLoggerService implements INestLoggerService {
         if (typeof v === 'function' || typeof v === 'symbol') continue;
         // ネストはそのまま渡す（パフォーマンス重視のため再帰はしない）
         out[k] = v;
-    }
+      }
       return JSON.stringify(out);
     }
 
