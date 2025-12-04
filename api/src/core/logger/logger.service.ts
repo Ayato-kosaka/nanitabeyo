@@ -21,12 +21,16 @@ import {
  */
 @Injectable({ scope: Scope.DEFAULT })
 export class AppLoggerService implements INestLoggerService {
-  constructor(private readonly cls: ClsService) { }
+  constructor(private readonly cls: ClsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
   /* ------------------------------------------------------------------ */
-  verbose(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
+  verbose(
+    eventName: CreateBackendEventInput['event_name'],
+    functionName: CreateBackendEventInput['function_name'],
+    payload: CreateBackendEventInput['payload'],
+  ) {
     this.logBackendEvent({
       error_level: LogLevel.verbose,
       payload,
@@ -34,7 +38,11 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  debug(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
+  debug(
+    eventName: CreateBackendEventInput['event_name'],
+    functionName: CreateBackendEventInput['function_name'],
+    payload: CreateBackendEventInput['payload'],
+  ) {
     this.logBackendEvent({
       error_level: LogLevel.debug,
       payload,
@@ -42,7 +50,11 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  log(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
+  log(
+    eventName: CreateBackendEventInput['event_name'],
+    functionName: CreateBackendEventInput['function_name'],
+    payload: CreateBackendEventInput['payload'],
+  ) {
     this.logBackendEvent({
       error_level: LogLevel.log,
       payload,
@@ -50,7 +62,11 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  warn(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
+  warn(
+    eventName: CreateBackendEventInput['event_name'],
+    functionName: CreateBackendEventInput['function_name'],
+    payload: CreateBackendEventInput['payload'],
+  ) {
     this.logBackendEvent({
       error_level: LogLevel.warn,
       payload,
@@ -58,7 +74,11 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  error(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
+  error(
+    eventName: CreateBackendEventInput['event_name'],
+    functionName: CreateBackendEventInput['function_name'],
+    payload: CreateBackendEventInput['payload'],
+  ) {
     this.logBackendEvent({
       error_level: LogLevel.error,
       payload,

@@ -37,15 +37,15 @@ export interface ClaudeMessageResponse {
   type: 'message';
   content: (
     | {
-      type: 'text';
-      text: string;
-    }
+        type: 'text';
+        text: string;
+      }
     | {
-      type: 'tool_use';
-      id: string;
-      name: string;
-      input: any;
-    }
+        type: 'tool_use';
+        id: string;
+        name: string;
+        input: any;
+      }
   )[];
   stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
   stop_sequence: string | null;
@@ -71,9 +71,9 @@ export interface ClaudeMessageRequest {
     input_schema: any;
   }[];
   tool_choice?:
-  | { type: 'auto' }
-  | { type: 'any' }
-  | { type: 'tool'; name: string };
+    | { type: 'auto' }
+    | { type: 'any' }
+    | { type: 'tool'; name: string };
   stream?: boolean;
 }
 

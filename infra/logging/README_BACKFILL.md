@@ -118,6 +118,7 @@ cd infra/logging
 ```
 
 この方法では、以下のパスからファイルを読み込みます：
+
 - dev: `gs://food-scroll-logs-dev/supabase/*.csv`
 - prod: `gs://food-scroll-logs-prod/supabase/*.csv`
 
@@ -188,7 +189,7 @@ SELECT COUNT(*) FROM `food-scroll.nanitabeyo_logs_prod.external_api_logs_legacy`
 
 ```sql
 -- payload が JSON 型になっていることを確認
-SELECT 
+SELECT
   JSON_TYPE(payload) AS payload_type,
   payload
 FROM `food-scroll.nanitabeyo_logs_prod.frontend_event_logs_legacy`
@@ -199,7 +200,7 @@ LIMIT 10;
 
 ```sql
 -- VIEW から両方のソースが見えることを確認
-SELECT 
+SELECT
   created_at,
   event_name,
   JSON_TYPE(payload) AS payload_type
@@ -215,9 +216,9 @@ LIMIT 100;
 #### BigQuery 側で max(created_at) を取得
 
 ```sql
-SELECT 
+SELECT
   MAX(created_at) AS max_created_at
-FROM 
+FROM
   `food-scroll.nanitabeyo_logs_prod.frontend_event_logs_legacy`;
 ```
 
@@ -295,7 +296,7 @@ bq rm -t -f food-scroll:nanitabeyo_logs_dev.frontend_event_logs_legacy
 
 # 原因: Cloud Logging Sink がまだログを送信していない
 
-# 解決策: 
+# 解決策:
 # 1. Cloud Logging Sink が正しく設定されているか確認
 # 2. Cloud Run からログが出力されているか確認
 # 3. 一旦 VIEW を手動で修正するか、ログが流れるのを待つ
