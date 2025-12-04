@@ -26,7 +26,7 @@ export class AppLoggerService implements INestLoggerService {
   /* ------------------------------------------------------------------ */
   /*                  Nest LoggerService 実装 (console)                 */
   /* ------------------------------------------------------------------ */
-  verbose(eventName, functionName, payload: any) {
+  verbose(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
     this.logBackendEvent({
       error_level: LogLevel.verbose,
       payload,
@@ -34,7 +34,7 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  debug(eventName, functionName, payload: any) {
+  debug(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
     this.logBackendEvent({
       error_level: LogLevel.debug,
       payload,
@@ -42,7 +42,7 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  log(eventName, functionName, payload: any) {
+  log(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
     this.logBackendEvent({
       error_level: LogLevel.log,
       payload,
@@ -50,7 +50,7 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  warn(eventName, functionName, payload: any) {
+  warn(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
     this.logBackendEvent({
       error_level: LogLevel.warn,
       payload,
@@ -58,7 +58,7 @@ export class AppLoggerService implements INestLoggerService {
       function_name: functionName,
     });
   }
-  error(eventName, functionName, payload: any) {
+  error(eventName: CreateBackendEventInput["event_name"], functionName: CreateBackendEventInput["function_name"], payload: CreateBackendEventInput["payload"]) {
     this.logBackendEvent({
       error_level: LogLevel.error,
       payload,

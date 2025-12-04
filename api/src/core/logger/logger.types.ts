@@ -85,7 +85,7 @@ export type FrontendEventLogRecord = {
   event_name?: string | null
   error_level?: keyof typeof frontend_event_logs_error_level | null
   path_name?: string | null
-  payload?: string | null
+  payload?: Record<string, any> | null
   created_at: Date | string
   created_app_version: string
   created_commit_id: string

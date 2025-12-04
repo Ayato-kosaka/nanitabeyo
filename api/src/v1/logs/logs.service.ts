@@ -30,7 +30,7 @@ export class LogsService {
         user_id: userId,
         event_name: dto.event_name,
         path_name: dto.path_name,
-        payload: JSON.stringify(dto.payload),
+        payload: dto.payload,
         error_level: dto.error_level,
         created_app_version: dto.created_app_version,
         created_commit_id: dto.created_commit_id,
