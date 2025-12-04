@@ -24,7 +24,11 @@
 			"months": "{{count}}个月前",
 			"years": "{{count}}年前"
 		},
-		"site": "CraveCatch"
+		"site": "CraveCatch",
+		"errors": {
+			"network": "发生网络错误。请检查您的连接。",
+			"unexpected": "发生意外错误。请稍后重试。"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
@@ -175,7 +179,7 @@
 		},
 		"errors": {
 			"mapOpenFailed": "无法打开地图应用",
-			"videoUnavailable": "该视频当前不可用。"
+			"mediaUnavailable": "该内容当前不可用。"
 		},
 		"info": {
 			"walkFromShibuya": "距离涩谷站步行13分钟"
@@ -350,7 +354,9 @@
 			"dishCategoryCreateFailed": "创建菜品类别失败",
 			"dishCategoryNotFound": "未找到菜品类别",
 			"dishCategoryInvalidInput": "无效的菜品类别名称",
-			"reviewSubmitFailed": "评论发布失败"
+			"reviewSubmitFailed": "评论发布失败",
+			"placeNotRestaurant": "此地点不是餐厅。",
+			"placeNotFound": "无法获取此餐厅的信息。"
 		},
 		"consent_review_prefix": "继续即表示您同意我们的",
 		"consent_review_guidelines": "社区准则",

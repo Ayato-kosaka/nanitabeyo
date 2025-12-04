@@ -24,7 +24,11 @@
 			"months": "{{count}} महीने पहले",
 			"years": "{{count}} साल पहले"
 		},
-		"site": "CraveCatch"
+		"site": "CraveCatch",
+		"errors": {
+			"network": "नेटवर्क त्रुटि हुई है। कृपया अपना कनेक्शन जांचें।",
+			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
@@ -178,7 +182,7 @@
 		},
 		"errors": {
 			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका",
-			"videoUnavailable": "यह वीडियो अभी उपलब्ध नहीं है।"
+			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।"
 		}
 	},
 	"ImageCardGrid": {
@@ -351,7 +355,9 @@
 			"dishCategoryCreateFailed": "Failed to create dish category",
 			"dishCategoryNotFound": "Dish category not found",
 			"dishCategoryInvalidInput": "Invalid dish category name",
-			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
+			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल",
+			"placeNotRestaurant": "यह स्थान एक रेस्टोरेंट नहीं है।",
+			"placeNotFound": "हम इस रेस्टोरेंट की जानकारी प्राप्त नहीं कर सके।"
 		},
 		"consent_review_prefix": "जारी रखकर, आप हमारी ",
 		"consent_review_guidelines": "समुदाय दिशानिर्देश",

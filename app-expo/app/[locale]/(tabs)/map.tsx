@@ -4,9 +4,14 @@ import { Navigation } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
-import { useAPICall } from "@/hooks/useAPICall";
-import { FOOD_AND_DRINK_TYPES, LocationAutocomplete } from "@/components/LocationAutocomplete";
-import type { AutocompleteLocation, QueryRestaurantsResponse, CreateRestaurantResponse } from "@shared/api/v1/res";
+import { useAPICall, type ApiError } from "@/hooks/useAPICall";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import {
+	type AutocompleteLocation,
+	type QueryRestaurantsResponse,
+	type CreateRestaurantResponse,
+	ErrorCode,
+} from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -16,11 +21,14 @@ import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import MapViewClass from "react-native-maps";
+import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
+	const { showSnackbar } = useSnackbar();
 	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
@@ -111,6 +119,7 @@ export default function MapScreen() {
 	);
 
 	// レストラン作成＆詳細モーダル表示を行う関数
+	// #525 【設計】エラーハンドリングを整備し、422/404/network_error 等を適切にスナックバーで通知
 	const createAndOpenRestaurant = useCallback(
 		async (googlePlaceId: string) => {
 			setIsLoadingRestaurantCreation(true);
@@ -121,7 +130,29 @@ export default function MapScreen() {
 				});
 				setSelectedPlace(response);
 				openRestaurantModal();
-			} catch (error) {
+			} catch (rawError: unknown) {
+				const error = rawError as ApiError;
+
+				// 422 + PLACE_NOT_FOOD_AND_DRINK: レストランではない Place
+				if (error.status === 422 && error.errorCode === ErrorCode.PLACE_NOT_FOOD_AND_DRINK) {
+					showSnackbar(i18n.t("Map.errors.placeNotRestaurant"));
+					return;
+				}
+
+				// 404: Place が見つからない
+				if (error.status === 404) {
+					showSnackbar(i18n.t("Map.errors.placeNotFound"));
+					return;
+				}
+
+				// ネットワークエラー
+				if (error.code === "network_error" || error.status === 0) {
+					showSnackbar(i18n.t("Common.errors.network"));
+				} else {
+					// その他のエラー（http_error / api_error / invalid_response など）
+					showSnackbar(i18n.t("Common.errors.unexpected"));
+				}
+
 				logFrontendEvent({
 					event_name: "poi_press_error",
 					error_level: "error",
@@ -131,7 +162,7 @@ export default function MapScreen() {
 				setIsLoadingRestaurantCreation(false);
 			}
 		},
-		[callBackend, logFrontendEvent, openRestaurantModal],
+		[callBackend, logFrontendEvent, openRestaurantModal, showSnackbar],
 	);
 
 	// POI押下時にレストラン情報を取得してモーダル表示
@@ -147,7 +178,7 @@ export default function MapScreen() {
 	const handleAutocompleteSelect = useCallback(
 		async (prediction: AutocompleteLocation) => {
 			lightImpact();
-			if (prediction.types.some((type) => FOOD_AND_DRINK_TYPES.includes(type))) {
+			if (isFoodAndDrinkPlaceForUser(prediction)) {
 				// 飲食店カテゴリの場合はレストラン作成＆詳細表示
 				createAndOpenRestaurant(prediction.place_id);
 			} else {

@@ -4,7 +4,11 @@
 // ❷ Following the pattern from dish-media/dish-media.service.ts
 // ❸ Handles Google Place API integration, restaurant creation/search, dish media queries
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { ExternalApiService } from '../../core/external-api/external-api.service';
@@ -21,6 +25,7 @@ import {
   CreateRestaurantResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
+  ErrorCode,
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
 import { DishesRepository } from '../dishes/dishes.repository';
@@ -31,7 +36,8 @@ import { LocationsService } from '../locations/locations.service';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { StorageService } from 'src/core/storage/storage.service';
 import { RestaurantsAssembler } from './restaurants.assembler';
-import { protos } from '@googlemaps/places';
+import { isFoodAndDrinkPlaceForUser } from '../../../../shared/utils/google_places_restaurant_type';
+import { google } from '@googlemaps/places/build/protos/protos';
 
 @Injectable()
 export class RestaurantsService {
@@ -47,7 +53,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -126,27 +132,46 @@ export class RestaurantsService {
       };
     } else {
       // 対象の Google Place ID の restaurant の現地の言語コードを特定
-      let restaurantLanguageCode: string;
+      let placeDetailForLocalLang: google.maps.places.v1.IPlace;
       try {
-        const fieldMask = 'addressComponents';
-        const placeDetail = await this.externalApi.callPlaceDetails(
+        const fieldMask = 'addressComponents,types';
+        placeDetailForLocalLang = await this.externalApi.callPlaceDetails(
           fieldMask,
           dto.googlePlaceId,
           'en',
         );
-        if (!placeDetail.addressComponents)
-          throw new Error(
-            'No address components for restaurant language code detection',
-          );
-        restaurantLanguageCode = this.locationsService.resolveLocalLanguageCode(
-          placeDetail.addressComponents,
-        );
       } catch (error) {
         throw new Error(
           'Failed to determine restaurant language code: ' +
-            (error as Error).message,
+          (error as Error).message,
         );
       }
+
+      // types による飲食店判定
+      if (
+        !isFoodAndDrinkPlaceForUser({
+          types: placeDetailForLocalLang.types ?? [],
+        })
+      ) {
+        throw new UnprocessableEntityException({
+          code: ErrorCode.PLACE_NOT_FOOD_AND_DRINK,
+          message:
+            'The specified Google Place is not a restaurant or food & drink venue.',
+          data: {
+            googlePlaceId: dto.googlePlaceId,
+            types: placeDetailForLocalLang.types ?? [],
+          },
+        });
+      }
+
+      if (!placeDetailForLocalLang.addressComponents)
+        throw new Error(
+          'No address components for restaurant language code detection',
+        );
+      const restaurantLanguageCode =
+        this.locationsService.resolveLocalLanguageCode(
+          placeDetailForLocalLang.addressComponents,
+        );
 
       // Google Place Details API を呼び出して店舗情報を取得
       try {
@@ -274,9 +299,9 @@ export class RestaurantsService {
         ...convertPrismaToSupabase_Restaurants(restaurant),
         imageUrls: imageSignedUrl
           ? {
-              sm: imageSignedUrl,
-              md: imageSignedUrl,
-            }
+            sm: imageSignedUrl,
+            md: imageSignedUrl,
+          }
           : undefined,
       },
       meta: {

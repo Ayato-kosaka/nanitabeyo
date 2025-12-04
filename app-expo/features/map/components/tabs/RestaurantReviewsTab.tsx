@@ -112,8 +112,6 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 		fetchInitialByKey(entriesKey, {}, fetcher);
 	}, [entriesKey, fetchInitialByKey, fetcher]);
 
-	console.log("RestaurantReviewsTab render:", { restaurantId, ids, isLoading, selectedDishMediaIndex });
-
 	return (
 		<>
 			<GridList

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -6,9 +6,18 @@ import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
+import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { shallow } from "zustand/shallow";
 
+const idType = "dish_media" as const;
 export default function ProfileSearchResultScreen() {
 	const { entriesKey } = useLocalSearchParams<{ entriesKey: string }>();
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
+		[entriesKey],
+	);
+	const { isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
@@ -33,6 +42,9 @@ export default function ProfileSearchResultScreen() {
 		});
 		router.back();
 	};
+
+	// #420 店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
+	if (isLoading) return <RestaurantLoading />;
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>

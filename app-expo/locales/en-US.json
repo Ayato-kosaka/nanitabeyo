@@ -24,7 +24,11 @@
 			"months": "{{count}} months ago",
 			"years": "{{count}} years ago"
 		},
-		"site": "CraveCatch"
+		"site": "CraveCatch",
+		"errors": {
+			"network": "A network error occurred. Please check your connection.",
+			"unexpected": "An unexpected error occurred. Please try again later."
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
@@ -175,7 +179,7 @@
 		},
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
-			"videoUnavailable": "This video is currently unavailable."
+			"mediaUnavailable": "This media is currently unavailable."
 		},
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"
@@ -350,7 +354,9 @@
 			"dishCategoryCreateFailed": "Failed to create dish category",
 			"dishCategoryNotFound": "Dish category not found",
 			"dishCategoryInvalidInput": "Invalid dish category name",
-			"reviewSubmitFailed": "Failed to post review"
+			"reviewSubmitFailed": "Failed to post review",
+			"placeNotRestaurant": "This place is not a restaurant.",
+			"placeNotFound": "We couldn't retrieve this restaurant's information."
 		},
 		"consent_review_prefix": "By continuing, you agree to our ",
 		"consent_review_guidelines": "Community Guidelines",

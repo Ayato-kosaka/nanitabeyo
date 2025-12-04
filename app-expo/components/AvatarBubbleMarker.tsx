@@ -4,6 +4,7 @@ import { Marker } from "./MapView";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
+import { Platform } from "react-native";
 
 type Props = RNMarkerProps & {
 	uri: string | undefined;
@@ -22,11 +23,19 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }:
 						width: size,
 						height: size,
 						borderRadius: radius,
-						shadowColor: color === "#FFF" ? "#000" : color,
-						shadowRadius: 10,
-						shadowOffset: { width: 0, height: 0 },
-						shadowOpacity: 0.25,
-						elevation: 10,
+						...(Platform.OS === "ios"
+							? {
+									shadowColor: color === "#FFF" ? "#000" : color,
+									alignItems: "center",
+									justifyContent: "center",
+								}
+							: {
+									shadowColor: color === "#FFF" ? "#000" : color,
+									shadowRadius: 10,
+									shadowOffset: { width: 0, height: 0 },
+									shadowOpacity: 0.25,
+									elevation: 10,
+								}),
 					},
 				]}>
 				<Image
