@@ -54,16 +54,16 @@
 
 ## 📋 チケット要件との対応
 
-| 要件 | 実装 | ファイル/行 |
-|------|------|------------|
-| ステージングテーブル作成（Supabase 互換） | ✅ | SQL: L31, L46, L61 |
-| レガシーテーブル作成（VIEW 互換、JSON 型） | ✅ | SQL: L83, L98, L113 |
-| INSERT 時の JSON 変換（SAFE.PARSE_JSON） | ✅ | SQL: L141, L167, L201 |
-| VIEW の UNION ALL（legacy + Cloud Logging） | ✅ | SQL: L225, L260, L295 |
-| dev/prod 両環境サポート | ✅ | スクリプト: L64-L99 |
-| 柔軟な GCS パス対応 | ✅ | スクリプト: L67-L91 |
-| ${DATASET} プレースホルダ方式 | ✅ | スクリプト: L161-L164 |
-| 実行手順ドキュメント | ✅ | README_BACKFILL.md |
+| 要件                                        | 実装 | ファイル/行           |
+| ------------------------------------------- | ---- | --------------------- |
+| ステージングテーブル作成（Supabase 互換）   | ✅   | SQL: L31, L46, L61    |
+| レガシーテーブル作成（VIEW 互換、JSON 型）  | ✅   | SQL: L83, L98, L113   |
+| INSERT 時の JSON 変換（SAFE.PARSE_JSON）    | ✅   | SQL: L141, L167, L201 |
+| VIEW の UNION ALL（legacy + Cloud Logging） | ✅   | SQL: L225, L260, L295 |
+| dev/prod 両環境サポート                     | ✅   | スクリプト: L64-L99   |
+| 柔軟な GCS パス対応                         | ✅   | スクリプト: L67-L91   |
+| ${DATASET} プレースホルダ方式               | ✅   | スクリプト: L161-L164 |
+| 実行手順ドキュメント                        | ✅   | README_BACKFILL.md    |
 
 ## 🎯 受け入れ条件（実装済み）
 
@@ -135,14 +135,15 @@ DELETE FROM frontend_event_logs WHERE created_at <= TIMESTAMP 'YYYY-MM-DD HH:MM:
 ### 1. 2段階変換アーキテクチャ
 
 ```
-Supabase (TEXT/JSON) 
-  → GCS CSV (文字列) 
+Supabase (TEXT/JSON)
+  → GCS CSV (文字列)
     → BigQuery ステージング (STRING)
       → BigQuery レガシー (JSON)
         → VIEW (legacy ∪ Cloud Logging)
 ```
 
 **理由**:
+
 - CSV エクスポートでは JSON 型も文字列として出力される
 - ステージングで一旦 STRING として取り込み、レガシーテーブルで JSON 型に変換
 - 変換エラーがあっても `SAFE.PARSE_JSON` で NULL に落とし、処理継続
