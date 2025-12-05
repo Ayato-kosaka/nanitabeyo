@@ -64,9 +64,9 @@ if [[ "${ENV}" == "dev" ]]; then
 elif [[ "${ENV}" == "prod" ]]; then
   DATASET_ID="nanitabeyo_logs_prod"
   # GASパス
-  GCS_FRONTEND_PATH="TBD"
-  GCS_BACKEND_PATH="TBD"
-  GCS_EXTERNAL_PATH="TBD"
+  GCS_FRONTEND_PATH="gs://food-scroll.firebasestorage.app/system/PostgreSQL/csv_export/20251204-235629/frontend_event_logs.csv"
+  GCS_BACKEND_PATH="gs://food-scroll.firebasestorage.app/system/PostgreSQL/csv_export/20251204-235645/backend_event_logs.csv"
+  GCS_EXTERNAL_PATH="gs://food-scroll.firebasestorage.app/system/PostgreSQL/csv_export/20251204-235649/external_api_logs.csv"
 else
   echo "❌ 不正な環境: ${ENV}" >&2
   echo "   dev または prod を指定してください。" >&2
