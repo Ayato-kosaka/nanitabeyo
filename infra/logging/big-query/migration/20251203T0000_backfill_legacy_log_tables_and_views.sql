@@ -325,7 +325,8 @@ SELECT
   TO_JSON(jsonPayload.request_payload) AS request_payload,
   TO_JSON(jsonPayload.response_payload) AS response_payload,
   SAFE_CAST(jsonPayload.status_code AS INT64) AS status_code,
-  jsonPayload.error_message AS error_message,
+  -- 存在しなければ NULL になる
+  JSON_VALUE(TO_JSON_STRING(jsonPayload), '$.error_message') AS error_message,
   SAFE_CAST(jsonPayload.response_time_ms AS INT64) AS response_time_ms,
   jsonPayload.user_id AS user_id,
   timestamp AS created_at,
