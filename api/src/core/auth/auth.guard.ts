@@ -1,16 +1,19 @@
 import {
+  CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { JWT_STRATEGY } from './auth.constants';
+import { JWT_STRATEGY, PERMISSIONS_KEY } from './auth.constants';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_USER_ID } from '../cls/cls.constants';
 import { AppLoggerService } from '../logger/logger.service';
 import { RequestUser } from './auth.types';
 import { extractBearerToken } from './auth.utils';
+import { Reflector } from '@nestjs/core';
+import { StaticMasterService } from '../static-master/static-master.service';
 
 /* ---------------------------------------------------------------- */
 /*     AuthUserGuard: ログイン必須 (匿名ユーザーは拒否) ガード      */
@@ -92,5 +95,53 @@ export class AuthAnonGuard extends AuthGuard(JWT_STRATEGY) {
     }
 
     return user as TUser;
+  }
+}
+
+@Injectable()
+export class PermissionGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    private readonly staticMaster: StaticMasterService,
+  ) { }
+
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const required = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ]) ?? [];
+    if (required.length === 0) return true;
+
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user as RequestUser | undefined;
+    if (!user) {
+      throw new UnauthorizedException('UNAUTHORIZED');
+    }
+
+    const userPermissions = await this.listUserPermissions(user.id);
+    const has = required.every((p) => userPermissions.includes(p));
+
+    if (!has) {
+      throw new ForbiddenException(`Missing permission: ${required.join(', ')}`);
+    }
+
+    return true;
+  }
+
+  private async listUserPermissions(userId: string): Promise<string[]> {
+    const permissions = await this.staticMaster.getStaticMaster('permissions');
+    const role_permissions = await this.staticMaster.getStaticMaster('role_permissions');
+    const user_roles = await this.staticMaster.getStaticMaster('user_roles');
+
+    const assignedRoles = user_roles.filter(ur => ur.user_id === userId).map(ur => ur.role_id);
+    const permissionIds = role_permissions
+      .filter(rp => assignedRoles.includes(rp.role_id))
+      .map(rp => rp.permission_id);
+
+    const userPermissions = permissions
+      .filter(p => permissionIds.includes(p.id))
+      .map(p => p.name);
+
+    return userPermissions;
   }
 }
