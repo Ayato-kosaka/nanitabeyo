@@ -28,7 +28,7 @@ import {
 } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
 
 // ドメイン Service
 import { LocationsService } from './locations.service';
@@ -42,7 +42,7 @@ export class LocationsController {
   /*              GET /v1/locations/autocomplete (任意認証)             */
   /* ------------------------------------------------------------------ */
   @Get('autocomplete')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Google Places API Autocomplete のラッパー（地名のみ）',
@@ -70,7 +70,7 @@ export class LocationsController {
   /*              GET /v1/locations/details (任意認証)                  */
   /* ------------------------------------------------------------------ */
   @Get('details')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Google Places API Details (New) のラッパー',
@@ -98,7 +98,7 @@ export class LocationsController {
   /*           GET /v1/locations/reverse-geocoding (任意認証)           */
   /* ------------------------------------------------------------------ */
   @Get('reverse-geocoding')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Google Geocoding API (Reverse Geocoding) のラッパー',

@@ -18,7 +18,7 @@ import { CreateFrontendLogDto } from '@shared/v1/dto';
 import { CreateFrontendLogResponseDto } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 
@@ -34,7 +34,7 @@ export class LogsController {
   /*                    POST /v1/logs/frontend                          */
   /* ------------------------------------------------------------------ */
   @Post('frontend')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({
     summary: 'フロントエンドログを Cloud Logging へ出力',
