@@ -39,7 +39,7 @@ import { convertPrismaToSupabase_DishCategories } from '../../../../shared/conve
 export class DishCategoryVariantsController {
   constructor(
     private readonly dishCategoryVariantsService: DishCategoryVariantsService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-category-variants                  */

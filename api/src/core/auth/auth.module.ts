@@ -18,4 +18,4 @@ import { PermissionGuard } from './auth.guard';
     // 直接 export しても良いが circular を避けたい場合は index.ts に再公開
   ],
 })
-export class AuthModule { }
+export class AuthModule {}

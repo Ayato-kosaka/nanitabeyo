@@ -103,13 +103,14 @@ export class PermissionGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private readonly staticMaster: StaticMasterService,
-  ) { }
+  ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
-      ctx.getHandler(),
-      ctx.getClass(),
-    ]) ?? [];
+    const required =
+      this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
+        ctx.getHandler(),
+        ctx.getClass(),
+      ]) ?? [];
     if (required.length === 0) return true;
 
     const request = ctx.switchToHttp().getRequest();
@@ -122,7 +123,9 @@ export class PermissionGuard implements CanActivate {
     const has = required.every((p) => userPermissions.includes(p));
 
     if (!has) {
-      throw new ForbiddenException(`Missing permission: ${required.join(', ')}`);
+      throw new ForbiddenException(
+        `Missing permission: ${required.join(', ')}`,
+      );
     }
 
     return true;
@@ -130,17 +133,20 @@ export class PermissionGuard implements CanActivate {
 
   private async listUserPermissions(userId: string): Promise<string[]> {
     const permissions = await this.staticMaster.getStaticMaster('permissions');
-    const role_permissions = await this.staticMaster.getStaticMaster('role_permissions');
+    const role_permissions =
+      await this.staticMaster.getStaticMaster('role_permissions');
     const user_roles = await this.staticMaster.getStaticMaster('user_roles');
 
-    const assignedRoles = user_roles.filter(ur => ur.user_id === userId).map(ur => ur.role_id);
+    const assignedRoles = user_roles
+      .filter((ur) => ur.user_id === userId)
+      .map((ur) => ur.role_id);
     const permissionIds = role_permissions
-      .filter(rp => assignedRoles.includes(rp.role_id))
-      .map(rp => rp.permission_id);
+      .filter((rp) => assignedRoles.includes(rp.role_id))
+      .map((rp) => rp.permission_id);
 
     const userPermissions = permissions
-      .filter(p => permissionIds.includes(p.id))
-      .map(p => p.name);
+      .filter((p) => permissionIds.includes(p.id))
+      .map((p) => p.name);
 
     return userPermissions;
   }

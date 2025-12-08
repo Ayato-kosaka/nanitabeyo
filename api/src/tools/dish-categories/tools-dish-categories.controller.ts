@@ -35,7 +35,7 @@ import { Permissions } from 'src/core/auth/auth.utils';
 export class ToolsDishCategoriesController {
   constructor(
     private readonly toolsDishCategoriesService: ToolsDishCategoriesService,
-  ) { }
+  ) {}
 
   /**
    * #494 よく使われるカテゴリ + 候補画像取得

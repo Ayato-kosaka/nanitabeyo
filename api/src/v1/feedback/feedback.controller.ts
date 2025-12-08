@@ -28,7 +28,7 @@ import { FeedbackService } from './feedback.service';
 @ApiTags('Feedback')
 @Controller('v1/feedback')
 export class FeedbackController {
-  constructor(private readonly feedbackService: FeedbackService) { }
+  constructor(private readonly feedbackService: FeedbackService) {}
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/feedback/issue (任意認証)              */

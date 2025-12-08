@@ -28,7 +28,7 @@ import { DishesService } from './dishes.service';
 @ApiTags('Dishes')
 @Controller('v1/dishes')
 export class DishesController {
-  constructor(private readonly dishesService: DishesService) { }
+  constructor(private readonly dishesService: DishesService) {}
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/dishes (任意認証)                      */

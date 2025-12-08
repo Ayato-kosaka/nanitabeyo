@@ -28,7 +28,7 @@ import { LogsService } from './logs.service';
 @ApiTags('Logs')
 @Controller('v1/logs')
 export class LogsController {
-  constructor(private readonly logsService: LogsService) { }
+  constructor(private readonly logsService: LogsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/logs/frontend                          */

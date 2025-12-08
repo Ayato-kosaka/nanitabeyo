@@ -7,7 +7,10 @@ import { JWT_STRATEGY } from './auth.constants';
 import { extractBearerToken } from './auth.utils';
 
 @Injectable()
-export class SupabaseJwtStrategy extends PassportStrategy(Strategy, JWT_STRATEGY) {
+export class SupabaseJwtStrategy extends PassportStrategy(
+  Strategy,
+  JWT_STRATEGY,
+) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([extractBearerToken]),

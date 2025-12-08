@@ -65,7 +65,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersMapper: UsersMapper,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*                        GET /v1/users/:id                           */

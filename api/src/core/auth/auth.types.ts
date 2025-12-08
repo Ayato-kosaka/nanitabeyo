@@ -50,12 +50,11 @@ export interface RequestUser {
   rawClaims?: SupabaseJwtPayload;
 }
 
-export type JwtRoleValue = 'anon' // 匿名ユーザー
+export type JwtRoleValue =
+  | 'anon' // 匿名ユーザー
   | 'authenticated' // 認証済みユーザー
   | 'service_role'; // 管理者 (Supabase のみ使用)
 
-export type JwtAudienceValue = 'authenticated' // 認証済みユーザー向けのトークン
+export type JwtAudienceValue =
+  | 'authenticated' // 認証済みユーザー向けのトークン
   | 'anon'; // 匿名ユーザー向けのトークン
-
-
-

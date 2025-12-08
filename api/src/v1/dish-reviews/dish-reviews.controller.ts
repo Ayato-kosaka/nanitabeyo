@@ -42,7 +42,7 @@ import { DishReviewsService } from './dish-reviews.service';
 @ApiTags('DishReviews')
 @Controller('v1/dish-reviews')
 export class DishReviewsController {
-  constructor(private readonly dishReviewsService: DishReviewsService) { }
+  constructor(private readonly dishReviewsService: DishReviewsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/dish-reviews (認証必須)                */

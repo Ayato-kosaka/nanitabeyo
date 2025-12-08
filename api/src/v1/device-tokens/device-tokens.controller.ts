@@ -30,7 +30,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 @ApiTags('DeviceTokens')
 @Controller('v1/device-tokens')
 export class DeviceTokensController {
-  constructor(private readonly notificationsService: NotificationsService) { }
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/device-tokens                          */
