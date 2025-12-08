@@ -26,4 +26,8 @@
 "","Common","C","DataBase","DB","prompt_variants","外部APIを Cloud Functions から呼び出す際のログ情報を記録するテーブル。
 主にトラブルシュート／使用状況の可視化／パフォーマンス監視を目的とする。"
 "","Common","C","DataBase","DB","prompt_usages","Cloud Functions 側での「アクションログ」や「内部イベントログ」を保存"
+"","Auth","A","DataBase","DB","roles","アプリケーションで利用するロール（権限グループ）のマスタテーブル"
+"","Auth","A","DataBase","DB","permissions","システム内で利用可能な権限（操作）を管理するマスタテーブル"
+"","Auth","A","DataBase","DB","role_permissions","ロールに付与されている権限の対応付け（多対多）を管理するテーブル"
+"","Auth","A","DataBase","DB","user_roles","ユーザーに割り当てられたロール（多対多）の対応付けテーブル"
 "","Common","C","DataBase","DB","config","アプリの動作に関わる設定値を保持するテーブル"

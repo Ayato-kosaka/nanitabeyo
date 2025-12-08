@@ -116,6 +116,12 @@ export type notifications = $Result.DefaultSelection<Prisma.$notificationsPayloa
  */
 export type payouts = $Result.DefaultSelection<Prisma.$payoutsPayload>
 /**
+ * Model permissions
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type permissions = $Result.DefaultSelection<Prisma.$permissionsPayload>
+/**
  * Model prompt_families
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -153,6 +159,18 @@ export type restaurant_bids = $Result.DefaultSelection<Prisma.$restaurant_bidsPa
  */
 export type restaurants = $Result.DefaultSelection<Prisma.$restaurantsPayload>
 /**
+ * Model role_permissions
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type role_permissions = $Result.DefaultSelection<Prisma.$role_permissionsPayload>
+/**
+ * Model roles
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type roles = $Result.DefaultSelection<Prisma.$rolesPayload>
+/**
  * Model user_device_tokens
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -164,6 +182,12 @@ export type user_device_tokens = $Result.DefaultSelection<Prisma.$user_device_to
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
 export type user_notification_cursors = $Result.DefaultSelection<Prisma.$user_notification_cursorsPayload>
+/**
+ * Model user_roles
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type user_roles = $Result.DefaultSelection<Prisma.$user_rolesPayload>
 /**
  * Model users
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -256,7 +280,7 @@ export const restaurant_bid_status: typeof $Enums.restaurant_bid_status
  * ```
  *
  *
- * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
+ * Read more in our [docs](https://pris.ly/d/client).
  */
 export class PrismaClient<
   ClientOptions extends Prisma.PrismaClientOptions = Prisma.PrismaClientOptions,
@@ -277,7 +301,7 @@ export class PrismaClient<
    * ```
    *
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
+   * Read more in our [docs](https://pris.ly/d/client).
    */
 
   constructor(optionsArg ?: Prisma.Subset<ClientOptions, Prisma.PrismaClientOptions>);
@@ -300,7 +324,7 @@ export class PrismaClient<
    * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -312,7 +336,7 @@ export class PrismaClient<
    * const result = await prisma.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $executeRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -323,7 +347,7 @@ export class PrismaClient<
    * const result = await prisma.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $queryRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -335,7 +359,7 @@ export class PrismaClient<
    * const result = await prisma.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -522,6 +546,16 @@ export class PrismaClient<
   get payouts(): Prisma.payoutsDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.permissions`: Exposes CRUD operations for the **permissions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Permissions
+    * const permissions = await prisma.permissions.findMany()
+    * ```
+    */
+  get permissions(): Prisma.permissionsDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.prompt_families`: Exposes CRUD operations for the **prompt_families** model.
     * Example usage:
     * ```ts
@@ -582,6 +616,26 @@ export class PrismaClient<
   get restaurants(): Prisma.restaurantsDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.role_permissions`: Exposes CRUD operations for the **role_permissions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Role_permissions
+    * const role_permissions = await prisma.role_permissions.findMany()
+    * ```
+    */
+  get role_permissions(): Prisma.role_permissionsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.roles`: Exposes CRUD operations for the **roles** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Roles
+    * const roles = await prisma.roles.findMany()
+    * ```
+    */
+  get roles(): Prisma.rolesDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.user_device_tokens`: Exposes CRUD operations for the **user_device_tokens** model.
     * Example usage:
     * ```ts
@@ -600,6 +654,16 @@ export class PrismaClient<
     * ```
     */
   get user_notification_cursors(): Prisma.user_notification_cursorsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.user_roles`: Exposes CRUD operations for the **user_roles** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more User_roles
+    * const user_roles = await prisma.user_roles.findMany()
+    * ```
+    */
+  get user_roles(): Prisma.user_rolesDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.users`: Exposes CRUD operations for the **users** model.
@@ -660,8 +724,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 7.0.1
-   * Query Engine version: f09f2815f091dbba658cdcd2264306d88bb5bda6
+   * Prisma Client JS version: 7.1.0
+   * Query Engine version: ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba
    */
   export type PrismaVersion = {
     client: string
@@ -1060,14 +1124,18 @@ export namespace Prisma {
     notification_recipients: 'notification_recipients',
     notifications: 'notifications',
     payouts: 'payouts',
+    permissions: 'permissions',
     prompt_families: 'prompt_families',
     prompt_usages: 'prompt_usages',
     prompt_variants: 'prompt_variants',
     reactions: 'reactions',
     restaurant_bids: 'restaurant_bids',
     restaurants: 'restaurants',
+    role_permissions: 'role_permissions',
+    roles: 'roles',
     user_device_tokens: 'user_device_tokens',
     user_notification_cursors: 'user_notification_cursors',
+    user_roles: 'user_roles',
     users: 'users'
   };
 
@@ -1084,7 +1152,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "user_device_tokens" | "user_notification_cursors" | "users"
+      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2272,6 +2340,80 @@ export namespace Prisma {
           }
         }
       }
+      permissions: {
+        payload: Prisma.$permissionsPayload<ExtArgs>
+        fields: Prisma.permissionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.permissionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.permissionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>
+          }
+          findFirst: {
+            args: Prisma.permissionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.permissionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>
+          }
+          findMany: {
+            args: Prisma.permissionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>[]
+          }
+          create: {
+            args: Prisma.permissionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>
+          }
+          createMany: {
+            args: Prisma.permissionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.permissionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>[]
+          }
+          delete: {
+            args: Prisma.permissionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>
+          }
+          update: {
+            args: Prisma.permissionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.permissionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.permissionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.permissionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.permissionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$permissionsPayload>
+          }
+          aggregate: {
+            args: Prisma.PermissionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePermissions>
+          }
+          groupBy: {
+            args: Prisma.permissionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PermissionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.permissionsCountArgs<ExtArgs>
+            result: $Utils.Optional<PermissionsCountAggregateOutputType> | number
+          }
+        }
+      }
       prompt_families: {
         payload: Prisma.$prompt_familiesPayload<ExtArgs>
         fields: Prisma.prompt_familiesFieldRefs
@@ -2716,6 +2858,154 @@ export namespace Prisma {
           }
         }
       }
+      role_permissions: {
+        payload: Prisma.$role_permissionsPayload<ExtArgs>
+        fields: Prisma.role_permissionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.role_permissionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.role_permissionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>
+          }
+          findFirst: {
+            args: Prisma.role_permissionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.role_permissionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>
+          }
+          findMany: {
+            args: Prisma.role_permissionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>[]
+          }
+          create: {
+            args: Prisma.role_permissionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>
+          }
+          createMany: {
+            args: Prisma.role_permissionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.role_permissionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>[]
+          }
+          delete: {
+            args: Prisma.role_permissionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>
+          }
+          update: {
+            args: Prisma.role_permissionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.role_permissionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.role_permissionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.role_permissionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.role_permissionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$role_permissionsPayload>
+          }
+          aggregate: {
+            args: Prisma.Role_permissionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRole_permissions>
+          }
+          groupBy: {
+            args: Prisma.role_permissionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Role_permissionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.role_permissionsCountArgs<ExtArgs>
+            result: $Utils.Optional<Role_permissionsCountAggregateOutputType> | number
+          }
+        }
+      }
+      roles: {
+        payload: Prisma.$rolesPayload<ExtArgs>
+        fields: Prisma.rolesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.rolesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.rolesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>
+          }
+          findFirst: {
+            args: Prisma.rolesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.rolesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>
+          }
+          findMany: {
+            args: Prisma.rolesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>[]
+          }
+          create: {
+            args: Prisma.rolesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>
+          }
+          createMany: {
+            args: Prisma.rolesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.rolesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>[]
+          }
+          delete: {
+            args: Prisma.rolesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>
+          }
+          update: {
+            args: Prisma.rolesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>
+          }
+          deleteMany: {
+            args: Prisma.rolesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.rolesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.rolesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>[]
+          }
+          upsert: {
+            args: Prisma.rolesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$rolesPayload>
+          }
+          aggregate: {
+            args: Prisma.RolesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRoles>
+          }
+          groupBy: {
+            args: Prisma.rolesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RolesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.rolesCountArgs<ExtArgs>
+            result: $Utils.Optional<RolesCountAggregateOutputType> | number
+          }
+        }
+      }
       user_device_tokens: {
         payload: Prisma.$user_device_tokensPayload<ExtArgs>
         fields: Prisma.user_device_tokensFieldRefs
@@ -2864,6 +3154,80 @@ export namespace Prisma {
           }
         }
       }
+      user_roles: {
+        payload: Prisma.$user_rolesPayload<ExtArgs>
+        fields: Prisma.user_rolesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.user_rolesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.user_rolesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>
+          }
+          findFirst: {
+            args: Prisma.user_rolesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.user_rolesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>
+          }
+          findMany: {
+            args: Prisma.user_rolesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>[]
+          }
+          create: {
+            args: Prisma.user_rolesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>
+          }
+          createMany: {
+            args: Prisma.user_rolesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.user_rolesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>[]
+          }
+          delete: {
+            args: Prisma.user_rolesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>
+          }
+          update: {
+            args: Prisma.user_rolesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>
+          }
+          deleteMany: {
+            args: Prisma.user_rolesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.user_rolesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.user_rolesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>[]
+          }
+          upsert: {
+            args: Prisma.user_rolesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_rolesPayload>
+          }
+          aggregate: {
+            args: Prisma.User_rolesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUser_roles>
+          }
+          groupBy: {
+            args: Prisma.user_rolesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<User_rolesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.user_rolesCountArgs<ExtArgs>
+            result: $Utils.Optional<User_rolesCountAggregateOutputType> | number
+          }
+        }
+      }
       users: {
         payload: Prisma.$usersPayload<ExtArgs>
         fields: Prisma.usersFieldRefs
@@ -2992,7 +3356,7 @@ export namespace Prisma {
      *  { emit: 'stdout', level: 'error' }
      * 
      * ```
-     * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/logging#the-log-option).
+     * Read more in our [docs](https://pris.ly/d/logging).
      */
     log?: (LogLevel | LogDefinition)[]
     /**
@@ -3028,6 +3392,22 @@ export namespace Prisma {
      * ```
      */
     omit?: Prisma.GlobalOmitConfig
+    /**
+     * SQL commenter plugins that add metadata to SQL queries as comments.
+     * Comments follow the sqlcommenter format: https://google.github.io/sqlcommenter/
+     * 
+     * @example
+     * ```
+     * const prisma = new PrismaClient({
+     *   adapter,
+     *   comments: [
+     *     traceContext(),
+     *     queryInsights(),
+     *   ],
+     * })
+     * ```
+     */
+    comments?: runtime.SqlCommenterPlugin[]
   }
   export type GlobalOmitConfig = {
     backend_event_logs?: backend_event_logsOmit
@@ -3046,14 +3426,18 @@ export namespace Prisma {
     notification_recipients?: notification_recipientsOmit
     notifications?: notificationsOmit
     payouts?: payoutsOmit
+    permissions?: permissionsOmit
     prompt_families?: prompt_familiesOmit
     prompt_usages?: prompt_usagesOmit
     prompt_variants?: prompt_variantsOmit
     reactions?: reactionsOmit
     restaurant_bids?: restaurant_bidsOmit
     restaurants?: restaurantsOmit
+    role_permissions?: role_permissionsOmit
+    roles?: rolesOmit
     user_device_tokens?: user_device_tokensOmit
     user_notification_cursors?: user_notification_cursorsOmit
+    user_roles?: user_rolesOmit
     users?: usersOmit
   }
 
@@ -3331,6 +3715,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type PermissionsCountOutputType
+   */
+
+  export type PermissionsCountOutputType = {
+    role_permissions: number
+  }
+
+  export type PermissionsCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    role_permissions?: boolean | PermissionsCountOutputTypeCountRole_permissionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PermissionsCountOutputType without action
+   */
+  export type PermissionsCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PermissionsCountOutputType
+     */
+    select?: PermissionsCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PermissionsCountOutputType without action
+   */
+  export type PermissionsCountOutputTypeCountRole_permissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: role_permissionsWhereInput
+  }
+
+
+  /**
    * Count Type Prompt_familiesCountOutputType
    */
 
@@ -3429,6 +3844,46 @@ export namespace Prisma {
    */
   export type RestaurantsCountOutputTypeCountRestaurant_bidsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: restaurant_bidsWhereInput
+  }
+
+
+  /**
+   * Count Type RolesCountOutputType
+   */
+
+  export type RolesCountOutputType = {
+    role_permissions: number
+    user_roles: number
+  }
+
+  export type RolesCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    role_permissions?: boolean | RolesCountOutputTypeCountRole_permissionsArgs
+    user_roles?: boolean | RolesCountOutputTypeCountUser_rolesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * RolesCountOutputType without action
+   */
+  export type RolesCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RolesCountOutputType
+     */
+    select?: RolesCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * RolesCountOutputType without action
+   */
+  export type RolesCountOutputTypeCountRole_permissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: role_permissionsWhereInput
+  }
+
+  /**
+   * RolesCountOutputType without action
+   */
+  export type RolesCountOutputTypeCountUser_rolesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_rolesWhereInput
   }
 
 
@@ -21530,6 +21985,1050 @@ export namespace Prisma {
 
 
   /**
+   * Model permissions
+   */
+
+  export type AggregatePermissions = {
+    _count: PermissionsCountAggregateOutputType | null
+    _min: PermissionsMinAggregateOutputType | null
+    _max: PermissionsMaxAggregateOutputType | null
+  }
+
+  export type PermissionsMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+  }
+
+  export type PermissionsMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+  }
+
+  export type PermissionsCountAggregateOutputType = {
+    id: number
+    name: number
+    description: number
+    _all: number
+  }
+
+
+  export type PermissionsMinAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+  }
+
+  export type PermissionsMaxAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+  }
+
+  export type PermissionsCountAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    _all?: true
+  }
+
+  export type PermissionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which permissions to aggregate.
+     */
+    where?: permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of permissions to fetch.
+     */
+    orderBy?: permissionsOrderByWithRelationInput | permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned permissions
+    **/
+    _count?: true | PermissionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PermissionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PermissionsMaxAggregateInputType
+  }
+
+  export type GetPermissionsAggregateType<T extends PermissionsAggregateArgs> = {
+        [P in keyof T & keyof AggregatePermissions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePermissions[P]>
+      : GetScalarType<T[P], AggregatePermissions[P]>
+  }
+
+
+
+
+  export type permissionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: permissionsWhereInput
+    orderBy?: permissionsOrderByWithAggregationInput | permissionsOrderByWithAggregationInput[]
+    by: PermissionsScalarFieldEnum[] | PermissionsScalarFieldEnum
+    having?: permissionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PermissionsCountAggregateInputType | true
+    _min?: PermissionsMinAggregateInputType
+    _max?: PermissionsMaxAggregateInputType
+  }
+
+  export type PermissionsGroupByOutputType = {
+    id: string
+    name: string
+    description: string
+    _count: PermissionsCountAggregateOutputType | null
+    _min: PermissionsMinAggregateOutputType | null
+    _max: PermissionsMaxAggregateOutputType | null
+  }
+
+  type GetPermissionsGroupByPayload<T extends permissionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PermissionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PermissionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PermissionsGroupByOutputType[P]>
+            : GetScalarType<T[P], PermissionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type permissionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    role_permissions?: boolean | permissions$role_permissionsArgs<ExtArgs>
+    _count?: boolean | PermissionsCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["permissions"]>
+
+  export type permissionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+  }, ExtArgs["result"]["permissions"]>
+
+  export type permissionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+  }, ExtArgs["result"]["permissions"]>
+
+  export type permissionsSelectScalar = {
+    id?: boolean
+    name?: boolean
+    description?: boolean
+  }
+
+  export type permissionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description", ExtArgs["result"]["permissions"]>
+  export type permissionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    role_permissions?: boolean | permissions$role_permissionsArgs<ExtArgs>
+    _count?: boolean | PermissionsCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type permissionsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type permissionsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $permissionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "permissions"
+    objects: {
+      role_permissions: Prisma.$role_permissionsPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      description: string
+    }, ExtArgs["result"]["permissions"]>
+    composites: {}
+  }
+
+  type permissionsGetPayload<S extends boolean | null | undefined | permissionsDefaultArgs> = $Result.GetResult<Prisma.$permissionsPayload, S>
+
+  type permissionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<permissionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PermissionsCountAggregateInputType | true
+    }
+
+  export interface permissionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['permissions'], meta: { name: 'permissions' } }
+    /**
+     * Find zero or one Permissions that matches the filter.
+     * @param {permissionsFindUniqueArgs} args - Arguments to find a Permissions
+     * @example
+     * // Get one Permissions
+     * const permissions = await prisma.permissions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends permissionsFindUniqueArgs>(args: SelectSubset<T, permissionsFindUniqueArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Permissions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {permissionsFindUniqueOrThrowArgs} args - Arguments to find a Permissions
+     * @example
+     * // Get one Permissions
+     * const permissions = await prisma.permissions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends permissionsFindUniqueOrThrowArgs>(args: SelectSubset<T, permissionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Permissions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {permissionsFindFirstArgs} args - Arguments to find a Permissions
+     * @example
+     * // Get one Permissions
+     * const permissions = await prisma.permissions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends permissionsFindFirstArgs>(args?: SelectSubset<T, permissionsFindFirstArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Permissions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {permissionsFindFirstOrThrowArgs} args - Arguments to find a Permissions
+     * @example
+     * // Get one Permissions
+     * const permissions = await prisma.permissions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends permissionsFindFirstOrThrowArgs>(args?: SelectSubset<T, permissionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Permissions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {permissionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Permissions
+     * const permissions = await prisma.permissions.findMany()
+     * 
+     * // Get first 10 Permissions
+     * const permissions = await prisma.permissions.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const permissionsWithIdOnly = await prisma.permissions.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends permissionsFindManyArgs>(args?: SelectSubset<T, permissionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Permissions.
+     * @param {permissionsCreateArgs} args - Arguments to create a Permissions.
+     * @example
+     * // Create one Permissions
+     * const Permissions = await prisma.permissions.create({
+     *   data: {
+     *     // ... data to create a Permissions
+     *   }
+     * })
+     * 
+     */
+    create<T extends permissionsCreateArgs>(args: SelectSubset<T, permissionsCreateArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Permissions.
+     * @param {permissionsCreateManyArgs} args - Arguments to create many Permissions.
+     * @example
+     * // Create many Permissions
+     * const permissions = await prisma.permissions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends permissionsCreateManyArgs>(args?: SelectSubset<T, permissionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Permissions and returns the data saved in the database.
+     * @param {permissionsCreateManyAndReturnArgs} args - Arguments to create many Permissions.
+     * @example
+     * // Create many Permissions
+     * const permissions = await prisma.permissions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Permissions and only return the `id`
+     * const permissionsWithIdOnly = await prisma.permissions.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends permissionsCreateManyAndReturnArgs>(args?: SelectSubset<T, permissionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Permissions.
+     * @param {permissionsDeleteArgs} args - Arguments to delete one Permissions.
+     * @example
+     * // Delete one Permissions
+     * const Permissions = await prisma.permissions.delete({
+     *   where: {
+     *     // ... filter to delete one Permissions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends permissionsDeleteArgs>(args: SelectSubset<T, permissionsDeleteArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Permissions.
+     * @param {permissionsUpdateArgs} args - Arguments to update one Permissions.
+     * @example
+     * // Update one Permissions
+     * const permissions = await prisma.permissions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends permissionsUpdateArgs>(args: SelectSubset<T, permissionsUpdateArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Permissions.
+     * @param {permissionsDeleteManyArgs} args - Arguments to filter Permissions to delete.
+     * @example
+     * // Delete a few Permissions
+     * const { count } = await prisma.permissions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends permissionsDeleteManyArgs>(args?: SelectSubset<T, permissionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {permissionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Permissions
+     * const permissions = await prisma.permissions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends permissionsUpdateManyArgs>(args: SelectSubset<T, permissionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Permissions and returns the data updated in the database.
+     * @param {permissionsUpdateManyAndReturnArgs} args - Arguments to update many Permissions.
+     * @example
+     * // Update many Permissions
+     * const permissions = await prisma.permissions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Permissions and only return the `id`
+     * const permissionsWithIdOnly = await prisma.permissions.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends permissionsUpdateManyAndReturnArgs>(args: SelectSubset<T, permissionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Permissions.
+     * @param {permissionsUpsertArgs} args - Arguments to update or create a Permissions.
+     * @example
+     * // Update or create a Permissions
+     * const permissions = await prisma.permissions.upsert({
+     *   create: {
+     *     // ... data to create a Permissions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Permissions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends permissionsUpsertArgs>(args: SelectSubset<T, permissionsUpsertArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {permissionsCountArgs} args - Arguments to filter Permissions to count.
+     * @example
+     * // Count the number of Permissions
+     * const count = await prisma.permissions.count({
+     *   where: {
+     *     // ... the filter for the Permissions we want to count
+     *   }
+     * })
+    **/
+    count<T extends permissionsCountArgs>(
+      args?: Subset<T, permissionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PermissionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PermissionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PermissionsAggregateArgs>(args: Subset<T, PermissionsAggregateArgs>): Prisma.PrismaPromise<GetPermissionsAggregateType<T>>
+
+    /**
+     * Group by Permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {permissionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends permissionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: permissionsGroupByArgs['orderBy'] }
+        : { orderBy?: permissionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, permissionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPermissionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the permissions model
+   */
+  readonly fields: permissionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for permissions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__permissionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    role_permissions<T extends permissions$role_permissionsArgs<ExtArgs> = {}>(args?: Subset<T, permissions$role_permissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the permissions model
+   */
+  interface permissionsFieldRefs {
+    readonly id: FieldRef<"permissions", 'String'>
+    readonly name: FieldRef<"permissions", 'String'>
+    readonly description: FieldRef<"permissions", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * permissions findUnique
+   */
+  export type permissionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which permissions to fetch.
+     */
+    where: permissionsWhereUniqueInput
+  }
+
+  /**
+   * permissions findUniqueOrThrow
+   */
+  export type permissionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which permissions to fetch.
+     */
+    where: permissionsWhereUniqueInput
+  }
+
+  /**
+   * permissions findFirst
+   */
+  export type permissionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which permissions to fetch.
+     */
+    where?: permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of permissions to fetch.
+     */
+    orderBy?: permissionsOrderByWithRelationInput | permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for permissions.
+     */
+    cursor?: permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of permissions.
+     */
+    distinct?: PermissionsScalarFieldEnum | PermissionsScalarFieldEnum[]
+  }
+
+  /**
+   * permissions findFirstOrThrow
+   */
+  export type permissionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which permissions to fetch.
+     */
+    where?: permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of permissions to fetch.
+     */
+    orderBy?: permissionsOrderByWithRelationInput | permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for permissions.
+     */
+    cursor?: permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of permissions.
+     */
+    distinct?: PermissionsScalarFieldEnum | PermissionsScalarFieldEnum[]
+  }
+
+  /**
+   * permissions findMany
+   */
+  export type permissionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which permissions to fetch.
+     */
+    where?: permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of permissions to fetch.
+     */
+    orderBy?: permissionsOrderByWithRelationInput | permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing permissions.
+     */
+    cursor?: permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` permissions.
+     */
+    skip?: number
+    distinct?: PermissionsScalarFieldEnum | PermissionsScalarFieldEnum[]
+  }
+
+  /**
+   * permissions create
+   */
+  export type permissionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a permissions.
+     */
+    data: XOR<permissionsCreateInput, permissionsUncheckedCreateInput>
+  }
+
+  /**
+   * permissions createMany
+   */
+  export type permissionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many permissions.
+     */
+    data: permissionsCreateManyInput | permissionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * permissions createManyAndReturn
+   */
+  export type permissionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many permissions.
+     */
+    data: permissionsCreateManyInput | permissionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * permissions update
+   */
+  export type permissionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a permissions.
+     */
+    data: XOR<permissionsUpdateInput, permissionsUncheckedUpdateInput>
+    /**
+     * Choose, which permissions to update.
+     */
+    where: permissionsWhereUniqueInput
+  }
+
+  /**
+   * permissions updateMany
+   */
+  export type permissionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update permissions.
+     */
+    data: XOR<permissionsUpdateManyMutationInput, permissionsUncheckedUpdateManyInput>
+    /**
+     * Filter which permissions to update
+     */
+    where?: permissionsWhereInput
+    /**
+     * Limit how many permissions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * permissions updateManyAndReturn
+   */
+  export type permissionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * The data used to update permissions.
+     */
+    data: XOR<permissionsUpdateManyMutationInput, permissionsUncheckedUpdateManyInput>
+    /**
+     * Filter which permissions to update
+     */
+    where?: permissionsWhereInput
+    /**
+     * Limit how many permissions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * permissions upsert
+   */
+  export type permissionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the permissions to update in case it exists.
+     */
+    where: permissionsWhereUniqueInput
+    /**
+     * In case the permissions found by the `where` argument doesn't exist, create a new permissions with this data.
+     */
+    create: XOR<permissionsCreateInput, permissionsUncheckedCreateInput>
+    /**
+     * In case the permissions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<permissionsUpdateInput, permissionsUncheckedUpdateInput>
+  }
+
+  /**
+   * permissions delete
+   */
+  export type permissionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+    /**
+     * Filter which permissions to delete.
+     */
+    where: permissionsWhereUniqueInput
+  }
+
+  /**
+   * permissions deleteMany
+   */
+  export type permissionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which permissions to delete
+     */
+    where?: permissionsWhereInput
+    /**
+     * Limit how many permissions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * permissions.role_permissions
+   */
+  export type permissions$role_permissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    where?: role_permissionsWhereInput
+    orderBy?: role_permissionsOrderByWithRelationInput | role_permissionsOrderByWithRelationInput[]
+    cursor?: role_permissionsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Role_permissionsScalarFieldEnum | Role_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * permissions without action
+   */
+  export type permissionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the permissions
+     */
+    select?: permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the permissions
+     */
+    omit?: permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: permissionsInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model prompt_families
    */
 
@@ -28407,6 +29906,2105 @@ export namespace Prisma {
 
 
   /**
+   * Model role_permissions
+   */
+
+  export type AggregateRole_permissions = {
+    _count: Role_permissionsCountAggregateOutputType | null
+    _min: Role_permissionsMinAggregateOutputType | null
+    _max: Role_permissionsMaxAggregateOutputType | null
+  }
+
+  export type Role_permissionsMinAggregateOutputType = {
+    role_id: string | null
+    permission_id: string | null
+  }
+
+  export type Role_permissionsMaxAggregateOutputType = {
+    role_id: string | null
+    permission_id: string | null
+  }
+
+  export type Role_permissionsCountAggregateOutputType = {
+    role_id: number
+    permission_id: number
+    _all: number
+  }
+
+
+  export type Role_permissionsMinAggregateInputType = {
+    role_id?: true
+    permission_id?: true
+  }
+
+  export type Role_permissionsMaxAggregateInputType = {
+    role_id?: true
+    permission_id?: true
+  }
+
+  export type Role_permissionsCountAggregateInputType = {
+    role_id?: true
+    permission_id?: true
+    _all?: true
+  }
+
+  export type Role_permissionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which role_permissions to aggregate.
+     */
+    where?: role_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of role_permissions to fetch.
+     */
+    orderBy?: role_permissionsOrderByWithRelationInput | role_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: role_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` role_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` role_permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned role_permissions
+    **/
+    _count?: true | Role_permissionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Role_permissionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Role_permissionsMaxAggregateInputType
+  }
+
+  export type GetRole_permissionsAggregateType<T extends Role_permissionsAggregateArgs> = {
+        [P in keyof T & keyof AggregateRole_permissions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRole_permissions[P]>
+      : GetScalarType<T[P], AggregateRole_permissions[P]>
+  }
+
+
+
+
+  export type role_permissionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: role_permissionsWhereInput
+    orderBy?: role_permissionsOrderByWithAggregationInput | role_permissionsOrderByWithAggregationInput[]
+    by: Role_permissionsScalarFieldEnum[] | Role_permissionsScalarFieldEnum
+    having?: role_permissionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Role_permissionsCountAggregateInputType | true
+    _min?: Role_permissionsMinAggregateInputType
+    _max?: Role_permissionsMaxAggregateInputType
+  }
+
+  export type Role_permissionsGroupByOutputType = {
+    role_id: string
+    permission_id: string
+    _count: Role_permissionsCountAggregateOutputType | null
+    _min: Role_permissionsMinAggregateOutputType | null
+    _max: Role_permissionsMaxAggregateOutputType | null
+  }
+
+  type GetRole_permissionsGroupByPayload<T extends role_permissionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Role_permissionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Role_permissionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Role_permissionsGroupByOutputType[P]>
+            : GetScalarType<T[P], Role_permissionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type role_permissionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    role_id?: boolean
+    permission_id?: boolean
+    permissions?: boolean | permissionsDefaultArgs<ExtArgs>
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["role_permissions"]>
+
+  export type role_permissionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    role_id?: boolean
+    permission_id?: boolean
+    permissions?: boolean | permissionsDefaultArgs<ExtArgs>
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["role_permissions"]>
+
+  export type role_permissionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    role_id?: boolean
+    permission_id?: boolean
+    permissions?: boolean | permissionsDefaultArgs<ExtArgs>
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["role_permissions"]>
+
+  export type role_permissionsSelectScalar = {
+    role_id?: boolean
+    permission_id?: boolean
+  }
+
+  export type role_permissionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"role_id" | "permission_id", ExtArgs["result"]["role_permissions"]>
+  export type role_permissionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    permissions?: boolean | permissionsDefaultArgs<ExtArgs>
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }
+  export type role_permissionsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    permissions?: boolean | permissionsDefaultArgs<ExtArgs>
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }
+  export type role_permissionsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    permissions?: boolean | permissionsDefaultArgs<ExtArgs>
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }
+
+  export type $role_permissionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "role_permissions"
+    objects: {
+      permissions: Prisma.$permissionsPayload<ExtArgs>
+      roles: Prisma.$rolesPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      role_id: string
+      permission_id: string
+    }, ExtArgs["result"]["role_permissions"]>
+    composites: {}
+  }
+
+  type role_permissionsGetPayload<S extends boolean | null | undefined | role_permissionsDefaultArgs> = $Result.GetResult<Prisma.$role_permissionsPayload, S>
+
+  type role_permissionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<role_permissionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Role_permissionsCountAggregateInputType | true
+    }
+
+  export interface role_permissionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['role_permissions'], meta: { name: 'role_permissions' } }
+    /**
+     * Find zero or one Role_permissions that matches the filter.
+     * @param {role_permissionsFindUniqueArgs} args - Arguments to find a Role_permissions
+     * @example
+     * // Get one Role_permissions
+     * const role_permissions = await prisma.role_permissions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends role_permissionsFindUniqueArgs>(args: SelectSubset<T, role_permissionsFindUniqueArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Role_permissions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {role_permissionsFindUniqueOrThrowArgs} args - Arguments to find a Role_permissions
+     * @example
+     * // Get one Role_permissions
+     * const role_permissions = await prisma.role_permissions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends role_permissionsFindUniqueOrThrowArgs>(args: SelectSubset<T, role_permissionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Role_permissions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {role_permissionsFindFirstArgs} args - Arguments to find a Role_permissions
+     * @example
+     * // Get one Role_permissions
+     * const role_permissions = await prisma.role_permissions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends role_permissionsFindFirstArgs>(args?: SelectSubset<T, role_permissionsFindFirstArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Role_permissions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {role_permissionsFindFirstOrThrowArgs} args - Arguments to find a Role_permissions
+     * @example
+     * // Get one Role_permissions
+     * const role_permissions = await prisma.role_permissions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends role_permissionsFindFirstOrThrowArgs>(args?: SelectSubset<T, role_permissionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Role_permissions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {role_permissionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Role_permissions
+     * const role_permissions = await prisma.role_permissions.findMany()
+     * 
+     * // Get first 10 Role_permissions
+     * const role_permissions = await prisma.role_permissions.findMany({ take: 10 })
+     * 
+     * // Only select the `role_id`
+     * const role_permissionsWithRole_idOnly = await prisma.role_permissions.findMany({ select: { role_id: true } })
+     * 
+     */
+    findMany<T extends role_permissionsFindManyArgs>(args?: SelectSubset<T, role_permissionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Role_permissions.
+     * @param {role_permissionsCreateArgs} args - Arguments to create a Role_permissions.
+     * @example
+     * // Create one Role_permissions
+     * const Role_permissions = await prisma.role_permissions.create({
+     *   data: {
+     *     // ... data to create a Role_permissions
+     *   }
+     * })
+     * 
+     */
+    create<T extends role_permissionsCreateArgs>(args: SelectSubset<T, role_permissionsCreateArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Role_permissions.
+     * @param {role_permissionsCreateManyArgs} args - Arguments to create many Role_permissions.
+     * @example
+     * // Create many Role_permissions
+     * const role_permissions = await prisma.role_permissions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends role_permissionsCreateManyArgs>(args?: SelectSubset<T, role_permissionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Role_permissions and returns the data saved in the database.
+     * @param {role_permissionsCreateManyAndReturnArgs} args - Arguments to create many Role_permissions.
+     * @example
+     * // Create many Role_permissions
+     * const role_permissions = await prisma.role_permissions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Role_permissions and only return the `role_id`
+     * const role_permissionsWithRole_idOnly = await prisma.role_permissions.createManyAndReturn({
+     *   select: { role_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends role_permissionsCreateManyAndReturnArgs>(args?: SelectSubset<T, role_permissionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Role_permissions.
+     * @param {role_permissionsDeleteArgs} args - Arguments to delete one Role_permissions.
+     * @example
+     * // Delete one Role_permissions
+     * const Role_permissions = await prisma.role_permissions.delete({
+     *   where: {
+     *     // ... filter to delete one Role_permissions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends role_permissionsDeleteArgs>(args: SelectSubset<T, role_permissionsDeleteArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Role_permissions.
+     * @param {role_permissionsUpdateArgs} args - Arguments to update one Role_permissions.
+     * @example
+     * // Update one Role_permissions
+     * const role_permissions = await prisma.role_permissions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends role_permissionsUpdateArgs>(args: SelectSubset<T, role_permissionsUpdateArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Role_permissions.
+     * @param {role_permissionsDeleteManyArgs} args - Arguments to filter Role_permissions to delete.
+     * @example
+     * // Delete a few Role_permissions
+     * const { count } = await prisma.role_permissions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends role_permissionsDeleteManyArgs>(args?: SelectSubset<T, role_permissionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Role_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {role_permissionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Role_permissions
+     * const role_permissions = await prisma.role_permissions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends role_permissionsUpdateManyArgs>(args: SelectSubset<T, role_permissionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Role_permissions and returns the data updated in the database.
+     * @param {role_permissionsUpdateManyAndReturnArgs} args - Arguments to update many Role_permissions.
+     * @example
+     * // Update many Role_permissions
+     * const role_permissions = await prisma.role_permissions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Role_permissions and only return the `role_id`
+     * const role_permissionsWithRole_idOnly = await prisma.role_permissions.updateManyAndReturn({
+     *   select: { role_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends role_permissionsUpdateManyAndReturnArgs>(args: SelectSubset<T, role_permissionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Role_permissions.
+     * @param {role_permissionsUpsertArgs} args - Arguments to update or create a Role_permissions.
+     * @example
+     * // Update or create a Role_permissions
+     * const role_permissions = await prisma.role_permissions.upsert({
+     *   create: {
+     *     // ... data to create a Role_permissions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Role_permissions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends role_permissionsUpsertArgs>(args: SelectSubset<T, role_permissionsUpsertArgs<ExtArgs>>): Prisma__role_permissionsClient<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Role_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {role_permissionsCountArgs} args - Arguments to filter Role_permissions to count.
+     * @example
+     * // Count the number of Role_permissions
+     * const count = await prisma.role_permissions.count({
+     *   where: {
+     *     // ... the filter for the Role_permissions we want to count
+     *   }
+     * })
+    **/
+    count<T extends role_permissionsCountArgs>(
+      args?: Subset<T, role_permissionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Role_permissionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Role_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Role_permissionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Role_permissionsAggregateArgs>(args: Subset<T, Role_permissionsAggregateArgs>): Prisma.PrismaPromise<GetRole_permissionsAggregateType<T>>
+
+    /**
+     * Group by Role_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {role_permissionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends role_permissionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: role_permissionsGroupByArgs['orderBy'] }
+        : { orderBy?: role_permissionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, role_permissionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRole_permissionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the role_permissions model
+   */
+  readonly fields: role_permissionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for role_permissions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__role_permissionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    permissions<T extends permissionsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, permissionsDefaultArgs<ExtArgs>>): Prisma__permissionsClient<$Result.GetResult<Prisma.$permissionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    roles<T extends rolesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, rolesDefaultArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the role_permissions model
+   */
+  interface role_permissionsFieldRefs {
+    readonly role_id: FieldRef<"role_permissions", 'String'>
+    readonly permission_id: FieldRef<"role_permissions", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * role_permissions findUnique
+   */
+  export type role_permissionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which role_permissions to fetch.
+     */
+    where: role_permissionsWhereUniqueInput
+  }
+
+  /**
+   * role_permissions findUniqueOrThrow
+   */
+  export type role_permissionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which role_permissions to fetch.
+     */
+    where: role_permissionsWhereUniqueInput
+  }
+
+  /**
+   * role_permissions findFirst
+   */
+  export type role_permissionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which role_permissions to fetch.
+     */
+    where?: role_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of role_permissions to fetch.
+     */
+    orderBy?: role_permissionsOrderByWithRelationInput | role_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for role_permissions.
+     */
+    cursor?: role_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` role_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` role_permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of role_permissions.
+     */
+    distinct?: Role_permissionsScalarFieldEnum | Role_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * role_permissions findFirstOrThrow
+   */
+  export type role_permissionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which role_permissions to fetch.
+     */
+    where?: role_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of role_permissions to fetch.
+     */
+    orderBy?: role_permissionsOrderByWithRelationInput | role_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for role_permissions.
+     */
+    cursor?: role_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` role_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` role_permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of role_permissions.
+     */
+    distinct?: Role_permissionsScalarFieldEnum | Role_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * role_permissions findMany
+   */
+  export type role_permissionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which role_permissions to fetch.
+     */
+    where?: role_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of role_permissions to fetch.
+     */
+    orderBy?: role_permissionsOrderByWithRelationInput | role_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing role_permissions.
+     */
+    cursor?: role_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` role_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` role_permissions.
+     */
+    skip?: number
+    distinct?: Role_permissionsScalarFieldEnum | Role_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * role_permissions create
+   */
+  export type role_permissionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a role_permissions.
+     */
+    data: XOR<role_permissionsCreateInput, role_permissionsUncheckedCreateInput>
+  }
+
+  /**
+   * role_permissions createMany
+   */
+  export type role_permissionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many role_permissions.
+     */
+    data: role_permissionsCreateManyInput | role_permissionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * role_permissions createManyAndReturn
+   */
+  export type role_permissionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many role_permissions.
+     */
+    data: role_permissionsCreateManyInput | role_permissionsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * role_permissions update
+   */
+  export type role_permissionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a role_permissions.
+     */
+    data: XOR<role_permissionsUpdateInput, role_permissionsUncheckedUpdateInput>
+    /**
+     * Choose, which role_permissions to update.
+     */
+    where: role_permissionsWhereUniqueInput
+  }
+
+  /**
+   * role_permissions updateMany
+   */
+  export type role_permissionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update role_permissions.
+     */
+    data: XOR<role_permissionsUpdateManyMutationInput, role_permissionsUncheckedUpdateManyInput>
+    /**
+     * Filter which role_permissions to update
+     */
+    where?: role_permissionsWhereInput
+    /**
+     * Limit how many role_permissions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * role_permissions updateManyAndReturn
+   */
+  export type role_permissionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * The data used to update role_permissions.
+     */
+    data: XOR<role_permissionsUpdateManyMutationInput, role_permissionsUncheckedUpdateManyInput>
+    /**
+     * Filter which role_permissions to update
+     */
+    where?: role_permissionsWhereInput
+    /**
+     * Limit how many role_permissions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * role_permissions upsert
+   */
+  export type role_permissionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the role_permissions to update in case it exists.
+     */
+    where: role_permissionsWhereUniqueInput
+    /**
+     * In case the role_permissions found by the `where` argument doesn't exist, create a new role_permissions with this data.
+     */
+    create: XOR<role_permissionsCreateInput, role_permissionsUncheckedCreateInput>
+    /**
+     * In case the role_permissions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<role_permissionsUpdateInput, role_permissionsUncheckedUpdateInput>
+  }
+
+  /**
+   * role_permissions delete
+   */
+  export type role_permissionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter which role_permissions to delete.
+     */
+    where: role_permissionsWhereUniqueInput
+  }
+
+  /**
+   * role_permissions deleteMany
+   */
+  export type role_permissionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which role_permissions to delete
+     */
+    where?: role_permissionsWhereInput
+    /**
+     * Limit how many role_permissions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * role_permissions without action
+   */
+  export type role_permissionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model roles
+   */
+
+  export type AggregateRoles = {
+    _count: RolesCountAggregateOutputType | null
+    _min: RolesMinAggregateOutputType | null
+    _max: RolesMaxAggregateOutputType | null
+  }
+
+  export type RolesMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+  }
+
+  export type RolesMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+  }
+
+  export type RolesCountAggregateOutputType = {
+    id: number
+    name: number
+    description: number
+    _all: number
+  }
+
+
+  export type RolesMinAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+  }
+
+  export type RolesMaxAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+  }
+
+  export type RolesCountAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    _all?: true
+  }
+
+  export type RolesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which roles to aggregate.
+     */
+    where?: rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of roles to fetch.
+     */
+    orderBy?: rolesOrderByWithRelationInput | rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned roles
+    **/
+    _count?: true | RolesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RolesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RolesMaxAggregateInputType
+  }
+
+  export type GetRolesAggregateType<T extends RolesAggregateArgs> = {
+        [P in keyof T & keyof AggregateRoles]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRoles[P]>
+      : GetScalarType<T[P], AggregateRoles[P]>
+  }
+
+
+
+
+  export type rolesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: rolesWhereInput
+    orderBy?: rolesOrderByWithAggregationInput | rolesOrderByWithAggregationInput[]
+    by: RolesScalarFieldEnum[] | RolesScalarFieldEnum
+    having?: rolesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RolesCountAggregateInputType | true
+    _min?: RolesMinAggregateInputType
+    _max?: RolesMaxAggregateInputType
+  }
+
+  export type RolesGroupByOutputType = {
+    id: string
+    name: string
+    description: string
+    _count: RolesCountAggregateOutputType | null
+    _min: RolesMinAggregateOutputType | null
+    _max: RolesMaxAggregateOutputType | null
+  }
+
+  type GetRolesGroupByPayload<T extends rolesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RolesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RolesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RolesGroupByOutputType[P]>
+            : GetScalarType<T[P], RolesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type rolesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    role_permissions?: boolean | roles$role_permissionsArgs<ExtArgs>
+    user_roles?: boolean | roles$user_rolesArgs<ExtArgs>
+    _count?: boolean | RolesCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["roles"]>
+
+  export type rolesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+  }, ExtArgs["result"]["roles"]>
+
+  export type rolesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+  }, ExtArgs["result"]["roles"]>
+
+  export type rolesSelectScalar = {
+    id?: boolean
+    name?: boolean
+    description?: boolean
+  }
+
+  export type rolesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description", ExtArgs["result"]["roles"]>
+  export type rolesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    role_permissions?: boolean | roles$role_permissionsArgs<ExtArgs>
+    user_roles?: boolean | roles$user_rolesArgs<ExtArgs>
+    _count?: boolean | RolesCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type rolesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type rolesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $rolesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "roles"
+    objects: {
+      role_permissions: Prisma.$role_permissionsPayload<ExtArgs>[]
+      user_roles: Prisma.$user_rolesPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      description: string
+    }, ExtArgs["result"]["roles"]>
+    composites: {}
+  }
+
+  type rolesGetPayload<S extends boolean | null | undefined | rolesDefaultArgs> = $Result.GetResult<Prisma.$rolesPayload, S>
+
+  type rolesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<rolesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RolesCountAggregateInputType | true
+    }
+
+  export interface rolesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['roles'], meta: { name: 'roles' } }
+    /**
+     * Find zero or one Roles that matches the filter.
+     * @param {rolesFindUniqueArgs} args - Arguments to find a Roles
+     * @example
+     * // Get one Roles
+     * const roles = await prisma.roles.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends rolesFindUniqueArgs>(args: SelectSubset<T, rolesFindUniqueArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Roles that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {rolesFindUniqueOrThrowArgs} args - Arguments to find a Roles
+     * @example
+     * // Get one Roles
+     * const roles = await prisma.roles.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends rolesFindUniqueOrThrowArgs>(args: SelectSubset<T, rolesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Roles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {rolesFindFirstArgs} args - Arguments to find a Roles
+     * @example
+     * // Get one Roles
+     * const roles = await prisma.roles.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends rolesFindFirstArgs>(args?: SelectSubset<T, rolesFindFirstArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Roles that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {rolesFindFirstOrThrowArgs} args - Arguments to find a Roles
+     * @example
+     * // Get one Roles
+     * const roles = await prisma.roles.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends rolesFindFirstOrThrowArgs>(args?: SelectSubset<T, rolesFindFirstOrThrowArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Roles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {rolesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Roles
+     * const roles = await prisma.roles.findMany()
+     * 
+     * // Get first 10 Roles
+     * const roles = await prisma.roles.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const rolesWithIdOnly = await prisma.roles.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends rolesFindManyArgs>(args?: SelectSubset<T, rolesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Roles.
+     * @param {rolesCreateArgs} args - Arguments to create a Roles.
+     * @example
+     * // Create one Roles
+     * const Roles = await prisma.roles.create({
+     *   data: {
+     *     // ... data to create a Roles
+     *   }
+     * })
+     * 
+     */
+    create<T extends rolesCreateArgs>(args: SelectSubset<T, rolesCreateArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Roles.
+     * @param {rolesCreateManyArgs} args - Arguments to create many Roles.
+     * @example
+     * // Create many Roles
+     * const roles = await prisma.roles.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends rolesCreateManyArgs>(args?: SelectSubset<T, rolesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Roles and returns the data saved in the database.
+     * @param {rolesCreateManyAndReturnArgs} args - Arguments to create many Roles.
+     * @example
+     * // Create many Roles
+     * const roles = await prisma.roles.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Roles and only return the `id`
+     * const rolesWithIdOnly = await prisma.roles.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends rolesCreateManyAndReturnArgs>(args?: SelectSubset<T, rolesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Roles.
+     * @param {rolesDeleteArgs} args - Arguments to delete one Roles.
+     * @example
+     * // Delete one Roles
+     * const Roles = await prisma.roles.delete({
+     *   where: {
+     *     // ... filter to delete one Roles
+     *   }
+     * })
+     * 
+     */
+    delete<T extends rolesDeleteArgs>(args: SelectSubset<T, rolesDeleteArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Roles.
+     * @param {rolesUpdateArgs} args - Arguments to update one Roles.
+     * @example
+     * // Update one Roles
+     * const roles = await prisma.roles.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends rolesUpdateArgs>(args: SelectSubset<T, rolesUpdateArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Roles.
+     * @param {rolesDeleteManyArgs} args - Arguments to filter Roles to delete.
+     * @example
+     * // Delete a few Roles
+     * const { count } = await prisma.roles.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends rolesDeleteManyArgs>(args?: SelectSubset<T, rolesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {rolesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Roles
+     * const roles = await prisma.roles.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends rolesUpdateManyArgs>(args: SelectSubset<T, rolesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Roles and returns the data updated in the database.
+     * @param {rolesUpdateManyAndReturnArgs} args - Arguments to update many Roles.
+     * @example
+     * // Update many Roles
+     * const roles = await prisma.roles.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Roles and only return the `id`
+     * const rolesWithIdOnly = await prisma.roles.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends rolesUpdateManyAndReturnArgs>(args: SelectSubset<T, rolesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Roles.
+     * @param {rolesUpsertArgs} args - Arguments to update or create a Roles.
+     * @example
+     * // Update or create a Roles
+     * const roles = await prisma.roles.upsert({
+     *   create: {
+     *     // ... data to create a Roles
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Roles we want to update
+     *   }
+     * })
+     */
+    upsert<T extends rolesUpsertArgs>(args: SelectSubset<T, rolesUpsertArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {rolesCountArgs} args - Arguments to filter Roles to count.
+     * @example
+     * // Count the number of Roles
+     * const count = await prisma.roles.count({
+     *   where: {
+     *     // ... the filter for the Roles we want to count
+     *   }
+     * })
+    **/
+    count<T extends rolesCountArgs>(
+      args?: Subset<T, rolesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RolesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RolesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RolesAggregateArgs>(args: Subset<T, RolesAggregateArgs>): Prisma.PrismaPromise<GetRolesAggregateType<T>>
+
+    /**
+     * Group by Roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {rolesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends rolesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: rolesGroupByArgs['orderBy'] }
+        : { orderBy?: rolesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, rolesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRolesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the roles model
+   */
+  readonly fields: rolesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for roles.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__rolesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    role_permissions<T extends roles$role_permissionsArgs<ExtArgs> = {}>(args?: Subset<T, roles$role_permissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$role_permissionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    user_roles<T extends roles$user_rolesArgs<ExtArgs> = {}>(args?: Subset<T, roles$user_rolesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the roles model
+   */
+  interface rolesFieldRefs {
+    readonly id: FieldRef<"roles", 'String'>
+    readonly name: FieldRef<"roles", 'String'>
+    readonly description: FieldRef<"roles", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * roles findUnique
+   */
+  export type rolesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which roles to fetch.
+     */
+    where: rolesWhereUniqueInput
+  }
+
+  /**
+   * roles findUniqueOrThrow
+   */
+  export type rolesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which roles to fetch.
+     */
+    where: rolesWhereUniqueInput
+  }
+
+  /**
+   * roles findFirst
+   */
+  export type rolesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which roles to fetch.
+     */
+    where?: rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of roles to fetch.
+     */
+    orderBy?: rolesOrderByWithRelationInput | rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for roles.
+     */
+    cursor?: rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of roles.
+     */
+    distinct?: RolesScalarFieldEnum | RolesScalarFieldEnum[]
+  }
+
+  /**
+   * roles findFirstOrThrow
+   */
+  export type rolesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which roles to fetch.
+     */
+    where?: rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of roles to fetch.
+     */
+    orderBy?: rolesOrderByWithRelationInput | rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for roles.
+     */
+    cursor?: rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of roles.
+     */
+    distinct?: RolesScalarFieldEnum | RolesScalarFieldEnum[]
+  }
+
+  /**
+   * roles findMany
+   */
+  export type rolesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which roles to fetch.
+     */
+    where?: rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of roles to fetch.
+     */
+    orderBy?: rolesOrderByWithRelationInput | rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing roles.
+     */
+    cursor?: rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` roles.
+     */
+    skip?: number
+    distinct?: RolesScalarFieldEnum | RolesScalarFieldEnum[]
+  }
+
+  /**
+   * roles create
+   */
+  export type rolesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * The data needed to create a roles.
+     */
+    data: XOR<rolesCreateInput, rolesUncheckedCreateInput>
+  }
+
+  /**
+   * roles createMany
+   */
+  export type rolesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many roles.
+     */
+    data: rolesCreateManyInput | rolesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * roles createManyAndReturn
+   */
+  export type rolesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * The data used to create many roles.
+     */
+    data: rolesCreateManyInput | rolesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * roles update
+   */
+  export type rolesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * The data needed to update a roles.
+     */
+    data: XOR<rolesUpdateInput, rolesUncheckedUpdateInput>
+    /**
+     * Choose, which roles to update.
+     */
+    where: rolesWhereUniqueInput
+  }
+
+  /**
+   * roles updateMany
+   */
+  export type rolesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update roles.
+     */
+    data: XOR<rolesUpdateManyMutationInput, rolesUncheckedUpdateManyInput>
+    /**
+     * Filter which roles to update
+     */
+    where?: rolesWhereInput
+    /**
+     * Limit how many roles to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * roles updateManyAndReturn
+   */
+  export type rolesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * The data used to update roles.
+     */
+    data: XOR<rolesUpdateManyMutationInput, rolesUncheckedUpdateManyInput>
+    /**
+     * Filter which roles to update
+     */
+    where?: rolesWhereInput
+    /**
+     * Limit how many roles to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * roles upsert
+   */
+  export type rolesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * The filter to search for the roles to update in case it exists.
+     */
+    where: rolesWhereUniqueInput
+    /**
+     * In case the roles found by the `where` argument doesn't exist, create a new roles with this data.
+     */
+    create: XOR<rolesCreateInput, rolesUncheckedCreateInput>
+    /**
+     * In case the roles was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<rolesUpdateInput, rolesUncheckedUpdateInput>
+  }
+
+  /**
+   * roles delete
+   */
+  export type rolesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+    /**
+     * Filter which roles to delete.
+     */
+    where: rolesWhereUniqueInput
+  }
+
+  /**
+   * roles deleteMany
+   */
+  export type rolesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which roles to delete
+     */
+    where?: rolesWhereInput
+    /**
+     * Limit how many roles to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * roles.role_permissions
+   */
+  export type roles$role_permissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the role_permissions
+     */
+    select?: role_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the role_permissions
+     */
+    omit?: role_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: role_permissionsInclude<ExtArgs> | null
+    where?: role_permissionsWhereInput
+    orderBy?: role_permissionsOrderByWithRelationInput | role_permissionsOrderByWithRelationInput[]
+    cursor?: role_permissionsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Role_permissionsScalarFieldEnum | Role_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * roles.user_roles
+   */
+  export type roles$user_rolesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    where?: user_rolesWhereInput
+    orderBy?: user_rolesOrderByWithRelationInput | user_rolesOrderByWithRelationInput[]
+    cursor?: user_rolesWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: User_rolesScalarFieldEnum | User_rolesScalarFieldEnum[]
+  }
+
+  /**
+   * roles without action
+   */
+  export type rolesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the roles
+     */
+    select?: rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the roles
+     */
+    omit?: rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: rolesInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model user_device_tokens
    */
 
@@ -30332,6 +33930,1025 @@ export namespace Prisma {
 
 
   /**
+   * Model user_roles
+   */
+
+  export type AggregateUser_roles = {
+    _count: User_rolesCountAggregateOutputType | null
+    _min: User_rolesMinAggregateOutputType | null
+    _max: User_rolesMaxAggregateOutputType | null
+  }
+
+  export type User_rolesMinAggregateOutputType = {
+    user_id: string | null
+    role_id: string | null
+  }
+
+  export type User_rolesMaxAggregateOutputType = {
+    user_id: string | null
+    role_id: string | null
+  }
+
+  export type User_rolesCountAggregateOutputType = {
+    user_id: number
+    role_id: number
+    _all: number
+  }
+
+
+  export type User_rolesMinAggregateInputType = {
+    user_id?: true
+    role_id?: true
+  }
+
+  export type User_rolesMaxAggregateInputType = {
+    user_id?: true
+    role_id?: true
+  }
+
+  export type User_rolesCountAggregateInputType = {
+    user_id?: true
+    role_id?: true
+    _all?: true
+  }
+
+  export type User_rolesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_roles to aggregate.
+     */
+    where?: user_rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_roles to fetch.
+     */
+    orderBy?: user_rolesOrderByWithRelationInput | user_rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: user_rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned user_roles
+    **/
+    _count?: true | User_rolesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: User_rolesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: User_rolesMaxAggregateInputType
+  }
+
+  export type GetUser_rolesAggregateType<T extends User_rolesAggregateArgs> = {
+        [P in keyof T & keyof AggregateUser_roles]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUser_roles[P]>
+      : GetScalarType<T[P], AggregateUser_roles[P]>
+  }
+
+
+
+
+  export type user_rolesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_rolesWhereInput
+    orderBy?: user_rolesOrderByWithAggregationInput | user_rolesOrderByWithAggregationInput[]
+    by: User_rolesScalarFieldEnum[] | User_rolesScalarFieldEnum
+    having?: user_rolesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: User_rolesCountAggregateInputType | true
+    _min?: User_rolesMinAggregateInputType
+    _max?: User_rolesMaxAggregateInputType
+  }
+
+  export type User_rolesGroupByOutputType = {
+    user_id: string
+    role_id: string
+    _count: User_rolesCountAggregateOutputType | null
+    _min: User_rolesMinAggregateOutputType | null
+    _max: User_rolesMaxAggregateOutputType | null
+  }
+
+  type GetUser_rolesGroupByPayload<T extends user_rolesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<User_rolesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof User_rolesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], User_rolesGroupByOutputType[P]>
+            : GetScalarType<T[P], User_rolesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type user_rolesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    role_id?: boolean
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_roles"]>
+
+  export type user_rolesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    role_id?: boolean
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_roles"]>
+
+  export type user_rolesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    role_id?: boolean
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_roles"]>
+
+  export type user_rolesSelectScalar = {
+    user_id?: boolean
+    role_id?: boolean
+  }
+
+  export type user_rolesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"user_id" | "role_id", ExtArgs["result"]["user_roles"]>
+  export type user_rolesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }
+  export type user_rolesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }
+  export type user_rolesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roles?: boolean | rolesDefaultArgs<ExtArgs>
+  }
+
+  export type $user_rolesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "user_roles"
+    objects: {
+      roles: Prisma.$rolesPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      user_id: string
+      role_id: string
+    }, ExtArgs["result"]["user_roles"]>
+    composites: {}
+  }
+
+  type user_rolesGetPayload<S extends boolean | null | undefined | user_rolesDefaultArgs> = $Result.GetResult<Prisma.$user_rolesPayload, S>
+
+  type user_rolesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<user_rolesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: User_rolesCountAggregateInputType | true
+    }
+
+  export interface user_rolesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['user_roles'], meta: { name: 'user_roles' } }
+    /**
+     * Find zero or one User_roles that matches the filter.
+     * @param {user_rolesFindUniqueArgs} args - Arguments to find a User_roles
+     * @example
+     * // Get one User_roles
+     * const user_roles = await prisma.user_roles.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends user_rolesFindUniqueArgs>(args: SelectSubset<T, user_rolesFindUniqueArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one User_roles that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {user_rolesFindUniqueOrThrowArgs} args - Arguments to find a User_roles
+     * @example
+     * // Get one User_roles
+     * const user_roles = await prisma.user_roles.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends user_rolesFindUniqueOrThrowArgs>(args: SelectSubset<T, user_rolesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_roles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_rolesFindFirstArgs} args - Arguments to find a User_roles
+     * @example
+     * // Get one User_roles
+     * const user_roles = await prisma.user_roles.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends user_rolesFindFirstArgs>(args?: SelectSubset<T, user_rolesFindFirstArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_roles that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_rolesFindFirstOrThrowArgs} args - Arguments to find a User_roles
+     * @example
+     * // Get one User_roles
+     * const user_roles = await prisma.user_roles.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends user_rolesFindFirstOrThrowArgs>(args?: SelectSubset<T, user_rolesFindFirstOrThrowArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more User_roles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_rolesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all User_roles
+     * const user_roles = await prisma.user_roles.findMany()
+     * 
+     * // Get first 10 User_roles
+     * const user_roles = await prisma.user_roles.findMany({ take: 10 })
+     * 
+     * // Only select the `user_id`
+     * const user_rolesWithUser_idOnly = await prisma.user_roles.findMany({ select: { user_id: true } })
+     * 
+     */
+    findMany<T extends user_rolesFindManyArgs>(args?: SelectSubset<T, user_rolesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a User_roles.
+     * @param {user_rolesCreateArgs} args - Arguments to create a User_roles.
+     * @example
+     * // Create one User_roles
+     * const User_roles = await prisma.user_roles.create({
+     *   data: {
+     *     // ... data to create a User_roles
+     *   }
+     * })
+     * 
+     */
+    create<T extends user_rolesCreateArgs>(args: SelectSubset<T, user_rolesCreateArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many User_roles.
+     * @param {user_rolesCreateManyArgs} args - Arguments to create many User_roles.
+     * @example
+     * // Create many User_roles
+     * const user_roles = await prisma.user_roles.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends user_rolesCreateManyArgs>(args?: SelectSubset<T, user_rolesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many User_roles and returns the data saved in the database.
+     * @param {user_rolesCreateManyAndReturnArgs} args - Arguments to create many User_roles.
+     * @example
+     * // Create many User_roles
+     * const user_roles = await prisma.user_roles.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many User_roles and only return the `user_id`
+     * const user_rolesWithUser_idOnly = await prisma.user_roles.createManyAndReturn({
+     *   select: { user_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends user_rolesCreateManyAndReturnArgs>(args?: SelectSubset<T, user_rolesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a User_roles.
+     * @param {user_rolesDeleteArgs} args - Arguments to delete one User_roles.
+     * @example
+     * // Delete one User_roles
+     * const User_roles = await prisma.user_roles.delete({
+     *   where: {
+     *     // ... filter to delete one User_roles
+     *   }
+     * })
+     * 
+     */
+    delete<T extends user_rolesDeleteArgs>(args: SelectSubset<T, user_rolesDeleteArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one User_roles.
+     * @param {user_rolesUpdateArgs} args - Arguments to update one User_roles.
+     * @example
+     * // Update one User_roles
+     * const user_roles = await prisma.user_roles.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends user_rolesUpdateArgs>(args: SelectSubset<T, user_rolesUpdateArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more User_roles.
+     * @param {user_rolesDeleteManyArgs} args - Arguments to filter User_roles to delete.
+     * @example
+     * // Delete a few User_roles
+     * const { count } = await prisma.user_roles.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends user_rolesDeleteManyArgs>(args?: SelectSubset<T, user_rolesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_rolesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many User_roles
+     * const user_roles = await prisma.user_roles.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends user_rolesUpdateManyArgs>(args: SelectSubset<T, user_rolesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_roles and returns the data updated in the database.
+     * @param {user_rolesUpdateManyAndReturnArgs} args - Arguments to update many User_roles.
+     * @example
+     * // Update many User_roles
+     * const user_roles = await prisma.user_roles.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more User_roles and only return the `user_id`
+     * const user_rolesWithUser_idOnly = await prisma.user_roles.updateManyAndReturn({
+     *   select: { user_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends user_rolesUpdateManyAndReturnArgs>(args: SelectSubset<T, user_rolesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one User_roles.
+     * @param {user_rolesUpsertArgs} args - Arguments to update or create a User_roles.
+     * @example
+     * // Update or create a User_roles
+     * const user_roles = await prisma.user_roles.upsert({
+     *   create: {
+     *     // ... data to create a User_roles
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the User_roles we want to update
+     *   }
+     * })
+     */
+    upsert<T extends user_rolesUpsertArgs>(args: SelectSubset<T, user_rolesUpsertArgs<ExtArgs>>): Prisma__user_rolesClient<$Result.GetResult<Prisma.$user_rolesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of User_roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_rolesCountArgs} args - Arguments to filter User_roles to count.
+     * @example
+     * // Count the number of User_roles
+     * const count = await prisma.user_roles.count({
+     *   where: {
+     *     // ... the filter for the User_roles we want to count
+     *   }
+     * })
+    **/
+    count<T extends user_rolesCountArgs>(
+      args?: Subset<T, user_rolesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], User_rolesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a User_roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {User_rolesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends User_rolesAggregateArgs>(args: Subset<T, User_rolesAggregateArgs>): Prisma.PrismaPromise<GetUser_rolesAggregateType<T>>
+
+    /**
+     * Group by User_roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_rolesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends user_rolesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: user_rolesGroupByArgs['orderBy'] }
+        : { orderBy?: user_rolesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, user_rolesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUser_rolesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the user_roles model
+   */
+  readonly fields: user_rolesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for user_roles.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__user_rolesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    roles<T extends rolesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, rolesDefaultArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the user_roles model
+   */
+  interface user_rolesFieldRefs {
+    readonly user_id: FieldRef<"user_roles", 'String'>
+    readonly role_id: FieldRef<"user_roles", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * user_roles findUnique
+   */
+  export type user_rolesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which user_roles to fetch.
+     */
+    where: user_rolesWhereUniqueInput
+  }
+
+  /**
+   * user_roles findUniqueOrThrow
+   */
+  export type user_rolesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which user_roles to fetch.
+     */
+    where: user_rolesWhereUniqueInput
+  }
+
+  /**
+   * user_roles findFirst
+   */
+  export type user_rolesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which user_roles to fetch.
+     */
+    where?: user_rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_roles to fetch.
+     */
+    orderBy?: user_rolesOrderByWithRelationInput | user_rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_roles.
+     */
+    cursor?: user_rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_roles.
+     */
+    distinct?: User_rolesScalarFieldEnum | User_rolesScalarFieldEnum[]
+  }
+
+  /**
+   * user_roles findFirstOrThrow
+   */
+  export type user_rolesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which user_roles to fetch.
+     */
+    where?: user_rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_roles to fetch.
+     */
+    orderBy?: user_rolesOrderByWithRelationInput | user_rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_roles.
+     */
+    cursor?: user_rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_roles.
+     */
+    distinct?: User_rolesScalarFieldEnum | User_rolesScalarFieldEnum[]
+  }
+
+  /**
+   * user_roles findMany
+   */
+  export type user_rolesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * Filter, which user_roles to fetch.
+     */
+    where?: user_rolesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_roles to fetch.
+     */
+    orderBy?: user_rolesOrderByWithRelationInput | user_rolesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing user_roles.
+     */
+    cursor?: user_rolesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_roles.
+     */
+    skip?: number
+    distinct?: User_rolesScalarFieldEnum | User_rolesScalarFieldEnum[]
+  }
+
+  /**
+   * user_roles create
+   */
+  export type user_rolesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * The data needed to create a user_roles.
+     */
+    data: XOR<user_rolesCreateInput, user_rolesUncheckedCreateInput>
+  }
+
+  /**
+   * user_roles createMany
+   */
+  export type user_rolesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many user_roles.
+     */
+    data: user_rolesCreateManyInput | user_rolesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * user_roles createManyAndReturn
+   */
+  export type user_rolesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * The data used to create many user_roles.
+     */
+    data: user_rolesCreateManyInput | user_rolesCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * user_roles update
+   */
+  export type user_rolesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * The data needed to update a user_roles.
+     */
+    data: XOR<user_rolesUpdateInput, user_rolesUncheckedUpdateInput>
+    /**
+     * Choose, which user_roles to update.
+     */
+    where: user_rolesWhereUniqueInput
+  }
+
+  /**
+   * user_roles updateMany
+   */
+  export type user_rolesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update user_roles.
+     */
+    data: XOR<user_rolesUpdateManyMutationInput, user_rolesUncheckedUpdateManyInput>
+    /**
+     * Filter which user_roles to update
+     */
+    where?: user_rolesWhereInput
+    /**
+     * Limit how many user_roles to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_roles updateManyAndReturn
+   */
+  export type user_rolesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * The data used to update user_roles.
+     */
+    data: XOR<user_rolesUpdateManyMutationInput, user_rolesUncheckedUpdateManyInput>
+    /**
+     * Filter which user_roles to update
+     */
+    where?: user_rolesWhereInput
+    /**
+     * Limit how many user_roles to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * user_roles upsert
+   */
+  export type user_rolesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * The filter to search for the user_roles to update in case it exists.
+     */
+    where: user_rolesWhereUniqueInput
+    /**
+     * In case the user_roles found by the `where` argument doesn't exist, create a new user_roles with this data.
+     */
+    create: XOR<user_rolesCreateInput, user_rolesUncheckedCreateInput>
+    /**
+     * In case the user_roles was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<user_rolesUpdateInput, user_rolesUncheckedUpdateInput>
+  }
+
+  /**
+   * user_roles delete
+   */
+  export type user_rolesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+    /**
+     * Filter which user_roles to delete.
+     */
+    where: user_rolesWhereUniqueInput
+  }
+
+  /**
+   * user_roles deleteMany
+   */
+  export type user_rolesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_roles to delete
+     */
+    where?: user_rolesWhereInput
+    /**
+     * Limit how many user_roles to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_roles without action
+   */
+  export type user_rolesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_roles
+     */
+    select?: user_rolesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_roles
+     */
+    omit?: user_rolesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_rolesInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model users
    */
 
@@ -31827,6 +36444,15 @@ export namespace Prisma {
   export type PayoutsScalarFieldEnum = (typeof PayoutsScalarFieldEnum)[keyof typeof PayoutsScalarFieldEnum]
 
 
+  export const PermissionsScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    description: 'description'
+  };
+
+  export type PermissionsScalarFieldEnum = (typeof PermissionsScalarFieldEnum)[keyof typeof PermissionsScalarFieldEnum]
+
+
   export const Prompt_familiesScalarFieldEnum: {
     id: 'id',
     name: 'name',
@@ -31922,6 +36548,23 @@ export namespace Prisma {
   export type RestaurantsScalarFieldEnum = (typeof RestaurantsScalarFieldEnum)[keyof typeof RestaurantsScalarFieldEnum]
 
 
+  export const Role_permissionsScalarFieldEnum: {
+    role_id: 'role_id',
+    permission_id: 'permission_id'
+  };
+
+  export type Role_permissionsScalarFieldEnum = (typeof Role_permissionsScalarFieldEnum)[keyof typeof Role_permissionsScalarFieldEnum]
+
+
+  export const RolesScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    description: 'description'
+  };
+
+  export type RolesScalarFieldEnum = (typeof RolesScalarFieldEnum)[keyof typeof RolesScalarFieldEnum]
+
+
   export const User_device_tokensScalarFieldEnum: {
     user_id: 'user_id',
     expo_push_token: 'expo_push_token',
@@ -31937,6 +36580,14 @@ export namespace Prisma {
   };
 
   export type User_notification_cursorsScalarFieldEnum = (typeof User_notification_cursorsScalarFieldEnum)[keyof typeof User_notification_cursorsScalarFieldEnum]
+
+
+  export const User_rolesScalarFieldEnum: {
+    user_id: 'user_id',
+    role_id: 'role_id'
+  };
+
+  export type User_rolesScalarFieldEnum = (typeof User_rolesScalarFieldEnum)[keyof typeof User_rolesScalarFieldEnum]
 
 
   export const UsersScalarFieldEnum: {
@@ -33384,6 +38035,51 @@ export namespace Prisma {
     lock_no?: IntWithAggregatesFilter<"payouts"> | number
   }
 
+  export type permissionsWhereInput = {
+    AND?: permissionsWhereInput | permissionsWhereInput[]
+    OR?: permissionsWhereInput[]
+    NOT?: permissionsWhereInput | permissionsWhereInput[]
+    id?: UuidFilter<"permissions"> | string
+    name?: StringFilter<"permissions"> | string
+    description?: StringFilter<"permissions"> | string
+    role_permissions?: Role_permissionsListRelationFilter
+  }
+
+  export type permissionsOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    role_permissions?: role_permissionsOrderByRelationAggregateInput
+  }
+
+  export type permissionsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    name?: string
+    AND?: permissionsWhereInput | permissionsWhereInput[]
+    OR?: permissionsWhereInput[]
+    NOT?: permissionsWhereInput | permissionsWhereInput[]
+    description?: StringFilter<"permissions"> | string
+    role_permissions?: Role_permissionsListRelationFilter
+  }, "id" | "name">
+
+  export type permissionsOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    _count?: permissionsCountOrderByAggregateInput
+    _max?: permissionsMaxOrderByAggregateInput
+    _min?: permissionsMinOrderByAggregateInput
+  }
+
+  export type permissionsScalarWhereWithAggregatesInput = {
+    AND?: permissionsScalarWhereWithAggregatesInput | permissionsScalarWhereWithAggregatesInput[]
+    OR?: permissionsScalarWhereWithAggregatesInput[]
+    NOT?: permissionsScalarWhereWithAggregatesInput | permissionsScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"permissions"> | string
+    name?: StringWithAggregatesFilter<"permissions"> | string
+    description?: StringWithAggregatesFilter<"permissions"> | string
+  }
+
   export type prompt_familiesWhereInput = {
     AND?: prompt_familiesWhereInput | prompt_familiesWhereInput[]
     OR?: prompt_familiesWhereInput[]
@@ -33876,6 +38572,98 @@ export namespace Prisma {
     image_path?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
   }
 
+  export type role_permissionsWhereInput = {
+    AND?: role_permissionsWhereInput | role_permissionsWhereInput[]
+    OR?: role_permissionsWhereInput[]
+    NOT?: role_permissionsWhereInput | role_permissionsWhereInput[]
+    role_id?: UuidFilter<"role_permissions"> | string
+    permission_id?: UuidFilter<"role_permissions"> | string
+    permissions?: XOR<PermissionsScalarRelationFilter, permissionsWhereInput>
+    roles?: XOR<RolesScalarRelationFilter, rolesWhereInput>
+  }
+
+  export type role_permissionsOrderByWithRelationInput = {
+    role_id?: SortOrder
+    permission_id?: SortOrder
+    permissions?: permissionsOrderByWithRelationInput
+    roles?: rolesOrderByWithRelationInput
+  }
+
+  export type role_permissionsWhereUniqueInput = Prisma.AtLeast<{
+    role_id_permission_id?: role_permissionsRole_idPermission_idCompoundUniqueInput
+    AND?: role_permissionsWhereInput | role_permissionsWhereInput[]
+    OR?: role_permissionsWhereInput[]
+    NOT?: role_permissionsWhereInput | role_permissionsWhereInput[]
+    role_id?: UuidFilter<"role_permissions"> | string
+    permission_id?: UuidFilter<"role_permissions"> | string
+    permissions?: XOR<PermissionsScalarRelationFilter, permissionsWhereInput>
+    roles?: XOR<RolesScalarRelationFilter, rolesWhereInput>
+  }, "role_id_permission_id">
+
+  export type role_permissionsOrderByWithAggregationInput = {
+    role_id?: SortOrder
+    permission_id?: SortOrder
+    _count?: role_permissionsCountOrderByAggregateInput
+    _max?: role_permissionsMaxOrderByAggregateInput
+    _min?: role_permissionsMinOrderByAggregateInput
+  }
+
+  export type role_permissionsScalarWhereWithAggregatesInput = {
+    AND?: role_permissionsScalarWhereWithAggregatesInput | role_permissionsScalarWhereWithAggregatesInput[]
+    OR?: role_permissionsScalarWhereWithAggregatesInput[]
+    NOT?: role_permissionsScalarWhereWithAggregatesInput | role_permissionsScalarWhereWithAggregatesInput[]
+    role_id?: UuidWithAggregatesFilter<"role_permissions"> | string
+    permission_id?: UuidWithAggregatesFilter<"role_permissions"> | string
+  }
+
+  export type rolesWhereInput = {
+    AND?: rolesWhereInput | rolesWhereInput[]
+    OR?: rolesWhereInput[]
+    NOT?: rolesWhereInput | rolesWhereInput[]
+    id?: UuidFilter<"roles"> | string
+    name?: StringFilter<"roles"> | string
+    description?: StringFilter<"roles"> | string
+    role_permissions?: Role_permissionsListRelationFilter
+    user_roles?: User_rolesListRelationFilter
+  }
+
+  export type rolesOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    role_permissions?: role_permissionsOrderByRelationAggregateInput
+    user_roles?: user_rolesOrderByRelationAggregateInput
+  }
+
+  export type rolesWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    name?: string
+    AND?: rolesWhereInput | rolesWhereInput[]
+    OR?: rolesWhereInput[]
+    NOT?: rolesWhereInput | rolesWhereInput[]
+    description?: StringFilter<"roles"> | string
+    role_permissions?: Role_permissionsListRelationFilter
+    user_roles?: User_rolesListRelationFilter
+  }, "id" | "name">
+
+  export type rolesOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    _count?: rolesCountOrderByAggregateInput
+    _max?: rolesMaxOrderByAggregateInput
+    _min?: rolesMinOrderByAggregateInput
+  }
+
+  export type rolesScalarWhereWithAggregatesInput = {
+    AND?: rolesScalarWhereWithAggregatesInput | rolesScalarWhereWithAggregatesInput[]
+    OR?: rolesScalarWhereWithAggregatesInput[]
+    NOT?: rolesScalarWhereWithAggregatesInput | rolesScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"roles"> | string
+    name?: StringWithAggregatesFilter<"roles"> | string
+    description?: StringWithAggregatesFilter<"roles"> | string
+  }
+
   export type user_device_tokensWhereInput = {
     AND?: user_device_tokensWhereInput | user_device_tokensWhereInput[]
     OR?: user_device_tokensWhereInput[]
@@ -33954,6 +38742,47 @@ export namespace Prisma {
     NOT?: user_notification_cursorsScalarWhereWithAggregatesInput | user_notification_cursorsScalarWhereWithAggregatesInput[]
     user_id?: UuidWithAggregatesFilter<"user_notification_cursors"> | string
     last_read_at?: DateTimeWithAggregatesFilter<"user_notification_cursors"> | Date | string
+  }
+
+  export type user_rolesWhereInput = {
+    AND?: user_rolesWhereInput | user_rolesWhereInput[]
+    OR?: user_rolesWhereInput[]
+    NOT?: user_rolesWhereInput | user_rolesWhereInput[]
+    user_id?: UuidFilter<"user_roles"> | string
+    role_id?: UuidFilter<"user_roles"> | string
+    roles?: XOR<RolesScalarRelationFilter, rolesWhereInput>
+  }
+
+  export type user_rolesOrderByWithRelationInput = {
+    user_id?: SortOrder
+    role_id?: SortOrder
+    roles?: rolesOrderByWithRelationInput
+  }
+
+  export type user_rolesWhereUniqueInput = Prisma.AtLeast<{
+    user_id_role_id?: user_rolesUser_idRole_idCompoundUniqueInput
+    AND?: user_rolesWhereInput | user_rolesWhereInput[]
+    OR?: user_rolesWhereInput[]
+    NOT?: user_rolesWhereInput | user_rolesWhereInput[]
+    user_id?: UuidFilter<"user_roles"> | string
+    role_id?: UuidFilter<"user_roles"> | string
+    roles?: XOR<RolesScalarRelationFilter, rolesWhereInput>
+  }, "user_id_role_id">
+
+  export type user_rolesOrderByWithAggregationInput = {
+    user_id?: SortOrder
+    role_id?: SortOrder
+    _count?: user_rolesCountOrderByAggregateInput
+    _max?: user_rolesMaxOrderByAggregateInput
+    _min?: user_rolesMinOrderByAggregateInput
+  }
+
+  export type user_rolesScalarWhereWithAggregatesInput = {
+    AND?: user_rolesScalarWhereWithAggregatesInput | user_rolesScalarWhereWithAggregatesInput[]
+    OR?: user_rolesScalarWhereWithAggregatesInput[]
+    NOT?: user_rolesScalarWhereWithAggregatesInput | user_rolesScalarWhereWithAggregatesInput[]
+    user_id?: UuidWithAggregatesFilter<"user_roles"> | string
+    role_id?: UuidWithAggregatesFilter<"user_roles"> | string
   }
 
   export type usersWhereInput = {
@@ -35342,6 +40171,52 @@ export namespace Prisma {
     lock_no?: IntFieldUpdateOperationsInput | number
   }
 
+  export type permissionsCreateInput = {
+    id: string
+    name: string
+    description: string
+    role_permissions?: role_permissionsCreateNestedManyWithoutPermissionsInput
+  }
+
+  export type permissionsUncheckedCreateInput = {
+    id: string
+    name: string
+    description: string
+    role_permissions?: role_permissionsUncheckedCreateNestedManyWithoutPermissionsInput
+  }
+
+  export type permissionsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    role_permissions?: role_permissionsUpdateManyWithoutPermissionsNestedInput
+  }
+
+  export type permissionsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    role_permissions?: role_permissionsUncheckedUpdateManyWithoutPermissionsNestedInput
+  }
+
+  export type permissionsCreateManyInput = {
+    id: string
+    name: string
+    description: string
+  }
+
+  export type permissionsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type permissionsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+  }
+
   export type prompt_familiesCreateInput = {
     id: string
     name: string
@@ -35894,6 +40769,90 @@ export namespace Prisma {
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type role_permissionsCreateInput = {
+    permissions: permissionsCreateNestedOneWithoutRole_permissionsInput
+    roles: rolesCreateNestedOneWithoutRole_permissionsInput
+  }
+
+  export type role_permissionsUncheckedCreateInput = {
+    role_id: string
+    permission_id: string
+  }
+
+  export type role_permissionsUpdateInput = {
+    permissions?: permissionsUpdateOneRequiredWithoutRole_permissionsNestedInput
+    roles?: rolesUpdateOneRequiredWithoutRole_permissionsNestedInput
+  }
+
+  export type role_permissionsUncheckedUpdateInput = {
+    role_id?: StringFieldUpdateOperationsInput | string
+    permission_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type role_permissionsCreateManyInput = {
+    role_id: string
+    permission_id: string
+  }
+
+  export type role_permissionsUpdateManyMutationInput = {
+
+  }
+
+  export type role_permissionsUncheckedUpdateManyInput = {
+    role_id?: StringFieldUpdateOperationsInput | string
+    permission_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type rolesCreateInput = {
+    id: string
+    name: string
+    description: string
+    role_permissions?: role_permissionsCreateNestedManyWithoutRolesInput
+    user_roles?: user_rolesCreateNestedManyWithoutRolesInput
+  }
+
+  export type rolesUncheckedCreateInput = {
+    id: string
+    name: string
+    description: string
+    role_permissions?: role_permissionsUncheckedCreateNestedManyWithoutRolesInput
+    user_roles?: user_rolesUncheckedCreateNestedManyWithoutRolesInput
+  }
+
+  export type rolesUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    role_permissions?: role_permissionsUpdateManyWithoutRolesNestedInput
+    user_roles?: user_rolesUpdateManyWithoutRolesNestedInput
+  }
+
+  export type rolesUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    role_permissions?: role_permissionsUncheckedUpdateManyWithoutRolesNestedInput
+    user_roles?: user_rolesUncheckedUpdateManyWithoutRolesNestedInput
+  }
+
+  export type rolesCreateManyInput = {
+    id: string
+    name: string
+    description: string
+  }
+
+  export type rolesUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type rolesUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+  }
+
   export type user_device_tokensCreateInput = {
     user_id: string
     expo_push_token: string
@@ -35969,6 +40928,40 @@ export namespace Prisma {
   export type user_notification_cursorsUncheckedUpdateManyInput = {
     user_id?: StringFieldUpdateOperationsInput | string
     last_read_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type user_rolesCreateInput = {
+    user_id: string
+    roles: rolesCreateNestedOneWithoutUser_rolesInput
+  }
+
+  export type user_rolesUncheckedCreateInput = {
+    user_id: string
+    role_id: string
+  }
+
+  export type user_rolesUpdateInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+    roles?: rolesUpdateOneRequiredWithoutUser_rolesNestedInput
+  }
+
+  export type user_rolesUncheckedUpdateInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+    role_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type user_rolesCreateManyInput = {
+    user_id: string
+    role_id: string
+  }
+
+  export type user_rolesUpdateManyMutationInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type user_rolesUncheckedUpdateManyInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+    role_id?: StringFieldUpdateOperationsInput | string
   }
 
   export type usersCreateInput = {
@@ -37254,6 +42247,34 @@ export namespace Prisma {
     _max?: NestedEnumpayout_statusFilter<$PrismaModel>
   }
 
+  export type Role_permissionsListRelationFilter = {
+    every?: role_permissionsWhereInput
+    some?: role_permissionsWhereInput
+    none?: role_permissionsWhereInput
+  }
+
+  export type role_permissionsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type permissionsCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+  }
+
+  export type permissionsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+  }
+
+  export type permissionsMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+  }
+
   export type Enumprompt_families_purposeFilter<$PrismaModel = never> = {
     equals?: $Enums.prompt_families_purpose | Enumprompt_families_purposeFieldRefInput<$PrismaModel>
     in?: $Enums.prompt_families_purpose[] | ListEnumprompt_families_purposeFieldRefInput<$PrismaModel>
@@ -37650,6 +42671,64 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
+  export type PermissionsScalarRelationFilter = {
+    is?: permissionsWhereInput
+    isNot?: permissionsWhereInput
+  }
+
+  export type RolesScalarRelationFilter = {
+    is?: rolesWhereInput
+    isNot?: rolesWhereInput
+  }
+
+  export type role_permissionsRole_idPermission_idCompoundUniqueInput = {
+    role_id: string
+    permission_id: string
+  }
+
+  export type role_permissionsCountOrderByAggregateInput = {
+    role_id?: SortOrder
+    permission_id?: SortOrder
+  }
+
+  export type role_permissionsMaxOrderByAggregateInput = {
+    role_id?: SortOrder
+    permission_id?: SortOrder
+  }
+
+  export type role_permissionsMinOrderByAggregateInput = {
+    role_id?: SortOrder
+    permission_id?: SortOrder
+  }
+
+  export type User_rolesListRelationFilter = {
+    every?: user_rolesWhereInput
+    some?: user_rolesWhereInput
+    none?: user_rolesWhereInput
+  }
+
+  export type user_rolesOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type rolesCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+  }
+
+  export type rolesMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+  }
+
+  export type rolesMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+  }
+
   export type user_device_tokensUser_idExpo_push_tokenCompoundUniqueInput = {
     user_id: string
     expo_push_token: string
@@ -37686,6 +42765,26 @@ export namespace Prisma {
   export type user_notification_cursorsMinOrderByAggregateInput = {
     user_id?: SortOrder
     last_read_at?: SortOrder
+  }
+
+  export type user_rolesUser_idRole_idCompoundUniqueInput = {
+    user_id: string
+    role_id: string
+  }
+
+  export type user_rolesCountOrderByAggregateInput = {
+    user_id?: SortOrder
+    role_id?: SortOrder
+  }
+
+  export type user_rolesMaxOrderByAggregateInput = {
+    user_id?: SortOrder
+    role_id?: SortOrder
+  }
+
+  export type user_rolesMinOrderByAggregateInput = {
+    user_id?: SortOrder
+    role_id?: SortOrder
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -38530,6 +43629,48 @@ export namespace Prisma {
     update?: XOR<XOR<dish_mediaUpdateToOneWithWhereWithoutPayoutsInput, dish_mediaUpdateWithoutPayoutsInput>, dish_mediaUncheckedUpdateWithoutPayoutsInput>
   }
 
+  export type role_permissionsCreateNestedManyWithoutPermissionsInput = {
+    create?: XOR<role_permissionsCreateWithoutPermissionsInput, role_permissionsUncheckedCreateWithoutPermissionsInput> | role_permissionsCreateWithoutPermissionsInput[] | role_permissionsUncheckedCreateWithoutPermissionsInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutPermissionsInput | role_permissionsCreateOrConnectWithoutPermissionsInput[]
+    createMany?: role_permissionsCreateManyPermissionsInputEnvelope
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+  }
+
+  export type role_permissionsUncheckedCreateNestedManyWithoutPermissionsInput = {
+    create?: XOR<role_permissionsCreateWithoutPermissionsInput, role_permissionsUncheckedCreateWithoutPermissionsInput> | role_permissionsCreateWithoutPermissionsInput[] | role_permissionsUncheckedCreateWithoutPermissionsInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutPermissionsInput | role_permissionsCreateOrConnectWithoutPermissionsInput[]
+    createMany?: role_permissionsCreateManyPermissionsInputEnvelope
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+  }
+
+  export type role_permissionsUpdateManyWithoutPermissionsNestedInput = {
+    create?: XOR<role_permissionsCreateWithoutPermissionsInput, role_permissionsUncheckedCreateWithoutPermissionsInput> | role_permissionsCreateWithoutPermissionsInput[] | role_permissionsUncheckedCreateWithoutPermissionsInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutPermissionsInput | role_permissionsCreateOrConnectWithoutPermissionsInput[]
+    upsert?: role_permissionsUpsertWithWhereUniqueWithoutPermissionsInput | role_permissionsUpsertWithWhereUniqueWithoutPermissionsInput[]
+    createMany?: role_permissionsCreateManyPermissionsInputEnvelope
+    set?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    disconnect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    delete?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    update?: role_permissionsUpdateWithWhereUniqueWithoutPermissionsInput | role_permissionsUpdateWithWhereUniqueWithoutPermissionsInput[]
+    updateMany?: role_permissionsUpdateManyWithWhereWithoutPermissionsInput | role_permissionsUpdateManyWithWhereWithoutPermissionsInput[]
+    deleteMany?: role_permissionsScalarWhereInput | role_permissionsScalarWhereInput[]
+  }
+
+  export type role_permissionsUncheckedUpdateManyWithoutPermissionsNestedInput = {
+    create?: XOR<role_permissionsCreateWithoutPermissionsInput, role_permissionsUncheckedCreateWithoutPermissionsInput> | role_permissionsCreateWithoutPermissionsInput[] | role_permissionsUncheckedCreateWithoutPermissionsInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutPermissionsInput | role_permissionsCreateOrConnectWithoutPermissionsInput[]
+    upsert?: role_permissionsUpsertWithWhereUniqueWithoutPermissionsInput | role_permissionsUpsertWithWhereUniqueWithoutPermissionsInput[]
+    createMany?: role_permissionsCreateManyPermissionsInputEnvelope
+    set?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    disconnect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    delete?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    update?: role_permissionsUpdateWithWhereUniqueWithoutPermissionsInput | role_permissionsUpdateWithWhereUniqueWithoutPermissionsInput[]
+    updateMany?: role_permissionsUpdateManyWithWhereWithoutPermissionsInput | role_permissionsUpdateManyWithWhereWithoutPermissionsInput[]
+    deleteMany?: role_permissionsScalarWhereInput | role_permissionsScalarWhereInput[]
+  }
+
   export type prompt_variantsCreateNestedManyWithoutPrompt_familiesInput = {
     create?: XOR<prompt_variantsCreateWithoutPrompt_familiesInput, prompt_variantsUncheckedCreateWithoutPrompt_familiesInput> | prompt_variantsCreateWithoutPrompt_familiesInput[] | prompt_variantsUncheckedCreateWithoutPrompt_familiesInput[]
     connectOrCreate?: prompt_variantsCreateOrConnectWithoutPrompt_familiesInput | prompt_variantsCreateOrConnectWithoutPrompt_familiesInput[]
@@ -38762,6 +43903,132 @@ export namespace Prisma {
     update?: restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput | restaurant_bidsUpdateWithWhereUniqueWithoutRestaurantsInput[]
     updateMany?: restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput | restaurant_bidsUpdateManyWithWhereWithoutRestaurantsInput[]
     deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
+  }
+
+  export type permissionsCreateNestedOneWithoutRole_permissionsInput = {
+    create?: XOR<permissionsCreateWithoutRole_permissionsInput, permissionsUncheckedCreateWithoutRole_permissionsInput>
+    connectOrCreate?: permissionsCreateOrConnectWithoutRole_permissionsInput
+    connect?: permissionsWhereUniqueInput
+  }
+
+  export type rolesCreateNestedOneWithoutRole_permissionsInput = {
+    create?: XOR<rolesCreateWithoutRole_permissionsInput, rolesUncheckedCreateWithoutRole_permissionsInput>
+    connectOrCreate?: rolesCreateOrConnectWithoutRole_permissionsInput
+    connect?: rolesWhereUniqueInput
+  }
+
+  export type permissionsUpdateOneRequiredWithoutRole_permissionsNestedInput = {
+    create?: XOR<permissionsCreateWithoutRole_permissionsInput, permissionsUncheckedCreateWithoutRole_permissionsInput>
+    connectOrCreate?: permissionsCreateOrConnectWithoutRole_permissionsInput
+    upsert?: permissionsUpsertWithoutRole_permissionsInput
+    connect?: permissionsWhereUniqueInput
+    update?: XOR<XOR<permissionsUpdateToOneWithWhereWithoutRole_permissionsInput, permissionsUpdateWithoutRole_permissionsInput>, permissionsUncheckedUpdateWithoutRole_permissionsInput>
+  }
+
+  export type rolesUpdateOneRequiredWithoutRole_permissionsNestedInput = {
+    create?: XOR<rolesCreateWithoutRole_permissionsInput, rolesUncheckedCreateWithoutRole_permissionsInput>
+    connectOrCreate?: rolesCreateOrConnectWithoutRole_permissionsInput
+    upsert?: rolesUpsertWithoutRole_permissionsInput
+    connect?: rolesWhereUniqueInput
+    update?: XOR<XOR<rolesUpdateToOneWithWhereWithoutRole_permissionsInput, rolesUpdateWithoutRole_permissionsInput>, rolesUncheckedUpdateWithoutRole_permissionsInput>
+  }
+
+  export type role_permissionsCreateNestedManyWithoutRolesInput = {
+    create?: XOR<role_permissionsCreateWithoutRolesInput, role_permissionsUncheckedCreateWithoutRolesInput> | role_permissionsCreateWithoutRolesInput[] | role_permissionsUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutRolesInput | role_permissionsCreateOrConnectWithoutRolesInput[]
+    createMany?: role_permissionsCreateManyRolesInputEnvelope
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+  }
+
+  export type user_rolesCreateNestedManyWithoutRolesInput = {
+    create?: XOR<user_rolesCreateWithoutRolesInput, user_rolesUncheckedCreateWithoutRolesInput> | user_rolesCreateWithoutRolesInput[] | user_rolesUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: user_rolesCreateOrConnectWithoutRolesInput | user_rolesCreateOrConnectWithoutRolesInput[]
+    createMany?: user_rolesCreateManyRolesInputEnvelope
+    connect?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+  }
+
+  export type role_permissionsUncheckedCreateNestedManyWithoutRolesInput = {
+    create?: XOR<role_permissionsCreateWithoutRolesInput, role_permissionsUncheckedCreateWithoutRolesInput> | role_permissionsCreateWithoutRolesInput[] | role_permissionsUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutRolesInput | role_permissionsCreateOrConnectWithoutRolesInput[]
+    createMany?: role_permissionsCreateManyRolesInputEnvelope
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+  }
+
+  export type user_rolesUncheckedCreateNestedManyWithoutRolesInput = {
+    create?: XOR<user_rolesCreateWithoutRolesInput, user_rolesUncheckedCreateWithoutRolesInput> | user_rolesCreateWithoutRolesInput[] | user_rolesUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: user_rolesCreateOrConnectWithoutRolesInput | user_rolesCreateOrConnectWithoutRolesInput[]
+    createMany?: user_rolesCreateManyRolesInputEnvelope
+    connect?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+  }
+
+  export type role_permissionsUpdateManyWithoutRolesNestedInput = {
+    create?: XOR<role_permissionsCreateWithoutRolesInput, role_permissionsUncheckedCreateWithoutRolesInput> | role_permissionsCreateWithoutRolesInput[] | role_permissionsUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutRolesInput | role_permissionsCreateOrConnectWithoutRolesInput[]
+    upsert?: role_permissionsUpsertWithWhereUniqueWithoutRolesInput | role_permissionsUpsertWithWhereUniqueWithoutRolesInput[]
+    createMany?: role_permissionsCreateManyRolesInputEnvelope
+    set?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    disconnect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    delete?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    update?: role_permissionsUpdateWithWhereUniqueWithoutRolesInput | role_permissionsUpdateWithWhereUniqueWithoutRolesInput[]
+    updateMany?: role_permissionsUpdateManyWithWhereWithoutRolesInput | role_permissionsUpdateManyWithWhereWithoutRolesInput[]
+    deleteMany?: role_permissionsScalarWhereInput | role_permissionsScalarWhereInput[]
+  }
+
+  export type user_rolesUpdateManyWithoutRolesNestedInput = {
+    create?: XOR<user_rolesCreateWithoutRolesInput, user_rolesUncheckedCreateWithoutRolesInput> | user_rolesCreateWithoutRolesInput[] | user_rolesUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: user_rolesCreateOrConnectWithoutRolesInput | user_rolesCreateOrConnectWithoutRolesInput[]
+    upsert?: user_rolesUpsertWithWhereUniqueWithoutRolesInput | user_rolesUpsertWithWhereUniqueWithoutRolesInput[]
+    createMany?: user_rolesCreateManyRolesInputEnvelope
+    set?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    disconnect?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    delete?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    connect?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    update?: user_rolesUpdateWithWhereUniqueWithoutRolesInput | user_rolesUpdateWithWhereUniqueWithoutRolesInput[]
+    updateMany?: user_rolesUpdateManyWithWhereWithoutRolesInput | user_rolesUpdateManyWithWhereWithoutRolesInput[]
+    deleteMany?: user_rolesScalarWhereInput | user_rolesScalarWhereInput[]
+  }
+
+  export type role_permissionsUncheckedUpdateManyWithoutRolesNestedInput = {
+    create?: XOR<role_permissionsCreateWithoutRolesInput, role_permissionsUncheckedCreateWithoutRolesInput> | role_permissionsCreateWithoutRolesInput[] | role_permissionsUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: role_permissionsCreateOrConnectWithoutRolesInput | role_permissionsCreateOrConnectWithoutRolesInput[]
+    upsert?: role_permissionsUpsertWithWhereUniqueWithoutRolesInput | role_permissionsUpsertWithWhereUniqueWithoutRolesInput[]
+    createMany?: role_permissionsCreateManyRolesInputEnvelope
+    set?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    disconnect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    delete?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    connect?: role_permissionsWhereUniqueInput | role_permissionsWhereUniqueInput[]
+    update?: role_permissionsUpdateWithWhereUniqueWithoutRolesInput | role_permissionsUpdateWithWhereUniqueWithoutRolesInput[]
+    updateMany?: role_permissionsUpdateManyWithWhereWithoutRolesInput | role_permissionsUpdateManyWithWhereWithoutRolesInput[]
+    deleteMany?: role_permissionsScalarWhereInput | role_permissionsScalarWhereInput[]
+  }
+
+  export type user_rolesUncheckedUpdateManyWithoutRolesNestedInput = {
+    create?: XOR<user_rolesCreateWithoutRolesInput, user_rolesUncheckedCreateWithoutRolesInput> | user_rolesCreateWithoutRolesInput[] | user_rolesUncheckedCreateWithoutRolesInput[]
+    connectOrCreate?: user_rolesCreateOrConnectWithoutRolesInput | user_rolesCreateOrConnectWithoutRolesInput[]
+    upsert?: user_rolesUpsertWithWhereUniqueWithoutRolesInput | user_rolesUpsertWithWhereUniqueWithoutRolesInput[]
+    createMany?: user_rolesCreateManyRolesInputEnvelope
+    set?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    disconnect?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    delete?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    connect?: user_rolesWhereUniqueInput | user_rolesWhereUniqueInput[]
+    update?: user_rolesUpdateWithWhereUniqueWithoutRolesInput | user_rolesUpdateWithWhereUniqueWithoutRolesInput[]
+    updateMany?: user_rolesUpdateManyWithWhereWithoutRolesInput | user_rolesUpdateManyWithWhereWithoutRolesInput[]
+    deleteMany?: user_rolesScalarWhereInput | user_rolesScalarWhereInput[]
+  }
+
+  export type rolesCreateNestedOneWithoutUser_rolesInput = {
+    create?: XOR<rolesCreateWithoutUser_rolesInput, rolesUncheckedCreateWithoutUser_rolesInput>
+    connectOrCreate?: rolesCreateOrConnectWithoutUser_rolesInput
+    connect?: rolesWhereUniqueInput
+  }
+
+  export type rolesUpdateOneRequiredWithoutUser_rolesNestedInput = {
+    create?: XOR<rolesCreateWithoutUser_rolesInput, rolesUncheckedCreateWithoutUser_rolesInput>
+    connectOrCreate?: rolesCreateOrConnectWithoutUser_rolesInput
+    upsert?: rolesUpsertWithoutUser_rolesInput
+    connect?: rolesWhereUniqueInput
+    update?: XOR<XOR<rolesUpdateToOneWithWhereWithoutUser_rolesInput, rolesUpdateWithoutUser_rolesInput>, rolesUncheckedUpdateWithoutUser_rolesInput>
   }
 
   export type dish_mediaCreateNestedManyWithoutUsersInput = {
@@ -41283,6 +46550,48 @@ export namespace Prisma {
     dish_media_views?: dish_media_viewsUncheckedUpdateManyWithoutDish_mediaNestedInput
   }
 
+  export type role_permissionsCreateWithoutPermissionsInput = {
+    roles: rolesCreateNestedOneWithoutRole_permissionsInput
+  }
+
+  export type role_permissionsUncheckedCreateWithoutPermissionsInput = {
+    role_id: string
+  }
+
+  export type role_permissionsCreateOrConnectWithoutPermissionsInput = {
+    where: role_permissionsWhereUniqueInput
+    create: XOR<role_permissionsCreateWithoutPermissionsInput, role_permissionsUncheckedCreateWithoutPermissionsInput>
+  }
+
+  export type role_permissionsCreateManyPermissionsInputEnvelope = {
+    data: role_permissionsCreateManyPermissionsInput | role_permissionsCreateManyPermissionsInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type role_permissionsUpsertWithWhereUniqueWithoutPermissionsInput = {
+    where: role_permissionsWhereUniqueInput
+    update: XOR<role_permissionsUpdateWithoutPermissionsInput, role_permissionsUncheckedUpdateWithoutPermissionsInput>
+    create: XOR<role_permissionsCreateWithoutPermissionsInput, role_permissionsUncheckedCreateWithoutPermissionsInput>
+  }
+
+  export type role_permissionsUpdateWithWhereUniqueWithoutPermissionsInput = {
+    where: role_permissionsWhereUniqueInput
+    data: XOR<role_permissionsUpdateWithoutPermissionsInput, role_permissionsUncheckedUpdateWithoutPermissionsInput>
+  }
+
+  export type role_permissionsUpdateManyWithWhereWithoutPermissionsInput = {
+    where: role_permissionsScalarWhereInput
+    data: XOR<role_permissionsUpdateManyMutationInput, role_permissionsUncheckedUpdateManyWithoutPermissionsInput>
+  }
+
+  export type role_permissionsScalarWhereInput = {
+    AND?: role_permissionsScalarWhereInput | role_permissionsScalarWhereInput[]
+    OR?: role_permissionsScalarWhereInput[]
+    NOT?: role_permissionsScalarWhereInput | role_permissionsScalarWhereInput[]
+    role_id?: UuidFilter<"role_permissions"> | string
+    permission_id?: UuidFilter<"role_permissions"> | string
+  }
+
   export type prompt_variantsCreateWithoutPrompt_familiesInput = {
     id: string
     variant_number: number
@@ -41717,6 +47026,210 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"restaurant_bids"> | Date | string
     updated_at?: DateTimeFilter<"restaurant_bids"> | Date | string
     lock_no?: IntFilter<"restaurant_bids"> | number
+  }
+
+  export type permissionsCreateWithoutRole_permissionsInput = {
+    id: string
+    name: string
+    description: string
+  }
+
+  export type permissionsUncheckedCreateWithoutRole_permissionsInput = {
+    id: string
+    name: string
+    description: string
+  }
+
+  export type permissionsCreateOrConnectWithoutRole_permissionsInput = {
+    where: permissionsWhereUniqueInput
+    create: XOR<permissionsCreateWithoutRole_permissionsInput, permissionsUncheckedCreateWithoutRole_permissionsInput>
+  }
+
+  export type rolesCreateWithoutRole_permissionsInput = {
+    id: string
+    name: string
+    description: string
+    user_roles?: user_rolesCreateNestedManyWithoutRolesInput
+  }
+
+  export type rolesUncheckedCreateWithoutRole_permissionsInput = {
+    id: string
+    name: string
+    description: string
+    user_roles?: user_rolesUncheckedCreateNestedManyWithoutRolesInput
+  }
+
+  export type rolesCreateOrConnectWithoutRole_permissionsInput = {
+    where: rolesWhereUniqueInput
+    create: XOR<rolesCreateWithoutRole_permissionsInput, rolesUncheckedCreateWithoutRole_permissionsInput>
+  }
+
+  export type permissionsUpsertWithoutRole_permissionsInput = {
+    update: XOR<permissionsUpdateWithoutRole_permissionsInput, permissionsUncheckedUpdateWithoutRole_permissionsInput>
+    create: XOR<permissionsCreateWithoutRole_permissionsInput, permissionsUncheckedCreateWithoutRole_permissionsInput>
+    where?: permissionsWhereInput
+  }
+
+  export type permissionsUpdateToOneWithWhereWithoutRole_permissionsInput = {
+    where?: permissionsWhereInput
+    data: XOR<permissionsUpdateWithoutRole_permissionsInput, permissionsUncheckedUpdateWithoutRole_permissionsInput>
+  }
+
+  export type permissionsUpdateWithoutRole_permissionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type permissionsUncheckedUpdateWithoutRole_permissionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type rolesUpsertWithoutRole_permissionsInput = {
+    update: XOR<rolesUpdateWithoutRole_permissionsInput, rolesUncheckedUpdateWithoutRole_permissionsInput>
+    create: XOR<rolesCreateWithoutRole_permissionsInput, rolesUncheckedCreateWithoutRole_permissionsInput>
+    where?: rolesWhereInput
+  }
+
+  export type rolesUpdateToOneWithWhereWithoutRole_permissionsInput = {
+    where?: rolesWhereInput
+    data: XOR<rolesUpdateWithoutRole_permissionsInput, rolesUncheckedUpdateWithoutRole_permissionsInput>
+  }
+
+  export type rolesUpdateWithoutRole_permissionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    user_roles?: user_rolesUpdateManyWithoutRolesNestedInput
+  }
+
+  export type rolesUncheckedUpdateWithoutRole_permissionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    user_roles?: user_rolesUncheckedUpdateManyWithoutRolesNestedInput
+  }
+
+  export type role_permissionsCreateWithoutRolesInput = {
+    permissions: permissionsCreateNestedOneWithoutRole_permissionsInput
+  }
+
+  export type role_permissionsUncheckedCreateWithoutRolesInput = {
+    permission_id: string
+  }
+
+  export type role_permissionsCreateOrConnectWithoutRolesInput = {
+    where: role_permissionsWhereUniqueInput
+    create: XOR<role_permissionsCreateWithoutRolesInput, role_permissionsUncheckedCreateWithoutRolesInput>
+  }
+
+  export type role_permissionsCreateManyRolesInputEnvelope = {
+    data: role_permissionsCreateManyRolesInput | role_permissionsCreateManyRolesInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type user_rolesCreateWithoutRolesInput = {
+    user_id: string
+  }
+
+  export type user_rolesUncheckedCreateWithoutRolesInput = {
+    user_id: string
+  }
+
+  export type user_rolesCreateOrConnectWithoutRolesInput = {
+    where: user_rolesWhereUniqueInput
+    create: XOR<user_rolesCreateWithoutRolesInput, user_rolesUncheckedCreateWithoutRolesInput>
+  }
+
+  export type user_rolesCreateManyRolesInputEnvelope = {
+    data: user_rolesCreateManyRolesInput | user_rolesCreateManyRolesInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type role_permissionsUpsertWithWhereUniqueWithoutRolesInput = {
+    where: role_permissionsWhereUniqueInput
+    update: XOR<role_permissionsUpdateWithoutRolesInput, role_permissionsUncheckedUpdateWithoutRolesInput>
+    create: XOR<role_permissionsCreateWithoutRolesInput, role_permissionsUncheckedCreateWithoutRolesInput>
+  }
+
+  export type role_permissionsUpdateWithWhereUniqueWithoutRolesInput = {
+    where: role_permissionsWhereUniqueInput
+    data: XOR<role_permissionsUpdateWithoutRolesInput, role_permissionsUncheckedUpdateWithoutRolesInput>
+  }
+
+  export type role_permissionsUpdateManyWithWhereWithoutRolesInput = {
+    where: role_permissionsScalarWhereInput
+    data: XOR<role_permissionsUpdateManyMutationInput, role_permissionsUncheckedUpdateManyWithoutRolesInput>
+  }
+
+  export type user_rolesUpsertWithWhereUniqueWithoutRolesInput = {
+    where: user_rolesWhereUniqueInput
+    update: XOR<user_rolesUpdateWithoutRolesInput, user_rolesUncheckedUpdateWithoutRolesInput>
+    create: XOR<user_rolesCreateWithoutRolesInput, user_rolesUncheckedCreateWithoutRolesInput>
+  }
+
+  export type user_rolesUpdateWithWhereUniqueWithoutRolesInput = {
+    where: user_rolesWhereUniqueInput
+    data: XOR<user_rolesUpdateWithoutRolesInput, user_rolesUncheckedUpdateWithoutRolesInput>
+  }
+
+  export type user_rolesUpdateManyWithWhereWithoutRolesInput = {
+    where: user_rolesScalarWhereInput
+    data: XOR<user_rolesUpdateManyMutationInput, user_rolesUncheckedUpdateManyWithoutRolesInput>
+  }
+
+  export type user_rolesScalarWhereInput = {
+    AND?: user_rolesScalarWhereInput | user_rolesScalarWhereInput[]
+    OR?: user_rolesScalarWhereInput[]
+    NOT?: user_rolesScalarWhereInput | user_rolesScalarWhereInput[]
+    user_id?: UuidFilter<"user_roles"> | string
+    role_id?: UuidFilter<"user_roles"> | string
+  }
+
+  export type rolesCreateWithoutUser_rolesInput = {
+    id: string
+    name: string
+    description: string
+    role_permissions?: role_permissionsCreateNestedManyWithoutRolesInput
+  }
+
+  export type rolesUncheckedCreateWithoutUser_rolesInput = {
+    id: string
+    name: string
+    description: string
+    role_permissions?: role_permissionsUncheckedCreateNestedManyWithoutRolesInput
+  }
+
+  export type rolesCreateOrConnectWithoutUser_rolesInput = {
+    where: rolesWhereUniqueInput
+    create: XOR<rolesCreateWithoutUser_rolesInput, rolesUncheckedCreateWithoutUser_rolesInput>
+  }
+
+  export type rolesUpsertWithoutUser_rolesInput = {
+    update: XOR<rolesUpdateWithoutUser_rolesInput, rolesUncheckedUpdateWithoutUser_rolesInput>
+    create: XOR<rolesCreateWithoutUser_rolesInput, rolesUncheckedCreateWithoutUser_rolesInput>
+    where?: rolesWhereInput
+  }
+
+  export type rolesUpdateToOneWithWhereWithoutUser_rolesInput = {
+    where?: rolesWhereInput
+    data: XOR<rolesUpdateWithoutUser_rolesInput, rolesUncheckedUpdateWithoutUser_rolesInput>
+  }
+
+  export type rolesUpdateWithoutUser_rolesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    role_permissions?: role_permissionsUpdateManyWithoutRolesNestedInput
+  }
+
+  export type rolesUncheckedUpdateWithoutUser_rolesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    role_permissions?: role_permissionsUncheckedUpdateManyWithoutRolesNestedInput
   }
 
   export type dish_mediaCreateWithoutUsersInput = {
@@ -42341,6 +47854,22 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type role_permissionsCreateManyPermissionsInput = {
+    role_id: string
+  }
+
+  export type role_permissionsUpdateWithoutPermissionsInput = {
+    roles?: rolesUpdateOneRequiredWithoutRole_permissionsNestedInput
+  }
+
+  export type role_permissionsUncheckedUpdateWithoutPermissionsInput = {
+    role_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type role_permissionsUncheckedUpdateManyWithoutPermissionsInput = {
+    role_id?: StringFieldUpdateOperationsInput | string
+  }
+
   export type prompt_variantsCreateManyPrompt_familiesInput = {
     id: string
     variant_number: number
@@ -42525,6 +48054,38 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type role_permissionsCreateManyRolesInput = {
+    permission_id: string
+  }
+
+  export type user_rolesCreateManyRolesInput = {
+    user_id: string
+  }
+
+  export type role_permissionsUpdateWithoutRolesInput = {
+    permissions?: permissionsUpdateOneRequiredWithoutRole_permissionsNestedInput
+  }
+
+  export type role_permissionsUncheckedUpdateWithoutRolesInput = {
+    permission_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type role_permissionsUncheckedUpdateManyWithoutRolesInput = {
+    permission_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type user_rolesUpdateWithoutRolesInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type user_rolesUncheckedUpdateWithoutRolesInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type user_rolesUncheckedUpdateManyWithoutRolesInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
   }
 
   export type dish_mediaCreateManyUsersInput = {

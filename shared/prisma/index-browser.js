@@ -24,12 +24,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 7.0.1
- * Query Engine version: f09f2815f091dbba658cdcd2264306d88bb5bda6
+ * Prisma Client JS version: 7.1.0
+ * Query Engine version: ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba
  */
 Prisma.prismaVersion = {
-  client: "7.0.1",
-  engine: "f09f2815f091dbba658cdcd2264306d88bb5bda6"
+  client: "7.1.0",
+  engine: "ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -301,6 +301,12 @@ exports.Prisma.PayoutsScalarFieldEnum = {
   lock_no: 'lock_no'
 };
 
+exports.Prisma.PermissionsScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description'
+};
+
 exports.Prisma.Prompt_familiesScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -378,6 +384,17 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   image_path: 'image_path'
 };
 
+exports.Prisma.Role_permissionsScalarFieldEnum = {
+  role_id: 'role_id',
+  permission_id: 'permission_id'
+};
+
+exports.Prisma.RolesScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description'
+};
+
 exports.Prisma.User_device_tokensScalarFieldEnum = {
   user_id: 'user_id',
   expo_push_token: 'expo_push_token',
@@ -387,6 +404,11 @@ exports.Prisma.User_device_tokensScalarFieldEnum = {
 exports.Prisma.User_notification_cursorsScalarFieldEnum = {
   user_id: 'user_id',
   last_read_at: 'last_read_at'
+};
+
+exports.Prisma.User_rolesScalarFieldEnum = {
+  user_id: 'user_id',
+  role_id: 'role_id'
 };
 
 exports.Prisma.UsersScalarFieldEnum = {
@@ -480,14 +502,18 @@ exports.Prisma.ModelName = {
   notification_recipients: 'notification_recipients',
   notifications: 'notifications',
   payouts: 'payouts',
+  permissions: 'permissions',
   prompt_families: 'prompt_families',
   prompt_usages: 'prompt_usages',
   prompt_variants: 'prompt_variants',
   reactions: 'reactions',
   restaurant_bids: 'restaurant_bids',
   restaurants: 'restaurants',
+  role_permissions: 'role_permissions',
+  roles: 'roles',
   user_device_tokens: 'user_device_tokens',
   user_notification_cursors: 'user_notification_cursors',
+  user_roles: 'user_roles',
   users: 'users'
 };
 
