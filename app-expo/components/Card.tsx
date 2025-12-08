@@ -32,8 +32,9 @@ export const Card = forwardRef<View, CardProps>(
 		ref,
 	) => {
 		/** ----- Theme-aware background ----- */
-		const colorScheme = useColorScheme();
-		const bgColor = colorScheme === "dark" ? "#1E1E1E" : "#FFFFFF";
+                const colorScheme = useColorScheme();
+                // Use a light surface even in dark mode to keep dark text readable inside cards
+                const bgColor = colorScheme === "dark" ? "#F7F3F2" : "#FFFFFF";
 
 		/** ----- Compose shadow style (iOS / Android / Web) ----- */
 		const shadowStyle: ViewStyle =
