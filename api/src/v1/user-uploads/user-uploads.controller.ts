@@ -23,7 +23,7 @@ import { CreateUserUploadSignedUrlDto } from '@shared/v1/dto';
 import { CreateUserUploadSignedUrlResponse } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { JwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthUserGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 
@@ -33,13 +33,13 @@ import { UserUploadsService } from './user-uploads.service';
 @ApiTags('UserUploads')
 @Controller('v1/user-uploads')
 export class UserUploadsController {
-  constructor(private readonly userUploadsService: UserUploadsService) {}
+  constructor(private readonly userUploadsService: UserUploadsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                POST /v1/user-uploads/signed-url                    */
   /* ------------------------------------------------------------------ */
   @Post('signed-url')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'GCS 署名付き URL 発行' })

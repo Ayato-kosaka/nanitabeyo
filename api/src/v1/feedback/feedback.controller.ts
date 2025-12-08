@@ -20,7 +20,7 @@ import { CreateFeedbackDto } from '@shared/v1/dto';
 import { CreateFeedbackResponseDto } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
 
 // ドメイン Service
 import { FeedbackService } from './feedback.service';
@@ -28,13 +28,13 @@ import { FeedbackService } from './feedback.service';
 @ApiTags('Feedback')
 @Controller('v1/feedback')
 export class FeedbackController {
-  constructor(private readonly feedbackService: FeedbackService) {}
+  constructor(private readonly feedbackService: FeedbackService) { }
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/feedback/issue (任意認証)              */
   /* ------------------------------------------------------------------ */
   @Post('issue')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'GitHub Issue 作成 (フィードバック/バグ報告)' })
   @ApiResponse({ status: 201, description: 'Issue 作成成功' })

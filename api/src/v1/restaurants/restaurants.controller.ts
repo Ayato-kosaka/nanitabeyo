@@ -41,7 +41,7 @@ import {
 } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 
@@ -51,13 +51,13 @@ import { RestaurantsService } from './restaurants.service';
 @ApiTags('Restaurants')
 @Controller('v1/restaurants')
 export class RestaurantsController {
-  constructor(private readonly restaurantsService: RestaurantsService) {}
+  constructor(private readonly restaurantsService: RestaurantsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/restaurants/search                        */
   /* ------------------------------------------------------------------ */
   @Get('search')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '座標周辺レストラン・入札状況一覧' })
   @ApiQuery({ name: 'lat', description: '緯度', type: 'number' })
@@ -81,7 +81,7 @@ export class RestaurantsController {
   /*                     POST /v1/restaurants                           */
   /* ------------------------------------------------------------------ */
   @Post()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'Google Place ID でレストラン作成' })
   @ApiResponse({ status: 201, description: '作成成功' })
@@ -98,7 +98,7 @@ export class RestaurantsController {
   /*            GET /v1/restaurants/by-google-place-id                  */
   /* ------------------------------------------------------------------ */
   @Get('by-google-place-id')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'Google Place ID でレストラン取得' })
   @ApiQuery({
@@ -120,7 +120,7 @@ export class RestaurantsController {
   /*               GET /v1/restaurants/:id/dish-media                   */
   /* ------------------------------------------------------------------ */
   @Get(':id/dish-media')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レストラン料理投稿一覧' })
   @ApiParam({ name: 'id', description: 'Restaurant ID' })

@@ -35,11 +35,11 @@ const setEnv = (nodeEnv = 'test') => {
 
 describe('Auth Guards', () => {
   let ClsService: any;
-  let JwtAuthGuard: any;
-  let OptionalJwtAuthGuard: any;
+  let AuthUserGuard: any;
+  let AuthAnonGuard: any;
   let AppLoggerService: any;
-  let jwtAuthGuard: any;
-  let optionalJwtAuthGuard: any;
+  let AuthUserGuard: any;
+  let AuthAnonGuard: any;
   let clsService: any;
 
   beforeEach(async () => {
@@ -52,14 +52,14 @@ describe('Auth Guards', () => {
       },
     }));
     ({ ClsService } = await import('nestjs-cls'));
-    ({ JwtAuthGuard, OptionalJwtAuthGuard } = await import('./auth.guard'));
+    ({ AuthUserGuard, AuthAnonGuard } = await import('./auth.guard'));
     ({ AppLoggerService } = await import('../logger/logger.service'));
 
     const mockCls = { set: jest.fn(), get: jest.fn() };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        JwtAuthGuard,
-        OptionalJwtAuthGuard,
+        AuthUserGuard,
+        AuthAnonGuard,
         { provide: ClsService, useValue: mockCls },
         {
           provide: AppLoggerService,
@@ -68,15 +68,15 @@ describe('Auth Guards', () => {
       ],
     }).compile();
 
-    jwtAuthGuard = module.get(JwtAuthGuard);
-    optionalJwtAuthGuard = module.get(OptionalJwtAuthGuard);
+    AuthUserGuard = module.get(AuthUserGuard);
+    AuthAnonGuard = module.get(AuthAnonGuard);
     clsService = mockCls;
   });
 
-  describe('JwtAuthGuard', () => {
+  describe('AuthUserGuard', () => {
     it('passes when user is fully logged in', () => {
       const user = { id: 'uid', isAnonymous: false };
-      const res = jwtAuthGuard.handleRequest(null, user, null, createCtx());
+      const res = AuthUserGuard.handleRequest(null, user, null, createCtx());
       expect(clsService.set).toHaveBeenCalledWith(CLS_KEY_USER_ID, 'uid');
       expect(res).toBe(user);
     });
@@ -84,18 +84,18 @@ describe('Auth Guards', () => {
     it('throws ForbiddenException when user is anonymous', () => {
       const user = { id: 'anon', isAnonymous: true };
       expect(() =>
-        jwtAuthGuard.handleRequest(null, user, null, createCtx()),
+        AuthUserGuard.handleRequest(null, user, null, createCtx()),
       ).toThrow(ForbiddenException);
     });
 
     it('throws UnauthorizedException when user is missing', () => {
       expect(() =>
-        jwtAuthGuard.handleRequest(null, undefined, null, createCtx()),
+        AuthUserGuard.handleRequest(null, undefined, null, createCtx()),
       ).toThrow(UnauthorizedException);
     });
   });
 
-  describe('OptionalJwtAuthGuard in production', () => {
+  describe('AuthAnonGuard in production', () => {
     beforeEach(async () => {
       setEnv('production');
       jest.resetModules();
@@ -106,13 +106,13 @@ describe('Auth Guards', () => {
         },
       }));
       ({ ClsService } = await import('nestjs-cls'));
-      ({ OptionalJwtAuthGuard } = await import('./auth.guard'));
+      ({ AuthAnonGuard } = await import('./auth.guard'));
       ({ AppLoggerService } = await import('../logger/logger.service'));
 
       const mockCls = { set: jest.fn(), get: jest.fn() };
       const module: TestingModule = await Test.createTestingModule({
         providers: [
-          OptionalJwtAuthGuard,
+          AuthAnonGuard,
           { provide: ClsService, useValue: mockCls },
           {
             provide: AppLoggerService,
@@ -121,19 +121,19 @@ describe('Auth Guards', () => {
         ],
       }).compile();
 
-      optionalJwtAuthGuard = module.get(OptionalJwtAuthGuard);
+      AuthAnonGuard = module.get(AuthAnonGuard);
       clsService = mockCls;
     });
 
     it('throws UnauthorizedException when token is missing', () => {
       expect(() =>
-        optionalJwtAuthGuard.handleRequest(null, undefined, null, createCtx()),
+        AuthAnonGuard.handleRequest(null, undefined, null, createCtx()),
       ).toThrow(UnauthorizedException);
     });
 
     it('allows anonymous users with valid token', () => {
       const user = { id: 'anon', isAnonymous: true };
-      const res = optionalJwtAuthGuard.handleRequest(
+      const res = AuthAnonGuard.handleRequest(
         null,
         user,
         null,
@@ -144,7 +144,7 @@ describe('Auth Guards', () => {
     });
   });
 
-  describe('OptionalJwtAuthGuard in development', () => {
+  describe('AuthAnonGuard in development', () => {
     beforeEach(async () => {
       setEnv('development');
       jest.resetModules();
@@ -155,13 +155,13 @@ describe('Auth Guards', () => {
         },
       }));
       ({ ClsService } = await import('nestjs-cls'));
-      ({ OptionalJwtAuthGuard } = await import('./auth.guard'));
+      ({ AuthAnonGuard } = await import('./auth.guard'));
       ({ AppLoggerService } = await import('../logger/logger.service'));
 
       const mockCls = { set: jest.fn(), get: jest.fn() };
       const module: TestingModule = await Test.createTestingModule({
         providers: [
-          OptionalJwtAuthGuard,
+          AuthAnonGuard,
           { provide: ClsService, useValue: mockCls },
           {
             provide: AppLoggerService,
@@ -170,12 +170,12 @@ describe('Auth Guards', () => {
         ],
       }).compile();
 
-      optionalJwtAuthGuard = module.get(OptionalJwtAuthGuard);
+      AuthAnonGuard = module.get(AuthAnonGuard);
       clsService = mockCls;
     });
 
     it('returns mock user when token is missing', () => {
-      const res = optionalJwtAuthGuard.handleRequest(
+      const res = AuthAnonGuard.handleRequest(
         null,
         undefined,
         null,
@@ -190,7 +190,7 @@ describe('Auth Guards', () => {
 
     it('returns real user when token is provided', () => {
       const user = { id: 'real', isAnonymous: false };
-      const res = optionalJwtAuthGuard.handleRequest(
+      const res = AuthAnonGuard.handleRequest(
         null,
         user,
         null,

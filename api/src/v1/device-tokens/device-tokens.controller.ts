@@ -22,7 +22,7 @@ import {
 import { CreateDeviceTokenDto } from '@shared/v1/dto';
 import { CreateDeviceTokenResponse } from '@shared/v1/res';
 
-import { JwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthUserGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -30,13 +30,13 @@ import { NotificationsService } from '../notifications/notifications.service';
 @ApiTags('DeviceTokens')
 @Controller('v1/device-tokens')
 export class DeviceTokensController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly notificationsService: NotificationsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/device-tokens                          */
   /* ------------------------------------------------------------------ */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'デバイストークン登録/更新（要ログイン）' })

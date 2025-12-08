@@ -46,7 +46,7 @@ import {
 } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { JwtAuthGuard, OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthUserGuard, AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 
@@ -56,13 +56,13 @@ import { DishMediaService } from './dish-media.service';
 @ApiTags('DishMedia')
 @Controller('v1/dish-media')
 export class DishMediaController {
-  constructor(private readonly dishMediaService: DishMediaService) {}
+  constructor(private readonly dishMediaService: DishMediaService) { }
 
   /* ------------------------------------------------------------------ */
   /*                      GET /v1/dish-media?ids=...                     */
   /* ------------------------------------------------------------------ */
   @Get()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'ID リストで料理メディア取得' })
   @ApiQuery({
@@ -89,7 +89,7 @@ export class DishMediaController {
   /*                      GET /v1/dish-media/search                      */
   /* ------------------------------------------------------------------ */
   @Get('search')
-  @UseGuards(OptionalJwtAuthGuard) // ログインしていれば絞り込み強化、未ログインでも OK
+  @UseGuards(AuthAnonGuard) // ログインしていれば絞り込み強化、未ログインでも OK
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '条件検索で料理メディア取得（返却 1 件固定）' })
   @ApiQuery({
@@ -114,7 +114,7 @@ export class DishMediaController {
   /*                    POST /v1/dish-media  (要認証)                   */
   /* ------------------------------------------------------------------ */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: '料理メディア投稿（要ログイン）' })
@@ -129,7 +129,7 @@ export class DishMediaController {
   /*                  POST /v1/dish-media/:id/view                          */
   /* ------------------------------------------------------------------ */
   @Post(':id/view')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'DishMedia 視聴記録' })
   @ApiResponse({ status: 200, description: '記録成功' })
@@ -148,7 +148,7 @@ export class DishMediaController {
   /*              POST /v1/dish-media/:id/reaction                      */
   /* ------------------------------------------------------------------ */
   @Post(':id/reaction')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'dish_media に Reaction を追加' })
@@ -171,7 +171,7 @@ export class DishMediaController {
   /*              DELETE /v1/dish-media/:id/reaction                    */
   /* ------------------------------------------------------------------ */
   @Delete(':id/reaction')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'dish_media の Reaction を削除' })
@@ -199,7 +199,7 @@ export class DishMediaController {
   /*              POST /v1/dish-media/:id/impression                    */
   /* ------------------------------------------------------------------ */
   @Post(':id/impression')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'dish_media に Impression を記録' })

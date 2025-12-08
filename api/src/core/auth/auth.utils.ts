@@ -1,4 +1,6 @@
+import { SetMetadata } from '@nestjs/common';
 import { Request } from 'express';
+import { PERMISSIONS_KEY } from './auth.constants';
 
 /**
  * Authorization ヘッダから Bearer トークンだけを取り出す
@@ -12,3 +14,9 @@ export const extractBearerToken = (req: Request): string | null => {
   const [type, token] = header.trim().split(' ');
   return type?.toLowerCase() === 'bearer' && token ? token : null;
 };
+
+/** 権限メタデータ設定デコレーター
+ * @param permissions 必要な権限名の配列
+ */
+export const Permissions = (...permissions: string[]) =>
+  SetMetadata(PERMISSIONS_KEY, permissions);

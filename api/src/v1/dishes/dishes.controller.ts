@@ -20,7 +20,7 @@ import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
 import { CreateDishResponse, BulkImportDishesResponse } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
 
 // ドメイン Service
 import { DishesService } from './dishes.service';
@@ -28,13 +28,13 @@ import { DishesService } from './dishes.service';
 @ApiTags('Dishes')
 @Controller('v1/dishes')
 export class DishesController {
-  constructor(private readonly dishesService: DishesService) {}
+  constructor(private readonly dishesService: DishesService) { }
 
   /* ------------------------------------------------------------------ */
   /*                    POST /v1/dishes (任意認証)                      */
   /* ------------------------------------------------------------------ */
   @Post()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: '料理マスター作成 or 取得' })
   @ApiResponse({ status: 201, description: '料理作成/取得成功' })
@@ -46,7 +46,7 @@ export class DishesController {
   /*                POST /v1/dishes/bulk-import (任意認証)               */
   /* ------------------------------------------------------------------ */
   @Post('bulk-import')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'Google一括料理登録' })
   @ApiResponse({ status: 201, description: '一括登録成功' })

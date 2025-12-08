@@ -12,9 +12,11 @@ import { AppLoggerService } from '../logger/logger.service';
 import { RequestUser } from './auth.types';
 import { extractBearerToken } from './auth.utils';
 
-/** 本ログイン必須ガード */
+/* ---------------------------------------------------------------- */
+/*     AuthUserGuard: ログイン必須 (匿名ユーザーは拒否) ガード      */
+/* ---------------------------------------------------------------- */
 @Injectable()
-export class JwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
+export class AuthUserGuard extends AuthGuard(JWT_STRATEGY) {
   constructor(
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
@@ -29,14 +31,14 @@ export class JwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
     _ctx: ExecutionContext,
   ): TUser {
     if (err || !user) {
-      this.logger.warn('AuthGuard', 'JwtAuthGuard', {
+      this.logger.warn('AuthGuard', 'AuthUserGuard', {
         reason: info?.message ?? err,
       });
       throw new UnauthorizedException('UNAUTHORIZED');
     }
 
     if (user.isAnonymous) {
-      this.logger.warn('AuthGuard', 'JwtAuthGuard', {
+      this.logger.warn('AuthGuard', 'AuthUserGuard', {
         reason: 'Full login required',
       });
       throw new ForbiddenException('FORBIDDEN');
@@ -47,9 +49,11 @@ export class JwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
   }
 }
 
-/** 匿名または本ログイン（DEV はモック可） */
+/* ---------------------------------------------------------------- */
+/*   AuthAnonGuard: JWT が正しければ匿名でも認証成功とするガード    */
+/* ---------------------------------------------------------------- */
 @Injectable()
-export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
+export class AuthAnonGuard extends AuthGuard(JWT_STRATEGY) {
   constructor(
     private readonly cls: ClsService,
     private readonly logger: AppLoggerService,
@@ -68,7 +72,7 @@ export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
 
     // token あり & 検証失敗
     if (err || (token && !user)) {
-      this.logger.warn('AuthGuard', 'OptionalJwtAuthGuard', {
+      this.logger.warn('AuthGuard', 'AuthAnonGuard', {
         reason: info?.message ?? err,
       });
       throw new UnauthorizedException('UNAUTHORIZED');
@@ -76,7 +80,7 @@ export class OptionalJwtAuthGuard extends AuthGuard(JWT_STRATEGY) {
 
     // token なし
     if (!token) {
-      this.logger.warn('AuthGuard', 'OptionalJwtAuthGuard', {
+      this.logger.warn('AuthGuard', 'AuthAnonGuard', {
         reason: 'Authorization header missing',
       });
       throw new UnauthorizedException('UNAUTHORIZED');
