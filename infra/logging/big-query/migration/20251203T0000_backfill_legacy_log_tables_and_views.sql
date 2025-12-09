@@ -246,7 +246,7 @@ SELECT
   jsonPayload.event_name AS event_name,
   jsonPayload.error_level AS error_level,
   jsonPayload.path_name AS path_name,
-  TO_JSON(jsonPayload.payload) AS payload,
+  SAFE.PARSE_JSON(jsonPayload.payload) AS payload,
   timestamp AS created_at,
   jsonPayload.created_app_version AS created_app_version,
   jsonPayload.created_commit_id AS created_commit_id
@@ -281,7 +281,7 @@ SELECT
   jsonPayload.error_level AS error_level,
   jsonPayload.function_name AS function_name,
   jsonPayload.user_id AS user_id,
-  TO_JSON(jsonPayload.payload) AS payload,
+  SAFE.PARSE_JSON(jsonPayload.payload) AS payload,
   jsonPayload.request_id AS request_id,
   timestamp AS created_at,
   jsonPayload.created_commit_id AS created_commit_id
@@ -322,8 +322,8 @@ SELECT
   jsonPayload.api_name AS api_name,
   jsonPayload.endpoint AS endpoint,
   jsonPayload.method AS method,
-  TO_JSON(jsonPayload.request_payload) AS request_payload,
-  TO_JSON(jsonPayload.response_payload) AS response_payload,
+  SAFE.PARSE_JSON(jsonPayload.request_payload) AS request_payload,
+  SAFE.PARSE_JSON(jsonPayload.response_payload) AS response_payload,
   SAFE_CAST(jsonPayload.status_code AS INT64) AS status_code,
   -- 存在しなければ NULL になる
   JSON_VALUE(TO_JSON_STRING(jsonPayload), '$.error_message') AS error_message,
