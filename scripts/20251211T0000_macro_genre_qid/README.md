@@ -21,9 +21,11 @@ Wikidata の生グラフをオンラインで辿るのではなく、以下の3�
 ### データベース
 
 以下のマイグレーションを適用済みであること：
+
 - `infra/supabase/migrations/20251211T0000_add_macro_genre_qid.sql`
 
 このマイグレーションにより以下が作成されます：
+
 - `dish_categories.macro_genre_qid` カラム
 - `dish_category_ancestors` テーブル
 - `macro_genre_whitelist` テーブル
@@ -57,12 +59,14 @@ python3 1_1_fetch_ancestors.py
 ```
 
 **注意点:**
+
 - SPARQL endpoint への大量リクエストが発生するため、実行には時間がかかります（数百件で数時間程度）
 - rate limit 対策として retry/backoff が実装されていますが、失敗したバッチはスキップされます
 - 再実行することで、スキップされたデータを再取得できます
 - `dish_category_ancestors` テーブルは TRUNCATE されてから再INSERT されます
 
 **処理内容:**
+
 - dish_categories を 100件ずつバッチ処理
 - 各 dish について P31 (instance of) と P279 (subclass of) を BFS で depth 4 まで辿る
 - 結果を `dish_category_ancestors` テーブルに保存
@@ -78,9 +82,10 @@ python3 1_2_export_ancestor_stats.py
 **出力ファイル:** `macro_genre_candidate_stats.csv`
 
 **CSV のカラム:**
+
 - `ancestor_qid`: Wikidata QID
 - `label_en`: 英語ラベル
-- `label_ja`: 日本語ラベル  
+- `label_ja`: 日本語ラベル
 - `dish_count`: この ancestor を持つ dish_category の数
 - `sample_dishes`: 代表的な dish_category のラベル（最大5件）
 
@@ -90,6 +95,7 @@ python3 1_2_export_ancestor_stats.py
 2. 選定した QID を `macro_genre_whitelist` テーブルに INSERT
 
 例：
+
 ```sql
 INSERT INTO macro_genre_whitelist (macro_genre_qid, label_en, label_ja) VALUES
   ('Q4939235', 'noodle soup', '麺類のスープ'),
@@ -117,10 +123,12 @@ python3 1_3_assign_macro_genre.py --only-null
 ```
 
 **オプション:**
+
 - `--dry-run`: 実際の UPDATE を行わず、差分だけログ出力
 - `--only-null`: macro_genre_qid が NULL のもののみ処理
 
 **処理内容:**
+
 - 各 dish_category について、ancestors を depth 昇順で取得
 - 最初に whitelist にマッチした ancestor_qid を macro_genre_qid に採用
 - 同一 depth で複数マッチする場合（ambiguous）は、ログに出力し NULL のまま
@@ -151,6 +159,7 @@ DROP TABLE IF EXISTS macro_genre_whitelist;
 ### rate limit に引っかかる
 
 スクリプトには retry/backoff が実装されていますが、それでも失敗する場合は：
+
 - スクリプトを複数回に分けて実行
 - `MAX_DEPTH` を小さくする（デフォルト 4 → 3 など）
 
@@ -161,6 +170,7 @@ dish_category の QID が Wikidata に存在しない、または P31/P279 が�
 ### macro_genre_qid が決まらない dish がある
 
 whitelist に該当する ancestor が含まれていません。以下を確認：
+
 1. `1_2_export_ancestor_stats.py` の出力を見て、該当 dish の ancestor を確認
 2. 適切な macro_genre を whitelist に追加
 
@@ -172,6 +182,7 @@ whitelist に該当する ancestor が含まれていません。以下を確認
 - **P279 (subclass of)**: そのクラスが何のサブクラスか
 
 **使用しないプロパティ（今回のスコープ外）:**
+
 - P527 (has part(s))
 - P361 (part of)
 
