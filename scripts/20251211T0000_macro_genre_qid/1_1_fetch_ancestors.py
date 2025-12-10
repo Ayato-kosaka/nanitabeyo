@@ -115,6 +115,7 @@ class WikidataFetcher:
                 continue
             
             # P31 (instance of) と P279 (subclass of) を取得
+            # #533 【セキュリティ】current_qid は _bfs_ancestors 呼び出し前にバリデーション済み（Q + 数字のみ）
             query = f"""
             SELECT DISTINCT ?parent WHERE {{
                 wd:{current_qid} (wdt:P31|wdt:P279) ?parent .

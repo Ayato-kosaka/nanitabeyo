@@ -86,6 +86,7 @@ class WikidataLabelFetcher:
         logger.info(f"Fetching labels for {len(valid_qids)} QIDs")
         
         # VALUES 句で複数 QID を一度に取得
+        # #533 【セキュリティ】valid_qids は直前で QID バリデーション済み（Q + 数字のみ）
         values_clause = " ".join([f"wd:{qid}" for qid in valid_qids])
         
         query = f"""
@@ -149,6 +150,7 @@ def fetch_ancestor_stats(conn) -> List[Tuple[str, int, List[str]]]:
     """
     with conn.cursor() as cur:
         # ancestor_qid ごとに集計し、代表的な dish_category も取得
+        # #533 【セキュリティ】MAX_SAMPLE_DISHES は定数なので SQL に直接埋め込んでも安全
         cur.execute(f"""
             SELECT
                 ancestor_qid,
