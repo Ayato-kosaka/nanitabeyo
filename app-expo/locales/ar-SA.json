@@ -54,8 +54,9 @@
 		"sections": {
 			"location": "أين تبحث؟",
 			"time": "ما الوقت؟",
-			"scene": "لأي مناسبة؟",
-			"mood": "ما مزاجك؟",
+			"scene": "مع من تذهب؟",
+			"mood": "ما مقدار جوعك؟",
+			"taste": "ما النكهات؟",
 			"distance": "ما المسافة؟",
 			"budget": "الميزانية؟",
 			"restrictions": "القيود"
@@ -69,7 +70,7 @@
 		},
 		"loading": "جارٍ البحث...",
 		"advancedToggle": {
-			"open": "بحث متقدم",
+			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
 		},
 		"labels": {
@@ -100,13 +101,16 @@
 		"sceneOptions": {
 			"solo": "فردي",
 			"date": "موعد",
-			"group": "مع آخرين",
-			"largeGroup": "مجموعة كبيرة",
-			"tourism": "سياحة"
+			"friends": "مع الأصدقاء",
+			"family": "مع العائلة",
+			"drinking": "حفلة/مشروبات"
 		},
 		"moodOptions": {
-			"hearty": "مشبع",
 			"light": "خفيف",
+			"normal": "عادي",
+			"heavy": "مشبع"
+		},
+		"tasteOptions": {
 			"sweet": "حلو",
 			"spicy": "حار",
 			"healthy": "صحي",

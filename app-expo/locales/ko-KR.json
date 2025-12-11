@@ -54,8 +54,9 @@
 		"sections": {
 			"location": "어디에서 찾을까요?",
 			"time": "시간대는?",
-			"scene": "어떤 상황?",
-			"mood": "기분은?",
+			"scene": "누구와 가시나요?",
+			"mood": "얼마나 배고프세요?",
+			"taste": "어떤 맛?",
 			"distance": "거리?",
 			"budget": "예산?",
 			"restrictions": "제한 조건"
@@ -69,7 +70,7 @@
 		},
 		"loading": "검색 중...",
 		"advancedToggle": {
-			"open": "상세 검색",
+			"open": "더 많은 옵션",
 			"close": "상세 검색 닫기"
 		},
 		"labels": {
@@ -100,13 +101,16 @@
 		"sceneOptions": {
 			"solo": "혼자",
 			"date": "데이트",
-			"group": "여럿과",
-			"largeGroup": "대규모",
-			"tourism": "관광"
+			"friends": "친구와",
+			"family": "가족과",
+			"drinking": "회식/파티"
 		},
 		"moodOptions": {
-			"hearty": "든든하게",
 			"light": "가볍게",
+			"normal": "보통",
+			"heavy": "든든하게"
+		},
+		"tasteOptions": {
 			"sweet": "달콤한 것",
 			"spicy": "매운 것",
 			"healthy": "건강식",

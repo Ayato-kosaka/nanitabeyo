@@ -54,8 +54,9 @@
 		"sections": {
 			"location": "どのあたりで探す？",
 			"time": "時間帯は？",
-			"scene": "シーンは？",
-			"mood": "気分は？",
+			"scene": "だれと行く？",
+			"mood": "お腹の減り具合は？",
+			"taste": "テイストは？",
 			"distance": "距離は？",
 			"budget": "価格帯は？",
 			"restrictions": "制約条件"
@@ -69,7 +70,7 @@
 		},
 		"loading": "検索中...",
 		"advancedToggle": {
-			"open": "詳細検索",
+			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"
 		},
 		"labels": {
@@ -100,13 +101,16 @@
 		"sceneOptions": {
 			"solo": "おひとり様",
 			"date": "デート",
-			"group": "複数人と",
-			"largeGroup": "大人数",
-			"tourism": "観光"
+			"friends": "友達と",
+			"family": "家族と",
+			"drinking": "飲み会・宴会"
 		},
 		"moodOptions": {
-			"hearty": "がっつり",
-			"light": "軽めに",
+			"light": "軽め",
+			"normal": "普通",
+			"heavy": "がっつり"
+		},
+		"tasteOptions": {
 			"sweet": "甘いもの",
 			"spicy": "辛いもの",
 			"healthy": "ヘルシー",
