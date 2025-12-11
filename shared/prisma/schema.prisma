@@ -60,6 +60,19 @@ model dish_categories {
   @@schema("dev")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model dish_category_ancestors {
+  dish_category_id String
+  ancestor_qid     String
+  depth            Int
+  dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([dish_category_id, ancestor_qid])
+  @@index([ancestor_qid], map: "idx_dish_category_ancestors_ancestor")
+  @@index([dish_category_id, depth], map: "idx_dish_category_ancestors_dish_depth")
+  @@schema("dev")
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -267,6 +280,15 @@ model frontend_event_logs {
 
   @@index([created_at], map: "idx_frontend_event_logs_created_at")
   @@index([error_level], map: "idx_frontend_event_logs_error_level")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model macro_genre_whitelist {
+  macro_genre_qid String  @id
+  label_en        String?
+  label_ja        String?
+
   @@schema("dev")
 }
 
@@ -578,30 +600,6 @@ enum restaurant_bid_status {
   pending
   paid
   refunded
-
-  @@schema("dev")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model dish_category_ancestors {
-  dish_category_id String          @db.Text
-  ancestor_qid     String          @db.Text
-  depth            Int
-  dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@id([dish_category_id, ancestor_qid])
-  @@index([dish_category_id, depth], map: "idx_dish_category_ancestors_dish_depth")
-  @@index([ancestor_qid], map: "idx_dish_category_ancestors_ancestor")
-  @@schema("dev")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model macro_genre_whitelist {
-  macro_genre_qid String  @id @db.Text
-  label_en        String? @db.Text
-  label_ja        String? @db.Text
 
   @@schema("dev")
 }

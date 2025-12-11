@@ -148,7 +148,14 @@ exports.Prisma.Dish_categoriesScalarFieldEnum = {
   tags: 'tags',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  lock_no: 'lock_no'
+  lock_no: 'lock_no',
+  macro_genre_qid: 'macro_genre_qid'
+};
+
+exports.Prisma.Dish_category_ancestorsScalarFieldEnum = {
+  dish_category_id: 'dish_category_id',
+  ancestor_qid: 'ancestor_qid',
+  depth: 'depth'
 };
 
 exports.Prisma.Dish_category_variantsScalarFieldEnum = {
@@ -268,6 +275,12 @@ exports.Prisma.Frontend_event_logsScalarFieldEnum = {
   created_at: 'created_at',
   created_app_version: 'created_app_version',
   created_commit_id: 'created_commit_id'
+};
+
+exports.Prisma.Macro_genre_whitelistScalarFieldEnum = {
+  macro_genre_qid: 'macro_genre_qid',
+  label_en: 'label_en',
+  label_ja: 'label_ja'
 };
 
 exports.Prisma.Notification_recipientsScalarFieldEnum = {
@@ -489,6 +502,7 @@ exports.Prisma.ModelName = {
   backend_event_logs: 'backend_event_logs',
   config: 'config',
   dish_categories: 'dish_categories',
+  dish_category_ancestors: 'dish_category_ancestors',
   dish_category_variants: 'dish_category_variants',
   dish_media: 'dish_media',
   dish_media_analysis_results: 'dish_media_analysis_results',
@@ -499,6 +513,7 @@ exports.Prisma.ModelName = {
   dishes: 'dishes',
   external_api_logs: 'external_api_logs',
   frontend_event_logs: 'frontend_event_logs',
+  macro_genre_whitelist: 'macro_genre_whitelist',
   notification_recipients: 'notification_recipients',
   notifications: 'notifications',
   payouts: 'payouts',
