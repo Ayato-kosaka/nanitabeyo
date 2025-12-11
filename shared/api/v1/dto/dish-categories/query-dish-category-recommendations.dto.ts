@@ -28,6 +28,11 @@ export class QueryDishCategoryRecommendationsDto {
 	@IsString()
 	mood?: string;
 
+	/** 味の好み (taste) 例: 'spicy', 'savory', 'sweet' など */
+	@IsOptional()
+	@IsString()
+	taste?: string;
+
 	/** 食の制約 例: ['halal', 'vegan'] など */
 	@IsOptional()
 	@IsString({ each: true })
