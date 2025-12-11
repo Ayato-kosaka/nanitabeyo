@@ -5,13 +5,13 @@ import {
 	Search,
 	Clock,
 	Users,
-	Heart,
 	Navigation,
 	MapPin as Distance,
 	DollarSign,
 	Plus,
 	ChevronUp,
-	Sparkles,
+	ChefHat,
+	Salad,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
@@ -305,7 +305,7 @@ export default function SearchScreen() {
 				{/* Mood */}
 				<Card>
 					<View style={styles.sectionHeader}>
-						<Heart size={20} color="#5EA2FF" />
+						<Salad size={20} color="#5EA2FF" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
@@ -375,7 +375,7 @@ export default function SearchScreen() {
 						{/* Taste */}
 						<Card>
 							<View style={styles.sectionHeader}>
-								<Sparkles size={20} color="#5EA2FF" />
+								<ChefHat size={20} color="#5EA2FF" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.taste")}</Text>
 							</View>
 							<View style={styles.chipGrid}>
