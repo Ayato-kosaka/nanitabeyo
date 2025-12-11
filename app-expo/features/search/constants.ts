@@ -12,7 +12,7 @@ export const sceneOptions = [
 	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤" },
 	{ id: "date", label: "Search.sceneOptions.date", icon: "💕" },
 	{ id: "friends", label: "Search.sceneOptions.friends", icon: "👥" },
-	{ id: "family", label: "Search.sceneOptions.family", icon: "👨‍👩‍👧‍👦" },
+	{ id: "family", label: "Search.sceneOptions.family", icon: "👪" },
 	{ id: "drinking", label: "Search.sceneOptions.drinking", icon: "🍻" },
 ] as const;
 
