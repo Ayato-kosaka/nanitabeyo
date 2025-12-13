@@ -209,30 +209,53 @@ class BigQueryLoader:
         """
         table_id = f"{self.dataset_ref}.dish_root_summary"
         logger.info(f"Generating dish_root_summary table")
-        
+
         # TRUNCATE
         try:
             self.execute_sql(f"TRUNCATE TABLE `{table_id}`")
         except Exception as e:
             logger.warning(f"Failed to truncate {table_id}: {e}")
-        
+
         sql = f"""
         INSERT INTO `{table_id}` (dish_qid, roots)
+        WITH joined AS (
+          -- dish × root × depth の生データ
+          SELECT
+            fp.child_qid AS dish_qid,
+            fr.root_qid AS root_qid,
+            fr.kind     AS kind,
+            fp.depth    AS depth
+          FROM `{self.dataset_ref}.food_paths` fp
+          JOIN `{self.dataset_ref}.food_roots` fr
+            ON fp.ancestor_qid = fr.root_qid
+        ),
+        per_root AS (
+          -- dish × root ごとに「最短 depth」を 1 回だけ集約
+          SELECT
+            dish_qid,
+            root_qid,
+            kind,
+            MIN(depth) AS min_depth
+          FROM joined
+          GROUP BY
+            dish_qid,
+            root_qid,
+            kind
+        )
         SELECT
-          fp.child_qid AS dish_qid,
+          dish_qid,
           ARRAY_AGG(
             STRUCT(
-              fr.root_qid AS root_qid,
-              fr.kind AS kind,
-              MIN(fp.depth) AS min_depth
+              root_qid,
+              kind,
+              min_depth
             )
+            ORDER BY min_depth, root_qid
           ) AS roots
-        FROM `{self.dataset_ref}.food_paths` fp
-        JOIN `{self.dataset_ref}.food_roots` fr
-          ON fp.ancestor_qid = fr.root_qid
-        GROUP BY fp.child_qid
+        FROM per_root
+        GROUP BY dish_qid
         """
-        
+
         self.execute_sql(sql)
         logger.info("Successfully generated dish_root_summary")
     
