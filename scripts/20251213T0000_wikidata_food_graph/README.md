@@ -19,10 +19,14 @@ Wikidata から **料理・飲み物のグラフ構造（ノード＋祖先情�
 
 ### BigQuery Dataset
 
-以下の Dataset が作成済みであること：
+以下の Dataset を作成してください：
 
-- dev: `food-scroll.nanitabeyo_logs_dev`
-- prod: `food-scroll.nanitabeyo_logs_prod`
+```bash
+cd ../../infra/big-query
+./20251213T0000_setup_wikidata_food_graph_dataset.sh
+```
+
+これにより `food-scroll.wikidata_food_graph` Dataset が作成されます。
 
 ### Python 環境
 
@@ -45,109 +49,128 @@ gcloud auth application-default login
 gcloud config set project food-scroll
 ```
 
-### 環境変数
-
-以下の環境変数が必要です：
-
-```bash
-export GCP_PROJECT="food-scroll"
-export BQ_DATASET="nanitabeyo_logs_dev"  # または nanitabeyo_logs_prod
-```
-
 ## 使用方法
 
-### 基本的な実行
+スクリプトは3つのステップに分かれています。順番に実行してください。
+
+### ステップ 1: テーブル作成
+
+BigQuery にテーブルを作成します。
 
 ```bash
-# dev 環境
-export GCP_PROJECT="food-scroll"
-export BQ_DATASET="nanitabeyo_logs_dev"
-python3 main.py
-
-# prod 環境
-export GCP_PROJECT="food-scroll"
-export BQ_DATASET="nanitabeyo_logs_prod"
-python3 main.py
+python3 1_1_create_tables.py
 ```
 
-### オプション
+**処理内容:**
+- food_roots テーブル作成 ＋ 初期データ投入
+- food_nodes_raw テーブル作成
+- food_paths テーブル作成
+- dish_root_summary テーブル作成
+- dish_ancestor_blacklist テーブル作成
+- dish_blacklist テーブル作成
 
-#### 開発用：ノード数制限
+### ステップ 2: ノードデータの取得とロード
+
+Wikidata からノードデータを取得し、BigQuery にロードします。
 
 ```bash
-# 1000件のノードのみ取得（開発・テスト用）
-python3 main.py --limit 1000
+# 全件取得（時間がかかります）
+python3 1_2_fetch_and_load_nodes.py
+
+# 開発・テスト用：ノード数を制限
+python3 1_2_fetch_and_load_nodes.py --limit 1000
 ```
 
-#### migration のスキップ
+**処理内容:**
+- Wikidata から料理・飲み物のノードを取得
+- food_nodes_raw にロード
+- 親子エッジ（P31, P279）を取得
+- エッジデータを一時ファイルに保存
+
+**注意点:**
+- SPARQL endpoint への大量リクエストが発生するため、実行には時間がかかります
+- rate limit 対策として retry/backoff が実装されています
+
+### ステップ 3: パスとサマリーの生成
+
+food_paths, dish_root_summary, dish_blacklist を生成します。
 
 ```bash
-# テーブルが既に存在する場合
-python3 main.py --skip-migration
+python3 1_3_generate_paths_and_summary.py
 ```
 
-#### Wikidata fetch のスキップ
+**処理内容:**
+- food_paths を生成（recursive CTE で全 ancestor を展開）
+- dish_root_summary を生成
+- dish_blacklist を自動生成（ancestor ベース）
+
+### dish_blacklist の再生成
+
+dish_ancestor_blacklist を更新した後、dish_blacklist を再生成する場合は、ステップ3のみを再実行してください。
 
 ```bash
-# データが既にロード済みの場合
-python3 main.py --skip-fetch
-```
+# dish_ancestor_blacklist にデータを追加
+# 例: INSERT INTO `food-scroll.wikidata_food_graph.dish_ancestor_blacklist`
+#     (ancestor_qid, reason, created_at) VALUES
+#     ('Q5195', 'too_generic', CURRENT_TIMESTAMP());
 
-#### food_paths 生成のスキップ
-
-```bash
-# エッジデータが既に存在する場合
-python3 main.py --skip-paths
-```
-
-#### dish_blacklist の再生成のみ
-
-```bash
-# dish_ancestor_blacklist を更新した後、dish_blacklist を再生成
-python3 main.py --skip-fetch --skip-paths
+# dish_blacklist を再生成
+python3 1_3_generate_paths_and_summary.py
 ```
 
 ## 処理フロー
 
+スクリプトは以下の3ステップで構成されています：
+
+### ステップ 1: テーブル作成 (`1_1_create_tables.py`)
 ```
-1. BigQuery migration 実行
-   ↓
-   - food_roots テーブル作成 ＋ 初期データ投入
-   - food_nodes_raw テーブル作成
-   - food_paths テーブル作成
-   - dish_root_summary テーブル作成
-   - dish_ancestor_blacklist テーブル作成
-   - dish_blacklist テーブル作成
+BigQuery migration 実行
+↓
+- food_roots テーブル作成 ＋ 初期データ投入
+- food_nodes_raw テーブル作成
+- food_paths テーブル作成
+- dish_root_summary テーブル作成
+- dish_ancestor_blacklist テーブル作成
+- dish_blacklist テーブル作成
+```
 
-2. Wikidata から food_nodes_raw 相当のデータを取得
-   ↓
-   - food_roots に含まれる root_qid のいずれかに対して
-     ?item wdt:P31/wdt:P279* ?root_qid を満たすノードを取得
-   - ラベル（日本語・英語）と説明を取得
+### ステップ 2: ノード取得とロード (`1_2_fetch_and_load_nodes.py`)
+```
+Wikidata から food_nodes_raw 相当のデータを取得
+↓
+- food_roots に含まれる root_qid のいずれかに対して
+  ?item wdt:P31/wdt:P279* ?root_qid を満たすノードを取得
+- ラベル（日本語・英語）と説明を取得
+↓
+BigQuery にノードデータをロード
+↓
+- food_nodes_raw にデータを INSERT
+↓
+Wikidata から親子エッジ（P31/P279）を取得
+↓
+- 各ノードの直接の親を取得
+- エッジデータを一時ファイルに保存（/tmp/wikidata_food_graph/edges.json）
+```
 
-3. BigQuery にノードデータをロード
-   ↓
-   - food_nodes_raw にデータを INSERT
-
-4. Wikidata から親子エッジ（P31/P279）を取得
-   ↓
-   - 各ノードの直接の親（P31: instance of, P279: subclass of）を取得
-
-5. BigQuery で food_paths を生成
-   ↓
-   - recursive CTE を使って全 ancestor を展開
-   - depth < 20 の制限を設定
-
-6. dish_root_summary を生成
-   ↓
-   - food_paths と food_roots を JOIN
-   - 各 dish がどの root にぶら下がっているかを集約
-
-7. dish_blacklist を自動生成
-   ↓
-   - dish_ancestor_blacklist を参照
-   - 該当する ancestor を持つ dish を抽出
-   - reason='ancestor' として dish_blacklist に INSERT
+### ステップ 3: パスとサマリー生成 (`1_3_generate_paths_and_summary.py`)
+```
+エッジデータを読み込む
+↓
+BigQuery で food_paths を生成
+↓
+- recursive CTE を使って全 ancestor を展開
+- depth < 20 の制限を設定
+↓
+dish_root_summary を生成
+↓
+- food_paths と food_roots を JOIN
+- 各 dish がどの root にぶら下がっているかを集約
+↓
+dish_blacklist を自動生成
+↓
+- dish_ancestor_blacklist を参照
+- 該当する ancestor を持つ dish を抽出
+- reason='ancestor' として dish_blacklist に INSERT
 ```
 
 ## 作成される BigQuery テーブル
@@ -211,7 +234,7 @@ Wikidata から取得したノード情報。
 **例:**
 
 ```sql
-INSERT INTO `food-scroll.nanitabeyo_logs_dev.dish_ancestor_blacklist`
+INSERT INTO `food-scroll.wikidata_food_graph.dish_ancestor_blacklist`
 (ancestor_qid, reason, created_at) VALUES
 ('Q5195', 'too_generic', CURRENT_TIMESTAMP()),  -- cuisine
 ('Q28540', 'ingredient', CURRENT_TIMESTAMP());   -- wheat
@@ -235,22 +258,22 @@ INSERT INTO `food-scroll.nanitabeyo_logs_dev.dish_ancestor_blacklist`
 ### テーブル一覧の確認
 
 ```bash
-bq ls --project_id=food-scroll nanitabeyo_logs_dev
+bq ls --project_id=food-scroll wikidata_food_graph
 ```
 
 ### food_roots の確認
 
 ```sql
-SELECT * FROM `food-scroll.nanitabeyo_logs_dev.food_roots`
+SELECT * FROM `food-scroll.wikidata_food_graph.food_roots`
 ORDER BY root_qid;
 ```
 
 ### food_nodes_raw の確認
 
 ```sql
-SELECT COUNT(*) FROM `food-scroll.nanitabeyo_logs_dev.food_nodes_raw`;
+SELECT COUNT(*) FROM `food-scroll.wikidata_food_graph.food_nodes_raw`;
 
-SELECT * FROM `food-scroll.nanitabeyo_logs_dev.food_nodes_raw`
+SELECT * FROM `food-scroll.wikidata_food_graph.food_nodes_raw`
 WHERE label_ja IS NOT NULL
 LIMIT 10;
 ```
@@ -258,10 +281,10 @@ LIMIT 10;
 ### food_paths の確認
 
 ```sql
-SELECT COUNT(*) FROM `food-scroll.nanitabeyo_logs_dev.food_paths`;
+SELECT COUNT(*) FROM `food-scroll.wikidata_food_graph.food_paths`;
 
 -- 特定の dish の ancestor を確認
-SELECT * FROM `food-scroll.nanitabeyo_logs_dev.food_paths`
+SELECT * FROM `food-scroll.wikidata_food_graph.food_paths`
 WHERE child_qid = 'Q753'  -- sushi
 ORDER BY depth;
 ```
@@ -269,14 +292,14 @@ ORDER BY depth;
 ### dish_root_summary の確認
 
 ```sql
-SELECT COUNT(*) FROM `food-scroll.nanitabeyo_logs_dev.dish_root_summary`;
+SELECT COUNT(*) FROM `food-scroll.wikidata_food_graph.dish_root_summary`;
 
 -- 複数の root にぶら下がっている dish を確認
 SELECT
   dish_qid,
   ARRAY_LENGTH(roots) AS root_count,
   roots
-FROM `food-scroll.nanitabeyo_logs_dev.dish_root_summary`
+FROM `food-scroll.wikidata_food_graph.dish_root_summary`
 WHERE ARRAY_LENGTH(roots) > 1
 LIMIT 10;
 ```
@@ -284,9 +307,9 @@ LIMIT 10;
 ### dish_blacklist の確認
 
 ```sql
-SELECT COUNT(*) FROM `food-scroll.nanitabeyo_logs_dev.dish_blacklist`;
+SELECT COUNT(*) FROM `food-scroll.wikidata_food_graph.dish_blacklist`;
 
-SELECT * FROM `food-scroll.nanitabeyo_logs_dev.dish_blacklist`
+SELECT * FROM `food-scroll.wikidata_food_graph.dish_blacklist`
 WHERE reason = 'ancestor'
 LIMIT 10;
 ```
@@ -299,7 +322,7 @@ retry/backoff が実装されていますが、それでも失敗する場合は
 
 ```bash
 # ノード数を制限して実行
-python3 main.py --limit 1000
+python3 1_2_fetch_and_load_nodes.py --limit 1000
 ```
 
 ### BigQuery への認証エラー
@@ -323,20 +346,23 @@ bq query --use_legacy_sql=false < 20251213T0000_create_wikidata_food_tables.sql
 ```
 scripts/20251213T0000_wikidata_food_graph/
 ├── __init__.py
-├── main.py                  # メインスクリプト
-├── wikidata_client.py       # Wikidata SPARQL クライアント
-├── loader_bigquery.py       # BigQuery ロード・処理ロジック
-├── requirements.txt         # Python 依存パッケージ
-└── README.md                # このファイル
+├── 1_1_create_tables.py         # ステップ1: テーブル作成
+├── 1_2_fetch_and_load_nodes.py  # ステップ2: ノード取得とロード
+├── 1_3_generate_paths_and_summary.py  # ステップ3: パスとサマリー生成
+├── wikidata_client.py           # Wikidata SPARQL クライアント
+├── loader_bigquery.py           # BigQuery ロード・処理ロジック
+├── requirements.txt             # Python 依存パッケージ
+└── README.md                    # このファイル
 ```
 
 ## 注意事項
 
-- SPARQL endpoint への大量リクエストが発生するため、実行には時間がかかります（数万件で数時間程度）
+- SPARQL endpoint への大量リクエストが発生するため、ステップ2の実行には時間がかかります（数万件で数時間程度）
 - rate limit 対策として retry/backoff が実装されていますが、失敗する可能性があります
-- 再実行することで、失敗したデータを再取得できます
+- 各ステップは独立しているため、失敗した場合はそのステップから再実行できます
 - dish_ancestor_blacklist は手動でメンテする必要があります
 - このスクリプトは PostgreSQL の `dish_categories` を更新しません
+- プロジェクト（food-scroll）とデータセット（wikidata_food_graph）は固定値です
 
 ## 次のステップ
 

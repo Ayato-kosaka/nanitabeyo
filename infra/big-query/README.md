@@ -18,6 +18,7 @@ infra/big-query/
 │   └── 20251213T0000_create_wikidata_food_tables.sql
 ├── 20251201T0000_setup_logging_and_bigquery_sink.sh
 ├── 20251203T0000_backfill_supabase_logs_to_bigquery.sh
+├── 20251213T0000_setup_wikidata_food_graph_dataset.sh  # Wikidata 食品グラフ用データセット作成
 ├── setup_logging_bigquery_dataset.sh
 ├── setup_logging_sink.sh
 ├── IMPLEMENTATION_SUMMARY.md               # ログバックフィル実装サマリー
@@ -66,6 +67,15 @@ Supabase からのログデータをバックフィルする場合：
 Wikidata から取得した料理・飲み物のグラフ構造を BigQuery に構造化します。
 これにより、祖先（ancestor）ベースのブラックリスト機能を実現し、
 アプリ用マスタ（`dish_categories`）への導入判断を可能にします。
+
+### セットアップ
+
+```bash
+# データセット作成
+./20251213T0000_setup_wikidata_food_graph_dataset.sh
+```
+
+これにより `food-scroll.wikidata_food_graph` Dataset が作成されます。
 
 ### テーブル構成
 
