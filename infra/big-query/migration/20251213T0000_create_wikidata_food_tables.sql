@@ -40,13 +40,11 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.food_roots` (
 MERGE `${DATASET}.food_roots` AS target
 USING (
   SELECT 'Q746549' AS root_qid, 'dish' AS kind UNION ALL
-  SELECT 'Q8495', 'dessert' UNION ALL
-  SELECT 'Q40050', 'beverage' UNION ALL
-  SELECT 'Q154', 'alcoholic_beverage' UNION ALL
-  SELECT 'Q659563', 'snack' UNION ALL
-  SELECT 'Q182940', 'confectionery' UNION ALL
-  SELECT 'Q8486', 'coffee' UNION ALL
-  SELECT 'Q4006', 'tea'
+  SELECT 'Q192874', 'noodle' UNION ALL
+  SELECT 'Q18593264', 'rice_dish' UNION ALL
+  SELECT 'Q16266745', 'flour_based_food' UNION ALL
+  SELECT 'Q182940', 'dessert' UNION ALL
+  SELECT 'Q40050', 'drink'
 ) AS source
 ON target.root_qid = source.root_qid
 WHEN NOT MATCHED THEN

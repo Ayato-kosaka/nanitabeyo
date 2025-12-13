@@ -48,14 +48,12 @@ BQ_DATASET = "wikidata_food_graph"
 
 # FOOD_ROOTS 定数
 FOOD_ROOTS = [
-    ("Q746549", "dish"),              # dish（料理）
-    ("Q8495", "dessert"),             # dessert（デザート）
-    ("Q40050", "beverage"),           # beverage（飲み物）
-    ("Q154", "alcoholic_beverage"),   # alcoholic beverage（アルコール飲料）
-    ("Q659563", "snack"),             # snack（スナック）
-    ("Q182940", "confectionery"),     # confectionery（菓子）
-    ("Q8486", "coffee"),              # coffee（コーヒー）
-    ("Q4006", "tea"),                 # tea（茶）
+    ("Q746549",   "dish"),
+    ("Q192874",   "noodle"),
+    ("Q18593264", "rice_dish"),
+    ("Q16266745", "flour_based_food"),
+    ("Q182940",   "dessert"),
+    ("Q40050",    "drink")
 ]
 
 # 一時ファイル保存先
