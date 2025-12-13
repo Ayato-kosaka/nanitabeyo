@@ -61,7 +61,7 @@ class WikidataClient:
         self,
         root_qids: List[str],
         limit: Optional[int] = None,
-        page_size: int = 10000,
+        page_size: int = 5000,
     ) -> List[Dict]:
         """
         food_roots に含まれる root_qid のいずれかに対して
