@@ -1,0 +1,11 @@
+# Python dependencies for wikidata_food_graph scripts
+# Ticket: #533
+
+# Wikidata SPARQL queries
+SPARQLWrapper==2.0.0
+
+# BigQuery client
+google-cloud-bigquery==3.14.1
+
+# Retry logic and backoff
+tenacity==8.2.3

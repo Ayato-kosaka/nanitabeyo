@@ -149,7 +149,7 @@ echo
 echo "📊 Step2: BigQuery SQL を実行します（テーブル作成 / INSERT / VIEW REPLACE）…"
 echo
 
-SQL_FILE="./big-query/migration/20251203T0000_backfill_legacy_log_tables_and_views.sql"
+SQL_FILE="./migration/20251203T0000_backfill_legacy_log_tables_and_views.sql"
 
 if [[ ! -f "${SQL_FILE}" ]]; then
   echo "❌ SQL ファイルが見つかりません: ${SQL_FILE}" >&2

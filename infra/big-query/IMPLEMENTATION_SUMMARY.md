@@ -4,7 +4,7 @@
 
 ### 1. BigQuery SQL マイグレーションファイル
 
-**ファイル**: `infra/logging/big-query/migration/20251203T0000_backfill_legacy_log_tables_and_views.sql`
+**ファイル**: `infra/big-query/migration/20251203T0000_backfill_legacy_log_tables_and_views.sql`
 
 - **ステージングテーブル（3つ）**: Supabase の生データを格納
   - `stg_frontend_event_logs`
@@ -30,7 +30,7 @@
 
 ### 2. バックフィルオーケストレータスクリプト
 
-**ファイル**: `infra/logging/20251203T0000_backfill_supabase_logs_to_bigquery.sh`
+**ファイル**: `infra/big-query/20251203T0000_backfill_supabase_logs_to_bigquery.sh`
 
 - **環境サポート**: dev / prod
 - **柔軟な GCS パス指定**:
@@ -43,7 +43,7 @@
 
 ### 3. 詳細ドキュメント
 
-**ファイル**: `infra/logging/README_BACKFILL.md`
+**ファイル**: `infra/big-query/README_BACKFILL.md`
 
 - 前提条件
 - 実行手順（2つの方法: デフォルトパス / カスタムパス）
@@ -96,7 +96,7 @@ GitHub Actions `pg-table-export.yml` を実行してテーブルをエクスポ�
 ### バックフィル実行
 
 ```bash
-cd infra/logging
+cd infra/big-query
 
 # デフォルトパスを使用（ファイルを gs://{bucket}/supabase/ に配置済みの場合）
 ./20251203T0000_backfill_supabase_logs_to_bigquery.sh prod
@@ -177,4 +177,4 @@ pg-table-export.yml は `gs://{bucket}/system/PostgreSQL/csv_export/{timestamp}/
 
 本実装により、Supabase のログテーブルを BigQuery にバックフィルし、Cloud Logging Sink 経由の新規ログと統合して単一の VIEW から参照できる環境が整いました。
 
-詳細な手順とトラブルシューティングは `infra/logging/README_BACKFILL.md` を参照してください。
+詳細な手順とトラブルシューティングは `infra/big-query/README_BACKFILL.md` を参照してください。
