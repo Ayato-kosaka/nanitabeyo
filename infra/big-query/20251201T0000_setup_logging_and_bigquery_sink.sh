@@ -8,8 +8,8 @@
 #   ※ VIEW 作成は本スクリプトの対象外
 #
 # ## 対象スクリプト
-# - infra/logging/setup_logging_bigquery_dataset.sh
-# - infra/logging/setup_logging_sink.sh
+# - infra/big-query/setup_logging_bigquery_dataset.sh
+# - infra/big-query/setup_logging_sink.sh
 #   ※ VIEW 作成用 SQL は別管理
 #
 # ## 背景
@@ -44,7 +44,7 @@
 #   ./20251201T0000_setup_logging_and_bigquery_sink.sh prod
 #
 # ※ 注意:
-#   - 実行場所は infra/logging ディレクトリを想定
+#   - 実行場所は infra/big-query ディレクトリを想定
 #   - gcloud にログイン済みであること
 #   - 各スクリプトは冪等なコマンドで構成しているため、
 #     既に一部適用済みでも再実行して問題ない想定

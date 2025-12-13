@@ -108,7 +108,7 @@ gsutil cp gs://food-scroll-logs-dev/system/PostgreSQL/csv_export/${TIMESTAMP_DIR
 #### 方法1: デフォルトパスを使用（ファイルを事前に移動した場合）
 
 ```bash
-cd infra/logging
+cd infra/big-query
 
 # dev 環境でのバックフィル
 ./20251203T0000_backfill_supabase_logs_to_bigquery.sh dev
@@ -125,7 +125,7 @@ cd infra/logging
 #### 方法2: エクスポートディレクトリを直接指定
 
 ```bash
-cd infra/logging
+cd infra/big-query
 
 # dev 環境でのバックフィル（タイムスタンプディレクトリを指定）
 TIMESTAMP_DIR="20241203-120000"  # 実際のタイムスタンプに置き換える
@@ -305,11 +305,10 @@ bq rm -t -f food-scroll:nanitabeyo_logs_dev.frontend_event_logs_legacy
 ## ファイル構成
 
 ```
-infra/logging/
+infra/big-query/
 ├── 20251203T0000_backfill_supabase_logs_to_bigquery.sh  # バックフィル実行スクリプト
-├── big-query/
-│   └── migration/
-│       └── 20251203T0000_backfill_legacy_log_tables_and_views.sql  # BigQuery SQL
+├── migration/
+│   └── 20251203T0000_backfill_legacy_log_tables_and_views.sql  # BigQuery SQL
 └── README_BACKFILL.md  # このドキュメント
 ```
 
