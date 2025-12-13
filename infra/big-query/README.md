@@ -74,6 +74,7 @@ Wikidata から取得した料理・飲み物のグラフ構造を BigQuery に�
 Wikidata から取得する対象の「ルートクラス（料理・飲み物のトップ階層）」を定義。
 
 **スキーマ:**
+
 ```sql
 CREATE TABLE food_roots (
   root_qid   STRING,   -- 例: 'Q746549'
@@ -82,6 +83,7 @@ CREATE TABLE food_roots (
 ```
 
 **初期データ:**
+
 - `Q746549` - dish（料理）
 - `Q8495` - dessert（デザート）
 - `Q40050` - beverage（飲み物）
@@ -96,6 +98,7 @@ CREATE TABLE food_roots (
 Wikidata から取得した「料理・飲み物候補ノード」の原情報。
 
 **スキーマ:**
+
 ```sql
 CREATE TABLE food_nodes_raw (
   item_qid   STRING,  -- 例: 'Q12345'
@@ -111,6 +114,7 @@ CREATE TABLE food_nodes_raw (
 各ノードの全 ancestor（親・祖父・曾祖父…）を depth 付きで保持。
 
 **スキーマ:**
+
 ```sql
 CREATE TABLE food_paths (
   child_qid     STRING,  -- 子ノード
@@ -124,6 +128,7 @@ CREATE TABLE food_paths (
 各 dish がどのルートクラスに、何ステップでぶら下がっているかを把握。
 
 **スキーマ:**
+
 ```sql
 CREATE TABLE dish_root_summary (
   dish_qid   STRING,
@@ -140,6 +145,7 @@ CREATE TABLE dish_root_summary (
 「この ancestor を持つ dish は除外候補」という人手メンテ用テーブル。
 
 **スキーマ:**
+
 ```sql
 CREATE TABLE dish_ancestor_blacklist (
   ancestor_qid   STRING,
@@ -149,6 +155,7 @@ CREATE TABLE dish_ancestor_blacklist (
 ```
 
 **例:**
+
 - `Q5195` - 'cuisine'（料理の種類）→ あまりに抽象的なため除外
 - `Q28540` - 'wheat'（小麦）→ 食材レベルは除外
 
@@ -157,6 +164,7 @@ CREATE TABLE dish_ancestor_blacklist (
 実際にブラックリスト対象とする dish QID を保持。
 
 **スキーマ:**
+
 ```sql
 CREATE TABLE dish_blacklist (
   dish_qid   STRING,
@@ -203,12 +211,14 @@ scripts/20251213T0000_wikidata_food_graph/
 ## Dataset 構成
 
 ### dev 環境
+
 - **Project**: `food-scroll`
 - **Dataset**: `nanitabeyo_logs_dev`
 - **Location**: `asia-northeast1`
 - **TTL**: 90日
 
 ### prod 環境
+
 - **Project**: `food-scroll`
 - **Dataset**: `nanitabeyo_logs_prod`
 - **Location**: `asia-northeast1`

@@ -157,6 +157,7 @@ python3 main.py --skip-fetch --skip-paths
 ルートクラス定数テーブル。
 
 **初期データ:**
+
 - Q746549 - dish（料理）
 - Q8495 - dessert（デザート）
 - Q40050 - beverage（飲み物）
@@ -171,6 +172,7 @@ python3 main.py --skip-fetch --skip-paths
 Wikidata から取得したノード情報。
 
 **カラム:**
+
 - `item_qid`: Wikidata QID
 - `label_ja`: 日本語ラベル
 - `label_en`: 英語ラベル
@@ -182,6 +184,7 @@ Wikidata から取得したノード情報。
 各ノードの全 ancestor を depth 付きで保持。
 
 **カラム:**
+
 - `child_qid`: 子ノード
 - `ancestor_qid`: 祖先ノード
 - `depth`: 距離 (0=自分自身, 1=直親, 2=祖父, ...)
@@ -191,6 +194,7 @@ Wikidata から取得したノード情報。
 各 dish がどの root にぶら下がっているかを集約（分析用）。
 
 **カラム:**
+
 - `dish_qid`: dish QID
 - `roots`: ARRAY<STRUCT<root_qid, kind, min_depth>>
 
@@ -199,11 +203,13 @@ Wikidata から取得したノード情報。
 人手でメンテする ancestor ブラックリスト。
 
 **カラム:**
+
 - `ancestor_qid`: NG とする祖先ノード
 - `reason`: 理由（'too_generic', 'cuisine', 'ingredient' など）
 - `created_at`: 作成日時
 
 **例:**
+
 ```sql
 INSERT INTO `food-scroll.nanitabeyo_logs_dev.dish_ancestor_blacklist`
 (ancestor_qid, reason, created_at) VALUES
@@ -216,6 +222,7 @@ INSERT INTO `food-scroll.nanitabeyo_logs_dev.dish_ancestor_blacklist`
 実際にブラックリスト対象とする dish を保持。
 
 **カラム:**
+
 - `dish_qid`: NG とする dish
 - `reason`: 理由（'ancestor', 'manual', 'quality' など）
 - `note`: メモ
