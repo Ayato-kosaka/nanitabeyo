@@ -61,7 +61,7 @@ class WikidataClient:
         self,
         root_qids: List[str],
         limit: Optional[int] = None,
-        page_size: int = 5000,
+        page_size: int = 2000,
     ) -> List[Dict]:
         """
         food_roots に含まれる root_qid のいずれかに対して
@@ -168,7 +168,6 @@ class WikidataClient:
 
             # Rate limit 対策
             if total_fetched % 1000 == 0:
-                logger.info("Sleeping 1s for rate limiting...")
                 time.sleep(1)
 
         logger.info(f"Fetched {len(nodes)} food nodes in total")
