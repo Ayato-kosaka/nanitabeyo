@@ -34,8 +34,7 @@ import os
 import sys
 import logging
 import argparse
-from typing import Dict, List, Optional, Set, Tuple
-from collections import defaultdict
+from typing import List, Set, Tuple
 import psycopg2
 from psycopg2.extras import execute_batch
 
@@ -56,6 +55,8 @@ def get_db_connection():
     
     try:
         conn = psycopg2.connect(database_url)
+        with conn.cursor() as cur:
+            cur.execute("SET search_path TO dev;")
         return conn
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}")
@@ -88,98 +89,66 @@ def load_whitelist(conn) -> Set[str]:
         return whitelist
 
 
-def fetch_dish_categories(conn, only_null: bool = False) -> List[str]:
-    """
-    対象 dish_categories を取得
-    
-    Args:
-        conn: DB 接続
-        only_null: True の場合、macro_genre_qid が NULL のもののみ取得
-        
-    Returns:
-        dish_category の ID リスト
-    """
-    with conn.cursor() as cur:
-        if only_null:
-            cur.execute("""
-                SELECT id
-                FROM dish_categories
-                WHERE macro_genre_qid IS NULL
-                ORDER BY id
-            """)
-        else:
-            cur.execute("""
-                SELECT id
-                FROM dish_categories
-                ORDER BY id
-            """)
-        
-        dish_ids = [row[0] for row in cur.fetchall()]
-        logger.info(f"Found {len(dish_ids)} dish_categories to process")
-        return dish_ids
-
-
-def fetch_ancestors(conn, dish_id: str) -> List[Tuple[str, int]]:
-    """
-    単一の dish_category について ancestors を取得
-    
-    Args:
-        conn: DB 接続
-        dish_id: dish_category の ID
-        
-    Returns:
-        [(ancestor_qid, depth), ...] のリスト（depth 昇順）
+def compute_updates(conn, only_null: bool) -> List[Tuple[str, str]]:
+    """JOIN と DISTINCT ON を使って、最短 depth の最初のヒットを一括取得する"""
+    where_clause = "d.macro_genre_qid IS NULL" if only_null else "TRUE"
+    sql = f"""
+        SELECT DISTINCT ON (d.id)
+            d.id AS dish_id,
+            a.ancestor_qid AS macro_genre_qid,
+            a.depth
+        FROM dish_categories d
+        JOIN dish_category_ancestors a
+          ON a.dish_category_id = d.id
+        JOIN macro_genre_whitelist w
+          ON w.macro_genre_qid = a.ancestor_qid
+        WHERE {where_clause}
+        ORDER BY
+            d.id,
+            a.depth ASC,
+            a.ancestor_qid ASC
     """
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT ancestor_qid, depth
-            FROM dish_category_ancestors
-            WHERE dish_category_id = %s
-            ORDER BY depth ASC, ancestor_qid ASC
-        """, (dish_id,))
-        
-        return [(row[0], row[1]) for row in cur.fetchall()]
+        cur.execute(sql)
+        rows = cur.fetchall()
+        updates = [(row[0], row[1]) for row in rows]
+        logger.info(f"Candidate assignments computed: {len(updates)}")
+        return updates
 
 
-def find_macro_genre(
-    ancestors: List[Tuple[str, int]],
-    whitelist: Set[str]
-) -> Tuple[Optional[str], bool, List[str]]:
+def log_ambiguous_cases(conn, only_null: bool) -> int:
+    """同 depth で whitelist ヒットが複数ある dish をログ出力（更新はしない）"""
+    where_clause = "d.macro_genre_qid IS NULL" if only_null else "TRUE"
+    # 最小 depth を求め、その depth における whitelist ヒット数が複数のものを検出
+    sql = f"""
+        WITH hits AS (
+            SELECT d.id AS dish_id, a.depth, a.ancestor_qid
+            FROM dish_categories d
+            JOIN dish_category_ancestors a ON a.dish_category_id = d.id
+            JOIN macro_genre_whitelist w ON w.macro_genre_qid = a.ancestor_qid
+            WHERE {where_clause}
+        ), min_depth AS (
+            SELECT dish_id, MIN(depth) AS min_depth
+            FROM hits
+            GROUP BY dish_id
+        ), same_min AS (
+            SELECT h.dish_id, h.depth, COUNT(*) AS cnt,
+                   ARRAY_AGG(h.ancestor_qid ORDER BY h.ancestor_qid) AS candidates
+            FROM hits h
+            JOIN min_depth m ON m.dish_id = h.dish_id AND m.min_depth = h.depth
+            GROUP BY h.dish_id, h.depth
+        )
+        SELECT dish_id, candidates
+        FROM same_min
+        WHERE cnt > 1
+        ORDER BY dish_id
     """
-    ancestors から最初に whitelist にマッチする QID を見つける
-    
-    Args:
-        ancestors: [(ancestor_qid, depth), ...] のリスト（depth 昇順）
-        whitelist: macro_genre の QID 集合
-        
-    Returns:
-        (macro_genre_qid, is_ambiguous, ambiguous_candidates) のタプル
-        - macro_genre_qid: 決定した QID（None の場合は未決定）
-        - is_ambiguous: 同一 depth で複数の候補が見つかった場合 True
-        - ambiguous_candidates: ambiguous な場合の候補リスト
-    """
-    if not ancestors:
-        return None, False, []
-    
-    # depth ごとにグループ化
-    depth_groups = defaultdict(list)
-    for ancestor_qid, depth in ancestors:
-        depth_groups[depth].append(ancestor_qid)
-    
-    # depth の昇順で処理
-    for depth in sorted(depth_groups.keys()):
-        qids_at_depth = depth_groups[depth]
-        matches = [qid for qid in qids_at_depth if qid in whitelist]
-        
-        if len(matches) == 1:
-            # 一意に決定
-            return matches[0], False, []
-        elif len(matches) > 1:
-            # ambiguous（同一 depth で複数マッチ）
-            return None, True, matches
-    
-    # whitelist にマッチする ancestor が見つからなかった
-    return None, False, []
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for dish_id, candidates in rows:
+            logger.warning(f"{dish_id}: Ambiguous - multiple candidates at minimal depth: {list(candidates)}")
+        return len(rows)
 
 
 def update_macro_genre_qid(conn, updates: List[Tuple[str, str]], dry_run: bool = False):
@@ -245,77 +214,70 @@ def main():
     conn = get_db_connection()
     
     try:
-        # whitelist をロード
+        # whitelist をロード（存在確認とログ用）
         whitelist = load_whitelist(conn)
         
         if not whitelist:
             logger.error("No macro genres found in whitelist. Please populate macro_genre_whitelist table first.")
             sys.exit(1)
         
-        # 対象 dish_categories を取得
-        dish_ids = fetch_dish_categories(conn, only_null=args.only_null)
+        # 一括で候補計算
+        updates = compute_updates(conn, only_null=args.only_null)
         
-        if not dish_ids:
-            logger.warning("No dish_categories to process")
-            return
+        # ambiguous ケースを検出してログ
+        ambiguous_count = log_ambiguous_cases(conn, only_null=args.only_null)
         
-        # 各 dish_category について macro_genre を決定
-        updates = []
-        stats = {
-            'assigned': 0,
-            'not_found': 0,
-            'ambiguous': 0
-        }
-        ambiguous_cases = []
-        
-        for i, dish_id in enumerate(dish_ids):
-            if (i + 1) % 100 == 0:
-                logger.info(f"Processed {i + 1}/{len(dish_ids)} dish_categories")
-            
-            # ancestors を取得
-            ancestors = fetch_ancestors(conn, dish_id)
-            
-            if not ancestors:
-                logger.debug(f"{dish_id}: No ancestors found")
-                stats['not_found'] += 1
-                continue
-            
-            # macro_genre を決定
-            macro_genre_qid, is_ambiguous, ambiguous_candidates = find_macro_genre(ancestors, whitelist)
-            
-            if is_ambiguous:
-                # ambiguous ケース
-                logger.warning(f"{dish_id}: Ambiguous - multiple candidates at same depth: {ambiguous_candidates}")
-                ambiguous_cases.append((dish_id, ambiguous_candidates))
-                stats['ambiguous'] += 1
-            elif macro_genre_qid:
-                # 一意に決定
-                updates.append((dish_id, macro_genre_qid))
-                stats['assigned'] += 1
-            else:
-                # whitelist にマッチする ancestor が見つからなかった
-                logger.debug(f"{dish_id}: No matching macro genre in whitelist")
-                stats['not_found'] += 1
-        
-        # 結果をログ出力
+        # 集計ログ
         logger.info("=" * 60)
         logger.info("Summary:")
-        logger.info(f"  Total processed: {len(dish_ids)}")
-        logger.info(f"  Assigned: {stats['assigned']}")
-        logger.info(f"  Not found in whitelist: {stats['not_found']}")
-        logger.info(f"  Ambiguous: {stats['ambiguous']}")
+        logger.info(f"  Total candidate assignments: {len(updates)}")
+        logger.info(f"  Ambiguous (multiple hits at minimal depth): {ambiguous_count}")
         logger.info("=" * 60)
         
-        if ambiguous_cases:
-            logger.info("Ambiguous cases (same depth, multiple whitelist matches):")
-            for dish_id, candidates in ambiguous_cases:
-                logger.info(f"  {dish_id}: {candidates}")
-            logger.info("These cases need manual review or whitelist adjustment")
-            logger.info("=" * 60)
+        # ambiguous の dish は更新しないため、updates から除外
+        if ambiguous_count:
+            # もう一度、曖昧でない dish のみを抽出するクエリを使う
+            # 最小 depth でヒット数が 1 のものだけ選ぶ
+            where_clause = "d.macro_genre_qid IS NULL" if args.only_null else "TRUE"
+            sql_unambiguous = f"""
+                WITH hits AS (
+                    SELECT d.id AS dish_id, a.depth, a.ancestor_qid
+                    FROM dish_categories d
+                    JOIN dish_category_ancestors a ON a.dish_category_id = d.id
+                    JOIN macro_genre_whitelist w ON w.macro_genre_qid = a.ancestor_qid
+                    WHERE {where_clause}
+                ), min_depth AS (
+                    SELECT dish_id, MIN(depth) AS min_depth
+                    FROM hits
+                    GROUP BY dish_id
+                ), counts AS (
+                    SELECT h.dish_id, h.depth, COUNT(*) AS cnt
+                    FROM hits h
+                    JOIN min_depth m ON m.dish_id = h.dish_id AND m.min_depth = h.depth
+                    GROUP BY h.dish_id, h.depth
+                )
+                SELECT DISTINCT ON (d.id)
+                    d.id AS dish_id,
+                    a.ancestor_qid AS macro_genre_qid,
+                    a.depth
+                FROM dish_categories d
+                JOIN dish_category_ancestors a ON a.dish_category_id = d.id
+                JOIN macro_genre_whitelist w ON w.macro_genre_qid = a.ancestor_qid
+                JOIN counts c ON c.dish_id = d.id AND c.depth = a.depth AND c.cnt = 1
+                WHERE {where_clause}
+                ORDER BY d.id, a.depth ASC, a.ancestor_qid ASC
+            """
+            with conn.cursor() as cur:
+                cur.execute(sql_unambiguous)
+                rows = cur.fetchall()
+                updates = [(row[0], row[1]) for row in rows]
+                logger.info(f"Unambiguous assignments: {len(updates)}")
         
         # DB を更新
         if updates:
             update_macro_genre_qid(conn, updates, dry_run=args.dry_run)
+        else:
+            logger.info("No unambiguous assignments to update")
         
         if args.dry_run:
             logger.info("DRY RUN completed. No changes were made to the database.")

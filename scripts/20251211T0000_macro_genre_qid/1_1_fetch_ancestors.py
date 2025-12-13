@@ -63,7 +63,7 @@ class WikidataFetcher:
     )
     def fetch_ancestors_batch(self, qids: List[str], max_depth: int) -> Dict[str, List[Tuple[str, int]]]:
         """
-        複数の QID について、P31/P279 を BFS で辿って ancestor を取得
+        複数の QID について、P31/P279 を BFS で辿って ancestor を取得（バッチクエリ）
         
         Args:
             qids: Wikidata QID のリスト
@@ -77,75 +77,80 @@ class WikidataFetcher:
         if not valid_qids:
             return {}
         
-        logger.info(f"Fetching ancestors for {len(valid_qids)} QIDs (max_depth={max_depth})")
+        logger.info(f"Fetching ancestors (batch) for {len(valid_qids)} QIDs (max_depth={max_depth})")
         
-        results = {}
-        for qid in valid_qids:
-            try:
-                ancestors = self._bfs_ancestors(qid, max_depth)
-                results[qid] = ancestors
-                # Rate limit 対策: 少し待機
-                time.sleep(0.1)
-            except Exception as e:
-                logger.error(f"Error fetching ancestors for {qid}: {e}")
-                # エラーが発生しても他の QID の処理を続ける
-                results[qid] = []
+        # ancestors: start_qid -> {node_qid: depth}
+        ancestors: Dict[str, Dict[str, int]] = {qid: {qid: 0} for qid in valid_qids}
+        # level_nodes: depth -> start_qid -> set(node_qid)
+        level_nodes: Dict[int, Dict[str, Set[str]]] = {0: {qid: {qid} for qid in valid_qids}}
         
-        return results
-    
-    def _bfs_ancestors(self, start_qid: str, max_depth: int) -> List[Tuple[str, int]]:
-        """
-        単一の QID について BFS で ancestor を取得
+        # helper: chunk list
+        def _chunks(lst: List[str], size: int) -> List[List[str]]:
+            return [lst[i:i + size] for i in range(0, len(lst), size)]
         
-        Args:
-            start_qid: 開始 QID
-            max_depth: 最大深度
+        for d in range(0, max_depth):
+            # 終了判定: この深さで探索対象があるか
+            current_level = level_nodes.get(d, {})
+            if not current_level:
+                break
+            frontier_nodes: Set[str] = set().union(*current_level.values()) if current_level else set()
+            if not frontier_nodes:
+                break
             
-        Returns:
-            [(ancestor_qid, depth), ...] のリスト
-        """
-        ancestors = [(start_qid, 0)]  # 自分自身も depth=0 で含める
-        visited = {start_qid}
-        queue = deque([(start_qid, 0)])
+            # child -> set(parents)
+            parents_by_child: Dict[str, Set[str]] = {}
+            
+            # 大きすぎる VALUES を分割
+            frontier_list = list(frontier_nodes)
+            # 過度なクエリを避けるため、VALUES のサイズは 300 までに制限
+            for chunk in _chunks(frontier_list, 300):
+                # SPARQL クエリを構築
+                values = " ".join([f"wd:{qid}" for qid in chunk])
+                query = f"""
+                SELECT ?item ?parent WHERE {{
+                  VALUES ?item {{ {values} }}
+                  ?item (wdt:P31|wdt:P279) ?parent .
+                  FILTER(STRSTARTS(STR(?parent), "http://www.wikidata.org/entity/Q"))
+                }}
+                """
+                self.sparql.setQuery(query)
+                try:
+                    sparql_results = self.sparql.query().convert()
+                    for result in sparql_results.get("results", {}).get("bindings", []):
+                        item_uri = result["item"]["value"]
+                        parent_uri = result["parent"]["value"]
+                        child_qid = item_uri.split("/")[-1]
+                        parent_qid = parent_uri.split("/")[-1]
+                        if not (parent_qid.startswith('Q') and parent_qid[1:].isdigit()):
+                            continue
+                        parents_by_child.setdefault(child_qid, set()).add(parent_qid)
+                except Exception as e:
+                    logger.warning(f"Failed batch parents fetch at depth {d}: {e}")
+                    # 続行（このチャンクはスキップ）
+                    continue
+                # 軽い rate limit 対策
+                time.sleep(0.5)
+            
+            # 次のレベルの初期化
+            level_nodes[d + 1] = {qid: set() for qid in valid_qids}
+            
+            # 結果を start_qid ごとに割り振り
+            for start_qid, nodes_at_d in current_level.items():
+                for node in nodes_at_d:
+                    for parent in parents_by_child.get(node, set()):
+                        if parent not in ancestors[start_qid]:
+                            ancestors[start_qid][parent] = d + 1
+                            level_nodes[d + 1][start_qid].add(parent)
+            
+            # この深さで新たなノードが全く無ければ打ち切り
+            if all(len(s) == 0 for s in level_nodes[d + 1].values()):
+                break
         
-        while queue:
-            current_qid, current_depth = queue.popleft()
-            
-            if current_depth >= max_depth:
-                continue
-            
-            # P31 (instance of) と P279 (subclass of) を取得
-            # #533 【セキュリティ】current_qid は _bfs_ancestors 呼び出し前にバリデーション済み（Q + 数字のみ）
-            query = f"""
-            SELECT DISTINCT ?parent WHERE {{
-                wd:{current_qid} (wdt:P31|wdt:P279) ?parent .
-                FILTER(STRSTARTS(STR(?parent), "http://www.wikidata.org/entity/Q"))
-            }}
-            """
-            
-            self.sparql.setQuery(query)
-            
-            try:
-                sparql_results = self.sparql.query().convert()
-                
-                for result in sparql_results["results"]["bindings"]:
-                    parent_uri = result["parent"]["value"]
-                    parent_qid = parent_uri.split("/")[-1]
-                    
-                    if parent_qid not in visited:
-                        visited.add(parent_qid)
-                        next_depth = current_depth + 1
-                        ancestors.append((parent_qid, next_depth))
-                        queue.append((parent_qid, next_depth))
-                
-                # Rate limit 対策
-                time.sleep(0.05)
-                
-            except Exception as e:
-                logger.warning(f"Failed to fetch parents for {current_qid}: {e}")
-                continue
-        
-        return ancestors
+        # 戻り値の整形
+        return {
+            start_qid: [(node, depth) for node, depth in nodes.items()]
+            for start_qid, nodes in ancestors.items()
+        }
 
 
 def get_db_connection():
@@ -157,6 +162,8 @@ def get_db_connection():
     
     try:
         conn = psycopg2.connect(database_url)
+        with conn.cursor() as cur:
+            cur.execute("SET search_path TO dev;")
         return conn
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}")
@@ -173,6 +180,10 @@ def fetch_dish_categories(conn) -> List[str]:
         cur.execute("""
             SELECT id
             FROM dish_categories
+            WHERE id not in (
+                SELECT DISTINCT dish_category_id
+                FROM dish_category_ancestors
+            )
             ORDER BY id
         """)
         rows = cur.fetchall()
@@ -236,7 +247,7 @@ def main():
             return
         
         # 既存データをクリア
-        truncate_ancestors(conn)
+        # truncate_ancestors(conn)
         
         # Wikidata フェッチャーを初期化
         fetcher = WikidataFetcher()
@@ -250,7 +261,7 @@ def main():
             logger.info(f"Processing batch {i // BATCH_SIZE + 1}/{(len(qids) + BATCH_SIZE - 1) // BATCH_SIZE}")
             
             try:
-                # ancestors を取得
+                # ancestors を取得（バッチ BFS）
                 batch_results = fetcher.fetch_ancestors_batch(batch, MAX_DEPTH)
                 
                 # DB に保存
