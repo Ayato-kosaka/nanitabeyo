@@ -109,7 +109,7 @@ def main():
     seen_qids: Set[str] = set()
     total_fetched = 0
     
-    for root_qid, root_kind in FOOD_ROOTS:
+    for root_index, (root_qid, root_kind) in enumerate(FOOD_ROOTS):
         logger.info("-" * 80)
         logger.info(f"Processing root: {root_qid} ({root_kind})")
         logger.info("-" * 80)
@@ -124,7 +124,7 @@ def main():
                 logger.info(f"Limit reached ({args.limit}), skipping remaining roots")
                 break
             # 残りのrootで均等割り当て（簡易版）
-            remaining_roots = len(FOOD_ROOTS) - FOOD_ROOTS.index((root_qid, root_kind))
+            remaining_roots = len(FOOD_ROOTS) - root_index
             root_limit = remaining // remaining_roots
             logger.info(f"Root limit for {root_qid}: {root_limit}")
         
