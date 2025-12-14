@@ -10,7 +10,7 @@ Wikidata から料理・飲み物のノード情報を取得し、BigQuery に�
 1. Wikidata から food_roots に基づいてノードを取得
    - ?item (P31|P279)* ?root を満たすノードを対象
    - ラベル（日本語・英語）と説明を取得
-   - #545 【設計】root単位で分割処理し、一時ファイルに保存（冪等性・再開性向上）
+   - root単位の一時ファイル保存先 TODO: 将来的に再開処理で利用することを想定
 2. BigQuery の food_nodes_raw にロード
 3. 親子エッジ（P31, P279）を取得
 4. 一時ファイルにエッジデータを保存（次のステップで使用）
@@ -125,13 +125,14 @@ def main():
                 break
             # 残りのrootで均等割り当て（簡易版）
             remaining_roots = len(FOOD_ROOTS) - root_index
-            if remaining_roots > 0:
-                root_limit = remaining // remaining_roots
-                logger.info(f"Root limit for {root_qid}: {root_limit}")
-            else:
-                # 最後のrootの場合
+            if remaining_roots <= 1:
+                # 最後の root は残りを全部
                 root_limit = remaining
-                logger.info(f"Root limit for {root_qid} (last): {root_limit}")
+            else:
+                # シンプル均等割り（最低 1）
+                root_limit = max(1, remaining // remaining_roots)
+
+            logger.info(f"Root limit for {root_qid}: {root_limit}")
         
         try:
             nodes = wikidata_client.fetch_food_nodes([root_qid], limit=root_limit)
@@ -156,11 +157,12 @@ def main():
             
             total_fetched = len(all_nodes)
             logger.info(f"Total unique nodes so far: {total_fetched}")
-            
-        except Exception as e:
-            logger.error(f"Failed to fetch nodes for root {root_qid}: {e}")
-            logger.error(f"Continuing with next root...")
-            continue
+
+            except Exception as e:
+                logger.error(f"Failed to fetch nodes for root {root_qid}: {e}")
+                logger.error("Aborting because root fetch failed")
+                sys.exit(1)
+
     
     if not all_nodes:
         logger.error("No nodes fetched from any root")
