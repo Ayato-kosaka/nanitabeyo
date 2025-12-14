@@ -55,7 +55,7 @@ BQ_DATASET = "wikidata_food_graph"
 FOOD_ROOTS = [
     ("Q746549",   "dish"),
     ("Q192874",   "noodle"),
-    ("Q18593264", "rice_dish"),
+    ("Q21976260", "rice_dish"),
     ("Q16266745", "flour_based_food"),
     ("Q182940",   "dessert"),
     ("Q40050",    "drink")

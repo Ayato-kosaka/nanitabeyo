@@ -41,7 +41,7 @@ MERGE `${DATASET}.food_roots` AS target
 USING (
   SELECT 'Q746549' AS root_qid, 'dish' AS kind UNION ALL
   SELECT 'Q192874', 'noodle' UNION ALL
-  SELECT 'Q18593264', 'rice_dish' UNION ALL
+  SELECT 'Q21976260', 'rice_dish' UNION ALL
   SELECT 'Q16266745', 'flour_based_food' UNION ALL
   SELECT 'Q182940', 'dessert' UNION ALL
   SELECT 'Q40050', 'drink'
