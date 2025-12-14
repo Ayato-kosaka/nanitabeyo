@@ -35,8 +35,8 @@ class WikidataClient:
         self.sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
     
     @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=1, min=4, max=60),
+        stop=stop_after_attempt(100),
+        wait=wait_exponential(multiplier=1, min=4, max=120),
         retry=retry_if_exception_type((Exception,))
     )
     def execute_query(self, query: str) -> List[Dict]:
