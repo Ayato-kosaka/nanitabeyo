@@ -158,10 +158,10 @@ def main():
             total_fetched = len(all_nodes)
             logger.info(f"Total unique nodes so far: {total_fetched}")
 
-            except Exception as e:
-                logger.error(f"Failed to fetch nodes for root {root_qid}: {e}")
-                logger.error("Aborting because root fetch failed")
-                sys.exit(1)
+        except Exception as e:
+            logger.error(f"Failed to fetch nodes for root {root_qid}: {e}")
+            logger.error("Aborting because root fetch failed")
+            sys.exit(1)
 
     
     if not all_nodes:
