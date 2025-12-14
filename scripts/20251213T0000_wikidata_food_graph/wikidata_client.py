@@ -35,7 +35,7 @@ class WikidataClient:
         self.sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
     
     @retry(
-        stop=stop_after_attempt(5),
+        stop=stop_after_attempt(10),
         wait=wait_exponential(multiplier=1, min=4, max=60),
         retry=retry_if_exception_type((Exception,))
     )
@@ -61,7 +61,7 @@ class WikidataClient:
         self,
         root_qids: List[str],
         limit: Optional[int] = None,
-        page_size: int = 2000,
+        page_size: int = 1000,
     ) -> List[Dict]:
         """
         food_roots に含まれる root_qid のいずれかに対して
