@@ -35,9 +35,9 @@ class WikidataClient:
         self.sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
     
     @retry(
-        stop=stop_after_attempt(100),
-        wait=wait_exponential(multiplier=1, min=4, max=120),
-        retry=retry_if_exception_type((Exception,))
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=60),
+        retry=retry_if_exception_type((Exception,))  # TODO: HTTPステータスごとに絞る（504, 429等）
     )
     def execute_query(self, query: str) -> List[Dict]:
         """
@@ -67,12 +67,13 @@ class WikidataClient:
         food_roots に含まれる root_qid のいずれかに対して
         ?item wdt:P31/wdt:P279* ?root_qid を満たすノードを取得
 
-        大量データ対策として、LIMIT + OFFSET でページングしながら取得する。
+        大量データ対策として、カーソル方式でページングしながら取得する。
+        OFFSETではなくORDER BY + FILTERを使い、WDQSへの負荷を軽減。
 
         Args:
             root_qids: ルート QID のリスト（例: ['Q746549', 'Q8495', ...]）
             limit: 取得件数の上限（開発用、None で無制限）
-            page_size: 1ページあたりの取得件数（デフォルト 10000）
+            page_size: 1ページあたりの取得件数（デフォルト 1000）
 
         Returns:
             ノード情報のリスト
@@ -82,8 +83,8 @@ class WikidataClient:
 
         nodes: List[Dict] = []
         total_fetched = 0
-        offset = 0
         page = 1
+        last_item_uri: Optional[str] = None  # #545 【設計】カーソル方式：前回取得した最後のitem URI
 
         logger.info(
             f"Fetching food nodes for {len(root_qids)} roots "
@@ -100,6 +101,11 @@ class WikidataClient:
             else:
                 batch_limit = page_size
 
+            # #545 【設計】カーソル条件を動的に生成
+            cursor_filter = ""
+            if last_item_uri:
+                cursor_filter = f'FILTER(STR(?item) > "{last_item_uri}")'
+
             query = f"""
             SELECT DISTINCT ?item ?label_ja ?label_en ?desc_ja ?desc_en
             WHERE {{
@@ -112,14 +118,15 @@ class WikidataClient:
               OPTIONAL {{ ?item schema:description ?desc_en FILTER(LANG(?desc_en) = "en") }}
 
               FILTER(STRSTARTS(STR(?item), "http://www.wikidata.org/entity/Q"))
+              {cursor_filter}
             }}
+            ORDER BY ?item
             LIMIT {batch_limit}
-            OFFSET {offset}
             """
 
             logger.info(
                 f"Fetching page {page} "
-                f"(LIMIT {batch_limit} OFFSET {offset}, total_fetched={total_fetched})"
+                f"(LIMIT {batch_limit}, cursor={last_item_uri or 'None'}, total_fetched={total_fetched})"
             )
 
             results = self.execute_query(query)
@@ -147,16 +154,16 @@ class WikidataClient:
                     "desc_en": result.get("desc_en", {}).get("value"),
                 })
                 page_count += 1
+                last_item_uri = item_uri  # #545 【設計】カーソル更新
 
             total_fetched += page_count
             logger.info(
                 f"Page {page} fetched {page_count} nodes "
-                f"(total_fetched={total_fetched})"
+                f"(total_fetched={total_fetched}, last_item={last_item_uri})"
             )
 
             # 次ページへ
             page += 1
-            offset += page_count  # or offset += batch_limit
 
             # レスポンス件数が LIMIT 未満なら「終端まで来た」と判断して終了
             if page_count < batch_limit:
