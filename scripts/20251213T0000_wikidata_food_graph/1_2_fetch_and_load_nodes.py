@@ -125,8 +125,13 @@ def main():
                 break
             # 残りのrootで均等割り当て（簡易版）
             remaining_roots = len(FOOD_ROOTS) - root_index
-            root_limit = remaining // remaining_roots
-            logger.info(f"Root limit for {root_qid}: {root_limit}")
+            if remaining_roots > 0:
+                root_limit = remaining // remaining_roots
+                logger.info(f"Root limit for {root_qid}: {root_limit}")
+            else:
+                # 最後のrootの場合
+                root_limit = remaining
+                logger.info(f"Root limit for {root_qid} (last): {root_limit}")
         
         try:
             nodes = wikidata_client.fetch_food_nodes([root_qid], limit=root_limit)
