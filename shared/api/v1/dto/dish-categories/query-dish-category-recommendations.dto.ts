@@ -33,11 +33,6 @@ export class QueryDishCategoryRecommendationsDto {
 	@IsString()
 	taste?: string;
 
-	/** 食の制約 例: ['halal', 'vegan'] など */
-	@IsOptional()
-	@IsString({ each: true })
-	restrictions?: string[];
-
 	/** 言語タグ (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA) */
 	@IsString()
 	@Matches(/^[a-z]{2,3}(-[A-Z]{2})?$/, {

@@ -47,7 +47,6 @@ export default function SearchScreen() {
 	const [scene, setScene] = useState<SearchParams["scene"] | undefined>(undefined);
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
-	const [restrictions, setRestrictions] = useState<string[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
 	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
@@ -143,13 +142,6 @@ export default function SearchScreen() {
 		}
 	};
 
-	const toggleRestriction = (restrictionId: string) => {
-		lightImpact();
-		setRestrictions((prev) =>
-			prev.includes(restrictionId) ? prev.filter((id) => id !== restrictionId) : [...prev, restrictionId],
-		);
-	};
-
 	const handleSearch = async () => {
 		if (!location) {
 			showSnackbar(i18n.t("Search.errors.noLocationSelected"));
@@ -165,7 +157,6 @@ export default function SearchScreen() {
 			scene,
 			mood,
 			taste,
-			restrictions,
 			distance,
 			priceLevels,
 		};
@@ -394,28 +385,30 @@ export default function SearchScreen() {
 						</Card>
 
 						{/* Restrictions */}
-						<Card>
-							<View style={styles.sectionHeader}>
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
-							</View>
-							<View style={styles.restrictionsContainer}>
-								{restrictionOptions.map((option) => (
-									<TouchableOpacity
-										key={option.id}
-										style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
-										onPress={() => toggleRestriction(option.id)}>
-										<Text style={styles.chipEmoji}>{option.icon}</Text>
-										<Text
-											style={[
-												styles.restrictionChipText,
-												restrictions.includes(option.id) && styles.selectedRestrictionChipText,
-											]}>
-											{i18n.t(option.label)}
-										</Text>
-									</TouchableOpacity>
-								))}
-							</View>
-						</Card>
+						{
+							// (<Card>
+							// 	<View style={styles.sectionHeader}>
+							// 		<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
+							// 	</View>
+							// 	<View style={styles.restrictionsContainer}>
+							// 		{restrictionOptions.map((option) => (
+							// 			<TouchableOpacity
+							// 				key={option.id}
+							// 				style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
+							// 				onPress={() => toggleRestriction(option.id)}>
+							// 				<Text style={styles.chipEmoji}>{option.icon}</Text>
+							// 				<Text
+							// 					style={[
+							// 						styles.restrictionChipText,
+							// 						restrictions.includes(option.id) && styles.selectedRestrictionChipText,
+							// 					]}>
+							// 					{i18n.t(option.label)}
+							// 				</Text>
+							// 			</TouchableOpacity>
+							// 		))}
+							// 	</View>
+							// </Card>)
+						}
 					</>
 				)}
 			</ScrollView>

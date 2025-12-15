@@ -33,7 +33,7 @@ export class DishCategoriesController {
   constructor(
     private readonly dishCategoriesService: DishCategoriesService,
     private readonly cls: ClsService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                    GET /v1/dish-categories/recommendations         */
@@ -50,7 +50,6 @@ export class DishCategoriesController {
   @ApiQuery({ name: 'timeSlot', required: false, description: '時間帯' })
   @ApiQuery({ name: 'scene', required: false, description: 'シーン' })
   @ApiQuery({ name: 'mood', required: false, description: '気分' })
-  @ApiQuery({ name: 'restrictions', required: false, description: '制限' })
   @ApiQuery({
     name: 'languageTag',
     required: true,

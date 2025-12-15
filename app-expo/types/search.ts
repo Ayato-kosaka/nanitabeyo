@@ -5,7 +5,6 @@ export type SearchParams = Omit<LocationDetailsResponse, "viewport"> & {
 	scene?: "solo" | "date" | "friends" | "family" | "drinking";
 	mood?: "light" | "normal" | "heavy";
 	taste?: "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
-	restrictions: string[];
 	distance: number; // meters
 	priceLevels: string[]; // price levels
 };

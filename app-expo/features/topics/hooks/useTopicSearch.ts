@@ -151,7 +151,6 @@ export const useTopicSearch = () => {
 						timeSlot: params.timeSlot,
 						scene: params.scene,
 						mood: params.mood,
-						restrictions: params.restrictions,
 						languageTag: locale,
 						localLanguageCode: params.localLanguageCode,
 					},
@@ -228,8 +227,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												typeof createDishCategoryVariantResponse.labels === "object" &&
+												params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
