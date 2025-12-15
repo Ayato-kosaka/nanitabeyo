@@ -292,3 +292,373 @@ class BigQueryLoader:
         
         self.execute_sql(sql)
         logger.info("Successfully generated dish_blacklist from ancestors")
+    
+    def fetch_all_node_qids(self) -> List[str]:
+        """
+        food_nodes_raw から全ノード QID を取得
+        
+        Returns:
+            ノード QID のリスト
+        """
+        logger.info("Fetching all node QIDs from food_nodes_raw...")
+        
+        sql = f"""
+        SELECT DISTINCT item_qid
+        FROM `{self.dataset_ref}.food_nodes_raw`
+        ORDER BY item_qid
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        node_qids = [row.item_qid for row in results]
+        logger.info(f"Fetched {len(node_qids)} node QIDs")
+        
+        return node_qids
+    
+    def load_food_edges_raw(self, edges: List[Tuple[str, str]]) -> None:
+        """
+        food_edges_raw テーブルにエッジデータをロード
+        
+        Args:
+            edges: (child_qid, parent_qid) のタプルのリスト
+        """
+        if not edges:
+            logger.warning("No edges to load")
+            return
+        
+        table_id = f"{self.dataset_ref}.food_edges_raw"
+        logger.info(f"Loading {len(edges)} edges to {table_id}")
+        
+        # #550 【設計】既存データを削除して再ロード
+        try:
+            self.execute_sql(f"TRUNCATE TABLE `{table_id}`")
+            logger.info(f"Truncated {table_id}")
+        except Exception as e:
+            logger.warning(f"Failed to truncate {table_id}: {e}")
+        
+        # #550 【設計】エッジデータをロード（既存の fetch_parent_edges は P31/P279 を区別しない）
+        rows_to_insert = [
+            {
+                "child_qid": child,
+                "parent_qid": parent
+            }
+            for child, parent in edges
+        ]
+        
+        # バッチでインサート（BigQuery の制限対策）
+        batch_size = 10000
+        for i in range(0, len(rows_to_insert), batch_size):
+            batch = rows_to_insert[i:i + batch_size]
+            errors = self.client.insert_rows_json(table_id, batch)
+            if errors:
+                logger.error(f"Errors occurred while loading edges: {errors}")
+                raise Exception(f"Failed to load edges: {errors}")
+            logger.info(f"Loaded batch {i // batch_size + 1}/{(len(rows_to_insert) + batch_size - 1) // batch_size}")
+        
+        logger.info(f"Successfully loaded {len(edges)} edges")
+    
+    def generate_dish_category_catalog(self) -> None:
+        """
+        dish_category_catalog テーブルを生成
+        blacklist を除外し、labels/desc/tags を付与
+        """
+        table_id = f"{self.dataset_ref}.dish_category_catalog"
+        logger.info(f"Generating dish_category_catalog table")
+        
+        # #550 【設計】CREATE OR REPLACE で再生成可能にする
+        sql = f"""
+        CREATE OR REPLACE TABLE `{table_id}` AS
+        WITH non_blacklisted AS (
+          -- blacklist に含まれていない dish を抽出
+          SELECT
+            n.item_qid,
+            n.label_ja,
+            n.label_en,
+            n.desc_ja,
+            n.desc_en
+          FROM `{self.dataset_ref}.food_nodes_raw` n
+          LEFT JOIN `{self.dataset_ref}.dish_blacklist` b
+            ON n.item_qid = b.dish_qid
+          WHERE b.dish_qid IS NULL
+        ),
+        tags_aggregated AS (
+          -- depth<=5 の祖先を tags として集約
+          SELECT
+            fp.child_qid AS item_qid,
+            ARRAY_AGG(DISTINCT fp.ancestor_qid ORDER BY fp.ancestor_qid) AS tags
+          FROM `{self.dataset_ref}.food_paths` fp
+          WHERE fp.depth <= 5
+            AND fp.depth > 0  -- #550 【設計】自分自身 (depth=0) は除外
+          GROUP BY fp.child_qid
+        )
+        SELECT
+          nb.item_qid,
+          nb.label_ja,
+          nb.label_en,
+          nb.desc_ja,
+          nb.desc_en,
+          NULL AS image_url,  -- #550 【設計】image_url は今回スコープ外
+          COALESCE(ta.tags, []) AS tags
+        FROM non_blacklisted nb
+        LEFT JOIN tags_aggregated ta
+          ON nb.item_qid = ta.item_qid
+        """
+        
+        self.execute_sql(sql)
+        logger.info("Successfully generated dish_category_catalog")
+    
+    def generate_dish_macro_genre_analysis(self, max_candidates: int = 10) -> None:
+        """
+        dish_macro_genre_analysis テーブルを生成
+        macro_genre_whitelist と food_paths を用いて macro_genre を決定
+        
+        Args:
+            max_candidates: 候補の最大数（デフォルト 10）
+        """
+        table_id = f"{self.dataset_ref}.dish_macro_genre_analysis"
+        logger.info(f"Generating dish_macro_genre_analysis table (max_candidates={max_candidates})")
+        
+        # #550 【設計】CREATE OR REPLACE で再生成可能にする
+        sql = f"""
+        CREATE OR REPLACE TABLE `{table_id}` AS
+        WITH catalog_items AS (
+          -- catalog に含まれる item のみを対象
+          SELECT item_qid
+          FROM `{self.dataset_ref}.dish_category_catalog`
+        ),
+        whitelist_matches AS (
+          -- whitelist に含まれる祖先を持つ item を抽出
+          SELECT
+            fp.child_qid AS item_qid,
+            fp.ancestor_qid,
+            fp.depth
+          FROM `{self.dataset_ref}.food_paths` fp
+          INNER JOIN `{self.dataset_ref}.macro_genre_whitelist` w
+            ON fp.ancestor_qid = w.item_qid
+          INNER JOIN catalog_items ci
+            ON fp.child_qid = ci.item_qid
+        ),
+        min_depth_per_item AS (
+          -- 各 item の最小 depth を求める
+          SELECT
+            item_qid,
+            MIN(depth) AS min_depth
+          FROM whitelist_matches
+          GROUP BY item_qid
+        ),
+        min_depth_candidates AS (
+          -- min_depth の候補を全件抽出
+          SELECT
+            wm.item_qid,
+            wm.ancestor_qid,
+            wm.depth
+          FROM whitelist_matches wm
+          INNER JOIN min_depth_per_item md
+            ON wm.item_qid = md.item_qid
+            AND wm.depth = md.min_depth
+        ),
+        all_candidates AS (
+          -- min_depth 全件 + 最大 K 件を取得
+          SELECT
+            wm.item_qid,
+            wm.ancestor_qid,
+            wm.depth,
+            ROW_NUMBER() OVER (PARTITION BY wm.item_qid ORDER BY wm.depth, wm.ancestor_qid) AS rn
+          FROM whitelist_matches wm
+        ),
+        candidates_limited AS (
+          SELECT
+            item_qid,
+            ancestor_qid,
+            depth
+          FROM all_candidates
+          WHERE rn <= {max_candidates}
+        ),
+        macro_genre_decision AS (
+          -- macro_genre_qid の決定（min_depth が 1 件なら確定、複数なら NULL）
+          SELECT
+            md.item_qid,
+            md.min_depth AS macro_genre_depth,
+            CASE
+              WHEN COUNT(DISTINCT mdc.ancestor_qid) = 1 THEN MIN(mdc.ancestor_qid)
+              ELSE NULL
+            END AS macro_genre_qid,
+            CASE
+              WHEN COUNT(DISTINCT mdc.ancestor_qid) > 1 THEN TRUE
+              ELSE FALSE
+            END AS macro_genre_ambiguous
+          FROM min_depth_per_item md
+          LEFT JOIN min_depth_candidates mdc
+            ON md.item_qid = mdc.item_qid
+          GROUP BY md.item_qid, md.min_depth
+        ),
+        candidates_array AS (
+          -- 候補を配列化
+          SELECT
+            item_qid,
+            ARRAY_AGG(
+              STRUCT(ancestor_qid, depth)
+              ORDER BY depth, ancestor_qid
+            ) AS macro_genre_candidates
+          FROM candidates_limited
+          GROUP BY item_qid
+        )
+        SELECT
+          ci.item_qid,
+          COALESCE(mgd.macro_genre_qid, NULL) AS macro_genre_qid,
+          mgd.macro_genre_depth,
+          COALESCE(mgd.macro_genre_ambiguous, FALSE) AS macro_genre_ambiguous,
+          COALESCE(ca.macro_genre_candidates, []) AS macro_genre_candidates,
+          CURRENT_TIMESTAMP() AS computed_at
+        FROM catalog_items ci
+        LEFT JOIN macro_genre_decision mgd
+          ON ci.item_qid = mgd.item_qid
+        LEFT JOIN candidates_array ca
+          ON ci.item_qid = ca.item_qid
+        """
+        
+        self.execute_sql(sql)
+        logger.info("Successfully generated dish_macro_genre_analysis")
+    
+    def fetch_macro_genre_candidate_stats(self, top_n: int = 1000) -> List[Dict]:
+        """
+        macro_genre 候補の統計情報を取得
+        
+        Args:
+            top_n: 上位 N 件を取得（デフォルト 1000）
+            
+        Returns:
+            統計情報のリスト
+        """
+        logger.info(f"Fetching macro_genre candidate stats (top {top_n})...")
+        
+        sql = f"""
+        WITH catalog_items AS (
+          SELECT item_qid
+          FROM `{self.dataset_ref}.dish_category_catalog`
+        ),
+        ancestor_counts AS (
+          SELECT
+            fp.ancestor_qid,
+            COUNT(DISTINCT fp.child_qid) AS hit_count
+          FROM `{self.dataset_ref}.food_paths` fp
+          INNER JOIN catalog_items ci
+            ON fp.child_qid = ci.item_qid
+          WHERE fp.depth > 0  -- #550 【設計】自分自身は除外
+          GROUP BY fp.ancestor_qid
+        ),
+        examples AS (
+          SELECT
+            fp.ancestor_qid,
+            ARRAY_AGG(
+              STRUCT(
+                fp.child_qid AS qid,
+                n.label_ja,
+                n.label_en
+              )
+              LIMIT 5
+            ) AS example_items
+          FROM `{self.dataset_ref}.food_paths` fp
+          INNER JOIN catalog_items ci
+            ON fp.child_qid = ci.item_qid
+          LEFT JOIN `{self.dataset_ref}.food_nodes_raw` n
+            ON fp.child_qid = n.item_qid
+          WHERE fp.depth > 0
+          GROUP BY fp.ancestor_qid
+        )
+        SELECT
+          ac.ancestor_qid,
+          n.label_ja,
+          n.label_en,
+          ac.hit_count,
+          TO_JSON_STRING(ex.example_items) AS example_items
+        FROM ancestor_counts ac
+        LEFT JOIN `{self.dataset_ref}.food_nodes_raw` n
+          ON ac.ancestor_qid = n.item_qid
+        LEFT JOIN examples ex
+          ON ac.ancestor_qid = ex.ancestor_qid
+        ORDER BY ac.hit_count DESC
+        LIMIT {top_n}
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        stats = [
+            {
+                "ancestor_qid": row.ancestor_qid,
+                "label_ja": row.label_ja or "",
+                "label_en": row.label_en or "",
+                "hit_count": row.hit_count,
+                "example_items": row.example_items or "[]"
+            }
+            for row in results
+        ]
+        
+        logger.info(f"Fetched {len(stats)} candidate stats")
+        return stats
+    
+    def fetch_macro_genre_review_data(
+        self,
+        ambiguous_only: bool = False,
+        null_only: bool = False
+    ) -> List[Dict]:
+        """
+        macro_genre レビュー用データを取得
+        
+        Args:
+            ambiguous_only: 曖昧なものだけ取得
+            null_only: NULL のものだけ取得
+            
+        Returns:
+            レビューデータのリスト
+        """
+        logger.info("Fetching macro_genre review data...")
+        
+        where_clauses = []
+        if ambiguous_only:
+            where_clauses.append("a.macro_genre_ambiguous = TRUE")
+        if null_only:
+            where_clauses.append("a.macro_genre_qid IS NULL")
+        
+        where_clause = ""
+        if where_clauses:
+            where_clause = "WHERE " + " AND ".join(where_clauses)
+        
+        sql = f"""
+        SELECT
+          c.item_qid,
+          c.label_ja,
+          c.label_en,
+          a.macro_genre_qid,
+          a.macro_genre_depth,
+          a.macro_genre_ambiguous,
+          TO_JSON_STRING(a.macro_genre_candidates) AS macro_genre_candidates,
+          TO_JSON_STRING(c.tags) AS tags
+        FROM `{self.dataset_ref}.dish_category_catalog` c
+        LEFT JOIN `{self.dataset_ref}.dish_macro_genre_analysis` a
+          ON c.item_qid = a.item_qid
+        {where_clause}
+        ORDER BY c.item_qid
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        review_data = [
+            {
+                "item_qid": row.item_qid,
+                "label_ja": row.label_ja or "",
+                "label_en": row.label_en or "",
+                "macro_genre_qid": row.macro_genre_qid or "",
+                "macro_genre_depth": row.macro_genre_depth if row.macro_genre_depth is not None else "",
+                "macro_genre_ambiguous": row.macro_genre_ambiguous if row.macro_genre_ambiguous is not None else False,
+                "macro_genre_candidates": row.macro_genre_candidates or "[]",
+                "tags": row.tags or "[]"
+            }
+            for row in results
+        ]
+        
+        logger.info(f"Fetched {len(review_data)} review items")
+        return review_data
