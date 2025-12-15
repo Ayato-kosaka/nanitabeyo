@@ -386,6 +386,7 @@ export default function SearchScreen() {
 
 						{/* Restrictions */}
 						{
+							// #541 にて廃止
 							// (<Card>
 							// 	<View style={styles.sectionHeader}>
 							// 		<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
