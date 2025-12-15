@@ -151,9 +151,9 @@ Examples (for reference):
         
         # #548 【設計】教師データを埋め込み（few-shot learning）
         for example in self.examples[:30]:  # 最初の30件を使用
-            label_en = (example.get("label_en", "")).strip()
-            desc_en = (example.get("desc_en", "")).strip()
-            target = example.get("target_label", "")
+            label_en = (example.get("label_en" or "")).strip()
+            desc_en = (example.get("desc_en") or "").strip()
+            target = example.get("target_label" or "")
             if desc_en:
                 system_prompt += f'- "{label_en}" (desc: "{desc_en}") -> {target}\n'
             else:

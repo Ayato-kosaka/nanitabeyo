@@ -188,13 +188,35 @@ python3 1_2_prepare_batch_payload.py
 openai api files.create -f /tmp/wikidata_food_llm/batch_payload.jsonl -p batch
 
 # 2. バッチを作成
-openai api batches.create --input-file-id file-xxx --endpoint /v1/chat/completions --completion-window 24h
+curl https://api.openai.com/v1/batches \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input_file_id": "file-xxx",
+    "endpoint": "/v1/chat/completions",
+    "completion_window": "24h",
+    "metadata": {
+      "task": "#548_menu_blacklist_classification",
+      "run_id": "20251215T0000_v1"
+    }
+  }'
+
 
 # 3. バッチの状態を確認
-openai api batches.retrieve --batch-id batch-xxx
+curl https://api.openai.com/v1/batches/<BATCH_ID> \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json"
 
 # 4. 完了後、結果をダウンロード
-openai api files.content --file-id file-yyy > /tmp/wikidata_food_llm/results.jsonl
+# 成功結果
+curl https://api.openai.com/v1/files/<OUTPUT_FILE_ID>/content \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -o /tmp/wikidata_food_llm/results.jsonl
+
+# 失敗結果（あれば）
+curl https://api.openai.com/v1/files/<ERROR_FILE_ID>/content \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -o /tmp/wikidata_food_llm/errors.jsonl
 ```
 
 **注意:**
@@ -301,12 +323,10 @@ gpt-4o-mini + Batch API を利用することで、コストを大幅に削減�
 
 ### 計算
 
-- キャッシュインプット: 1,500 × 900 = 1.35M → $0.135
-- 入力トークン: 700 × 900 = 0.63M → $0.25
-- 出力トークン: 1,000 × 900 = 0.9M → $1.44
-- **合計: 約 $1.8**
-
-18,000 件のノードを処理しても約 $1.8
+- キャッシュインプット: 1,500 × 900 = 1.35M → $0.27
+- 入力トークン: 700 × 900 = 0.63M → $0.326
+- 出力トークン: 1,000 × 900 = 0.9M → $0.72
+- **合計: 約 $1.316**
 
 ## 注意事項
 

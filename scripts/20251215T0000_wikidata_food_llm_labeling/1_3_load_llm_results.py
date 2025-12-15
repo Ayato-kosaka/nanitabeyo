@@ -50,53 +50,76 @@ INPUT_FILE = INPUT_DIR / "results.jsonl"
 def load_batch_results(filepath: Path) -> List[Dict]:
     """
     Batch API の結果を読み込む
-    
+
     Args:
         filepath: results.jsonl のパス
-        
+
     Returns:
         全ラベルのリスト
     """
-    all_labels = []
+    all_labels: List[Dict] = []
     llm_client = LLMClient()
     failed_output_file = INPUT_DIR / "failed_custom_ids.jsonl"
-    
+
     with open(filepath, 'r', encoding='utf-8') as f:
         for line_num, line in enumerate(f, 1):
             if not line.strip():
                 continue
-            
+
             custom_id = f"line_{line_num}"
+
             try:
                 batch_response = json.loads(line)
                 custom_id = batch_response.get("custom_id", custom_id)
-                
-                # Batch API のレスポンス構造を処理
-                # #548 【設計】Batch API レスポンス形式
-                if "response" in batch_response and "body" in batch_response["response"]:
-                    response_body = batch_response["response"]["body"]
-                    if "choices" in response_body and len(response_body["choices"]) > 0:
-                        content = response_body["choices"][0]["message"]["content"]
-                        
-                        # LLM レスポンスをパース
-                        labels = llm_client.parse_response(content)
-                        all_labels.extend(labels)
-                        logger.info(f"Processed line {line_num}: {len(labels)} labels")
-                else:
-                    logger.warning(f"Unexpected response format at line {line_num}")
-            
-            # エラーなら failed_custom_ids.jsonl に「元リクエスト（custom_id + items）」を書き出す
+
+                # Batch API 正常レスポンスか確認
+                if (
+                    "response" not in batch_response
+                    or "body" not in batch_response["response"]
+                ):
+                    raise ValueError("Missing response.body")
+
+                response_body = batch_response["response"]["body"]
+
+                # parse_response は response_obj 全体を受け取る
+                validated, err = llm_client.parse_response(
+                    response_body,
+                    expected_items=None  # results.jsonl 単体では照合不可
+                )
+
+                if err is not None or validated is None:
+                    # LLM 出力はあるが構造的に失敗
+                    with open(failed_output_file, 'a', encoding='utf-8') as fout:
+                        fout.write(json.dumps({
+                            "custom_id": custom_id,
+                            "error_code": err.code if err else "unknown",
+                            "error_message": err.message if err else "unknown error",
+                            "original_line": line.strip(),
+                        }, ensure_ascii=False) + "\n")
+                    logger.warning(
+                        f"Parse failed at line {line_num} "
+                        f"(custom_id={custom_id}, code={err.code if err else 'unknown'})"
+                    )
+                    continue
+
+                # 正常系
+                all_labels.extend(validated)
+                logger.info(
+                    f"Processed line {line_num}: {len(validated)} labels"
+                )
+
             except Exception as e:
+                # JSON壊れ / 想定外例外
                 logger.error(f"Failed to process line {line_num}: {e}")
                 with open(failed_output_file, 'a', encoding='utf-8') as fout:
-                    failed_record = {
+                    fout.write(json.dumps({
                         "custom_id": custom_id,
-                        "error": str(e),
-                        "original_line": line.strip()
-                    }
-                    fout.write(json.dumps(failed_record, ensure_ascii=False) + "\n")
+                        "error_code": "exception",
+                        "error_message": str(e),
+                        "original_line": line.strip(),
+                    }, ensure_ascii=False) + "\n")
                 continue
-    
+
     logger.info(f"Total labels loaded: {len(all_labels)}")
     return all_labels
 
