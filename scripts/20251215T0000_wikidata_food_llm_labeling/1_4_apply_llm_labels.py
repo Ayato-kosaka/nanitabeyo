@@ -73,7 +73,6 @@ def main():
     
     # 整形して表示
     label_order = ["keep", "too_generic", "non_menu_item", "not_for_menu", "uncertain"]
-    confidence_order = ["high", "medium", "low"]
     
     # ヘッダー
     logger.info(f"{'Label':<20} {'High':<10} {'Medium':<10} {'Low':<10} {'Total':<10}")
