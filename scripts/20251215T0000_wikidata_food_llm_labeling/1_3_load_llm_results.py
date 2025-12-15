@@ -25,7 +25,6 @@ import logging
 import argparse
 from pathlib import Path
 from typing import List, Dict
-from datetime import datetime
 
 from loader_bigquery import BigQueryLoader
 from llm_client import LLMClient

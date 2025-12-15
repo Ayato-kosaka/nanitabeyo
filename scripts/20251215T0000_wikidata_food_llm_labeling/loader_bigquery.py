@@ -15,7 +15,6 @@ import logging
 from typing import List, Dict
 from datetime import datetime
 from google.cloud import bigquery
-from google.cloud.exceptions import NotFound
 
 logger = logging.getLogger(__name__)
 
