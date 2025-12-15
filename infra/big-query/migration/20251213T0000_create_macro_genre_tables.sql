@@ -14,13 +14,13 @@
 --
 -- ## 処理内容
 -- 1. macro_genre_whitelist: macro_genre として採用する QID の手動運用テーブル
--- 2. food_edges_raw: Wikidata 由来エッジ原票（child→parent, property）
--- 3. dish_category_catalog: blacklist 除外済み準マスタ（labels/desc/image/tags）
--- 4. dish_macro_genre_analysis: macro_genre 割当の分析テーブル（曖昧フラグ・候補群）
+-- 2. food_edges_raw: Wikidata 由来エッジ原票（child→parent）
+-- 3. dish_macro_genre_analysis: macro_genre 割当の分析テーブル（曖昧フラグ・候補群）
 --
 -- ## 注意
 -- - テーブルは CREATE TABLE IF NOT EXISTS で作成されるため、再実行可能
--- - catalog と analysis の実データ投入は Python スクリプト側で行う
+-- - analysis の実データ投入は Python スクリプト側で行う
+-- - dish_category_catalog は 20251213T0000_create_wikidata_food_tables.sql で定義
 -- ==============================================================================
 
 
@@ -41,35 +41,17 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.macro_genre_whitelist` (
 -- 2. food_edges_raw: Wikidata 由来エッジ原票
 -- -----------------------------------------------------------------------------
 -- Wikidata から取得した child→parent のエッジ情報を保持
--- P31 (instance of), P279 (subclass of), P361 (part of), P527 (has part) を対象
+-- P31 (instance of), P279 (subclass of) を対象
+-- 既存実装は P31/P279 を区別しないため property フィールドは持たない
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `${DATASET}.food_edges_raw` (
   child_qid  STRING NOT NULL,   -- 子ノード QID
-  parent_qid STRING NOT NULL,   -- 親ノード QID
-  property   STRING NOT NULL    -- プロパティ（'P31', 'P279', 'P361', 'P527'）
+  parent_qid STRING NOT NULL    -- 親ノード QID
 );
 
 
 -- -----------------------------------------------------------------------------
--- 3. dish_category_catalog: blacklist 除外済み準マスタ
--- -----------------------------------------------------------------------------
--- dish_blacklist に含まれていない dish のカタログ
--- labels/desc/image_url/tags を保持し、本番投入時の候補となる
--- 実データは Python スクリプト側で CREATE OR REPLACE TABLE AS SELECT ... により生成
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_catalog` (
-  item_qid  STRING NOT NULL,   -- dish QID
-  label_ja  STRING,             -- 日本語ラベル
-  label_en  STRING,             -- 英語ラベル
-  desc_ja   STRING,             -- 日本語説明
-  desc_en   STRING,             -- 英語説明
-  image_url STRING,             -- Wikidata 画像 URL（あれば）
-  tags      ARRAY<STRING>       -- 祖先 QID の配列（depth<=5 の shallow なもの）
-);
-
-
--- -----------------------------------------------------------------------------
--- 4. dish_macro_genre_analysis: macro_genre 割当の分析テーブル
+-- 3. dish_macro_genre_analysis: macro_genre 割当の分析テーブル
 -- -----------------------------------------------------------------------------
 -- macro_genre_whitelist と food_paths を用いて macro_genre を決定
 -- 曖昧判定・候補配列をレビュー用に保持

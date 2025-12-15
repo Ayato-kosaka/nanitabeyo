@@ -5,11 +5,11 @@
 
 【目的】
 Wikidata SPARQL から child→parent のエッジを取得し、food_edges_raw にロードする
-（P31/P279/P361/P527）
+（P31/P279）
 
 【処理内容】
 1. food_nodes_raw から全ノード QID を取得
-2. Wikidata から各ノードの親エッジを取得（P31, P279, P361, P527）
+2. Wikidata から各ノードの親エッジを取得（P31, P279）
 3. BigQuery の food_edges_raw にロード（CREATE OR REPLACE）
 
 【使用方法】
@@ -66,8 +66,8 @@ def main():
     
     logger.info(f"Found {len(node_qids)} nodes")
     
-    # 2. Wikidata から親エッジを取得（P31, P279 のみ。P361/P527 は既存の fetch_parent_edges に含まれていない）
-    # #550 【設計】既存の fetch_parent_edges は P31/P279 のみ対応。P361/P527 は今回スコープ外とする
+    # 2. Wikidata から親エッジを取得（P31, P279 のみ）
+    # #550 【設計】既存の fetch_parent_edges は P31/P279 のみ対応
     logger.info("Fetching parent edges from Wikidata...")
     edges = wikidata_client.fetch_parent_edges(node_qids)
     

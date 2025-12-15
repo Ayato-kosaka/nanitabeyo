@@ -337,12 +337,11 @@ class BigQueryLoader:
         except Exception as e:
             logger.warning(f"Failed to truncate {table_id}: {e}")
         
-        # #550 【設計】エッジデータを property='P31' or 'P279' として保存（既存の fetch_parent_edges は property を返さない）
+        # #550 【設計】エッジデータをロード（既存の fetch_parent_edges は P31/P279 を区別しない）
         rows_to_insert = [
             {
                 "child_qid": child,
-                "parent_qid": parent,
-                "property": "P31"  # #550 【設計】既存実装は P31/P279 を区別しないため P31 で統一
+                "parent_qid": parent
             }
             for child, parent in edges
         ]

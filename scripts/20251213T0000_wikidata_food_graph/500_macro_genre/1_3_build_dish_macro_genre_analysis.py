@@ -71,6 +71,9 @@ def main():
     logger.info("Next steps:")
     logger.info("  - Export candidate stats: python3 1_4_export_macro_genre_candidate_stats.py")
     logger.info("  - Export review CSV: python3 1_5_export_macro_genre_review.py")
+    logger.info("")
+    logger.info("Note: dish_category_catalog must be built first using:")
+    logger.info("  cd .. && python3 3_1_build_dish_category_catalog.py")
 
 
 if __name__ == "__main__":

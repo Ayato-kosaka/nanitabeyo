@@ -124,3 +124,21 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.dish_blacklist` (
   note       STRING,            -- 任意メモ（ancestor_qid などを文字列で入れてもよい）
   created_at TIMESTAMP
 );
+
+
+-- -----------------------------------------------------------------------------
+-- 7. dish_category_catalog: blacklist 除外済み準マスタ
+-- -----------------------------------------------------------------------------
+-- dish_blacklist に含まれていない dish のカタログ
+-- labels/desc/image_url/tags を保持し、本番投入時の候補となる
+-- 実データは Python スクリプト側で CREATE OR REPLACE TABLE AS SELECT ... により生成
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_catalog` (
+  item_qid  STRING NOT NULL,   -- dish QID
+  label_ja  STRING,             -- 日本語ラベル
+  label_en  STRING,             -- 英語ラベル
+  desc_ja   STRING,             -- 日本語説明
+  desc_en   STRING,             -- 英語説明
+  image_url STRING,             -- Wikidata 画像 URL（あれば）
+  tags      ARRAY<STRING>       -- 祖先 QID の配列（depth<=5 の shallow なもの）
+);

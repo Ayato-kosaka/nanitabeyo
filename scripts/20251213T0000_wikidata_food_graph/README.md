@@ -349,6 +349,7 @@ scripts/20251213T0000_wikidata_food_graph/
 ├── 1_1_create_tables.py         # ステップ1: テーブル作成
 ├── 1_2_fetch_and_load_nodes.py  # ステップ2: ノード取得とロード
 ├── 1_3_generate_paths_and_summary.py  # ステップ3: パスとサマリー生成
+├── 3_1_build_dish_category_catalog.py  # ステップ4: カタログ構築（#550）
 ├── wikidata_client.py           # Wikidata SPARQL クライアント
 ├── loader_bigquery.py           # BigQuery ロード・処理ロジック
 ├── requirements.txt             # Python 依存パッケージ
@@ -356,7 +357,6 @@ scripts/20251213T0000_wikidata_food_graph/
 └── 500_macro_genre/             # macro_genre ホワイトリスト運用スクリプト（#550）
     ├── 0_create_macro_genre_tables.py  # テーブル作成
     ├── 1_1_build_food_edges_raw.py     # エッジデータ構築
-    ├── 1_2_build_dish_category_catalog.py # カタログ構築
     ├── 1_3_build_dish_macro_genre_analysis.py # analysis 構築
     ├── 1_4_export_macro_genre_candidate_stats.py # 候補分布 CSV 出力
     ├── 1_5_export_macro_genre_review.py # レビュー CSV 出力

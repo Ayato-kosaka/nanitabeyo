@@ -34,12 +34,13 @@ pip install -r requirements.txt
 - `food_nodes_raw`
 - `food_paths`
 - `dish_blacklist`
+- `dish_category_catalog`
 
-親ディレクトリのスクリプト（1_1, 1_2, 1_3）を実行して、これらのテーブルを作成してください。
+親ディレクトリのスクリプト（1_1, 1_2, 1_3, 3_1）を実行して、これらのテーブルを作成してください。
 
 ## 使用方法
 
-スクリプトは5つのステップに分かれています。順番に実行してください。
+スクリプトは4つのステップに分かれています。順番に実行してください。
 
 ### ステップ 1: food_edges_raw の構築
 
@@ -58,26 +59,7 @@ python3 1_1_build_food_edges_raw.py
 - 既に `food_edges_raw` がある場合は上書きされます
 - SPARQL endpoint への大量リクエストが発生するため、時間がかかります
 
-### ステップ 2: dish_category_catalog の構築
-
-blacklist 除外済み集合を対象に、カタログを生成します。
-
-```bash
-python3 1_2_build_dish_category_catalog.py
-```
-
-**処理内容:**
-- `food_nodes_raw` から dish を取得
-- `dish_blacklist` を除外
-- labels/desc を付与
-- `tags` は `food_paths` を参照し depth<=5 の祖先を配列化
-- `CREATE OR REPLACE TABLE` で再生成
-
-**注意点:**
-- テーブルは上書きされます
-- `image_url` は今回のスコープでは NULL
-
-### ステップ 3: dish_macro_genre_analysis の構築
+### ステップ 2: dish_macro_genre_analysis の構築
 
 macro_genre_whitelist と food_paths を用いて macro_genre を決定します。
 
@@ -116,7 +98,25 @@ python3 1_4_export_macro_genre_candidate_stats.py --output /path/to/output.csv
 - `hit_count`（何件の dish がその祖先を持つか）
 - `example_items`（数件、QID と label）
 
-### ステップ 5: macro_genre 割当結果の CSV 出力
+### ステップ 3: whitelist 候補の分布 CSV 出力
+
+whitelist 作成の材料として、祖先分布を CSV 出力します。
+
+```bash
+# デフォルト出力（macro_genre_candidate_stats.csv）
+python3 1_4_export_macro_genre_candidate_stats.py
+
+# 出力先を指定
+python3 1_4_export_macro_genre_candidate_stats.py --output /path/to/output.csv
+```
+
+**出力例:**
+- `ancestor_qid`
+- `label_ja`, `label_en`
+- `hit_count`（何件の dish がその祖先を持つか）
+- `example_items`（数件、QID と label）
+
+### ステップ 4: macro_genre 割当結果の CSV 出力
 
 レビュー用に、割当結果を CSV 出力します。
 
@@ -160,9 +160,11 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
    python3 1_1_build_food_edges_raw.py
    ```
 
-3. **catalog 構築**
+3. **catalog 構築**（親ディレクトリで実行）
    ```bash
-   python3 1_2_build_dish_category_catalog.py
+   cd ..
+   python3 3_1_build_dish_category_catalog.py
+   cd 500_macro_genre
    ```
 
 4. **候補分布 CSV 出力**
@@ -228,11 +230,13 @@ Wikidata から取得したエッジ情報。
 **カラム:**
 - `child_qid`: 子ノード QID
 - `parent_qid`: 親ノード QID
-- `property`: プロパティ（'P31', 'P279', 'P361', 'P527'）
+
+**注意:**
+- 既存実装は P31/P279 を区別しないため、property フィールドは持たない
 
 ### 3. dish_category_catalog
 
-blacklist 除外済み準マスタ。
+blacklist 除外済み準マスタ（親ディレクトリで 3_1_build_dish_category_catalog.py により生成）。
 
 **カラム:**
 - `item_qid`: dish QID
@@ -334,12 +338,15 @@ sed 's/${DATASET}/food-scroll.wikidata_food_graph/g' 20251213T0000_create_macro_
 
 ```
 scripts/20251213T0000_wikidata_food_graph/500_macro_genre/
-├── 1_1_build_food_edges_raw.py           # ステップ1: エッジデータ構築
-├── 1_2_build_dish_category_catalog.py    # ステップ2: カタログ構築
-├── 1_3_build_dish_macro_genre_analysis.py # ステップ3: analysis 構築
-├── 1_4_export_macro_genre_candidate_stats.py # ステップ4: 候補分布 CSV 出力
-├── 1_5_export_macro_genre_review.py      # ステップ5: レビュー CSV 出力
-└── README.md                             # このファイル
+├── 0_create_macro_genre_tables.py          # テーブル作成
+├── 1_1_build_food_edges_raw.py             # ステップ1: エッジデータ構築
+├── 1_3_build_dish_macro_genre_analysis.py  # ステップ2: analysis 構築
+├── 1_4_export_macro_genre_candidate_stats.py # ステップ3: 候補分布 CSV 出力
+├── 1_5_export_macro_genre_review.py        # ステップ4: レビュー CSV 出力
+└── README.md                               # このファイル
+
+scripts/20251213T0000_wikidata_food_graph/
+└── 3_1_build_dish_category_catalog.py      # カタログ構築（前提）
 ```
 
 ## 注意事項
