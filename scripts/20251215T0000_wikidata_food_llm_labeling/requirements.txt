@@ -1,0 +1,14 @@
+# Python dependencies for wikidata_food_llm_labeling scripts
+# Ticket: #548
+
+# BigQuery client
+google-cloud-bigquery==3.14.1
+
+# OpenAI client for LLM labeling
+openai==1.54.0
+
+# Retry logic and backoff
+tenacity==8.2.3
+
+# httpx 0.28.x で proxies 引数が削除されているのでダウングレード
+httpx==0.27.2

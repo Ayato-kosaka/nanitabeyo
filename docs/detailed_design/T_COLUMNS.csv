@@ -16,6 +16,7 @@
 "dish_categories","origin","text[]",false,false,false,true,"N/A",false,"原産国QID（例：[""Q884""] for South Korea）","","","",""
 "dish_categories","cuisine","text[]",false,false,false,true,"N/A",false,"cuisineに関係するQID（例：[""Q647500""]）","","","",""
 "dish_categories","tags","text[]",false,false,false,true,"N/A",true,"再帰的に得られた上位カテゴリのQID群（木登り結果）","","","",""
+"dish_categories","macro_genre_qid","text",false,false,false,false,"N/A","要検討","料理カテゴリを分類するためのマクロジャンルのWikidata QID（例: ヌードルスープの場合はQ4939235）","","","",""
 "dish_categories","created_at","timestamptz",false,false,false,true,"N/A",false,"作成日時","","","",""
 "dish_categories","updated_at","timestamptz",false,false,false,true,"N/A",false,"更新日時","","","",""
 "dish_categories","lock_no","integer",false,false,false,true,"N/A",false,"楽観ロック用のバージョン番号","","","",""

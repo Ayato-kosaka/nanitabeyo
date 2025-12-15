@@ -71,6 +71,7 @@ export type Database = {
 					label_en: string;
 					labels: Json;
 					lock_no: number;
+					macro_genre_qid: string | null;
 					origin: string[];
 					tags: string[];
 					updated_at: string;
@@ -83,6 +84,7 @@ export type Database = {
 					label_en: string;
 					labels: Json;
 					lock_no?: number;
+					macro_genre_qid?: string | null;
 					origin: string[];
 					tags: string[];
 					updated_at?: string;
@@ -95,11 +97,38 @@ export type Database = {
 					label_en?: string;
 					labels?: Json;
 					lock_no?: number;
+					macro_genre_qid?: string | null;
 					origin?: string[];
 					tags?: string[];
 					updated_at?: string;
 				};
 				Relationships: [];
+			};
+			dish_category_ancestors: {
+				Row: {
+					ancestor_qid: string;
+					depth: number;
+					dish_category_id: string;
+				};
+				Insert: {
+					ancestor_qid: string;
+					depth: number;
+					dish_category_id: string;
+				};
+				Update: {
+					ancestor_qid?: string;
+					depth?: number;
+					dish_category_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "dish_category_ancestors_dish_category_id_fkey";
+						columns: ["dish_category_id"];
+						isOneToOne: false;
+						referencedRelation: "dish_categories";
+						referencedColumns: ["id"];
+					},
+				];
 			};
 			dish_category_variants: {
 				Row: {
@@ -557,6 +586,24 @@ export type Database = {
 					path_name?: string | null;
 					payload?: string | null;
 					user_id?: string | null;
+				};
+				Relationships: [];
+			};
+			macro_genre_whitelist: {
+				Row: {
+					label_en: string | null;
+					label_ja: string | null;
+					macro_genre_qid: string;
+				};
+				Insert: {
+					label_en?: string | null;
+					label_ja?: string | null;
+					macro_genre_qid: string;
+				};
+				Update: {
+					label_en?: string | null;
+					label_ja?: string | null;
+					macro_genre_qid?: string;
 				};
 				Relationships: [];
 			};
