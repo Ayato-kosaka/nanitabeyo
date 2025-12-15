@@ -1,0 +1,312 @@
+[
+  {
+    "label_en": "food",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "dish",
+    "desc_en": "type of food",
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "human food",
+    "desc_en": "food for humans",
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "sweet dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "meat dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "seafood dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "rice dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "noodle",
+    "desc_en": "type of staple food",
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "noodle dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "poultry dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "pork dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "beef dish",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "plant-based food",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "cereal product",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "flour-based food",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "alcopop",
+    "desc_en": "flavored alcoholic beverage",
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "malt beverage",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "non-alcoholic beverage",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "sugary drink",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "food ingredient",
+    "desc_en": null,
+    "target_label": "too_generic"
+  },
+  {
+    "label_en": "class",
+    "desc_en": "group of things with common characteristics",
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "notion",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "umbrella term",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "skill",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "commodity",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "industry",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "product",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "type of manufactured good",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "version",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "Wikimedia list article",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "viticulture of Aguascalientes",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "Papa Louie special recipe",
+    "desc_en": null,
+    "target_label": "non_menu_item"
+  },
+  {
+    "label_en": "candy",
+    "desc_en": "sweet confectionery",
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Wax lips",
+    "desc_en": "candy shaped like lips",
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Oreo sandwich cookie",
+    "desc_en": "sandwich cookie made by Mondelez",
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Opatów krówki",
+    "desc_en": "Polish candy brand",
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "functional chewing gum",
+    "desc_en": null,
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Nissin Yakisoba UFO",
+    "desc_en": "Japanese instant fried noodles",
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Deutsches Reichsbräu",
+    "desc_en": null,
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Cola up",
+    "desc_en": null,
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Kola Román",
+    "desc_en": null,
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Sun Drop",
+    "desc_en": "citrus-flavored soft drink",
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Sam's Choice",
+    "desc_en": "Walmart brand",
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Heaven Hill Kentucky Whiskey",
+    "desc_en": null,
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "Biancosarti",
+    "desc_en": null,
+    "target_label": "not_for_menu"
+  },
+  {
+    "label_en": "sandwich",
+    "desc_en": "food with bread and filling",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "Sicilian pizza",
+    "desc_en": "style of pizza originating from Sicily",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "galbi-tang",
+    "desc_en": "Korean soup",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "Samgyeopsal",
+    "desc_en": "Korean grilled pork dish",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "Ogikubo ramen",
+    "desc_en": "Tokyo ramen style",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "stinky tofu",
+    "desc_en": "fermented tofu dish",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "muffin",
+    "desc_en": "baked good",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "almond milk",
+    "desc_en": "plant-based milk",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "stew",
+    "desc_en": "cooking technique and food",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "salad",
+    "desc_en": "ready-to-eat mixture of ingredients",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "Korean cuisine",
+    "desc_en": "cuisine of Korea",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "Italian cuisine",
+    "desc_en": "cuisine of Italy",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "ramen",
+    "desc_en": "Japanese noodle soup",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "udon",
+    "desc_en": "Japanese thick wheat noodles",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "cake",
+    "desc_en": "sweet baked dessert",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "tea",
+    "desc_en": "beverage made by infusing tea leaves",
+    "target_label": "keep"
+  },
+  {
+    "label_en": "cocktail",
+    "desc_en": "mixed alcoholic drink",
+    "target_label": "keep"
+  }
+]
