@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
 TASK_ID = "#548_menu_blacklist_classification"
-MODEL_NAME = "gpt-4o-mini"  # #548 【仕様】gpt-4.1-mini は gpt-4o-mini として提供
+MODEL_NAME = "gpt-4.1-mini"
 
 # 入力ファイル
 INPUT_DIR = Path("/tmp/wikidata_food_llm")
@@ -60,14 +60,17 @@ def load_batch_results(filepath: Path) -> List[Dict]:
     """
     all_labels = []
     llm_client = LLMClient()
+    failed_output_file = INPUT_DIR / "failed_custom_ids.jsonl"
     
     with open(filepath, 'r', encoding='utf-8') as f:
         for line_num, line in enumerate(f, 1):
             if not line.strip():
                 continue
             
+            custom_id = f"line_{line_num}"
             try:
                 batch_response = json.loads(line)
+                custom_id = batch_response.get("custom_id", custom_id)
                 
                 # Batch API のレスポンス構造を処理
                 # #548 【設計】Batch API レスポンス形式
@@ -83,11 +86,16 @@ def load_batch_results(filepath: Path) -> List[Dict]:
                 else:
                     logger.warning(f"Unexpected response format at line {line_num}")
             
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse line {line_num}: {e}")
-                continue
+            # エラーなら failed_custom_ids.jsonl に「元リクエスト（custom_id + items）」を書き出す
             except Exception as e:
-                logger.error(f"Error processing line {line_num}: {e}")
+                logger.error(f"Failed to process line {line_num}: {e}")
+                with open(failed_output_file, 'a', encoding='utf-8') as fout:
+                    failed_record = {
+                        "custom_id": custom_id,
+                        "error": str(e),
+                        "original_line": line.strip()
+                    }
+                    fout.write(json.dumps(failed_record, ensure_ascii=False) + "\n")
                 continue
     
     logger.info(f"Total labels loaded: {len(all_labels)}")

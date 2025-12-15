@@ -16,9 +16,16 @@ gpt-4.1-mini によるラベリングリクエストを組み立てるユーテ�
 import json
 import logging
 from pathlib import Path
-from typing import List, Dict
+from dataclasses import dataclass
+from typing import Optional, Tuple, List, Dict, Any
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ParseError:
+    code: str
+    message: str
 
 
 class LLMClient:
@@ -144,12 +151,13 @@ Examples (for reference):
         
         # #548 【設計】教師データを埋め込み（few-shot learning）
         for example in self.examples[:30]:  # 最初の30件を使用
-            label_en = example.get("label_en", "")
-            desc_en = example.get("desc_en", "")
+            label_en = (example.get("label_en", "")).strip()
+            desc_en = (example.get("desc_en", "")).strip()
             target = example.get("target_label", "")
-            
-            desc_str = f' (desc: "{desc_en}")' if desc_en else ""
-            system_prompt += f'\n- "{label_en}"{desc_str} → {target}'
+            if desc_en:
+                system_prompt += f'- "{label_en}" (desc: "{desc_en}") -> {target}\n'
+            else:
+                system_prompt += f'- "{label_en}" -> {target}\n'
         
         return system_prompt
     
@@ -164,7 +172,7 @@ Examples (for reference):
             user メッセージ文字列（JSON）
         """
         payload = {"items": items}
-        return json.dumps(payload, ensure_ascii=False, indent=2)
+        return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     
     def build_output_format_instruction(self) -> str:
         """
@@ -173,22 +181,44 @@ Examples (for reference):
         Returns:
             出力フォーマット指示文字列
         """
-        return """Return a JSON object with the following structure:
+        return """Return your answer ONLY by calling the provided tool function.
 
-{
-  "results": [
-    {
-      "item_qid": "<QID string>",
-      "label": "keep | too_generic | non_menu_item | not_for_menu | uncertain",
-      "confidence": "high | medium | low",
-      "reason": "<short natural language explanation>"
-    },
-    ...
-  ]
-}
+Reason rule:
+- reason must be <= 20 words AND <= 120 characters."""
 
-The "results" array must contain one entry for each input item, in the same order.
-Do not include any extra fields."""
+    def _tool_spec(self, n_items: int) -> Dict[str, Any]:
+        # “壊れない構造” を tools の parameters で縛る
+        spec = {
+            "type": "function",
+            "function": {
+                "name": "submit_labels",
+                "description": "Submit labels for the provided Wikidata items.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "results": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "item_qid": {"type": "string"},
+                                    "label": {"type": "string", "enum": self.VALID_LABELS},
+                                    "confidence": {"type": "string", "enum": self.VALID_CONFIDENCE},
+                                    "reason": {"type": "string", "maxLength": 120}
+                                },
+                                "required": ["item_qid", "label", "confidence", "reason"],
+                                "additionalProperties": False
+                            }
+                        }
+                    },
+                    "required": ["results"],
+                    "additionalProperties": False
+                }
+            }
+        }
+        spec["function"]["parameters"]["properties"]["results"]["minItems"] = n_items
+        spec["function"]["parameters"]["properties"]["results"]["maxItems"] = n_items
+        return spec
     
     def create_batch_request(self, items: List[Dict], custom_id: str) -> Dict:
         """
@@ -203,54 +233,87 @@ Do not include any extra fields."""
         """
         system_message = self.build_system_message()
         user_message = self.build_user_message(items)
-        output_instruction = self.build_output_format_instruction()
+        system_message += "\n" + self.build_output_format_instruction()
         
         return {
             "custom_id": custom_id,
             "method": "POST",
             "url": "/v1/chat/completions",
             "body": {
-                "model": "gpt-4o-mini",  # #548 【仕様】gpt-4.1-mini は gpt-4o-mini として提供
+                "model": "gpt-4.1-mini",
                 "messages": [
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": user_message},
-                    {"role": "system", "content": output_instruction}
                 ],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.3
+                "tools": [self._tool_spec(len(items))],
+                "tool_choice": {"type": "function", "function": {"name": "submit_labels"}},
+                "temperature": 0.0
             }
         }
     
-    def parse_response(self, response_text: str) -> List[Dict]:
+    def parse_response(self, response_obj: Dict[str, Any], expected_items: Optional[List[Dict]] = None
+                    ) -> Tuple[Optional[List[Dict]], Optional[ParseError]]:
         """
-        LLM のレスポンスをパースする
-        
-        Args:
-            response_text: LLM からのレスポンス文字列（JSON）
-            
-        Returns:
-            パースされたラベルのリスト
+        response_obj: OpenAI APIのレスポンス（JSON）
+        expected_items: 入力items（順序・件数検証に使う）
         """
         try:
-            data = json.loads(response_text)
-            results = data.get("results", [])
-            
-            # #548 【バグ】バリデーション - ラベルと信頼度の検証
-            validated_results = []
-            for result in results:
-                if result.get("label") not in self.VALID_LABELS:
-                    logger.warning(f"Invalid label: {result.get('label')} for {result.get('item_qid')}")
-                    result["label"] = "uncertain"
-                
-                if result.get("confidence") not in self.VALID_CONFIDENCE:
-                    logger.warning(f"Invalid confidence: {result.get('confidence')} for {result.get('item_qid')}")
-                    result["confidence"] = "low"
-                
-                validated_results.append(result)
-            
-            return validated_results
+            choice = response_obj["choices"][0]
+            msg = choice["message"]
+
+            # tool_calls がある想定
+            tool_calls = msg.get("tool_calls")
+            if not tool_calls:
+                return None, ParseError("no_tool_calls", "No tool_calls in response")
+
+            call0 = tool_calls[0]
+            fn = call0.get("function", {})
+            if fn.get("name") != "submit_labels":
+                return None, ParseError("wrong_function", f"Unexpected function: {fn.get('name')}")
+
+            args_str = fn.get("arguments", "")
+            try:
+                args = json.loads(args_str)
+            except Exception as e:
+                return None, ParseError("bad_arguments_json", f"Failed to parse function arguments JSON: {e}")
+
+            results = args.get("results")
+            if not isinstance(results, list):
+                return None, ParseError("missing_results", "Missing or invalid 'results'")
+
+            # 件数/順序検証
+            if expected_items is not None:
+                if len(results) != len(expected_items):
+                    return None, ParseError(
+                        "length_mismatch",
+                        f"results length {len(results)} != expected {len(expected_items)}"
+                    )
+                # item_qidが一致しているか（順序一致も担保）
+                for r, exp in zip(results, expected_items):
+                    if r.get("item_qid") != exp.get("item_qid"):
+                        return None, ParseError(
+                            "qid_mismatch",
+                            f"item_qid mismatch: {r.get('item_qid')} != {exp.get('item_qid')}"
+                        )
+
+            # 値のバリデーション
+            validated = []
+            for r in results:
+                label = r.get("label")
+                conf = r.get("confidence")
+                reason = r.get("reason") or ""
+                if label not in self.VALID_LABELS:
+                    return None, ParseError("invalid_label", f"Invalid label: {label}")
+                if conf not in self.VALID_CONFIDENCE:
+                    return None, ParseError("invalid_confidence", f"Invalid confidence: {conf}")
+                if len(reason) > 120:
+                    # ここは「切って許容」でもいいが、ミス許容しない方針なら落とす
+                    return None, ParseError("reason_too_long", f"Reason too long: {len(reason)} chars")
+                if len(reason.split()) > 20:
+                    return None, ParseError("reason_too_many_words", f"Reason too many words: {len(reason.split())} words")
+                validated.append(r)
         
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse LLM response: {e}")
-            logger.error(f"Response text: {response_text}")
-            return []
+            return validated, None
+
+        except Exception as e:
+            return None, ParseError("unexpected", str(e))

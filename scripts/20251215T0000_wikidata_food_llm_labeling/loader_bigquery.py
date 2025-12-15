@@ -45,6 +45,24 @@ class BigQueryLoader:
         logger.info(f"SQL execution completed")
         return result
     
+    def execute_dml(self, sql: str) -> int:
+        """
+        DML 文を実行する
+
+        Args:
+            sql: 実行する DML SQL 文字列
+
+        Returns:
+            影響を受けた行数
+        """
+        logger.info("Executing DML...")
+        job = self.client.query(sql)
+        job.result()
+        affected = job.num_dml_affected_rows or 0
+        logger.info(f"DML completed, affected_rows={affected}")
+        return affected
+
+    
     def execute_migration(self, migration_file_path: str) -> None:
         """
         migration SQL ファイルを読み込んで実行
@@ -220,16 +238,6 @@ class BigQueryLoader:
           )
         """
         
-        result = self.execute_sql(sql)
-        
-        # #548 【設計】BigQuery の INSERT 結果から件数取得
-        count_sql = f"""
-        SELECT COUNT(*) as count
-        FROM `{self.dataset_ref}.dish_blacklist`
-        WHERE reason = 'llm_label'
-        """
-        count_result = self.execute_sql(count_sql)
-        count = list(count_result)[0].count
-        
-        logger.info(f"Applied {count} LLM labels to dish_blacklist")
-        return count
+        affected = self.execute_dml(sql)
+        logger.info(f"Applied {affected} LLM labels to dish_blacklist (run_id={run_id})")
+        return affected

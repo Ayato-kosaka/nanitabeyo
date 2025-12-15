@@ -10,15 +10,15 @@
 
 現状の `dish_blacklist` は ancestor ベースのブラックリストと SQL パターンマッチングで一定のノイズ除去ができているが、
 
-* 「韓国料理」「ラーメン」など **抽象度は高いが "何食べよ？" の会話に自然に出るカテゴリ** は残したい
-* 一方で、まだ **抽象クラス / 産業分類 / 菓子ブランド / チェーン SKU** などのノイズも残っている
+- 「韓国料理」「ラーメン」など **抽象度は高いが "何食べよ？" の会話に自然に出るカテゴリ** は残したい
+- 一方で、まだ **抽象クラス / 産業分類 / 菓子ブランド / チェーン SKU** などのノイズも残っている
 
 という状態。
 
 完全に SQL ロジックだけで精選するのは難易度が高いため、
 
-* LLM による **ノード単位のラベリング** を導入し、
-* **「残したいメニュー」 vs 「メニューとして出したくないもの」** を機械的に分離する
+- LLM による **ノード単位のラベリング** を導入し、
+- **「残したいメニュー」 vs 「メニューとして出したくないもの」** を機械的に分離する
 
 基盤を追加する。
 
@@ -44,9 +44,9 @@ python3 1_1_create_tables.py
 
 これにより以下のテーブルが利用可能になります：
 
-* `food-scroll.wikidata_food_graph.food_nodes_raw`
-* `food-scroll.wikidata_food_graph.dish_blacklist`
-* `food-scroll.wikidata_food_graph.wikidata_food_llm_labels` (新規)
+- `food-scroll.wikidata_food_graph.food_nodes_raw`
+- `food-scroll.wikidata_food_graph.dish_blacklist`
+- `food-scroll.wikidata_food_graph.wikidata_food_llm_labels` (新規)
 
 ### Python 環境
 
@@ -85,58 +85,58 @@ LLM が付与するラベルは以下の 5 種類：
 
 **「なに食べよ？」の候補として残したい**
 
-* 具体的な料理・飲み物名
-  * 例：`galbi-tang`, `Sicilian pizza`, `Spaghett`（ビアカクテル）, `Bubur ketan hitam`
-* 会話に自然に出る料理カテゴリー
-  * 例：`salad`, `stew`, `bread`, `sandwich`, `cake`, `tea`, `cocktail`
-* ご当地ラーメン・郷土料理など、**メニューとして自然**なもの
+- 具体的な料理・飲み物名
+  - 例：`galbi-tang`, `Sicilian pizza`, `Spaghett`（ビアカクテル）, `Bubur ketan hitam`
+- 会話に自然に出る料理カテゴリー
+  - 例：`salad`, `stew`, `bread`, `sandwich`, `cake`, `tea`, `cocktail`
+- ご当地ラーメン・郷土料理など、**メニューとして自然**なもの
 
 ### too_generic
 
 食品関連だが **抽象的なクラス / カテゴリ** に過ぎず、単体で「今日はこれ食べよう」とはなりにくいもの
 
-* 例：
-  * `food`, `human food`, `dish`, `sweet dish`, `meat dish`, `seafood dish`
-  * `rice dish`, `noodle`, `noodle dish`, `poultry dish`, `pork dish`, `beef dish`
-  * `plant-based food`, `cereal product`, `flour-based food`
-  * `alcopop`, `malt beverage`, `non-alcoholic beverage`, `sugary drink`
-  * `food ingredient`
+- 例：
+  - `food`, `human food`, `dish`, `sweet dish`, `meat dish`, `seafood dish`
+  - `rice dish`, `noodle`, `noodle dish`, `poultry dish`, `pork dish`, `beef dish`
+  - `plant-based food`, `cereal product`, `flour-based food`
+  - `alcopop`, `malt beverage`, `non-alcoholic beverage`, `sugary drink`
+  - `food ingredient`
 
 ### non_menu_item
 
 **そもそも食べ物・飲み物というより概念 / 産業分類 / メタ情報** として扱うべきもの
 
-* 抽象概念系：
-  * `class`, `notion`, `umbrella term`, `skill`, `commodity`, `industry`
-* メタ情報：
-  * `product`, `type of manufactured good`, `version`
-  * `Wikimedia list article`
-  * `food products by OKPD2 (10)`, `Production of food industry by OKP`
-* 地域のワイン産業など：
-  * `viticulture of Aguascalientes`
-* 完全にゲーム内レシピなど：
-  * `Papa Louie special recipe`
+- 抽象概念系：
+  - `class`, `notion`, `umbrella term`, `skill`, `commodity`, `industry`
+- メタ情報：
+  - `product`, `type of manufactured good`, `version`
+  - `Wikimedia list article`
+  - `food products by OKPD2 (10)`, `Production of food industry by OKP`
+- 地域のワイン産業など：
+  - `viticulture of Aguascalientes`
+- 完全にゲーム内レシピなど：
+  - `Papa Louie special recipe`
 
 ### not_for_menu
 
 食べ物・飲み物ではあるが、**アプリのメニュー選択肢としては出したくない**もの
 
-* 菓子・キャンディ・ガム・そのブランド：
-  * `candy`, `Wax lips`, `Oreo sandwich cookie`, `Opatów krówki`
-  * `functional chewing gum`
-* パッケージ菓子 / インスタント食品：
-  * `Nissin Yakisoba UFO`, `Deutsches Reichsbräu`, `Cola up`
-* スーパー / マスブランド：
-  * `Kola Román`, `Sun Drop`, `Sam's Choice`
-* 強めのアルコールブランドとしてのエントリ：
-  * `Heaven Hill Kentucky Whiskey`, `Biancosarti`
-* その他「スーパーマーケットの棚に並ぶ SKU」に近いもの
+- 菓子・キャンディ・ガム・そのブランド：
+  - `candy`, `Wax lips`, `Oreo sandwich cookie`, `Opatów krówki`
+  - `functional chewing gum`
+- パッケージ菓子 / インスタント食品：
+  - `Nissin Yakisoba UFO`, `Deutsches Reichsbräu`, `Cola up`
+- スーパー / マスブランド：
+  - `Kola Román`, `Sun Drop`, `Sam's Choice`
+- 強めのアルコールブランドとしてのエントリ：
+  - `Heaven Hill Kentucky Whiskey`, `Biancosarti`
+- その他「スーパーマーケットの棚に並ぶ SKU」に近いもの
 
 ### uncertain
 
 情報不足や曖昧さがあり、**自信を持って判定できない場合**
 
-* 例：`Julienne`（文脈により「刻み方」「スープ」など意味が揺れる）
+- 例：`Julienne`（文脈により「刻み方」「スープ」など意味が揺れる）
 
 ## 使用方法
 
@@ -151,12 +151,14 @@ python3 1_1_export_unlabeled_nodes.py
 ```
 
 **出力:**
-* `/tmp/wikidata_food_llm/items.jsonl`
+
+- `/tmp/wikidata_food_llm/items.jsonl`
 
 **処理内容:**
-* `food_nodes_raw` から `dish_blacklist` に含まれていないノードを取得
-* `label_en IS NOT NULL` のノードのみを対象
-* 1行1アイテムの JSONL 形式で出力
+
+- `food_nodes_raw` から `dish_blacklist` に含まれていないノードを取得
+- `label_en IS NOT NULL` のノードのみを対象
+- 1行1アイテムの JSONL 形式で出力
 
 ### ステップ 2: Batch API 用のペイロードを生成
 
@@ -167,12 +169,14 @@ python3 1_2_prepare_batch_payload.py
 ```
 
 **出力:**
-* `/tmp/wikidata_food_llm/batch_payload.jsonl`
+
+- `/tmp/wikidata_food_llm/batch_payload.jsonl`
 
 **処理内容:**
-* 20件ずつバッチにまとめる
-* 教師データ（`llm_examples.json`）を含む system プロンプトを生成
-* Batch API 用の JSONL を生成（1行1リクエスト）
+
+- 20件ずつバッチにまとめる
+- 教師データ（`llm_examples.json`）を含む system プロンプトを生成
+- Batch API 用の JSONL を生成（1行1リクエスト）
 
 ### ステップ 3: OpenAI Batch API でラベリング実行
 
@@ -194,8 +198,9 @@ openai api files.content --file-id file-yyy > /tmp/wikidata_food_llm/results.jso
 ```
 
 **注意:**
-* Batch API の実行には時間がかかります（通常24時間以内）
-* 詳細は [OpenAI Batch API ドキュメント](https://platform.openai.com/docs/guides/batch) を参照
+
+- Batch API の実行には時間がかかります（通常24時間以内）
+- 詳細は [OpenAI Batch API ドキュメント](https://platform.openai.com/docs/guides/batch) を参照
 
 ### ステップ 4: LLM 結果を BigQuery にロード
 
@@ -206,16 +211,19 @@ python3 1_3_load_llm_results.py --run-id 20251215T0000_v1
 ```
 
 **入力:**
-* `/tmp/wikidata_food_llm/results.jsonl`
+
+- `/tmp/wikidata_food_llm/results.jsonl`
 
 **処理内容:**
-* Batch API のレスポンスをパース
-* ラベル統計を表示
-* `wikidata_food_llm_labels` テーブルにロード
+
+- Batch API のレスポンスをパース
+- ラベル統計を表示
+- `wikidata_food_llm_labels` テーブルにロード
 
 **注意:**
-* `--run-id` は実行を識別するための ID です
-* 同じ run_id で複数回実行すると重複データが登録されます
+
+- `--run-id` は実行を識別するための ID です
+- 同じ run_id で複数回実行すると重複データが登録されます
 
 ### ステップ 5: LLM ラベルに基づき dish_blacklist を更新
 
@@ -230,8 +238,9 @@ python3 1_4_apply_llm_labels.py --run-id 20251215T0000_v1
 ```
 
 **処理内容:**
-* `wikidata_food_llm_labels` から統計情報を取得
-* `confidence='high'` かつ `label IN ('too_generic', 'non_menu_item', 'not_for_menu')` を
+
+- `wikidata_food_llm_labels` から統計情報を取得
+- `confidence='high'` かつ `label IN ('too_generic', 'non_menu_item', 'not_for_menu')` を
   `dish_blacklist` に反映（`reason='llm_label'`）
 
 ## 処理フロー
@@ -278,25 +287,26 @@ gpt-4o-mini + Batch API を利用することで、コストを大幅に削減�
 
 ### 見積もり条件
 
-* 対象ノード数: 約 18,000 件
-* バッチサイズ: 20件 / リクエスト
-* リクエスト数: 約 900 件
-* 平均トークン数（入力）: 約 2,500 トークン / リクエスト
-* 平均トークン数（出力）: 約 500 トークン / リクエスト
+- 対象ノード数: 約 18,000 件
+- バッチサイズ: 20件 / リクエスト
+- リクエスト数: 約 900 件
+- 平均トークン数（入力）: 約 2,500 トークン / リクエスト
+- 平均トークン数（出力）: 約 500 トークン / リクエスト
 
 ### 料金（2024年12月時点）
 
-* gpt-4o-mini Batch API:
-  * 入力: $0.075 / 1M トークン（通常の50%割引）
-  * 出力: $0.30 / 1M トークン（通常の50%割引）
+- gpt-4.1-mini Batch API:
+  - 入力: $0.20 / 1M トークン（通常の50%割引）
+  - 出力: $0.80 / 1M トークン（通常の50%割引）
 
 ### 計算
 
-* 入力トークン: 900 × 2,500 = 2,250,000 トークン → $0.17
-* 出力トークン: 900 × 500 = 450,000 トークン → $0.14
-* **合計: 約 $0.31**
+- キャッシュインプット: 1,500 × 900 = 1.35M → $0.135
+- 入力トークン: 700 × 900 = 0.63M → $0.25
+- 出力トークン: 1,000 × 900 = 0.9M → $1.44
+- **合計: 約 $1.8**
 
-18,000 件のノードを処理しても **1ドル未満** で完了します。
+18,000 件のノードを処理しても約 $1.8
 
 ## 注意事項
 
@@ -320,26 +330,25 @@ gpt-4o-mini + Batch API を利用することで、コストを大幅に削減�
    ```
 
 3. **明らかに間違っているケースがあれば**
-
-   * `llm_examples.json` に例を追加
-   * system プロンプト（`llm_client.py`）を微調整
-   * 新しい run_id で再実行
+   - `llm_examples.json` に例を追加
+   - system プロンプト（`llm_client.py`）を微調整
+   - 新しい run_id で再実行
 
 ### ラベルの扱い
 
-* `keep` → dish_blacklist には何もしない（残す）
-* `too_generic` / `non_menu_item` / `not_for_menu` → 条件付きで dish_blacklist に反映
-* `uncertain` → 自動反映しない（別途レビュー対象）
+- `keep` → dish_blacklist には何もしない（残す）
+- `too_generic` / `non_menu_item` / `not_for_menu` → 条件付きで dish_blacklist に反映
+- `uncertain` → 自動反映しない（別途レビュー対象）
 
 ### confidence の扱い
 
-* `high` → 自動で dish_blacklist に反映
-* `medium` / `low` → 自動反映しない（必要に応じて人手でレビュー）
+- `high` → 自動で dish_blacklist に反映
+- `medium` / `low` → 自動反映しない（必要に応じて人手でレビュー）
 
 ### 複数回実行する場合
 
-* 同じ run_id で複数回実行すると重複データが登録されます
-* プロンプトを微調整して再実行する場合は、必ず新しい run_id を使用してください
+- 同じ run_id で複数回実行すると重複データが登録されます
+- プロンプトを微調整して再実行する場合は、必ず新しい run_id を使用してください
 
   ```bash
   python3 1_3_load_llm_results.py --run-id 20251215T0000_v2
@@ -354,14 +363,14 @@ LLM ラベリング結果を保持するテーブル。
 
 **カラム:**
 
-* `item_qid`: Wikidata QID
-* `task`: タスク識別子（例: '#548_menu_blacklist_classification'）
-* `label`: ラベル（'keep' / 'too_generic' / 'non_menu_item' / 'not_for_menu' / 'uncertain'）
-* `confidence`: 信頼度（'high' / 'medium' / 'low'）
-* `reason`: LLM の説明（英語）
-* `model`: モデル名（'gpt-4o-mini'）
-* `run_id`: バッチ実行ごとの識別子
-* `created_at`: 登録日時
+- `item_qid`: Wikidata QID
+- `task`: タスク識別子（例: '#548_menu_blacklist_classification'）
+- `label`: ラベル（'keep' / 'too_generic' / 'non_menu_item' / 'not_for_menu' / 'uncertain'）
+- `confidence`: 信頼度（'high' / 'medium' / 'low'）
+- `reason`: LLM の説明（英語）
+- `model`: モデル名（'gpt-4.1-mini'）
+- `run_id`: バッチ実行ごとの識別子
+- `created_at`: 登録日時
 
 ## BigQuery での確認方法
 
@@ -461,11 +470,11 @@ scripts/20251215T0000_wikidata_food_llm_labeling/
 
 ## 関連ドキュメント
 
-* [infra/big-query/README.md](../../infra/big-query/README.md): BigQuery インフラストラクチャ全体の説明
-* [infra/big-query/migration/20251215T0000_create_wikidata_food_llm_labels.sql](../../infra/big-query/migration/20251215T0000_create_wikidata_food_llm_labels.sql): テーブル定義 SQL
-* [scripts/20251213T0000_wikidata_food_graph/README.md](../20251213T0000_wikidata_food_graph/README.md): 食品グラフ抽出スクリプトの説明
+- [infra/big-query/README.md](../../infra/big-query/README.md): BigQuery インフラストラクチャ全体の説明
+- [infra/big-query/migration/20251215T0000_create_wikidata_food_llm_labels.sql](../../infra/big-query/migration/20251215T0000_create_wikidata_food_llm_labels.sql): テーブル定義 SQL
+- [scripts/20251213T0000_wikidata_food_graph/README.md](../20251213T0000_wikidata_food_graph/README.md): 食品グラフ抽出スクリプトの説明
 
 ## 関連チケット
 
-* #548: Wikidata 食品ノードへの LLM ラベリング基盤追加（dish_blacklist 強化）
-* #533: Wikidata 由来の料理・飲み物グラフ構造テーブル作成（BigQuery）
+- #548: Wikidata 食品ノードへの LLM ラベリング基盤追加（dish_blacklist 強化）
+- #533: Wikidata 由来の料理・飲み物グラフ構造テーブル作成（BigQuery）

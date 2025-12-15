@@ -80,6 +80,19 @@ def create_batches(items: List[Dict], batch_size: int) -> List[List[Dict]]:
     logger.info(f"Created {len(batches)} batches (size={batch_size})")
     return batches
 
+MAX_DESC_CHARS = 200
+
+def normalize_item(it: Dict) -> Dict:
+    out = {
+        "item_qid": it.get("item_qid"),
+        "label_en": (it.get("label_en") or "").strip(),
+    }
+    desc = (it.get("desc_en") or "").strip()
+    if desc:
+        desc = " ".join(desc.split())  # 連続空白・改行を潰す
+        out["desc_en"] = desc[:MAX_DESC_CHARS]
+    return out
+
 
 def main():
     """メイン処理"""
@@ -99,6 +112,9 @@ def main():
     if not items:
         logger.warning("No items to process")
         return
+    
+    # アイテム正規化
+    items = [normalize_item(it) for it in items]
     
     # バッチに分割
     batches = create_batches(items, BATCH_SIZE)
