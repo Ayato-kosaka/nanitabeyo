@@ -62,6 +62,7 @@ python3 1_1_create_tables.py
 ```
 
 **処理内容:**
+
 - food_roots テーブル作成 ＋ 初期データ投入
 - food_nodes_raw テーブル作成
 - food_paths テーブル作成
@@ -82,12 +83,14 @@ python3 1_2_fetch_and_load_nodes.py --limit 1000
 ```
 
 **処理内容:**
+
 - Wikidata から料理・飲み物のノードを取得
 - food_nodes_raw にロード
 - 親子エッジ（P31, P279）を取得
 - エッジデータを一時ファイルに保存
 
 **注意点:**
+
 - SPARQL endpoint への大量リクエストが発生するため、実行には時間がかかります
 - rate limit 対策として retry/backoff が実装されています
 
@@ -100,6 +103,7 @@ python3 1_3_generate_paths_and_summary.py
 ```
 
 **処理内容:**
+
 - food_paths を生成（recursive CTE で全 ancestor を展開）
 - dish_root_summary を生成
 - dish_blacklist を自動生成（ancestor ベース）
@@ -123,6 +127,7 @@ python3 1_3_generate_paths_and_summary.py
 スクリプトは以下の3ステップで構成されています：
 
 ### ステップ 1: テーブル作成 (`1_1_create_tables.py`)
+
 ```
 BigQuery migration 実行
 ↓
@@ -135,6 +140,7 @@ BigQuery migration 実行
 ```
 
 ### ステップ 2: ノード取得とロード (`1_2_fetch_and_load_nodes.py`)
+
 ```
 Wikidata から food_nodes_raw 相当のデータを取得
 ↓
@@ -153,6 +159,7 @@ Wikidata から親子エッジ（P31/P279）を取得
 ```
 
 ### ステップ 3: パスとサマリー生成 (`1_3_generate_paths_and_summary.py`)
+
 ```
 エッジデータを読み込む
 ↓
@@ -344,7 +351,7 @@ bq query --use_legacy_sql=false < 20251213T0000_create_wikidata_food_tables.sql
 ## ファイル構成
 
 ```
-scripts/20251213T0000_wikidata_food_graph/
+scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
 ├── __init__.py
 ├── 1_1_create_tables.py         # ステップ1: テーブル作成
 ├── 1_2_fetch_and_load_nodes.py  # ステップ2: ノード取得とロード
@@ -354,7 +361,7 @@ scripts/20251213T0000_wikidata_food_graph/
 ├── loader_bigquery.py           # BigQuery ロード・処理ロジック
 ├── requirements.txt             # Python 依存パッケージ
 ├── README.md                    # このファイル
-└── 500_macro_genre/             # macro_genre ホワイトリスト運用スクリプト（#550）
+└── 550_macro_genre/             # macro_genre ホワイトリスト運用スクリプト（#550）
     ├── 0_create_macro_genre_tables.py  # テーブル作成
     ├── 1_1_build_food_edges_raw.py     # エッジデータ構築
     ├── 1_3_build_dish_macro_genre_analysis.py # analysis 構築
@@ -384,7 +391,7 @@ scripts/20251213T0000_wikidata_food_graph/
 
 - [infra/big-query/README.md](../../infra/big-query/README.md): BigQuery インフラストラクチャ全体の説明
 - [infra/big-query/migration/20251213T0000_create_wikidata_food_tables.sql](../../infra/big-query/migration/20251213T0000_create_wikidata_food_tables.sql): テーブル定義 SQL
-- [500_macro_genre/README.md](./500_macro_genre/README.md): macro_genre ホワイトリスト運用ガイド
+- [550_macro_genre/README.md](./55s0_macro_genre/README.md): macro_genre ホワイトリスト運用ガイド
 
 ## 関連チケット
 

@@ -60,7 +60,7 @@ def main():
     logger.info("=" * 80)
     logger.info("")
     logger.info("Next step:")
-    logger.info("  cd 500_macro_genre && python3 1_3_build_dish_macro_genre_analysis.py")
+    logger.info("  cd 550_macro_genre && python3 1_3_build_dish_macro_genre_analysis.py")
 
 
 if __name__ == "__main__":

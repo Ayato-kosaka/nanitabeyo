@@ -51,11 +51,13 @@ python3 1_1_build_food_edges_raw.py
 ```
 
 **処理内容:**
+
 - `food_nodes_raw` から全ノード QID を取得
 - Wikidata から親エッジ（P31, P279）を取得
 - `food_edges_raw` にロード
 
 **注意点:**
+
 - 既に `food_edges_raw` がある場合は上書きされます
 - SPARQL endpoint への大量リクエストが発生するため、時間がかかります
 
@@ -68,12 +70,14 @@ python3 1_3_build_dish_macro_genre_analysis.py
 ```
 
 **処理内容:**
+
 - `dish_category_catalog` の item を対象
 - `food_paths` を `macro_genre_whitelist` と JOIN
 - min depth を求め、候補数で ambiguous 判定
 - `CREATE OR REPLACE TABLE` で再生成
 
 **出力:**
+
 - `macro_genre_qid`（ambiguous なら NULL）
 - `macro_genre_depth`
 - `macro_genre_ambiguous`
@@ -93,6 +97,7 @@ python3 1_4_export_macro_genre_candidate_stats.py --output /path/to/output.csv
 ```
 
 **出力例:**
+
 - `ancestor_qid`
 - `label_ja`, `label_en`
 - `hit_count`（何件の dish がその祖先を持つか）
@@ -111,6 +116,7 @@ python3 1_4_export_macro_genre_candidate_stats.py --output /path/to/output.csv
 ```
 
 **出力例:**
+
 - `ancestor_qid`
 - `label_ja`, `label_en`
 - `hit_count`（何件の dish がその祖先を持つか）
@@ -135,6 +141,7 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
 ```
 
 **出力例:**
+
 - `item_qid`, `label_ja/en`
 - `macro_genre_qid`, `macro_genre_depth`, `macro_genre_ambiguous`
 - `macro_genre_candidates`（JSON 文字列）
@@ -145,29 +152,33 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
 ### 初回実行
 
 1. **テーブル作成**
+
    ```bash
    # 親ディレクトリで migration を実行（まだの場合）
    cd ..
    python3 1_1_create_tables.py
-   
+
    # macro_genre 用テーブルを作成
-   cd 500_macro_genre
+   cd 550_macro_genre
    # 手動で migration を実行するか、後述の自動実行を利用
    ```
 
 2. **food_edges_raw 構築**
+
    ```bash
    python3 1_1_build_food_edges_raw.py
    ```
 
 3. **catalog 構築**（親ディレクトリで実行）
+
    ```bash
    cd ..
    python3 3_1_build_dish_category_catalog.py
-   cd 500_macro_genre
+   cd 550_macro_genre
    ```
 
 4. **候補分布 CSV 出力**
+
    ```bash
    python3 1_4_export_macro_genre_candidate_stats.py
    ```
@@ -175,7 +186,7 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
 5. **whitelist 手動更新**
    - CSV を確認して、macro_genre として採用する QID を決定
    - BigQuery で `macro_genre_whitelist` に INSERT
-   
+
    ```sql
    INSERT INTO `food-scroll.wikidata_food_graph.macro_genre_whitelist`
    (item_qid, reason, created_at) VALUES
@@ -184,6 +195,7 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
    ```
 
 6. **analysis 構築**
+
    ```bash
    python3 1_3_build_dish_macro_genre_analysis.py
    ```
@@ -212,11 +224,13 @@ python3 1_5_export_macro_genre_review.py
 macro_genre として採用する QID を手動で管理するテーブル。
 
 **カラム:**
+
 - `item_qid`: macro_genre として採用する QID
 - `reason`: メモ用途
 - `created_at`: 作成日時
 
 **例:**
+
 ```sql
 INSERT INTO `food-scroll.wikidata_food_graph.macro_genre_whitelist`
 (item_qid, reason, created_at) VALUES
@@ -228,10 +242,12 @@ INSERT INTO `food-scroll.wikidata_food_graph.macro_genre_whitelist`
 Wikidata から取得したエッジ情報。
 
 **カラム:**
+
 - `child_qid`: 子ノード QID
 - `parent_qid`: 親ノード QID
 
 **注意:**
+
 - 既存実装は P31/P279 を区別しないため、property フィールドは持たない
 
 ### 3. dish_category_catalog
@@ -239,6 +255,7 @@ Wikidata から取得したエッジ情報。
 blacklist 除外済み準マスタ（親ディレクトリで 3_1_build_dish_category_catalog.py により生成）。
 
 **カラム:**
+
 - `item_qid`: dish QID
 - `label_ja`, `label_en`: ラベル
 - `desc_ja`, `desc_en`: 説明
@@ -250,6 +267,7 @@ blacklist 除外済み準マスタ（親ディレクトリで 3_1_build_dish_cat
 macro_genre 割当の分析テーブル。
 
 **カラム:**
+
 - `item_qid`: dish QID
 - `macro_genre_qid`: 決定された macro_genre QID（曖昧時は NULL）
 - `macro_genre_depth`: 最短距離
@@ -337,7 +355,7 @@ sed 's/${DATASET}/food-scroll.wikidata_food_graph/g' 20251213T0000_create_macro_
 ## ファイル構成
 
 ```
-scripts/20251213T0000_wikidata_food_graph/500_macro_genre/
+scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/550_macro_genre/
 ├── 0_create_macro_genre_tables.py          # テーブル作成
 ├── 1_1_build_food_edges_raw.py             # ステップ1: エッジデータ構築
 ├── 1_3_build_dish_macro_genre_analysis.py  # ステップ2: analysis 構築
@@ -345,7 +363,7 @@ scripts/20251213T0000_wikidata_food_graph/500_macro_genre/
 ├── 1_5_export_macro_genre_review.py        # ステップ4: レビュー CSV 出力
 └── README.md                               # このファイル
 
-scripts/20251213T0000_wikidata_food_graph/
+scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
 └── 3_1_build_dish_category_catalog.py      # カタログ構築（前提）
 ```
 

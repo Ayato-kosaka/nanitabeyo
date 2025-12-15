@@ -34,7 +34,7 @@ cd ../../infra/big-query
 ./20251213T0000_setup_wikidata_food_graph_dataset.sh
 
 # テーブル作成（20251213 スクリプトで作成済み）
-cd ../../scripts/20251213T0000_wikidata_food_graph
+cd ../../scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling
 python3 1_1_create_tables.py
 
 # LLM ラベリング用テーブル作成
@@ -492,7 +492,7 @@ scripts/20251215T0000_wikidata_food_llm_labeling/
 
 - [infra/big-query/README.md](../../infra/big-query/README.md): BigQuery インフラストラクチャ全体の説明
 - [infra/big-query/migration/20251215T0000_create_wikidata_food_llm_labels.sql](../../infra/big-query/migration/20251215T0000_create_wikidata_food_llm_labels.sql): テーブル定義 SQL
-- [scripts/20251213T0000_wikidata_food_graph/README.md](../20251213T0000_wikidata_food_graph/README.md): 食品グラフ抽出スクリプトの説明
+- [scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/README.md](../20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/README.md): 食品グラフ抽出スクリプトの説明
 
 ## 関連チケット
 

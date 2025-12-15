@@ -213,10 +213,10 @@ migration/20251213T0000_create_wikidata_food_tables.sql
 データの取得と投入は以下のスクリプトで実行します：
 
 ```
-scripts/20251213T0000_wikidata_food_graph/
+scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
 ```
 
-詳細は [scripts/20251213T0000_wikidata_food_graph/README.md](../../scripts/20251213T0000_wikidata_food_graph/README.md) を参照してください。
+詳細は [scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/README.md](../../scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/README.md) を参照してください。
 
 ## Dataset 構成
 
