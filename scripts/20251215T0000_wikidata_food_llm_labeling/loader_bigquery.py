@@ -219,7 +219,7 @@ class BigQueryLoader:
           )
         """
         
-        result = self.execute_sql(sql)
+        self.execute_sql(sql)
         
         # #548 【設計】BigQuery の INSERT 結果から件数取得
         count_sql = f"""
