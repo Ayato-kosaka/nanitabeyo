@@ -352,7 +352,15 @@ scripts/20251213T0000_wikidata_food_graph/
 ├── wikidata_client.py           # Wikidata SPARQL クライアント
 ├── loader_bigquery.py           # BigQuery ロード・処理ロジック
 ├── requirements.txt             # Python 依存パッケージ
-└── README.md                    # このファイル
+├── README.md                    # このファイル
+└── 500_macro_genre/             # macro_genre ホワイトリスト運用スクリプト（#550）
+    ├── 0_create_macro_genre_tables.py  # テーブル作成
+    ├── 1_1_build_food_edges_raw.py     # エッジデータ構築
+    ├── 1_2_build_dish_category_catalog.py # カタログ構築
+    ├── 1_3_build_dish_macro_genre_analysis.py # analysis 構築
+    ├── 1_4_export_macro_genre_candidate_stats.py # 候補分布 CSV 出力
+    ├── 1_5_export_macro_genre_review.py # レビュー CSV 出力
+    └── README.md                # macro_genre 運用ガイド
 ```
 
 ## 注意事項
@@ -376,7 +384,9 @@ scripts/20251213T0000_wikidata_food_graph/
 
 - [infra/big-query/README.md](../../infra/big-query/README.md): BigQuery インフラストラクチャ全体の説明
 - [infra/big-query/migration/20251213T0000_create_wikidata_food_tables.sql](../../infra/big-query/migration/20251213T0000_create_wikidata_food_tables.sql): テーブル定義 SQL
+- [500_macro_genre/README.md](./500_macro_genre/README.md): macro_genre ホワイトリスト運用ガイド
 
 ## 関連チケット
 
 - #533: Wikidata 由来の料理・飲み物グラフ構造テーブル作成（BigQuery）
+- #550: macro_genre（Wikidata）ホワイトリスト運用＋割当結果テーブル作成（BigQuery）
