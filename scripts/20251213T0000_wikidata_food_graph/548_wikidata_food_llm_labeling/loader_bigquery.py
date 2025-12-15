@@ -229,7 +229,7 @@ class BigQueryLoader:
         FROM `{self.dataset_ref}.wikidata_food_llm_labels`
         WHERE
           run_id = '{run_id}'
-          AND label IN ('too_generic', 'non_menu_item', 'not_for_menu')
+          AND label IN ('too_generic', 'non_menu_item', 'not_for_menu', 'unclear_food')
           AND confidence = 'high'
           AND item_qid NOT IN (
             SELECT DISTINCT dish_qid

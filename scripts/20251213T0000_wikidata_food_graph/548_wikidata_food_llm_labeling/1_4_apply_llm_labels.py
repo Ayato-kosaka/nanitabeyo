@@ -8,7 +8,7 @@ wikidata_food_llm_labels から dish_blacklist を更新する
 
 【処理内容】
 1. wikidata_food_llm_labels から統計情報を取得（確認用）
-2. confidence='high' かつ label IN ('too_generic', 'non_menu_item', 'not_for_menu') を
+2. confidence='high' かつ label IN ('too_generic', 'non_menu_item', 'not_for_menu', 'unclear_food') を
    dish_blacklist に反映
 
 【使用方法】
@@ -72,7 +72,7 @@ def main():
     logger.info("=" * 80)
     
     # 整形して表示
-    label_order = ["keep", "too_generic", "non_menu_item", "not_for_menu", "uncertain"]
+    label_order = ["keep", "too_generic", "non_menu_item", "not_for_menu", "unclear_food", "uncertain"]
     
     # ヘッダー
     logger.info(f"{'Label':<20} {'High':<10} {'Medium':<10} {'Low':<10} {'Total':<10}")
@@ -93,7 +93,8 @@ def main():
     blacklist_candidates = (
         stats.get("too_generic_high", 0) +
         stats.get("non_menu_item_high", 0) +
-        stats.get("not_for_menu_high", 0)
+        stats.get("not_for_menu_high", 0) +
+        stats.get("unclear_food_high", 0)
     )
     
     logger.info(f"Candidates for dish_blacklist (confidence='high'): {blacklist_candidates}")
