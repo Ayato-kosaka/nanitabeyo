@@ -287,7 +287,7 @@ class BigQueryLoader:
                 "item_qid": row.item_qid,
                 "label_en": row.label_en,
                 "desc_en": row.desc_en,
-                "tags": row.tags if hasattr(row, 'tags') else []
+                "tags": getattr(row, 'tags', [])
             }
             for row in result
         ]
