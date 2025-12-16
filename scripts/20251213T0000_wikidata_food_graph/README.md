@@ -351,7 +351,7 @@ bq query --use_legacy_sql=false < 20251213T0000_create_wikidata_food_tables.sql
 ## ファイル構成
 
 ```
-scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
+scripts/20251213T0000_wikidata_food_graph/
 ├── __init__.py
 ├── 1_1_create_tables.py         # ステップ1: テーブル作成
 ├── 1_2_fetch_and_load_nodes.py  # ステップ2: ノード取得とロード
