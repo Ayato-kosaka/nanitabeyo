@@ -1,5 +1,5 @@
 -- ==============================================================================
--- 20251213T0000_create_macro_genre_tables.sql
+-- 20251216T0000_create_macro_genre_tables.sql
 -- ==============================================================================
 -- チケット #550 macro_genre（Wikidata）ホワイトリスト運用＋割当結果テーブル作成（BigQuery）
 --
@@ -10,7 +10,7 @@
 -- ## 使い方
 -- スクリプト側から ${DATASET} をプレースホルダ置換して実行される。
 -- または、手動で以下のように実行：
---   sed 's/${DATASET}/your_dataset_name/g' 20251213T0000_create_macro_genre_tables.sql | bq query --use_legacy_sql=false
+--   sed 's/${DATASET}/your_dataset_name/g' 20251216T0000_create_macro_genre_tables.sql | bq query --use_legacy_sql=false
 --
 -- ## 処理内容
 -- 1. macro_genre_whitelist: macro_genre として採用する QID の手動運用テーブル

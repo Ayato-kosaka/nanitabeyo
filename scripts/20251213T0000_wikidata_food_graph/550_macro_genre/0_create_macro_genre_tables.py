@@ -54,7 +54,7 @@ def main():
     
     # Migration 実行
     logger.info("Executing migration...")
-    migration_file = Path(__file__).parent.parent.parent.parent / "infra" / "big-query" / "migration" / "20251213T0000_create_macro_genre_tables.sql"
+    migration_file = Path(__file__).parent.parent.parent.parent / "infra" / "big-query" / "migration" / "20251216T0000_create_macro_genre_tables.sql"
     
     if not migration_file.exists():
         logger.error(f"Migration file not found: {migration_file}")

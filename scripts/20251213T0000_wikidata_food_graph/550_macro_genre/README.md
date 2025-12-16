@@ -44,22 +44,7 @@ pip install -r requirements.txt
 
 ### ステップ 1: food_edges_raw の構築
 
-Wikidata から child→parent のエッジを取得し、BigQuery にロードします。
-
-```bash
-python3 1_1_build_food_edges_raw.py
-```
-
-**処理内容:**
-
-- `food_nodes_raw` から全ノード QID を取得
-- Wikidata から親エッジ（P31, P279）を取得
-- `food_edges_raw` にロード
-
-**注意点:**
-
-- 既に `food_edges_raw` がある場合は上書きされます
-- SPARQL endpoint への大量リクエストが発生するため、時間がかかります
+→ 不要と判断
 
 ### ステップ 2: dish_macro_genre_analysis の構築
 
@@ -161,12 +146,6 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
    # macro_genre 用テーブルを作成
    cd 550_macro_genre
    # 手動で migration を実行するか、後述の自動実行を利用
-   ```
-
-2. **food_edges_raw 構築**
-
-   ```bash
-   python3 1_1_build_food_edges_raw.py
    ```
 
 3. **catalog 構築**（親ディレクトリで実行）
@@ -349,7 +328,7 @@ gcloud config set project food-scroll
 ```bash
 # migration を手動で実行
 cd ../../../infra/big-query/migration
-sed 's/${DATASET}/food-scroll.wikidata_food_graph/g' 20251213T0000_create_macro_genre_tables.sql | bq query --use_legacy_sql=false
+sed 's/${DATASET}/food-scroll.wikidata_food_graph/g' 20251216T0000_create_macro_genre_tables.sql | bq query --use_legacy_sql=false
 ```
 
 ## ファイル構成
@@ -357,7 +336,6 @@ sed 's/${DATASET}/food-scroll.wikidata_food_graph/g' 20251213T0000_create_macro_
 ```
 scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/550_macro_genre/
 ├── 0_create_macro_genre_tables.py          # テーブル作成
-├── 1_1_build_food_edges_raw.py             # ステップ1: エッジデータ構築
 ├── 1_3_build_dish_macro_genre_analysis.py  # ステップ2: analysis 構築
 ├── 1_4_export_macro_genre_candidate_stats.py # ステップ3: 候補分布 CSV 出力
 ├── 1_5_export_macro_genre_review.py        # ステップ4: レビュー CSV 出力
@@ -387,7 +365,7 @@ scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
 ## 関連ドキュメント
 
 - [親ディレクトリ README](../README.md): Wikidata 食品グラフ抽出スクリプト全体の説明
-- [infra/big-query/migration/20251213T0000_create_macro_genre_tables.sql](../../../infra/big-query/migration/20251213T0000_create_macro_genre_tables.sql): テーブル定義 SQL
+- [infra/big-query/migration/20251216T0000_create_macro_genre_tables.sql](../../../infra/big-query/migration/20251216T0000_create_macro_genre_tables.sql): テーブル定義 SQL
 
 ## 関連チケット
 
