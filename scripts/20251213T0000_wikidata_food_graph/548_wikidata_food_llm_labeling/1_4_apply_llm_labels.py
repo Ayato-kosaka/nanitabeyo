@@ -21,8 +21,11 @@ python3 1_4_apply_llm_labels.py --run-id 20251215T0000_v1 --dry-run
 import sys
 import logging
 import argparse
+from pathlib import Path
 
-from loader_bigquery import BigQueryLoader
+# #548/#550 【設計】共通モジュールを親ディレクトリから import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from loader_bigquery_llm import BigQueryLoader
 
 # ログ設定
 logging.basicConfig(

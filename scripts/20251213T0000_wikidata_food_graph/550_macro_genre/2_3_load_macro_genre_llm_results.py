@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-1_3_load_llm_results.py
+2_3_load_macro_genre_llm_results.py
 
 【目的】
-OpenAI Batch API の結果 JSONL を BigQuery にロードする
+OpenAI Batch API の結果 JSONL を BigQuery にロードする（macro_genre A/B/C 分類）
 
 【処理内容】
 1. Batch API のレスポンス（results.jsonl）を読み込む
 2. 各行の results 配列を展開
-3. item_qid, label, confidence, reason を抽出
-4. BigQuery の wikidata_food_llm_labels にロード
+3. item_qid, decision, confidence, macro_genre, reason を抽出
+4. BigQuery の wikidata_food_llm_labels にロード（task='#550_macro_genre_abc_classification'）
 
 【使用方法】
-python3 1_3_load_llm_results.py --run-id 20251215T0000_v1
+python3 2_3_load_macro_genre_llm_results.py --run-id 20251216T0000_v1
 
 【入力】
-/tmp/wikidata_food_llm/results.jsonl
+/tmp/wikidata_food_llm_macro_genre/results.jsonl
 """
 
 import sys
@@ -41,17 +41,17 @@ logger = logging.getLogger(__name__)
 # 固定値
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
-TASK_ID = "#548_menu_blacklist_classification"
+TASK_ID = "#550_macro_genre_abc_classification"
 MODEL_NAME = "gpt-4.1-mini"
 
 # 入力ファイル
-INPUT_DIR = Path("/tmp/wikidata_food_llm")
+INPUT_DIR = Path("/tmp/wikidata_food_llm_macro_genre")
 INPUT_FILE = INPUT_DIR / "results.jsonl"
 
 
 def load_batch_results(filepath: Path) -> List[Dict]:
     """
-    Batch API の結果を読み込む
+    Batch API の結果を読み込む（macro_genre A/B/C 分類）
 
     Args:
         filepath: results.jsonl のパス
@@ -60,7 +60,7 @@ def load_batch_results(filepath: Path) -> List[Dict]:
         全ラベルのリスト
     """
     all_labels: List[Dict] = []
-    llm_client = LLMClient()
+    llm_client = LLMClient(task="macro_genre")
     failed_output_file = INPUT_DIR / "failed_custom_ids.jsonl"
 
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -128,17 +128,17 @@ def load_batch_results(filepath: Path) -> List[Dict]:
 
 def main():
     """メイン処理"""
-    parser = argparse.ArgumentParser(description="Load LLM results to BigQuery")
+    parser = argparse.ArgumentParser(description="Load macro_genre LLM results to BigQuery")
     parser.add_argument(
         "--run-id",
         type=str,
         required=True,
-        help="Run ID for this batch (e.g., 20251215T0000_v1)"
+        help="Run ID for this batch (e.g., 20251216T0000_v1)"
     )
     args = parser.parse_args()
     
     logger.info("=" * 80)
-    logger.info("Step 1-3: Loading LLM results to BigQuery")
+    logger.info("Step 2-3: Loading macro_genre LLM results to BigQuery")
     logger.info("=" * 80)
     logger.info(f"Project: {GCP_PROJECT}, Dataset: {BQ_DATASET}")
     logger.info(f"Run ID: {args.run_id}")
@@ -160,17 +160,17 @@ def main():
     logger.info(f"Loaded {len(labels)} labels")
     
     # ラベルの統計を表示
-    label_counts = {}
+    decision_counts = {}
     confidence_counts = {}
     for label in labels:
-        label_key = label.get("label", "unknown")
+        decision_key = label.get("decision", "unknown")
         conf_key = label.get("confidence", "unknown")
-        label_counts[label_key] = label_counts.get(label_key, 0) + 1
+        decision_counts[decision_key] = decision_counts.get(decision_key, 0) + 1
         confidence_counts[conf_key] = confidence_counts.get(conf_key, 0) + 1
     
-    logger.info("Label distribution:")
-    for label_key, count in sorted(label_counts.items()):
-        logger.info(f"  {label_key}: {count}")
+    logger.info("Decision distribution:")
+    for decision_key, count in sorted(decision_counts.items()):
+        logger.info(f"  {decision_key}: {count}")
     
     logger.info("Confidence distribution:")
     for conf_key, count in sorted(confidence_counts.items()):
@@ -187,11 +187,11 @@ def main():
     )
     
     logger.info("=" * 80)
-    logger.info("✅ Step 1-3 completed successfully!")
+    logger.info("✅ Step 2-3 completed successfully!")
     logger.info("=" * 80)
     logger.info("")
     logger.info("Next step:")
-    logger.info(f"  python3 1_4_apply_llm_labels.py --run-id {args.run_id}")
+    logger.info(f"  python3 2_4_apply_macro_genre_llm_results.py --run-id {args.run_id}")
 
 
 if __name__ == "__main__":

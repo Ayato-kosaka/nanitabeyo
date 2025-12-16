@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-1_2_prepare_batch_payload.py
+2_2_prepare_macro_genre_batch_payload.py
 
 【目的】
-items.jsonl を読み込み、OpenAI Batch API 用のペイロードを生成する
+items.jsonl を読み込み、OpenAI Batch API 用のペイロードを生成する（macro_genre A/B/C 分類用）
 
 【処理内容】
-1. /tmp/wikidata_food_llm/items.jsonl を読み込む
+1. /tmp/wikidata_food_llm_macro_genre/items.jsonl を読み込む
 2. 20件ずつバッチにまとめる
 3. Batch API 用の JSONL を生成（1行1リクエスト）
 
 【使用方法】
-python3 1_2_prepare_batch_payload.py
+python3 2_2_prepare_macro_genre_batch_payload.py
 
 【出力】
-/tmp/wikidata_food_llm/batch_payload.jsonl
+/tmp/wikidata_food_llm_macro_genre/batch_payload.jsonl
 """
 
 import sys
@@ -36,12 +36,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 入出力先
-INPUT_DIR = Path("/tmp/wikidata_food_llm")
+INPUT_DIR = Path("/tmp/wikidata_food_llm_macro_genre")
 INPUT_FILE = INPUT_DIR / "items.jsonl"
 OUTPUT_FILE = INPUT_DIR / "batch_payload.jsonl"
 
 # バッチサイズ
-BATCH_SIZE = 20  # #548 【設計】1リクエストあたり20件
+BATCH_SIZE = 20  # #548/#550 【設計】1リクエストあたり20件
+
+# #550 【設計】入力の最大長（コスト最適化）
+MAX_DESC_CHARS = 200
 
 
 def load_items(filepath: Path) -> List[Dict]:
@@ -83,9 +86,17 @@ def create_batches(items: List[Dict], batch_size: int) -> List[List[Dict]]:
     logger.info(f"Created {len(batches)} batches (size={batch_size})")
     return batches
 
-MAX_DESC_CHARS = 200
 
 def normalize_item(it: Dict) -> Dict:
+    """
+    #550 【設計】入力正規化（item_qid, label_en, desc_en のみ）
+    
+    Args:
+        it: アイテム辞書
+        
+    Returns:
+        正規化されたアイテム
+    """
     out = {
         "item_qid": it.get("item_qid"),
         "label_en": (it.get("label_en") or "").strip(),
@@ -100,13 +111,13 @@ def normalize_item(it: Dict) -> Dict:
 def main():
     """メイン処理"""
     logger.info("=" * 80)
-    logger.info("Step 1-2: Preparing batch payload for OpenAI Batch API")
+    logger.info("Step 2-2: Preparing batch payload for OpenAI Batch API (macro_genre)")
     logger.info("=" * 80)
     
     # 入力ファイル確認
     if not INPUT_FILE.exists():
         logger.error(f"Input file not found: {INPUT_FILE}")
-        logger.error("Please run 1_1_export_unlabeled_nodes.py first")
+        logger.error("Please run 2_1_export_macro_genre_label_targets.py first")
         return
     
     # アイテム読み込み
@@ -122,8 +133,8 @@ def main():
     # バッチに分割
     batches = create_batches(items, BATCH_SIZE)
     
-    # LLM クライアント初期化
-    llm_client = LLMClient()
+    # LLM クライアント初期化（macro_genre タスク）
+    llm_client = LLMClient(task="macro_genre")
     
     # Batch API 用のペイロード生成
     logger.info(f"Generating batch payload...")
@@ -135,7 +146,7 @@ def main():
     
     logger.info(f"Successfully generated batch payload: {len(batches)} requests")
     logger.info("=" * 80)
-    logger.info("✅ Step 1-2 completed successfully!")
+    logger.info("✅ Step 2-2 completed successfully!")
     logger.info("=" * 80)
     logger.info("")
     logger.info("Output file:")
@@ -145,7 +156,7 @@ def main():
     logger.info("  1. Upload batch_payload.jsonl to OpenAI Batch API")
     logger.info("  2. Wait for batch processing to complete")
     logger.info("  3. Download results.jsonl")
-    logger.info("  4. Run: python3 1_3_load_llm_results.py --run-id <run_id>")
+    logger.info("  4. Run: python3 2_3_load_macro_genre_llm_results.py --run-id <run_id>")
 
 
 if __name__ == "__main__":

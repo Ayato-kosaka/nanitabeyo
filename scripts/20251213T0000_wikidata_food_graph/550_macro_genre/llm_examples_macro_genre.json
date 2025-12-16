@@ -1,0 +1,310 @@
+[
+  {
+    "label_en": "Piemonte",
+    "desc_en": "range of Italian wines made in the region of Piedmont",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "wine region / geographic designation"
+  },
+  {
+    "label_en": "Dog milk",
+    "desc_en": "milk from domestic dog",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "not a typical menu food"
+  },
+  {
+    "label_en": "viticulture of Aguascalientes",
+    "desc_en": "",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "production/industry concept not food"
+  },
+  {
+    "label_en": "D.O. Friuli Grave",
+    "desc_en": "Italian wine designation",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "designation of origin / wine region"
+  },
+  {
+    "label_en": "Oreo",
+    "desc_en": "sandwich cookie brand by Mondelez",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "branded product / SKU"
+  },
+  {
+    "label_en": "class",
+    "desc_en": "group of things with common characteristics",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "meta concept not food"
+  },
+  {
+    "label_en": "food products by OKPD2",
+    "desc_en": "statistical classification",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "industry classification"
+  },
+  {
+    "label_en": "Toast skagen",
+    "desc_en": "Swedish toast dish",
+    "decision": "B",
+    "confidence": "medium",
+    "reason": "regional dish name; not safely normalizable"
+  },
+  {
+    "label_en": "Laufabrauð",
+    "desc_en": "Icelandic flatbread",
+    "decision": "B",
+    "confidence": "medium",
+    "reason": "regional traditional name"
+  },
+  {
+    "label_en": "chipa",
+    "desc_en": "South American baked good",
+    "decision": "B",
+    "confidence": "medium",
+    "reason": "regional food with unclear macro"
+  },
+  {
+    "label_en": "Okinawa soba",
+    "desc_en": "Okinawan noodle dish",
+    "decision": "B",
+    "confidence": "medium",
+    "reason": "regional variety; self macro safer"
+  },
+  {
+    "label_en": "Caesar salad",
+    "desc_en": "salad of romaine lettuce and croutons",
+    "decision": "C",
+    "macro_genre": "salad",
+    "confidence": "high",
+    "reason": "generic salad type"
+  },
+  {
+    "label_en": "Oatmeal cookie",
+    "desc_en": "drop cookie with oatmeal and raisins",
+    "decision": "C",
+    "macro_genre": "cookie",
+    "confidence": "high",
+    "reason": "generic cookie type"
+  },
+  {
+    "label_en": "Beerenauslese",
+    "desc_en": "German term for late harvest wine",
+    "decision": "C",
+    "macro_genre": "sweet_wine",
+    "confidence": "medium",
+    "reason": "wine style; not a region/brand"
+  },
+  {
+    "label_en": "Shoyu ramen",
+    "desc_en": "ramen with soy sauce broth",
+    "decision": "C",
+    "macro_genre": "ramen",
+    "confidence": "high",
+    "reason": "ramen variant -> generic ramen"
+  },
+  {
+    "label_en": "Margherita pizza",
+    "desc_en": "pizza with tomato, mozzarella, and basil",
+    "decision": "C",
+    "macro_genre": "pizza",
+    "confidence": "high",
+    "reason": "pizza variant -> generic pizza"
+  },
+  {
+    "label_en": "Chicken curry",
+    "desc_en": "curry dish made with chicken",
+    "decision": "C",
+    "macro_genre": "curry",
+    "confidence": "high",
+    "reason": "curry type"
+  },
+  {
+    "label_en": "Gyudon",
+    "desc_en": "Japanese beef bowl",
+    "decision": "C",
+    "macro_genre": "donburi",
+    "confidence": "high",
+    "reason": "rice bowl dish"
+  },
+  {
+    "label_en": "Lobster roll",
+    "desc_en": "sandwich with lobster meat",
+    "decision": "C",
+    "macro_genre": "sandwich",
+    "confidence": "medium",
+    "reason": "sandwich type"
+  },
+  {
+    "label_en": "Tiramisu",
+    "desc_en": "Italian coffee-flavored dessert",
+    "decision": "C",
+    "macro_genre": "dessert",
+    "confidence": "high",
+    "reason": "dessert type"
+  },
+  {
+    "label_en": "Chocolate cake",
+    "desc_en": "cake flavored with chocolate",
+    "decision": "C",
+    "macro_genre": "cake",
+    "confidence": "high",
+    "reason": "cake type"
+  },
+  {
+    "label_en": "Green tea",
+    "desc_en": "tea made from Camellia sinensis leaves",
+    "decision": "C",
+    "macro_genre": "tea",
+    "confidence": "high",
+    "reason": "tea type"
+  },
+  {
+    "label_en": "Espresso",
+    "desc_en": "concentrated coffee drink",
+    "decision": "C",
+    "macro_genre": "coffee",
+    "confidence": "high",
+    "reason": "coffee type"
+  },
+  {
+    "label_en": "Margarita",
+    "desc_en": "cocktail with tequila and lime",
+    "decision": "C",
+    "macro_genre": "cocktail",
+    "confidence": "high",
+    "reason": "cocktail type"
+  },
+  {
+    "label_en": "Red wine",
+    "desc_en": "wine made from dark-colored grape varieties",
+    "decision": "C",
+    "macro_genre": "wine",
+    "confidence": "high",
+    "reason": "wine type"
+  },
+  {
+    "label_en": "Craft beer",
+    "desc_en": "beer from small independent breweries",
+    "decision": "C",
+    "macro_genre": "beer",
+    "confidence": "high",
+    "reason": "beer type"
+  },
+  {
+    "label_en": "Croissant",
+    "desc_en": "buttery flaky French pastry",
+    "decision": "C",
+    "macro_genre": "pastry",
+    "confidence": "high",
+    "reason": "pastry type"
+  },
+  {
+    "label_en": "Tomato soup",
+    "desc_en": "soup made with tomatoes",
+    "decision": "C",
+    "macro_genre": "soup",
+    "confidence": "high",
+    "reason": "soup type"
+  },
+  {
+    "label_en": "Greek salad",
+    "desc_en": "salad with feta, olives, tomatoes",
+    "decision": "C",
+    "macro_genre": "salad",
+    "confidence": "high",
+    "reason": "salad type"
+  },
+  {
+    "label_en": "Miso soup",
+    "desc_en": "Japanese soup with miso paste",
+    "decision": "C",
+    "macro_genre": "soup",
+    "confidence": "high",
+    "reason": "soup type"
+  },
+  {
+    "label_en": "Ice cream",
+    "desc_en": "frozen dessert",
+    "decision": "C",
+    "macro_genre": "dessert",
+    "confidence": "high",
+    "reason": "dessert type"
+  },
+  {
+    "label_en": "Sushi",
+    "desc_en": "Japanese dish with vinegared rice",
+    "decision": "C",
+    "macro_genre": "sushi",
+    "confidence": "high",
+    "reason": "sushi is established macro"
+  },
+  {
+    "label_en": "Pad Thai",
+    "desc_en": "Thai stir-fried noodle dish",
+    "decision": "C",
+    "macro_genre": "noodle",
+    "confidence": "high",
+    "reason": "noodle dish"
+  },
+  {
+    "label_en": "Tacos",
+    "desc_en": "Mexican dish with folded tortilla",
+    "decision": "C",
+    "macro_genre": "taco",
+    "confidence": "high",
+    "reason": "taco is established macro"
+  },
+  {
+    "label_en": "Paella",
+    "desc_en": "Spanish rice dish",
+    "decision": "C",
+    "macro_genre": "rice_dish",
+    "confidence": "medium",
+    "reason": "rice-based main dish"
+  },
+  {
+    "label_en": "Bibimbap",
+    "desc_en": "Korean mixed rice dish",
+    "decision": "C",
+    "macro_genre": "rice_dish",
+    "confidence": "high",
+    "reason": "rice-based main dish"
+  },
+  {
+    "label_en": "Pho",
+    "desc_en": "Vietnamese noodle soup",
+    "decision": "C",
+    "macro_genre": "noodle_soup",
+    "confidence": "high",
+    "reason": "noodle soup type"
+  },
+  {
+    "label_en": "Baklava",
+    "desc_en": "layered pastry dessert",
+    "decision": "C",
+    "macro_genre": "dessert",
+    "confidence": "high",
+    "reason": "dessert type"
+  },
+  {
+    "label_en": "Champagne",
+    "desc_en": "sparkling wine from Champagne region",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "protected designation of origin"
+  },
+  {
+    "label_en": "Sparkling wine",
+    "desc_en": "wine with significant carbonation",
+    "decision": "C",
+    "macro_genre": "sparkling_wine",
+    "confidence": "high",
+    "reason": "wine style category"
+  }
+]
