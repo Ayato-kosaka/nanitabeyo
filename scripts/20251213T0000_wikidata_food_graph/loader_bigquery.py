@@ -778,8 +778,12 @@ class BigQueryLoader:
         errors = self.client.insert_rows_json(table_id, rows_to_insert)
         
         if errors:
-            # エラーの詳細をログに記録
-            failed_qids = [row["item_qid"] for row in rows_to_insert if any(err for err in errors)]
+            # #550 【バグ】エラーの詳細をログに記録（index フィールドで失敗した行を特定）
+            failed_qids = [
+                rows_to_insert[err.get('index', -1)]["item_qid"] 
+                for err in errors 
+                if 'index' in err and err['index'] < len(rows_to_insert)
+            ]
             logger.error(f"Errors occurred while inserting rows: {errors}")
             logger.error(f"Failed item_qids (sample): {failed_qids[:10]}")
             raise Exception(f"Failed to insert rows: {errors}")
