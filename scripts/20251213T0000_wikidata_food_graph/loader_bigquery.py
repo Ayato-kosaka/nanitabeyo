@@ -15,6 +15,7 @@ BigQuery へのデータロードと処理ロジック
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import List, Dict, Tuple
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
@@ -747,8 +748,7 @@ class BigQueryLoader:
         logger.info(f"Loading {len(labels)} macro_genre labels to {table_id}")
         
         # #550 【設計】データを準備（decision/macro_genre を label カラムに格納）
-        from datetime import datetime
-        current_time = datetime.utcnow().isoformat()
+        current_time = datetime.now(timezone.utc).isoformat()
         rows_to_insert = []
         
         for label in labels:
@@ -774,11 +774,14 @@ class BigQueryLoader:
                 "created_at": current_time
             })
         
-        # BigQuery に INSERT
+        # #550 【設計】BigQuery に INSERT（エラー時は失敗した item_qid をログに記録）
         errors = self.client.insert_rows_json(table_id, rows_to_insert)
         
         if errors:
+            # エラーの詳細をログに記録
+            failed_qids = [row["item_qid"] for row in rows_to_insert if any(err for err in errors)]
             logger.error(f"Errors occurred while inserting rows: {errors}")
+            logger.error(f"Failed item_qids (sample): {failed_qids[:10]}")
             raise Exception(f"Failed to insert rows: {errors}")
         
         logger.info(f"Successfully loaded {len(labels)} macro_genre labels")
@@ -852,9 +855,9 @@ class BigQueryLoader:
         WHERE
           task = '{task}'
           AND run_id = '{run_id}'
-          AND label = 'A'
-          AND confidence = 'high'
-          AND item_qid NOT IN (
+          AND label = 'A'  -- #550 【設計】decision=A（blacklist）のみ自動反映
+          AND confidence = 'high'  -- #550 【設計】高信頼度のみ自動反映（medium/low は手動レビュー）
+          AND item_qid NOT IN (  -- #550 【設計】重複防止：既に blacklist に存在するものは除外
             SELECT DISTINCT dish_qid
             FROM `{self.dataset_ref}.dish_blacklist`
           )
