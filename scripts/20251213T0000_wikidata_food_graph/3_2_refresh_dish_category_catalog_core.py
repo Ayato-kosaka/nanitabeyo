@@ -257,25 +257,37 @@ def resolve_commons_url(image_raw: str) -> Optional[str]:
     if not image_raw:
         return None
     
-    # #543 【設計】FilePath 形式の場合はそのまま返す（実体 URL に近い）
-    if "Special:FilePath" in image_raw:
-        # #543 【設計】http → https に変換
-        return image_raw.replace("http://", "https://")
-    
-    # #543 【設計】ファイル名を抽出して upload.wikimedia.org 形式に変換
-    # 例: "http://commons.wikimedia.org/wiki/File:Example.jpg" → filename = "Example.jpg"
-    if "/File:" in image_raw or "/wiki/" in image_raw:
-        filename = image_raw.split("/")[-1]
-        if filename.startswith("File:"):
-            filename = filename[5:]  # "File:" を除去
+    try:
+        # #543 【設計】FilePath 形式の場合はそのまま https に変換して返す
+        if "Special:FilePath" in image_raw:
+            return image_raw.replace("http://", "https://")
         
-        # #543 【設計】URL エンコード
-        filename_encoded = urllib.parse.quote(filename)
+        # #543 【設計】ファイル名を抽出
+        filename = None
+        if "/File:" in image_raw:
+            filename = image_raw.split("/File:")[-1]
+        elif "/wiki/" in image_raw:
+            filename = image_raw.split("/")[-1]
         
-        # #543 【設計】upload.wikimedia.org 形式に変換（簡易版、正確な MD5 ハッシュは不要）
-        return f"https://upload.wikimedia.org/wikipedia/commons/thumb/{filename_encoded}"
-    
-    return None
+        if not filename:
+            return None
+        
+        # #543 【設計】URL デコード（%20 などを戻す）
+        filename = urllib.parse.unquote(filename)
+        
+        # #543 【設計】スペースをアンダースコアに変換（Commons の規則）
+        filename = filename.replace(" ", "_")
+        
+        # #543 【設計】MD5 ハッシュを計算（Commons の URL 構造に必要）
+        import hashlib
+        md5_hash = hashlib.md5(filename.encode('utf-8')).hexdigest()
+        
+        # #543 【設計】upload.wikimedia.org 形式に変換
+        # 例: https://upload.wikimedia.org/wikipedia/commons/a/ab/Example.jpg
+        return f"https://upload.wikimedia.org/wikipedia/commons/{md5_hash[0]}/{md5_hash[0:2]}/{urllib.parse.quote(filename)}"
+    except Exception as e:
+        logger.warning(f"Failed to resolve Commons URL: {image_raw}, error: {e}")
+        return None
 
 
 def load_core_data_to_bigquery(
