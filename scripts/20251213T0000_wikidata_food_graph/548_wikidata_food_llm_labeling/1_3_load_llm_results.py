@@ -26,6 +26,9 @@ import argparse
 from pathlib import Path
 from typing import List, Dict
 
+# #548 【設計】親ディレクトリを sys.path に追加してモジュールをインポート
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from loader_bigquery import BigQueryLoader
 from llm_client import LLMClient
 
@@ -58,7 +61,8 @@ def load_batch_results(filepath: Path) -> List[Dict]:
         全ラベルのリスト
     """
     all_labels: List[Dict] = []
-    llm_client = LLMClient()
+    # #548 【設計】LLMClient を初期化（menu_blacklist タスク用）
+    llm_client = LLMClient(task="menu_blacklist")
     failed_output_file = INPUT_DIR / "failed_custom_ids.jsonl"
 
     with open(filepath, 'r', encoding='utf-8') as f:

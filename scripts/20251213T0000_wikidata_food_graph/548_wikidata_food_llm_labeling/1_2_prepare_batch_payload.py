@@ -18,10 +18,14 @@ python3 1_2_prepare_batch_payload.py
 /tmp/wikidata_food_llm/batch_payload.jsonl
 """
 
+import sys
 import json
 import logging
 from pathlib import Path
 from typing import List, Dict
+
+# #548 【設計】親ディレクトリを sys.path に追加してモジュールをインポート
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from llm_client import LLMClient
 
@@ -119,8 +123,8 @@ def main():
     # バッチに分割
     batches = create_batches(items, BATCH_SIZE)
     
-    # LLM クライアント初期化
-    llm_client = LLMClient()
+    # #548 【設計】LLM クライアント初期化（menu_blacklist タスク用）
+    llm_client = LLMClient(task="menu_blacklist")
     
     # Batch API 用のペイロード生成
     logger.info(f"Generating batch payload...")

@@ -15,6 +15,7 @@ BigQuery へのデータロードと処理ロジック
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import List, Dict, Tuple
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
@@ -42,6 +43,23 @@ class BigQueryLoader:
         job = self.client.query(sql)
         job.result()  # Wait for completion
         logger.info(f"SQL execution completed")
+    
+    def execute_dml(self, sql: str) -> int:
+        """
+        #550 【設計】DML 文を実行する
+
+        Args:
+            sql: 実行する DML SQL 文字列
+
+        Returns:
+            影響を受けた行数
+        """
+        logger.info("Executing DML...")
+        job = self.client.query(sql)
+        job.result()
+        affected = job.num_dml_affected_rows or 0
+        logger.info(f"DML completed, affected_rows={affected}")
+        return affected
     
     def execute_migration(self, migration_file_path: str) -> None:
         """
@@ -662,3 +680,193 @@ class BigQueryLoader:
         
         logger.info(f"Fetched {len(review_data)} review items")
         return review_data
+    
+    def get_all_dishes_for_macro_genre_labeling(self) -> List[Dict]:
+        """
+        #550 【設計】macro_genre LLM ラベリング用に全 dish を取得
+        dish_blacklist 未該当の全アイテム（macro_genre 付与済み含む）
+        
+        Returns:
+            dish リスト [{'item_qid': 'Q...', 'label_en': '...', 'desc_en': '...'}, ...]
+        """
+        logger.info("Fetching all dishes for macro_genre labeling from BigQuery...")
+        
+        sql = f"""
+        WITH black AS (
+          SELECT DISTINCT dish_qid
+          FROM `{self.dataset_ref}.dish_blacklist`
+        )
+        SELECT
+          fnr.item_qid,
+          fnr.label_en,
+          fnr.desc_en
+        FROM `{self.dataset_ref}.food_nodes_raw` AS fnr
+        LEFT JOIN black
+          ON fnr.item_qid = black.dish_qid
+        WHERE black.dish_qid IS NULL
+        ORDER BY fnr.item_qid
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        dishes = [
+            {
+                "item_qid": row.item_qid,
+                "label_en": row.label_en,
+                "desc_en": row.desc_en
+            }
+            for row in results
+        ]
+        
+        logger.info(f"Found {len(dishes)} dishes for macro_genre labeling")
+        return dishes
+    
+    def load_macro_genre_llm_labels(
+        self,
+        labels: List[Dict],
+        task: str,
+        model: str,
+        run_id: str
+    ) -> None:
+        """
+        #550 【設計】wikidata_food_llm_labels テーブルに macro_genre LLM ラベリング結果をロード
+        
+        Args:
+            labels: ラベル情報のリスト
+                    [{'item_qid': 'Q12345', 'decision': 'C', 'confidence': 'high', 
+                      'macro_genre': 'Ramen', 'reason': '...'}, ...]
+            task: タスク識別子（例: '#550_macro_genre_abc_classification'）
+            model: モデル名（例: 'gpt-4.1-mini'）
+            run_id: バッチ実行ごとの識別子（例: '20251217T0000_v1'）
+        """
+        if not labels:
+            logger.warning("No labels to load")
+            return
+        
+        table_id = f"{self.dataset_ref}.wikidata_food_llm_labels"
+        logger.info(f"Loading {len(labels)} macro_genre labels to {table_id}")
+        
+        # #550 【設計】データを準備（decision/macro_genre を label カラムに格納）
+        current_time = datetime.now(timezone.utc).isoformat()
+        rows_to_insert = []
+        
+        for label in labels:
+            # decision を label カラムに保存
+            # macro_genre は reason に JSON 形式で埋め込む
+            decision = label.get("decision")
+            macro_genre = label.get("macro_genre")
+            reason = label.get("reason")
+            
+            # #550 【設計】reason に macro_genre を埋め込む形式: "reason_text | macro_genre: Genre"
+            full_reason = reason
+            if decision == "C" and macro_genre:
+                full_reason = f"{reason} | macro_genre: {macro_genre}"
+            
+            rows_to_insert.append({
+                "item_qid": label["item_qid"],
+                "task": task,
+                "label": decision,  # A/B/C を label カラムに保存
+                "confidence": label["confidence"],
+                "reason": full_reason,
+                "model": model,
+                "run_id": run_id,
+                "created_at": current_time
+            })
+        
+        # #550 【設計】BigQuery に INSERT（エラー時は失敗した item_qid をログに記録）
+        errors = self.client.insert_rows_json(table_id, rows_to_insert)
+        
+        if errors:
+            # #550 【バグ】エラーの詳細をログに記録（index フィールドで失敗した行を特定）
+            failed_qids = [
+                rows_to_insert[err.get('index', -1)]["item_qid"] 
+                for err in errors 
+                if 'index' in err and err['index'] < len(rows_to_insert)
+            ]
+            logger.error(f"Errors occurred while inserting rows: {errors}")
+            logger.error(f"Failed item_qids (sample): {failed_qids[:10]}")
+            raise Exception(f"Failed to insert rows: {errors}")
+        
+        logger.info(f"Successfully loaded {len(labels)} macro_genre labels")
+    
+    def get_macro_genre_llm_label_stats(self, task: str, run_id: str = None) -> Dict:
+        """
+        #550 【設計】wikidata_food_llm_labels の統計情報を取得（macro_genre 用）
+        
+        Args:
+            task: タスク識別子（例: '#550_macro_genre_abc_classification'）
+            run_id: 特定の run_id に絞る場合に指定
+            
+        Returns:
+            統計情報の辞書
+        """
+        logger.info(f"Fetching macro_genre LLM label statistics for task={task}...")
+        
+        where_clauses = [f"task = '{task}'"]
+        if run_id:
+            where_clauses.append(f"run_id = '{run_id}'")
+        where_clause = " AND ".join(where_clauses)
+        
+        sql = f"""
+        SELECT
+          label,
+          confidence,
+          COUNT(*) as count
+        FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+        WHERE {where_clause}
+        GROUP BY label, confidence
+        ORDER BY label, confidence
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        stats = {}
+        for row in results:
+            key = f"{row.label}_{row.confidence}"
+            stats[key] = row.count
+        
+        logger.info(f"Statistics: {stats}")
+        return stats
+    
+    def apply_macro_genre_llm_labels_to_blacklist(self, task: str, run_id: str) -> int:
+        """
+        #550 【設計】wikidata_food_llm_labels から dish_blacklist を更新（decision=A）
+        
+        Args:
+            task: タスク識別子（例: '#550_macro_genre_abc_classification'）
+            run_id: 適用する run_id
+            
+        Returns:
+            追加された行数
+        """
+        logger.info(f"Applying macro_genre LLM labels (decision=A) from run_id={run_id} to dish_blacklist...")
+        
+        sql = f"""
+        INSERT INTO `{self.dataset_ref}.dish_blacklist` (
+          dish_qid,
+          reason,
+          note,
+          created_at
+        )
+        SELECT
+          item_qid AS dish_qid,
+          'llm_macro_genre' AS reason,
+          CONCAT('decision=', label, ', ', reason) AS note,
+          CURRENT_TIMESTAMP() AS created_at
+        FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+        WHERE
+          task = '{task}'
+          AND run_id = '{run_id}'
+          AND label = 'A'  -- #550 【設計】decision=A（blacklist）のみ自動反映
+          AND confidence = 'high'  -- #550 【設計】高信頼度のみ自動反映（medium/low は手動レビュー）
+          AND item_qid NOT IN (  -- #550 【設計】重複防止：既に blacklist に存在するものは除外
+            SELECT DISTINCT dish_qid
+            FROM `{self.dataset_ref}.dish_blacklist`
+          )
+        """
+        
+        affected = self.execute_dml(sql)
+        logger.info(f"Applied {affected} macro_genre LLM labels (decision=A) to dish_blacklist (run_id={run_id})")
+        return affected
