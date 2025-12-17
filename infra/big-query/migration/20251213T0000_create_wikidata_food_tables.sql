@@ -142,3 +142,22 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_catalog` (
   image_url STRING,             -- Wikidata 画像 URL（あれば）
   tags      ARRAY<STRING>       -- 祖先 QID の配列（depth<=5 の shallow なもの）
 );
+
+
+-- -----------------------------------------------------------------------------
+-- 8. dish_category_features_catalog: 特徴量カタログ（region等）
+-- -----------------------------------------------------------------------------
+-- #557 【設計】dish_category の各種特徴量（region/mood/scene/taste/timeSlot/archetype）を保持
+-- PostgreSQL の dish_category_features と同形をベースに、運用メタを+α
+-- LLM ラベリング結果を MERGE で反映し、将来 PostgreSQL 投入時の参照元となる
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_features_catalog` (
+  item_qid       STRING NOT NULL,    -- dish QID
+  feature_type   STRING NOT NULL,    -- 'region' | 'mood' | 'scene' | 'timeSlot' | 'taste' | 'archetype' ...
+  feature_key    STRING NOT NULL,    -- 'country:JP', 'scope:global', ...
+  score          FLOAT64 NOT NULL,   -- region は 1 固定、他は 0.0-1.0
+  source         STRING NOT NULL,    -- 'llm' | 'manual' | 'rule'
+  run_id         STRING NOT NULL,    -- LLM batch 実行 ID（トレーサビリティ用）
+  updated_at     TIMESTAMP NOT NULL, -- 更新日時
+  note           STRING              -- 任意（confidence や短い reason を入れる用途、将来拡張）
+);

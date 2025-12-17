@@ -1,0 +1,317 @@
+[
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q35038",
+    "label_ja": "ラーメン",
+    "label_en": "Ramen",
+    "desc_ja": "日本の麺料理",
+    "desc_en": "Japanese noodle soup dish",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "very common menu category in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "寿司",
+    "label_en": "Sushi",
+    "desc_ja": "酢飯を使った日本料理",
+    "desc_en": "Japanese dish with vinegared rice",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "fundamental Japanese menu item"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "天ぷら",
+    "label_en": "Tempura",
+    "desc_ja": "日本の揚げ物料理",
+    "desc_en": "Japanese fried food",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "common Japanese restaurant dish"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "焼き鳥",
+    "label_en": "Yakitori",
+    "desc_ja": "串焼きの鶏肉料理",
+    "desc_en": "grilled chicken skewers",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "popular izakaya menu item in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "うどん",
+    "label_en": "Udon",
+    "desc_ja": "太い小麦麺",
+    "desc_en": "thick wheat noodles",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "common noodle category in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "そば",
+    "label_en": "Soba",
+    "desc_ja": "蕎麦粉を使った麺",
+    "desc_en": "buckwheat noodles",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "traditional Japanese noodle dish"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "カレー",
+    "label_en": "Curry",
+    "desc_ja": "カレー粉を使った料理",
+    "desc_en": "dish with curry spices",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "very popular in Japanese dining"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "トンカツ",
+    "label_en": "Tonkatsu",
+    "desc_ja": "豚肉のカツレツ",
+    "desc_en": "breaded pork cutlet",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "common Japanese menu item"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "お好み焼き",
+    "label_en": "Okonomiyaki",
+    "desc_ja": "日本のパンケーキ風料理",
+    "desc_en": "Japanese savory pancake",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "popular Japanese comfort food"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "たこ焼き",
+    "label_en": "Takoyaki",
+    "desc_ja": "タコ入りの球状の粉物料理",
+    "desc_en": "octopus balls",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "common street food and menu item"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "牛丼",
+    "label_en": "Gyudon",
+    "desc_ja": "牛肉を使った丼物",
+    "desc_en": "beef bowl",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "popular fast food category in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "親子丼",
+    "label_en": "Oyakodon",
+    "desc_ja": "鶏肉と卵の丼物",
+    "desc_en": "chicken and egg rice bowl",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "common donburi menu item"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "博多ラーメン",
+    "label_en": "Hakata ramen",
+    "desc_ja": "福岡発祥の豚骨ラーメン",
+    "desc_en": "pork bone ramen from Fukuoka",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "commonly understood regional style in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "味噌ラーメン",
+    "label_en": "Miso ramen",
+    "desc_ja": "味噌ベースのラーメン",
+    "desc_en": "miso-based ramen",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "well-known ramen style in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "しゃぶしゃぶ",
+    "label_en": "Shabu-shabu",
+    "desc_ja": "薄切り肉の鍋料理",
+    "desc_en": "Japanese hot pot with thinly sliced meat",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "popular nabe menu category"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "すき焼き",
+    "label_en": "Sukiyaki",
+    "desc_ja": "牛肉の鍋料理",
+    "desc_en": "Japanese hot pot with beef",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "traditional Japanese nabe dish"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_en": "Cincinnati chili",
+    "desc_en": "regional chili dish from Cincinnati, USA",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "not commonly used as menu category in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_en": "Detroit-style pizza",
+    "desc_en": "pizza style from Detroit",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "obscure regional US food not known in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_en": "Boudin",
+    "desc_en": "Louisiana sausage",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "regional US specialty not familiar in Japan"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_en": "Poutine",
+    "desc_en": "Canadian dish with fries, gravy and cheese",
+    "decision": "deny",
+    "confidence": "medium",
+    "reason": "limited presence in Japanese dining context"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_en": "Vegemite toast",
+    "desc_en": "Australian breakfast item",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "not part of Japanese food culture"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "京料理",
+    "label_en": "Kyoto cuisine",
+    "desc_ja": "京都の伝統的な料理",
+    "desc_en": "traditional cuisine of Kyoto",
+    "decision": "deny",
+    "confidence": "medium",
+    "reason": "culinary tradition not specific menu item"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "和食",
+    "label_en": "Japanese cuisine",
+    "desc_ja": "日本の伝統的な料理",
+    "desc_en": "traditional Japanese food",
+    "decision": "deny",
+    "confidence": "medium",
+    "reason": "too broad as cuisine category"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "調理方法",
+    "label_en": "Cooking method",
+    "desc_en": "technique for preparing food",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "abstract concept not food item"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "小麦粉",
+    "label_en": "Wheat flour",
+    "desc_ja": "小麦を挽いた粉",
+    "desc_en": "powder made from wheat",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "ingredient not dish"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "大阪",
+    "label_en": "Osaka",
+    "desc_ja": "日本の都市",
+    "desc_en": "city in Japan",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "geographic location not food"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "発酵",
+    "label_en": "Fermentation",
+    "desc_ja": "微生物による代謝過程",
+    "desc_en": "metabolic process",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "process not food item"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "屋台文化",
+    "label_en": "Street food culture",
+    "desc_en": "food sold by street vendors",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "cultural concept not specific food"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_ja": "極小の郷土料理",
+    "label_en": "Very local specialty",
+    "desc_en": "dish known only in small region",
+    "decision": "uncertain",
+    "confidence": "low",
+    "reason": "unclear if nationally recognized"
+  },
+  {
+    "market_key": "country:JP",
+    "item_qid": "Q28803",
+    "label_en": "Obscure fermented product",
+    "desc_en": "rarely seen fermented food",
+    "decision": "uncertain",
+    "confidence": "low",
+    "reason": "insufficient information on usage"
+  }
+]

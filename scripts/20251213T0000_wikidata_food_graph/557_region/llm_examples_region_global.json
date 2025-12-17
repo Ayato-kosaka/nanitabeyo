@@ -1,0 +1,272 @@
+[
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q35038",
+    "label_en": "Ramen",
+    "desc_en": "Japanese noodle soup dish",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "widely recognized dish category globally"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q178",
+    "label_en": "Pizza",
+    "desc_en": "Italian dish with flat dough and toppings",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "universally known menu item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q13233",
+    "label_en": "Sushi",
+    "desc_en": "Japanese dish with vinegared rice",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "globally common restaurant category"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Hamburger",
+    "desc_en": "sandwich with ground meat patty",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "universal fast food item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q145",
+    "label_en": "Pasta",
+    "desc_en": "Italian staple food",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "common menu category worldwide"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q5195",
+    "label_en": "Curry",
+    "desc_en": "dish with sauce or gravy seasoned with spices",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "well-known dish type globally"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q5386",
+    "label_en": "Salad",
+    "desc_en": "ready-to-eat mixture of ingredients",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "universal menu item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q13233",
+    "label_en": "Steak",
+    "desc_en": "meat generally sliced perpendicular to muscle fibers",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "common restaurant dish worldwide"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Fried chicken",
+    "desc_en": "chicken pieces that have been coated and fried",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "globally recognized food item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q178",
+    "label_en": "Sandwich",
+    "desc_en": "food item with fillings between bread",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "universal menu category"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Taco",
+    "desc_en": "traditional Mexican dish",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "widely known international food"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q178",
+    "label_en": "Pho",
+    "desc_en": "Vietnamese noodle soup",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "internationally recognized dish"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Pad Thai",
+    "desc_en": "Thai stir-fried noodle dish",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "well-known Thai dish globally"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Dim sum",
+    "desc_en": "Chinese cuisine of small bite-sized portions",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "globally recognized food category"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Biryani",
+    "desc_en": "South Asian mixed rice dish",
+    "decision": "allow",
+    "confidence": "high",
+    "reason": "internationally known rice dish"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q9842",
+    "label_en": "Kyoto cuisine",
+    "desc_en": "regional Japanese culinary tradition",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "too regional and not a universal menu category"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Changsha stinky tofu",
+    "desc_en": "local specialty from Changsha",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "highly local term with low global conversational presence"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Kansai-style okonomiyaki",
+    "desc_en": "regional variant of Japanese savory pancake",
+    "decision": "deny",
+    "confidence": "medium",
+    "reason": "too region-specific for global context"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Cincinnati chili",
+    "desc_en": "regional chili dish from Cincinnati, USA",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "highly localized regional specialty"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Detroit-style pizza",
+    "desc_en": "pizza style from Detroit",
+    "decision": "deny",
+    "confidence": "medium",
+    "reason": "too region-specific for global scope"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q5195",
+    "label_en": "Korean cuisine",
+    "desc_en": "cuisine originating from Korea",
+    "decision": "deny",
+    "confidence": "medium",
+    "reason": "cuisine classification not specific dish category"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Japanese cuisine",
+    "desc_en": "traditional food of Japan",
+    "decision": "deny",
+    "confidence": "medium",
+    "reason": "too broad as cuisine category not menu item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Cooking method",
+    "desc_en": "technique for preparing food",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "abstract concept not a food item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Wheat flour",
+    "desc_en": "powder made from wheat",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "ingredient not a dish"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Tokyo",
+    "desc_en": "capital city of Japan",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "geographic location not food"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Fermentation",
+    "desc_en": "metabolic process",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "process not a food item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Street food culture",
+    "desc_en": "food sold by street vendors",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "cultural concept not specific food"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Food history",
+    "desc_en": "study of food and cuisine throughout time",
+    "decision": "deny",
+    "confidence": "high",
+    "reason": "academic subject not food item"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Umami seasoning",
+    "desc_en": "savory taste category",
+    "decision": "uncertain",
+    "confidence": "low",
+    "reason": "unclear if menu-relevant concept"
+  },
+  {
+    "market_key": "scope:global",
+    "item_qid": "Q28803",
+    "label_en": "Regional variant of mochi",
+    "desc_en": "local adaptation of rice cake",
+    "decision": "uncertain",
+    "confidence": "low",
+    "reason": "insufficient information on global recognition"
+  }
+]
