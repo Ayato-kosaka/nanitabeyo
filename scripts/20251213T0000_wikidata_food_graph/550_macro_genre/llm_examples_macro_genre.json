@@ -1,0 +1,317 @@
+[
+  {
+    "label_en": "Champagne wine region",
+    "desc_en": "wine-producing region in France",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "geographic wine region, not edible"
+  },
+  {
+    "label_en": "Oreo",
+    "desc_en": "brand of sandwich cookies",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "brand / SKU"
+  },
+  {
+    "label_en": "Street food",
+    "desc_en": "food sold by street vendors",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "food culture / style"
+  },
+  {
+    "label_en": "Vegetarian cuisine",
+    "desc_en": "cuisine without meat",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "food restriction style"
+  },
+  {
+    "label_en": "Fast food",
+    "desc_en": "quickly prepared food",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "food service style"
+  },
+  {
+    "label_en": "AOC wine",
+    "desc_en": "French wine designation",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "designation system"
+  },
+  {
+    "label_en": "viticulture",
+    "desc_en": "cultivation of grapevines",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "industry / production"
+  },
+  {
+    "label_en": "food products by OKPD2",
+    "desc_en": "Russian statistical classification",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "statistical classification"
+  },
+  {
+    "label_en": "McFlurry",
+    "desc_en": "McDonald's ice cream dessert",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "company-specific SKU"
+  },
+  {
+    "label_en": "Halal food",
+    "desc_en": "food permitted under Islamic law",
+    "decision": "A",
+    "confidence": "high",
+    "reason": "food restriction category"
+  },
+  {
+    "label_en": "Swedish cuisine",
+    "desc_en": "traditional cooking practices of Sweden",
+    "decision": "B",
+    "confidence": "high",
+    "reason": "established cuisine grouping"
+  },
+  {
+    "label_en": "Kaiseki",
+    "desc_en": "traditional multi-course Japanese dinner",
+    "decision": "B",
+    "confidence": "high",
+    "reason": "culinary tradition"
+  },
+  {
+    "label_en": "French cuisine",
+    "desc_en": "cuisine of France",
+    "decision": "B",
+    "confidence": "high",
+    "reason": "national cuisine tradition"
+  },
+  {
+    "label_en": "Shoyu ramen",
+    "desc_en": "ramen with soy sauce broth",
+    "decision": "C",
+    "macro_genre": "Ramen",
+    "confidence": "high",
+    "reason": "ramen variant"
+  },
+  {
+    "label_en": "Miso ramen",
+    "desc_en": "ramen with miso broth",
+    "decision": "C",
+    "macro_genre": "Ramen",
+    "confidence": "high",
+    "reason": "ramen variant"
+  },
+  {
+    "label_en": "Tonkotsu ramen",
+    "desc_en": "ramen with pork bone broth",
+    "decision": "C",
+    "macro_genre": "Ramen",
+    "confidence": "high",
+    "reason": "ramen variant"
+  },
+  {
+    "label_en": "Champagne",
+    "desc_en": "sparkling wine",
+    "decision": "C",
+    "macro_genre": "Sparkling wine",
+    "confidence": "high",
+    "reason": "wine type variant"
+  },
+  {
+    "label_en": "Prosecco",
+    "desc_en": "Italian sparkling wine",
+    "decision": "C",
+    "macro_genre": "Sparkling wine",
+    "confidence": "high",
+    "reason": "wine type variant"
+  },
+  {
+    "label_en": "Miso soup",
+    "desc_en": "Japanese soup with miso",
+    "decision": "C",
+    "macro_genre": "Soup",
+    "confidence": "high",
+    "reason": "soup variant"
+  },
+  {
+    "label_en": "Paella",
+    "desc_en": "Spanish rice dish",
+    "decision": "C",
+    "macro_genre": "Paella",
+    "confidence": "high",
+    "reason": "distinct dish, self macro"
+  },
+  {
+    "label_en": "Pho",
+    "desc_en": "Vietnamese noodle soup",
+    "decision": "C",
+    "macro_genre": "Pho",
+    "confidence": "high",
+    "reason": "distinct dish, self macro"
+  },
+  {
+    "label_en": "Gyudon",
+    "desc_en": "Japanese beef bowl",
+    "decision": "C",
+    "macro_genre": "Gyudon",
+    "confidence": "high",
+    "reason": "distinct dish, self macro"
+  },
+  {
+    "label_en": "Pad Thai",
+    "desc_en": "Thai stir-fried noodles",
+    "decision": "C",
+    "macro_genre": "Pad Thai",
+    "confidence": "high",
+    "reason": "distinct dish, self macro"
+  },
+  {
+    "label_en": "Tiramisu",
+    "desc_en": "Italian coffee-flavored dessert",
+    "decision": "C",
+    "macro_genre": "Tiramisu",
+    "confidence": "high",
+    "reason": "distinct dessert, self macro"
+  },
+  {
+    "label_en": "Baklava",
+    "desc_en": "sweet pastry with nuts",
+    "decision": "C",
+    "macro_genre": "Baklava",
+    "confidence": "high",
+    "reason": "distinct dessert, self macro"
+  },
+  {
+    "label_en": "Ice cream",
+    "desc_en": "frozen dessert",
+    "decision": "C",
+    "macro_genre": "Ice cream",
+    "confidence": "high",
+    "reason": "generic dessert category"
+  },
+  {
+    "label_en": "Vanilla ice cream",
+    "desc_en": "ice cream flavored with vanilla",
+    "decision": "C",
+    "macro_genre": "Ice cream",
+    "confidence": "high",
+    "reason": "ice cream flavor variant"
+  },
+  {
+    "label_en": "Chocolate ice cream",
+    "desc_en": "ice cream flavored with chocolate",
+    "decision": "C",
+    "macro_genre": "Ice cream",
+    "confidence": "high",
+    "reason": "ice cream flavor variant"
+  },
+  {
+    "label_en": "Red wine",
+    "desc_en": "wine made from dark-colored grapes",
+    "decision": "C",
+    "macro_genre": "Wine",
+    "confidence": "high",
+    "reason": "wine type variant"
+  },
+  {
+    "label_en": "White wine",
+    "desc_en": "wine made from white grapes",
+    "decision": "C",
+    "macro_genre": "Wine",
+    "confidence": "high",
+    "reason": "wine type variant"
+  },
+  {
+    "label_en": "Sparkling wine",
+    "desc_en": "wine with carbonation",
+    "decision": "C",
+    "macro_genre": "Sparkling wine",
+    "confidence": "high",
+    "reason": "wine category, self macro"
+  },
+  {
+    "label_en": "Ramen",
+    "desc_en": "Japanese noodle soup",
+    "decision": "C",
+    "macro_genre": "Ramen",
+    "confidence": "high",
+    "reason": "base dish, self macro"
+  },
+  {
+    "label_en": "Pizza",
+    "desc_en": "Italian flatbread with toppings",
+    "decision": "C",
+    "macro_genre": "Pizza",
+    "confidence": "high",
+    "reason": "base dish, self macro"
+  },
+  {
+    "label_en": "Margherita pizza",
+    "desc_en": "pizza with tomato and mozzarella",
+    "decision": "C",
+    "macro_genre": "Pizza",
+    "confidence": "high",
+    "reason": "pizza variant"
+  },
+  {
+    "label_en": "Pepperoni pizza",
+    "desc_en": "pizza with pepperoni topping",
+    "decision": "C",
+    "macro_genre": "Pizza",
+    "confidence": "high",
+    "reason": "pizza variant"
+  },
+  {
+    "label_en": "Soup",
+    "desc_en": "liquid food",
+    "decision": "C",
+    "macro_genre": "Soup",
+    "confidence": "high",
+    "reason": "generic category, self macro"
+  },
+  {
+    "label_en": "Curry",
+    "desc_en": "spiced dish",
+    "decision": "C",
+    "macro_genre": "Curry",
+    "confidence": "high",
+    "reason": "generic category, self macro"
+  },
+  {
+    "label_en": "Japanese curry",
+    "desc_en": "curry adapted in Japan",
+    "decision": "C",
+    "macro_genre": "Curry",
+    "confidence": "high",
+    "reason": "curry variant"
+  },
+  {
+    "label_en": "Thai curry",
+    "desc_en": "curry from Thailand",
+    "decision": "C",
+    "macro_genre": "Curry",
+    "confidence": "high",
+    "reason": "curry variant"
+  },
+  {
+    "label_en": "Sushi",
+    "desc_en": "Japanese dish with vinegared rice",
+    "decision": "C",
+    "macro_genre": "Sushi",
+    "confidence": "high",
+    "reason": "base dish, self macro"
+  },
+  {
+    "label_en": "Nigiri",
+    "desc_en": "hand-pressed sushi",
+    "decision": "C",
+    "macro_genre": "Sushi",
+    "confidence": "high",
+    "reason": "sushi variant"
+  }
+]
