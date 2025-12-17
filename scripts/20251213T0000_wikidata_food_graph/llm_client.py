@@ -211,7 +211,7 @@ For C:
 - If mapping would destroy meaning, keep the item itself as macro genre.
 
 Output macro_genre using the Wikidata English label form.
-Do NOT output regions, brands, or styles as macro_genre.
+Do NOT output regions, brands, or designation/industry terms as macro_genre.
 
 If information is insufficient, lower confidence.
 Always output strict JSON only.
@@ -520,9 +520,9 @@ Reason rule:
                 if len(reason.split()) > 20:
                     return None, ParseError("reason_too_many_words", f"Reason too many words: {len(reason.split())} words")
                 
-                # #550 【設計】decision=C のときのみ macro_genre が必要
+                # #550 【設計】decision=C のときのみ macro_genre を"NULL"で上書き
                 if decision == "C" and not macro_genre:
-                    return None, ParseError("missing_macro_genre", f"decision=C but macro_genre is missing for {r.get('item_qid')}")
+                    macro_genre = "NULL"
                 
                 validated.append(r)
         

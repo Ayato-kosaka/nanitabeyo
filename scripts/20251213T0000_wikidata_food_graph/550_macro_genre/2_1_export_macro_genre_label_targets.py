@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+git#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 2_1_export_macro_genre_label_targets.py

@@ -552,6 +552,24 @@ python3 2_1_export_macro_genre_label_targets.py
 python3 2_2_prepare_macro_genre_batch_payload.py
 
 # 3. （手動）OpenAI Batch API にアップロード・実行・ダウンロード
+openai api files.create -f /tmp/wikidata_food_macro_genre/batch_payload.jsonl -p batch
+
+curl https://api.openai.com/v1/batches   -H "Authorization: Bearer $OPENAI_API_KEY"   -H "Content-Type: application/json"   -d '{
+    "input_file_id": "file-xxx",
+    "endpoint": "/v1/chat/completions",
+    "completion_window": "24h",
+    "metadata": {
+      "task": "#550_macro_genre_abc_classification",
+      "run_id": "20251217T0000_v1"
+    }
+  }'
+
+curl https://api.openai.com/v1/batches/batch_xxxxxx   -H "Authorization: Bearer $OPENAI_API_KEY"   -H "Content-Type: application/json"
+
+curl https://api.openai.com/v1/files/<OUTPUT_FILE_ID>/content \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -o /tmp/wikidata_food_macro_genre/results.jsonl
+
 
 # 4. 結果をロード
 python3 2_3_load_macro_genre_llm_results.py \
