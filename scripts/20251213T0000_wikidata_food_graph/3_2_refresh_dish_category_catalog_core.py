@@ -92,17 +92,21 @@ def fetch_core_data_batch(
     
     # #543 【設計】SPARQL で labels, descriptions, aliases, sitelinks, origin, cuisine, image を取得
     query = f"""
-    SELECT DISTINCT ?item
-      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?label), ":", STR(?label)); separator="|") AS ?labels)
-      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?desc), ":", STR(?desc)); separator="|") AS ?descriptions)
-      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?alias), ":", STR(?alias)); separator="|") AS ?aliases)
-      (GROUP_CONCAT(DISTINCT CONCAT(?sitelink, ":", ?article); separator="|") AS ?sitelinks)
-      (GROUP_CONCAT(DISTINCT STR(?origin); separator="|") AS ?origins)
-      (GROUP_CONCAT(DISTINCT STR(?cuisine); separator="|") AS ?cuisines)
+    SELECT DISTINCT ?item ?label_ja ?label_en ?desc_ja ?desc_en
+      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?label), ":", STR(?label)); separator="||") AS ?labels)
+      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?desc), ":", STR(?desc)); separator="||") AS ?descriptions)
+      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?alias), ":", STR(?alias)); separator="||") AS ?aliases)
+      (GROUP_CONCAT(DISTINCT CONCAT(STR(?sitelink), "~", STR(?article)); separator="||") AS ?sitelinks)
+      (GROUP_CONCAT(DISTINCT STR(?origin); separator="||") AS ?origins)
+      (GROUP_CONCAT(DISTINCT STR(?cuisine); separator="||") AS ?cuisines)
       (SAMPLE(?image) AS ?image_sample)
     WHERE {{
       VALUES ?item {{ {values_clause} }}
       
+      OPTIONAL {{ ?item rdfs:label ?label_ja FILTER(LANG(?label_ja) = "ja") }}
+      OPTIONAL {{ ?item rdfs:label ?label_en FILTER(LANG(?label_en) = "en") }}
+      OPTIONAL {{ ?item schema:description ?desc_ja FILTER(LANG(?desc_ja) = "ja") }}
+      OPTIONAL {{ ?item schema:description ?desc_en FILTER(LANG(?desc_en) = "en") }}
       OPTIONAL {{ ?item rdfs:label ?label }}
       OPTIONAL {{ ?item schema:description ?desc }}
       OPTIONAL {{ ?item skos:altLabel ?alias }}
@@ -115,7 +119,7 @@ def fetch_core_data_batch(
       OPTIONAL {{ ?item wdt:P2012 ?cuisine }}
       OPTIONAL {{ ?item wdt:P18 ?image }}
     }}
-    GROUP BY ?item
+    GROUP BY ?item ?label_ja ?label_en ?desc_ja ?desc_en
     """
     
     results = wikidata_client.execute_query(query)
@@ -127,6 +131,12 @@ def fetch_core_data_batch(
         
         if not item_qid:
             continue
+        
+        # #543 【設計】label_ja, label_en, desc_ja, desc_en（既存カラム用）
+        label_ja = result.get("label_ja", {}).get("value")
+        label_en = result.get("label_en", {}).get("value")
+        desc_ja = result.get("desc_ja", {}).get("value")
+        desc_en = result.get("desc_en", {}).get("value")
         
         # #543 【設計】labels/descriptions/aliases を JSON 化
         labels_json = parse_lang_value_list(result.get("labels", {}).get("value", ""))
@@ -144,6 +154,10 @@ def fetch_core_data_batch(
         
         core_data.append({
             "item_qid": item_qid,
+            "label_ja": label_ja,
+            "label_en": label_en,
+            "desc_ja": desc_ja,
+            "desc_en": desc_en,
             "labels_json": json.dumps(labels_json, ensure_ascii=False) if labels_json else None,
             "descriptions_json": json.dumps(descriptions_json, ensure_ascii=False) if descriptions_json else None,
             "aliases_json": json.dumps(aliases_json, ensure_ascii=False) if aliases_json else None,
@@ -158,7 +172,7 @@ def fetch_core_data_batch(
 
 def parse_lang_value_list(concatenated: str) -> Optional[Dict[str, str]]:
     """
-    #543 【設計】"lang:value|lang:value|..." を {"lang": "value", ...} に変換
+    #543 【設計】"lang:value||lang:value||..." を {"lang": "value", ...} に変換
     
     Args:
         concatenated: SPARQL の GROUP_CONCAT 結果
@@ -170,7 +184,7 @@ def parse_lang_value_list(concatenated: str) -> Optional[Dict[str, str]]:
         return None
     
     result = {}
-    for item in concatenated.split("|"):
+    for item in concatenated.split("||"):
         if ":" not in item:
             continue
         lang, value = item.split(":", 1)
@@ -183,7 +197,7 @@ def parse_lang_value_list(concatenated: str) -> Optional[Dict[str, str]]:
 
 def parse_sitelink_list(concatenated: str) -> Optional[Dict[str, str]]:
     """
-    #543 【設計】"site:article|site:article|..." を {"site": "article", ...} に変換
+    #543 【設計】"site~article||site~article||..." を {"site": "article", ...} に変換
     
     Args:
         concatenated: SPARQL の GROUP_CONCAT 結果
@@ -195,14 +209,13 @@ def parse_sitelink_list(concatenated: str) -> Optional[Dict[str, str]]:
         return None
     
     result = {}
-    for item in concatenated.split("|"):
-        if ":" not in item:
+    for item in concatenated.split("||"):
+        if "~" not in item:
             continue
-        # #543 【設計】"https://en.wikipedia.org:Article_Name" の形式
-        parts = item.split(":", 2)
-        if len(parts) >= 3:
-            site = f"{parts[0]}:{parts[1]}"
-            article = parts[2]
+        parts = item.split("~", 1)
+        if len(parts) == 2:
+            site = parts[0]
+            article = parts[1]
             result[site] = article
     
     return result if result else None
@@ -210,7 +223,7 @@ def parse_sitelink_list(concatenated: str) -> Optional[Dict[str, str]]:
 
 def parse_qid_list(concatenated: str) -> Optional[List[str]]:
     """
-    #543 【設計】"http://www.wikidata.org/entity/Q123|..." を ["Q123", ...] に変換
+    #543 【設計】"http://www.wikidata.org/entity/Q123||..." を ["Q123", ...] に変換
     
     Args:
         concatenated: SPARQL の GROUP_CONCAT 結果
@@ -222,7 +235,7 @@ def parse_qid_list(concatenated: str) -> Optional[List[str]]:
         return None
     
     qids = []
-    for item in concatenated.split("|"):
+    for item in concatenated.split("||"):
         if "/entity/" in item:
             qid = item.split("/")[-1]
             if qid.startswith("Q") and qid not in qids:
@@ -293,6 +306,10 @@ def load_core_data_to_bigquery(
     # #543 【設計】一時テーブルを作成
     schema = [
         bigquery.SchemaField("item_qid", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("label_ja", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("label_en", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("desc_ja", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("desc_en", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("labels_json", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("descriptions_json", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("aliases_json", "STRING", mode="NULLABLE"),
@@ -310,6 +327,10 @@ def load_core_data_to_bigquery(
     for item in core_data:
         rows_to_insert.append({
             "item_qid": item["item_qid"],
+            "label_ja": item.get("label_ja"),
+            "label_en": item.get("label_en"),
+            "desc_ja": item.get("desc_ja"),
+            "desc_en": item.get("desc_en"),
             "labels_json": item.get("labels_json"),
             "descriptions_json": item.get("descriptions_json"),
             "aliases_json": item.get("aliases_json"),
@@ -351,6 +372,10 @@ def merge_core_data(bq_loader: BigQueryLoader) -> None:
     ON T.item_qid = S.item_qid
     WHEN MATCHED THEN
       UPDATE SET
+        label_ja = S.label_ja,
+        label_en = S.label_en,
+        desc_ja = S.desc_ja,
+        desc_en = S.desc_en,
         labels_json = S.labels_json,
         descriptions_json = S.descriptions_json,
         aliases_json = S.aliases_json,
@@ -361,6 +386,10 @@ def merge_core_data(bq_loader: BigQueryLoader) -> None:
     WHEN NOT MATCHED THEN
       INSERT (
         item_qid,
+        label_ja,
+        label_en,
+        desc_ja,
+        desc_en,
         labels_json,
         descriptions_json,
         aliases_json,
@@ -371,6 +400,10 @@ def merge_core_data(bq_loader: BigQueryLoader) -> None:
       )
       VALUES (
         S.item_qid,
+        S.label_ja,
+        S.label_en,
+        S.desc_ja,
+        S.desc_en,
         S.labels_json,
         S.descriptions_json,
         S.aliases_json,
