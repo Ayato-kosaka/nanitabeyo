@@ -870,3 +870,259 @@ class BigQueryLoader:
         affected = self.execute_dml(sql)
         logger.info(f"Applied {affected} macro_genre LLM labels (decision=A) to dish_blacklist (run_id={run_id})")
         return affected
+    
+    def get_dish_category_catalog_for_region_labeling(self) -> List[Dict]:
+        """
+        #557 【設計】region LLM ラベリング用に dish_category_catalog から全アイテムを取得
+        label/desc/aliases/sitelinks/roots/tags を含む
+        
+        Returns:
+            dish リスト [{'item_qid': 'Q...', 'label_en': '...', 'desc_en': '...', ...}, ...]
+        """
+        logger.info("Fetching dish_category_catalog for region labeling from BigQuery...")
+        
+        sql = f"""
+        WITH catalog_with_aliases AS (
+          -- #557 【将来対応】aliases_json と sitelinks_json は今回スコープ外なので NULL
+          SELECT
+            dcc.item_qid,
+            dcc.label_ja,
+            dcc.label_en,
+            dcc.desc_ja,
+            dcc.desc_en,
+            NULL AS aliases_json,
+            NULL AS sitelinks_json,
+            dcc.tags
+          FROM `{self.dataset_ref}.dish_category_catalog` AS dcc
+        ),
+        roots_aggregated AS (
+          -- #557 【設計】dish_root_summary から roots を取得
+          SELECT
+            drs.dish_qid,
+            ARRAY_AGG(drs_root.kind ORDER BY drs_root.min_depth) AS roots
+          FROM `{self.dataset_ref}.dish_root_summary` AS drs,
+          UNNEST(drs.roots) AS drs_root
+          GROUP BY drs.dish_qid
+        )
+        SELECT
+          cwa.item_qid,
+          cwa.label_ja,
+          cwa.label_en,
+          cwa.desc_ja,
+          cwa.desc_en,
+          cwa.aliases_json,
+          cwa.sitelinks_json,
+          COALESCE(ra.roots, []) AS roots,
+          cwa.tags
+        FROM catalog_with_aliases AS cwa
+        LEFT JOIN roots_aggregated AS ra
+          ON cwa.item_qid = ra.dish_qid
+        ORDER BY cwa.item_qid
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        dishes = []
+        for row in results:
+            dishes.append({
+                "item_qid": row.item_qid,
+                "label_ja": row.label_ja,
+                "label_en": row.label_en,
+                "desc_ja": row.desc_ja,
+                "desc_en": row.desc_en,
+                "aliases_json": row.aliases_json,
+                "sitelinks_json": row.sitelinks_json,
+                "roots": list(row.roots) if row.roots else [],
+                "tags": list(row.tags) if row.tags else []
+            })
+        
+        logger.info(f"Found {len(dishes)} dishes for region labeling")
+        return dishes
+    
+    def load_region_llm_labels(
+        self,
+        labels: List[Dict],
+        task: str,
+        model: str,
+        run_id: str
+    ) -> None:
+        """
+        #557 【設計】wikidata_food_llm_labels テーブルに region LLM ラベリング結果をロード
+        
+        Args:
+            labels: ラベル情報のリスト
+                    [{'item_qid': 'Q12345', 'decision': 'allow', 'confidence': 'high', 
+                      'reason': '...'}, ...]
+            task: タスク識別子（例: '#557_region_scope_global' or '#557_region_country_JP'）
+            model: モデル名（例: 'gpt-4.1-mini'）
+            run_id: バッチ実行ごとの識別子（例: '20251218T0000_global_v1'）
+        """
+        if not labels:
+            logger.warning("No labels to load")
+            return
+        
+        table_id = f"{self.dataset_ref}.wikidata_food_llm_labels"
+        logger.info(f"Loading {len(labels)} region labels to {table_id}")
+        
+        # #557 【設計】データを準備（decision を label カラムに格納）
+        current_time = datetime.now(timezone.utc).isoformat()
+        rows_to_insert = []
+        
+        for label in labels:
+            # decision を label カラムに保存（allow/deny/uncertain）
+            decision = label.get("decision")
+            reason = label.get("reason")
+            
+            rows_to_insert.append({
+                "item_qid": label["item_qid"],
+                "task": task,
+                "label": decision,  # allow/deny/uncertain を label カラムに保存
+                "confidence": label["confidence"],
+                "reason": reason,
+                "model": model,
+                "run_id": run_id,
+                "created_at": current_time
+            })
+        
+        # #557 【設計】BigQuery に INSERT（エラー時は失敗した item_qid をログに記録）
+        errors = self.client.insert_rows_json(table_id, rows_to_insert)
+        
+        if errors:
+            # エラーの詳細をログに記録
+            failed_qids = [
+                rows_to_insert[err.get('index', -1)]["item_qid"] 
+                for err in errors 
+                if 'index' in err and err['index'] < len(rows_to_insert)
+            ]
+            logger.error(f"Errors occurred while inserting rows: {errors}")
+            logger.error(f"Failed item_qids (sample): {failed_qids[:10]}")
+            raise Exception(f"Failed to insert rows: {errors}")
+        
+        logger.info(f"Successfully loaded {len(labels)} region labels")
+    
+    def get_region_llm_label_stats(self, task: str, run_id: str = None) -> Dict:
+        """
+        #557 【設計】wikidata_food_llm_labels の統計情報を取得（region 用）
+        
+        Args:
+            task: タスク識別子（例: '#557_region_scope_global'）
+            run_id: 特定の run_id に絞る場合に指定
+            
+        Returns:
+            統計情報の辞書
+        """
+        logger.info(f"Fetching region LLM label statistics for task={task}...")
+        
+        where_clauses = [f"task = '{task}'"]
+        if run_id:
+            where_clauses.append(f"run_id = '{run_id}'")
+        where_clause = " AND ".join(where_clauses)
+        
+        sql = f"""
+        SELECT
+          label,
+          confidence,
+          COUNT(*) as count
+        FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+        WHERE {where_clause}
+        GROUP BY label, confidence
+        ORDER BY label, confidence
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        stats = {}
+        for row in results:
+            key = f"{row.label}_{row.confidence}"
+            stats[key] = row.count
+        
+        logger.info(f"Statistics: {stats}")
+        return stats
+    
+    def apply_region_llm_labels_to_features_catalog(
+        self,
+        task: str,
+        run_id: str,
+        market_key: str
+    ) -> int:
+        """
+        #557 【設計】wikidata_food_llm_labels から dish_category_features_catalog に region を MERGE
+        
+        Args:
+            task: タスク識別子（例: '#557_region_scope_global'）
+            run_id: 適用する run_id
+            market_key: 'scope:global' or 'country:JP'
+            
+        Returns:
+            MERGE で影響を受けた行数
+        """
+        logger.info(f"Applying region LLM labels from run_id={run_id} to dish_category_features_catalog...")
+        
+        # #557 【設計】MERGE で過分削除＋新規追加を atomic に実行
+        sql = f"""
+        MERGE `{self.dataset_ref}.dish_category_features_catalog` AS target
+        USING (
+          SELECT
+            item_qid,
+            'region' AS feature_type,
+            '{market_key}' AS feature_key,
+            1.0 AS score,
+            'llm' AS source,
+            '{run_id}' AS run_id,
+            CURRENT_TIMESTAMP() AS updated_at,
+            CONCAT('confidence=', confidence, ', ', reason) AS note
+          FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+          WHERE
+            task = '{task}'
+            AND run_id = '{run_id}'
+            AND label = 'allow'  -- #557 【設計】decision=allow のみ反映
+            AND confidence = 'high'  -- #557 【設計】高信頼度のみ自動反映
+        ) AS source
+        ON
+          target.item_qid = source.item_qid
+          AND target.feature_type = source.feature_type
+          AND target.feature_key = source.feature_key
+          AND target.source = 'llm'
+          AND target.run_id = '{run_id}'
+        WHEN MATCHED THEN
+          UPDATE SET
+            score = source.score,
+            updated_at = source.updated_at,
+            note = source.note
+        WHEN NOT MATCHED THEN
+          INSERT (item_qid, feature_type, feature_key, score, source, run_id, updated_at, note)
+          VALUES (source.item_qid, source.feature_type, source.feature_key, source.score, 
+                  source.source, source.run_id, source.updated_at, source.note)
+        """
+        
+        # #557 【設計】まず MERGE を実行して追加/更新
+        affected = self.execute_dml(sql)
+        logger.info(f"MERGE completed: {affected} rows affected")
+        
+        # #557 【設計】過分削除：今回の allow/high に含まれない item を削除
+        delete_sql = f"""
+        DELETE FROM `{self.dataset_ref}.dish_category_features_catalog`
+        WHERE
+          feature_type = 'region'
+          AND feature_key = '{market_key}'
+          AND source = 'llm'
+          AND run_id = '{run_id}'
+          AND item_qid NOT IN (
+            SELECT item_qid
+            FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+            WHERE
+              task = '{task}'
+              AND run_id = '{run_id}'
+              AND label = 'allow'
+              AND confidence = 'high'
+          )
+        """
+        
+        deleted = self.execute_dml(delete_sql)
+        logger.info(f"Cleanup completed: {deleted} rows deleted")
+        
+        total_affected = affected + deleted
+        logger.info(f"Applied region features to dish_category_features_catalog: {total_affected} total rows affected (run_id={run_id}, market={market_key})")
+        return total_affected
