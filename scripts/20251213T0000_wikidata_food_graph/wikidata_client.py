@@ -15,6 +15,7 @@ Wikidata SPARQL エンドポイントに対してクエリを実行するクラ�
 
 import time
 import logging
+import re
 from typing import List, Dict, Set, Tuple, Optional
 from SPARQLWrapper import SPARQLWrapper, JSON, SPARQLExceptions
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
@@ -35,6 +36,21 @@ class WikidataClient:
         self.sparql = SPARQLWrapper(SPARQL_ENDPOINT)
         self.sparql.setReturnFormat(JSON)
         self.sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
+
+    @staticmethod
+    def _sanitize_control_characters(text: str) -> Tuple[str, int]:
+        """
+        JSON仕様で禁止されている制御文字（0x00-0x1Fの一部）を除去する。
+
+        例：multilang データの中に混入した NUL や BEL など。
+
+        Returns:
+            (サニタイズ後の文字列, 除去した文字数)
+        """
+
+        control_chars_pattern = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+        sanitized_text, removed_count = control_chars_pattern.subn("", text)
+        return sanitized_text, removed_count
     
     @staticmethod
     def _should_retry(exception):
@@ -144,13 +160,22 @@ class WikidataClient:
                     # strict JSON parse が失敗するケースがある。
                     # データ完全性優先のため、壊れた文字を \uFFFD に置換して処理を継続。
                     decoded_body = response_body.decode('utf-8', errors='replace')
+
+                    sanitized_body, removed_count = self._sanitize_control_characters(decoded_body)
+                    if removed_count > 0:
+                        logger.warning(
+                            "Removed %d invalid control characters from SPARQL response (status=%s, size=%d bytes)",
+                            removed_count,
+                            status_code,
+                            response_size,
+                        )
                     
                     # 制御文字の置換が発生したかログ記録
-                    if '\ufffd' in decoded_body:
+                    if '\ufffd' in sanitized_body:
                         logger.warning("Response contains invalid UTF-8 sequences (replaced with U+FFFD)")
                         logger.warning("This may indicate control characters in Wikidata multilang data")
                     
-                    result_json = json_module.loads(decoded_body)
+                    result_json = json_module.loads(sanitized_body)
                     return result_json.get("results", {}).get("bindings", [])
                 except json_module.JSONDecodeError as e:
                     logger.error(f"JSONDecodeError: {e}")
