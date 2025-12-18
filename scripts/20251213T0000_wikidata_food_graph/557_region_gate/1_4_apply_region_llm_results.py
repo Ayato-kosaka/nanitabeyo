@@ -163,72 +163,51 @@ def apply_to_features_catalog(
         logger.info("=" * 80)
         logger.info("DRY RUN MODE - No changes will be made")
         logger.info("=" * 80)
-        logger.info(f"Would insert/update {len(items)} items")
-        logger.info(f"Would delete items not in this run_id for feature_key={feature_key}")
+        logger.info(f"Would delete all existing entries for feature_key={feature_key}")
+        logger.info(f"Would insert {len(items)} new items")
         return
     
     # #557 【設計】MERGE で反映（過分削除含む）
-    logger.info("Step 2: MERGE to dish_category_features_catalog...")
+    logger.info("Step 2: Delete old entries for this feature_key and run_id...")
     
-    # 値を構築
-    values = []
-    for item_qid, confidence, reason in items:
-        # note に confidence + reason を保存
-        note = f"{confidence}: {reason[:100]}" if reason else confidence
-        values.append(
-            f"('{item_qid}', 'gate', '{feature_key}', 1.0, 'llm', '{run_id}', CURRENT_TIMESTAMP(), {repr(note)})"
-        )
-    
-    # #557 【設計】MERGE 文で既存データを更新、新規データを追加
-    merge_sql = f"""
-    MERGE `{bq_loader.dataset_ref}.dish_category_features_catalog` AS target
-    USING (
-      SELECT * FROM UNNEST([
-        {', '.join(f'STRUCT({v})' for v in values)}
-      ]) AS s(item_qid STRING, feature_type STRING, feature_key STRING, 
-              score FLOAT64, source STRING, run_id STRING, updated_at TIMESTAMP, note STRING)
-    ) AS source
-    ON target.item_qid = source.item_qid
-       AND target.feature_type = source.feature_type
-       AND target.feature_key = source.feature_key
-    WHEN MATCHED THEN
-      UPDATE SET
-        score = source.score,
-        source = source.source,
-        run_id = source.run_id,
-        updated_at = source.updated_at,
-        note = source.note
-    WHEN NOT MATCHED THEN
-      INSERT (item_qid, feature_type, feature_key, score, source, run_id, updated_at, note)
-      VALUES (source.item_qid, source.feature_type, source.feature_key, 
-              source.score, source.source, source.run_id, source.updated_at, source.note)
-    """
-    
-    affected = bq_loader.execute_dml(merge_sql)
-    logger.info(f"MERGE completed: {affected} rows affected")
-    
-    # #557 【設計】過分削除：同一 feature_key で今回 allow/high に含まれない item を削除
-    logger.info("Step 3: Delete stale items...")
-    
-    # 今回の item_qid リスト
-    item_qid_list = "', '".join([item[0] for item in items])
-    
-    delete_sql = f"""
+    # 既存の同じ feature_key のエントリを削除
+    delete_old_sql = f"""
     DELETE FROM `{bq_loader.dataset_ref}.dish_category_features_catalog`
     WHERE feature_type = 'gate'
       AND feature_key = '{feature_key}'
-      AND run_id = '{run_id}'
-      AND item_qid NOT IN ('{item_qid_list}')
     """
     
-    deleted = bq_loader.execute_dml(delete_sql)
-    logger.info(f"Deleted {deleted} stale items")
+    deleted_old = bq_loader.execute_dml(delete_old_sql)
+    logger.info(f"Deleted {deleted_old} old entries")
     
+    logger.info("Step 3: INSERT new entries...")
+    
+    # 値を構築
+    values_list = []
+    for item_qid, confidence, reason in items:
+        # note に confidence + reason を保存
+        reason_clean = reason.replace("'", "\\'") if reason else ""
+        note = f"{confidence}: {reason_clean[:100]}" if reason_clean else confidence
+        values_list.append(
+            f"('{item_qid}', 'gate', '{feature_key}', 1.0, 'llm', '{run_id}', CURRENT_TIMESTAMP(), '{note}')"
+        )
+    
+    # INSERT 文で新規データを追加
+    insert_sql = f"""
+    INSERT INTO `{bq_loader.dataset_ref}.dish_category_features_catalog`
+    (item_qid, feature_type, feature_key, score, source, run_id, updated_at, note)
+    VALUES
+    {', '.join(values_list)}
+    """
+    
+    affected = bq_loader.execute_dml(insert_sql)
+    logger.info(f"INSERT completed: {affected} rows inserted")
+    
+    # #557 【設計】過分削除は不要（既に DELETE で全削除済み）
     logger.info("=" * 80)
     logger.info("Summary:")
-    logger.info(f"  - Applied: {len(items)} items")
-    logger.info(f"  - MERGE affected: {affected} rows")
-    logger.info(f"  - Deleted stale: {deleted} rows")
+    logger.info(f"  - Deleted old entries: {deleted_old} rows")
+    logger.info(f"  - Inserted new entries: {affected} rows")
     logger.info("=" * 80)
 
 
