@@ -155,6 +155,13 @@ export default function DishCopySurveyPage() {
 	const { showSnackbar } = useSnackbar();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const {
+		BlurModal: AnswerBlurModal,
+		open: answerOpen,
+		close: answerClose,
+	} = useBlurModal({
+		intensity: 80,
+	});
 
 	// データ取得関連
 	const [isLoading, setIsLoading] = useState(true);
@@ -178,9 +185,9 @@ export default function DishCopySurveyPage() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	// カルーセルサイズ計算（9:16）
-	const PADDING = 24;
-	const carouselWidth = screenWidth - PADDING * 2;
-	const carouselHeight = (carouselWidth / 9) * 16;
+	const PADDING = 0;
+	const carouselHeight = screenHeight - 68 - 36 - 100 - PADDING * 2;
+	const carouselWidth = (carouselHeight * 9) / 16;
 
 	/* ------------------------------------------------------------------ */
 	/*                             データ取得                              */
@@ -242,6 +249,7 @@ export default function DishCopySurveyPage() {
 		(dish: DishData) => {
 			lightImpact();
 			setSelectedDish(dish);
+			answerOpen();
 		},
 		[lightImpact],
 	);
@@ -285,7 +293,7 @@ export default function DishCopySurveyPage() {
 								</Text>
 							</>
 						) : (
-							<Text style={styles.cardPrompt}>ここをタップしてコピーを選ぶ</Text>
+							<Text style={styles.cardPrompt}>画像をタップしてコピーを選ぶ</Text>
 						)}
 					</View>
 				</Pressable>
@@ -410,7 +418,7 @@ export default function DishCopySurveyPage() {
 							mode="parallax"
 							modeConfig={{
 								parallaxScrollingScale: 0.9,
-								parallaxScrollingOffset: 50,
+								parallaxScrollingOffset: 100,
 							}}
 						/>
 					</View>
@@ -441,18 +449,23 @@ export default function DishCopySurveyPage() {
 			</Modal>
 
 			{/* 回答モーダル */}
-			{selectedDish && (
-				<AnswerModal
-					dish={selectedDish}
-					existingAnswer={answers.get(selectedDish.qid)}
-					onClose={() => setSelectedDish(null)}
-					onSave={(answer) => {
-						setAnswers(new Map(answers.set(selectedDish.qid, answer)));
-						setSelectedDish(null);
-						lightImpact();
-					}}
-				/>
-			)}
+			<AnswerBlurModal>
+				{selectedDish && (
+					<AnswerModal
+						dish={selectedDish}
+						existingAnswer={answers.get(selectedDish.qid)}
+						onClose={() => {
+							setSelectedDish(null);
+							answerClose();
+						}}
+						onSave={(answer) => {
+							setAnswers(new Map(answers.set(selectedDish.qid, answer)));
+							setSelectedDish(null);
+							lightImpact();
+						}}
+					/>
+				)}
+			</AnswerBlurModal>
 		</View>
 	);
 }
@@ -469,9 +482,6 @@ type AnswerModalProps = {
 };
 
 function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps) {
-	const { BlurModal, open, close } = useBlurModal({
-		intensity: 80,
-	});
 	const { height: windowHeight } = useWindowDimensions();
 
 	// モーダル計測用
@@ -509,14 +519,13 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 	});
 
 	useEffect(() => {
-		open();
 		// クリーンアップ: モーダルアンマウント時にrefをクリア
 		return () => {
 			firstSelectionTimeRef.current = null;
 			selectionCountRef.current = 0;
 			previousModeRef.current = null;
 		};
-	}, [open]);
+	}, []);
 
 	/* ------------------------------------------------------------------ */
 	/*                         選択モード変更処理                          */
@@ -610,162 +619,160 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 			selectionChangedCount: selectionCountRef.current,
 		};
 
-		close();
+		onClose();
 		setTimeout(() => onSave(answer), 300);
-	}, [isValid, state, dish, modalOpenedAt, close, onSave]);
+	}, [isValid, state, dish, modalOpenedAt, onSave]);
 
 	const handleClose = useCallback(() => {
-		close();
+		onClose();
 		setTimeout(() => onClose(), 300);
-	}, [close, onClose]);
+	}, [onClose]);
 
 	/* ------------------------------------------------------------------ */
 	/*                           レンダリング                             */
 	/* ------------------------------------------------------------------ */
 
 	return (
-		<BlurModal>
-			<ScrollView style={{ height: windowHeight * 0.9 }} contentContainerStyle={styles.modalScrollContent}>
-				{/* タイトル */}
-				<Text style={styles.modalSectionTitle}>料理コピーを選んでください</Text>
+		<ScrollView style={{ height: windowHeight * 0.9 }} contentContainerStyle={styles.modalScrollContent}>
+			{/* タイトル */}
+			<Text style={styles.modalSectionTitle}>料理コピーを選んでください</Text>
 
-				{/* 候補選択 */}
-				<View style={styles.section}>
-					{dish.candidates.map((candidate) => {
-						const isSelected = state.selectedMode === "candidate" && state.selectedSource === candidate.type;
-						return (
-							<Pressable
-								key={candidate.type}
-								style={[styles.candidateCard, isSelected && styles.candidateCardSelected]}
-								onPress={() => handleModeChange("candidate", candidate.type)}>
-								<View style={styles.candidateHeader}>
-									{isSelected ? <CheckCircle2 size={24} color="#5EA2FF" /> : <Circle size={24} color="#999" />}
-									<Text style={styles.candidateTitle}>{candidate.title}</Text>
-								</View>
-								<Text style={styles.candidateTagline}>{candidate.tagline}</Text>
-							</Pressable>
-						);
-					})}
-
-					{/* Custom入力 */}
-					<Pressable
-						style={[styles.candidateCard, state.selectedMode === "custom" && styles.candidateCardSelected]}
-						onPress={() => handleModeChange("custom")}>
-						<View style={styles.candidateHeader}>
-							{state.selectedMode === "custom" ? (
-								<CheckCircle2 size={24} color="#5EA2FF" />
-							) : (
-								<Circle size={24} color="#999" />
-							)}
-							<Text style={styles.candidateLabel}>自分で書く</Text>
-						</View>
-						{state.selectedMode === "custom" && (
-							<View style={styles.customInputs}>
-								<TextInput
-									style={styles.textInput}
-									placeholder="タイトル（必須）"
-									value={state.customTitle}
-									onChangeText={(text) => setState((prev) => ({ ...prev, customTitle: text }))}
-									multiline
-								/>
-								<TextInput
-									style={styles.textInput}
-									placeholder="タグライン（必須）"
-									value={state.customTagline}
-									onChangeText={(text) => setState((prev) => ({ ...prev, customTagline: text }))}
-									multiline
-								/>
+			{/* 候補選択 */}
+			<View style={styles.section}>
+				{dish.candidates.map((candidate) => {
+					const isSelected = state.selectedMode === "candidate" && state.selectedSource === candidate.type;
+					return (
+						<Pressable
+							key={candidate.type}
+							style={[styles.candidateCard, isSelected && styles.candidateCardSelected]}
+							onPress={() => handleModeChange("candidate", candidate.type)}>
+							<View style={styles.candidateHeader}>
+								{isSelected ? <CheckCircle2 size={24} color="#5EA2FF" /> : <Circle size={24} color="#999" />}
+								<Text style={styles.candidateTitle}>{candidate.title}</Text>
 							</View>
+							<Text style={styles.candidateTagline}>{candidate.tagline}</Text>
+						</Pressable>
+					);
+				})}
+
+				{/* Custom入力 */}
+				<Pressable
+					style={[styles.candidateCard, state.selectedMode === "custom" && styles.candidateCardSelected]}
+					onPress={() => handleModeChange("custom")}>
+					<View style={styles.candidateHeader}>
+						{state.selectedMode === "custom" ? (
+							<CheckCircle2 size={24} color="#5EA2FF" />
+						) : (
+							<Circle size={24} color="#999" />
 						)}
-					</Pressable>
-				</View>
+						<Text style={styles.candidateLabel}>自分で書く</Text>
+					</View>
+					{state.selectedMode === "custom" && (
+						<View style={styles.customInputs}>
+							<TextInput
+								style={styles.textInput}
+								placeholder="タイトル（必須）"
+								value={state.customTitle}
+								onChangeText={(text) => setState((prev) => ({ ...prev, customTitle: text }))}
+								multiline
+							/>
+							<TextInput
+								style={styles.textInput}
+								placeholder="タグライン（必須）"
+								value={state.customTagline}
+								onChangeText={(text) => setState((prev) => ({ ...prev, customTagline: text }))}
+								multiline
+							/>
+						</View>
+					)}
+				</Pressable>
+			</View>
 
-				{/* 食べたくなる度 */}
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>食べたくなる度（必須）</Text>
-					{(["want_now", "ok", "no"] as AppetiteLevel[]).map((level) => {
-						const isSelected = state.appetite === level;
-						return (
-							<Pressable
-								key={level}
-								style={[styles.radioItem, isSelected && styles.radioItemSelected]}
-								onPress={() => setState((prev) => ({ ...prev, appetite: level }))}>
-								{isSelected ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
-								<Text style={styles.radioLabel}>{APPETITE_LABELS[level]}</Text>
-							</Pressable>
-						);
-					})}
-				</View>
+			{/* 食べたくなる度 */}
+			<View style={styles.section}>
+				<Text style={styles.sectionTitle}>食べたくなる度（必須）</Text>
+				{(["want_now", "ok", "no"] as AppetiteLevel[]).map((level) => {
+					const isSelected = state.appetite === level;
+					return (
+						<Pressable
+							key={level}
+							style={[styles.radioItem, isSelected && styles.radioItemSelected]}
+							onPress={() => setState((prev) => ({ ...prev, appetite: level }))}>
+							{isSelected ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
+							<Text style={styles.radioLabel}>{APPETITE_LABELS[level]}</Text>
+						</Pressable>
+					);
+				})}
+			</View>
 
-				{/* 刺さったポイント */}
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>刺さったポイント（任意・複数選択可）</Text>
-					{(Object.keys(REASON_LABELS) as ReasonKey[]).map((key) => {
-						const isChecked = state.reasons.includes(key);
-						return (
-							<Pressable
-								key={key}
-								style={[styles.checkItem, isChecked && styles.checkItemSelected]}
-								onPress={() => {
-									setState((prev) => ({
-										...prev,
-										reasons: isChecked ? prev.reasons.filter((r) => r !== key) : [...prev.reasons, key],
-									}));
-								}}>
-								{isChecked ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
-								<Text style={styles.checkLabel}>{REASON_LABELS[key]}</Text>
-							</Pressable>
-						);
-					})}
-					<TextInput
-						style={styles.textArea}
-						placeholder="その他の理由（任意）"
-						value={state.reasonFree}
-						onChangeText={(text) => setState((prev) => ({ ...prev, reasonFree: text }))}
-						multiline
-						numberOfLines={3}
-					/>
-				</View>
+			{/* 刺さったポイント */}
+			<View style={styles.section}>
+				<Text style={styles.sectionTitle}>刺さったポイント（任意・複数選択可）</Text>
+				{(Object.keys(REASON_LABELS) as ReasonKey[]).map((key) => {
+					const isChecked = state.reasons.includes(key);
+					return (
+						<Pressable
+							key={key}
+							style={[styles.checkItem, isChecked && styles.checkItemSelected]}
+							onPress={() => {
+								setState((prev) => ({
+									...prev,
+									reasons: isChecked ? prev.reasons.filter((r) => r !== key) : [...prev.reasons, key],
+								}));
+							}}>
+							{isChecked ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
+							<Text style={styles.checkLabel}>{REASON_LABELS[key]}</Text>
+						</Pressable>
+					);
+				})}
+				<TextInput
+					style={styles.textArea}
+					placeholder="その他の理由（任意）"
+					value={state.reasonFree}
+					onChangeText={(text) => setState((prev) => ({ ...prev, reasonFree: text }))}
+					multiline
+					numberOfLines={3}
+				/>
+			</View>
 
-				{/* 刺さらなかった理由 */}
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>他の候補が刺さらなかった理由（任意）</Text>
-					{(Object.keys(REJECTED_LABELS) as RejectedReason[]).map((key) => {
-						const isSelected = state.rejectedReason === key;
-						return (
-							<Pressable
-								key={key}
-								style={[styles.radioItem, isSelected && styles.radioItemSelected]}
-								onPress={() =>
-									setState((prev) => ({
-										...prev,
-										rejectedReason: isSelected ? null : key,
-									}))
-								}>
-								{isSelected ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
-								<Text style={styles.radioLabel}>{REJECTED_LABELS[key]}</Text>
-							</Pressable>
-						);
-					})}
-					<TextInput
-						style={styles.textArea}
-						placeholder="その他の理由（任意）"
-						value={state.rejectedFree}
-						onChangeText={(text) => setState((prev) => ({ ...prev, rejectedFree: text }))}
-						multiline
-						numberOfLines={3}
-					/>
-				</View>
+			{/* 刺さらなかった理由 */}
+			<View style={styles.section}>
+				<Text style={styles.sectionTitle}>他の候補が刺さらなかった理由（任意）</Text>
+				{(Object.keys(REJECTED_LABELS) as RejectedReason[]).map((key) => {
+					const isSelected = state.rejectedReason === key;
+					return (
+						<Pressable
+							key={key}
+							style={[styles.radioItem, isSelected && styles.radioItemSelected]}
+							onPress={() =>
+								setState((prev) => ({
+									...prev,
+									rejectedReason: isSelected ? null : key,
+								}))
+							}>
+							{isSelected ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
+							<Text style={styles.radioLabel}>{REJECTED_LABELS[key]}</Text>
+						</Pressable>
+					);
+				})}
+				<TextInput
+					style={styles.textArea}
+					placeholder="その他の理由（任意）"
+					value={state.rejectedFree}
+					onChangeText={(text) => setState((prev) => ({ ...prev, rejectedFree: text }))}
+					multiline
+					numberOfLines={3}
+				/>
+			</View>
 
-				{/* 決定ボタン */}
-				<View style={styles.buttonContainer}>
-					<PrimaryButton label="決定" onPress={handleDecide} disabled={!isValid} style={styles.decideButton} />
-					<TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
-						<Text style={styles.cancelButtonText}>キャンセル</Text>
-					</TouchableOpacity>
-				</View>
-			</ScrollView>
-		</BlurModal>
+			{/* 決定ボタン */}
+			<View style={styles.buttonContainer}>
+				<PrimaryButton label="決定" onPress={handleDecide} disabled={!isValid} style={styles.decideButton} />
+				<TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
+					<Text style={styles.cancelButtonText}>キャンセル</Text>
+				</TouchableOpacity>
+			</View>
+		</ScrollView>
 	);
 }
 
