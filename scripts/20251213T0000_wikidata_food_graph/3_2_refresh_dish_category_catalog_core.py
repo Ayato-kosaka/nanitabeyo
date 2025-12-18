@@ -393,38 +393,37 @@ def fetch_multilang_data(
                 max_response_size=HARD_LIMIT_MB * 1024 * 1024
             )
             
+            response_size = 0
+            skipped_lines = 0
+            
             # #555 【P0-2】即時集約（メモリに溜めない）
-            for result in gen:
-                item_uri = result.get("item", "")
-                item_qid = item_uri.split("/")[-1] if item_uri else None
-
-                if not item_qid:
-                    continue
-
-                label_lang = result.get("label_lang", "")
-                label_value = result.get("label_value", "")
-                if label_lang and label_value:
-                    all_labels_by_qid.setdefault(item_qid, {})[label_lang] = label_value
-
-                desc_lang = result.get("desc_lang", "")
-                desc_value = result.get("desc_value", "")
-                if desc_lang and desc_value:
-                    all_descriptions_by_qid.setdefault(item_qid, {})[desc_lang] = desc_value
-
-                # #555 【P1-5】alias を set で受けて重複除去
-                alias_lang = result.get("alias_lang", "")
-                alias_value = result.get("alias_value", "")
-                if alias_lang and alias_value:
-                    all_aliases_by_qid.setdefault(item_qid, {}).setdefault(alias_lang, set()).add(alias_value)
-
-            # generator 終了時の情報を取得
             try:
-                response_size, skipped_lines = gen.send(None)
+                for result in gen:
+                    item_uri = result.get("item", "")
+                    item_qid = item_uri.split("/")[-1] if item_uri else None
+
+                    if not item_qid:
+                        continue
+
+                    label_lang = result.get("label_lang", "")
+                    label_value = result.get("label_value", "")
+                    if label_lang and label_value:
+                        all_labels_by_qid.setdefault(item_qid, {})[label_lang] = label_value
+
+                    desc_lang = result.get("desc_lang", "")
+                    desc_value = result.get("desc_value", "")
+                    if desc_lang and desc_value:
+                        all_descriptions_by_qid.setdefault(item_qid, {})[desc_lang] = desc_value
+
+                    # #555 【P1-5】alias を set で受けて重複除去
+                    alias_lang = result.get("alias_lang", "")
+                    alias_value = result.get("alias_value", "")
+                    if alias_lang and alias_value:
+                        all_aliases_by_qid.setdefault(item_qid, {}).setdefault(alias_lang, set()).add(alias_value)
             except StopIteration as e:
+                # #555 【バグ】generator の return 値は StopIteration.value から取得
                 if e.value:
                     response_size, skipped_lines = e.value
-                else:
-                    response_size, skipped_lines = 0, 0
             
             # #555 【P0-3】soft limit チェック（次回は分割推奨）
             if response_size > SOFT_LIMIT_MB * 1024 * 1024 and len(batch_qids) > 1:

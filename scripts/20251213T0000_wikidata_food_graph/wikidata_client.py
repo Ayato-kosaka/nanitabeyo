@@ -388,8 +388,8 @@ class WikidataClient:
             gen = self.execute_query_tsv_iter(query)
             for row in gen:
                 rows.append(row)
-            content_size, _ = gen.send(None)  # 最終値を取得
         except StopIteration as e:
+            # #555 【バグ】generator の return 値は StopIteration.value から取得
             if e.value:
                 content_size, _ = e.value
         
