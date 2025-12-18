@@ -25,10 +25,11 @@ import logging
 import time
 import urllib.parse
 from collections import deque
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
 from google.cloud import bigquery
+import requests
 
-from wikidata_client import WikidataClient
+from wikidata_client import WikidataClient, ResponseSizeLimitExceeded
 from loader_bigquery import BigQueryLoader
 
 # ログ設定
@@ -286,13 +287,20 @@ def fetch_multilang_data(
     """
     Query C：多言語labels/descriptions/aliases（TSVストリーム→Python集約）
 
+    P0/P1 対応：
+    - TSV streaming で即時集約（メモリ効率化）
+    - Content-Length 事前チェック + 受信中閾値監視
+    - alias の重複除去（set 使用）
+    - 分割深度制限（無限分割回避）
+    - failed QIDs の記録（後続で永続化可能）
+    
     * 取得言語は制限しない（データ完全性優先）
-    * TSV 経由で巨大 JSON を避ける
     * レスポンスサイズに応じてバッチを自動分割
     """
     all_labels_by_qid: Dict[str, Dict[str, str]] = {}
     all_descriptions_by_qid: Dict[str, Dict[str, str]] = {}
-    all_aliases_by_qid: Dict[str, Dict[str, List[str]]] = {}
+    # #555 【P1-5】alias は set で受けて重複除去
+    all_aliases_by_qid: Dict[str, Dict[str, Set[str]]] = {}
     failed_qids: List[str] = []
 
     logger.info(
@@ -301,25 +309,66 @@ def fetch_multilang_data(
         MULTILANG_BATCH_SIZE,
     )
 
-    batches: deque[List[str]] = deque()
+    # #555 【P1-6】分割深度を追跡（無限分割回避）
+    batches: deque[Tuple[List[str], int]] = deque()
+    MAX_SPLIT_DEPTH = 10
+    
     for i in range(0, len(qids), MULTILANG_BATCH_SIZE):
-        batches.append(qids[i:i + MULTILANG_BATCH_SIZE])
+        batches.append((qids[i:i + MULTILANG_BATCH_SIZE], 0))
 
-    def enqueue_split(batch: List[str]) -> None:
+    def enqueue_split(batch: List[str], depth: int, reason: str) -> None:
+        """
+        #555 【P1-6】分割深度を追跡してバッチを分割
+        
+        Args:
+            batch: 分割対象のQIDリスト
+            depth: 現在の分割深度
+            reason: 分割理由（ログ用）
+        """
         if len(batch) <= 1:
+            logger.warning(
+                "Cannot split batch of size 1 (reason: %s). Marking as failed.",
+                reason
+            )
+            failed_qids.extend(batch)
             return
+        
+        if depth >= MAX_SPLIT_DEPTH:
+            logger.error(
+                "Max split depth %d reached for batch size %d (reason: %s). Marking as failed.",
+                MAX_SPLIT_DEPTH,
+                len(batch),
+                reason
+            )
+            failed_qids.extend(batch)
+            return
+        
         mid = max(1, len(batch) // 2)
         first, second = batch[:mid], batch[mid:]
-        batches.extendleft(reversed([first, second]))
+        logger.info(
+            "Splitting batch (size=%d, depth=%d→%d, reason=%s) into [%d, %d]",
+            len(batch),
+            depth,
+            depth + 1,
+            reason,
+            len(first),
+            len(second)
+        )
+        batches.extendleft([(second, depth + 1), (first, depth + 1)])
+
+    # #555 【P0-3】サイズ閾値の定義
+    HARD_LIMIT_MB = 80  # 絶対に超えてはいけない閾値
+    SOFT_LIMIT_MB = 30  # 超えたら分割を推奨する閾値
 
     processed_batches = 0
     while batches:
-        batch_qids = batches.popleft()
+        batch_qids, depth = batches.popleft()
         processed_batches += 1
         logger.info(
-            "  Multilang batch %d (size=%d, remaining=%d)...",
+            "  Multilang batch %d (size=%d, depth=%d, remaining=%d)...",
             processed_batches,
             len(batch_qids),
+            depth,
             len(batches),
         )
 
@@ -338,74 +387,91 @@ def fetch_multilang_data(
         """
 
         try:
-            results, response_size = wikidata_client.execute_query_tsv(query)
-        except Exception as e:
-            logger.warning(
-                "TSV multilang query failed for %d QIDs (error: %s)",
-                len(batch_qids),
-                e,
+            # #555 【P0-2, P0-3】streaming + Content-Length 事前チェック
+            gen = wikidata_client.execute_query_tsv_iter(
+                query,
+                max_response_size=HARD_LIMIT_MB * 1024 * 1024
             )
-            if len(batch_qids) > 1:
-                logger.info("Re-queueing batch as two halves after failure")
-                enqueue_split(batch_qids)
-                continue
-            failed_qids.extend(batch_qids)
-            continue
+            
+            response_size = 0
+            skipped_lines = 0
+            
+            # #555 【P0-2】即時集約（メモリに溜めない）
+            # #555 【バグ】generator の return 値を取得するには手動で next() を呼ぶ必要がある
+            try:
+                while True:
+                    result = next(gen)
+                    item_uri = result.get("item", "")
+                    item_qid = item_uri.split("/")[-1] if item_uri else None
 
-        if response_size > 80 * 1024 * 1024 and len(batch_qids) > 1:
-            logger.warning(
-                "TSV response %.2f MB too large (>80MB). Splitting batch immediately.",
-                response_size / (1024 * 1024),
-            )
-            enqueue_split(batch_qids)
-            continue
+                    if not item_qid:
+                        continue
 
-        if response_size > 30 * 1024 * 1024 and len(batch_qids) > 1:
-            logger.warning(
-                "TSV response %.2f MB exceeded soft limit (>30MB). Splitting batch for retry.",
-                response_size / (1024 * 1024),
-            )
-            enqueue_split(batch_qids)
-            continue
+                    label_lang = result.get("label_lang", "")
+                    label_value = result.get("label_value", "")
+                    if label_lang and label_value:
+                        all_labels_by_qid.setdefault(item_qid, {})[label_lang] = label_value
 
-        if response_size > 80 * 1024 * 1024 and len(batch_qids) == 1:
-            failed_qids.extend(batch_qids)
-            logger.error(
-                "Single QID %s produced >80MB response. Marking as failed and continuing.",
-                batch_qids[0],
-            )
-            continue
+                    desc_lang = result.get("desc_lang", "")
+                    desc_value = result.get("desc_value", "")
+                    if desc_lang and desc_value:
+                        all_descriptions_by_qid.setdefault(item_qid, {})[desc_lang] = desc_value
 
-        for line_number, result in enumerate(results, start=1):
-            item_uri = result.get("item", "")
-            item_qid = item_uri.split("/")[-1] if item_uri else None
-
-            if not item_qid:
+                    # #555 【P1-5】alias を set で受けて重複除去
+                    alias_lang = result.get("alias_lang", "")
+                    alias_value = result.get("alias_value", "")
+                    if alias_lang and alias_value:
+                        all_aliases_by_qid.setdefault(item_qid, {}).setdefault(alias_lang, set()).add(alias_value)
+            except StopIteration as e:
+                # generator の return 値は StopIteration.value から取得
+                if e.value:
+                    response_size, skipped_lines = e.value
+            
+            # #555 【P0-3】soft limit チェック（次回は分割推奨）
+            if response_size > SOFT_LIMIT_MB * 1024 * 1024 and len(batch_qids) > 1:
                 logger.warning(
-                    "TSV line missing item QID (line %d in batch starting with %s)",
-                    line_number,
-                    batch_qids[0],
+                    "TSV response %.2f MB exceeded soft limit (>%dMB). Data accepted but splitting for next time.",
+                    response_size / (1024 * 1024),
+                    SOFT_LIMIT_MB
                 )
+                # 今回のデータは受け入れ済みなので、警告のみ（分割しない）
+
+        except Exception as e:
+            # #555 【P1-6】例外種別に応じた retry/split 判断
+            
+            if isinstance(e, ResponseSizeLimitExceeded):
+                # サイズ超過 → 即分割（リトライ不要）
+                logger.warning(
+                    "Response size limit exceeded for %d QIDs: %s",
+                    len(batch_qids),
+                    e
+                )
+                enqueue_split(batch_qids, depth, "size_limit")
                 continue
-
-            label_lang = result.get("label_lang", "")
-            label_value = result.get("label_value", "")
-            if label_lang and label_value:
-                all_labels_by_qid.setdefault(item_qid, {})[label_lang] = label_value
-
-            desc_lang = result.get("desc_lang", "")
-            desc_value = result.get("desc_value", "")
-            if desc_lang and desc_value:
-                all_descriptions_by_qid.setdefault(item_qid, {})[desc_lang] = desc_value
-
-            alias_lang = result.get("alias_lang", "")
-            alias_value = result.get("alias_value", "")
-            if alias_lang and alias_value:
-                all_aliases_by_qid.setdefault(item_qid, {}).setdefault(alias_lang, []).append(alias_value)
+            elif isinstance(e, (requests.exceptions.HTTPError, requests.exceptions.RequestException)):
+                # HTTP/ネットワークエラー → tenacity が既にリトライ済み
+                # それでも失敗 → 分割して再試行
+                logger.warning(
+                    "TSV multilang query failed after retries for %d QIDs (error: %s)",
+                    len(batch_qids),
+                    e
+                )
+                enqueue_split(batch_qids, depth, "network_error")
+                continue
+            else:
+                # その他のエラー → パースエラー等、分割しても無駄な可能性
+                logger.error(
+                    "Unexpected error for %d QIDs: %s",
+                    len(batch_qids),
+                    e
+                )
+                enqueue_split(batch_qids, depth, "parse_error")
+                continue
 
         if batches:
             time.sleep(1)
 
+    # #555 【P1-5】set → list 変換（出力前）
     multilang_data = []
     all_qids = set(all_labels_by_qid.keys()) | set(all_descriptions_by_qid.keys()) | set(all_aliases_by_qid.keys())
 
@@ -418,7 +484,10 @@ def fetch_multilang_data(
     for qid in all_qids:
         labels = all_labels_by_qid.get(qid, {})
         descriptions = all_descriptions_by_qid.get(qid, {})
-        aliases = all_aliases_by_qid.get(qid, {})
+        aliases_sets = all_aliases_by_qid.get(qid, {})
+        
+        # #555 【P1-5】set → list 変換
+        aliases = {lang: list(alias_set) for lang, alias_set in aliases_sets.items()}
 
         multilang_data.append({
             "item_qid": qid,
@@ -427,8 +496,10 @@ def fetch_multilang_data(
             "aliases_json": json.dumps(aliases, ensure_ascii=False) if aliases else None,
         })
 
+    # #555 【P1-4】failed QIDs をログ出力（永続化は将来対応）
     if failed_qids:
         logger.error("Multilang fetch failed for %d QIDs: %s", len(failed_qids), ",".join(failed_qids))
+        logger.info("TODO: Persist failed_qids to BigQuery/GCS for retry in next run")
 
     return multilang_data
 
