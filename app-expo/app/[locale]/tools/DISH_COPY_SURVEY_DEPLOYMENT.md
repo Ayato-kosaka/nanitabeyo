@@ -10,29 +10,29 @@ JSONファイルは以下の形式で10件の料理データを含みます：
 
 ```json
 [
-  {
-    "qid": "dish_001",
-    "label": "唐揚げ",
-    "image": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Chicken_karaage_003.jpg",
-    "candidates": [
-      {
-        "type": "A",
-        "title": "ジューシーな唐揚げ",
-        "tagline": "外はカリッと、中はジューシー。一口で幸せが広がる"
-      },
-      {
-        "type": "B",
-        "title": "黄金の唐揚げ",
-        "tagline": "香ばしい衣と肉汁の絶妙なハーモニー"
-      },
-      {
-        "type": "C",
-        "title": "至福の唐揚げ",
-        "tagline": "熱々を頬張る瞬間、心まで温まる"
-      }
-    ]
-  }
-  // ... 他9件
+	{
+		"qid": "dish_001",
+		"label": "唐揚げ",
+		"image": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Chicken_karaage_003.jpg",
+		"candidates": [
+			{
+				"type": "A",
+				"title": "ジューシーな唐揚げ",
+				"tagline": "外はカリッと、中はジューシー。一口で幸せが広がる"
+			},
+			{
+				"type": "B",
+				"title": "黄金の唐揚げ",
+				"tagline": "香ばしい衣と肉汁の絶妙なハーモニー"
+			},
+			{
+				"type": "C",
+				"title": "至福の唐揚げ",
+				"tagline": "熱々を頬張る瞬間、心まで温まる"
+			}
+		]
+	}
+	// ... 他9件
 ]
 ```
 

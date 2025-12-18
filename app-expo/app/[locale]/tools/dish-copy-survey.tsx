@@ -27,6 +27,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { Env } from "@/constants/Env";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -103,8 +104,11 @@ type SubmitPayload = {
 /*                                定数・文言                                   */
 /* -------------------------------------------------------------------------- */
 
-const CDN_JSON_URL = "https://storage.googleapis.com/nanitabeyo-static/dish-copy-survey-data.json";
+// CDNベースURL（環境変数から取得、フォールバック付き）
+const CDN_BASE_URL = Env.CDN_PUBLIC_HOST || "https://storage.googleapis.com/nanitabeyo-static";
+const CDN_JSON_URL = `${CDN_BASE_URL}/dish-copy-survey-data.json`;
 
+// 【仕様】多言語対応は不要（日本語固定文言でOK）- issue要件より
 const APPETITE_LABELS: Record<AppetiteLevel, string> = {
 	want_now: "いま食べたい",
 	ok: "食べてもいい",
@@ -502,6 +506,12 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 
 	useEffect(() => {
 		open();
+		// クリーンアップ: モーダルアンマウント時にrefをクリア
+		return () => {
+			firstSelectionTimeRef.current = null;
+			selectionCountRef.current = 0;
+			previousModeRef.current = null;
+		};
 	}, [open]);
 
 	/* ------------------------------------------------------------------ */
