@@ -1,6 +1,6 @@
 // app-expo/app/[locale]/tools/dish-copy-survey.tsx
 //
-// 料理コピー調査アンケート（10枚カルーセル＋BlurModal）実装
+// #559 料理コピー調査アンケート（10枚カルーセル＋BlurModal）実装
 // 運営用ツール - 各料理画像にタイトル+タグラインを選択してもらう
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -35,7 +35,7 @@ import { Env } from "@/constants/Env";
 
 /** 候補コピー情報 */
 type CandidateCopy = {
-	type: "A" | "B" | "C";
+	type: "五感直撃型" | "欲望肯定型" | "感情スイッチ型";
 	title: string;
 	tagline: string;
 };
@@ -63,7 +63,7 @@ type RejectedReason = "not_appealing" | "no_image" | "too_long" | "too_strong" |
 /** モーダル内の回答状態 */
 type ModalAnswer = {
 	selectedMode: SelectionMode | null;
-	selectedSource: "A" | "B" | "C" | null;
+	selectedSource: "五感直撃型" | "欲望肯定型" | "感情スイッチ型" | null;
 	customTitle: string;
 	customTagline: string;
 	appetite: AppetiteLevel | null;
@@ -77,7 +77,7 @@ type ModalAnswer = {
 type FinalAnswer = {
 	dishQid: string;
 	selectedMode: SelectionMode;
-	selectedSource: "A" | "B" | "C" | null;
+	selectedSource: "五感直撃型" | "欲望肯定型" | "感情スイッチ型" | null;
 	finalTitle: string;
 	finalTagline: string;
 	appetite: AppetiteLevel;
@@ -106,13 +106,13 @@ type SubmitPayload = {
 
 // CDNベースURL（環境変数から取得、フォールバック付き）
 const CDN_BASE_URL = Env.CDN_PUBLIC_HOST || "https://storage.googleapis.com/nanitabeyo-static";
-const CDN_JSON_URL = `${CDN_BASE_URL}/dish-copy-survey-data.json`;
+const CDN_JSON_URL = `https://${CDN_BASE_URL}/tickets/559/dish-copy-survey-data.json`;
 
 // 【仕様】多言語対応は不要（日本語固定文言でOK）- issue要件より
 const APPETITE_LABELS: Record<AppetiteLevel, string> = {
 	want_now: "いま食べたい",
 	ok: "食べてもいい",
-	no: "選ばない",
+	no: "食べたくない",
 };
 
 const REASON_LABELS: Record<ReasonKey, string> = {
@@ -171,9 +171,11 @@ export default function DishCopySurveyPage() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [selectedDish, setSelectedDish] = useState<DishData | null>(null);
 
+	// 送信完了管理
+	const [isCompleted, setIsCompleted] = useState(false);
+
 	// モーダル関連
 	const [showHelp, setShowHelp] = useState(false);
-	const [showCompletion, setShowCompletion] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	// カルーセルサイズ計算（9:16）
@@ -201,7 +203,8 @@ export default function DishCopySurveyPage() {
 					throw new Error("Invalid data format or empty array");
 				}
 
-				setDishes(data);
+				// シャッフルしてセット
+				setDishes(data.sort(() => Math.random() - 0.5));
 
 				logFrontendEvent({
 					event_name: "dish_copy_survey_data_loaded",
@@ -307,7 +310,13 @@ export default function DishCopySurveyPage() {
 				sessionId,
 				startedAt,
 				submittedAt: new Date().toISOString(),
-				answers: Array.from(answers.values()),
+				answers: Array.from(answers.values()).map((ans) => ({
+					...ans,
+					// ラベル変換
+					appetiteLabel: APPETITE_LABELS[ans.appetite],
+					reasonLabels: ans.reasons.map((r) => REASON_LABELS[r]),
+					rejectedLabel: ans.rejectedReason ? REJECTED_LABELS[ans.rejectedReason] : null,
+				})),
 			};
 
 			logFrontendEvent({
@@ -317,12 +326,9 @@ export default function DishCopySurveyPage() {
 			});
 
 			// 送信成功後、完了メッセージ表示
-			setShowCompletion(true);
+			setIsCompleted(true);
 		} catch (error: any) {
-			showSnackbar({
-				message: "送信に失敗しました。もう一度お試しください。",
-				variant: "error",
-			});
+			showSnackbar("送信に失敗しました。もう一度お試しください。");
 			logFrontendEvent({
 				event_name: "dish_copy_survey_submit_error",
 				error_level: "error",
@@ -359,60 +365,70 @@ export default function DishCopySurveyPage() {
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
-			{/* ヘッダー */}
-			<View style={styles.header}>
-				<View style={styles.headerLeft}>
-					<Text style={styles.headerTitle}>料理コピー調査</Text>
-					<Text style={styles.progressText}>
-						{answeredCount} / {totalCount}
-					</Text>
+			{/* 完了メッセージ */}
+			{isCompleted ? (
+				<View style={styles.modalContent}>
+					<Text style={styles.modalTitle}>送信完了</Text>
+					<Text style={styles.modalText}>{COMPLETION_MESSAGE}</Text>
 				</View>
-				<TouchableOpacity onPress={() => setShowHelp(true)} style={styles.helpButton}>
-					<HelpCircle size={28} color="#5EA2FF" />
-				</TouchableOpacity>
-			</View>
+			) : (
+				<>
+					{/* ヘッダー */}
+					<View style={styles.header}>
+						<View style={styles.headerLeft}>
+							<Text style={styles.headerTitle}>料理コピーアンケート</Text>
+							<Text style={styles.progressText}>
+								{answeredCount} / {totalCount}
+							</Text>
+						</View>
+						<TouchableOpacity onPress={() => setShowHelp(true)} style={styles.helpButton}>
+							<HelpCircle size={28} color="#5EA2FF" />
+						</TouchableOpacity>
+					</View>
 
-			{/* 進捗インジケータ（ドット） */}
-			<View style={styles.dotsContainer}>
-				{dishes.map((dish, index) => {
-					const isAnswered = answers.has(dish.qid);
-					const isCurrent = index === currentIndex;
-					return (
-						<View
-							key={dish.qid}
-							style={[styles.dot, isAnswered && styles.dotAnswered, isCurrent && styles.dotCurrent]}
+					{/* 進捗インジケータ（ドット） */}
+					<View style={styles.dotsContainer}>
+						{dishes.map((dish, index) => {
+							const isAnswered = answers.has(dish.qid);
+							const isCurrent = index === currentIndex;
+							return (
+								<View
+									key={dish.qid}
+									style={[styles.dot, isAnswered && styles.dotAnswered, isCurrent && styles.dotCurrent]}
+								/>
+							);
+						})}
+					</View>
+
+					{/* カルーセル */}
+					<View style={styles.carouselContainer}>
+						<Carousel
+							width={carouselWidth}
+							height={carouselHeight}
+							data={dishes}
+							renderItem={({ item }) => renderCard(item)}
+							onSnapToItem={setCurrentIndex}
+							mode="parallax"
+							modeConfig={{
+								parallaxScrollingScale: 0.9,
+								parallaxScrollingOffset: 50,
+							}}
 						/>
-					);
-				})}
-			</View>
+					</View>
 
-			{/* カルーセル */}
-			<View style={styles.carouselContainer}>
-				<Carousel
-					width={carouselWidth}
-					height={carouselHeight}
-					data={dishes}
-					renderItem={({ item }) => renderCard(item)}
-					onSnapToItem={setCurrentIndex}
-					mode="parallax"
-					modeConfig={{
-						parallaxScrollingScale: 0.9,
-						parallaxScrollingOffset: 50,
-					}}
-				/>
-			</View>
-
-			{/* 送信ボタン */}
-			<View style={styles.submitContainer}>
-				<PrimaryButton
-					label={isSubmitting ? "送信中..." : "送信する"}
-					onPress={handleSubmit}
-					disabled={!allAnswered || isSubmitting}
-					loading={isSubmitting}
-					style={styles.submitButton}
-				/>
-				{!allAnswered && <Text style={styles.submitHint}>すべての料理にコピーを選択すると送信できます</Text>}
-			</View>
+					{/* 送信ボタン */}
+					<View style={styles.submitContainer}>
+						<PrimaryButton
+							label={isSubmitting ? "送信中..." : "送信する"}
+							onPress={handleSubmit}
+							disabled={!allAnswered || isSubmitting}
+							loading={isSubmitting}
+							style={styles.submitButton}
+						/>
+						{!allAnswered && <Text style={styles.submitHint}>すべての料理にコピーを選択すると送信できます</Text>}
+					</View>
+				</>
+			)}
 
 			{/* 説明モーダル */}
 			<Modal visible={showHelp} transparent animationType="fade" onRequestClose={() => setShowHelp(false)}>
@@ -421,17 +437,6 @@ export default function DishCopySurveyPage() {
 						<Text style={styles.modalTitle}>使い方</Text>
 						<Text style={styles.modalText}>{HELP_TEXT}</Text>
 						<PrimaryButton label="閉じる" onPress={() => setShowHelp(false)} />
-					</View>
-				</Pressable>
-			</Modal>
-
-			{/* 完了メッセージモーダル */}
-			<Modal visible={showCompletion} transparent animationType="fade" onRequestClose={() => setShowCompletion(false)}>
-				<Pressable style={styles.modalOverlay} onPress={() => setShowCompletion(false)}>
-					<View style={styles.modalContent}>
-						<Text style={styles.modalTitle}>送信完了</Text>
-						<Text style={styles.modalText}>{COMPLETION_MESSAGE}</Text>
-						<PrimaryButton label="閉じる" onPress={() => setShowCompletion(false)} />
 					</View>
 				</Pressable>
 			</Modal>
@@ -469,6 +474,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
+	const { height: windowHeight } = useWindowDimensions();
 
 	// モーダル計測用
 	const [modalOpenedAt] = useState(() => new Date().toISOString());
@@ -519,7 +525,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 	/* ------------------------------------------------------------------ */
 
 	const handleModeChange = useCallback(
-		(mode: SelectionMode, source?: "A" | "B" | "C") => {
+		(mode: SelectionMode, source?: "五感直撃型" | "欲望肯定型" | "感情スイッチ型") => {
 			// 初回選択時刻を記録
 			if (firstSelectionTimeRef.current === null) {
 				firstSelectionTimeRef.current = Date.now();
@@ -621,7 +627,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 
 	return (
 		<BlurModal>
-			<ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
+			<ScrollView style={{ height: windowHeight * 0.9 }} contentContainerStyle={styles.modalScrollContent}>
 				{/* タイトル */}
 				<Text style={styles.modalSectionTitle}>料理コピーを選んでください</Text>
 
@@ -636,9 +642,8 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 								onPress={() => handleModeChange("candidate", candidate.type)}>
 								<View style={styles.candidateHeader}>
 									{isSelected ? <CheckCircle2 size={24} color="#5EA2FF" /> : <Circle size={24} color="#999" />}
-									<Text style={styles.candidateLabel}>候補 {candidate.type}</Text>
+									<Text style={styles.candidateTitle}>{candidate.title}</Text>
 								</View>
-								<Text style={styles.candidateTitle}>{candidate.title}</Text>
 								<Text style={styles.candidateTagline}>{candidate.tagline}</Text>
 							</Pressable>
 						);
@@ -854,7 +859,12 @@ const styles = StyleSheet.create({
 		paddingVertical: 16,
 	},
 	card: {
-		backgroundColor: "#FFF",
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: "rgba(0, 0, 0, 0.2)",
 		borderRadius: 16,
 		overflow: "hidden",
 		shadowColor: "#000",
@@ -898,18 +908,28 @@ const styles = StyleSheet.create({
 		bottom: 0,
 		left: 0,
 		right: 0,
-		backgroundColor: "rgba(0,0,0,0.75)",
 		padding: 16,
 	},
 	cardTitle: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#FFF",
-		marginBottom: 4,
+		fontSize: 32,
+		fontWeight: "700",
+		color: "#FFFFFF",
+		marginBottom: 16,
+		textShadowColor: "rgba(0, 0, 0, 0.8)",
+		textShadowOffset: { width: 0, height: 2 },
+		textShadowRadius: 4,
+		lineHeight: 40,
+		letterSpacing: -0.5,
 	},
 	cardTagline: {
-		fontSize: 14,
-		color: "#EEE",
+		fontSize: 18,
+		color: "#FFFFFF",
+		lineHeight: 28,
+		marginBottom: 16,
+		textShadowColor: "rgba(0, 0, 0, 0.8)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 3,
+		fontWeight: "500",
 	},
 	cardPrompt: {
 		fontSize: 16,
@@ -959,9 +979,6 @@ const styles = StyleSheet.create({
 		color: "#666",
 		lineHeight: 24,
 		marginBottom: 24,
-	},
-	modalScroll: {
-		maxHeight: "90%",
 	},
 	modalScrollContent: {
 		padding: 24,
@@ -1084,6 +1101,7 @@ const styles = StyleSheet.create({
 	buttonContainer: {
 		gap: 12,
 		marginTop: 24,
+		marginBottom: 400,
 	},
 	decideButton: {
 		width: "100%",
