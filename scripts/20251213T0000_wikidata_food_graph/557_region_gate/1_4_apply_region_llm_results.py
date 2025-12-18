@@ -185,8 +185,8 @@ def apply_to_features_catalog(
     # 値を構築
     values_list = []
     for item_qid, confidence, reason in items:
-        # note に confidence + reason を保存
-        reason_clean = reason.replace("'", "\\'") if reason else ""
+        # #557 【セキュリティ】note に confidence + reason を保存（適切にエスケープ）
+        reason_clean = reason.replace("\\", "\\\\").replace("'", "\\'") if reason else ""
         note = f"{confidence}: {reason_clean[:100]}" if reason_clean else confidence
         values_list.append(
             f"('{item_qid}', 'gate', '{feature_key}', 1.0, 'llm', '{run_id}', CURRENT_TIMESTAMP(), '{note}')"

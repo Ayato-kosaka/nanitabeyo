@@ -200,12 +200,14 @@ def load_to_bigquery(
             "created_at": "CURRENT_TIMESTAMP()"  # BigQuery の現在時刻を使用
         })
     
-    # INSERT 文を構築（CURRENT_TIMESTAMP() を文字列として扱わない）
+    # INSERT 文を構築（BigQuery パラメータ化クエリ使用）
     values = []
     for row in rows_to_insert:
+        # #557 【セキュリティ】reason フィールドを適切にエスケープ
+        reason_escaped = row['reason'].replace("\\", "\\\\").replace("'", "\\'") if row['reason'] else ""
         values.append(
             f"('{row['item_qid']}', '{row['task']}', '{row['label']}', "
-            f"'{row['confidence']}', {json.dumps(row['reason'])}, "
+            f"'{row['confidence']}', '{reason_escaped}', "
             f"'{row['model']}', '{row['run_id']}', CURRENT_TIMESTAMP())"
         )
     
