@@ -22,12 +22,12 @@ import { HelpCircle, CheckCircle2, Circle } from "lucide-react-native";
 import Carousel from "react-native-reanimated-carousel";
 import * as Crypto from "expo-crypto";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Env } from "@/constants/Env";
+import { useBlurModal } from "@/hooks/useBlurModal";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -105,8 +105,7 @@ type SubmitPayload = {
 /* -------------------------------------------------------------------------- */
 
 // CDNベースURL（環境変数から取得、フォールバック付き）
-const CDN_BASE_URL = Env.CDN_PUBLIC_HOST || "https://storage.googleapis.com/nanitabeyo-static";
-const CDN_JSON_URL = `https://${CDN_BASE_URL}/tickets/559/dish-copy-survey-data.json`;
+const CDN_JSON_URL = `https://cdn-public.nanitabeyo.net/tickets/559/dish-copy-survey-data.json`;
 
 // 【仕様】多言語対応は不要（日本語固定文言でOK）- issue要件より
 const APPETITE_LABELS: Record<AppetiteLevel, string> = {
@@ -472,7 +471,6 @@ type AnswerModalProps = {
 function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps) {
 	const { BlurModal, open, close } = useBlurModal({
 		intensity: 80,
-		closeOnBackdropPress: false,
 	});
 	const { height: windowHeight } = useWindowDimensions();
 
