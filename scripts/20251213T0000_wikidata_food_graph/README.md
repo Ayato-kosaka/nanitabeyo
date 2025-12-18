@@ -129,9 +129,7 @@ dish_category_catalog を最新の Wikidata データと BigQuery データで�
 #### 4-1: スキーマ更新（初回のみ）
 
 ```bash
-# BigQuery テーブルに新しいカラムを追加
-cd ../../infra/big-query/migration
-bq query --use_legacy_sql=false < 20251217T0000_add_dish_category_catalog_fields.sql
+python3 1_1_create_tables.py
 ```
 
 #### 4-2: core データの更新
