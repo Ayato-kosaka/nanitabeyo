@@ -17,7 +17,7 @@ import csv
 import logging
 import re
 import time
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Generator, List, Optional, Set, Tuple
 
 import requests
 from SPARQLWrapper import JSON, SPARQLExceptions, SPARQLWrapper
@@ -29,6 +29,15 @@ logger = logging.getLogger(__name__)
 # 設定
 SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 USER_AGENT = "nanitabeyo-wikidata-food-graph/1.0 (https://github.com/Ayato-kosaka/nanitabeyo)"
+
+
+class ResponseSizeLimitExceeded(Exception):
+    """
+    #555 【設計】レスポンスサイズが閾値を超えた場合の例外
+    
+    バッチ分割の判断に使用（リトライ対象外）
+    """
+    pass
 
 
 class WikidataClient:
@@ -215,14 +224,44 @@ class WikidataClient:
     def execute_query(self, query: str) -> List[Dict]:
         return self.execute_query_json(query)
 
-    def execute_query_tsv(self, query: str) -> Tuple[List[Dict[str, str]], int]:
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=4, max=120),
+        retry=retry_if_exception_type((
+            requests.exceptions.RequestException,
+            requests.exceptions.HTTPError,
+        )),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True
+    )
+    def execute_query_tsv_iter(
+        self,
+        query: str,
+        max_response_size: Optional[int] = None
+    ) -> Generator[Dict[str, str], None, Tuple[int, int]]:
         """
-        SPARQL クエリを TSV 形式でストリーム取得し、行単位で辞書化する。
-
+        #555 【設計】SPARQL クエリを TSV 形式でストリーム取得し、行単位で yield する。
+        
+        P0対応：
+        - retry/backoff 追加（429/503/504 対策）
+        - ストリーム処理でメモリ使用量を一定化
+        - Content-Length 事前チェックで無駄なDL回避
+        
+        Args:
+            query: SPARQL クエリ文字列
+            max_response_size: 最大レスポンスサイズ（バイト）。超えた場合は ResponseSizeLimitExceeded を raise
+            
+        Yields:
+            パース済み行の辞書
+            
         Returns:
-            (パース済み行のリスト, 受信バイト数)
+            (受信バイト数, スキップ行数) のタプル（generator終了時）
+            
+        Raises:
+            ResponseSizeLimitExceeded: レスポンスサイズが max_response_size を超えた場合（分割対象）
+            RequestException: ネットワークエラー（リトライ対象）
+            HTTPError: HTTP エラー（429/503/504 はリトライ対象）
         """
-
         params = {
             "query": query,
             "format": "tsv",
@@ -237,18 +276,29 @@ class WikidataClient:
         )
         response.raise_for_status()
 
+        # #555 【P0-3】Content-Length 事前チェック（受信前に分割判断）
         declared_size = response.headers.get("Content-Length")
         declared_size_int = int(declared_size) if declared_size and declared_size.isdigit() else None
+        
+        if declared_size_int and max_response_size and declared_size_int > max_response_size:
+            logger.warning(
+                "Content-Length %d bytes exceeds limit %d bytes. Aborting download.",
+                declared_size_int,
+                max_response_size,
+            )
+            response.close()
+            raise ResponseSizeLimitExceeded(
+                f"Content-Length {declared_size_int} exceeds limit {max_response_size}"
+            )
 
         content_size = 0
-        rows: List[Dict[str, str]] = []
         skipped_lines = 0
 
         line_iter = response.iter_lines(decode_unicode=True)
         header_line = next(line_iter, None)
         if header_line is None:
             logger.warning("TSV response is empty (no header)")
-            return rows, content_size
+            return content_size, skipped_lines
 
         content_size += len(header_line.encode("utf-8")) + 1
 
@@ -257,10 +307,23 @@ class WikidataClient:
             fieldnames = [name.lstrip("?") for name in raw_fieldnames]
         except Exception as e:
             logger.error(f"Failed to parse TSV header: {e}")
-            return rows, content_size
+            return content_size, skipped_lines
 
         for line_number, line in enumerate(line_iter, start=2):
-            content_size += len(line.encode("utf-8")) + 1
+            line_size = len(line.encode("utf-8")) + 1
+            content_size += line_size
+
+            # #555 【P0-3】受信中に閾値超過を検出（Content-Length が無い場合の防御）
+            if max_response_size and content_size > max_response_size:
+                logger.warning(
+                    "Response size %d bytes exceeded limit %d bytes during streaming. Aborting.",
+                    content_size,
+                    max_response_size,
+                )
+                response.close()
+                raise ResponseSizeLimitExceeded(
+                    f"Streaming size {content_size} exceeded limit {max_response_size}"
+                )
 
             if not line:
                 continue
@@ -287,20 +350,49 @@ class WikidataClient:
                 continue
 
             row = {fieldnames[i]: parsed[i] for i in range(len(fieldnames))}
-            rows.append(row)
+            yield row
 
+        # #555 【P2-7】可観測性強化：統一ログ出力
         if skipped_lines > 0:
             logger.warning("TSV parsing skipped %d lines due to errors", skipped_lines)
 
         if declared_size_int is not None and declared_size_int != content_size:
             logger.info(
-                "TSV response size: declared=%d bytes, received=%d bytes",
+                "TSV response: status=200, declared=%d bytes, received=%d bytes, skipped=%d lines",
                 declared_size_int,
                 content_size,
+                skipped_lines,
             )
         else:
-            logger.info("TSV response size: %d bytes", content_size)
+            logger.info(
+                "TSV response: status=200, size=%d bytes, skipped=%d lines",
+                content_size,
+                skipped_lines,
+            )
 
+        return content_size, skipped_lines
+
+    def execute_query_tsv(self, query: str) -> Tuple[List[Dict[str, str]], int]:
+        """
+        #555 【互換性】既存呼び出しのための互換メソッド（非推奨：メモリ効率が悪い）
+        
+        新規実装では execute_query_tsv_iter を使用すること。
+        
+        Returns:
+            (パース済み行のリスト, 受信バイト数)
+        """
+        rows = []
+        content_size = 0
+        
+        try:
+            gen = self.execute_query_tsv_iter(query)
+            for row in gen:
+                rows.append(row)
+            content_size, _ = gen.send(None)  # 最終値を取得
+        except StopIteration as e:
+            if e.value:
+                content_size, _ = e.value
+        
         return rows, content_size
 
     def fetch_food_nodes(
