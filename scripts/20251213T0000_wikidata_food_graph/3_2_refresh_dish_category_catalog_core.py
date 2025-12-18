@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
 BATCH_SIZE = 80  # #555 【バグ】504対策：300→80に縮小（安定性優先）
+MULTILANG_BATCH_SIZE = 15  # 多言語データ専用の小バッチ（alias/label/description が多いQID対策）
 
 # #555 【設計】対応ロケール→Wikipedia言語コードのマッピング
 SUPPORTED_LOCALES = {
@@ -283,7 +284,8 @@ def fetch_multilang_data(
     qids: List[str]
 ) -> List[Dict]:
     """
-    #555 【設計】Query C：多言語labels/descriptions/aliases（行取得→Python集約）
+    Query C：多言語labels/descriptions/aliases（行取得→Python集約）
+    より細かいバッチで実行し、巨大レスポンスを回避
     
     Args:
         wikidata_client: Wikidata クライアント
@@ -292,70 +294,86 @@ def fetch_multilang_data(
     Returns:
         多言語データのリスト
     """
-    values_clause = " ".join([f"wd:{qid}" for qid in qids])
+    # 多言語データ専用の小バッチで分割実行
+    all_labels_by_qid = {}
+    all_descriptions_by_qid = {}
+    all_aliases_by_qid = {}
     
-    query = f"""
-    SELECT ?item (LANG(?label) AS ?label_lang) (STR(?label) AS ?label_value)
-                 (LANG(?desc) AS ?desc_lang) (STR(?desc) AS ?desc_value)
-                 (LANG(?alias) AS ?alias_lang) (STR(?alias) AS ?alias_value)
-    WHERE {{
-      VALUES ?item {{ {values_clause} }}
-      
-      OPTIONAL {{ ?item rdfs:label ?label }}
-      OPTIONAL {{ ?item schema:description ?desc }}
-      OPTIONAL {{ ?item skos:altLabel ?alias }}
-    }}
-    """
+    logger.info(f"Fetching multilang data for {len(qids)} QIDs in batches of {MULTILANG_BATCH_SIZE}...")
     
-    results = wikidata_client.execute_query(query)
-    
-    # #555 【設計】行で取得→Python側で集約
-    labels_by_qid = {}
-    descriptions_by_qid = {}
-    aliases_by_qid = {}
-    
-    for result in results:
-        item_uri = result.get("item", {}).get("value", "")
-        item_qid = item_uri.split("/")[-1] if item_uri else None
+    for i in range(0, len(qids), MULTILANG_BATCH_SIZE):
+        batch_qids = qids[i:i + MULTILANG_BATCH_SIZE]
+        batch_num = i // MULTILANG_BATCH_SIZE + 1
+        total_batches = (len(qids) + MULTILANG_BATCH_SIZE - 1) // MULTILANG_BATCH_SIZE
         
-        if not item_qid:
-            continue
+        logger.info(f"  Multilang batch {batch_num}/{total_batches} ({len(batch_qids)} items)...")
         
-        # #555 【設計】labels集約
-        label_lang = result.get("label_lang", {}).get("value", "")
-        label_value = result.get("label_value", {}).get("value", "")
-        if label_lang and label_value:
-            if item_qid not in labels_by_qid:
-                labels_by_qid[item_qid] = {}
-            if label_lang not in labels_by_qid[item_qid]:
-                labels_by_qid[item_qid][label_lang] = label_value
+        values_clause = " ".join([f"wd:{qid}" for qid in batch_qids])
         
-        # #555 【設計】descriptions集約
-        desc_lang = result.get("desc_lang", {}).get("value", "")
-        desc_value = result.get("desc_value", {}).get("value", "")
-        if desc_lang and desc_value:
-            if item_qid not in descriptions_by_qid:
-                descriptions_by_qid[item_qid] = {}
-            if desc_lang not in descriptions_by_qid[item_qid]:
-                descriptions_by_qid[item_qid][desc_lang] = desc_value
+        query = f"""
+        SELECT ?item (LANG(?label) AS ?label_lang) (STR(?label) AS ?label_value)
+                     (LANG(?desc) AS ?desc_lang) (STR(?desc) AS ?desc_value)
+                     (LANG(?alias) AS ?alias_lang) (STR(?alias) AS ?alias_value)
+        WHERE {{
+          VALUES ?item {{ {values_clause} }}
+          
+          OPTIONAL {{ ?item rdfs:label ?label }}
+          OPTIONAL {{ ?item schema:description ?desc }}
+          OPTIONAL {{ ?item skos:altLabel ?alias }}
+        }}
+        """
         
-        # #555 【設計】aliases集約
-        alias_lang = result.get("alias_lang", {}).get("value", "")
-        alias_value = result.get("alias_value", {}).get("value", "")
-        if alias_lang and alias_value:
-            if item_qid not in aliases_by_qid:
-                aliases_by_qid[item_qid] = {}
-            if alias_lang not in aliases_by_qid[item_qid]:
-                aliases_by_qid[item_qid][alias_lang] = alias_value
+        results = wikidata_client.execute_query(query)
+        
+        # 行で取得→Python側で集約
+        for result in results:
+            item_uri = result.get("item", {}).get("value", "")
+            item_qid = item_uri.split("/")[-1] if item_uri else None
+            
+            if not item_qid:
+                continue
+            
+            # labels集約
+            label_lang = result.get("label_lang", {}).get("value", "")
+            label_value = result.get("label_value", {}).get("value", "")
+            if label_lang and label_value:
+                if item_qid not in all_labels_by_qid:
+                    all_labels_by_qid[item_qid] = {}
+                if label_lang not in all_labels_by_qid[item_qid]:
+                    all_labels_by_qid[item_qid][label_lang] = label_value
+            
+            # descriptions集約
+            desc_lang = result.get("desc_lang", {}).get("value", "")
+            desc_value = result.get("desc_value", {}).get("value", "")
+            if desc_lang and desc_value:
+                if item_qid not in all_descriptions_by_qid:
+                    all_descriptions_by_qid[item_qid] = {}
+                if desc_lang not in all_descriptions_by_qid[item_qid]:
+                    all_descriptions_by_qid[item_qid][desc_lang] = desc_value
+            
+            # aliases集約
+            alias_lang = result.get("alias_lang", {}).get("value", "")
+            alias_value = result.get("alias_value", {}).get("value", "")
+            if alias_lang and alias_value:
+                if item_qid not in all_aliases_by_qid:
+                    all_aliases_by_qid[item_qid] = {}
+                if alias_lang not in all_aliases_by_qid[item_qid]:
+                    all_aliases_by_qid[item_qid][alias_lang] = alias_value
+        
+        # 小バッチ間でも少し待機
+        if i + MULTILANG_BATCH_SIZE < len(qids):
+            time.sleep(1)
     
-    # #555 【設計】JSON化
+    # JSON化
     multilang_data = []
-    all_qids = set(labels_by_qid.keys()) | set(descriptions_by_qid.keys()) | set(aliases_by_qid.keys())
+    all_qids = set(all_labels_by_qid.keys()) | set(all_descriptions_by_qid.keys()) | set(all_aliases_by_qid.keys())
+    
+    logger.info(f"Collected multilang data for {len(all_qids)} QIDs")
     
     for qid in all_qids:
-        labels = labels_by_qid.get(qid, {})
-        descriptions = descriptions_by_qid.get(qid, {})
-        aliases = aliases_by_qid.get(qid, {})
+        labels = all_labels_by_qid.get(qid, {})
+        descriptions = all_descriptions_by_qid.get(qid, {})
+        aliases = all_aliases_by_qid.get(qid, {})
         
         multilang_data.append({
             "item_qid": qid,
