@@ -148,7 +148,7 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
    # 手動で migration を実行するか、後述の自動実行を利用
    ```
 
-3. **catalog 構築**（親ディレクトリで実行）
+2. **catalog 構築**（親ディレクトリで実行）
 
    ```bash
    cd ..
@@ -156,13 +156,13 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
    cd 550_macro_genre
    ```
 
-4. **候補分布 CSV 出力**
+3. **候補分布 CSV 出力**
 
    ```bash
    python3 1_4_export_macro_genre_candidate_stats.py
    ```
 
-5. **whitelist 手動更新**
+4. **whitelist 手動更新**
    - CSV を確認して、macro_genre として採用する QID を決定
    - BigQuery で `macro_genre_whitelist` に INSERT
 
@@ -173,13 +173,13 @@ python3 1_5_export_macro_genre_review.py --output /path/to/output.csv
    ('Q746549', 'dish_root', CURRENT_TIMESTAMP());
    ```
 
-6. **analysis 構築**
+5. **analysis 構築**
 
    ```bash
    python3 1_3_build_dish_macro_genre_analysis.py
    ```
 
-7. **レビュー CSV 出力**
+6. **レビュー CSV 出力**
    ```bash
    python3 1_5_export_macro_genre_review.py --ambiguous-only
    ```
@@ -417,6 +417,7 @@ python3 2_2_prepare_macro_genre_batch_payload.py
 **出力**: `/tmp/wikidata_food_macro_genre/batch_payload.jsonl`
 
 **処理内容**:
+
 - items.jsonl を読み込み
 - 20件ごとにバッチにまとめる
 - LLMClient を使用して A/B/C 分類用のプロンプトを構築
@@ -433,6 +434,7 @@ python3 2_3_load_macro_genre_llm_results.py \
 ```
 
 **処理内容**:
+
 - Batch API の結果ファイル（JSONL）を読み込み
 - LLMClient でレスポンスをパース
 - `wikidata_food_llm_labels` テーブルにロード
@@ -456,6 +458,7 @@ python3 2_4_apply_macro_genre_llm_results.py \
 ```
 
 **処理内容**:
+
 - decision=A かつ confidence='high' を dish_blacklist に INSERT
 - decision=B/C の統計情報を表示
 - （将来の拡張）decision=C の macro_genre 正規化
@@ -514,19 +517,20 @@ bq query --use_legacy_sql=false \
 
 ```json
 {
-  "results": [
-    {
-      "item_qid": "Qxxxx",
-      "decision": "A|B|C",
-      "confidence": "high|medium|low",
-      "macro_genre": "Ramen",
-      "reason": "short"
-    }
-  ]
+	"results": [
+		{
+			"item_qid": "Qxxxx",
+			"decision": "A|B|C",
+			"confidence": "high|medium|low",
+			"macro_genre": "Ramen",
+			"reason": "short"
+		}
+	]
 }
 ```
 
 **注意**:
+
 - `macro_genre` は decision=C のときのみ出力
 - Wikidata の英語 label 表記をそのまま使用
 - 正規化（snake_case 等）は後段で実施
@@ -624,4 +628,3 @@ scripts/20251213T0000_wikidata_food_graph/
 - **task パラメータ**: LLMClient 初期化時に `task="macro_genre"` を指定
 - **BigQuery テーブル**: `wikidata_food_llm_labels` を #548 と共用（task カラムで区別）
 - **自動反映の制限**: decision=A（high）のみ自動で dish_blacklist に反映、B/C は将来の拡張
-
