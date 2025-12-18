@@ -137,13 +137,31 @@ class WikidataClient:
                             0
                         )
                 
-                # JSONパース
+                # JSONパース（制御文字対応：errors='replace'で吸収）
                 try:
-                    result_json = json_module.loads(response_body.decode('utf-8'))
+                    # Wikidata SPARQL endpoint の既知問題：
+                    # multilang（label/desc/alias）に制御文字（U+0000〜U+001F）が混入し、
+                    # strict JSON parse が失敗するケースがある。
+                    # データ完全性優先のため、壊れた文字を \uFFFD に置換して処理を継続。
+                    decoded_body = response_body.decode('utf-8', errors='replace')
+                    
+                    # 制御文字の置換が発生したかログ記録
+                    if '\ufffd' in decoded_body:
+                        logger.warning("Response contains invalid UTF-8 sequences (replaced with U+FFFD)")
+                        logger.warning("This may indicate control characters in Wikidata multilang data")
+                    
+                    result_json = json_module.loads(decoded_body)
                     return result_json.get("results", {}).get("bindings", [])
                 except json_module.JSONDecodeError as e:
                     logger.error(f"JSONDecodeError: {e}")
-                    logger.error(f"Response size: {response_size}, head: {response_body[:1000]}")
+                    logger.error(f"Response size: {response_size}")
+                    logger.error(f"Error position: {e.pos}, line: {e.lineno}, col: {e.colno}")
+                    # レスポンスのエラー位置周辺をログ出力
+                    if hasattr(e, 'pos') and e.pos:
+                        start = max(0, e.pos - 200)
+                        end = min(len(response_body), e.pos + 200)
+                        context = response_body[start:end].decode('utf-8', errors='replace')
+                        logger.error(f"Context around error: ...{context}...")
                     raise
             else:
                 # 通常の convert() を使用（フォールバック）

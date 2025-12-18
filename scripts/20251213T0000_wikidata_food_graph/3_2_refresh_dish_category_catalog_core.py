@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
 BATCH_SIZE = 80  # #555 【バグ】504対策：300→80に縮小（安定性優先）
-MULTILANG_BATCH_SIZE = 15  # 多言語データ専用の小バッチ（alias/label/description が多いQID対策）
+MULTILANG_BATCH_SIZE = 5  # 多言語データ専用の極小バッチ（制御文字混入・巨大レスポンス対策）
 
 # #555 【設計】対応ロケール→Wikipedia言語コードのマッピング
 SUPPORTED_LOCALES = {
@@ -285,7 +285,18 @@ def fetch_multilang_data(
 ) -> List[Dict]:
     """
     Query C：多言語labels/descriptions/aliases（行取得→Python集約）
-    より細かいバッチで実行し、巨大レスポンスを回避
+    
+    【設計判断】
+    * 取得言語は制限しない（全言語取得）
+      - site link count / 多言語分布 が信頼性評価・後段ロジックの重要指標のため
+      - データ完全性を優先
+    * 極小バッチ（5件）で実行
+      - WDQS の JSON シリアライズ制約（制御文字混入）に対処
+      - レスポンスサイズを抑え、巨大レスポンス（200MB級）を回避
+      - 時間はかかるが確実に完走する nightly / batch 設計
+    * 制御文字は errors='replace' で吸収（wikidata_client.py）
+      - 一部データが \uFFFD に置換されても全体のジョブを継続
+      - 後段で検知・再取得・品質管理が可能
     
     Args:
         wikidata_client: Wikidata クライアント
@@ -294,12 +305,13 @@ def fetch_multilang_data(
     Returns:
         多言語データのリスト
     """
-    # 多言語データ専用の小バッチで分割実行
+    # 多言語データ専用の極小バッチで分割実行
     all_labels_by_qid = {}
     all_descriptions_by_qid = {}
     all_aliases_by_qid = {}
     
     logger.info(f"Fetching multilang data for {len(qids)} QIDs in batches of {MULTILANG_BATCH_SIZE}...")
+    logger.info(f"  Design: No language restrictions (full data for reliability metrics)")
     
     for i in range(0, len(qids), MULTILANG_BATCH_SIZE):
         batch_qids = qids[i:i + MULTILANG_BATCH_SIZE]
