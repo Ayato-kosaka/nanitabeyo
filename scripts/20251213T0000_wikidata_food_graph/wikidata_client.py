@@ -13,13 +13,15 @@ Wikidata SPARQL エンドポイントに対してクエリを実行するクラ�
 - 親子関係（P31, P279）の取得
 """
 
-import time
+import csv
 import logging
 import re
-from typing import List, Dict, Set, Tuple, Optional
-from SPARQLWrapper import SPARQLWrapper, JSON, SPARQLExceptions
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
+import time
+from typing import Dict, List, Optional, Set, Tuple
+
 import requests
+from SPARQLWrapper import JSON, SPARQLExceptions, SPARQLWrapper
+from tenacity import before_sleep_log, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 import json as json_module
 
 logger = logging.getLogger(__name__)
@@ -104,10 +106,10 @@ class WikidataClient:
         before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True
     )
-    def execute_query(self, query: str) -> List[Dict]:
+    def execute_query_json(self, query: str) -> List[Dict]:
         """
         SPARQL クエリを実行して結果を返す（可観測性強化版）
-        
+
         Args:
             query: SPARQL クエリ文字列
             
@@ -208,6 +210,98 @@ class WikidataClient:
             
             logger.error(f"SPARQL query failed (status={status_code}): {type(e).__name__}: {e}")
             raise
+
+    # 既存呼び出しとの互換性を維持
+    def execute_query(self, query: str) -> List[Dict]:
+        return self.execute_query_json(query)
+
+    def execute_query_tsv(self, query: str) -> Tuple[List[Dict[str, str]], int]:
+        """
+        SPARQL クエリを TSV 形式でストリーム取得し、行単位で辞書化する。
+
+        Returns:
+            (パース済み行のリスト, 受信バイト数)
+        """
+
+        params = {
+            "query": query,
+            "format": "tsv",
+        }
+
+        response = requests.get(
+            SPARQL_ENDPOINT,
+            params=params,
+            headers={"User-Agent": USER_AGENT},
+            stream=True,
+            timeout=120,
+        )
+        response.raise_for_status()
+
+        declared_size = response.headers.get("Content-Length")
+        declared_size_int = int(declared_size) if declared_size and declared_size.isdigit() else None
+
+        content_size = 0
+        rows: List[Dict[str, str]] = []
+        skipped_lines = 0
+
+        line_iter = response.iter_lines(decode_unicode=True)
+        header_line = next(line_iter, None)
+        if header_line is None:
+            logger.warning("TSV response is empty (no header)")
+            return rows, content_size
+
+        content_size += len(header_line.encode("utf-8")) + 1
+
+        try:
+            raw_fieldnames = next(csv.reader([header_line], delimiter="\t"))
+            fieldnames = [name.lstrip("?") for name in raw_fieldnames]
+        except Exception as e:
+            logger.error(f"Failed to parse TSV header: {e}")
+            return rows, content_size
+
+        for line_number, line in enumerate(line_iter, start=2):
+            content_size += len(line.encode("utf-8")) + 1
+
+            if not line:
+                continue
+
+            try:
+                parsed = next(csv.reader([line], delimiter="\t"))
+            except Exception as e:
+                skipped_lines += 1
+                logger.warning(
+                    "Failed to parse TSV line %d (error: %s). Skipping.",
+                    line_number,
+                    e,
+                )
+                continue
+
+            if len(parsed) != len(fieldnames):
+                skipped_lines += 1
+                logger.warning(
+                    "Malformed TSV line %d (expected %d columns, got %d). Skipping.",
+                    line_number,
+                    len(fieldnames),
+                    len(parsed),
+                )
+                continue
+
+            row = {fieldnames[i]: parsed[i] for i in range(len(fieldnames))}
+            rows.append(row)
+
+        if skipped_lines > 0:
+            logger.warning("TSV parsing skipped %d lines due to errors", skipped_lines)
+
+        if declared_size_int is not None and declared_size_int != content_size:
+            logger.info(
+                "TSV response size: declared=%d bytes, received=%d bytes",
+                declared_size_int,
+                content_size,
+            )
+        else:
+            logger.info("TSV response size: %d bytes", content_size)
+
+        return rows, content_size
 
     def fetch_food_nodes(
         self,

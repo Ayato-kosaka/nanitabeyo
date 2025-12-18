@@ -24,8 +24,8 @@ import json
 import logging
 import time
 import urllib.parse
-from pathlib import Path
-from typing import List, Dict, Optional
+from collections import deque
+from typing import Dict, List, Optional
 from google.cloud import bigquery
 
 from wikidata_client import WikidataClient
@@ -284,116 +284,152 @@ def fetch_multilang_data(
     qids: List[str]
 ) -> List[Dict]:
     """
-    Query C：多言語labels/descriptions/aliases（行取得→Python集約）
-    
-    【設計判断】
-    * 取得言語は制限しない（全言語取得）
-      - site link count / 多言語分布 が信頼性評価・後段ロジックの重要指標のため
-      - データ完全性を優先
-    * 極小バッチ（5件）で実行
-      - WDQS の JSON シリアライズ制約（制御文字混入）に対処
-      - レスポンスサイズを抑え、巨大レスポンス（200MB級）を回避
-      - 時間はかかるが確実に完走する nightly / batch 設計
-    * 制御文字は errors='replace' で吸収（wikidata_client.py）
-      - 一部データが \uFFFD に置換されても全体のジョブを継続
-      - 後段で検知・再取得・品質管理が可能
-    
-    Args:
-        wikidata_client: Wikidata クライアント
-        qids: 取得対象の QID リスト
-        
-    Returns:
-        多言語データのリスト
+    Query C：多言語labels/descriptions/aliases（TSVストリーム→Python集約）
+
+    * 取得言語は制限しない（データ完全性優先）
+    * TSV 経由で巨大 JSON を避ける
+    * レスポンスサイズに応じてバッチを自動分割
     """
-    # 多言語データ専用の極小バッチで分割実行
-    all_labels_by_qid = {}
-    all_descriptions_by_qid = {}
-    all_aliases_by_qid = {}
-    
-    logger.info(f"Fetching multilang data for {len(qids)} QIDs in batches of {MULTILANG_BATCH_SIZE}...")
-    logger.info(f"  Design: No language restrictions (full data for reliability metrics)")
-    
+    all_labels_by_qid: Dict[str, Dict[str, str]] = {}
+    all_descriptions_by_qid: Dict[str, Dict[str, str]] = {}
+    all_aliases_by_qid: Dict[str, Dict[str, List[str]]] = {}
+    failed_qids: List[str] = []
+
+    logger.info(
+        "Fetching multilang data for %d QIDs (initial batch size=%d)...",
+        len(qids),
+        MULTILANG_BATCH_SIZE,
+    )
+
+    batches: deque[List[str]] = deque()
     for i in range(0, len(qids), MULTILANG_BATCH_SIZE):
-        batch_qids = qids[i:i + MULTILANG_BATCH_SIZE]
-        batch_num = i // MULTILANG_BATCH_SIZE + 1
-        total_batches = (len(qids) + MULTILANG_BATCH_SIZE - 1) // MULTILANG_BATCH_SIZE
-        
-        logger.info(f"  Multilang batch {batch_num}/{total_batches} ({len(batch_qids)} items)...")
-        
+        batches.append(qids[i:i + MULTILANG_BATCH_SIZE])
+
+    def enqueue_split(batch: List[str]) -> None:
+        if len(batch) <= 1:
+            return
+        mid = max(1, len(batch) // 2)
+        first, second = batch[:mid], batch[mid:]
+        batches.extendleft(reversed([first, second]))
+
+    processed_batches = 0
+    while batches:
+        batch_qids = batches.popleft()
+        processed_batches += 1
+        logger.info(
+            "  Multilang batch %d (size=%d, remaining=%d)...",
+            processed_batches,
+            len(batch_qids),
+            len(batches),
+        )
+
         values_clause = " ".join([f"wd:{qid}" for qid in batch_qids])
-        
         query = f"""
         SELECT ?item (LANG(?label) AS ?label_lang) (STR(?label) AS ?label_value)
                      (LANG(?desc) AS ?desc_lang) (STR(?desc) AS ?desc_value)
                      (LANG(?alias) AS ?alias_lang) (STR(?alias) AS ?alias_value)
         WHERE {{
           VALUES ?item {{ {values_clause} }}
-          
+
           OPTIONAL {{ ?item rdfs:label ?label }}
           OPTIONAL {{ ?item schema:description ?desc }}
           OPTIONAL {{ ?item skos:altLabel ?alias }}
         }}
         """
-        
-        results = wikidata_client.execute_query(query)
-        
-        # 行で取得→Python側で集約
-        for result in results:
-            item_uri = result.get("item", {}).get("value", "")
-            item_qid = item_uri.split("/")[-1] if item_uri else None
-            
-            if not item_qid:
+
+        try:
+            results, response_size = wikidata_client.execute_query_tsv(query)
+        except Exception as e:
+            logger.warning(
+                "TSV multilang query failed for %d QIDs (error: %s)",
+                len(batch_qids),
+                e,
+            )
+            if len(batch_qids) > 1:
+                logger.info("Re-queueing batch as two halves after failure")
+                enqueue_split(batch_qids)
                 continue
-            
-            # labels集約
-            label_lang = result.get("label_lang", {}).get("value", "")
-            label_value = result.get("label_value", {}).get("value", "")
+            failed_qids.extend(batch_qids)
+            continue
+
+        if response_size > 80 * 1024 * 1024 and len(batch_qids) > 1:
+            logger.warning(
+                "TSV response %.2f MB too large (>80MB). Splitting batch immediately.",
+                response_size / (1024 * 1024),
+            )
+            enqueue_split(batch_qids)
+            continue
+
+        if response_size > 30 * 1024 * 1024 and len(batch_qids) > 1:
+            logger.warning(
+                "TSV response %.2f MB exceeded soft limit (>30MB). Splitting batch for retry.",
+                response_size / (1024 * 1024),
+            )
+            enqueue_split(batch_qids)
+            continue
+
+        if response_size > 80 * 1024 * 1024 and len(batch_qids) == 1:
+            failed_qids.extend(batch_qids)
+            logger.error(
+                "Single QID %s produced >80MB response. Marking as failed and continuing.",
+                batch_qids[0],
+            )
+            continue
+
+        for line_number, result in enumerate(results, start=1):
+            item_uri = result.get("item", "")
+            item_qid = item_uri.split("/")[-1] if item_uri else None
+
+            if not item_qid:
+                logger.warning(
+                    "TSV line missing item QID (line %d in batch starting with %s)",
+                    line_number,
+                    batch_qids[0],
+                )
+                continue
+
+            label_lang = result.get("label_lang", "")
+            label_value = result.get("label_value", "")
             if label_lang and label_value:
-                if item_qid not in all_labels_by_qid:
-                    all_labels_by_qid[item_qid] = {}
-                if label_lang not in all_labels_by_qid[item_qid]:
-                    all_labels_by_qid[item_qid][label_lang] = label_value
-            
-            # descriptions集約
-            desc_lang = result.get("desc_lang", {}).get("value", "")
-            desc_value = result.get("desc_value", {}).get("value", "")
+                all_labels_by_qid.setdefault(item_qid, {})[label_lang] = label_value
+
+            desc_lang = result.get("desc_lang", "")
+            desc_value = result.get("desc_value", "")
             if desc_lang and desc_value:
-                if item_qid not in all_descriptions_by_qid:
-                    all_descriptions_by_qid[item_qid] = {}
-                if desc_lang not in all_descriptions_by_qid[item_qid]:
-                    all_descriptions_by_qid[item_qid][desc_lang] = desc_value
-            
-            # aliases集約
-            alias_lang = result.get("alias_lang", {}).get("value", "")
-            alias_value = result.get("alias_value", {}).get("value", "")
+                all_descriptions_by_qid.setdefault(item_qid, {})[desc_lang] = desc_value
+
+            alias_lang = result.get("alias_lang", "")
+            alias_value = result.get("alias_value", "")
             if alias_lang and alias_value:
-                if item_qid not in all_aliases_by_qid:
-                    all_aliases_by_qid[item_qid] = {}
-                if alias_lang not in all_aliases_by_qid[item_qid]:
-                    all_aliases_by_qid[item_qid][alias_lang] = alias_value
-        
-        # 小バッチ間でも少し待機
-        if i + MULTILANG_BATCH_SIZE < len(qids):
+                all_aliases_by_qid.setdefault(item_qid, {}).setdefault(alias_lang, []).append(alias_value)
+
+        if batches:
             time.sleep(1)
-    
-    # JSON化
+
     multilang_data = []
     all_qids = set(all_labels_by_qid.keys()) | set(all_descriptions_by_qid.keys()) | set(all_aliases_by_qid.keys())
-    
-    logger.info(f"Collected multilang data for {len(all_qids)} QIDs")
-    
+
+    logger.info(
+        "Collected multilang data for %d QIDs (failed=%d)",
+        len(all_qids),
+        len(failed_qids),
+    )
+
     for qid in all_qids:
         labels = all_labels_by_qid.get(qid, {})
         descriptions = all_descriptions_by_qid.get(qid, {})
         aliases = all_aliases_by_qid.get(qid, {})
-        
+
         multilang_data.append({
             "item_qid": qid,
             "labels_json": json.dumps(labels, ensure_ascii=False) if labels else None,
             "descriptions_json": json.dumps(descriptions, ensure_ascii=False) if descriptions else None,
             "aliases_json": json.dumps(aliases, ensure_ascii=False) if aliases else None,
         })
-    
+
+    if failed_qids:
+        logger.error("Multilang fetch failed for %d QIDs: %s", len(failed_qids), ",".join(failed_qids))
+
     return multilang_data
 
 
@@ -417,8 +453,7 @@ def parse_qid_list(concatenated: str) -> Optional[List[str]]:
             qid = item.split("/")[-1]
             if qid.startswith("Q") and qid not in qids:
                 qids.append(qid)
-    
-    return qids if qids else None
+
     return qids if qids else None
 
 
