@@ -41,7 +41,25 @@ logger = logging.getLogger(__name__)
 # 固定値
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
-BATCH_SIZE = 300  # #543 【設計】SPARQL タイムアウト対策：バッチサイズ
+BATCH_SIZE = 80  # #555 【バグ】504対策：300→80に縮小（安定性優先）
+
+# #555 【設計】対応ロケール→Wikipedia言語コードのマッピング
+SUPPORTED_LOCALES = {
+    "ar-SA": "ar",
+    "en-US": "en",
+    "es-ES": "es",
+    "fr-FR": "fr",
+    "hi-IN": "hi",
+    "ja-JP": "ja",
+    "ko-KR": "ko",
+    "zh-CN": "zh",
+}
+
+# #555 【設計】sitelinks allowlist：必要なWikipedia言語だけに絞る
+SITELINK_ALLOW_SITES = [
+    f"https://{lang}.wikipedia.org/" 
+    for lang in SUPPORTED_LOCALES.values()
+]
 
 
 def fetch_candidate_qids(bq_loader: BigQueryLoader) -> List[str]:
@@ -76,7 +94,7 @@ def fetch_core_data_batch(
     qids: List[str]
 ) -> List[Dict]:
     """
-    #543 【設計】SPARQL で core 情報を一括取得
+    #555 【バグ】SPARQL で core 情報を取得（クエリ分割版：504対策）
     
     Args:
         wikidata_client: Wikidata クライアント
@@ -88,15 +106,55 @@ def fetch_core_data_batch(
     if not qids:
         return []
     
+    # #555 【設計】Query A（軽い）：基本データ + origin/cuisine/image
+    basic_data = fetch_basic_data(wikidata_client, qids)
+    
+    # #555 【設計】Query B（sitelinks専用）：allowlistフィルタ
+    sitelinks_data = fetch_sitelinks_data(wikidata_client, qids)
+    
+    # #555 【設計】Query C（多言語系）：labels/descriptions/aliases
+    multilang_data = fetch_multilang_data(wikidata_client, qids)
+    
+    # #555 【設計】Python側でitem_qidをキーにマージ
+    merged_data = {}
+    
+    for item in basic_data:
+        qid = item["item_qid"]
+        merged_data[qid] = item
+    
+    for item in sitelinks_data:
+        qid = item["item_qid"]
+        if qid in merged_data:
+            merged_data[qid]["sitelinks_json"] = item["sitelinks_json"]
+    
+    for item in multilang_data:
+        qid = item["item_qid"]
+        if qid in merged_data:
+            merged_data[qid]["labels_json"] = item["labels_json"]
+            merged_data[qid]["descriptions_json"] = item["descriptions_json"]
+            merged_data[qid]["aliases_json"] = item["aliases_json"]
+    
+    return list(merged_data.values())
+
+
+def fetch_basic_data(
+    wikidata_client: WikidataClient,
+    qids: List[str]
+) -> List[Dict]:
+    """
+    #555 【設計】Query A：基本データ（label_ja/en, desc_ja/en, origin, cuisine, image）
+    
+    Args:
+        wikidata_client: Wikidata クライアント
+        qids: 取得対象の QID リスト
+        
+    Returns:
+        基本データのリスト
+    """
     values_clause = " ".join([f"wd:{qid}" for qid in qids])
     
-    # #543 【設計】SPARQL で labels, descriptions, aliases, sitelinks, origin, cuisine, image を取得
     query = f"""
     SELECT DISTINCT ?item ?label_ja ?label_en ?desc_ja ?desc_en
-      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?label), ":", STR(?label)); separator="||") AS ?labels)
-      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?desc), ":", STR(?desc)); separator="||") AS ?descriptions)
-      (GROUP_CONCAT(DISTINCT CONCAT(LANG(?alias), ":", STR(?alias)); separator="||") AS ?aliases)
-      (GROUP_CONCAT(DISTINCT CONCAT(STR(?sitelink), "~", STR(?article)); separator="||") AS ?sitelinks)
       (GROUP_CONCAT(DISTINCT STR(?origin); separator="||") AS ?origins)
       (GROUP_CONCAT(DISTINCT STR(?cuisine); separator="||") AS ?cuisines)
       (SAMPLE(?image) AS ?image_sample)
@@ -107,14 +165,6 @@ def fetch_core_data_batch(
       OPTIONAL {{ ?item rdfs:label ?label_en FILTER(LANG(?label_en) = "en") }}
       OPTIONAL {{ ?item schema:description ?desc_ja FILTER(LANG(?desc_ja) = "ja") }}
       OPTIONAL {{ ?item schema:description ?desc_en FILTER(LANG(?desc_en) = "en") }}
-      OPTIONAL {{ ?item rdfs:label ?label }}
-      OPTIONAL {{ ?item schema:description ?desc }}
-      OPTIONAL {{ ?item skos:altLabel ?alias }}
-      OPTIONAL {{
-        ?article schema:about ?item ;
-                 schema:isPartOf ?sitelink .
-        FILTER(STRSTARTS(STR(?sitelink), "https://"))
-      }}
       OPTIONAL {{ ?item wdt:P495 ?origin }}
       OPTIONAL {{ ?item wdt:P2012 ?cuisine }}
       OPTIONAL {{ ?item wdt:P18 ?image }}
@@ -124,7 +174,7 @@ def fetch_core_data_batch(
     
     results = wikidata_client.execute_query(query)
     
-    core_data = []
+    basic_data = []
     for result in results:
         item_uri = result.get("item", {}).get("value", "")
         item_qid = item_uri.split("/")[-1] if item_uri else None
@@ -132,98 +182,195 @@ def fetch_core_data_batch(
         if not item_qid:
             continue
         
-        # #543 【設計】label_ja, label_en, desc_ja, desc_en（既存カラム用）
+        # #555 【設計】基本フィールド
         label_ja = result.get("label_ja", {}).get("value")
         label_en = result.get("label_en", {}).get("value")
         desc_ja = result.get("desc_ja", {}).get("value")
         desc_en = result.get("desc_en", {}).get("value")
         
-        # #543 【設計】labels/descriptions/aliases を JSON 化
-        labels_json = parse_lang_value_list(result.get("labels", {}).get("value", ""))
-        descriptions_json = parse_lang_value_list(result.get("descriptions", {}).get("value", ""))
-        aliases_json = parse_lang_value_list(result.get("aliases", {}).get("value", ""))
-        sitelinks_json = parse_sitelink_list(result.get("sitelinks", {}).get("value", ""))
-        
-        # #543 【設計】origin/cuisine を QID 配列化
+        # #555 【設計】origin/cuisine を QID 配列化
         origin_qids = parse_qid_list(result.get("origins", {}).get("value", ""))
         cuisine_qids = parse_qid_list(result.get("cuisines", {}).get("value", ""))
         
-        # #543 【設計】image_url を Commons URL から実体 URL に変換
+        # #555 【設計】image_url を Commons URL から実体 URL に変換
         image_raw = result.get("image_sample", {}).get("value", "")
         image_url = resolve_commons_url(image_raw) if image_raw else None
         
-        core_data.append({
+        basic_data.append({
             "item_qid": item_qid,
             "label_ja": label_ja,
             "label_en": label_en,
             "desc_ja": desc_ja,
             "desc_en": desc_en,
-            "labels_json": json.dumps(labels_json, ensure_ascii=False) if labels_json else None,
-            "descriptions_json": json.dumps(descriptions_json, ensure_ascii=False) if descriptions_json else None,
-            "aliases_json": json.dumps(aliases_json, ensure_ascii=False) if aliases_json else None,
-            "sitelinks_json": json.dumps(sitelinks_json, ensure_ascii=False) if sitelinks_json else None,
             "origin_qids": origin_qids,
             "cuisine_qids": cuisine_qids,
             "image_url": image_url,
+            # #555 【設計】多言語系はNone初期化（Query Cで埋める）
+            "labels_json": None,
+            "descriptions_json": None,
+            "aliases_json": None,
+            "sitelinks_json": None,
         })
     
-    return core_data
+    return basic_data
 
 
-def parse_lang_value_list(concatenated: str) -> Optional[Dict[str, str]]:
+def fetch_sitelinks_data(
+    wikidata_client: WikidataClient,
+    qids: List[str]
+) -> List[Dict]:
     """
-    #543 【設計】"lang:value||lang:value||..." を {"lang": "value", ...} に変換
+    #555 【設計】Query B：sitelinks（allowlistフィルタで必要言語のWikipediaだけ）
     
     Args:
-        concatenated: SPARQL の GROUP_CONCAT 結果
+        wikidata_client: Wikidata クライアント
+        qids: 取得対象の QID リスト
         
     Returns:
-        言語コード → 値の辞書
+        sitelinks データのリスト
     """
-    if not concatenated:
-        return None
+    values_clause = " ".join([f"wd:{qid}" for qid in qids])
     
-    result = {}
-    for item in concatenated.split("||"):
-        if ":" not in item:
+    # #555 【設計】allowlist をSPARQL の IN (...) に変換
+    sitelink_filter = ", ".join([f"<{site}>" for site in SITELINK_ALLOW_SITES])
+    
+    query = f"""
+    SELECT ?item (STR(?sitelink) AS ?site) (STR(?article) AS ?article_name)
+    WHERE {{
+      VALUES ?item {{ {values_clause} }}
+      
+      ?article schema:about ?item ;
+               schema:isPartOf ?sitelink .
+      FILTER(?sitelink IN ({sitelink_filter}))
+    }}
+    """
+    
+    results = wikidata_client.execute_query(query)
+    
+    # #555 【設計】行で取得→Python側で集約
+    sitelinks_by_qid = {}
+    for result in results:
+        item_uri = result.get("item", {}).get("value", "")
+        item_qid = item_uri.split("/")[-1] if item_uri else None
+        
+        if not item_qid:
             continue
-        lang, value = item.split(":", 1)
-        # #543 【設計】同じ言語コードが複数ある場合は最初のものを採用
-        if lang not in result:
-            result[lang] = value
+        
+        site = result.get("site", {}).get("value", "")
+        article = result.get("article_name", {}).get("value", "")
+        
+        if not site or not article:
+            continue
+        
+        if item_qid not in sitelinks_by_qid:
+            sitelinks_by_qid[item_qid] = {}
+        
+        sitelinks_by_qid[item_qid][site] = article
     
-    return result if result else None
+    # #555 【設計】JSON化
+    sitelinks_data = []
+    for qid, sitelinks in sitelinks_by_qid.items():
+        sitelinks_data.append({
+            "item_qid": qid,
+            "sitelinks_json": json.dumps(sitelinks, ensure_ascii=False) if sitelinks else None,
+        })
+    
+    return sitelinks_data
 
 
-def parse_sitelink_list(concatenated: str) -> Optional[Dict[str, str]]:
+def fetch_multilang_data(
+    wikidata_client: WikidataClient,
+    qids: List[str]
+) -> List[Dict]:
     """
-    #543 【設計】"site~article||site~article||..." を {"site": "article", ...} に変換
+    #555 【設計】Query C：多言語labels/descriptions/aliases（行取得→Python集約）
     
     Args:
-        concatenated: SPARQL の GROUP_CONCAT 結果
+        wikidata_client: Wikidata クライアント
+        qids: 取得対象の QID リスト
         
     Returns:
-        サイト → 記事名の辞書
+        多言語データのリスト
     """
-    if not concatenated:
-        return None
+    values_clause = " ".join([f"wd:{qid}" for qid in qids])
     
-    result = {}
-    for item in concatenated.split("||"):
-        if "~" not in item:
+    query = f"""
+    SELECT ?item (LANG(?label) AS ?label_lang) (STR(?label) AS ?label_value)
+                 (LANG(?desc) AS ?desc_lang) (STR(?desc) AS ?desc_value)
+                 (LANG(?alias) AS ?alias_lang) (STR(?alias) AS ?alias_value)
+    WHERE {{
+      VALUES ?item {{ {values_clause} }}
+      
+      OPTIONAL {{ ?item rdfs:label ?label }}
+      OPTIONAL {{ ?item schema:description ?desc }}
+      OPTIONAL {{ ?item skos:altLabel ?alias }}
+    }}
+    """
+    
+    results = wikidata_client.execute_query(query)
+    
+    # #555 【設計】行で取得→Python側で集約
+    labels_by_qid = {}
+    descriptions_by_qid = {}
+    aliases_by_qid = {}
+    
+    for result in results:
+        item_uri = result.get("item", {}).get("value", "")
+        item_qid = item_uri.split("/")[-1] if item_uri else None
+        
+        if not item_qid:
             continue
-        parts = item.split("~", 1)
-        if len(parts) == 2:
-            site = parts[0]
-            article = parts[1]
-            result[site] = article
+        
+        # #555 【設計】labels集約
+        label_lang = result.get("label_lang", {}).get("value", "")
+        label_value = result.get("label_value", {}).get("value", "")
+        if label_lang and label_value:
+            if item_qid not in labels_by_qid:
+                labels_by_qid[item_qid] = {}
+            if label_lang not in labels_by_qid[item_qid]:
+                labels_by_qid[item_qid][label_lang] = label_value
+        
+        # #555 【設計】descriptions集約
+        desc_lang = result.get("desc_lang", {}).get("value", "")
+        desc_value = result.get("desc_value", {}).get("value", "")
+        if desc_lang and desc_value:
+            if item_qid not in descriptions_by_qid:
+                descriptions_by_qid[item_qid] = {}
+            if desc_lang not in descriptions_by_qid[item_qid]:
+                descriptions_by_qid[item_qid][desc_lang] = desc_value
+        
+        # #555 【設計】aliases集約
+        alias_lang = result.get("alias_lang", {}).get("value", "")
+        alias_value = result.get("alias_value", {}).get("value", "")
+        if alias_lang and alias_value:
+            if item_qid not in aliases_by_qid:
+                aliases_by_qid[item_qid] = {}
+            if alias_lang not in aliases_by_qid[item_qid]:
+                aliases_by_qid[item_qid][alias_lang] = alias_value
     
-    return result if result else None
+    # #555 【設計】JSON化
+    multilang_data = []
+    all_qids = set(labels_by_qid.keys()) | set(descriptions_by_qid.keys()) | set(aliases_by_qid.keys())
+    
+    for qid in all_qids:
+        labels = labels_by_qid.get(qid, {})
+        descriptions = descriptions_by_qid.get(qid, {})
+        aliases = aliases_by_qid.get(qid, {})
+        
+        multilang_data.append({
+            "item_qid": qid,
+            "labels_json": json.dumps(labels, ensure_ascii=False) if labels else None,
+            "descriptions_json": json.dumps(descriptions, ensure_ascii=False) if descriptions else None,
+            "aliases_json": json.dumps(aliases, ensure_ascii=False) if aliases else None,
+        })
+    
+    return multilang_data
 
 
 def parse_qid_list(concatenated: str) -> Optional[List[str]]:
     """
-    #543 【設計】"http://www.wikidata.org/entity/Q123||..." を ["Q123", ...] に変換
+    #555 【設計】"http://www.wikidata.org/entity/Q123||..." を ["Q123", ...] に変換
+    （origin/cuisineのGROUP_CONCAT用に残す）
     
     Args:
         concatenated: SPARQL の GROUP_CONCAT 結果
@@ -241,6 +388,7 @@ def parse_qid_list(concatenated: str) -> Optional[List[str]]:
             if qid.startswith("Q") and qid not in qids:
                 qids.append(qid)
     
+    return qids if qids else None
     return qids if qids else None
 
 
@@ -526,8 +674,8 @@ def main():
         core_data = fetch_core_data_batch(wikidata_client, batch)
         all_core_data.extend(core_data)
         
-        # #543 【設計】Rate limit 対策
-        time.sleep(1)
+        # #555 【バグ】504対策：Rate limit を厳しめに（1→2秒）
+        time.sleep(2)
     
     logger.info(f"Fetched {len(all_core_data)} core data items")
     

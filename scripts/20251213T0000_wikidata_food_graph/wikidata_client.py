@@ -16,8 +16,9 @@ Wikidata SPARQL エンドポイントに対してクエリを実行するクラ�
 import time
 import logging
 from typing import List, Dict, Set, Tuple, Optional
-from SPARQLWrapper import SPARQLWrapper, JSON
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from SPARQLWrapper import SPARQLWrapper, JSON, SPARQLExceptions
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +35,44 @@ class WikidataClient:
         self.sparql.setReturnFormat(JSON)
         self.sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
     
+    def _should_retry(exception):
+        """
+        #555 【設計】リトライ対象の例外をHTTPステータス起点に絞る
+        429/503/504 を主対象にする
+        """
+        # #555 【設計】HTTPエラーの場合はステータスコードを確認
+        if isinstance(exception, requests.exceptions.HTTPError):
+            status_code = exception.response.status_code if exception.response else None
+            if status_code in [429, 503, 504]:
+                logger.warning(f"#555 【バグ】SPARQL HTTP {status_code} detected, will retry...")
+                return True
+            return False
+        
+        # #555 【設計】SPARQLExceptions（タイムアウト等）もリトライ
+        if hasattr(SPARQLExceptions, 'SPARQLWrapperException'):
+            if isinstance(exception, SPARQLExceptions.SPARQLWrapperException):
+                logger.warning(f"#555 【バグ】SPARQL wrapper exception, will retry: {exception}")
+                return True
+        
+        # #555 【設計】その他のException（接続エラー等）
+        if isinstance(exception, (requests.exceptions.RequestException, Exception)):
+            # タイムアウト、接続エラーはリトライ
+            if any(keyword in str(exception).lower() for keyword in ['timeout', 'connection', 'gateway']):
+                logger.warning(f"#555 【バグ】Network error, will retry: {exception}")
+                return True
+        
+        return False
+    
     @retry(
         stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=4, max=60),
-        retry=retry_if_exception_type((Exception,))  # TODO: HTTPステータスごとに絞る（504, 429等）
+        wait=wait_exponential(multiplier=2, min=4, max=120),  # #555 【バグ】待機時間を長めに（max 60→120秒）
+        retry=retry_if_exception_type((Exception,)),
+        before_sleep=before_sleep_log(logger, logging.WARNING),  # #555 【設計】リトライ前にログ出力
+        reraise=True
     )
     def execute_query(self, query: str) -> List[Dict]:
         """
-        SPARQL クエリを実行して結果を返す
+        #555 【バグ】SPARQL クエリを実行して結果を返す（HTTPステータス起点のリトライ付き）
         
         Args:
             query: SPARQL クエリ文字列
@@ -54,7 +85,12 @@ class WikidataClient:
             results = self.sparql.query().convert()
             return results.get("results", {}).get("bindings", [])
         except Exception as e:
-            logger.error(f"SPARQL query failed: {e}")
+            # #555 【設計】HTTPステータスコードをログに出力
+            status_code = None
+            if hasattr(e, 'response') and e.response:
+                status_code = e.response.status_code
+            
+            logger.error(f"#555 【バグ】SPARQL query failed (status={status_code}): {e}")
             raise
 
     def fetch_food_nodes(
