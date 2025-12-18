@@ -25,7 +25,7 @@ import logging
 import time
 import urllib.parse
 from collections import deque
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from google.cloud import bigquery
 import requests
 
@@ -300,7 +300,7 @@ def fetch_multilang_data(
     all_labels_by_qid: Dict[str, Dict[str, str]] = {}
     all_descriptions_by_qid: Dict[str, Dict[str, str]] = {}
     # #555 【P1-5】alias は set で受けて重複除去
-    all_aliases_by_qid: Dict[str, Dict[str, set]] = {}
+    all_aliases_by_qid: Dict[str, Dict[str, Set[str]]] = {}
     failed_qids: List[str] = []
 
     logger.info(
