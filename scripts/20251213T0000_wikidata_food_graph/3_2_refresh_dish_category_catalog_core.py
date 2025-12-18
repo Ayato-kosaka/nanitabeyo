@@ -397,8 +397,10 @@ def fetch_multilang_data(
             skipped_lines = 0
             
             # #555 【P0-2】即時集約（メモリに溜めない）
+            # #555 【バグ】generator の return 値を取得するには手動で next() を呼ぶ必要がある
             try:
-                for result in gen:
+                while True:
+                    result = next(gen)
                     item_uri = result.get("item", "")
                     item_qid = item_uri.split("/")[-1] if item_uri else None
 
@@ -421,7 +423,7 @@ def fetch_multilang_data(
                     if alias_lang and alias_value:
                         all_aliases_by_qid.setdefault(item_qid, {}).setdefault(alias_lang, set()).add(alias_value)
             except StopIteration as e:
-                # #555 【バグ】generator の return 値は StopIteration.value から取得
+                # generator の return 値は StopIteration.value から取得
                 if e.value:
                     response_size, skipped_lines = e.value
             

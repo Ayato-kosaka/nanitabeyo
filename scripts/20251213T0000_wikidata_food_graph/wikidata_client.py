@@ -384,12 +384,14 @@ class WikidataClient:
         rows = []
         content_size = 0
         
+        # #555 【バグ】generator の return 値を取得するには手動で next() を呼ぶ必要がある
+        gen = self.execute_query_tsv_iter(query)
         try:
-            gen = self.execute_query_tsv_iter(query)
-            for row in gen:
+            while True:
+                row = next(gen)
                 rows.append(row)
         except StopIteration as e:
-            # #555 【バグ】generator の return 値は StopIteration.value から取得
+            # generator の return 値は StopIteration.value から取得
             if e.value:
                 content_size, _ = e.value
         
