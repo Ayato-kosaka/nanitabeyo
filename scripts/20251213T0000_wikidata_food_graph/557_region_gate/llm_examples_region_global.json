@@ -1,0 +1,282 @@
+[
+	{
+		"label_en": "pizza",
+		"desc_en": "flatbread dish with toppings",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "globally recognized menu item"
+	},
+	{
+		"label_en": "sushi",
+		"desc_en": "Japanese dish with vinegared rice",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "well-known menu category worldwide"
+	},
+	{
+		"label_en": "hamburger",
+		"desc_en": "sandwich with ground meat patty",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "common menu item globally"
+	},
+	{
+		"label_en": "pasta",
+		"desc_en": "Italian noodle dishes",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "popular category in global dining"
+	},
+	{
+		"label_en": "coffee",
+		"desc_en": "hot beverage",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "universal beverage choice"
+	},
+	{
+		"label_en": "salad",
+		"desc_en": "mixed vegetables dish",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "common menu category globally"
+	},
+	{
+		"label_en": "ramen",
+		"desc_en": "Japanese noodle soup",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "recognized food category internationally"
+	},
+	{
+		"label_en": "curry",
+		"desc_en": "spiced dish",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "widely known menu item"
+	},
+	{
+		"label_en": "ice cream",
+		"desc_en": "frozen dessert",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "universal dessert menu item"
+	},
+	{
+		"label_en": "sandwich",
+		"desc_en": "food between bread slices",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "globally common food category"
+	},
+	{
+		"label_en": "steak",
+		"desc_en": "thick cut of meat",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "international menu item"
+	},
+	{
+		"label_en": "fried rice",
+		"desc_en": "rice dish cooked in wok",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "globally recognized dish"
+	},
+	{
+		"label_en": "tacos",
+		"desc_en": "Mexican folded tortilla dish",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "internationally known menu item"
+	},
+	{
+		"label_en": "soup",
+		"desc_en": "liquid food",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "universal food category"
+	},
+	{
+		"label_en": "cake",
+		"desc_en": "sweet baked dessert",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "common dessert worldwide"
+	},
+	{
+		"label_en": "Ogikubo ramen",
+		"desc_en": "Tokyo regional ramen style",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "very local Japanese variant, not globally recognized"
+	},
+	{
+		"label_en": "Hida beef",
+		"desc_en": "Wagyu from Gifu Prefecture",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "regional Japanese ingredient brand"
+	},
+	{
+		"label_en": "Chankonabe",
+		"desc_en": "sumo wrestler's hot pot",
+		"decision": "deny",
+		"confidence": "medium",
+		"reason": "niche Japanese dish, limited global recognition"
+	},
+	{
+		"label_en": "Natto",
+		"desc_en": "fermented soybeans",
+		"decision": "deny",
+		"confidence": "medium",
+		"reason": "very specific Japanese food, not menu category globally"
+	},
+	{
+		"label_en": "Kaiseki",
+		"desc_en": "traditional multi-course Japanese dinner",
+		"decision": "uncertain",
+		"confidence": "low",
+		"reason": "known in some global markets but borderline"
+	},
+	{
+		"label_en": "food",
+		"desc_en": "any nutritious substance",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic, not a menu category"
+	},
+	{
+		"label_en": "dish",
+		"desc_en": "type of food",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "abstract class, not conversational menu item"
+	},
+	{
+		"label_en": "meat dish",
+		"desc_en": "dish made with meat",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic category, not specific menu"
+	},
+	{
+		"label_en": "rice dish",
+		"desc_en": "dish containing rice",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "overly broad, not conversational"
+	},
+	{
+		"label_en": "noodle",
+		"desc_en": "type of staple food",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "ingredient/class, not menu item"
+	},
+	{
+		"label_en": "Japanese cuisine",
+		"desc_en": "traditional cooking of Japan",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "cuisine name, not menu category"
+	},
+	{
+		"label_en": "Italian cuisine",
+		"desc_en": "traditional cooking of Italy",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "cuisine name, not dish"
+	},
+	{
+		"label_en": "wheat",
+		"desc_en": "cereal grain",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "ingredient, not food category"
+	},
+	{
+		"label_en": "cooking method",
+		"desc_en": "way to prepare food",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "not a food item"
+	},
+	{
+		"label_en": "Sapporo beer",
+		"desc_en": "Japanese beer brand",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "specific brand SKU, not menu category"
+	},
+	{
+		"label_en": "McFlurry",
+		"desc_en": "McDonald's ice cream dessert",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "chain-specific SKU, not general category"
+	},
+	{
+		"label_en": "Kewpie mayonnaise",
+		"desc_en": "Japanese mayonnaise brand",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "branded condiment, not menu item"
+	},
+	{
+		"label_en": "beverage",
+		"desc_en": "drinkable liquid",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic, abstract category"
+	},
+	{
+		"label_en": "snack",
+		"desc_en": "small amount of food between meals",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic category"
+	},
+	{
+		"label_en": "pho",
+		"desc_en": "Vietnamese soup",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "recognized internationally as menu item"
+	},
+	{
+		"label_en": "dim sum",
+		"desc_en": "Chinese small dishes",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "globally recognized dining category"
+	},
+	{
+		"label_en": "falafel",
+		"desc_en": "Middle Eastern fried ball",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "internationally known menu item"
+	},
+	{
+		"label_en": "croissant",
+		"desc_en": "French crescent pastry",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "globally common bakery item"
+	},
+	{
+		"label_en": "bibimbap",
+		"desc_en": "Korean mixed rice bowl",
+		"decision": "allow",
+		"confidence": "medium",
+		"reason": "increasingly recognized globally"
+	},
+	{
+		"label_en": "paella",
+		"desc_en": "Spanish rice dish",
+		"decision": "allow",
+		"confidence": "medium",
+		"reason": "known in many global markets"
+	}
+]

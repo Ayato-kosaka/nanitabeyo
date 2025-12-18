@@ -173,3 +173,23 @@ ADD COLUMN IF NOT EXISTS roots ARRAY<STRUCT<
   kind STRING,      -- 'dish' / 'dessert' / 'drink' など
   min_depth INT64   -- その root までの最短距離
 >>;
+
+
+-- -----------------------------------------------------------------------------
+-- 8. dish_category_features_catalog: gate 用途専用の特徴量テーブル
+-- -----------------------------------------------------------------------------
+-- #557 【設計】region gate feature（ホワイトリスト）を保存するテーブル
+-- PostgreSQL の dish_category_features と同形をベースにしつつ、
+-- gate 用途を明示するため feature_type='gate' を採用
+-- 将来的に mood / scene / taste / timeSlot / archetype も同じ器で管理可能
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_features_catalog` (
+  item_qid     STRING NOT NULL,    -- dish QID
+  feature_type STRING NOT NULL,    -- 'gate' | 'mood' | 'scene' | 'timeSlot' | 'taste' | 'archetype'
+  feature_key  STRING NOT NULL,    -- 'region:scope:global', 'region:country:JP', ...
+  score        FLOAT64 NOT NULL,   -- gate は 1 固定
+  source       STRING NOT NULL,    -- 'llm' | 'manual' | 'rule'
+  run_id       STRING NOT NULL,    -- LLM 実行の識別子
+  updated_at   TIMESTAMP NOT NULL, -- 更新日時
+  note         STRING               -- 任意（confidence / short reason 等）
+);

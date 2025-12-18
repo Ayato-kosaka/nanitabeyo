@@ -1,0 +1,362 @@
+[
+	{
+		"label_en": "sushi",
+		"label_ja": "寿司",
+		"desc_en": "Japanese dish with vinegared rice",
+		"desc_ja": "酢飯を使った日本料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "core Japanese menu category"
+	},
+	{
+		"label_en": "ramen",
+		"label_ja": "ラーメン",
+		"desc_en": "Japanese noodle soup",
+		"desc_ja": "中華麺を使った麺料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "extremely common in Japan"
+	},
+	{
+		"label_en": "tonkatsu",
+		"label_ja": "トンカツ",
+		"desc_en": "breaded deep-fried pork cutlet",
+		"desc_ja": "豚肉のカツレツ",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "standard Japanese menu item"
+	},
+	{
+		"label_en": "tempura",
+		"label_ja": "天ぷら",
+		"desc_en": "deep-fried seafood or vegetables",
+		"desc_ja": "魚介や野菜の揚げ物",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "well-known Japanese dish"
+	},
+	{
+		"label_en": "udon",
+		"label_ja": "うどん",
+		"desc_en": "thick wheat noodles",
+		"desc_ja": "太い小麦麺",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "common noodle category in Japan"
+	},
+	{
+		"label_en": "okonomiyaki",
+		"label_ja": "お好み焼き",
+		"desc_en": "savory pancake",
+		"desc_ja": "小麦粉ベースの鉄板焼き",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "popular Japanese dish"
+	},
+	{
+		"label_en": "yakitori",
+		"label_ja": "焼き鳥",
+		"desc_en": "grilled chicken skewers",
+		"desc_ja": "鶏肉の串焼き",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "common izakaya menu item"
+	},
+	{
+		"label_en": "curry rice",
+		"label_ja": "カレーライス",
+		"desc_en": "Japanese curry with rice",
+		"desc_ja": "カレーとご飯",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "extremely popular in Japan"
+	},
+	{
+		"label_en": "gyoza",
+		"label_ja": "餃子",
+		"desc_en": "pan-fried dumplings",
+		"desc_ja": "焼き餃子",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "very common menu item"
+	},
+	{
+		"label_en": "takoyaki",
+		"label_ja": "たこ焼き",
+		"desc_en": "octopus balls",
+		"desc_ja": "タコ入りの丸い粉物",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "popular street food/menu item"
+	},
+	{
+		"label_en": "soba",
+		"label_ja": "そば",
+		"desc_en": "buckwheat noodles",
+		"desc_ja": "蕎麦粉の麺",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "traditional noodle category"
+	},
+	{
+		"label_en": "yakiniku",
+		"label_ja": "焼肉",
+		"desc_en": "grilled meat",
+		"desc_ja": "焼いた肉",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "common dining category in Japan"
+	},
+	{
+		"label_en": "donburi",
+		"label_ja": "丼",
+		"desc_en": "rice bowl dish",
+		"desc_ja": "ご飯に具をのせた料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "popular rice bowl category"
+	},
+	{
+		"label_en": "onigiri",
+		"label_ja": "おにぎり",
+		"desc_en": "rice ball",
+		"desc_ja": "握り飯",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "ubiquitous food item in Japan"
+	},
+	{
+		"label_en": "katsudon",
+		"label_ja": "カツ丼",
+		"desc_en": "pork cutlet rice bowl",
+		"desc_ja": "トンカツをのせた丼",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "standard donburi menu item"
+	},
+	{
+		"label_en": "Ogikubo ramen",
+		"label_ja": "荻窪ラーメン",
+		"desc_en": "Tokyo regional ramen style",
+		"desc_ja": "東京荻窪発祥のラーメン",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "regional ramen variant well-known in Japan"
+	},
+	{
+		"label_en": "Chankonabe",
+		"label_ja": "ちゃんこ鍋",
+		"desc_en": "sumo wrestler's hot pot",
+		"desc_ja": "力士の鍋料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "recognized dish category in Japan"
+	},
+	{
+		"label_en": "Natto",
+		"label_ja": "納豆",
+		"desc_en": "fermented soybeans",
+		"desc_ja": "発酵大豆",
+		"decision": "allow",
+		"confidence": "medium",
+		"reason": "common but borderline (more ingredient than menu)"
+	},
+	{
+		"label_en": "Kaiseki",
+		"label_ja": "懐石",
+		"desc_en": "traditional multi-course Japanese dinner",
+		"desc_ja": "日本料理のコース",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "recognized dining category in Japan"
+	},
+	{
+		"label_en": "monjayaki",
+		"label_ja": "もんじゃ焼き",
+		"desc_en": "Tokyo-style savory pancake",
+		"desc_ja": "東京の鉄板焼き料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "well-known regional dish"
+	},
+	{
+		"label_en": "pizza",
+		"label_ja": "ピザ",
+		"desc_en": "flatbread dish with toppings",
+		"desc_ja": "トッピングをのせた平焼きパン",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "very common in Japan dining"
+	},
+	{
+		"label_en": "hamburger",
+		"label_ja": "ハンバーガー",
+		"desc_en": "sandwich with ground meat patty",
+		"desc_ja": "肉のパティを挟んだサンドイッチ",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "ubiquitous menu item in Japan"
+	},
+	{
+		"label_en": "pasta",
+		"label_ja": "パスタ",
+		"desc_en": "Italian noodle dishes",
+		"desc_ja": "イタリアの麺料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "very popular in Japan"
+	},
+	{
+		"label_en": "steak",
+		"label_ja": "ステーキ",
+		"desc_en": "thick cut of meat",
+		"desc_ja": "厚切り肉",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "common menu category"
+	},
+	{
+		"label_en": "cake",
+		"label_ja": "ケーキ",
+		"desc_en": "sweet baked dessert",
+		"desc_ja": "甘い焼き菓子",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "popular dessert in Japan"
+	},
+	{
+		"label_en": "food",
+		"label_ja": "食べ物",
+		"desc_en": "any nutritious substance",
+		"desc_ja": "栄養のあるもの",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic, not menu category"
+	},
+	{
+		"label_en": "dish",
+		"label_ja": "料理",
+		"desc_en": "type of food",
+		"desc_ja": "食べ物の種類",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "abstract class"
+	},
+	{
+		"label_en": "meat dish",
+		"label_ja": "肉料理",
+		"desc_en": "dish made with meat",
+		"desc_ja": "肉を使った料理",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic category"
+	},
+	{
+		"label_en": "rice dish",
+		"label_ja": "ご飯料理",
+		"desc_en": "dish containing rice",
+		"desc_ja": "米を含む料理",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "overly broad category"
+	},
+	{
+		"label_en": "noodle",
+		"label_ja": "麺",
+		"desc_en": "type of staple food",
+		"desc_ja": "主食の一種",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "ingredient class, not menu"
+	},
+	{
+		"label_en": "Japanese cuisine",
+		"label_ja": "日本料理",
+		"desc_en": "traditional cooking of Japan",
+		"desc_ja": "日本の伝統的な料理",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "cuisine name, not dish"
+	},
+	{
+		"label_en": "wheat",
+		"label_ja": "小麦",
+		"desc_en": "cereal grain",
+		"desc_ja": "穀物",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "ingredient, not food"
+	},
+	{
+		"label_en": "cooking method",
+		"label_ja": "調理法",
+		"desc_en": "way to prepare food",
+		"desc_ja": "料理の調理方法",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "not a food item"
+	},
+	{
+		"label_en": "Sapporo beer",
+		"label_ja": "サッポロビール",
+		"desc_en": "Japanese beer brand",
+		"desc_ja": "日本のビールブランド",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "specific brand SKU"
+	},
+	{
+		"label_en": "McFlurry",
+		"label_ja": "マックフルーリー",
+		"desc_en": "McDonald's ice cream dessert",
+		"desc_ja": "マクドナルドのアイスクリーム",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "chain-specific SKU"
+	},
+	{
+		"label_en": "Kewpie mayonnaise",
+		"label_ja": "キユーピーマヨネーズ",
+		"desc_en": "Japanese mayonnaise brand",
+		"desc_ja": "日本のマヨネーズブランド",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "branded condiment"
+	},
+	{
+		"label_en": "beverage",
+		"label_ja": "飲料",
+		"desc_en": "drinkable liquid",
+		"desc_ja": "飲める液体",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic category"
+	},
+	{
+		"label_en": "snack",
+		"label_ja": "スナック",
+		"desc_en": "small amount of food between meals",
+		"desc_ja": "間食",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "too generic"
+	},
+	{
+		"label_en": "tacos",
+		"label_ja": "タコス",
+		"desc_en": "Mexican folded tortilla dish",
+		"desc_ja": "メキシコの折りたたみトルティーヤ料理",
+		"decision": "allow",
+		"confidence": "medium",
+		"reason": "increasingly common in Japan"
+	},
+	{
+		"label_en": "pho",
+		"label_ja": "フォー",
+		"desc_en": "Vietnamese soup",
+		"desc_ja": "ベトナムのスープ麺",
+		"decision": "allow",
+		"confidence": "medium",
+		"reason": "recognized in Japan dining"
+	}
+]
