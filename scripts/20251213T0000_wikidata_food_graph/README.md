@@ -122,6 +122,54 @@ dish_ancestor_blacklist を更新した後、dish_blacklist を再生成する�
 python3 1_3_generate_paths_and_summary.py
 ```
 
+### ステップ 4: dish_category_catalog の最新化（#543）
+
+dish_category_catalog を最新の Wikidata データと BigQuery データで更新します。
+
+#### 4-1: スキーマ更新（初回のみ）
+
+```bash
+python3 1_1_create_tables.py
+```
+
+#### 4-2: core データの更新
+
+Wikidata から labels, descriptions, aliases, sitelinks, origin, cuisine, image を取得して更新します。
+
+```bash
+python3 3_2_refresh_dish_category_catalog_core.py
+```
+
+**処理内容:**
+
+- food_nodes_raw - dish_blacklist の QID 集合を取得
+- SPARQL でバッチ分割して core 情報を取得
+- labels_json, descriptions_json, aliases_json, sitelinks_json を JSON 形式で保存
+- origin_qids, cuisine_qids を配列で保存
+- image_url を Wikimedia Commons から変換
+- MERGE で既存データを更新、新規データを追加
+- candidates に存在しない item_qid を削除
+
+**注意点:**
+
+- SPARQL endpoint への大量リクエストが発生するため、実行には時間がかかります
+- バッチサイズは 300 件（調整可能）
+- rate limit 対策として retry/backoff が実装されています
+
+#### 4-3: graph データの更新
+
+BigQuery 上で tags と roots を再計算して更新します。
+
+```bash
+python3 3_3_refresh_dish_category_catalog_graph.py
+```
+
+**処理内容:**
+
+- food_paths から tags を再計算（depth <= 5 の祖先 QID）
+- dish_root_summary から roots を抽出（kind + min_depth の配列）
+- MERGE で既存データを更新
+
 ## 処理フロー
 
 スクリプトは以下の3ステップで構成されています：
@@ -356,7 +404,9 @@ scripts/20251213T0000_wikidata_food_graph/
 ├── 1_1_create_tables.py         # ステップ1: テーブル作成
 ├── 1_2_fetch_and_load_nodes.py  # ステップ2: ノード取得とロード
 ├── 1_3_generate_paths_and_summary.py  # ステップ3: パスとサマリー生成
-├── 3_1_build_dish_category_catalog.py  # ステップ4: カタログ構築（#550）
+├── 3_1_build_dish_category_catalog.py  # カタログ初期構築（#550）
+├── 3_2_refresh_dish_category_catalog_core.py  # ステップ4-2: core データ最新化（#543）
+├── 3_3_refresh_dish_category_catalog_graph.py # ステップ4-3: graph データ最新化（#543）
 ├── wikidata_client.py           # Wikidata SPARQL クライアント
 ├── loader_bigquery.py           # BigQuery ロード・処理ロジック
 ├── requirements.txt             # Python 依存パッケージ
@@ -396,4 +446,5 @@ scripts/20251213T0000_wikidata_food_graph/
 ## 関連チケット
 
 - #533: Wikidata 由来の料理・飲み物グラフ構造テーブル作成（BigQuery）
+- #543: dish_category_catalog の最新化スクリプト追加（core + graph）
 - #550: macro_genre（Wikidata）ホワイトリスト運用＋割当結果テーブル作成（BigQuery）

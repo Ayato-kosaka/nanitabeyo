@@ -16,8 +16,10 @@ Wikidata SPARQL エンドポイントに対してクエリを実行するクラ�
 import time
 import logging
 from typing import List, Dict, Set, Tuple, Optional
-from SPARQLWrapper import SPARQLWrapper, JSON
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from SPARQLWrapper import SPARQLWrapper, JSON, SPARQLExceptions
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
+import requests
+import json as json_module
 
 logger = logging.getLogger(__name__)
 
@@ -34,27 +36,152 @@ class WikidataClient:
         self.sparql.setReturnFormat(JSON)
         self.sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
     
+    @staticmethod
+    def _should_retry(exception):
+        """
+        #555 【設計】リトライ対象を「WDQS由来の揺らぎ」に寄せる
+        
+        Args:
+            exception: 発生した例外
+            
+        Returns:
+            リトライすべきかどうか
+        """
+        # JSONDecodeError: WDQS側のレスポンス不整合（HTML混入、途中切断等）
+        if isinstance(exception, json_module.JSONDecodeError):
+            logger.warning(f"JSONDecodeError detected (WDQS response issue), will retry: {exception}")
+            return True
+        
+        # HTTPError: 429/503/504 を主対象
+        if isinstance(exception, requests.exceptions.HTTPError):
+            status_code = exception.response.status_code if exception.response else None
+            if status_code in [429, 503, 504]:
+                logger.warning(f"SPARQL HTTP {status_code} detected, will retry...")
+                return True
+            # その他のHTTPエラーはリトライしない（400番台等）
+            logger.error(f"HTTP {status_code} - not retrying")
+            return False
+        
+        # RequestException: 接続エラー、タイムアウト等
+        if isinstance(exception, requests.exceptions.RequestException):
+            logger.warning(f"RequestException (network issue), will retry: {exception}")
+            return True
+        
+        # SPARQLWrapperException: SPARQL実行時の例外
+        if hasattr(SPARQLExceptions, 'SPARQLWrapperException'):
+            if isinstance(exception, SPARQLExceptions.SPARQLWrapperException):
+                logger.warning(f"SPARQLWrapperException, will retry: {exception}")
+                return True
+        
+        # その他のException: ロジックエラーの可能性があるため即落とす
+        logger.error(f"Unhandled exception (not retrying): {type(exception).__name__}: {exception}")
+        return False
+    
     @retry(
         stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=4, max=60),
-        retry=retry_if_exception_type((Exception,))  # TODO: HTTPステータスごとに絞る（504, 429等）
+        wait=wait_exponential(multiplier=2, min=4, max=120),
+        retry=retry_if_exception_type((
+            json_module.JSONDecodeError,
+            requests.exceptions.RequestException,
+            SPARQLExceptions.SPARQLWrapperException if hasattr(SPARQLExceptions, 'SPARQLWrapperException') else Exception,
+        )),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True
     )
     def execute_query(self, query: str) -> List[Dict]:
         """
-        SPARQL クエリを実行して結果を返す
+        SPARQL クエリを実行して結果を返す（可観測性強化版）
         
         Args:
             query: SPARQL クエリ文字列
             
         Returns:
             クエリ結果のリスト
+            
+        Raises:
+            JSONDecodeError: レスポンスがJSONとしてパースできない
+            RequestException: ネットワークエラー
+            SPARQLWrapperException: SPARQL実行エラー
         """
         self.sparql.setQuery(query)
+        
         try:
-            results = self.sparql.query().convert()
-            return results.get("results", {}).get("bindings", [])
+            # SPARQLWrapper の内部処理を模倣し、可観測性を強化
+            response = self.sparql.query()
+            
+            # HTTPレスポンスの情報を取得
+            if hasattr(response, 'response'):
+                http_response = response.response
+                status_code = http_response.status if hasattr(http_response, 'status') else 'unknown'
+                
+                # レスポンスボディを読み取る
+                response_body = http_response.read()
+                response_size = len(response_body)
+                
+                logger.info(f"SPARQL response: status={status_code}, size={response_size} bytes")
+                
+                # レスポンスの先頭・末尾をログ出力（デバッグ用）
+                if response_size > 0:
+                    head = response_body[:500].decode('utf-8', errors='replace')
+                    tail = response_body[-500:].decode('utf-8', errors='replace') if response_size > 500 else ""
+                    logger.debug(f"Response head: {head[:200]}...")
+                    if tail:
+                        logger.debug(f"Response tail: ...{tail[-200:]}")
+                    
+                    # HTMLエラーページの検出
+                    if response_body.startswith(b'<!DOCTYPE') or response_body.startswith(b'<html'):
+                        logger.error("Response is HTML (likely error page), not JSON")
+                        raise json_module.JSONDecodeError(
+                            "Response is HTML error page",
+                            response_body.decode('utf-8', errors='replace')[:1000],
+                            0
+                        )
+                
+                # JSONパース（制御文字対応：errors='replace'で吸収）
+                try:
+                    # Wikidata SPARQL endpoint の既知問題：
+                    # multilang（label/desc/alias）に制御文字（U+0000〜U+001F）が混入し、
+                    # strict JSON parse が失敗するケースがある。
+                    # データ完全性優先のため、壊れた文字を \uFFFD に置換して処理を継続。
+                    decoded_body = response_body.decode('utf-8', errors='replace')
+                    
+                    # 制御文字の置換が発生したかログ記録
+                    if '\ufffd' in decoded_body:
+                        logger.warning("Response contains invalid UTF-8 sequences (replaced with U+FFFD)")
+                        logger.warning("This may indicate control characters in Wikidata multilang data")
+                    
+                    result_json = json_module.loads(decoded_body)
+                    return result_json.get("results", {}).get("bindings", [])
+                except json_module.JSONDecodeError as e:
+                    logger.error(f"JSONDecodeError: {e}")
+                    logger.error(f"Response size: {response_size}")
+                    logger.error(f"Error position: {e.pos}, line: {e.lineno}, col: {e.colno}")
+                    # レスポンスのエラー位置周辺をログ出力
+                    if hasattr(e, 'pos') and e.pos:
+                        start = max(0, e.pos - 200)
+                        end = min(len(response_body), e.pos + 200)
+                        context = response_body[start:end].decode('utf-8', errors='replace')
+                        logger.error(f"Context around error: ...{context}...")
+                    raise
+            else:
+                # 通常の convert() を使用（フォールバック）
+                logger.warning("Using fallback convert() method")
+                results = response.convert()
+                return results.get("results", {}).get("bindings", [])
+                
+        except json_module.JSONDecodeError:
+            # JSONDecodeError は再スロー（リトライ対象）
+            raise
+        except requests.exceptions.RequestException:
+            # RequestException は再スロー（リトライ対象）
+            raise
         except Exception as e:
-            logger.error(f"SPARQL query failed: {e}")
+            # その他の例外はログに記録して再スロー
+            status_code = None
+            if hasattr(e, 'response') and e.response:
+                status_code = e.response.status_code
+            
+            logger.error(f"SPARQL query failed (status={status_code}): {type(e).__name__}: {e}")
             raise
 
     def fetch_food_nodes(
