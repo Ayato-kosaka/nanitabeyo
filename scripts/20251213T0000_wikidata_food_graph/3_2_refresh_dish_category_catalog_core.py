@@ -402,9 +402,15 @@ def fetch_multilang_data(
                 while True:
                     result = next(gen)
                     item_uri = result.get("item", "")
+                    item_uri = item_uri.strip()
+                    if item_uri.startswith("<") and item_uri.endswith(">"):
+                        item_uri = item_uri[1:-1] 
                     item_qid = item_uri.split("/")[-1] if item_uri else None
 
                     if not item_qid:
+                        continue
+
+                    if not (item_qid and item_qid.startswith("Q") and item_qid[1:].isdigit()):
                         continue
 
                     label_lang = result.get("label_lang", "")
