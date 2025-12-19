@@ -29,6 +29,7 @@ export class QueryDishCategoryRecommendationsDto {
 	restrictions?: string[];
 
 	/** 言語タグ (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA) */
+	/** TopicTitle や Reason の翻訳に使用される */
 	@IsString()
 	@Matches(/^[a-z]{2,3}(-[A-Z]{2})?$/, {
 		message: "languageTag must follow IETF BCP 47 format (e.g., en-US, ja-JP, fr-CA)",
@@ -36,6 +37,7 @@ export class QueryDishCategoryRecommendationsDto {
 	languageTag!: string;
 
 	/** 現地言語コード (例: ka, ja, en) */
+	/** res.category の現地言語名取得に利用し後続の Google Maps TextSearch に渡される */
 	@IsString()
 	@Matches(/^[a-z]{2,3}$/, {
 		message: "localLanguageCode must be a 2-3 character language code (e.g., en, ja, ka)",

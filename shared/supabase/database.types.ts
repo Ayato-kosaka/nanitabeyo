@@ -71,6 +71,7 @@ export type Database = {
 					label_en: string;
 					labels: Json;
 					lock_no: number;
+					macro_genre_qid: string | null;
 					origin: string[];
 					tags: string[];
 					updated_at: string;
@@ -83,6 +84,7 @@ export type Database = {
 					label_en: string;
 					labels: Json;
 					lock_no?: number;
+					macro_genre_qid?: string | null;
 					origin: string[];
 					tags: string[];
 					updated_at?: string;
@@ -95,11 +97,38 @@ export type Database = {
 					label_en?: string;
 					labels?: Json;
 					lock_no?: number;
+					macro_genre_qid?: string | null;
 					origin?: string[];
 					tags?: string[];
 					updated_at?: string;
 				};
 				Relationships: [];
+			};
+			dish_category_ancestors: {
+				Row: {
+					ancestor_qid: string;
+					depth: number;
+					dish_category_id: string;
+				};
+				Insert: {
+					ancestor_qid: string;
+					depth: number;
+					dish_category_id: string;
+				};
+				Update: {
+					ancestor_qid?: string;
+					depth?: number;
+					dish_category_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "dish_category_ancestors_dish_category_id_fkey";
+						columns: ["dish_category_id"];
+						isOneToOne: false;
+						referencedRelation: "dish_categories";
+						referencedColumns: ["id"];
+					},
+				];
 			};
 			dish_category_variants: {
 				Row: {
@@ -560,6 +589,24 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			macro_genre_whitelist: {
+				Row: {
+					label_en: string | null;
+					label_ja: string | null;
+					macro_genre_qid: string;
+				};
+				Insert: {
+					label_en?: string | null;
+					label_ja?: string | null;
+					macro_genre_qid: string;
+				};
+				Update: {
+					label_en?: string | null;
+					label_ja?: string | null;
+					macro_genre_qid?: string;
+				};
+				Relationships: [];
+			};
 			notification_recipients: {
 				Row: {
 					created_at: string;
@@ -675,6 +722,24 @@ export type Database = {
 						referencedColumns: ["id"];
 					},
 				];
+			};
+			permissions: {
+				Row: {
+					description: string;
+					id: string;
+					name: string;
+				};
+				Insert: {
+					description: string;
+					id: string;
+					name: string;
+				};
+				Update: {
+					description?: string;
+					id?: string;
+					name?: string;
+				};
+				Relationships: [];
 			};
 			prompt_families: {
 				Row: {
@@ -933,6 +998,54 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			role_permissions: {
+				Row: {
+					permission_id: string;
+					role_id: string;
+				};
+				Insert: {
+					permission_id: string;
+					role_id: string;
+				};
+				Update: {
+					permission_id?: string;
+					role_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "role_permissions_permission_id_fkey";
+						columns: ["permission_id"];
+						isOneToOne: false;
+						referencedRelation: "permissions";
+						referencedColumns: ["id"];
+					},
+					{
+						foreignKeyName: "role_permissions_role_id_fkey";
+						columns: ["role_id"];
+						isOneToOne: false;
+						referencedRelation: "roles";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			roles: {
+				Row: {
+					description: string;
+					id: string;
+					name: string;
+				};
+				Insert: {
+					description: string;
+					id: string;
+					name: string;
+				};
+				Update: {
+					description?: string;
+					id?: string;
+					name?: string;
+				};
+				Relationships: [];
+			};
 			user_device_tokens: {
 				Row: {
 					expo_push_token: string;
@@ -965,6 +1078,29 @@ export type Database = {
 					user_id?: string;
 				};
 				Relationships: [];
+			};
+			user_roles: {
+				Row: {
+					role_id: string;
+					user_id: string;
+				};
+				Insert: {
+					role_id: string;
+					user_id: string;
+				};
+				Update: {
+					role_id?: string;
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "user_roles_role_id_fkey";
+						columns: ["role_id"];
+						isOneToOne: false;
+						referencedRelation: "roles";
+						referencedColumns: ["id"];
+					},
+				];
 			};
 			users: {
 				Row: {
