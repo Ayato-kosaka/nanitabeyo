@@ -24,6 +24,8 @@ import json
 import logging
 import time
 import urllib.parse
+import tempfile
+import os
 from collections import deque
 from typing import Dict, List, Optional, Set, Tuple
 from google.cloud import bigquery
@@ -44,6 +46,10 @@ GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
 BATCH_SIZE = 80  # #555 【バグ】504対策：300→80に縮小（安定性優先）
 MULTILANG_BATCH_SIZE = 5  # 多言語データ専用の極小バッチ（制御文字混入・巨大レスポンス対策）
+
+# 【設計】文字列フィールドの最大長（truncate用）
+MAX_STRING_LENGTH = 10000  # 1フィールドあたりの最大文字数
+MAX_ALIASES_COUNT = 1000   # aliases配列の最大要素数
 
 # #555 【設計】対応ロケール→Wikipedia言語コードのマッピング
 SUPPORTED_LOCALES = {
@@ -580,12 +586,208 @@ def resolve_commons_url(image_raw: str) -> Optional[str]:
         return None
 
 
+def truncate_string(value: Optional[str], max_length: int) -> Optional[str]:
+    """
+    【設計】文字列を指定文字数で切り詰める
+    
+    Args:
+        value: 切り詰め対象の文字列
+        max_length: 最大文字数
+        
+    Returns:
+        切り詰め後の文字列（max_length以下）
+    """
+    if value is None:
+        return None
+    if len(value) <= max_length:
+        return value
+    return value[:max_length]
+
+
+def truncate_multilang_field(field_value: Optional[str], max_length: int) -> Tuple[Optional[str], int]:
+    """
+    【設計】多言語JSONフィールド（labels_json, descriptions_json）を切り詰める
+    
+    Args:
+        field_value: JSON文字列
+        max_length: 最大文字数
+        
+    Returns:
+        (切り詰め後のJSON文字列, 切り詰めた言語数)
+    """
+    if field_value is None or len(field_value) <= max_length:
+        return field_value, 0
+    
+    try:
+        data = json.loads(field_value)
+        if not isinstance(data, dict):
+            # dict以外の場合は単純切り詰め
+            return truncate_string(field_value, max_length), 1
+        
+        truncated_count = 0
+        truncated_data = {}
+        
+        for lang, text in data.items():
+            if isinstance(text, str) and len(text) > max_length:
+                truncated_data[lang] = text[:max_length]
+                truncated_count += 1
+            else:
+                truncated_data[lang] = text
+        
+        result_json = json.dumps(truncated_data, ensure_ascii=False)
+        # JSON全体がmax_lengthを超える場合は、言語を削減
+        if len(result_json) > max_length:
+            # 優先言語順に保持（en, ja, その他）
+            priority_langs = ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"]
+            limited_data = {}
+            current_size = 2  # "{}" の分
+            
+            for lang in priority_langs:
+                if lang in truncated_data:
+                    # 追加した場合のサイズを見積もり（JSON形式: "lang":"value",）
+                    lang_entry_size = len(f'"{lang}":"{truncated_data[lang]}",')
+                    if current_size + lang_entry_size > max_length:
+                        truncated_count += 1
+                        continue
+                    limited_data[lang] = truncated_data[lang]
+                    current_size += lang_entry_size
+            
+            # 優先言語以外も可能な限り追加
+            for lang, text in truncated_data.items():
+                if lang not in limited_data:
+                    lang_entry_size = len(f'"{lang}":"{text}",')
+                    if current_size + lang_entry_size > max_length:
+                        truncated_count += 1
+                        continue
+                    limited_data[lang] = text
+                    current_size += lang_entry_size
+            
+            result_json = json.dumps(limited_data, ensure_ascii=False)
+        
+        return result_json, truncated_count
+    except Exception as e:
+        logger.warning(f"Failed to parse multilang field, using simple truncate: {e}")
+        return truncate_string(field_value, max_length), 1
+
+
+def truncate_aliases_field(field_value: Optional[str], max_length: int, max_count: int) -> Tuple[Optional[str], int, int]:
+    """
+    【設計】aliases_jsonフィールドを切り詰める（要素数制限 + 各要素の文字数制限）
+    
+    Args:
+        field_value: JSON文字列（形式: {"lang": ["alias1", "alias2", ...]}）
+        max_length: 各要素の最大文字数
+        max_count: 各言語あたりの最大要素数
+        
+    Returns:
+        (切り詰め後のJSON文字列, 切り詰めた要素数, 切り詰めた文字数)
+    """
+    if field_value is None:
+        return None, 0, 0
+    
+    try:
+        data = json.loads(field_value)
+        if not isinstance(data, dict):
+            # dict以外の場合は単純切り詰め
+            return truncate_string(field_value, max_length), 0, 1
+        
+        truncated_elements = 0
+        truncated_strings = 0
+        truncated_data = {}
+        
+        for lang, aliases in data.items():
+            if not isinstance(aliases, list):
+                truncated_data[lang] = aliases
+                continue
+            
+            # 要素数制限
+            if len(aliases) > max_count:
+                aliases = aliases[:max_count]
+                truncated_elements += len(data[lang]) - max_count
+            
+            # 各要素の文字数制限
+            truncated_aliases = []
+            for alias in aliases:
+                if isinstance(alias, str) and len(alias) > max_length:
+                    truncated_aliases.append(alias[:max_length])
+                    truncated_strings += 1
+                else:
+                    truncated_aliases.append(alias)
+            
+            truncated_data[lang] = truncated_aliases
+        
+        result_json = json.dumps(truncated_data, ensure_ascii=False)
+        return result_json, truncated_elements, truncated_strings
+    except Exception as e:
+        logger.warning(f"Failed to parse aliases field, using simple truncate: {e}")
+        return truncate_string(field_value, max_length), 0, 1
+
+
+def apply_truncation(core_data: List[Dict]) -> Dict[str, int]:
+    """
+    【設計】core_dataの全フィールドに文字数制限を適用
+    
+    Args:
+        core_data: core情報のリスト（in-placeで変更される）
+        
+    Returns:
+        切り詰め統計の辞書
+    """
+    stats = {
+        "label_ja": 0,
+        "label_en": 0,
+        "desc_ja": 0,
+        "desc_en": 0,
+        "labels_json": 0,
+        "descriptions_json": 0,
+        "aliases_json_elements": 0,
+        "aliases_json_strings": 0,
+        "sitelinks_json": 0,
+        "image_url": 0,
+    }
+    
+    for item in core_data:
+        # 単純文字列フィールド
+        for field in ["label_ja", "label_en", "desc_ja", "desc_en", "image_url"]:
+            original = item.get(field)
+            if original and len(original) > MAX_STRING_LENGTH:
+                item[field] = truncate_string(original, MAX_STRING_LENGTH)
+                stats[field] += 1
+        
+        # 多言語JSONフィールド
+        for field in ["labels_json", "descriptions_json", "sitelinks_json"]:
+            original = item.get(field)
+            if original:
+                truncated, count = truncate_multilang_field(original, MAX_STRING_LENGTH)
+                if count > 0:
+                    item[field] = truncated
+                    stats[field] += count
+        
+        # aliases_json（特殊処理）
+        original_aliases = item.get("aliases_json")
+        if original_aliases:
+            truncated, elem_count, str_count = truncate_aliases_field(
+                original_aliases, MAX_STRING_LENGTH, MAX_ALIASES_COUNT
+            )
+            if elem_count > 0 or str_count > 0:
+                item["aliases_json"] = truncated
+                stats["aliases_json_elements"] += elem_count
+                stats["aliases_json_strings"] += str_count
+    
+    return stats
+
+
 def load_core_data_to_bigquery(
     bq_loader: BigQueryLoader,
     core_data: List[Dict]
 ) -> None:
     """
-    #543 【設計】core データを一時テーブル経由で BigQuery に流し込む
+    【設計】core データを Load Job（JSONL）で一時テーブルに流し込む
+    
+    変更点：
+    - insertAll（insert_rows_json）から Load Job に移行
+    - 事前に文字列フィールドを truncate（10,000文字制限）
+    - JSONL形式で一時ファイルに書き出し、load_table_from_file でロード
     
     Args:
         bq_loader: BigQuery ローダー
@@ -594,6 +796,19 @@ def load_core_data_to_bigquery(
     if not core_data:
         logger.warning("No core data to load")
         return
+    
+    # 【設計】truncate 処理を適用
+    logger.info(f"Applying truncation to {len(core_data)} items...")
+    truncate_stats = apply_truncation(core_data)
+    
+    # 【設計】truncate統計をログ出力
+    if any(truncate_stats.values()):
+        logger.info("Truncation statistics:")
+        for field, count in truncate_stats.items():
+            if count > 0:
+                logger.info(f"  {field}: {count} items truncated")
+    else:
+        logger.info("No truncation needed")
     
     temp_table_id = f"{bq_loader.dataset_ref}.temp_core_data"
     logger.info(f"Creating temp table: {temp_table_id}")
@@ -624,35 +839,86 @@ def load_core_data_to_bigquery(
     bq_loader.client.create_table(temp_table)
     logger.info(f"Created temp table: {temp_table_id}")
     
-    # #543 【設計】データをロード
-    rows_to_insert = []
-    for item in core_data:
-        rows_to_insert.append({
-            "item_qid": item["item_qid"],
-            "label_ja": item.get("label_ja"),
-            "label_en": item.get("label_en"),
-            "desc_ja": item.get("desc_ja"),
-            "desc_en": item.get("desc_en"),
-            "labels_json": item.get("labels_json"),
-            "descriptions_json": item.get("descriptions_json"),
-            "aliases_json": item.get("aliases_json"),
-            "sitelinks_json": item.get("sitelinks_json"),
-            "origin_qids": item.get("origin_qids") or [],
-            "cuisine_qids": item.get("cuisine_qids") or [],
-            "image_url": item.get("image_url"),
-        })
-    
-    # #543 【設計】バッチでインサート
-    batch_size = 10000
-    for i in range(0, len(rows_to_insert), batch_size):
-        batch = rows_to_insert[i:i + batch_size]
-        errors = bq_loader.client.insert_rows_json(temp_table_id, batch)
-        if errors:
-            logger.error(f"Errors occurred while loading core data: {errors}")
-            raise Exception(f"Failed to load core data: {errors}")
-        logger.info(f"Loaded batch {i // batch_size + 1}/{(len(rows_to_insert) + batch_size - 1) // batch_size}")
-    
-    logger.info(f"Loaded {len(core_data)} core data items to temp table")
+    # 【設計】JSONL形式で一時ファイルに書き出し
+    temp_file = None
+    try:
+        # 一時ファイル作成（削除は自動で行われない設定）
+        temp_file = tempfile.NamedTemporaryFile(
+            mode='w',
+            encoding='utf-8',
+            suffix='.jsonl',
+            delete=False
+        )
+        temp_file_path = temp_file.name
+        
+        logger.info(f"Writing {len(core_data)} items to JSONL file: {temp_file_path}")
+        
+        for item in core_data:
+            row = {
+                "item_qid": item["item_qid"],
+                "label_ja": item.get("label_ja"),
+                "label_en": item.get("label_en"),
+                "desc_ja": item.get("desc_ja"),
+                "desc_en": item.get("desc_en"),
+                "labels_json": item.get("labels_json"),
+                "descriptions_json": item.get("descriptions_json"),
+                "aliases_json": item.get("aliases_json"),
+                "sitelinks_json": item.get("sitelinks_json"),
+                "origin_qids": item.get("origin_qids") or [],
+                "cuisine_qids": item.get("cuisine_qids") or [],
+                "image_url": item.get("image_url"),
+            }
+            # JSONL形式：1行1JSONオブジェクト
+            temp_file.write(json.dumps(row, ensure_ascii=False) + '\n')
+        
+        temp_file.close()
+        
+        file_size_mb = os.path.getsize(temp_file_path) / (1024 * 1024)
+        logger.info(f"JSONL file written: {file_size_mb:.2f} MB")
+        
+        # 【設計】Load Job でデータをロード
+        logger.info(f"Loading data from JSONL file to {temp_table_id}...")
+        
+        job_config = bigquery.LoadJobConfig(
+            source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+            schema=schema,
+            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        )
+        
+        with open(temp_file_path, 'rb') as source_file:
+            load_job = bq_loader.client.load_table_from_file(
+                source_file,
+                temp_table_id,
+                job_config=job_config
+            )
+        
+        # ジョブ完了を待機
+        load_job.result()
+        
+        # 【設計】ロード結果を確認
+        destination_table = bq_loader.client.get_table(temp_table_id)
+        logger.info(f"Loaded {destination_table.num_rows} rows to temp table")
+        
+        # 【設計】エラーがあればログ出力
+        if load_job.errors:
+            logger.error(f"Load job errors: {load_job.errors}")
+            raise Exception(f"Load job completed with errors: {load_job.errors}")
+        
+    except Exception as e:
+        logger.error(f"Failed to load core data via Load Job: {e}")
+        # 【設計】ジョブエラーの詳細を取得
+        if 'load_job' in locals() and load_job.errors:
+            for error in load_job.errors:
+                logger.error(f"  Job error: {error}")
+        raise
+    finally:
+        # 【設計】一時ファイルを削除
+        if temp_file and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+                logger.info(f"Deleted temporary JSONL file: {temp_file_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete temporary file {temp_file_path}: {e}")
 
 
 def merge_core_data(bq_loader: BigQueryLoader) -> None:
@@ -729,7 +995,10 @@ def delete_stale_entries(
     candidate_qids: List[str]
 ) -> None:
     """
-    #543 【設計】candidates に存在しない item_qid を dish_category_catalog から削除
+    【設計】candidates に存在しない item_qid を dish_category_catalog から削除
+    
+    変更点：
+    - insertAll（insert_rows_json）から Load Job に移行
     
     Args:
         bq_loader: BigQuery ローダー
@@ -739,7 +1008,7 @@ def delete_stale_entries(
         logger.warning("No candidate QIDs, skipping delete")
         return
     
-    # #543 【設計】一時テーブルに candidates を投入
+    # 【設計】一時テーブルに candidates を投入
     temp_table_id = f"{bq_loader.dataset_ref}.temp_candidates"
     logger.info(f"Creating temp table: {temp_table_id}")
     
@@ -754,20 +1023,68 @@ def delete_stale_entries(
     temp_table = bigquery.Table(temp_table_id, schema=schema)
     bq_loader.client.create_table(temp_table)
     
-    rows_to_insert = [{"item_qid": qid} for qid in candidate_qids]
+    # 【設計】JSONL形式で一時ファイルに書き出し
+    temp_file = None
+    try:
+        temp_file = tempfile.NamedTemporaryFile(
+            mode='w',
+            encoding='utf-8',
+            suffix='.jsonl',
+            delete=False
+        )
+        temp_file_path = temp_file.name
+        
+        logger.info(f"Writing {len(candidate_qids)} candidates to JSONL file: {temp_file_path}")
+        
+        for qid in candidate_qids:
+            row = {"item_qid": qid}
+            temp_file.write(json.dumps(row, ensure_ascii=False) + '\n')
+        
+        temp_file.close()
+        
+        file_size_mb = os.path.getsize(temp_file_path) / (1024 * 1024)
+        logger.info(f"JSONL file written: {file_size_mb:.2f} MB")
+        
+        # 【設計】Load Job でデータをロード
+        logger.info(f"Loading candidates from JSONL file to {temp_table_id}...")
+        
+        job_config = bigquery.LoadJobConfig(
+            source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+            schema=schema,
+            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        )
+        
+        with open(temp_file_path, 'rb') as source_file:
+            load_job = bq_loader.client.load_table_from_file(
+                source_file,
+                temp_table_id,
+                job_config=job_config
+            )
+        
+        load_job.result()
+        
+        destination_table = bq_loader.client.get_table(temp_table_id)
+        logger.info(f"Loaded {destination_table.num_rows} candidates to temp table")
+        
+        if load_job.errors:
+            logger.error(f"Load job errors: {load_job.errors}")
+            raise Exception(f"Load job completed with errors: {load_job.errors}")
+        
+    except Exception as e:
+        logger.error(f"Failed to load candidates via Load Job: {e}")
+        if 'load_job' in locals() and load_job.errors:
+            for error in load_job.errors:
+                logger.error(f"  Job error: {error}")
+        raise
+    finally:
+        if temp_file and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+                logger.info(f"Deleted temporary JSONL file: {temp_file_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete temporary file {temp_file_path}: {e}")
     
-    # #543 【設計】バッチでインサート
-    batch_size = 10000
-    for i in range(0, len(rows_to_insert), batch_size):
-        batch = rows_to_insert[i:i + batch_size]
-        errors = bq_loader.client.insert_rows_json(temp_table_id, batch)
-        if errors:
-            logger.error(f"Errors occurred while loading candidates: {errors}")
-            raise Exception(f"Failed to load candidates: {errors}")
-    
-    logger.info(f"Loaded {len(candidate_qids)} candidates to temp table")
-    
-    # #543 【設計】candidates に存在しない行を削除
+    # 【設計】candidates に存在しない行を削除
     target_table_id = f"{bq_loader.dataset_ref}.dish_category_catalog"
     sql = f"""
     DELETE FROM `{target_table_id}`
@@ -779,7 +1096,7 @@ def delete_stale_entries(
     affected = bq_loader.execute_dml(sql)
     logger.info(f"Deleted {affected} stale entries")
     
-    # #543 【設計】一時テーブルを削除
+    # 【設計】一時テーブルを削除
     bq_loader.client.delete_table(temp_table_id)
     logger.info(f"Deleted temp table: {temp_table_id}")
 
