@@ -640,12 +640,15 @@ def truncate_multilang_field(field_value: Optional[str], max_length: int) -> Tup
             # 優先言語順に保持（en, ja, その他）
             priority_langs = ["en", "ja", "ar", "es", "fr", "hi", "ko", "zh"]
             limited_data = {}
-            current_size = 2  # "{}" の分
+            # 【設計】JSON最小サイズ（空のオブジェクト"{}"）から開始
+            MIN_JSON_SIZE = len('{}')
+            current_size = MIN_JSON_SIZE
             
             for lang in priority_langs:
                 if lang in truncated_data:
-                    # 追加した場合のサイズを見積もり（JSON形式: "lang":"value",）
-                    lang_entry_size = len(f'"{lang}":"{truncated_data[lang]}",')
+                    # 【設計】JSON エスケープを考慮したサイズ見積もり（安全マージン 20%）
+                    # 形式: "lang":"value", の概算（エスケープで最大1.2倍に膨らむ可能性）
+                    lang_entry_size = int(len(f'"{lang}":"{truncated_data[lang]}",') * 1.2)
                     if current_size + lang_entry_size > max_length:
                         truncated_count += 1
                         continue
@@ -655,7 +658,7 @@ def truncate_multilang_field(field_value: Optional[str], max_length: int) -> Tup
             # 優先言語以外も可能な限り追加
             for lang, text in truncated_data.items():
                 if lang not in limited_data:
-                    lang_entry_size = len(f'"{lang}":"{text}",')
+                    lang_entry_size = int(len(f'"{lang}":"{text}",') * 1.2)
                     if current_size + lang_entry_size > max_length:
                         truncated_count += 1
                         continue
@@ -913,7 +916,7 @@ def load_core_data_to_bigquery(
         raise
     finally:
         # 【設計】一時ファイルを削除
-        if temp_file and os.path.exists(temp_file_path):
+        if temp_file is not None and 'temp_file_path' in locals() and os.path.exists(temp_file_path):
             try:
                 os.unlink(temp_file_path)
                 logger.info(f"Deleted temporary JSONL file: {temp_file_path}")
@@ -1077,7 +1080,7 @@ def delete_stale_entries(
                 logger.error(f"  Job error: {error}")
         raise
     finally:
-        if temp_file and os.path.exists(temp_file_path):
+        if temp_file is not None and 'temp_file_path' in locals() and os.path.exists(temp_file_path):
             try:
                 os.unlink(temp_file_path)
                 logger.info(f"Deleted temporary JSONL file: {temp_file_path}")
