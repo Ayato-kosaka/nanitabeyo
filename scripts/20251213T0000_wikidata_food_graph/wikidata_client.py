@@ -264,13 +264,15 @@ class WikidataClient:
         """
         params = {
             "query": query,
-            "format": "tsv",
         }
 
         response = requests.get(
             SPARQL_ENDPOINT,
             params=params,
-            headers={"User-Agent": USER_AGENT},
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "text/tab-separated-values; charset=utf-8",
+            },
             stream=True,
             timeout=120,
         )
@@ -296,9 +298,27 @@ class WikidataClient:
 
         line_iter = response.iter_lines(decode_unicode=True)
         header_line = next(line_iter, None)
+        ct = (response.headers.get("Content-Type") or "").lower()
+
         if header_line is None:
             logger.warning("TSV response is empty (no header)")
             return content_size, skipped_lines
+
+        # ヘッダーにタブがない＝TSVとして成立してない可能性が高い
+        if "\t" not in header_line:
+            snippet = header_line[:200].replace("\r", "\\r").replace("\n", "\\n")
+            logger.error("TSV header seems invalid (no tab). Content-Type=%s, header=%r", ct, snippet)
+            response.close()
+            # retry対象にしたいので RequestException 系を投げる
+            raise requests.exceptions.RequestException("Non-TSV response (invalid header)")
+
+        # HTML混入の簡易検出
+        hl = header_line.lstrip()
+        if hl.startswith("<!DOCTYPE") or hl.startswith("<html") or hl.startswith("<?xml"):
+            snippet = header_line[:200]
+            logger.error("Non-TSV markup detected in header. Content-Type=%s, header=%r", ct, snippet)
+            response.close()
+            raise requests.exceptions.RequestException("Markup response instead of TSV")
 
         content_size += len(header_line.encode("utf-8")) + 1
 

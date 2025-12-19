@@ -143,33 +143,21 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_catalog` (
   tags      ARRAY<STRING>       -- 祖先 QID の配列（depth<=5 の shallow なもの）
 );
 
--- #543 labels_json: 全言語のラベルを JSON 形式で保持
 ALTER TABLE `${DATASET}.dish_category_catalog`
-ADD COLUMN IF NOT EXISTS labels_json STRING;
-
--- #543 descriptions_json: 全言語の説明を JSON 形式で保持
-ALTER TABLE `${DATASET}.dish_category_catalog`
-ADD COLUMN IF NOT EXISTS descriptions_json STRING;
-
--- #543 aliases_json: 全言語の別名を JSON 形式で保持
-ALTER TABLE `${DATASET}.dish_category_catalog`
-ADD COLUMN IF NOT EXISTS aliases_json STRING;
-
--- #543 sitelinks_json: 全言語のサイトリンクを JSON 形式で保持
-ALTER TABLE `${DATASET}.dish_category_catalog`
-ADD COLUMN IF NOT EXISTS sitelinks_json STRING;
-
--- #543 origin_qids: 料理の由来国・地域 QID の配列
-ALTER TABLE `${DATASET}.dish_category_catalog`
-ADD COLUMN IF NOT EXISTS origin_qids ARRAY<STRING>;
-
--- #543 cuisine_qids: 料理カテゴリ QID の配列
-ALTER TABLE `${DATASET}.dish_category_catalog`
-ADD COLUMN IF NOT EXISTS cuisine_qids ARRAY<STRING>;
-
--- #543 roots: dish_root_summary から取得したルート情報
-ALTER TABLE `${DATASET}.dish_category_catalog`
-ADD COLUMN IF NOT EXISTS roots ARRAY<STRUCT<
-  kind STRING,      -- 'dish' / 'dessert' / 'drink' など
-  min_depth INT64   -- その root までの最短距離
->>;
+  -- #543 labels_json: 全言語のラベルを JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS labels_json STRING,
+  -- #543 descriptions_json: 全言語の説明を JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS descriptions_json STRING,
+  -- #543 aliases_json: 全言語の別名を JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS aliases_json STRING,
+  -- #543 sitelinks_json: 全言語のサイトリンクを JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS sitelinks_json STRING,
+  -- #543 origin_qids: 料理の由来国・地域 QID の配列
+  ADD COLUMN IF NOT EXISTS origin_qids ARRAY<STRING>,
+  -- #543 cuisine_qids: 料理カテゴリ QID の配列
+  ADD COLUMN IF NOT EXISTS cuisine_qids ARRAY<STRING>,
+  -- #543 roots: dish_root_summary から取得したルート情報
+  ADD COLUMN IF NOT EXISTS roots ARRAY<STRUCT<
+    kind STRING,
+    min_depth INT64
+  >>;
