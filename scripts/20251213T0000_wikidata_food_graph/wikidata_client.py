@@ -13,12 +13,15 @@ Wikidata SPARQL エンドポイントに対してクエリを実行するクラ�
 - 親子関係（P31, P279）の取得
 """
 
-import time
+import csv
 import logging
-from typing import List, Dict, Set, Tuple, Optional
-from SPARQLWrapper import SPARQLWrapper, JSON, SPARQLExceptions
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
+import re
+import time
+from typing import Dict, Generator, List, Optional, Set, Tuple
+
 import requests
+from SPARQLWrapper import JSON, SPARQLExceptions, SPARQLWrapper
+from tenacity import before_sleep_log, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 import json as json_module
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,15 @@ SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 USER_AGENT = "nanitabeyo-wikidata-food-graph/1.0 (https://github.com/Ayato-kosaka/nanitabeyo)"
 
 
+class ResponseSizeLimitExceeded(Exception):
+    """
+    #555 【設計】レスポンスサイズが閾値を超えた場合の例外
+    
+    バッチ分割の判断に使用（リトライ対象外）
+    """
+    pass
+
+
 class WikidataClient:
     """Wikidata SPARQL クエリを実行するクライアント"""
     
@@ -35,6 +47,21 @@ class WikidataClient:
         self.sparql = SPARQLWrapper(SPARQL_ENDPOINT)
         self.sparql.setReturnFormat(JSON)
         self.sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
+
+    @staticmethod
+    def _sanitize_control_characters(text: str) -> Tuple[str, int]:
+        """
+        JSON仕様で禁止されている制御文字（0x00-0x1Fの一部）を除去する。
+
+        例：multilang データの中に混入した NUL や BEL など。
+
+        Returns:
+            (サニタイズ後の文字列, 除去した文字数)
+        """
+
+        control_chars_pattern = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+        sanitized_text, removed_count = control_chars_pattern.subn("", text)
+        return sanitized_text, removed_count
     
     @staticmethod
     def _should_retry(exception):
@@ -88,10 +115,10 @@ class WikidataClient:
         before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True
     )
-    def execute_query(self, query: str) -> List[Dict]:
+    def execute_query_json(self, query: str) -> List[Dict]:
         """
         SPARQL クエリを実行して結果を返す（可観測性強化版）
-        
+
         Args:
             query: SPARQL クエリ文字列
             
@@ -144,13 +171,22 @@ class WikidataClient:
                     # strict JSON parse が失敗するケースがある。
                     # データ完全性優先のため、壊れた文字を \uFFFD に置換して処理を継続。
                     decoded_body = response_body.decode('utf-8', errors='replace')
+
+                    sanitized_body, removed_count = self._sanitize_control_characters(decoded_body)
+                    if removed_count > 0:
+                        logger.warning(
+                            "Removed %d invalid control characters from SPARQL response (status=%s, size=%d bytes)",
+                            removed_count,
+                            status_code,
+                            response_size,
+                        )
                     
                     # 制御文字の置換が発生したかログ記録
-                    if '\ufffd' in decoded_body:
+                    if '\ufffd' in sanitized_body:
                         logger.warning("Response contains invalid UTF-8 sequences (replaced with U+FFFD)")
                         logger.warning("This may indicate control characters in Wikidata multilang data")
                     
-                    result_json = json_module.loads(decoded_body)
+                    result_json = json_module.loads(sanitized_body)
                     return result_json.get("results", {}).get("bindings", [])
                 except json_module.JSONDecodeError as e:
                     logger.error(f"JSONDecodeError: {e}")
@@ -183,6 +219,203 @@ class WikidataClient:
             
             logger.error(f"SPARQL query failed (status={status_code}): {type(e).__name__}: {e}")
             raise
+
+    # 既存呼び出しとの互換性を維持
+    def execute_query(self, query: str) -> List[Dict]:
+        return self.execute_query_json(query)
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=4, max=120),
+        retry=retry_if_exception_type((
+            requests.exceptions.RequestException,
+            requests.exceptions.HTTPError,
+        )),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True
+    )
+    def execute_query_tsv_iter(
+        self,
+        query: str,
+        max_response_size: Optional[int] = None
+    ) -> Generator[Dict[str, str], None, Tuple[int, int]]:
+        """
+        #555 【設計】SPARQL クエリを TSV 形式でストリーム取得し、行単位で yield する。
+        
+        P0対応：
+        - retry/backoff 追加（429/503/504 対策）
+        - ストリーム処理でメモリ使用量を一定化
+        - Content-Length 事前チェックで無駄なDL回避
+        
+        Args:
+            query: SPARQL クエリ文字列
+            max_response_size: 最大レスポンスサイズ（バイト）。超えた場合は ResponseSizeLimitExceeded を raise
+            
+        Yields:
+            パース済み行の辞書
+            
+        Returns:
+            (受信バイト数, スキップ行数) のタプル（generator終了時）
+            
+        Raises:
+            ResponseSizeLimitExceeded: レスポンスサイズが max_response_size を超えた場合（分割対象）
+            RequestException: ネットワークエラー（リトライ対象）
+            HTTPError: HTTP エラー（429/503/504 はリトライ対象）
+        """
+        params = {
+            "query": query,
+        }
+
+        response = requests.get(
+            SPARQL_ENDPOINT,
+            params=params,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "text/tab-separated-values; charset=utf-8",
+            },
+            stream=True,
+            timeout=120,
+        )
+        response.raise_for_status()
+
+        # #555 【P0-3】Content-Length 事前チェック（受信前に分割判断）
+        declared_size = response.headers.get("Content-Length")
+        declared_size_int = int(declared_size) if declared_size and declared_size.isdigit() else None
+        
+        if declared_size_int and max_response_size and declared_size_int > max_response_size:
+            logger.warning(
+                "Content-Length %d bytes exceeds limit %d bytes. Aborting download.",
+                declared_size_int,
+                max_response_size,
+            )
+            response.close()
+            raise ResponseSizeLimitExceeded(
+                f"Content-Length {declared_size_int} exceeds limit {max_response_size}"
+            )
+
+        content_size = 0
+        skipped_lines = 0
+
+        line_iter = response.iter_lines(decode_unicode=True)
+        header_line = next(line_iter, None)
+        ct = (response.headers.get("Content-Type") or "").lower()
+
+        if header_line is None:
+            logger.warning("TSV response is empty (no header)")
+            return content_size, skipped_lines
+
+        # ヘッダーにタブがない＝TSVとして成立してない可能性が高い
+        if "\t" not in header_line:
+            snippet = header_line[:200].replace("\r", "\\r").replace("\n", "\\n")
+            logger.error("TSV header seems invalid (no tab). Content-Type=%s, header=%r", ct, snippet)
+            response.close()
+            # retry対象にしたいので RequestException 系を投げる
+            raise requests.exceptions.RequestException("Non-TSV response (invalid header)")
+
+        # HTML混入の簡易検出
+        hl = header_line.lstrip()
+        if hl.startswith("<!DOCTYPE") or hl.startswith("<html") or hl.startswith("<?xml"):
+            snippet = header_line[:200]
+            logger.error("Non-TSV markup detected in header. Content-Type=%s, header=%r", ct, snippet)
+            response.close()
+            raise requests.exceptions.RequestException("Markup response instead of TSV")
+
+        content_size += len(header_line.encode("utf-8")) + 1
+
+        try:
+            raw_fieldnames = next(csv.reader([header_line], delimiter="\t"))
+            fieldnames = [name.lstrip("?") for name in raw_fieldnames]
+        except Exception as e:
+            logger.error(f"Failed to parse TSV header: {e}")
+            return content_size, skipped_lines
+
+        for line_number, line in enumerate(line_iter, start=2):
+            line_size = len(line.encode("utf-8")) + 1
+            content_size += line_size
+
+            # #555 【P0-3】受信中に閾値超過を検出（Content-Length が無い場合の防御）
+            if max_response_size and content_size > max_response_size:
+                logger.warning(
+                    "Response size %d bytes exceeded limit %d bytes during streaming. Aborting.",
+                    content_size,
+                    max_response_size,
+                )
+                response.close()
+                raise ResponseSizeLimitExceeded(
+                    f"Streaming size {content_size} exceeded limit {max_response_size}"
+                )
+
+            if not line:
+                continue
+
+            try:
+                parsed = next(csv.reader([line], delimiter="\t"))
+            except Exception as e:
+                skipped_lines += 1
+                logger.warning(
+                    "Failed to parse TSV line %d (error: %s). Skipping.",
+                    line_number,
+                    e,
+                )
+                continue
+
+            if len(parsed) != len(fieldnames):
+                skipped_lines += 1
+                logger.warning(
+                    "Malformed TSV line %d (expected %d columns, got %d). Skipping.",
+                    line_number,
+                    len(fieldnames),
+                    len(parsed),
+                )
+                continue
+
+            row = {fieldnames[i]: parsed[i] for i in range(len(fieldnames))}
+            yield row
+
+        # #555 【P2-7】可観測性強化：統一ログ出力
+        if skipped_lines > 0:
+            logger.warning("TSV parsing skipped %d lines due to errors", skipped_lines)
+
+        if declared_size_int is not None and declared_size_int != content_size:
+            logger.info(
+                "TSV response: status=200, declared=%d bytes, received=%d bytes, skipped=%d lines",
+                declared_size_int,
+                content_size,
+                skipped_lines,
+            )
+        else:
+            logger.info(
+                "TSV response: status=200, size=%d bytes, skipped=%d lines",
+                content_size,
+                skipped_lines,
+            )
+
+        return content_size, skipped_lines
+
+    def execute_query_tsv(self, query: str) -> Tuple[List[Dict[str, str]], int]:
+        """
+        #555 【互換性】既存呼び出しのための互換メソッド（非推奨：メモリ効率が悪い）
+        
+        新規実装では execute_query_tsv_iter を使用すること。
+        
+        Returns:
+            (パース済み行のリスト, 受信バイト数)
+        """
+        rows = []
+        content_size = 0
+        
+        # #555 【バグ】generator の return 値を取得するには手動で next() を呼ぶ必要がある
+        gen = self.execute_query_tsv_iter(query)
+        try:
+            while True:
+                row = next(gen)
+                rows.append(row)
+        except StopIteration as e:
+            # generator の return 値は StopIteration.value から取得
+            if e.value:
+                content_size, _ = e.value
+        
+        return rows, content_size
 
     def fetch_food_nodes(
         self,
