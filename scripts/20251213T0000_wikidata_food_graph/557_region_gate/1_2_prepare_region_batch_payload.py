@@ -179,7 +179,7 @@ def create_batch_request(items: List[Dict], custom_id: str, system_prompt: str, 
             "tools": [tool_spec],
             "tool_choice": {"type": "function", "function": {"name": "submit_region_gate_decisions"}},
             "temperature": 0.0,
-            "max_tokens": 2000  # #557 【設計】20件前提で適正値
+            "max_tokens": 700  # #557 【設計】20件前提で適正値
         }
     }
 

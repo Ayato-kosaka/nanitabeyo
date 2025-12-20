@@ -146,7 +146,7 @@ python3 1_2_prepare_region_batch_payload.py --market country:JP --run-id 2025121
 - market に応じた教師データ（`llm_examples_region_*.json`）を含む system プロンプトを生成
 - **market 別の system prompt**: scope:global は多市場基準、country:JP は日本語会話基準
 - **tools + tool_choice による構造化出力**で JSON破損を防ぐ
-- `temperature=0`, `max_tokens=2000`, `model=gpt-5-mini`
+- `temperature=0`, `max_tokens=700`, `model=gpt-5-mini`
 - Batch API 用の JSONL を生成（1行1リクエスト）
 
 ### ステップ 3: OpenAI Batch API でラベリング実行

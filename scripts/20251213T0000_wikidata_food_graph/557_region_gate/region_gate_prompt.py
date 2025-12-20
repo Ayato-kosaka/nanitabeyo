@@ -65,33 +65,12 @@ Also deny:
 Beverages:
 - Apply the same standard as food (no special treatment).
 
-Output strict JSON only. No extra text.
-
-Output format:
-{
-  "results": [
-    {
-      "item_qid": "Qxxxx",
-      "decision": "allow|deny|uncertain",
-      "confidence": "high|medium|low",
-      "reason": "one short sentence"
-    }
-  ]
-}
-
 Examples (for reference):
+Use them as soft guidance, not strict rules.
 """
     
     # #557 【設計】教師データを埋め込み（10〜16件に絞る）
-    for example in examples[:16]:
-        label_en = (example.get("label_en") or "").strip()
-        desc_en = (example.get("desc_en") or "").strip()
-        decision = example.get("decision") or ""
-        
-        if desc_en:
-            prompt += f'- "{label_en}" (desc: "{desc_en}") -> {decision}\n'
-        else:
-            prompt += f'- "{label_en}" -> {decision}\n'
+    prompt += json.dumps(examples[:16], ensure_ascii=False, separators=(",", ":"))
     
     return prompt
 
@@ -140,43 +119,12 @@ Also deny:
 Beverages:
 - Apply the same standard as food (no special treatment).
 
-Output strict JSON only. No extra text.
-
-Output format:
-{
-  "results": [
-    {
-      "item_qid": "Qxxxx",
-      "decision": "allow|deny|uncertain",
-      "confidence": "high|medium|low",
-      "reason": "one short sentence"
-    }
-  ]
-}
-
 Examples (for reference):
+Use them as soft guidance, not strict rules.
 """
     
     # #557 【設計】教師データを埋め込み（10〜16件に絞る）
-    for example in examples[:16]:
-        label_en = (example.get("label_en") or "").strip()
-        label_ja = (example.get("label_ja") or "").strip()
-        desc_en = (example.get("desc_en") or "").strip()
-        desc_ja = (example.get("desc_ja") or "").strip()
-        decision = example.get("decision") or ""
-        
-        # country:JP の場合は日本語情報を優先表示
-        if label_ja:
-            label_str = f'"{label_ja}" ({label_en})' if label_en else f'"{label_ja}"'
-        else:
-            label_str = f'"{label_en}"'
-        
-        desc_str = desc_ja if desc_ja else desc_en
-        
-        if desc_str:
-            prompt += f'- {label_str} (desc: "{desc_str}") -> {decision}\n'
-        else:
-            prompt += f'- {label_str} -> {decision}\n'
+    prompt += json.dumps(examples[:16], ensure_ascii=False, separators=(",", ":"))
     
     return prompt
 
