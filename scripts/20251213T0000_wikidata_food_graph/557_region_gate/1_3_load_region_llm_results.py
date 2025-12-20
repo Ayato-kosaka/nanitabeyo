@@ -32,7 +32,9 @@ from typing import List, Dict
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loader_bigquery import BigQueryLoader
-from llm_client import LLMClient
+
+# #557 【設計】region gate 専用モジュールをインポート
+from region_gate_schema import parse_response
 
 # ログ設定
 logging.basicConfig(
@@ -44,7 +46,7 @@ logger = logging.getLogger(__name__)
 # 固定値
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
-MODEL_NAME = "gpt-4o-mini"  # #557 【設計】pass1 model: gpt-4o-mini
+MODEL_NAME = "gpt-5-mini"  # #557 【設計】pass1 model: gpt-5-mini
 
 # 入出力先
 INPUT_DIR = Path("/tmp/wikidata_food_region_gate")
@@ -53,13 +55,12 @@ INPUT_DIR = Path("/tmp/wikidata_food_region_gate")
 VALID_MARKETS = ["scope:global", "country:JP"]
 
 
-def load_batch_results(filepath: Path, llm_client: LLMClient) -> List[Dict]:
+def load_batch_results(filepath: Path) -> List[Dict]:
     """
     Batch API の結果を読み込む
 
     Args:
         filepath: results.jsonl のパス
-        llm_client: LLM クライアント
 
     Returns:
         全ラベルのリスト
@@ -87,8 +88,8 @@ def load_batch_results(filepath: Path, llm_client: LLMClient) -> List[Dict]:
 
                 response_body = batch_response["response"]["body"]
 
-                # parse_response は response_obj 全体を受け取る
-                validated, err = llm_client.parse_response(
+                # #557 【設計】parse_response を直接呼び出し
+                validated, err = parse_response(
                     response_body,
                     expected_items=None  # results.jsonl 単体では照合不可
                 )
@@ -186,12 +187,9 @@ def main():
         logger.error("Please ensure Batch API results are downloaded to this location")
         sys.exit(1)
     
-    # #557 【設計】LLM クライアント初期化（region_gate タスク用、market を渡す）
-    llm_client = LLMClient(task="region_gate", market=market)
-    
     # Batch API の結果を読み込む
     logger.info(f"Loading results from {input_file}...")
-    labels = load_batch_results(input_file, llm_client)
+    labels = load_batch_results(input_file)
     
     if not labels:
         logger.warning("No labels to load")

@@ -21,17 +21,15 @@ python3 1_2_prepare_region_batch_payload.py --market country:JP --run-id 2025121
 /tmp/wikidata_food_region_gate/batch_payload_country_jp.jsonl
 """
 
-import sys
 import json
 import logging
 import argparse
 from pathlib import Path
 from typing import List, Dict
 
-# #557 【設計】親ディレクトリを sys.path に追加してモジュールをインポート
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from llm_client import LLMClient
+# #557 【設計】region gate 専用モジュールをインポート
+from region_gate_prompt import build_system_prompt
+from region_gate_schema import build_tool_spec
 
 # ログ設定
 logging.basicConfig(
@@ -49,6 +47,33 @@ BATCH_SIZE = 20  # #557 【設計】1リクエストあたり20件
 
 # market 定義
 VALID_MARKETS = ["scope:global", "country:JP"]
+
+# #557 【設計】model 定義（gpt-5-mini を使用）
+MODEL_NAME = "gpt-5-mini"
+
+
+def load_examples(market: str) -> List[Dict]:
+    """
+    market に応じた教師データを読み込む
+    
+    Args:
+        market: 'scope:global' or 'country:JP'
+        
+    Returns:
+        教師データのリスト
+    """
+    if market == "scope:global":
+        examples_file = Path(__file__).parent / "llm_examples_region_global.json"
+    elif market == "country:JP":
+        examples_file = Path(__file__).parent / "llm_examples_region_country_jp.json"
+    else:
+        raise ValueError(f"Unknown market: {market}")
+    
+    with open(examples_file, 'r', encoding='utf-8') as f:
+        examples = json.load(f)
+    
+    logger.info(f"Loaded {len(examples)} examples from {examples_file}")
+    return examples
 
 
 def load_items(filepath: Path) -> List[Dict]:
@@ -121,6 +146,44 @@ def normalize_item(it: Dict) -> Dict:
     return out
 
 
+def create_batch_request(items: List[Dict], custom_id: str, system_prompt: str, model: str) -> Dict:
+    """
+    OpenAI Batch API 用のリクエストを生成
+    
+    Args:
+        items: アイテムのリスト
+        custom_id: カスタムID（リクエスト識別用）
+        system_prompt: system プロンプト
+        model: モデル名
+        
+    Returns:
+        Batch API 用のリクエスト辞書
+    """
+    # user message を JSON で生成
+    user_message = json.dumps({"items": items}, ensure_ascii=False, separators=(",", ":"))
+    
+    # tool spec 生成
+    tool_spec = build_tool_spec(len(items))
+    
+    # #557 【設計】Batch API リクエスト構築
+    return {
+        "custom_id": custom_id,
+        "method": "POST",
+        "url": "/v1/chat/completions",
+        "body": {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "tools": [tool_spec],
+            "tool_choice": {"type": "function", "function": {"name": "submit_region_gate_decisions"}},
+            "temperature": 0.0,
+            "max_tokens": 2000  # #557 【設計】20件前提で適正値
+        }
+    }
+
+
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description="Prepare region batch payload for OpenAI Batch API")
@@ -147,6 +210,7 @@ def main():
     logger.info("=" * 80)
     logger.info(f"Market: {market}")
     logger.info(f"Run ID: {run_id}")
+    logger.info(f"Model: {MODEL_NAME}")
     
     # 入力ファイル決定
     market_safe = market.replace(":", "_")
@@ -172,15 +236,19 @@ def main():
     # バッチに分割
     batches = create_batches(items, BATCH_SIZE)
     
-    # #557 【設計】LLM クライアント初期化（region_gate タスク用、market を渡す）
-    llm_client = LLMClient(task="region_gate", market=market)
+    # #557 【設計】教師データ読み込み
+    examples = load_examples(market)
+    
+    # #557 【設計】system prompt 生成（market 別）
+    system_prompt = build_system_prompt(market, examples)
+    logger.info(f"Generated system prompt for market={market}")
     
     # Batch API 用のペイロード生成
     logger.info(f"Generating batch payload...")
     with open(output_file, 'w', encoding='utf-8') as f:
         for idx, batch in enumerate(batches):
             custom_id = f"batch_{idx:05d}"
-            request = llm_client.create_batch_request(batch, custom_id)
+            request = create_batch_request(batch, custom_id, system_prompt, MODEL_NAME)
             f.write(json.dumps(request, ensure_ascii=False) + '\n')
     
     logger.info(f"Successfully generated batch payload: {len(batches)} requests")
