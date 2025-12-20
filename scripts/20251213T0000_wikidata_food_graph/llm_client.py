@@ -38,33 +38,21 @@ class LLMClient:
     # #550 【設計】decision 定義
     VALID_DECISIONS = ["A", "B", "C"]
     
-    # #557 【設計】region gate decision 定義
-    VALID_REGION_DECISIONS = ["allow", "deny", "uncertain"]
-    
     VALID_CONFIDENCE = ["high", "medium", "low"]
     
-    def __init__(self, task: str = "menu_blacklist", examples_file: str = None, market: str = None):
+    def __init__(self, task: str = "menu_blacklist", examples_file: str = None):
         """
         Args:
-            task: "menu_blacklist" (#548) or "macro_genre" (#550) or "region_gate" (#557)
+            task: "menu_blacklist" (#548) or "macro_genre" (#550)
             examples_file: 教師データファイルのパス（デフォルトは task に応じて自動設定）
-            market: region_gate タスク用の market キー（'scope:global' or 'country:JP'）
         """
         self.task = task
-        self.market = market
         
         if examples_file is None:
             if task == "menu_blacklist":
                 examples_file = Path(__file__).parent / "548_wikidata_food_llm_labeling" / "llm_examples.json"
             elif task == "macro_genre":
                 examples_file = Path(__file__).parent / "550_macro_genre" / "llm_examples_macro_genre.json"
-            elif task == "region_gate":
-                if market == "scope:global":
-                    examples_file = Path(__file__).parent / "557_region_gate" / "llm_examples_region_global.json"
-                elif market == "country:JP":
-                    examples_file = Path(__file__).parent / "557_region_gate" / "llm_examples_region_country_jp.json"
-                else:
-                    raise ValueError(f"Unknown market for region_gate: {market}")
             else:
                 raise ValueError(f"Unknown task: {task}")
         
@@ -98,8 +86,6 @@ class LLMClient:
             return self._build_system_message_menu_blacklist()
         elif self.task == "macro_genre":
             return self._build_system_message_macro_genre()
-        elif self.task == "region_gate":
-            return self._build_system_message_region_gate()
         else:
             raise ValueError(f"Unknown task: {self.task}")
     
@@ -253,82 +239,6 @@ Examples (for reference):
         
         return system_prompt
     
-    def _build_system_message_region_gate(self) -> str:
-        """#557 用 system メッセージ"""
-        # #557 【設計】LLM プロンプト - region gate 用 system メッセージ
-        system_prompt = f"""You are labeling whether a Wikidata food category should be allowed
-to appear in a food suggestion app for a specific market.
-
-Market is provided as: {self.market}
-Examples:
-- scope:global
-- country:JP
-
-This is a distribution gate (whitelist), not a ranking feature.
-
-Decide one of:
-- allow: A real, conversationally natural menu item / dish category name in that market (e.g., something a general user could say "Let's eat/drink X today").
-- deny: Not suitable as a menu/dish category for that market; too obscure; or not a menu/dish category.
-- uncertain: Not enough evidence to be confident.
-
-Hard rules (precision first):
-- If unsure, choose "uncertain" (confidence should lean low).
-- Do NOT infer popularity beyond the provided evidence.
-- For scope:global, be strict with local/regional proper-noun dishes. If the evidence does not clearly indicate wide, multi-market familiarity, choose "uncertain" or "deny".
-
-Deny-by-default types (treat as blacklist漏れ):
-- Ingredients, food materials, animal/plant products (e.g., milk as a raw product), fillings, toppings, garnishes.
-- Processed foodstuffs / cuts (e.g., ham), spreads, condiments, sauces, pastes, seasonings.
-- Cooking methods, preparation/extraction/brewing methods (e.g., espresso as an extraction method).
-
-Also deny:
-- Place names, culture/cuisine names, utensils/containers, or concepts that are not menu items.
-- Fictional/novelty references that are not a stable real menu category in general conversation.
-
-Beverages:
-- Apply the same standard as food (no special treatment). Allow only if it is a natural drink/menu category in everyday conversation for that market.
-
-Output strict JSON only. No extra text.
-
-Output format:
-{{
-  "results": [
-    {{
-      "item_qid": "Qxxxx",
-      "decision": "allow|deny|uncertain",
-      "confidence": "high|medium|low",
-      "reason": "one short sentence"
-    }}
-  ]
-}}
-
-Examples (for reference):
-"""
-        
-        # #557 【設計】教師データを埋め込み（few-shot learning、10〜16件に絞る）
-        for example in self.examples[:16]:
-            label_en = (example.get("label_en") or "").strip()
-            label_ja = (example.get("label_ja") or "").strip()
-            desc_en = (example.get("desc_en") or "").strip()
-            desc_ja = (example.get("desc_ja") or "").strip()
-            decision = example.get("decision") or ""
-            
-            # market に応じてラベル・説明を選択
-            if self.market == "country:JP" and label_ja:
-                label_str = f'"{label_ja}" ({label_en})' if label_en else f'"{label_ja}"'
-                desc_str = desc_ja if desc_ja else desc_en
-            else:
-                label_str = f'"{label_en}"'
-                desc_str = desc_en
-            
-            if desc_str:
-                system_prompt += f'- {label_str} (desc: "{desc_str}") -> {decision}\n'
-            else:
-                system_prompt += f'- {label_str} -> {decision}\n'
-
-        
-        return system_prompt
-    
     def build_user_message(self, items: List[Dict]) -> str:
         """
         user メッセージを構築する（20件前後のバッチ）
@@ -362,8 +272,6 @@ Reason rule:
             return self._tool_spec_menu_blacklist(n_items)
         elif self.task == "macro_genre":
             return self._tool_spec_macro_genre(n_items)
-        elif self.task == "region_gate":
-            return self._tool_spec_region_gate(n_items)
         else:
             raise ValueError(f"Unknown task: {self.task}")
     
@@ -438,41 +346,6 @@ Reason rule:
         spec["function"]["parameters"]["properties"]["results"]["maxItems"] = n_items
         return spec
     
-    def _tool_spec_region_gate(self, n_items: int) -> Dict[str, Any]:
-        """#557 用 tool spec"""
-        # #557 【設計】region gate 用のスキーマ（decision/confidence/reason を enum 縛り）
-        spec = {
-            "type": "function",
-            "function": {
-                "name": "submit_region_gate_decisions",
-                "description": "Submit region gate decisions for the provided Wikidata items.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "results": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "item_qid": {"type": "string"},
-                                    "decision": {"type": "string", "enum": self.VALID_REGION_DECISIONS},
-                                    "confidence": {"type": "string", "enum": self.VALID_CONFIDENCE},
-                                    "reason": {"type": "string", "maxLength": 120}
-                                },
-                                "required": ["item_qid", "decision", "confidence", "reason"],
-                                "additionalProperties": False
-                            }
-                        }
-                    },
-                    "required": ["results"],
-                    "additionalProperties": False
-                }
-            }
-        }
-        spec["function"]["parameters"]["properties"]["results"]["minItems"] = n_items
-        spec["function"]["parameters"]["properties"]["results"]["maxItems"] = n_items
-        return spec
-    
     def create_batch_request(self, items: List[Dict], custom_id: str) -> Dict:
         """
         OpenAI Batch API 用のリクエストを生成
@@ -488,36 +361,22 @@ Reason rule:
         user_message = self.build_user_message(items)
         system_message += "\n" + self.build_output_format_instruction()
         
-        if self.task == "menu_blacklist":
-            tool_name = "submit_labels"
-        elif self.task == "macro_genre":
-            tool_name = "submit_classifications"
-        elif self.task == "region_gate":
-            tool_name = "submit_region_gate_decisions"
-        else:
-            raise ValueError(f"Unknown task: {self.task}")
-        
-        # #557 【設計】region_gate 用 max_tokens 設定（20件/req 前提、出力暴走対策）
-        body = {
-            "model": "gpt-4o-mini",  # #557 【設計】pass1 model: gpt-4o-mini
-            "messages": [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message},
-            ],
-            "tools": [self._tool_spec(len(items))],
-            "tool_choice": {"type": "function", "function": {"name": tool_name}},
-            "temperature": 0.0
-        }
-        
-        # #557 【設計】region_gate タスクのみ max_tokens を明示（20件前提で適正値）
-        if self.task == "region_gate":
-            body["max_tokens"] = 2000  # 20件 × 約80トークン/件 = 1600 + バッファ
+        tool_name = "submit_labels" if self.task == "menu_blacklist" else "submit_classifications"
         
         return {
             "custom_id": custom_id,
             "method": "POST",
             "url": "/v1/chat/completions",
-            "body": body
+            "body": {
+                "model": "gpt-4.1-mini",
+                "messages": [
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message},
+                ],
+                "tools": [self._tool_spec(len(items))],
+                "tool_choice": {"type": "function", "function": {"name": tool_name}},
+                "temperature": 0.0
+            }
         }
     
     def parse_response(self, response_obj: Dict[str, Any], expected_items: Optional[List[Dict]] = None
@@ -536,8 +395,6 @@ Reason rule:
             return self._parse_response_menu_blacklist(response_obj, expected_items)
         elif self.task == "macro_genre":
             return self._parse_response_macro_genre(response_obj, expected_items)
-        elif self.task == "region_gate":
-            return self._parse_response_region_gate(response_obj, expected_items)
         else:
             raise ValueError(f"Unknown task: {self.task}")
     
@@ -666,71 +523,6 @@ Reason rule:
                 # #550 【設計】decision=C のときのみ macro_genre を"NULL"で上書き
                 if decision == "C" and not macro_genre:
                     macro_genre = "NULL"
-                
-                validated.append(r)
-        
-            return validated, None
-
-        except Exception as e:
-            return None, ParseError("unexpected", str(e))
-    
-    def _parse_response_region_gate(self, response_obj: Dict[str, Any], expected_items: Optional[List[Dict]] = None
-                    ) -> Tuple[Optional[List[Dict]], Optional[ParseError]]:
-        """#557 用パーサー"""
-        try:
-            choice = response_obj["choices"][0]
-            msg = choice["message"]
-
-            # tool_calls がある想定
-            tool_calls = msg.get("tool_calls")
-            if not tool_calls:
-                return None, ParseError("no_tool_calls", "No tool_calls in response")
-
-            call0 = tool_calls[0]
-            fn = call0.get("function", {})
-            if fn.get("name") != "submit_region_gate_decisions":
-                return None, ParseError("wrong_function", f"Unexpected function: {fn.get('name')}")
-
-            args_str = fn.get("arguments", "")
-            try:
-                args = json.loads(args_str)
-            except Exception as e:
-                return None, ParseError("bad_arguments_json", f"Failed to parse function arguments JSON: {e}")
-
-            results = args.get("results")
-            if not isinstance(results, list):
-                return None, ParseError("missing_results", "Missing or invalid 'results'")
-
-            # 件数/順序検証
-            if expected_items is not None:
-                if len(results) != len(expected_items):
-                    return None, ParseError(
-                        "length_mismatch",
-                        f"results length {len(results)} != expected {len(expected_items)}"
-                    )
-                # item_qidが一致しているか（順序一致も担保）
-                for r, exp in zip(results, expected_items):
-                    if r.get("item_qid") != exp.get("item_qid"):
-                        return None, ParseError(
-                            "qid_mismatch",
-                            f"item_qid mismatch: {r.get('item_qid')} != {exp.get('item_qid')}"
-                        )
-
-            # 値のバリデーション
-            validated = []
-            for r in results:
-                decision = r.get("decision")
-                conf = r.get("confidence")
-                reason = r.get("reason") or ""
-                
-                if decision not in self.VALID_REGION_DECISIONS:
-                    return None, ParseError("invalid_decision", f"Invalid decision: {decision}")
-                if conf not in self.VALID_CONFIDENCE:
-                    return None, ParseError("invalid_confidence", f"Invalid confidence: {conf}")
-                if len(reason) > 120:
-                    return None, ParseError("reason_too_long", f"Reason too long: {len(reason)} chars")
-                if len(reason.split()) > 20:
-                    return None, ParseError("reason_too_many_words", f"Reason too many words: {len(reason.split())} words")
                 
                 validated.append(r)
         
