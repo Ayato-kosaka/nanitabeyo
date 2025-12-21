@@ -893,6 +893,8 @@ class BigQueryLoader:
               label_ja,
               desc_en,
               desc_ja,
+              labels_json,
+              descriptions_json,
               aliases_json,
               sitelinks_json,
               origin_qids,
@@ -901,6 +903,9 @@ class BigQueryLoader:
               tags
             FROM `{self.dataset_ref}.dish_category_catalog`
             WHERE image_url IS NOT NULL
+              -- #557 【備考】・country:JP では、 label_ja IS NOT NULL に絞る。
+              -- spaghetti bolognese 等一部漏れるが、誤差の範囲とする。
+              AND label_ja IS NOT NULL
             ORDER BY item_qid
             """
         else:
@@ -909,6 +914,8 @@ class BigQueryLoader:
               item_qid,
               label_en,
               desc_en,
+              labels_json,
+              descriptions_json,
               aliases_json,
               sitelinks_json,
               origin_qids,
@@ -928,15 +935,19 @@ class BigQueryLoader:
             item = {
                 "item_qid": row.item_qid,
                 "label_en": row.label_en,
-                "desc_en": row.desc_en
+                "desc_en": row.desc_en,
+                "labels_json": row.labels_json,
+                "descriptions_json": row.descriptions_json,
+                "aliases_json": row.aliases_json,
+                "sitelinks_json": row.sitelinks_json,
+                "origin_qids": row.origin_qids,
+                "cuisine_qids": row.cuisine_qids,
+                "roots": row.roots,
+                "tags": row.tags
             }
             if market == "country:JP":
                 item["label_ja"] = row.label_ja
                 item["desc_ja"] = row.desc_ja
-            
-            # #557 【設計】証拠は JSON で渡す（安定性重視）
-            # aliases / sitelinks / origin / cuisine / roots / tags を適切に渡す
-            # 今回は簡易版として label / desc のみ
             items.append(item)
         
         logger.info(f"Found {len(items)} items for market={market}")

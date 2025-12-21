@@ -2,7 +2,7 @@
 
 ## 概要
 
-このディレクトリには、dish_category_catalog に対して LLM（gpt-5-mini）を使って region gate（配信可否ホワイトリスト）を付与するスクリプトが含まれています。
+このディレクトリには、dish_category_catalog に対して LLM（gpt-4.1-mini）を使って region gate（配信可否ホワイトリスト）を付与するスクリプトが含まれています。
 
 チケット: #557
 
@@ -22,7 +22,7 @@
 - `region_gate_prompt.py`: market 別 system prompt 生成（scope:global / country:JP で異なる判定基準）
 - `region_gate_schema.py`: tool spec 生成と response parser（validation 含む）
 - `1_1_export_region_label_targets.py`: ターゲット抽出スクリプト
-- `1_2_prepare_region_batch_payload.py`: Batch API payload 生成スクリプト（model: gpt-5-mini）
+- `1_2_prepare_region_batch_payload.py`: Batch API payload 生成スクリプト（model: gpt-4.1-mini）
 - `1_3_load_region_llm_results.py`: 結果ロードスクリプト
 - `1_4_apply_region_llm_results.py`: 特徴量反映スクリプト
 
@@ -146,7 +146,7 @@ python3 1_2_prepare_region_batch_payload.py --market country:JP --run-id 2025121
 - market に応じた教師データ（`llm_examples_region_*.json`）を含む system プロンプトを生成
 - **market 別の system prompt**: scope:global は多市場基準、country:JP は日本語会話基準
 - **tools + tool_choice による構造化出力**で JSON破損を防ぐ
-- `temperature=0`, `max_tokens=700`, `model=gpt-5-mini`
+- `temperature=0`, `max_tokens=700`, `model=gpt-4.1-mini`
 - Batch API 用の JSONL を生成（1行1リクエスト）
 
 ### ステップ 3: OpenAI Batch API でラベリング実行
@@ -369,7 +369,7 @@ LLM ラベリング結果を保持するテーブル（既存、#548 で作成�
 - `label`: decision（'allow' / 'deny' / 'uncertain'）
 - `confidence`: 信頼度（'high' / 'medium' / 'low'）
 - `reason`: LLM の説明（英語）
-- `model`: モデル名（'gpt-5-mini'）
+- `model`: モデル名（'gpt-4.1-mini'）
 - `run_id`: バッチ実行ごとの識別子
 - `created_at`: 登録日時
 
@@ -479,7 +479,7 @@ scripts/20251213T0000_wikidata_food_graph/557_region_gate/
 ├── region_gate_prompt.py                    # system prompt 生成（market 別）
 ├── region_gate_schema.py                    # tool spec と response parser
 ├── 1_1_export_region_label_targets.py       # ステップ1: ノードエクスポート
-├── 1_2_prepare_region_batch_payload.py      # ステップ2: ペイロード生成（gpt-5-mini）
+├── 1_2_prepare_region_batch_payload.py      # ステップ2: ペイロード生成（gpt-4.1-mini）
 ├── 1_3_load_region_llm_results.py           # ステップ4: BigQuery ロード
 ├── 1_4_apply_region_llm_results.py          # ステップ5: dish_category_features_catalog 更新
 ├── llm_examples_region_global.json          # 教師データ（scope:global 用、17件）

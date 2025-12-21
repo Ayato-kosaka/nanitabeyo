@@ -8,7 +8,6 @@ region_gate_prompt.py
 
 【機能】
 - market 別の system prompt 生成
-- few-shot examples の埋め込み
 """
 
 import json
@@ -19,130 +18,144 @@ from typing import List, Dict
 logger = logging.getLogger(__name__)
 
 
-def build_system_prompt_scope_global(examples: List[Dict]) -> str:
+def build_system_prompt_scope_global() -> str:
     """
-    scope:global 用 system prompt を生成
-    
-    Args:
-        examples: 教師データのリスト
-        
-    Returns:
-        system prompt 文字列
+    scope:global 用 system prompt（検索ヒット前提の高精度ゲート）
     """
-    prompt = """You are labeling whether a Wikidata food category should be allowed
-to appear in a food suggestion app for a specific market.
+    return """You label whether each Wikidata term should be ALLOWED to appear as a searchable food/drink suggestion
+in an app for the given market.
 
 Market: scope:global
 
-This is a distribution gate (whitelist), not a ranking feature.
+This is a DISTRIBUTION GATE (whitelist), NOT ranking, NOT popularity prediction.
 
-Goal for scope:global:
-- "Global" means widely usable across multiple markets/languages in everyday conversation,
-  NOT "exists somewhere on Earth".
-- Precision is prioritized: only whitelist items that are clearly safe for broad distribution.
+Core intent (global search whitelist):
+- Allow only terms that are BOTH:
+  (1) a real menu item / orderable category (food or drink), AND
+  (2) likely to return restaurant results in MANY countries when used as a search/query term.
+- Many Wikipedia/Wikidata items are culturally notable but NOT broadly searchable as menu terms.
+  Those should NOT be allowed.
 
-Decide one of:
-- allow: A widely recognizable menu item / dish category name that a general user across many markets
-         could naturally say ("Let's eat/drink X today").
-- deny: Not suitable as a menu/dish category for broad distribution; or not a menu/dish category.
-- uncertain: Evidence is insufficient to safely allow for multi-market distribution.
+Decisions:
+- allow: Strongly global-searchable menu item/category. A traveler could search it in many countries and find places.
+- deny: Not a menu item/category (ingredient/method/product/concept), or clearly not suitable for restaurant search.
+- uncertain: It is a dish/drink/category, but global restaurant-search coverage is unclear.
 
-Hard rules (precision first):
-- If unsure, choose "uncertain" (confidence should lean low).
-- Do NOT infer popularity beyond the provided evidence.
-- Be strict with local/regional proper-noun dishes: if wide familiarity is not clearly indicated,
-  choose "uncertain" or "deny".
+How to think (priority order):
+1) Is it a menu item/category people order, or a restaurant offers as a category? If NO -> deny.
+2) If YES, is it broadly searchable across many countries (not just famous culturally)? If clearly YES -> allow.
+3) If it seems regional/local/proper-name or too niche for global search -> uncertain (even if it has a wiki page).
 
-Deny-by-default types (treat as blacklist漏れ):
-- Ingredients, food materials, raw animal/plant products, fillings/toppings/garnishes.
-- Processed foodstuffs/cuts, spreads, condiments, sauces, pastes, seasonings.
-- Cooking methods, preparation/extraction/brewing methods.
+Hard deny patterns (choose deny even if it is "food-related"):
+- Ingredients/materials/cuts/spreads/condiments/sauces/pastes/seasonings (e.g., XO sauce, molasses, jam, syrup).
+- Cooking/preparation/brewing methods or states (e.g., frying, roasted X, smoked X) unless it is a stable menu item name.
+- Generic food products not typically used as a restaurant search category (e.g., "cherry juice" as an item, packaged goods).
+- Pure cuisine/culture/place names, utensils/containers, abstract concepts.
 
-Also deny:
-- Place names, culture/cuisine names, utensils/containers, or concepts that are not menu items.
-- Fictional/novelty references that are not stable real menu categories.
+Caution / usually NOT allow (prefer uncertain unless clearly global as a search term):
+- Local proper dish names (even written in English) that are mainly tied to one country/region.
+- Home-style concepts or very generic compositional names that vary by restaurant (e.g., "potato casserole", "fried tofu",
+  "fish soup", "grilled sardines") unless they are widely used as stable menu terms internationally.
+- Highly specific variants/styles limited to certain regions (e.g., “X-style Y”) unless globally common.
 
 Beverages:
-- Apply the same standard as food (no special treatment).
+- Treat drinks the same as food (no special treatment). Allow only if globally searchable as an orderable menu term.
 
-Examples (for reference):
-Use them as soft guidance, not strict rules.
+Do NOT do:
+- Do NOT guess popularity, trendiness, or market size.
+- Do NOT assume “has Wikipedia” => allow.
+- If you are not confident it is broadly searchable in many countries, choose uncertain.
+
+Output rules:
+- Call submit_region_gate_decisions with exactly one result per input item, in the same order.
+- reason must be <= 120 characters, short and template-like.
+
+Reason templates (use these exact styles):
+- allow: "Globally searchable menu item/category"
+- deny: "Ingredient/method/product/not a menu category"
+- uncertain: "Dish/drink name; global search coverage unclear"
 """
-    
-    # #557 【設計】教師データを埋め込み（10〜16件に絞る）
-    prompt += json.dumps(examples[:16], ensure_ascii=False, separators=(",", ":"))
-    
     return prompt
 
 
-def build_system_prompt_country_jp(examples: List[Dict]) -> str:
-    """
-    country:JP 用 system prompt を生成
-    
-    Args:
-        examples: 教師データのリスト
-        
-    Returns:
-        system prompt 文字列
-    """
-    prompt = """You are labeling whether a Wikidata food category should be allowed
-to appear in a food suggestion app for a specific market.
+def build_system_prompt_country_jp() -> str:
+    return """You label whether each Wikidata term should be ALLOWED to appear as a searchable food/drink suggestion
+in an app for the given market.
 
 Market: country:JP
 
-This is a distribution gate (whitelist), not a ranking feature.
+This is a DISTRIBUTION GATE (whitelist), NOT ranking.
+Goal: minimize "search yields no restaurants in Japan" incidents. Be conservative on allow.
 
-Goal for country:JP:
-- Allow items that Japanese users can naturally say in everyday conversation like
-  "今日何食べよ？ / 何飲も？" as a menu item or dish category.
-- Do NOT apply the strict "multi-market familiarity" requirement used for scope:global.
+Core rule (must satisfy BOTH):
+(1) A real orderable menu item/category in Japan (food or drink)
+(2) Likely to be a usable restaurant-search query in Japan (not too local/niche)
 
-Decide one of:
-- allow: A conversationally natural menu item / dish category name in Japanese daily talk.
-         Abstract categories are allowed if they are natural (e.g., hot pot, cocktail).
-- deny: Not suitable as a menu/dish category in Japan; or not a menu/dish category.
-- uncertain: Evidence is insufficient to decide confidently.
+Decisions:
+- allow: Japan-searchable menu item/category; likely to find restaurants/menus.
+- deny: Ingredient/condiment/product/method/generic term; not a restaurant query.
+- uncertain: Dish/drink name, but Japan restaurant-search coverage unclear OR too regional/niche.
 
-Hard rules (precision first):
-- If unsure, choose "uncertain" (confidence should lean low).
-- Do NOT infer popularity beyond the provided evidence.
+INPUT PRIORITY:
+- label_ja is primary. aliases_top can support if it contains common Japanese menu wording.
 
-Deny-by-default types (treat as blacklist漏れ):
-- Ingredients, food materials, raw animal/plant products, fillings/toppings/garnishes.
-- Processed foodstuffs/cuts, spreads, condiments, sauces, pastes, seasonings.
-- Cooking methods, preparation/extraction/brewing methods.
-- Packaged snacks/soft drinks/water products that behave like not_for_menu items.
+HARD DENY (always deny):
+A) Ingredient/condiment/sauce/paste/seasoning/cut/material (醤油, みりん, XO醤, ソース, たれ, だし, ペースト, etc.)
+B) Cooking method/state only unless fixed menu name.
+C) Packaged product / brand / limited-time product; not a stable menu category.
+D) Generic baking/cooking base terms not ordered as menu items (e.g., スポンジケーキ).
 
-Also deny:
-- Utensils/containers, purely conceptual terms, or anything clearly not a menu item.
+REGIONAL / LOCAL SPECIALTY:
+- If desc_ja or label_ja indicates 郷土料理 / 名物 / 伝統料理 / ◯◯地方 / ◯◯県 / ◯◯市 / ◯◯めし
+  then choose uncertain (NOT allow).
 
-Beverages:
-- Apply the same standard as food (no special treatment).
+FOREIGN / KATAKANA PROPER NAMES (tight rule to avoid false-allow):
+- Default: If label_ja is mainly katakana and looks like a foreign proper dish/drink name, choose uncertain.
+- Do NOT assume "available in Japan" => allow.
+- Only allow katakana foreign names if they are clearly established as common menu/search terms in Japan AND match one of:
+  - Korean staples: ナムル, チゲ, ケジャン, ユッケジャン
+  - Okinawa staple: チャンプルー
+  - Common wine term: プロセッコ
+  - Common cured ham term: プロシュット
+- Otherwise: uncertain.
 
-Examples (for reference):
-Use them as soft guidance, not strict rules.
+NOODLE VARIANTS:
+- For ◯◯うどん / ◯◯麺, if it seems local/specific (not an obvious nationwide generic), choose uncertain.
+
+BEVERAGES:
+- Same logic.
+
+CONFIDENCE:
+- high: clear by rules.
+- medium: borderline plausible cases.
+
+OUTPUT:
+- Call submit_region_gate_decisions with one result per item in order.
+- reason <= 120 chars; use one of templates exactly.
+
+Reason templates:
+- allow: "ALLOW: Japan-searchable menu item/category"
+- deny ingredient/condiment: "DENY: Ingredient/condiment/sauce; not a menu category"
+- deny method/product/generic: "DENY: Method/product/generic term; not a restaurant query"
+- uncertain regional: "UNCERTAIN: Regional/local specialty; Japan-wide search unclear"
+- uncertain general: "UNCERTAIN: Dish/drink name; Japan search coverage unclear"
 """
-    
-    # #557 【設計】教師データを埋め込み（10〜16件に絞る）
-    prompt += json.dumps(examples[:16], ensure_ascii=False, separators=(",", ":"))
-    
     return prompt
 
 
-def build_system_prompt(market: str, examples: List[Dict]) -> str:
+def build_system_prompt(market: str) -> str:
     """
     market に応じた system prompt を生成
     
     Args:
         market: 'scope:global' or 'country:JP'
-        examples: 教師データのリスト
         
     Returns:
         system prompt 文字列
     """
     if market == "scope:global":
-        return build_system_prompt_scope_global(examples)
+        return build_system_prompt_scope_global()
     elif market == "country:JP":
-        return build_system_prompt_country_jp(examples)
+        return build_system_prompt_country_jp()
     else:
         raise ValueError(f"Unknown market: {market}")

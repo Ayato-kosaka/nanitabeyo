@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 # 固定値
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
-MODEL_NAME = "gpt-5-mini"  # #557 【設計】pass1 model: gpt-5-mini
+MODEL_NAME = "gpt-4.1-mini"  # #557 【設計】pass1 model: gpt-4.1-mini
 
 # 入出力先
 INPUT_DIR = Path("/tmp/wikidata_food_region_gate")
