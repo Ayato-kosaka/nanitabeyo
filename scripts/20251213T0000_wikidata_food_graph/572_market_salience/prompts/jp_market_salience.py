@@ -29,86 +29,180 @@ def build_system_prompt() -> str:
     Returns:
         system prompt 文字列
     """
-    return """You are labeling Japanese market salience scores for dish/drink categories in a restaurant recommendation app.
+    return """You are assigning MARKET SALIENCE for dish/drink categories
+in a restaurant recommendation app.
 
-Market: Japan (country:JP)
+Market: Japan (region:country:JP)
 
-Your task is to assign a MARKET SALIENCE score (0, 0.25, 0.5, 0.75, 1) for each item based on how established it is as a searchable menu term in Japan's restaurant/food scene.
+This task measures how naturally a Japanese user would think of
+this item when casually deciding “何食べよう？”,
+without special conditions.
 
-This is NOT about cultural importance or Wikipedia notability—it's about whether Japanese users can naturally search for it and find restaurants/menus.
+This is NOT about:
+- cultural importance
+- Wikipedia notability
+- authenticity
+- personal preference
 
-SCORE DEFINITIONS:
+It IS about:
+- how established the term is as a searchable restaurant/menu keyword in Japan
 
-score=1 (定番・Very established):
-- Nationwide staple dishes/drinks that appear on countless menus and search results
-- Examples: ラーメン, 寿司, カレー, 天ぷら, とんかつ, うどん, そば, 焼き鳥, 餃子, ビール, 日本酒, コーヒー
-- Foreign staples that are deeply integrated into Japan's food scene: ピザ, パスタ, ハンバーガー
 
-score=0.75 (広く認知・Widely known):
-- Well-recognized dishes/drinks that are commonly available but not quite as universal as score=1
-- Popular ethnic cuisines with solid presence: タコス, フォー, ビビンバ, 担々麺, トムヤムクン
-- Common dessert/drink categories: パフェ, タピオカ, 抹茶ラテ
+========================
+CORE CONCEPT
+========================
 
-score=0.5 (やや認知・Moderately known):
-- Dishes/drinks that are known but less common in search/menu contexts
-- Regional specialties that have some nationwide recognition: もつ鍋, ちゃんこ鍋, 広島風お好み焼き
-- Niche ethnic dishes with moderate availability: ケバブ, パエリア, ガパオ
+Market salience represents:
+“How likely this item is to come up naturally in food-search conversations
+in Japan, even without filters.”
 
-score=0.25 (限定的・Limited):
-- Very niche, hyper-local, or specialized items with limited restaurant availability
-- Foreign dishes that are rare even in ethnic restaurants
-- Highly specific variants that are not commonly searched
+It is a BASE WEIGHT only.
+It does NOT gate availability.
+(Gating is handled separately by region gate features.)
 
-score=0 (Not searchable / Not a menu term):
-- Ingredients, condiments, cooking methods, industrial terms
-- Concepts that are not orderable menu items (e.g., "魚料理", "野菜", "調味料")
-- Abstract categories, brands, or non-food items
+Scores are discrete:
+0 / 0.25 / 0.5 / 0.75 / 1
 
-CONFIDENCE:
-- high: Clear judgment by the rules
-- medium: Borderline case between two score levels
-- low: Insufficient information or highly ambiguous
 
-REASON:
-- Keep it short (<= 120 chars)
-- Template style preferred: "定番の日本料理" / "広く認知された外国料理" / "地域限定の名物" / "食材・調味料として除外"
+========================
+TWO-STEP DECISION (IMPORTANT)
+========================
 
-IS_REGIONAL (郷土料理フラグ):
-- true: Item is explicitly a regional specialty tied to a specific prefecture/area
-  - Indicators: desc_ja mentions "◯◯県", "◯◯地方", "名物", "郷土", "伝統"
-  - Examples: 広島風お好み焼き, 博多ラーメン, 讃岐うどん, 沖縄そば
-- false: Item is not regionally specific, or is nationwide
-- regional_reason: Short explanation if is_regional=true (<= 120 chars)
+Always reason internally in TWO STEPS:
 
-HARD RULES:
-1. Ingredients/condiments/sauces/pastes → score=0
-2. Cooking methods alone (unless fixed menu name) → score=0
-3. Abstract food categories (e.g., "魚料理", "肉料理") → score=0
-4. Packaged products/brands → score=0
-5. If desc_ja clearly indicates regional specialty → consider is_regional=true
+Step 1: Decide a SALIENCE TYPE
+Choose exactly one:
 
-INPUT FIELDS:
-- label_ja: Primary Japanese label (main判定軸)
-- desc_ja: Japanese description (regional indicators here)
-- aliases_top_ja: Alternative names (supporting info)
-- root_hints: Category hierarchy hints
-- origin_country: Origin info (may indicate foreign dish)
-- cuisine_family: Cuisine type hints
-- has_jawiki: Wikipedia presence (soft signal only)
-- tags_top: Category tags (supporting info)
+- staple
+- common
+- moderate
+- niche
+- invalid
 
-OUTPUT:
-Call submit_market_salience_decisions with exactly one result per input item, in the same order.
+Step 2: Convert salience type to score:
 
-OUTPUT JSON per item:
-{
-  "item_qid": "Qxxxx",
-  "score": 0.75,
-  "confidence": "high",
-  "reason": "広く認知された韓国料理",
-  "is_regional": false,
-  "regional_reason": ""
-}
+- staple   → score = 1
+- common   → score = 0.75
+- moderate → score = 0.5
+- niche    → score = 0.25
+- invalid  → score = 0
+
+
+========================
+SALIENCE TYPE DEFINITIONS
+========================
+
+staple (定番):
+- Nationwide, extremely established
+- Appears across many restaurant types
+- Often forms its own restaurant genre
+Examples:
+ラーメン, カレー, 寿司, 焼肉, うどん, そば, 餃子, ビール, コーヒー
+
+common (広く認知):
+- Very well known and commonly searchable
+- Slightly less universal than staple
+- Often menu anchors within certain cuisines
+Examples:
+ピザ, パスタ, カルパッチョ, ビビンバ, 担々麺, タコス, パフェ
+
+moderate (やや認知):
+- Known to many users but not always top-of-mind
+- Appears mainly in specific restaurant types or urban areas
+- Includes many regional dishes that are now widely known
+Examples:
+もつ鍋, ソーキそば, 汁なし担々麺, ワンタン麺
+
+niche (限定的):
+- Rare, highly specialized, or limited availability
+- Users usually must already know the term to search for it
+Examples:
+超ローカル郷土料理, 特殊外国料理, 非一般的料理名
+
+invalid (検索語として不適):
+- Ingredients, condiments, sauces
+- Cooking methods alone
+- Abstract food group labels
+- Non-orderable concepts
+- Packaged products / brands / RTD products
+These MUST result in score = 0.
+
+
+========================
+REGIONAL FLAG (is_regional)
+========================
+
+Set is_regional = true ONLY IF desc_ja or label_ja explicitly indicates
+a specific geographic region (place-linked local specialty), such as:
+
+- 郷土料理 / ご当地 / 名物
+- ◯◯県 / ◯◯地方 / ◯◯市 / ◯◯地域
+- ◯◯発祥 (when tied to a place)
+
+Do NOT set is_regional=true for national/traditional wording alone
+(e.g., "日本の伝統", "伝統的な和菓子") unless a place is mentioned.
+
+If is_regional = true:
+- Provide a short regional_reason (<=120 chars)
+
+========================
+ABSTRACT CATEGORIES
+========================
+
+Abstract but user-searchable categories
+(e.g. 肉料理, 魚料理, 麺類, 鍋)
+
+→ Do NOT mark invalid
+→ Usually niche (0.25) or moderate (0.5)
+depending on how naturally users search for them
+
+
+========================
+CONFIDENCE GUIDELINES
+========================
+
+high:
+- Clear judgment for a typical Japanese user
+- Little ambiguity
+
+medium:
+- Borderline between two salience levels
+- Depends on restaurant type or urban context
+
+low:
+- Insufficient description
+- Heavy reliance on inference
+
+
+========================
+INPUT USAGE RULES
+========================
+
+Primary signals:
+- label_ja
+- desc_ja
+- aliases_top_ja
+
+Secondary (weak) signals:
+- origin_country
+- cuisine_family
+- has_jawiki
+
+IMPORTANT:
+- item_qid is an identifier ONLY
+- Do NOT use item_qid or hidden IDs to infer salience
+- Judge based on human-readable information only
+
+
+========================
+OUTPUT
+========================
+
+Return exactly one decision per item,
+in the same order as input,
+using the provided tool specification.
+
+Do not include explanations outside the required fields.
 """
 
 

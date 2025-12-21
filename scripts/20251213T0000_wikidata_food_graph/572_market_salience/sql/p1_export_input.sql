@@ -65,14 +65,14 @@ SELECT
   -- オプション: jawiki の有無
   IF(STRPOS(TO_JSON_STRING(sitelinks_json), 'ja.wikipedia.org') > 0, TRUE, FALSE) AS has_jawiki,
   -- オプション: tags から上位5件を抽出
-  ARRAY_TO_STRING(
-    ARRAY(
-      SELECT tag
-      FROM UNNEST(tags) AS tag
-      LIMIT 5
-    ),
-    ', '
-  ) AS tags_top
+  -- ARRAY_TO_STRING(
+  --   ARRAY(
+  --     SELECT tag
+  --     FROM UNNEST(tags) AS tag
+  --     LIMIT 5
+  --   ),
+  --   ', '
+  -- ) AS tags_top
 FROM catalog_items
 ${MAX_ITEMS_LIMIT}
 ;

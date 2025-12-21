@@ -88,7 +88,8 @@ def create_batch_request(items: List[Dict], custom_id: str, model: str) -> Dict:
                 "type": "function",
                 "function": {"name": "submit_market_salience_decisions"}
             },
-            "temperature": 0.0
+            # temperature' does not support 0 with gpt-5-mini
+            "temperature": None if model == 'gpt-5-mini' else 0,
         }
     }
 

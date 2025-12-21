@@ -53,13 +53,13 @@ SELECT
   ARRAY_TO_STRING(origin_qids, ', ') AS origin_country,
   ARRAY_TO_STRING(cuisine_qids, ', ') AS cuisine_family,
   IF(STRPOS(TO_JSON_STRING(sitelinks_json), 'ja.wikipedia.org') > 0, TRUE, FALSE) AS has_jawiki,
-  ARRAY_TO_STRING(
-    ARRAY(
-      SELECT tag
-      FROM UNNEST(tags) AS tag
-      LIMIT 5
-    ),
-    ', '
-  ) AS tags_top
+  -- ARRAY_TO_STRING(
+  --   ARRAY(
+  --     SELECT tag
+  --     FROM UNNEST(tags) AS tag
+  --     LIMIT 5
+  --   ),
+  --   ', '
+  -- ) AS tags_top
 FROM catalog_items
 ;
