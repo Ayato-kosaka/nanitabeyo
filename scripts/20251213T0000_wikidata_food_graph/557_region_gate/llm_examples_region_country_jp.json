@@ -1,0 +1,148 @@
+[
+	{
+		"label_en": "ramen",
+		"label_ja": "ラーメン",
+		"desc_en": "Japanese noodle soup dish",
+		"desc_ja": "日本の麺料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A staple menu item in Japan, naturally used in everyday food conversation."
+	},
+	{
+		"label_en": "sushi",
+		"label_ja": "寿司",
+		"desc_en": "portioned prepared vinegared rice topped or rolled with other ingredients",
+		"desc_ja": "酢飯を使った日本料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A quintessential Japanese dish category suitable for distribution in Japan."
+	},
+	{
+		"label_en": "tonkatsu",
+		"label_ja": "とんかつ",
+		"desc_en": "Japanese dish consisting of a breaded and deep-fried pork cutlet",
+		"desc_ja": "豚肉のカツレツ",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A common menu item name that users can naturally request in Japan."
+	},
+	{
+		"label_en": "pizza",
+		"label_ja": "ピザ",
+		"desc_en": "Italian universal popular dish with a flat dough-based base and toppings",
+		"desc_ja": "イタリア料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A globally popular dish widely available and requested in Japan."
+	},
+	{
+		"label_en": "curry",
+		"label_ja": "カレー",
+		"desc_en": "dish with sauce or gravy seasoned with curry powder or spices",
+		"desc_ja": "カレー粉やスパイスで味付けした料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A fundamental menu category in Japanese food conversation."
+	},
+	{
+		"label_en": "okonomiyaki",
+		"label_ja": "お好み焼き",
+		"desc_en": "Japanese savory pancake",
+		"desc_ja": "日本の粉もの料理",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A well-known Japanese dish suitable for menu selection in Japan."
+	},
+
+	{
+		"label_en": "mirin",
+		"label_ja": "みりん",
+		"desc_en": "Japanese sweet rice wine used in cooking",
+		"desc_ja": "日本料理の調味料",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A seasoning/condiment is not a dish or menu category for this whitelist gate."
+	},
+	{
+		"label_en": "katsuobushi",
+		"label_ja": "鰹節",
+		"desc_en": "dried bonito flakes",
+		"desc_ja": "乾燥させた鰹",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A dried ingredient used as topping or dashi base, not a menu item category."
+	},
+	{
+		"label_en": "rice",
+		"label_ja": "米",
+		"desc_en": "cereal grain",
+		"desc_ja": "穀物",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A raw ingredient/grain is not a dish or menu category."
+	},
+	{
+		"label_en": "soy sauce",
+		"label_ja": "醤油",
+		"desc_en": "liquid condiment of Chinese origin",
+		"desc_ja": "調味料",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A condiment is not a dish or menu category for this whitelist gate."
+	},
+	{
+		"label_en": "drip coffee",
+		"label_ja": "ドリップコーヒー",
+		"desc_en": "coffee brewing method",
+		"desc_ja": "コーヒーの抽出方法",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A brewing/extraction method label is not a dish category for this gate."
+	},
+	{
+		"label_en": "Pocky",
+		"label_ja": "ポッキー",
+		"desc_en": "Japanese snack food brand",
+		"desc_ja": "日本の菓子ブランド",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A branded snack product is not a dish category for menu selection."
+	},
+
+	{
+		"label_en": "funazushi",
+		"label_ja": "鮒寿司",
+		"desc_en": "traditional fermented crucian carp sushi from Shiga Prefecture",
+		"desc_ja": "滋賀県の伝統的な発酵寿司",
+		"decision": "uncertain",
+		"confidence": "low",
+		"reason": "A highly regional specialty with limited general familiarity even within Japan."
+	},
+	{
+		"label_en": "imoni",
+		"label_ja": "芋煮",
+		"desc_en": "Japanese taro soup dish | origin_hint=Tohoku region",
+		"desc_ja": "東北地方の郷土料理",
+		"decision": "uncertain",
+		"confidence": "medium",
+		"reason": "A regional dish with moderate recognition but not universally familiar across Japan."
+	},
+	{
+		"label_en": "chankonabe",
+		"label_ja": "ちゃんこ鍋",
+		"desc_en": "Japanese stew commonly eaten in sumo wrestling stables",
+		"desc_ja": "相撲部屋で食べられる鍋料理",
+		"decision": "uncertain",
+		"confidence": "medium",
+		"reason": "Known but niche; uncertain if it reaches everyday food conversation threshold."
+	},
+	{
+		"label_en": "butter tea",
+		"label_ja": "バター茶",
+		"desc_en": "drink of the Tibetan people",
+		"desc_ja": "チベットの飲み物",
+		"decision": "uncertain",
+		"confidence": "low",
+		"reason": "An ethnic beverage with very limited familiarity in general Japanese conversation."
+	}
+]

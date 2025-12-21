@@ -1,0 +1,123 @@
+[
+	{
+		"label_en": "sushi",
+		"desc_en": "portioned prepared vinegared rice topped or rolled with other ingredients | origin_hint=Japan",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A globally familiar menu item name used naturally in everyday food conversation."
+	},
+	{
+		"label_en": "pizza",
+		"desc_en": "Italian universal popular dish with a flat dough-based base and toppings | origin_hint=Italy",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A widely recognized dish category suitable for broad multi-market distribution."
+	},
+	{
+		"label_en": "taco",
+		"desc_en": "Mexican dish consisting of a tortilla folded or rolled around a filling | origin_hint=Mexico",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A common menu item name that users can naturally request."
+	},
+	{
+		"label_en": "fried chicken",
+		"desc_en": "dish consisting of chicken pieces which have been coated and fried",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A straightforward menu item category commonly used in everyday food talk."
+	},
+	{
+		"label_en": "tomato soup",
+		"desc_en": "soup basically made of tomato pulp",
+		"decision": "allow",
+		"confidence": "high",
+		"reason": "A simple soup menu category name that is broadly understandable."
+	},
+
+	{
+		"label_en": "peanut butter",
+		"desc_en": "spread made primarily from ground dry roasted peanuts",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A spread/condiment is not a dish or menu category for this whitelist gate."
+	},
+	{
+		"label_en": "doubanjiang",
+		"desc_en": "Chinese bean paste",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A paste/seasoning is a condiment, not a menu item category to recommend."
+	},
+	{
+		"label_en": "ham",
+		"desc_en": "processed pork leg foodstuff",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "A processed foodstuff/cut is ingredient-like and not a dish category."
+	},
+	{
+		"label_en": "donkey milk",
+		"desc_en": "milk produced by female donkeys",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "Animal milk as a raw product is an ingredient/material, not a dish category."
+	},
+	{
+		"label_en": "Chikuwabu",
+		"desc_en": "Japanese food item frequently eaten as an ingredient in oden",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "An ingredient/oden component is not a standalone menu category for global gating."
+	},
+	{
+		"label_en": "espresso",
+		"desc_en": "strong type of coffee made using hot water under pressure",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "An extraction/preparation method label is not a dish category for this gate."
+	},
+	{
+		"label_en": "cold brew tea",
+		"desc_en": "brewing method and product",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "Brewing methods are not menu item categories and should be excluded."
+	},
+	{
+		"label_en": "Laputa bread",
+		"desc_en": "recreated dish from a fictional work",
+		"decision": "deny",
+		"confidence": "high",
+		"reason": "Fictional/novelty references are not stable real menu categories for distribution."
+	},
+
+	{
+		"label_en": "shimotsukare",
+		"desc_en": "Japanese vegetable dish | origin_hint=Japan",
+		"decision": "uncertain",
+		"confidence": "low",
+		"reason": "A local dish name with no evidence here of wide multi-market familiarity."
+	},
+	{
+		"label_en": "awamori",
+		"desc_en": "alcoholic beverage of Okinawa | origin_hint=Japan (Okinawa)",
+		"decision": "uncertain",
+		"confidence": "low",
+		"reason": "A regional beverage lacks evidence of broad global conversational familiarity."
+	},
+	{
+		"label_en": "suancaiyu",
+		"desc_en": "dish",
+		"decision": "uncertain",
+		"confidence": "low",
+		"reason": "The description is too generic to safely whitelist for scope:global."
+	},
+	{
+		"label_en": "Pom",
+		"desc_en": "oven dish | origin_hint=Suriname",
+		"decision": "uncertain",
+		"confidence": "low",
+		"reason": "The evidence is too vague to judge suitability for global distribution."
+	}
+]
