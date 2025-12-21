@@ -113,6 +113,8 @@ def main():
         placeholder = f"${{{key}}}"
         aggregate_query = aggregate_query.replace(placeholder, str(value))
     
+    aggregate_query = aggregate_query.strip().rstrip(";")
+    
     publish_params = {
         "DATASET": config['dataset'],
         "FEATURE_KEY": config['market_key'],
