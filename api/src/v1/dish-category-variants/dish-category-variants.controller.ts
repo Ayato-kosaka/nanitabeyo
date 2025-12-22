@@ -26,7 +26,7 @@ import {
 } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 
@@ -45,7 +45,7 @@ export class DishCategoryVariantsController {
   /*                    GET /v1/dish-category-variants                  */
   /* ------------------------------------------------------------------ */
   @Get()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '料理カテゴリ表記揺れ取得' })
   @ApiQuery({
@@ -66,7 +66,7 @@ export class DishCategoryVariantsController {
   /*                    POST /v1/dish-category-variants                 */
   /* ------------------------------------------------------------------ */
   @Post()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: '料理カテゴリ表記揺れ登録' })
   @ApiResponse({ status: 201, description: '登録成功' })

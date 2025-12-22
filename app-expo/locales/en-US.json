@@ -49,13 +49,16 @@
 			"fetchLocation": "Failed to fetch location",
 			"getCurrentLocation": "Failed to get current location",
 			"noLocationSelected": "Please select a location",
+			"noTimeSlotSelected": "Please select a time slot",
+			"noSceneSelected": "Please select a scene",
 			"searchFailed": "Search failed"
 		},
 		"sections": {
 			"location": "Where to search?",
 			"time": "What time?",
-			"scene": "What occasion?",
-			"mood": "What's your mood?",
+			"scene": "Who are you going with?",
+			"mood": "How hungry are you?",
+			"taste": "What flavors?",
 			"distance": "How far?",
 			"budget": "Price range?",
 			"restrictions": "Restrictions"
@@ -69,7 +72,7 @@
 		},
 		"loading": "Searching...",
 		"advancedToggle": {
-			"open": "Advanced search",
+			"open": "More options",
 			"close": "Close advanced search"
 		},
 		"labels": {
@@ -100,13 +103,16 @@
 		"sceneOptions": {
 			"solo": "Solo",
 			"date": "Date",
-			"group": "With others",
-			"largeGroup": "Large group",
-			"tourism": "Tourism"
+			"friends": "With friends",
+			"family": "With family",
+			"drinking": "Drinks/Party"
 		},
 		"moodOptions": {
-			"hearty": "Hearty",
 			"light": "Light",
+			"normal": "Regular",
+			"heavy": "Hearty"
+		},
+		"tasteOptions": {
 			"sweet": "Sweet",
 			"spicy": "Spicy",
 			"healthy": "Healthy",

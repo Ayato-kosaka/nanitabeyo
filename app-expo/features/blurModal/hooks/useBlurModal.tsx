@@ -151,7 +151,7 @@ export function useBlurModal({
 										]}
 									/>
 								) : (
-									<BlurView intensity={intensity} style={StyleSheet.absoluteFill} />
+									<BlurView tint={"light"} intensity={intensity} style={StyleSheet.absoluteFill} />
 								)}
 							</Pressable>
 

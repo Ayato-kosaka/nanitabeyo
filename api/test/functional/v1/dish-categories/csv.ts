@@ -234,7 +234,6 @@ export function createTestResults(
     timeSlot: request.timeSlot,
     scene: request.scene,
     mood: request.mood,
-    restrictions: request.restrictions,
     languageTag: request.languageTag,
 
     // Response summary

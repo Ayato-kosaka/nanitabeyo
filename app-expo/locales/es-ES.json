@@ -49,13 +49,16 @@
 			"fetchLocation": "No se pudo obtener la ubicación",
 			"getCurrentLocation": "No se pudo obtener la ubicación actual",
 			"noLocationSelected": "Seleccione una ubicación",
+			"noTimeSlotSelected": "Seleccione un horario",
+			"noSceneSelected": "Seleccione una escena",
 			"searchFailed": "La búsqueda falló"
 		},
 		"sections": {
 			"location": "¿Dónde buscar?",
 			"time": "¿En qué horario?",
-			"scene": "¿Para qué ocasión?",
-			"mood": "¿Cómo te sientes?",
+			"scene": "¿Con quién vas?",
+			"mood": "¿Cuánta hambre tienes?",
+			"taste": "¿Qué sabores?",
 			"distance": "¿Qué distancia?",
 			"budget": "¿Presupuesto?",
 			"restrictions": "Restricciones"
@@ -69,7 +72,7 @@
 		},
 		"loading": "Buscando...",
 		"advancedToggle": {
-			"open": "Búsqueda avanzada",
+			"open": "Más opciones",
 			"close": "Cerrar búsqueda avanzada"
 		},
 		"labels": {
@@ -100,13 +103,16 @@
 		"sceneOptions": {
 			"solo": "Solo",
 			"date": "Cita",
-			"group": "Con otros",
-			"largeGroup": "Grupo grande",
-			"tourism": "Turismo"
+			"friends": "Con amigos",
+			"family": "Con familia",
+			"drinking": "Fiesta/Copas"
 		},
 		"moodOptions": {
-			"hearty": "Abundante",
 			"light": "Ligero",
+			"normal": "Normal",
+			"heavy": "Abundante"
+		},
+		"tasteOptions": {
 			"sweet": "Dulce",
 			"spicy": "Picante",
 			"healthy": "Saludable",

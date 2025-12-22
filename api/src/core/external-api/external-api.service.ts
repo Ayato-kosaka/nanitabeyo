@@ -8,7 +8,6 @@ import { env } from '../config/env';
 import { AppLoggerService } from '../logger/logger.service';
 import { CreateExternalApiInput } from '../logger/logger.types';
 import { google } from '@googlemaps/places/build/protos/protos';
-import { InputJsonValue } from '../../../../shared/prisma/runtime/library';
 import {
   PhotoMediaBinary,
   PhotoMediaJson,
@@ -258,7 +257,7 @@ export class ExternalApiService {
         api_name: 'Google Places Text Search API',
         endpoint,
         method: 'POST',
-        request_payload: payload as NonNullable<InputJsonValue>,
+        request_payload: payload,
         function_name: 'callPlaceSearchText',
         customHeaders: {
           'X-Goog-Api-Key': apiKey,
@@ -404,7 +403,7 @@ export class ExternalApiService {
         api_name: 'Google Places Autocomplete API',
         endpoint,
         method: 'POST',
-        request_payload: payload as NonNullable<InputJsonValue>,
+        request_payload: payload,
         function_name: 'callPlacesAutocomplete',
         customHeaders: {
           'X-Goog-Api-Key': apiKey,

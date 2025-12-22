@@ -185,10 +185,6 @@ function generateRandomCombinations(
     params.timeSlot = getRandomElement(TEST_PARAMETERS.timeSlots);
     params.scene = getRandomElement(TEST_PARAMETERS.scenes);
     params.mood = getRandomElement(TEST_PARAMETERS.moods);
-    const restrictionsArray = getRandomElement(TEST_PARAMETERS.restrictions);
-    if (restrictionsArray.length > 0) {
-      params.restrictions = [...restrictionsArray];
-    }
 
     combinations.push(params);
   }
@@ -237,15 +233,6 @@ function generateStratifiedCombinations(
         }
         if (variation & 4) {
           params.mood = TEST_PARAMETERS.moods[i % TEST_PARAMETERS.moods.length];
-        }
-        if (variation & 8) {
-          const restrictionsArray =
-            TEST_PARAMETERS.restrictions[
-              i % TEST_PARAMETERS.restrictions.length
-            ];
-          if (restrictionsArray.length > 0) {
-            params.restrictions = [...restrictionsArray];
-          }
         }
 
         combinations.push(params);

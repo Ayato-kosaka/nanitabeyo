@@ -53,7 +53,7 @@ export class RestaurantsService {
     private readonly locationsService: LocationsService,
     private readonly cloudTasksService: CloudTasksService,
     private readonly storageService: StorageService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*              GET /v1/restaurants/search (nearby restaurant search)               */
@@ -143,7 +143,7 @@ export class RestaurantsService {
       } catch (error) {
         throw new Error(
           'Failed to determine restaurant language code: ' +
-          (error as Error).message,
+            (error as Error).message,
         );
       }
 
@@ -299,9 +299,9 @@ export class RestaurantsService {
         ...convertPrismaToSupabase_Restaurants(restaurant),
         imageUrls: imageSignedUrl
           ? {
-            sm: imageSignedUrl,
-            md: imageSignedUrl,
-          }
+              sm: imageSignedUrl,
+              md: imageSignedUrl,
+            }
           : undefined,
       },
       meta: {

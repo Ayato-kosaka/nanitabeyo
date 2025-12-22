@@ -51,7 +51,7 @@ import {
 } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { JwtAuthGuard, OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthUserGuard, AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 
@@ -71,7 +71,7 @@ export class UsersController {
   /*                        GET /v1/users/:id                           */
   /* ------------------------------------------------------------------ */
   @Get(':id')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'ユーザープロフィール取得' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -87,7 +87,7 @@ export class UsersController {
   /*                        POST /v1/users/me                           */
   /* ------------------------------------------------------------------ */
   @Post('/me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'ユーザープロフィール更新' })
@@ -108,7 +108,7 @@ export class UsersController {
   /*                   GET /v1/users/:id/dish-reviews                  */
   /* ------------------------------------------------------------------ */
   @Get(':id/dish-reviews')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レビューした料理投稿一覧' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -135,7 +135,7 @@ export class UsersController {
   /*                GET /v1/users/me/liked-dish-media                  */
   /* ------------------------------------------------------------------ */
   @Get('me/liked-dish-media')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '自分がいいねした料理投稿一覧' })
   @ApiQuery({
@@ -162,7 +162,7 @@ export class UsersController {
   /*                     GET /v1/users/me/payouts                      */
   /* ------------------------------------------------------------------ */
   @Get('me/payouts')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '自分の収益一覧' })
@@ -184,7 +184,7 @@ export class UsersController {
   /*               GET /v1/users/me/restaurant-bids                    */
   /* ------------------------------------------------------------------ */
   @Get('me/restaurant-bids')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '自分の入札履歴一覧' })
@@ -206,7 +206,7 @@ export class UsersController {
   /*             GET /v1/users/me/saved-dish-categories                */
   /* ------------------------------------------------------------------ */
   @Get('me/saved-dish-categories')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '自分の保存カテゴリ一覧' })
   @ApiQuery({
@@ -230,7 +230,7 @@ export class UsersController {
   /*               GET /v1/users/me/saved-dish-media                   */
   /* ------------------------------------------------------------------ */
   @Get('me/saved-dish-media')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '保存済み料理投稿一覧' })
   @ApiQuery({

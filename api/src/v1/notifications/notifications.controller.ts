@@ -31,7 +31,7 @@ import {
   UnreadCountResponse,
 } from '@shared/v1/res';
 
-import { JwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthUserGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 import { NotificationsService } from './notifications.service';
@@ -46,7 +46,7 @@ export class NotificationsController {
   /*                      GET /v1/notifications                         */
   /* ------------------------------------------------------------------ */
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
@@ -86,7 +86,7 @@ export class NotificationsController {
   /*              POST /v1/notifications/mark-all-read                  */
   /* ------------------------------------------------------------------ */
   @Post('mark-all-read')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '通知を一括既読（カーソル更新）' })
   @ApiResponse({ status: 200, description: '既読成功' })
@@ -100,7 +100,7 @@ export class NotificationsController {
   /*              GET /v1/notifications/unread-count                    */
   /* ------------------------------------------------------------------ */
   @Get('unread-count')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: '未読通知数を取得（thread_updated_at > last_read_at）',

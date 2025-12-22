@@ -16,7 +16,7 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 // 認証
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard, PermissionGuard } from '../../core/auth/auth.guard';
 
 // DTO / Response
 import { UpdateDishCategoryImagesDto } from '@shared/v1/dto';
@@ -28,6 +28,7 @@ import {
 
 // Service
 import { ToolsDishCategoriesService } from './tools-dish-categories.service';
+import { Permissions } from 'src/core/auth/auth.utils';
 
 @ApiTags('Tools - DishCategories')
 @Controller('tools/dish-categories')
@@ -41,7 +42,8 @@ export class ToolsDishCategoriesController {
    * GET /tools/dish-categories/popular-with-media
    */
   @Get('popular-with-media')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard, PermissionGuard)
+  @Permissions('tools.dish-categories.popular-with-media')
   @ApiOperation({
     summary: '人気カテゴリと候補メディア一覧取得',
     description:
@@ -60,7 +62,8 @@ export class ToolsDishCategoriesController {
    * POST /tools/dish-categories/update-images
    */
   @Post('update-images')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard, PermissionGuard)
+  @Permissions('tools.dish-categories.update-images')
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'カテゴリ画像一括更新',

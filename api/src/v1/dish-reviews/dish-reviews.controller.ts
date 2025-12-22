@@ -32,7 +32,7 @@ import {
 } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { JwtAuthGuard, OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthUserGuard, AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 
@@ -48,7 +48,7 @@ export class DishReviewsController {
   /*                    POST /v1/dish-reviews (認証必須)                */
   /* ------------------------------------------------------------------ */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthUserGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: '料理レビュー登録' })
@@ -68,7 +68,7 @@ export class DishReviewsController {
   /*            POST /v1/dish-reviews/:id/likes                         */
   /* ------------------------------------------------------------------ */
   @Post(':id/likes')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レビューいいね追加' })
@@ -90,7 +90,7 @@ export class DishReviewsController {
   /*            DELETE /v1/dish-reviews/:id/likes                       */
   /* ------------------------------------------------------------------ */
   @Delete(':id/likes')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'レビューいいね解除' })

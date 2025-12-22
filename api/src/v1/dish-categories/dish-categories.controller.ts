@@ -19,7 +19,7 @@ import { QueryDishCategoryRecommendationsDto } from '@shared/v1/dto';
 import { QueryDishCategoryRecommendationsResponse } from '@shared/v1/res';
 
 // 横串 (Auth)
-import { OptionalJwtAuthGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
 import { CurrentUser } from '../../core/auth/current-user.decorator';
 import { RequestUser } from '../../core/auth/auth.types';
 import { CLS_KEY_REQUEST_ID } from '../../core/cls/cls.constants';
@@ -39,7 +39,7 @@ export class DishCategoriesController {
   /*                    GET /v1/dish-categories/recommendations         */
   /* ------------------------------------------------------------------ */
   @Get('recommendations')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: '料理カテゴリ提案' })
   @ApiQuery({
@@ -50,7 +50,6 @@ export class DishCategoriesController {
   @ApiQuery({ name: 'timeSlot', required: false, description: '時間帯' })
   @ApiQuery({ name: 'scene', required: false, description: 'シーン' })
   @ApiQuery({ name: 'mood', required: false, description: '気分' })
-  @ApiQuery({ name: 'restrictions', required: false, description: '制限' })
   @ApiQuery({
     name: 'languageTag',
     required: true,

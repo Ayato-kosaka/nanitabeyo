@@ -10,11 +10,10 @@ import {
 import { AppLoggerService } from './logger.service';
 import { LogFlushMiddleware } from './log-flush.middleware';
 import { ClsModule } from 'nestjs-cls';
-import { PrismaModule } from '../../prisma/prisma.module';
 
 @Global()
 @Module({
-  imports: [ClsModule.forRoot({ global: true }), PrismaModule],
+  imports: [ClsModule.forRoot({ global: true })],
   providers: [
     /* Nest のデフォルト Logger を AppLoggerService で置き換え */
     {

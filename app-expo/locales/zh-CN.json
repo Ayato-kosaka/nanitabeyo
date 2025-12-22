@@ -49,13 +49,16 @@
 			"fetchLocation": "获取位置失败",
 			"getCurrentLocation": "获取当前位置失败",
 			"noLocationSelected": "请选择位置",
+			"noTimeSlotSelected": "请选择时间段",
+			"noSceneSelected": "请选择场景",
 			"searchFailed": "搜索失败"
 		},
 		"sections": {
 			"location": "在哪里搜索？",
 			"time": "什么时间？",
-			"scene": "什么场合？",
-			"mood": "你的心情如何？",
+			"scene": "和谁一起去？",
+			"mood": "您有多饿？",
+			"taste": "什么口味？",
 			"distance": "距离？",
 			"budget": "预算？",
 			"restrictions": "限制条件"
@@ -69,7 +72,7 @@
 		},
 		"loading": "搜索中...",
 		"advancedToggle": {
-			"open": "高级搜索",
+			"open": "更多选项",
 			"close": "关闭高级搜索"
 		},
 		"labels": {
@@ -100,13 +103,16 @@
 		"sceneOptions": {
 			"solo": "一个人",
 			"date": "约会",
-			"group": "多人",
-			"largeGroup": "大团体",
-			"tourism": "观光"
+			"friends": "和朋友",
+			"family": "和家人",
+			"drinking": "聚会/喝酒"
 		},
 		"moodOptions": {
-			"hearty": "丰盛",
 			"light": "清淡",
+			"normal": "普通",
+			"heavy": "丰盛"
+		},
+		"tasteOptions": {
 			"sweet": "甜食",
 			"spicy": "辣的",
 			"healthy": "健康",
