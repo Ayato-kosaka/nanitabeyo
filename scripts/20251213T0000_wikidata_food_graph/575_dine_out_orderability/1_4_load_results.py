@@ -27,7 +27,7 @@ from google.cloud import bigquery
 # #575 【設計】lib モジュールをインポート
 sys.path.insert(0, str(Path(__file__).parent))
 from lib.io import load_yaml_config, read_jsonl
-from lib.bq import BigQueryClient
+from lib.bq import BigQueryClient, get_wikidata_food_llm_labels_schema
 from lib.metrics import MetricsCollector
 
 # ログ設定
@@ -183,16 +183,7 @@ def main():
     bq_rows = prepare_bq_rows(results, config)
     
     # BigQuery スキーマ定義
-    schema = [
-        bigquery.SchemaField("item_qid", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("task", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("label", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("confidence", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("reason", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("model", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("run_id", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("created_at", "TIMESTAMP", mode="NULLABLE")
-    ]
+    schema = get_wikidata_food_llm_labels_schema()
     
     # BigQuery にロード
     logger.info("Loading data to BigQuery...")

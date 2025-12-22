@@ -82,18 +82,21 @@ def main():
     poll_interval = config.get('batch_poll_interval_sec', 30)
     logger.info(f"Polling interval: {poll_interval} seconds")
     
-    output_file = results_dir / "results.jsonl"
+    status_data = batch_client.poll_until_complete(batch_id, poll_interval)
     
-    batch_client.poll_until_complete(
-        batch_id=batch_id,
-        output_path=output_file,
-        poll_interval_sec=poll_interval
-    )
+    # 結果ダウンロード
+    output_file_id = status_data.get('output_file_id')
+    if not output_file_id:
+        logger.error("No output_file_id in batch response")
+        return
+    
+    output_path = results_dir / "results.jsonl"
+    count = batch_client.download_results(output_file_id, output_path)
     
     logger.info("=" * 80)
     logger.info("✅ Step 1-3 completed successfully!")
     logger.info("=" * 80)
-    logger.info(f"Results downloaded to: {output_file}")
+    logger.info(f"Downloaded {count} results to {output_path}")
     logger.info("")
     logger.info("Next step:")
     logger.info("  python3 1_4_load_results.py")

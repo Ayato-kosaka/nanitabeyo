@@ -35,131 +35,121 @@ in a restaurant recommendation app.
 Market: Japan (region:country:JP)
 
 This task measures whether a category makes sense as something
-users would "go out to eat" as a primary purpose.
-
+users would "go out to eat" as a PRIMARY destination purpose.
 
 ========================
-WHAT THIS MEASURES
+WHAT THIS MEASURES (ONLY)
 ========================
 
-This score answers only one question:
+Answer ONLY this question:
 
-"Does this category work as a dining-out destination purpose?"
+"Would users realistically go out specifically to eat/drink this category?"
 
-Specifically:
-- Can users realistically say, "Let's go eat [this category] at a restaurant"?
-- Do restaurants/shops specialize in this category or feature it as a core menu item?
-
+Interpretation:
+- People can say: "今日は◯◯を食べに行こう / ◯◯を飲みに行こう"
+- Restaurants/shops commonly treat it as a main attraction (主役カテゴリ)
 
 ========================
 WHAT THIS DOES NOT MEASURE
 ========================
 
-This score explicitly IGNORES:
-
-- Popularity / trendiness (handled by market_salience)
+IGNORE:
+- Popularity / trendiness (market_salience handles this)
 - Cultural importance / authenticity
 - Wikipedia notability
 - Personal preference
-- Whether it's "traditional" or "modern"
-
-Even if a category is extremely popular, if its main sales channel
-is retail/grocery (e.g., packaged bread, canned coffee, snacks),
-the score must be 0.
-
 
 ========================
-SCORE DEFINITIONS
+SCORES (DISCRETE)
 ========================
 
-Scores are discrete: 0 / 0.5 / 1
+Scores must be one of: 0 / 0.5 / 1
 
-score = 1:
-Users go to restaurants specifically to eat this category.
-Dedicated shops or category-focused restaurants commonly exist.
+score = 1 (destination-purpose):
+- Commonly a primary dish/drink category people go out for.
+- Typical "main category" in restaurant search.
+- IMPORTANT: "Some specialty shops exist" is NOT sufficient by itself.
+  It must be generally plausible as a dining-out purpose.
 
-Examples:
-ラーメン, 寿司, カレー, 焼肉, うどん, そば, ピザ, パスタ,
-餃子, 天ぷら, とんかつ, お好み焼き, たこ焼き
+Examples (1):
+ラーメン, 寿司, 焼肉, しゃぶしゃぶ, カレー, うどん, そば,
+天ぷら, とんかつ, 餃子, 丼もの, 鍋料理, 定食の主役級
 
-score = 0.5:
-The category appears in restaurant menus,
-but users rarely go out "specifically for this".
-It may be a side dish, drink, or minor menu item.
+score = 0.5 (menu item but not a destination):
+- Appears on restaurant menus, but rarely the sole destination purpose.
+- Often a side dish, dessert, drink, topping, small plate, or component.
+- Default for most desserts, wagashi, drinks, and side dishes unless clearly destination-level.
 
-Examples:
-味噌汁, 漬物, 枝豆, ポテトサラダ, 緑茶（提供されるが目的にはならない）
+Examples (0.5):
+味噌汁, 漬物, 枝豆, 茶碗蒸し, 卵焼き, ナムル,
+一般的なデザート（ティラミス等）, 一般的な和菓子（葛餅・練り切り等）,
+一般的な酒類カテゴリ（ワイン/シードル等の銘柄・種類単体）
 
-score = 0:
-The primary sales channel is retail/grocery (packaged products, home cooking).
-Not suitable as a restaurant search term.
+score = 0 (not orderable as dine-out purpose):
+- Primary channel is retail/home consumption OR not orderable as a restaurant query.
+- Ingredients, seasonings, raw materials, packaged foods, RTD, brands.
 
-MUST be score = 0:
+MUST be 0:
 - Brand names (e.g., コカ・コーラ, カルピス, ポッキー)
-- RTD (Ready-To-Drink) products
-- Packaged foods (e.g., カップ麺, レトルトカレー)
+- Packaged/retail products (e.g., カップ麺, レトルトカレー, 缶コーヒー)
 - Ingredients/condiments (e.g., 醤油, 塩, 砂糖, 小麦粉)
-- Home cooking basics (e.g., 白米, 食パン, バター)
-
-
-========================
-MANDATORY RULES
-========================
-
-1. Brand names / packaged products → MUST be score = 0
-
-2. If desc_ja mentions brands, product names, or "〇〇社", "〇〇製" → score = 0
-
-3. Ingredients, seasonings, raw materials → score = 0
-
-4. Abstract categories that are not orderable
-   (e.g., 調味料, 穀物, 乳製品) → score = 0
-
-5. When in doubt between 0 and 0.5, or between 0.5 and 1:
-   → Choose the LOWER score to avoid false positives
-
+- Home-consumption basics (e.g., 食パン, 白米, バター)
+- Abstract non-orderable categories (e.g., 調味料, 穀物, 乳製品)
 
 ========================
-CONFIDENCE GUIDELINES
+CRITICAL GUARDRAILS (IMPORTANT)
 ========================
 
-high:
-- Clear judgment
-- Category is obviously orderable or obviously not orderable
+1) Brand / packaged / RTD / retail product -> ALWAYS score = 0
 
-medium:
-- Borderline between two scores
-- Context-dependent (urban vs. rural, restaurant type)
+2) If desc_ja mentions brands, product names, "〇〇社", "〇〇製",
+   "缶", "ペットボトル", "レトルト", "カップ", "市販" -> score = 0
 
-low:
-- Insufficient description
-- Ambiguous category definition
+3) Ingredients / seasonings / raw materials -> score = 0
 
+4) Desserts / wagashi / side dishes / drinks:
+   - Default score = 0.5
+   - Only score = 1 if it is CLEARLY a common dining-out destination purpose
+     in Japan (people commonly go out specifically for it).
+
+5) When in doubt between 0 and 0.5, or 0.5 and 1:
+   -> Choose the LOWER score (avoid false positives).
 
 ========================
 INPUT USAGE RULES
 ========================
 
 Primary signals:
-- label_ja (main category name)
-- desc_ja (description)
-- aliases_top_ja (alternative names)
+- label_ja
+- desc_ja
+- aliases_top_ja
 
-IMPORTANT:
-- item_qid is an identifier ONLY
-- Do NOT use item_qid or hidden IDs to infer orderability
-- Judge based on human-readable information only
-
+item_qid is an identifier only. Do not infer from IDs.
 
 ========================
-OUTPUT
+OUTPUT FORMAT (STRICT)
 ========================
 
-Return exactly one decision per item,
-in the same order as input,
-using the provided tool specification.
+Return exactly one decision per item using the tool spec.
+Do not output any text outside the tool call.
 
-Do not include explanations outside the required fields.
+For each item:
+- score must be 0, 0.5, or 1
+- confidence: high / medium / low
+- reason must be ONE of the following TAGS only:
+
+Allowed reason tags:
+- restaurant_destination          (typical score 1)
+- menu_item_not_destination       (typical score 0.5)
+- retail_or_home_primary          (typical score 0)
+- brand_or_rtd_packaged           (forced 0)
+- ingredient_or_condiment         (forced 0)
+- too_abstract_not_orderable      (forced 0)
+
+Confidence guidance:
+- high: clear match to rules/examples
+- medium: borderline (0 vs 0.5 or 0.5 vs 1)
+- low: insufficient/ambiguous description
 """
 
 
