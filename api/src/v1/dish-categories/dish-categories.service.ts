@@ -28,13 +28,13 @@ export class DishCategoriesService {
     this.logger.debug('GetRecommendations', 'getRecommendations', dto);
 
     // Claude API で料理カテゴリ提案を生成
+    // TODO(#533): restrictions フィールドは DTO に未定義のため未対応。将来的に追加予定
     const claudeRecommendations =
       await this.claudeService.generateDishCategoryRecommendations({
         address: dto.address,
         timeSlot: dto.timeSlot,
         scene: dto.scene,
         mood: dto.mood,
-        restrictions: dto.restrictions,
         languageTag: dto.languageTag,
       });
 
