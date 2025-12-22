@@ -49,6 +49,8 @@
 			"fetchLocation": "获取位置失败",
 			"getCurrentLocation": "获取当前位置失败",
 			"noLocationSelected": "请选择位置",
+			"noTimeSlotSelected": "请选择时间段",
+			"noSceneSelected": "请选择场景",
 			"searchFailed": "搜索失败"
 		},
 		"sections": {

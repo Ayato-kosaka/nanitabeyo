@@ -49,6 +49,8 @@
 			"fetchLocation": "位置情報の取得に失敗しました",
 			"getCurrentLocation": "現在地の取得に失敗しました",
 			"noLocationSelected": "検索場所を選択してください",
+			"noTimeSlotSelected": "時間帯を選択してください",
+			"noSceneSelected": "シーンを選択してください",
 			"searchFailed": "検索に失敗しました"
 		},
 		"sections": {

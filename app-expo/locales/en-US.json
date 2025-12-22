@@ -49,6 +49,8 @@
 			"fetchLocation": "Failed to fetch location",
 			"getCurrentLocation": "Failed to get current location",
 			"noLocationSelected": "Please select a location",
+			"noTimeSlotSelected": "Please select a time slot",
+			"noSceneSelected": "Please select a scene",
 			"searchFailed": "Search failed"
 		},
 		"sections": {
