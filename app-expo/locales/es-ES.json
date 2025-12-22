@@ -49,6 +49,8 @@
 			"fetchLocation": "No se pudo obtener la ubicación",
 			"getCurrentLocation": "No se pudo obtener la ubicación actual",
 			"noLocationSelected": "Seleccione una ubicación",
+			"noTimeSlotSelected": "Seleccione un horario",
+			"noSceneSelected": "Seleccione una escena",
 			"searchFailed": "La búsqueda falló"
 		},
 		"sections": {

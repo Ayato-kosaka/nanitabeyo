@@ -49,6 +49,8 @@
 			"fetchLocation": "स्थान प्राप्त करने में विफल",
 			"getCurrentLocation": "वर्तमान स्थान प्राप्त करने में विफल",
 			"noLocationSelected": "कृपया एक स्थान चुनें",
+			"noTimeSlotSelected": "कृपया एक समय स्लॉट चुनें",
+			"noSceneSelected": "कृपया एक दृश्य चुनें",
 			"searchFailed": "खोज विफल हुई"
 		},
 		"sections": {

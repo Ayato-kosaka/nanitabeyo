@@ -62,6 +62,7 @@ python3 1_1_create_tables.py
 ```
 
 **処理内容:**
+
 - food_roots テーブル作成 ＋ 初期データ投入
 - food_nodes_raw テーブル作成
 - food_paths テーブル作成
@@ -82,12 +83,14 @@ python3 1_2_fetch_and_load_nodes.py --limit 1000
 ```
 
 **処理内容:**
+
 - Wikidata から料理・飲み物のノードを取得
 - food_nodes_raw にロード
 - 親子エッジ（P31, P279）を取得
 - エッジデータを一時ファイルに保存
 
 **注意点:**
+
 - SPARQL endpoint への大量リクエストが発生するため、実行には時間がかかります
 - rate limit 対策として retry/backoff が実装されています
 
@@ -100,6 +103,7 @@ python3 1_3_generate_paths_and_summary.py
 ```
 
 **処理内容:**
+
 - food_paths を生成（recursive CTE で全 ancestor を展開）
 - dish_root_summary を生成
 - dish_blacklist を自動生成（ancestor ベース）
@@ -123,6 +127,7 @@ python3 1_3_generate_paths_and_summary.py
 スクリプトは以下の3ステップで構成されています：
 
 ### ステップ 1: テーブル作成 (`1_1_create_tables.py`)
+
 ```
 BigQuery migration 実行
 ↓
@@ -135,6 +140,7 @@ BigQuery migration 実行
 ```
 
 ### ステップ 2: ノード取得とロード (`1_2_fetch_and_load_nodes.py`)
+
 ```
 Wikidata から food_nodes_raw 相当のデータを取得
 ↓
@@ -153,6 +159,7 @@ Wikidata から親子エッジ（P31/P279）を取得
 ```
 
 ### ステップ 3: パスとサマリー生成 (`1_3_generate_paths_and_summary.py`)
+
 ```
 エッジデータを読み込む
 ↓

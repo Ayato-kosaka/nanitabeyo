@@ -49,6 +49,8 @@
 			"fetchLocation": "فشل في جلب الموقع",
 			"getCurrentLocation": "فشل في الحصول على الموقع الحالي",
 			"noLocationSelected": "يرجى اختيار موقع",
+			"noTimeSlotSelected": "يرجى اختيار فترة زمنية",
+			"noSceneSelected": "يرجى اختيار مشهد",
 			"searchFailed": "فشل البحث"
 		},
 		"sections": {

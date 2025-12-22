@@ -44,7 +44,7 @@ export default function SearchScreen() {
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
-	const [scene, setScene] = useState<SearchParams["scene"] | undefined>(undefined);
+	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
 	const [isSearching, setIsSearching] = useState(false);
@@ -143,8 +143,17 @@ export default function SearchScreen() {
 	};
 
 	const handleSearch = async () => {
+		// #533 【仕様】location, timeSlot, scene を必須化（レコメンドAPI必須化対応）
 		if (!location) {
 			showSnackbar(i18n.t("Search.errors.noLocationSelected"));
+			return;
+		}
+		if (!timeSlot) {
+			showSnackbar(i18n.t("Search.errors.noTimeSlotSelected"));
+			return;
+		}
+		if (!scene) {
+			showSnackbar(i18n.t("Search.errors.noSceneSelected"));
 			return;
 		}
 
@@ -193,9 +202,10 @@ export default function SearchScreen() {
 		setTimeSlot(slotId);
 	};
 
+	// #533 【仕様】scene を必須化（解除不可、レコメンドAPI必須化対応）
 	const handleSceneSelect = (sceneId: SearchParams["scene"]) => {
 		lightImpact();
-		setScene(scene === sceneId ? undefined : sceneId);
+		setScene(sceneId);
 	};
 
 	const handleMoodSelect = (moodId: SearchParams["mood"]) => {
@@ -256,6 +266,9 @@ export default function SearchScreen() {
 					<View style={styles.sectionHeader}>
 						<Clock size={20} color="#5EA2FF" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
+						<View style={styles.requiredBadge}>
+							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
+						</View>
 					</View>
 					<View style={styles.chipGrid}>
 						{timeSlots.map((slot) => (
@@ -277,6 +290,9 @@ export default function SearchScreen() {
 					<View style={styles.sectionHeader}>
 						<Users size={20} color="#5EA2FF" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
+						<View style={styles.requiredBadge}>
+							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
+						</View>
 					</View>
 					<View style={styles.chipGrid}>
 						{sceneOptions.map((option) => (
@@ -417,9 +433,11 @@ export default function SearchScreen() {
 			{/* Search FAB */}
 			<View pointerEvents="box-none" style={styles.searchFabContainer}>
 				<TouchableOpacity
-					style={[styles.searchFab, !location && styles.disabledFab]}
+					style={[styles.searchFab, (!location || !timeSlot || !scene) && styles.disabledFab]}
 					onPress={handleSearch}
-					disabled={!location || isSearching}>
+					disabled={!location || !timeSlot || !scene || isSearching}>
+					{" "}
+					{/* #533 【仕様】timeSlot と scene を必須化 */}
 					{isSearching ? (
 						<ActivityIndicator size="small" color="#FFF" />
 					) : (
