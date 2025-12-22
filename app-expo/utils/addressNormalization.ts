@@ -6,6 +6,12 @@
 import type { AddressComponentsNormalized } from "@shared/api/v1/res";
 
 /**
+ * 正規化 address の形式パターン（type:value 形式）
+ * 例: "country:JP, locality:Kyoto"
+ */
+const NORMALIZED_ADDRESS_PATTERN = /^[a-z_]+:[^,]+(,\s*[a-z_]+:[^,]+)*$/;
+
+/**
  * 正規化された addressComponents を "type:value" 形式の文字列に変換
  *
  * @example
@@ -58,5 +64,5 @@ export function formatNormalizedAddress(addressComponents: AddressComponentsNorm
  */
 export function isNormalizedAddressFormat(address: string): boolean {
 	// #533 【仕様】type:value 形式を含むか判定
-	return /^[a-z_]+:[^,]+(,\s*[a-z_]+:[^,]+)*$/.test(address.trim());
+	return NORMALIZED_ADDRESS_PATTERN.test(address.trim());
 }
