@@ -28,7 +28,11 @@ export interface LocationDetailsResponse {
 			longitude: number;
 		};
 	};
-	/** addressComponents より locality 以上の階層を抽出し、カンマ区切りで設定 */
+	/**
+	 * addressComponents より locality 以上の階層を抽出し、
+	 * type:shortText を、カンマ区切りで設定
+	 * 例: "country:JP, locality:Kyoto"
+	 */
 	address: string;
 	/** addressComponents から解決された現地言語コード (BCP47) */
 	localLanguageCode: string;
@@ -52,7 +56,11 @@ export interface LocationReverseGeocodingResponse {
 			longitude: number;
 		};
 	};
-	/** 逆ジオコーディングで取得された住所 */
+	/**
+	 * 逆ジオコーディングで取得された addressComponents より
+	 * locality 以上の階層を抽出し、type:shortText を、カンマ区切りで設定
+	 * 例: "country:JP, locality:Kyoto"
+	 */
 	address: string;
 	/** 解決された現地言語コード (BCP47) */
 	localLanguageCode: string;

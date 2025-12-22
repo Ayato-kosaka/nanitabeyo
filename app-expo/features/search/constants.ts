@@ -11,19 +11,23 @@ export const timeSlots = [
 export const sceneOptions = [
 	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤" },
 	{ id: "date", label: "Search.sceneOptions.date", icon: "💕" },
-	{ id: "group", label: "Search.sceneOptions.group", icon: "👥" },
-	{ id: "large_group", label: "Search.sceneOptions.largeGroup", icon: "👥👥" },
-	{ id: "tourism", label: "Search.sceneOptions.tourism", icon: "🌍" },
+	{ id: "friends", label: "Search.sceneOptions.friends", icon: "👥" },
+	{ id: "family", label: "Search.sceneOptions.family", icon: "👪" },
+	{ id: "drinking", label: "Search.sceneOptions.drinking", icon: "🍻" },
 ] as const;
 
 export const moodOptions = [
-	{ id: "hearty", label: "Search.moodOptions.hearty", icon: "🍖" },
 	{ id: "light", label: "Search.moodOptions.light", icon: "🥗" },
-	{ id: "sweet", label: "Search.moodOptions.sweet", icon: "🍰" },
-	{ id: "spicy", label: "Search.moodOptions.spicy", icon: "🌶️" },
-	{ id: "healthy", label: "Search.moodOptions.healthy", icon: "🥬" },
-	{ id: "junk", label: "Search.moodOptions.junk", icon: "🍔" },
-	{ id: "alcohol", label: "Search.moodOptions.alcohol", icon: "🍺" },
+	{ id: "normal", label: "Search.moodOptions.normal", icon: "🍱" },
+	{ id: "heavy", label: "Search.moodOptions.heavy", icon: "🍖" },
+] as const;
+
+export const tasteOptions = [
+	{ id: "sweet", label: "Search.tasteOptions.sweet", icon: "🍰" },
+	{ id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
+	{ id: "healthy", label: "Search.tasteOptions.healthy", icon: "🥬" },
+	{ id: "junk", label: "Search.tasteOptions.junk", icon: "🍔" },
+	{ id: "alcohol", label: "Search.tasteOptions.alcohol", icon: "🍺" },
 ] as const;
 
 // Distance options in meters

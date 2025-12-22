@@ -151,7 +151,6 @@ export const useTopicSearch = () => {
 						timeSlot: params.timeSlot,
 						scene: params.scene,
 						mood: params.mood,
-						restrictions: params.restrictions,
 						languageTag: locale,
 						localLanguageCode: params.localLanguageCode,
 					},

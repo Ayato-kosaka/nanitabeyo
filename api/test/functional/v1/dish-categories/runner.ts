@@ -338,11 +338,6 @@ export class DishCategoriesTestRunner {
     if (params.timeSlot) url.searchParams.set('timeSlot', params.timeSlot);
     if (params.scene) url.searchParams.set('scene', params.scene);
     if (params.mood) url.searchParams.set('mood', params.mood);
-    if (params.restrictions) {
-      params.restrictions.forEach((restriction) => {
-        url.searchParams.append('restrictions', restriction);
-      });
-    }
 
     try {
       const response = await fetch(url.toString(), {
