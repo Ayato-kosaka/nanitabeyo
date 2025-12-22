@@ -76,13 +76,18 @@ export default function SearchScreen() {
 			})
 			.catch(console.error);
 
-		// Auto-set time slot based on current time
+		// 端末時間帯に基づき timeSlot を自動設定
 		const hour = new Date().getHours();
-		if (hour < 10) setTimeSlot("morning");
-		else if (hour < 15) setTimeSlot("lunch");
-		else if (hour < 17) setTimeSlot("afternoon");
-		else if (hour < 22) setTimeSlot("dinner");
-		else setTimeSlot("late_night");
+		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
+			{ until: 5, slot: "late_night" },
+			{ until: 10, slot: "morning" },
+			{ until: 15, slot: "lunch" },
+			{ until: 17, slot: "afternoon" },
+			{ until: 22, slot: "dinner" },
+			{ until: 24, slot: "late_night" },
+		];
+		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
+		setTimeSlot(slot);
 	}, []);
 
 	const handleLocationClear = () => {
@@ -435,8 +440,8 @@ export default function SearchScreen() {
 				<TouchableOpacity
 					style={[styles.searchFab, (!location || !timeSlot || !scene) && styles.disabledFab]}
 					onPress={handleSearch}
+					/* #533 【仕様】timeSlot と scene を必須化 */
 					disabled={!location || !timeSlot || !scene || isSearching}>
-					{/* #533 【仕様】timeSlot と scene を必須化 */}
 					{isSearching ? (
 						<ActivityIndicator size="small" color="#FFF" />
 					) : (
