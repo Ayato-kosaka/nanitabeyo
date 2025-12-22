@@ -225,11 +225,34 @@ export class LocationsService {
         );
 
         if (response.places && response.places.length > 0) {
+          // #問題チケット 【調査】contextualContents.reviews が返らない場合の検出とロギング
+          const placesWithoutReviews = response.places.filter(
+            (place) =>
+              !place.contextualContents?.reviews ||
+              place.contextualContents.reviews.length === 0,
+          );
+          if (placesWithoutReviews.length > 0) {
+            this.logger.warn(
+              'GoogleMapsTextSearchMissingReviews',
+              'searchRestaurants',
+              {
+                totalPlaces: response.places.length,
+                placesWithoutReviews: placesWithoutReviews.length,
+                placeIdsWithoutReviews: placesWithoutReviews.map((p) => p.id),
+                searchAttempt,
+                requestPayload,
+              },
+            );
+          }
+
           this.logger.debug(
             'GoogleMapsTextSearchSuccess',
             'searchRestaurants',
             {
               resultCount: response.places?.length,
+              placesWithReviews:
+                response.places.length - placesWithoutReviews.length,
+              placesWithoutReviews: placesWithoutReviews.length,
               searchAttempt,
             },
           );
@@ -277,6 +300,11 @@ export class LocationsService {
       let response = await performSearch(fullRequestPayload, 'full_conditions');
 
       if (response.places && response.places.length > 0) {
+        // #問題チケット 【対応】Text Search で reviews が欠落している場合に Place Details API でフォールバック
+        response = await this.enrichTextSearchWithReviews(
+          response,
+          params.languageCode,
+        );
         return response;
       }
 
@@ -299,6 +327,11 @@ export class LocationsService {
       );
 
       if (response.places && response.places.length > 0) {
+        // #問題チケット 【対応】Text Search で reviews が欠落している場合に Place Details API でフォールバック
+        response = await this.enrichTextSearchWithReviews(
+          response,
+          params.languageCode,
+        );
         return response;
       }
 
@@ -331,6 +364,12 @@ export class LocationsService {
             message: 'All search attempts returned 0 results',
             originalParams: params,
           },
+        );
+      } else {
+        // #問題チケット 【対応】Text Search で reviews が欠落している場合に Place Details API でフォールバック
+        response = await this.enrichTextSearchWithReviews(
+          response,
+          params.languageCode,
         );
       }
 
@@ -834,5 +873,124 @@ export class LocationsService {
     }
 
     return result.join(', ');
+  }
+
+  /**
+   * Place Details API から reviews を取得する（Text Search で reviews が返らない場合のフォールバック）
+   */
+  async fetchReviewsFromPlaceDetails(
+    placeId: string,
+    languageCode: string,
+  ): Promise<google.maps.places.v1.IPlace['reviews']> {
+    try {
+      const fieldMask = [
+        'reviews.originalText.text',
+        'reviews.rating',
+        'reviews.authorAttribution.displayName',
+        'reviews.authorAttribution.uri',
+        'reviews.authorAttribution.photoUri',
+      ].join(',');
+
+      const placeDetails = await this.externalApiService.callPlaceDetails(
+        fieldMask,
+        placeId,
+        languageCode,
+      );
+
+      if (placeDetails.reviews && placeDetails.reviews.length > 0) {
+        this.logger.debug('PlaceDetailsFetchReviewsSuccess', 'fetchReviewsFromPlaceDetails', {
+          placeId,
+          reviewCount: placeDetails.reviews.length,
+        });
+        return placeDetails.reviews;
+      }
+
+      this.logger.debug('PlaceDetailsFetchReviewsNoResults', 'fetchReviewsFromPlaceDetails', {
+        placeId,
+        message: 'No reviews found in Place Details API',
+      });
+      return null;
+    } catch (error) {
+      this.logger.error('PlaceDetailsFetchReviewsError', 'fetchReviewsFromPlaceDetails', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        placeId,
+        languageCode,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Text Search API のレスポンスの reviews を Place Details API で補完する
+   */
+  async enrichTextSearchWithReviews(
+    response: google.maps.places.v1.ISearchTextResponse,
+    languageCode?: string,
+  ): Promise<google.maps.places.v1.ISearchTextResponse> {
+    if (!response.places || response.places.length === 0) {
+      return response;
+    }
+
+    // reviews が欠落している place を特定
+    const placesNeedingReviews = response.places.filter(
+      (place) =>
+        place.id &&
+        (!place.contextualContents?.reviews ||
+          place.contextualContents.reviews.length === 0),
+    );
+
+    if (placesNeedingReviews.length === 0) {
+      this.logger.debug('EnrichTextSearchWithReviews', 'enrichTextSearchWithReviews', {
+        message: 'All places already have reviews',
+        totalPlaces: response.places.length,
+      });
+      return response;
+    }
+
+    this.logger.info('EnrichTextSearchWithReviews', 'enrichTextSearchWithReviews', {
+      totalPlaces: response.places.length,
+      placesNeedingReviews: placesNeedingReviews.length,
+      placeIds: placesNeedingReviews.map((p) => p.id),
+    });
+
+    // 並列で Place Details API から reviews を取得
+    const reviewPromises = placesNeedingReviews.map(async (place) => {
+      try {
+        const reviews = await this.fetchReviewsFromPlaceDetails(
+          place.id!,
+          languageCode || 'ja',
+        );
+        return { placeId: place.id, reviews };
+      } catch (error) {
+        this.logger.warn('EnrichReviewsError', 'enrichTextSearchWithReviews', {
+          placeId: place.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        return { placeId: place.id, reviews: null };
+      }
+    });
+
+    const reviewsResults = await Promise.all(reviewPromises);
+
+    // reviews を response にマージ
+    let enrichedCount = 0;
+    for (const place of response.places) {
+      const reviewsResult = reviewsResults.find((r) => r.placeId === place.id);
+      if (reviewsResult && reviewsResult.reviews) {
+        if (!place.contextualContents) {
+          place.contextualContents = {};
+        }
+        place.contextualContents.reviews = reviewsResult.reviews;
+        enrichedCount++;
+      }
+    }
+
+    this.logger.info('EnrichTextSearchWithReviewsComplete', 'enrichTextSearchWithReviews', {
+      totalPlaces: response.places.length,
+      placesEnriched: enrichedCount,
+      placesFailed: placesNeedingReviews.length - enrichedCount,
+    });
+
+    return response;
   }
 }
