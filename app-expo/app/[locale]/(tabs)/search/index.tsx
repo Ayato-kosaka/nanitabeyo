@@ -436,7 +436,6 @@ export default function SearchScreen() {
 					style={[styles.searchFab, (!location || !timeSlot || !scene) && styles.disabledFab]}
 					onPress={handleSearch}
 					disabled={!location || !timeSlot || !scene || isSearching}>
-					{" "}
 					{/* #533 【仕様】timeSlot と scene を必須化 */}
 					{isSearching ? (
 						<ActivityIndicator size="small" color="#FFF" />
