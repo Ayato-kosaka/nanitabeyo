@@ -57,7 +57,7 @@ export interface LocationReverseGeocodingResponse {
 		};
 	};
 	/**
-	 * a逆ジオコーディングで取得されたddressComponents より
+	 * 逆ジオコーディングで取得された addressComponents より
 	 * locality 以上の階層を抽出し、type:shortText を、カンマ区切りで設定
 	 * 例: "country:JP, locality:Kyoto"
 	 */
