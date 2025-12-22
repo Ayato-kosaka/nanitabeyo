@@ -14,7 +14,7 @@ task_pass2: "#572_market_salience_p2"
 run_id_prefix: "20251221T0000"
 
 # モデル設定
-model_pass1: "gpt-4.1-mini"  # gpt-5-mini も選択可能
+model_pass1: "gpt-4.1-mini" # gpt-5-mini も選択可能
 model_pass2: "gpt-5.2"
 
 # Batch API設定
@@ -22,7 +22,7 @@ batch_api: true
 batch_poll_interval_sec: 30
 
 # テスト用データ制限（null = 全件処理）
-max_items: null  # テスト時は 100 等を指定
+max_items: null # テスト時は 100 等を指定
 
 # ファイルパス設定
 input_export_path: "/tmp/wikidata_food_market_salience"
@@ -37,10 +37,10 @@ reason_max_chars: 120
 regional_reason_max_chars: 120
 
 # 入力カード設定
-include_optional_fields: true  # has_jawiki, tags_top を含めるか
+include_optional_fields: true # has_jawiki, tags_top を含めるか
 
 # 期待値計算設定
-expected_value_runs: 1  # 将来複数run平均に対応する場合に備えた設定
+expected_value_runs: 1 # 将来複数run平均に対応する場合に備えた設定
 
 # バッチサイズ
-batch_size: 10  # 1リクエストあたりのアイテム数
+batch_size: 10 # 1リクエストあたりのアイテム数

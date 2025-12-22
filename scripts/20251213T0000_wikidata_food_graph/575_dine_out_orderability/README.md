@@ -8,10 +8,10 @@
 
 ## 目的
 
-* dish_category_catalog（**gate: region:country:JP で allow 済み**）に対し、**dine_out_orderability（外食目的適性）** を LLM で付与する
-* dine_out_orderability は **market_salience（想起の強さ）とは独立**した feature とし、「それを食べに店へ行く」対象として成立しないカテゴリを自然に沈めるために使う
-* 小売・家庭消費が主戦場のカテゴリ（例：食パン、缶コーヒー等）を **gate では落とさず、最終スコアで弱く抑制**することを目的とする
-* **Batch API** 前提でコストを抑え、run_id 管理・再実行・比較が可能な運用とする
+- dish_category_catalog（**gate: region:country:JP で allow 済み**）に対し、**dine_out_orderability（外食目的適性）** を LLM で付与する
+- dine_out_orderability は **market_salience（想起の強さ）とは独立**した feature とし、「それを食べに店へ行く」対象として成立しないカテゴリを自然に沈めるために使う
+- 小売・家庭消費が主戦場のカテゴリ（例：食パン、缶コーヒー等）を **gate では落とさず、最終スコアで弱く抑制**することを目的とする
+- **Batch API** 前提でコストを抑え、run_id 管理・再実行・比較が可能な運用とする
 
 ## アーキテクチャ
 
@@ -19,25 +19,25 @@
 
 dine_out_orderability は **離散値 0 / 0.5 / 1 のみ**：
 
-| score | 定義                               |
-| ----- | -------------------------------- |
-| 1     | そのカテゴリ目的で店に行く。専門店・カテゴリ店が成立する     |
-| 0.5   | 外食で提供されるが、「それ目的で行く」は弱い           |
+| score | 定義                                                            |
+| ----- | --------------------------------------------------------------- |
+| 1     | そのカテゴリ目的で店に行く。専門店・カテゴリ店が成立する        |
+| 0.5   | 外食で提供されるが、「それ目的で行く」は弱い                    |
 | 0     | 主戦場が小売・家庭。外食検索語として不適（ブランド/市販品含む） |
 
 ### 強制ルール
 
-* **ブランド名 / 市販品 / RTD 商品 → 必ず score=0**
-* 「家庭料理」「惣菜」「パン・菓子の素材名」なども原則 0 or 0.5
+- **ブランド名 / 市販品 / RTD 商品 → 必ず score=0**
+- 「家庭料理」「惣菜」「パン・菓子の素材名」なども原則 0 or 0.5
 
 ### feature 仕様
 
-* `feature_type = 'dine_out_orderability'`
-* `feature_key = 'global'`（付与は global のみ）
-* `score = {0, 0.5, 1}`
-* `source = 'llm'`
-* `run_id`：publish run id
-* `note`：モデル名・task・簡易分布などを JSON で格納可能
+- `feature_type = 'dine_out_orderability'`
+- `feature_key = 'global'`（付与は global のみ）
+- `score = {0, 0.5, 1}`
+- `source = 'llm'`
+- `run_id`：publish run id
+- `note`：モデル名・task・簡易分布などを JSON で格納可能
 
 ### スコア適用（下流ロジック前提）
 

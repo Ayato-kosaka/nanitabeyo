@@ -8,10 +8,10 @@
 
 ## 目的
 
-* dish_category_catalog（gate: region:country:JP で allow 済み想定）に対し、**market_salience（日本市場の定番度）** を LLM で付与する
-* **Batch API** 前提でコストを抑えつつ、run_id 管理と rerun 比較ができる運用にする
-* 2nd pass は **1st pass の confidence に応じて限定**し、精度/コストを最適化する
-* 付随で **郷土料理フラグ（is_regional）** を同時に付与し、後段の制御・分析に使えるようにする
+- dish_category_catalog（gate: region:country:JP で allow 済み想定）に対し、**market_salience（日本市場の定番度）** を LLM で付与する
+- **Batch API** 前提でコストを抑えつつ、run_id 管理と rerun 比較ができる運用にする
+- 2nd pass は **1st pass の confidence に応じて限定**し、精度/コストを最適化する
+- 付随で **郷土料理フラグ（is_regional）** を同時に付与し、後段の制御・分析に使えるようにする
 
 ## アーキテクチャ
 

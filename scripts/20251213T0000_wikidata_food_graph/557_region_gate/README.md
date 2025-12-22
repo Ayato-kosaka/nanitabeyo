@@ -29,11 +29,13 @@
 ### market 別 system prompt の設計思想
 
 #### scope:global
+
 - **"多市場で通る" が根拠**: 地域固有の料理は厳しく判定
 - 世界中の多くの市場で日常会話に出てくるもののみ allow
 - ローカル固有名詞料理は uncertain/deny 寄せ
 
 #### country:JP
+
 - **"日本語会話で自然" が根拠**: 日本のユーザーが自然に言えるかで判定
 - scope:global の "多市場要件" は適用しない
 - 日本国内で自然なら allow（地域料理も OK）
@@ -125,7 +127,7 @@ python3 1_1_export_region_label_targets.py --market country:JP
 
 ### ステップ 2: Batch API 用のペイロードを生成
 
-region_targets_*.jsonl を読み込み、OpenAI Batch API 用のペイロードを生成します。
+region*targets*\*.jsonl を読み込み、OpenAI Batch API 用のペイロードを生成します。
 
 ```bash
 # scope:global
