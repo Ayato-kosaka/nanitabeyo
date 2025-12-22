@@ -616,6 +616,7 @@ export class LocationsService {
         location,
         viewport,
         address,
+        addressComponents,
         localLanguageCode,
       });
 
@@ -711,30 +712,127 @@ export class LocationsService {
   }
 
   /**
-   * Build address from address components (locality and above)
+   * addressComponents から「国 → 都道府県/州 →（可能なら）市」までの住所を type-based に構築する
+   *
+   * ポイント:
+   * - AddressComponent は複数 types を持つため、各 component について「代表 type」を決めて格納する
+   * - 代表 type は、候補 types のうち「優先度が最も高い（＝数字が小さい）」ものを採用する
+   * - 欠損に強くするため、locality が取れない場合は administrative_area_level_3..7 をフォールバックとして使う
+   * - political / route / street_address など「階層」を表さない type は無視する
+   *
+   * 出力例: "country:JP, administrative_area_level_1:Kyoto, locality:Kyoto"
    */
   private buildAddressFromComponents(
     addressComponents: google.maps.places.v1.Place.IAddressComponent[],
   ): string {
-    const relevantTypes = [
-      'locality',
-      'administrative_area_level_7',
-      'administrative_area_level_6',
-      'administrative_area_level_5',
-      'administrative_area_level_4',
-      'administrative_area_level_3',
-      'administrative_area_level_2',
-      'administrative_area_level_1',
+    // 1) 「市まで」の主要ターゲット（優先度が高い順）
+    const primaryTypes = [
       'country',
-    ];
-    const address = addressComponents
-      .filter((component) =>
-        component.types!.some((type) => relevantTypes.includes(type)),
-      )
-      .map((component) => component.longText)
-      .filter(Boolean)
-      .join(', ');
+      'administrative_area_level_1',
+      'administrative_area_level_2',
+      'locality',
+    ] as const;
 
-    return address;
+    // 2) locality が取れない場合に限り、市相当として拾うフォールバック候補
+    //    ※国・地域により locality が出ない/弱いケースの保険
+    const localityFallbackTypes = [
+      'administrative_area_level_3',
+      'administrative_area_level_4',
+      'administrative_area_level_5',
+      'administrative_area_level_6',
+      'administrative_area_level_7',
+    ] as const;
+
+    // 3) 優先度マップ（小さいほど上位）
+    //    - primaryTypes は明示的に上位
+    //    - fallback は locality より下位（locality が無いときだけ使う）
+    const priorityMap = new Map<string, number>();
+    primaryTypes.forEach((t, i) => priorityMap.set(t, i)); // 0..3
+    localityFallbackTypes.forEach((t, i) => priorityMap.set(t, 100 + i)); // 100..（十分下位に）
+
+    // 4) 代表 type ごとに最適な component を 1 つだけ保持する
+    //    （同じ代表 type が複数あっても、より良い値の方を残す）
+    const pickedByType = new Map<
+      string,
+      google.maps.places.v1.Place.IAddressComponent
+    >();
+
+    for (const comp of addressComponents) {
+      const types = comp.types ?? [];
+      if (types.length === 0) continue;
+
+      // 4-1) この component の types の中から「優先度が最も高い type」を代表にする
+      //      ※ priorityMap に無い type は無視（political 等を自然に排除）
+      let bestType: string | null = null;
+      let bestPriority = Number.POSITIVE_INFINITY;
+
+      for (const t of types) {
+        const p = priorityMap.get(t);
+        if (p === undefined) continue;
+        if (p < bestPriority) {
+          bestPriority = p;
+          bestType = t;
+        }
+      }
+
+      if (!bestType) continue;
+
+      // 4-2) 値（shortText優先 → longText）を持つ component のみ採用
+      const value = (comp.shortText || comp.longText || '').trim();
+      if (!value) continue;
+
+      // 4-3) 同じ代表 type が既にあるなら、より良い方を残す
+      //      ここでは「shortText を持つ方を優先」「同条件なら短い方を優先」を例にする
+      const existing = pickedByType.get(bestType);
+      if (!existing) {
+        pickedByType.set(bestType, comp);
+        continue;
+      }
+
+      const existingValue = (
+        existing.shortText ||
+        existing.longText ||
+        ''
+      ).trim();
+      const existingHasShort = !!existing.shortText?.trim();
+      const currentHasShort = !!comp.shortText?.trim();
+
+      const shouldReplace =
+        // shortText がある方を優先
+        (currentHasShort && !existingHasShort) ||
+        // どちらも shortText 条件が同じなら、より短い文字列を採用（例: "Kyoto" vs "Kyoto City"）
+        (currentHasShort === existingHasShort &&
+          value.length < existingValue.length);
+
+      if (shouldReplace) {
+        pickedByType.set(bestType, comp);
+      }
+    }
+
+    // 5) locality が無い場合だけ、フォールバックから「市相当」を補う
+    if (!pickedByType.has('locality')) {
+      for (const t of localityFallbackTypes) {
+        const c = pickedByType.get(t);
+        if (!c) continue;
+
+        // フォールバック type の component を locality として扱う（出力キーは locality に統一）
+        pickedByType.set('locality', c);
+        break;
+      }
+    }
+
+    // 6) 出力（country → level_1 → level_2 → locality の順で整形）
+    const result: string[] = [];
+    for (const t of primaryTypes) {
+      const c = pickedByType.get(t);
+      if (!c) continue;
+
+      const value = (c.shortText || c.longText || '').trim();
+      if (!value) continue;
+
+      result.push(`${t}:${value}`);
+    }
+
+    return result.join(', ');
   }
 }
