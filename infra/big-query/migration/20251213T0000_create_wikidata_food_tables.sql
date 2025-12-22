@@ -124,3 +124,58 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.dish_blacklist` (
   note       STRING,            -- 任意メモ（ancestor_qid などを文字列で入れてもよい）
   created_at TIMESTAMP
 );
+
+
+-- -----------------------------------------------------------------------------
+-- 7. dish_category_catalog: blacklist 除外済み準マスタ
+-- -----------------------------------------------------------------------------
+-- dish_blacklist に含まれていない dish のカタログ
+-- labels/desc/image_url/tags を保持し、本番投入時の候補となる
+-- 実データは Python スクリプト側で CREATE OR REPLACE TABLE AS SELECT ... により生成
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_catalog` (
+  item_qid  STRING NOT NULL,   -- dish QID
+  label_ja  STRING,             -- 日本語ラベル
+  label_en  STRING,             -- 英語ラベル
+  desc_ja   STRING,             -- 日本語説明
+  desc_en   STRING,             -- 英語説明
+  image_url STRING,             -- Wikidata 画像 URL（あれば）
+  tags      ARRAY<STRING>       -- 祖先 QID の配列（depth<=5 の shallow なもの）
+);
+
+ALTER TABLE `${DATASET}.dish_category_catalog`
+  -- #543 labels_json: 全言語のラベルを JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS labels_json STRING,
+  -- #543 descriptions_json: 全言語の説明を JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS descriptions_json STRING,
+  -- #543 aliases_json: 全言語の別名を JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS aliases_json STRING,
+  -- #543 sitelinks_json: 全言語のサイトリンクを JSON 形式で保持
+  ADD COLUMN IF NOT EXISTS sitelinks_json STRING,
+  -- #543 origin_qids: 料理の由来国・地域 QID の配列
+  ADD COLUMN IF NOT EXISTS origin_qids ARRAY<STRING>,
+  -- #543 cuisine_qids: 料理カテゴリ QID の配列
+  ADD COLUMN IF NOT EXISTS cuisine_qids ARRAY<STRING>,
+  -- #543 roots: dish_root_summary から取得したルート情報
+  ADD COLUMN IF NOT EXISTS roots ARRAY<STRUCT<
+    kind STRING,
+    min_depth INT64
+  >>;
+
+
+-- -----------------------------------------------------------------------------
+-- 8. dish_category_features_catalog: ゲート・ランキング特徴量カタログ
+-- -----------------------------------------------------------------------------
+-- #557 【設計】dish_category に対する特徴量（gate / mood / scene / taste 等）を統合管理
+-- gate 用途（region whitelist）、将来的には mood / scene / timeSlot / taste / archetype も追加
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_features_catalog` (
+  item_qid     STRING NOT NULL,  -- dish_category QID
+  feature_type STRING NOT NULL,  -- 'gate' | 'mood' | 'scene' | 'timeSlot' | 'taste' | 'archetype' ...
+  feature_key  STRING NOT NULL,  -- 'region:scope:global', 'region:country:JP', ...
+  score        FLOAT64 NOT NULL, -- gate は 1 固定、他の特徴量では重み付けに使用
+  source       STRING NOT NULL,  -- 'llm' | 'manual' | 'rule'
+  run_id       STRING NOT NULL,  -- LLM run 識別子（監査・差分比較用）
+  updated_at   TIMESTAMP NOT NULL, -- 最終更新日時
+  note         STRING             -- 任意メモ（confidence / short reason 等）
+);

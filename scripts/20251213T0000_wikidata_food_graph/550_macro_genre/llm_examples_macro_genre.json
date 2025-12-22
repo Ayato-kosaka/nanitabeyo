@@ -1,0 +1,117 @@
+[
+	{
+		"label_en": "Champagne wine region",
+		"desc_en": "wine-producing region in France",
+		"decision": "A",
+		"confidence": "high",
+		"reason": "geographic wine region, not edible"
+	},
+	{
+		"label_en": "AOC wine",
+		"desc_en": "French wine designation",
+		"decision": "A",
+		"confidence": "high",
+		"reason": "designation system"
+	},
+	{
+		"label_en": "McFlurry",
+		"desc_en": "McDonald's ice cream dessert",
+		"decision": "A",
+		"confidence": "high",
+		"reason": "company-specific SKU (chain menu item) -> blacklist"
+	},
+	{
+		"label_en": "Swedish cuisine",
+		"desc_en": "traditional cooking practices of Sweden",
+		"decision": "B",
+		"confidence": "high",
+		"reason": "established cuisine grouping"
+	},
+	{
+		"label_en": "Kaiseki",
+		"desc_en": "traditional multi-course Japanese dinner",
+		"decision": "B",
+		"confidence": "high",
+		"reason": "culinary tradition"
+	},
+	{
+		"label_en": "Shoyu ramen",
+		"desc_en": "ramen with soy sauce broth",
+		"decision": "C",
+		"macro_genre": "Ramen",
+		"confidence": "high",
+		"reason": "ramen variant"
+	},
+	{
+		"label_en": "Champagne",
+		"desc_en": "sparkling wine",
+		"decision": "C",
+		"macro_genre": "Sparkling wine",
+		"confidence": "high",
+		"reason": "wine type variant"
+	},
+	{
+		"label_en": "Miso soup",
+		"desc_en": "Japanese soup with miso",
+		"decision": "C",
+		"macro_genre": "Miso soup",
+		"confidence": "high",
+		"reason": "distinct dish, self macro"
+	},
+	{
+		"label_en": "Paella",
+		"desc_en": "Spanish rice dish",
+		"decision": "C",
+		"macro_genre": "Paella",
+		"confidence": "high",
+		"reason": "distinct dish, self macro"
+	},
+	{
+		"label_en": "Gyudon",
+		"desc_en": "Japanese beef bowl",
+		"decision": "C",
+		"macro_genre": "Gyudon",
+		"confidence": "high",
+		"reason": "distinct dish, self macro"
+	},
+	{
+		"label_en": "Tiramisu",
+		"desc_en": "Italian coffee-flavored dessert",
+		"decision": "C",
+		"macro_genre": "Tiramisu",
+		"confidence": "high",
+		"reason": "distinct dessert, self macro"
+	},
+	{
+		"label_en": "Sparkling wine",
+		"desc_en": "wine with carbonation",
+		"decision": "C",
+		"macro_genre": "Sparkling wine",
+		"confidence": "high",
+		"reason": "wine category, self macro"
+	},
+	{
+		"label_en": "Ramen",
+		"desc_en": "Japanese noodle soup",
+		"decision": "C",
+		"macro_genre": "Ramen",
+		"confidence": "high",
+		"reason": "base dish, self macro"
+	},
+	{
+		"label_en": "Sushi",
+		"desc_en": "Japanese dish with vinegared rice",
+		"decision": "C",
+		"macro_genre": "Sushi",
+		"confidence": "high",
+		"reason": "base dish, self macro"
+	},
+	{
+		"label_en": "Nigiri",
+		"desc_en": "hand-pressed sushi",
+		"decision": "C",
+		"macro_genre": "Sushi",
+		"confidence": "high",
+		"reason": "sushi variant"
+	}
+]
