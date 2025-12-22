@@ -21,7 +21,6 @@ import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
 import { CARD_WIDTH } from "../constants";
-import { formatNormalizedAddress } from "@/utils/addressNormalization";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -148,8 +147,7 @@ export const useTopicSearch = () => {
 				>("v1/dish-categories/recommendations", {
 					method: "GET",
 					requestPayload: {
-						// #533 【仕様】addressComponents を type:value 形式に変換してレコメンドに送信
-						address: params.addressComponents ? formatNormalizedAddress(params.addressComponents) : params.address, // フォールバック: addressComponents がない場合は従来の address を使用
+						address: params.address,
 						timeSlot: params.timeSlot,
 						scene: params.scene,
 						mood: params.mood,
@@ -229,8 +227,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												typeof createDishCategoryVariantResponse.labels === "object" &&
+												params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
