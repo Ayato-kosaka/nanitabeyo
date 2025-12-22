@@ -21,6 +21,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
 import { CARD_WIDTH } from "../constants";
+import { formatNormalizedAddress } from "@/utils/addressNormalization";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -147,7 +148,8 @@ export const useTopicSearch = () => {
 				>("v1/dish-categories/recommendations", {
 					method: "GET",
 					requestPayload: {
-						address: params.address,
+						// #533 【仕様】addressComponents を type:value 形式に変換してレコメンドに送信
+						address: params.addressComponents ? formatNormalizedAddress(params.addressComponents) : params.address, // フォールバック: addressComponents がない場合は従来の address を使用
 						timeSlot: params.timeSlot,
 						scene: params.scene,
 						mood: params.mood,
