@@ -1,0 +1,53 @@
+# #581 dish_category_localized_text LLM生成設定ファイル
+
+# BigQuery設定
+dataset: "food-scroll.wikidata_food_graph"
+
+# 対象locale（BCP47形式）
+locales:
+  - "ja-JP"
+  - "en"
+
+# タスク識別子
+task_pass1: "#581_localized_text_p1"
+task_pass2: "#581_localized_text_p2"
+
+# 実行ID（タイムスタンプベース、実行時に上書き可能）
+run_id_prefix: "20251221T0000"
+
+# モデル設定
+model_pass1: "gpt-4.1-mini"
+model_pass2: "gpt-4.1"
+
+# Batch API設定
+batch_api: true
+batch_poll_interval_sec: 30
+
+# テスト用データ制限（null = 全件処理）
+max_items: null  # テスト時は 100 等を指定
+
+# ファイルパス設定
+paths:
+  input_export_dir: "/tmp/581/input"
+  payload_dir: "/tmp/581/payload"
+  results_dir: "/tmp/581/results"
+
+# Pass2発火条件
+pass2_trigger_confidence:
+  - "medium"
+  - "low"
+
+# catalog採用条件（publish時のフィルタ）
+adopt_confidence:
+  - "high"
+
+# LLM出力制限
+topic_title_max_chars: 14
+tagline_max_chars: 45
+
+# 入力カード設定
+max_desc_chars: 200  # description の truncate 文字数
+max_aliases: 5       # 別名の最大数
+
+# バッチサイズ
+batch_size: 10  # 1リクエストあたりのアイテム数
