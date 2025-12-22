@@ -34,7 +34,7 @@ export class DishCategoriesService {
         timeSlot: dto.timeSlot,
         scene: dto.scene,
         mood: dto.mood,
-        restrictions: dto.restrictions,
+        // restrictions: dto.restrictions, // #533 restrictions フィールドは DTO に未定義のため一旦コメントアウト
         languageTag: dto.languageTag,
       });
 

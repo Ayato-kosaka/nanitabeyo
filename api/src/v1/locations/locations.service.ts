@@ -604,18 +604,21 @@ export class LocationsService {
       };
 
       // Extract address from addressComponents
-      const addressComponents = response.addressComponents;
-      const address = this.buildAddressFromComponents(addressComponents);
+      const addressComponentsRaw = response.addressComponents;
+      const address = this.buildAddressFromComponents(addressComponentsRaw);
+      const addressComponents =
+        this.buildNormalizedAddressComponents(addressComponentsRaw);
 
       // Resolve local language code from addressComponents
       const localLanguageCode =
-        this.resolveLocalLanguageCode(addressComponents);
+        this.resolveLocalLanguageCode(addressComponentsRaw);
 
       this.logger.debug('LocationDetailsSuccess', 'getLocationDetails', {
         placeId: query.placeId,
         location,
         viewport,
         address,
+        addressComponents,
         localLanguageCode,
       });
 
@@ -623,6 +626,7 @@ export class LocationsService {
         location,
         viewport,
         address,
+        addressComponents,
         localLanguageCode,
       };
     } catch (error) {
@@ -684,21 +688,26 @@ export class LocationsService {
       };
 
       // Extract address from addressComponents
-      const addressComponents = result.address_components.map((component) => ({
-        shortText: component.short_name,
-        longText: component.long_name,
-        types: component.types || [],
-      }));
-      const address = this.buildAddressFromComponents(addressComponents);
+      const addressComponentsRaw = result.address_components.map(
+        (component) => ({
+          shortText: component.short_name,
+          longText: component.long_name,
+          types: component.types || [],
+        }),
+      );
+      const address = this.buildAddressFromComponents(addressComponentsRaw);
+      const addressComponents =
+        this.buildNormalizedAddressComponents(addressComponentsRaw);
 
       // Resolve local language code from addressComponents
       const localLanguageCode =
-        this.resolveLocalLanguageCode(addressComponents);
+        this.resolveLocalLanguageCode(addressComponentsRaw);
 
       return {
         location,
         viewport,
         address,
+        addressComponents,
         localLanguageCode,
       };
     } catch (error) {
@@ -736,5 +745,75 @@ export class LocationsService {
       .join(', ');
 
     return address;
+  }
+
+  /**
+   * addressComponents から type-based な正規化形式に変換
+   * 各 component の type をキーとして、shortText（優先）または longText を値として格納
+   *
+   * 優先順位（重要度の高い順）:
+   * - country: 国コード（必須、ISO 2文字）
+   * - administrative_area_level_1: 州/県
+   * - locality: 市区町村
+   * - sublocality: より細かい地域
+   * - postal_code: 郵便番号
+   * - その他の administrative_area_level_X
+   *
+   * @param addressComponents Google Places API の addressComponents
+   * @returns type をキーとした正規化マップ（例: { "country": "JP", "locality": "Kyoto" }）
+   */
+  private buildNormalizedAddressComponents(
+    addressComponents: google.maps.places.v1.Place.IAddressComponent[],
+  ): Record<string, string> {
+    const normalized: Record<string, string> = {};
+
+    // 優先順位定義（高い順）
+    const typePriority = [
+      'country',
+      'administrative_area_level_1',
+      'locality',
+      'sublocality',
+      'sublocality_level_1',
+      'sublocality_level_2',
+      'postal_code',
+      'administrative_area_level_2',
+      'administrative_area_level_3',
+      'administrative_area_level_4',
+      'administrative_area_level_5',
+      'administrative_area_level_6',
+      'administrative_area_level_7',
+    ];
+
+    // 各 component を処理
+    for (const component of addressComponents) {
+      if (!component.types || component.types.length === 0) {
+        continue;
+      }
+
+      // shortText を優先、なければ longText を使用
+      const value = component.shortText || component.longText;
+      if (!value) {
+        continue;
+      }
+
+      // component が持つ type のうち、優先順位が最も高いものを選択
+      let selectedType: string | null = null;
+      let highestPriority = Infinity;
+
+      for (const type of component.types) {
+        const priority = typePriority.indexOf(type);
+        if (priority !== -1 && priority < highestPriority) {
+          highestPriority = priority;
+          selectedType = type;
+        }
+      }
+
+      // 優先順位リストにある type のみ採用
+      if (selectedType && !normalized[selectedType]) {
+        normalized[selectedType] = value;
+      }
+    }
+
+    return normalized;
   }
 }

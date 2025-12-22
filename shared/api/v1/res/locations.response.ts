@@ -10,6 +10,13 @@ export interface AutocompleteLocation {
 /** GET /v1/locations/autocomplete のレスポンス型 */
 export type AutocompleteLocationsResponse = AutocompleteLocation[];
 
+/**
+ * type-based な正規化 address 形式
+ * 各 type をキーとして shortText を格納
+ * 例: { "country": "JP", "locality": "Kyoto" }
+ */
+export type AddressComponentsNormalized = Record<string, string>;
+
 /** GET /v1/locations/details のレスポンス型 */
 export interface LocationDetailsResponse {
 	/** Place Details (New) responses の値をそのまま設定 */
@@ -28,8 +35,16 @@ export interface LocationDetailsResponse {
 			longitude: number;
 		};
 	};
-	/** addressComponents より locality 以上の階層を抽出し、カンマ区切りで設定 */
+	/**
+	 * addressComponents より locality 以上の階層を抽出し、カンマ区切りで設定
+	 * 表示用の住所文字列（後方互換性のため維持）
+	 */
 	address: string;
+	/**
+	 * type-based な正規化 address 形式（#533 レコメンド用）
+	 * 例: { "country": "JP", "administrative_area_level_1": "Kyoto", "locality": "Kyoto" }
+	 */
+	addressComponents: AddressComponentsNormalized;
 	/** addressComponents から解決された現地言語コード (BCP47) */
 	localLanguageCode: string;
 }
@@ -52,8 +67,16 @@ export interface LocationReverseGeocodingResponse {
 			longitude: number;
 		};
 	};
-	/** 逆ジオコーディングで取得された住所 */
+	/**
+	 * 逆ジオコーディングで取得された住所
+	 * 表示用の住所文字列（後方互換性のため維持）
+	 */
 	address: string;
+	/**
+	 * type-based な正規化 address 形式（#533 レコメンド用）
+	 * 例: { "country": "JP", "administrative_area_level_1": "Kyoto", "locality": "Kyoto" }
+	 */
+	addressComponents: AddressComponentsNormalized;
 	/** 解決された現地言語コード (BCP47) */
 	localLanguageCode: string;
 }

@@ -9,5 +9,4 @@ export type DishCategoryRecommendationItem = {
 /** GET /v1/dish-categories/recommendations のレスポンス型 */
 export type QueryDishCategoryRecommendationsResponse = DishCategoryRecommendationItem[];
 
-export type ArchetypeType = 'classic' | 'discovery' | 'trend';
-
+export type ArchetypeType = "classic" | "discovery" | "trend";
