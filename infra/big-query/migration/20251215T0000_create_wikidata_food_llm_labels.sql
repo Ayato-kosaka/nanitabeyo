@@ -37,3 +37,22 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_labels` (
   run_id      STRING NOT NULL,   -- バッチ実行ごとの識別子（例: '20251215T0000_v1'）
   created_at  TIMESTAMP NOT NULL -- LLM 結果の登録日時
 );
+
+
+-- -----------------------------------------------------------------------------
+-- wikidata_food_copy_generations: LLM コピー生成結果テーブル（#581）
+-- -----------------------------------------------------------------------------
+-- #581 【設計】dish_category の感情訴求型コピー（topic_title / tagline）生成結果を保存
+-- append-only で全 run を保持し、採用版は dish_category_localized_text_catalog に分離
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_copy_generations` (
+  item_qid    STRING NOT NULL,   -- Wikidata QID（dish_category）
+  locale      STRING NOT NULL,   -- BCP47 形式（'ja-JP', 'en'）
+  topic_title STRING NOT NULL,   -- 感情訴求型タイトル（最大12-14文字）
+  tagline     STRING NOT NULL,   -- キャッチコピー（最大45文字）
+  confidence  STRING NOT NULL,   -- 'high' / 'medium' / 'low'
+  model       STRING NOT NULL,   -- 'gpt-4.1-mini' / 'gpt-4.1' など
+  run_id      STRING NOT NULL,   -- バッチ実行ごとの識別子（例: '20251221T0000_p1'）
+  created_at  TIMESTAMP NOT NULL,-- LLM 結果の登録日時
+  note        STRING             -- 任意メモ（pass 情報など）
+);
