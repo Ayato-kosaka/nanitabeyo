@@ -16,7 +16,11 @@ def main():
     dataset = config["dataset"]
     run_id_p1 = config["run_id_prefix"] + "_p1"
     run_id_p2 = config["run_id_prefix"] + "_p2"
-    adopt_conf = tuple(config["adopt_confidence"])
+    adopt_conf_list = config["adopt_confidence"]
+    if not adopt_conf_list:
+        raise ValueError("config adopt_confidence is empty")
+
+    adopt_conf_sql = "(" + ", ".join([f"'{c}'" for c in adopt_conf_list]) + ")"
     
     sql_file = SCRIPT_DIR / "sql" / "publish_catalog.sql"
     with open(sql_file) as f: sql_template = f.read()
@@ -27,7 +31,7 @@ def main():
         "dataset": dataset,
         "pass1_run_id": run_id_p1,
         "pass2_run_id": run_id_p2,
-        "adopt_confidence": adopt_conf
+        "adopt_confidence": adopt_conf_sql
     })
     
     logger.info("="*80 + f"\n✅ Published {affected} rows\n" + "="*80)

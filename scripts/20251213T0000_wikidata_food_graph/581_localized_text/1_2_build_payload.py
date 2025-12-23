@@ -63,9 +63,10 @@ def create_batch_request(items: list, custom_id: str, locale: str, model: str) -
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message}
             ],
-            "tools": [tool_spec],
-            "tool_choice": {"type": "function", "function": {"name": "submit_localized_text"}},
-            "temperature": 0.0
+            # 検討の結果、tools を使うとそれに合わせようと精度が下がるため廃止
+            # "tools": [tool_spec],
+            # "tool_choice": {"type": "function", "function": {"name": "submit_localized_text"}},
+            "temperature": 0.7
         }
     }
 

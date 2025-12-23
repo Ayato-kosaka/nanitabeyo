@@ -4,6 +4,7 @@
 dataset: "food-scroll.wikidata_food_graph"
 
 # 対象locale（BCP47形式）
+# #581 バグで効かないので、 ./sql/p1_export_input.sql を直接修正する
 locales:
   - "ja-JP"
   - "en"
@@ -16,7 +17,7 @@ task_pass2: "#581_localized_text_p2"
 run_id_prefix: "20251221T0000"
 
 # モデル設定
-model_pass1: "gpt-4.1-mini"
+model_pass1: "gpt-4o"
 model_pass2: "gpt-4.1"
 
 # Batch API設定
@@ -24,7 +25,8 @@ batch_api: true
 batch_poll_interval_sec: 30
 
 # テスト用データ制限（null = 全件処理）
-max_items: null  # テスト時は 100 等を指定
+max_items: 150  # gpt-4o のキュー上限が 90,000 enqueued tokens のため分割実行
+# TODO: スクリプトの実行を OFFSET 付きループに変更したい
 
 # ファイルパス設定
 paths:
@@ -50,4 +52,4 @@ max_desc_chars: 200  # description の truncate 文字数
 max_aliases: 5       # 別名の最大数
 
 # バッチサイズ
-batch_size: 10  # 1リクエストあたりのアイテム数
+batch_size: 1  # 1リクエストあたりのアイテム数

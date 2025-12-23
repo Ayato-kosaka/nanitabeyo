@@ -53,13 +53,18 @@ def main():
     
     # Migration 実行
     logger.info("Executing migration...")
-    migration_file = Path(__file__).parent.parent.parent / "infra" / "big-query" / "migration" / "20251213T0000_create_wikidata_food_tables.sql"
-    
-    if not migration_file.exists():
-        logger.error(f"Migration file not found: {migration_file}")
-        sys.exit(1)
-    
-    bq_loader.execute_migration(str(migration_file))
+    migration_files = [
+        Path(__file__).parent.parent.parent / "infra" / "big-query" / "migration" / "20251213T0000_create_wikidata_food_tables.sql",
+        Path(__file__).parent.parent.parent / "infra" / "big-query" / "migration" / "20251215T0000_create_wikidata_food_llm_labels.sql"
+    ]
+
+    for migration_file in migration_files:    
+        if not migration_file.exists():
+            logger.error(f"Migration file not found: {migration_file}")
+            sys.exit(1)
+        
+        bq_loader.execute_migration(str(migration_file))
+        
     logger.info("Migration completed successfully")
     
     logger.info("=" * 80)
