@@ -1,4 +1,4 @@
--- #581 【設計】Pass2 用の入力データ抽出 SQL
+-- #582 【設計】Pass2 用の入力データ抽出 SQL
 -- Pass1 で confidence in ('medium', 'low') だったアイテムのみ再抽出
 
 WITH catalog_items AS (
@@ -12,7 +12,7 @@ WITH catalog_items AS (
     aliases_json
   FROM `{dataset}.dish_category_catalog`
 ),
--- #581 【設計】Pass1 の結果から medium/low confidence のみ
+-- #582 【設計】Pass1 の結果から medium/low confidence のみ
 pass1_retry AS (
   SELECT DISTINCT
     item_qid,
@@ -24,7 +24,7 @@ pass1_retry AS (
 SELECT
   c.item_qid,
   p.locale,
-  -- #581 【設計】locale に応じて適切なラベル・説明を選択
+  -- #582 【設計】locale に応じて適切なラベル・説明を選択
   CASE p.locale
     WHEN 'ja-JP' THEN COALESCE(c.label_ja, c.label_en, '')
     WHEN 'en' THEN COALESCE(c.label_en, '')

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#581 Pass2 Step 6: catalog投入"""
+"""#582 Pass2 Step 6: catalog投入"""
 import sys, logging, yaml
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))

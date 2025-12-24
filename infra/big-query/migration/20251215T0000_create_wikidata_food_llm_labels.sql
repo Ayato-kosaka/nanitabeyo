@@ -40,9 +40,9 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_labels` (
 
 
 -- -----------------------------------------------------------------------------
--- wikidata_food_copy_generations: LLM コピー生成結果テーブル（#581）
+-- wikidata_food_copy_generations: LLM コピー生成結果テーブル（#582）
 -- -----------------------------------------------------------------------------
--- #581 【設計】dish_category の感情訴求型コピー（topic_title / tagline）生成結果を保存
+-- #582 【設計】dish_category の感情訴求型コピー（topic_title / tagline）生成結果を保存
 -- append-only で全 run を保持し、採用版は dish_category_localized_text_catalog に分離
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_copy_generations` (

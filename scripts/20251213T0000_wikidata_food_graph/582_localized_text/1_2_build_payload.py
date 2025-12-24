@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-#581 【設計】Pass1: Step 2 - Batch API ペイロード生成
+#582 【設計】Pass1: Step 2 - Batch API ペイロード生成
 
 p1_input.jsonl を読み込み、locale ごとに適切なプロンプトでペイロードを生成
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 from collections import defaultdict
 
-# #581 【設計】親ディレクトリを sys.path に追加
+# #582 【設計】親ディレクトリを sys.path に追加
 sys.path.insert(0, str(Path(__file__).parent))
 
 from lib.io import read_jsonl, write_jsonl, ensure_dir
@@ -96,12 +96,12 @@ def main():
     items = read_jsonl(input_file)
     logger.info(f"Loaded {len(items)} items")
     
-    # #581 【設計】locale ごとにグループ化
+    # #582 【設計】locale ごとにグループ化
     items_by_locale = defaultdict(list)
     for item in items:
         items_by_locale[item["locale"]].append(item)
     
-    # #581 【設計】locale ごとにバッチ生成
+    # #582 【設計】locale ごとにバッチ生成
     requests = []
     for locale, locale_items in items_by_locale.items():
         logger.info(f"Processing {len(locale_items)} items for locale={locale}")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-#581 【設計】メトリクス計算ライブラリ
+#582 【設計】メトリクス計算ライブラリ
 
 Token統計、Pass2発火率、confidence分布などを計算
 """
@@ -36,12 +36,12 @@ def calculate_metrics(
     success_count = len(results)
     error_count = len(errors)
     
-    # #581 【設計】confidence 分布
+    # #582 【設計】confidence 分布
     confidence_dist = defaultdict(int)
     for r in results:
         confidence_dist[r.get("confidence", "unknown")] += 1
     
-    # #581 【設計】locale 別内訳
+    # #582 【設計】locale 別内訳
     locale_dist = defaultdict(int)
     for r in results:
         locale_dist[r.get("locale", "unknown")] += 1
@@ -56,7 +56,7 @@ def calculate_metrics(
         "locale_distribution": dict(locale_dist)
     }
     
-    # #581 【設計】Pass2 発火率（Pass1 実行時のみ）
+    # #582 【設計】Pass2 発火率（Pass1 実行時のみ）
     if pass2_triggered > 0:
         trigger_rate = pass2_triggered / success_count if success_count > 0 else 0
         metrics["pass2"] = {

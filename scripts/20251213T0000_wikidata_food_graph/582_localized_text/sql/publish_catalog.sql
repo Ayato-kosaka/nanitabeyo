@@ -1,10 +1,10 @@
--- #581 【設計】catalog への publish SQL
+-- #582 【設計】catalog への publish SQL
 -- wikidata_food_copy_generations から confidence='high' のみを抽出し、
 -- dish_category_localized_text_catalog に MERGE で反映（Pass2 優先）
 
 MERGE `{dataset}.dish_category_localized_text_catalog` AS target
 USING (
-  -- #581 【設計】Pass2 結果が存在する場合は Pass2 を優先、なければ Pass1
+  -- #582 【設計】Pass2 結果が存在する場合は Pass2 を優先、なければ Pass1
   WITH pass2_results AS (
     SELECT
       item_qid,
@@ -31,7 +31,7 @@ USING (
     WHERE run_id = '{pass1_run_id}'
       AND confidence IN {adopt_confidence}
   ),
-  -- #581 【設計】Pass2 優先でユニオン（Pass2 があれば Pass1 は除外）
+  -- #582 【設計】Pass2 優先でユニオン（Pass2 があれば Pass1 は除外）
   final_results AS (
     SELECT
       item_qid,

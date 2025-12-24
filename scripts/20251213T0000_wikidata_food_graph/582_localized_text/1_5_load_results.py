@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#581 Pass2 Step 5: 結果をBigQueryロード"""
+"""#582 Pass1 Step 5: 結果をBigQueryロード"""
 import sys, logging, yaml, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -32,15 +32,15 @@ def parse_results(results_jsonl: list, run_id: str, model: str):
             errors.append({"custom_id": custom_id, "error": "no_choices"})
             continue
         
-        tool_calls = choices[0].get("message", {}).get("tool_calls", [])
-        if not tool_calls:
-            errors.append({"custom_id": custom_id, "error": "no_tool_calls"})
+        content = choices[0].get("message", {}).get("content", [])
+        if not content:
+            errors.append({"custom_id": custom_id, "error": "no_content"})
             continue
         
-        args_str = tool_calls[0].get("function", {}).get("arguments", "")
+        args_str = content.split("```json")[-1].split("```")[0].strip()
         try:
             args = json.loads(args_str)
-            results_list = args.get("results", [])
+            results_list = [args]
             
             for r in results_list:
                 generations.append({
@@ -48,7 +48,7 @@ def parse_results(results_jsonl: list, run_id: str, model: str):
                     "locale": locale,
                     "topic_title": r["topic_title"],
                     "tagline": r["tagline"],
-                    "confidence": r["confidence"],
+                    "confidence": r.get("confidence", ""),
                     "model": model,
                     "run_id": run_id,
                     "note": "pass1"
@@ -62,22 +62,26 @@ def parse_results(results_jsonl: list, run_id: str, model: str):
     return generations, errors, pass2_count
 
 def main():
-    logger.info("="*80 + "\nPass2 Step 2-5: Loading results to BigQuery\n" + "="*80)
+    logger.info("="*80 + "\nPass1 Step 1-5: Loading results to BigQuery\n" + "="*80)
     with open(SCRIPT_DIR/"config.yml") as f: config = yaml.safe_load(f)
     
     dataset = config["dataset"]
     results_dir = Path(config["paths"]["results_dir"])
-    run_id = config["run_id_prefix"] + "_p2"
+    run_id = config["run_id_prefix"] + "_p1"
     model = config["model_pass1"]
     
-    results_file = results_dir / "p2_results.jsonl"
-    metrics_file = results_dir / "p2_metrics.json"
+    results_file = results_dir / "p1_results.jsonl"
+    metrics_file = results_dir / "p1_metrics.json"
     
     # 結果読み込み＆パース
     results_jsonl = read_jsonl(results_file)
     logger.info(f"Loaded {len(results_jsonl)} result lines")
     
     generations, errors, pass2_count = parse_results(results_jsonl, run_id, model)
+
+    # エラーをログに出力
+    for error in errors:
+        logger.warning(f"Error for {error['custom_id']}: {error['error']}")
     
     logger.info(f"Parsed {len(generations)} generations, {len(errors)} errors")
     logger.info(f"Pass2 trigger count: {pass2_count}")
@@ -92,7 +96,7 @@ def main():
     write_json(metrics_file, metrics)
     print_metrics(metrics)
     
-    logger.info("="*80 + "\n✅ Pass2 Step 2-5 completed\n" + "="*80)
+    logger.info("="*80 + "\n✅ Pass1 Step 1-5 completed\n" + "="*80)
     logger.info(f"\nMetrics: {metrics_file}\nNext: python3 1_6_publish_catalog.py")
 
 if __name__ == "__main__": main()

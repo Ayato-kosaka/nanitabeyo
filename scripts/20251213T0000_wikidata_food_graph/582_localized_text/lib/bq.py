@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-#581 【設計】BigQuery 操作ライブラリ
+#582 【設計】BigQuery 操作ライブラリ
 
 入力データ抽出、結果ロード、catalog publish を担当
 """
@@ -69,7 +69,7 @@ class BigQueryClient:
         table_id = f"{self.dataset_ref}.{table_name}"
         logger.info(f"Loading {len(generations)} generations to {table_id}")
         
-        # #581 【設計】created_at を追加
+        # #582 【設計】created_at を追加
         now = datetime.now(timezone.utc).isoformat()
         rows_to_insert = [
             {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#581 Pass2 Step 1: Pass1のmedium/low抽出"""
+"""#582 Pass2 Step 1: Pass1のmedium/low抽出"""
 import sys, logging, json, yaml
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))

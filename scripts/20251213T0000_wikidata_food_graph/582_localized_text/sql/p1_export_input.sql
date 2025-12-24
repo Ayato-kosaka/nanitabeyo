@@ -1,4 +1,4 @@
--- #581 【設計】Pass1 用の入力データ抽出 SQL
+-- #582 【設計】Pass1 用の入力データ抽出 SQL
 -- dish_category_catalog から全対象アイテム × locale を生成
 
 WITH gate_allowed AS (
@@ -33,7 +33,7 @@ catalog_items AS (
     aliases_json
   FROM `{dataset}.dish_category_catalog`
 ),
--- #581 【設計】locale × item のクロス集計（ja-JP, en）
+-- #582 【設計】locale × item のクロス集計（ja-JP, en）
 locales AS (
   SELECT 'ja-JP' AS locale UNION ALL
   SELECT 'en' AS locale

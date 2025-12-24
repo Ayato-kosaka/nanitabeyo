@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#581 Pass2 Step 3: Batch投入"""
+"""#582 Pass1 Step 3: Batch投入"""
 import sys, logging, yaml
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).parent
 
 def main():
-    logger.info("="*80 + "\nPass2 Step 2-3: Submitting batch\n" + "="*80)
+    logger.info("="*80 + "\nPass1 Step 1-3: Submitting batch\n" + "="*80)
     with open(SCRIPT_DIR/"config.yml") as f: config = yaml.safe_load(f)
     payload_dir = Path(config["paths"]["payload_dir"])
     results_dir = Path(config["paths"]["results_dir"])
     ensure_dir(results_dir)
     
-    payload_file = payload_dir / "batch_payload_p2.jsonl"
-    batch_id_file = results_dir / "p2_batch_id.txt"
+    payload_file = payload_dir / "batch_payload_p1.jsonl"
+    batch_id_file = results_dir / "p1_batch_id.txt"
     
     client = BatchAPIClient()
     file_id = client.upload_file(str(payload_file))

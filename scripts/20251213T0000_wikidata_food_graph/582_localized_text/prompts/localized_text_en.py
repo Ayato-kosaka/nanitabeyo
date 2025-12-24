@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-#581 【設計】英語（en）用の感情訴求型コピー生成プロンプト
+#582 【設計】英語（en）用の感情訴求型コピー生成プロンプト
 
 topic_title / tagline を生成する system/user prompt を組み立てる
 """
@@ -11,7 +11,7 @@ from typing import List, Dict
 
 def build_system_message() -> str:
     """
-    #581 【設計】英語コピー生成用 system メッセージ
+    #582 【設計】英語コピー生成用 system メッセージ
     
     Returns:
         system メッセージ文字列
@@ -49,7 +49,7 @@ Do not inflate confidence.
 
 def build_user_message(items: List[Dict]) -> str:
     """
-    #581 【設計】英語コピー生成用 user メッセージ
+    #582 【設計】英語コピー生成用 user メッセージ
     
     Args:
         items: アイテムのリスト
@@ -60,7 +60,7 @@ def build_user_message(items: List[Dict]) -> str:
     """
     import json
     
-    # #581 【設計】item_qid, label, description, aliases_top のみ渡す
+    # #582 【設計】item_qid, label, description, aliases_top のみ渡す
     payload = {
         "items": [
             {
@@ -78,7 +78,7 @@ def build_user_message(items: List[Dict]) -> str:
 
 def get_tool_spec(n_items: int) -> Dict:
     """
-    #581 【設計】tool function specification
+    #582 【設計】tool function specification
     
     Args:
         n_items: アイテム数（minItems/maxItems に使用）

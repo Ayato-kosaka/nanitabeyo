@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-#581 【設計】Batch API 操作ライブラリ
+#582 【設計】Batch API 操作ライブラリ
 
 OpenAI Batch API の投入・ポーリング・結果取得を担当
 """

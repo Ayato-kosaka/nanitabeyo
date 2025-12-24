@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-#581 【設計】Pass1: Step 1 - 入力データエクスポート
+#582 【設計】Pass1: Step 1 - 入力データエクスポート
 
 BigQuery から dish_category_catalog を抽出し、locale × item のクロス集計で出力
 """
@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 import yaml
 
-# #581 【設計】親ディレクトリを sys.path に追加
+# #582 【設計】親ディレクトリを sys.path に追加
 sys.path.insert(0, str(Path(__file__).parent))
 
 from lib.bq import BigQueryClient
@@ -54,7 +54,7 @@ def parse_aliases_json(aliases_json_str: str, max_aliases: int = 5) -> list:
     
     try:
         aliases_dict = json.loads(aliases_json_str)
-        # #581 【設計】各言語から最大N件抽出
+        # #582 【設計】各言語から最大N件抽出
         all_aliases = []
         for lang_aliases in aliases_dict.values():
             if isinstance(lang_aliases, list):
@@ -92,7 +92,7 @@ def main():
     with open(sql_file, 'r', encoding='utf-8') as f:
         sql_template = f.read()
     
-    # #581 【設計】LIMIT 句の生成
+    # #582 【設計】LIMIT 句の生成
     limit_clause = f"LIMIT {max_items}" if max_items else ""
     
     # BigQuery クライアント初期化
@@ -111,7 +111,7 @@ def main():
     
     logger.info(f"Found {len(items)} items")
     
-    # #581 【設計】データ整形（description truncate, aliases 抽出）
+    # #582 【設計】データ整形（description truncate, aliases 抽出）
     formatted_items = []
     for item in items:
         desc = item.get("description", "") or ""

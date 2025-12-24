@@ -164,9 +164,9 @@ ALTER TABLE `${DATASET}.dish_category_catalog`
 
 
 -- -----------------------------------------------------------------------------
--- 8. dish_category_localized_text_catalog: 採用版 localized text カタログ（#581）
+-- 8. dish_category_localized_text_catalog: 採用版 localized text カタログ（#582）
 -- -----------------------------------------------------------------------------
--- #581 【設計】LLM生成の感情訴求型コピー（topic_title / tagline）の採用版を管理
+-- #582 【設計】LLM生成の感情訴求型コピー（topic_title / tagline）の採用版を管理
 -- wikidata_food_copy_generations から confidence='high' のみを投入し、常に採用版のみ保持
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_localized_text_catalog` (

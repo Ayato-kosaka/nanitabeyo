@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#581 Pass1 Step 4: Batch完了待機＆ダウンロード"""
+"""#582 Pass2 Step 4: Batch完了待機＆ダウンロード"""
 import sys, logging, yaml
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).parent
 
 def main():
-    logger.info("="*80 + "\nPass1 Step 1-4: Polling batch\n" + "="*80)
+    logger.info("="*80 + "\nPass2 Step 2-4: Polling batch\n" + "="*80)
     with open(SCRIPT_DIR/"config.yml") as f: config = yaml.safe_load(f)
     results_dir = Path(config["paths"]["results_dir"])
     poll_interval = config.get("batch_poll_interval_sec", 30)
     
-    batch_id_file = results_dir / "p1_batch_id.txt"
-    results_file = results_dir / "p1_results.jsonl"
+    batch_id_file = results_dir / "p2_batch_id.txt"
+    results_file = results_dir / "p2_results.jsonl"
     
     batch_id = read_text(batch_id_file)
     logger.info(f"Polling batch: {batch_id}")
