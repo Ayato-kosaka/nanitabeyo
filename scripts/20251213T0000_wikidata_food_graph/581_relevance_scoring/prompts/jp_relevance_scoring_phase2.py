@@ -77,7 +77,7 @@ Check Phase 1 scores against the rubric definitions:
 
 A) timeSlot (morning / lunch / afternoon / dinner / late_night)
 B) scene (solo / date / friends / family / drinking)
-C) appetite (hearty / normal / light)
+C) satiety (hearty / normal / light)
 D) taste (sweet / spicy / healthy / junk / alcohol)
 
 Refer to the Phase 1 rubric (same definitions).
@@ -213,7 +213,7 @@ def build_tool_spec(n_items: int, n_features_per_item: int) -> Dict:
                                         "properties": {
                                             "feature_type": {
                                                 "type": "string",
-                                                "enum": ["timeSlot", "scene", "appetite", "taste"]
+                                                "enum": ["timeSlot", "scene", "satiety", "taste"]
                                             },
                                             "feature_key": {
                                                 "type": "string"

@@ -4,7 +4,7 @@
 -- チケット #581 dish_category relevance_scoring（rubric-based feature scoring / Batch API）
 --
 -- ## 目的
--- dish_category に対する relevance feature スコア（timeSlot / scene / appetite / taste）
+-- dish_category に対する relevance feature スコア（timeSlot / scene / satiety / taste）
 -- を LLM で付与し、run_id 単位で管理可能な運用とする。
 --
 -- ## 使い方
@@ -30,7 +30,7 @@
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_feature_scores` (
   item_qid     STRING NOT NULL,   -- dish_category QID
-  feature_type STRING NOT NULL,   -- 'timeSlot' / 'scene' / 'appetite' / 'taste'
+  feature_type STRING NOT NULL,   -- 'timeSlot' / 'scene' / 'satiety' / 'taste'
   feature_key  STRING NOT NULL,   -- 'morning' / 'solo' / 'hearty' / 'sweet' など
   score        FLOAT64 NOT NULL,  -- 0 / 0.5 / 1 のみ
   confidence   STRING,            -- 'high' / 'medium' / 'low'

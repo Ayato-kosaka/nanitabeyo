@@ -52,7 +52,7 @@ features:
       - friends
       - family
       - drinking
-  appetite:
+  satiety:
     keys:
       - hearty
       - normal

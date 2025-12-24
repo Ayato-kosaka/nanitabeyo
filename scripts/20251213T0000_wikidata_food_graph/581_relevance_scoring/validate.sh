@@ -110,7 +110,7 @@ done
 
 echo ""
 echo "6. feature定義チェック..."
-feature_types=("timeSlot" "scene" "appetite" "taste")
+feature_types=("timeSlot" "scene" "satiety" "taste")
 for ft in "${feature_types[@]}"; do
   python3 -c "import yaml; config = yaml.safe_load(open('config.yml')); assert '$ft' in config['features']" 2>/dev/null
   if [ $? -eq 0 ]; then

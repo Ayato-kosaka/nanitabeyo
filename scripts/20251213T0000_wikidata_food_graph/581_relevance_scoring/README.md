@@ -25,7 +25,7 @@
 * solo / date / friends / family / drinking
 * 社会的シーンでの自然さを評価
 
-### C) appetite（満腹感）
+### C) satiety（満腹感）
 
 * hearty / normal / light
 * 料理のボリューム感を評価
@@ -276,7 +276,7 @@ LLM スコアリング結果を保持するテーブル。
 **カラム:**
 
 - `item_qid`: Wikidata QID
-- `feature_type`: `timeSlot` / `scene` / `appetite` / `taste`
+- `feature_type`: `timeSlot` / `scene` / `satiety` / `taste`
 - `feature_key`: 各 feature の key
 - `score`: スコア（0, 0.5, 1）
 - `confidence`: 信頼度（`high` / `medium` / `low` / `deny`）
@@ -294,7 +294,7 @@ relevance feature を保持するテーブル。
 **カラム:**
 
 - `item_qid`: dish_category QID
-- `feature_type`: `timeSlot` / `scene` / `appetite` / `taste`
+- `feature_type`: `timeSlot` / `scene` / `satiety` / `taste`
 - `feature_key`: 各 feature の key
 - `score`: スコア（0, 0.5, 1）
 - `source`: `llm`
@@ -359,7 +359,7 @@ SELECT
   COUNT(*) as count,
   AVG(score) as avg_score
 FROM `food-scroll.wikidata_food_graph.dish_category_features_catalog`
-WHERE feature_type IN ('timeSlot', 'scene', 'appetite', 'taste')
+WHERE feature_type IN ('timeSlot', 'scene', 'satiety', 'taste')
   AND run_id = '20251223T0000_final'
 GROUP BY feature_type, feature_key
 ORDER BY feature_type, feature_key;
@@ -376,7 +376,7 @@ SELECT
 FROM `food-scroll.wikidata_food_graph.dish_category_features_catalog` AS fc
 JOIN `food-scroll.wikidata_food_graph.dish_category_catalog` AS cat
   ON fc.item_qid = cat.item_qid
-WHERE fc.feature_type IN ('timeSlot', 'scene', 'appetite', 'taste')
+WHERE fc.feature_type IN ('timeSlot', 'scene', 'satiety', 'taste')
   AND fc.run_id = '20251223T0000_final'
 LIMIT 50;
 ```

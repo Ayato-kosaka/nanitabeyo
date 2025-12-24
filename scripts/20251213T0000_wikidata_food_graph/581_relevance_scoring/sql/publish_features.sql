@@ -11,7 +11,7 @@
 -- 
 -- 【投入先】
 -- dish_category_features_catalog
---   feature_type: 'timeSlot' / 'scene' / 'appetite' / 'taste'
+--   feature_type: 'timeSlot' / 'scene' / 'satiety' / 'taste'
 --   feature_key: 各 key
 --   score: 0 / 0.5 / 1
 --   source: 'llm'

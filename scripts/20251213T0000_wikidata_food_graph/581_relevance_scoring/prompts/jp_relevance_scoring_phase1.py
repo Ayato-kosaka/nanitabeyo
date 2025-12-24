@@ -8,7 +8,7 @@ jp_relevance_scoring_phase1.py
 
 【機能】
 - 外食文脈での自然さを軸にした relevance feature 付与
-- timeSlot / scene / appetite / taste の4軸評価
+- timeSlot / scene / satiety / taste の4軸評価
 - すべて 0 / 0.5 / 1 の離散値
 """
 
@@ -63,7 +63,7 @@ A) timeSlot (時間帯適性):
 B) scene (誰と食べるか):
    Evaluate for: solo / date / friends / family / drinking
 
-C) appetite (満腹感):
+C) satiety (満腹感):
    Evaluate for: hearty / normal / light
 
 D) taste (印象タグ):
@@ -151,7 +151,7 @@ drinking (飲み会・酒席):
 - 0: 飲み会には不自然（例: モーニングメニュー、子供向けメニュー）
 
 ========================
-RUBRIC: C) appetite
+RUBRIC: C) satiety
 ========================
 
 Evaluate the typical satiety level of this category.
@@ -240,7 +240,7 @@ Return exactly one structured result per item using the tool spec.
 For each item, output ALL features:
 - timeSlot: morning, lunch, afternoon, dinner, late_night
 - scene: solo, date, friends, family, drinking
-- appetite: hearty, normal, light
+- satiety: hearty, normal, light
 - taste: sweet, spicy, healthy, junk, alcohol
 
 Each feature must have:
@@ -301,7 +301,7 @@ def build_tool_spec(n_items: int) -> Dict:
                                         "properties": {
                                             "feature_type": {
                                                 "type": "string",
-                                                "enum": ["timeSlot", "scene", "appetite", "taste"]
+                                                "enum": ["timeSlot", "scene", "satiety", "taste"]
                                             },
                                             "feature_key": {
                                                 "type": "string"
