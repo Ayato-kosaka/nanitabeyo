@@ -56,3 +56,34 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_copy_generations` (
   created_at  TIMESTAMP NOT NULL,-- LLM 結果の登録日時
   note        STRING             -- 任意メモ（pass 情報など）
 );
+
+
+-- -----------------------------------------------------------------------------
+-- dish_category_variant_catalog: variants 加工結果テーブル
+-- -----------------------------------------------------------------------------
+-- BigQuery で生成した variants の格納先
+-- PostgreSQL への同期元となる
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_variant_catalog` (
+  dish_category_id STRING NOT NULL,   -- dish_category QID
+  surface_form     STRING NOT NULL,   -- 正規化済み表記揺れ（小文字）
+  source           STRING NOT NULL,   -- 'wikidata-label' / 'kata2hira' / 'romaji' / 'canonical-label-en'
+  created_at       TIMESTAMP NOT NULL -- 生成日時
+);
+
+
+-- -----------------------------------------------------------------------------
+-- dish_category_images: 画像候補テーブル
+-- -----------------------------------------------------------------------------
+-- dish_category に対する画像候補を管理
+-- 優先順位：manual > analysis > wikimedia > partner
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_images` (
+  dish_category_id STRING NOT NULL,   -- dish_category QID
+  image_url        STRING NOT NULL,   -- 画像URL
+  source_type      STRING NOT NULL,   -- 'wikimedia' / 'analysis' / 'manual' / 'partner'
+  source_ref       STRING,            -- Wikidata property id / 分析ジョブid / ユーザーid / パートナーid
+  score            FLOAT64,           -- 品質推定、CTR、解像度、NSFW検査結果など（分析ジョブ実行時に付与）
+  created_at       TIMESTAMP NOT NULL -- 登録日時
+);
+
