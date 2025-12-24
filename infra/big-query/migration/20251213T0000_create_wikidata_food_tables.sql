@@ -164,7 +164,25 @@ ALTER TABLE `${DATASET}.dish_category_catalog`
 
 
 -- -----------------------------------------------------------------------------
--- 8. dish_category_features_catalog: ゲート・ランキング特徴量カタログ
+-- 8. dish_category_localized_text_catalog: 採用版 localized text カタログ（#582）
+-- -----------------------------------------------------------------------------
+-- #582 【設計】LLM生成の感情訴求型コピー（topic_title / tagline）の採用版を管理
+-- wikidata_food_copy_generations から confidence='high' のみを投入し、常に採用版のみ保持
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_localized_text_catalog` (
+  item_qid        STRING NOT NULL,   -- dish_category QID
+  locale          STRING NOT NULL,   -- BCP47 形式（'ja-JP', 'en'）
+  topic_title     STRING NOT NULL,   -- 感情訴求型タイトル（最大12-14文字）
+  tagline         STRING NOT NULL,   -- キャッチコピー（最大45文字）
+  source          STRING NOT NULL,   -- 'llm' / 'manual'
+  selected_run_id STRING NOT NULL,   -- 採用した run_id（監査・差分比較用）
+  updated_at      TIMESTAMP NOT NULL,-- 最終更新日時
+  note            STRING             -- 任意メモ（model / pass 情報など）
+);
+
+
+-- -----------------------------------------------------------------------------
+-- 9. dish_category_features_catalog: ゲート・ランキング特徴量カタログ
 -- -----------------------------------------------------------------------------
 -- #557 【設計】dish_category に対する特徴量（gate / mood / scene / taste 等）を統合管理
 -- gate 用途（region whitelist）、将来的には mood / scene / timeSlot / taste / archetype も追加
