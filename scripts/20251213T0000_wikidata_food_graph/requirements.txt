@@ -9,3 +9,6 @@ google-cloud-bigquery==3.14.1
 
 # Retry logic and backoff
 tenacity==8.2.3
+
+# PostgreSQL client (for BQ→PG sync)
+psycopg2-binary==2.9.9
