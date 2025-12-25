@@ -7,6 +7,9 @@ SPARQLWrapper==2.0.0
 # BigQuery client
 google-cloud-bigquery==3.14.1
 
+# Google Cloud Storage (for PostgreSQL backup)
+google-cloud-storage==2.10.0
+
 # Retry logic and backoff
 tenacity==8.2.3
 

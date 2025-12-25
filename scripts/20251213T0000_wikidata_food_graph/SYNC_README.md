@@ -14,6 +14,7 @@
   - `dish_category_images`: 画像候補
   - `dish_category_features_catalog`: 特徴量（gate / mood / scene 等）
   - `dish_category_localized_text_catalog`: 感情訴求型コピー
+  - `dish_macro_genre_analysis`: macro_genre 割当分析
 
 - **PostgreSQL**: Serving DB
   - `dish_categories`: 料理カテゴリ
@@ -26,7 +27,7 @@
 ```
 [Wikidata] → [BigQuery: 加工・分析] → [PostgreSQL: Serving]
               ↑                          ↑
-              | 1) variants生成          | 5) 同期
+              | 1) variants生成          | 5) 同期（テーブル毎）
               | 2) 画像処理              |
               | 3) 特徴量生成            |
               | 4) localized text生成   |
@@ -74,26 +75,101 @@ python3 4_2_process_images.py
 - MediaWiki ファイル名を正規化
 - MD5 ハッシュで実体URLを生成
 
-### 4. BigQuery → PostgreSQL 同期
+### 4. BigQuery → PostgreSQL 同期（テーブル毎に分割）
+
+同期スクリプトは **テーブル毎に分割** され、個別に実行できます。
+
+#### 4.1 dish_categories の同期
 
 ```bash
 # 環境変数を設定
-export DATABASE_URL="postgresql://user:pass@host:port/dbname?schema=dev"
+export DATABASE_URL="postgresql://user:pass@host:port/dbname"
 
-# 同期実行
-python3 10_1_sync_bq_to_pg.py
+# 通常実行（dev スキーマ）
+python3 9_1_sync_dish_categories.py --schema dev
+
+# ドライラン（統計のみ出力、実際の変更なし）
+python3 9_1_sync_dish_categories.py --schema dev --dry-run
+
+# public スキーマ（確認プロンプトあり）
+python3 9_1_sync_dish_categories.py --schema public
 ```
 
-- BigQuery から各カタログテーブルのデータを取得
+**処理内容**:
+- dish_category_catalog と dish_macro_genre_analysis を JOIN
+- macro_genre_qid を取得
+- 画像は manual > analysis > wikimedia の優先順位で選定
 - PostgreSQL へ UPSERT
-- BigQuery に存在しないカテゴリは物理削除（CASCADE）
-- 実行ログを BigQuery に記録
+- BQ に存在しないカテゴリは物理削除（CASCADE）
+- 実行前に GCS へバックアップ
 
-**同期対象**:
-1. `dish_categories`: 画像は manual > analysis > wikimedia の優先順位で選定
-2. `dish_category_features`
-3. `dish_category_localized_text`
-4. `dish_category_variants`
+#### 4.2 dish_category_features の同期
+
+```bash
+# 通常実行
+python3 9_2_sync_dish_category_features.py --schema dev
+
+# ドライラン
+python3 9_2_sync_dish_category_features.py --schema dev --dry-run
+```
+
+**処理内容**:
+- dish_category_features_catalog から取得
+- PostgreSQL へ全件置き換え（DELETE + INSERT）
+- 実行前に GCS へバックアップ
+
+#### 4.3 dish_category_localized_text の同期
+
+```bash
+# 通常実行
+python3 9_3_sync_dish_category_localized_text.py --schema dev
+
+# ドライラン
+python3 9_3_sync_dish_category_localized_text.py --schema dev --dry-run
+```
+
+**処理内容**:
+- dish_category_localized_text_catalog から取得
+- PostgreSQL へ全件置き換え（DELETE + INSERT）
+- 実行前に GCS へバックアップ
+
+#### 4.4 dish_category_variants の同期
+
+```bash
+# 通常実行
+python3 9_4_sync_dish_category_variants.py --schema dev
+
+# ドライラン
+python3 9_4_sync_dish_category_variants.py --schema dev --dry-run
+```
+
+**処理内容**:
+- dish_category_variant_catalog から取得
+- source='bq_generated' を付与
+- PostgreSQL へ全件置き換え（DELETE + INSERT）
+- 実行前に GCS へバックアップ
+
+### 同期スクリプトの共通機能
+
+すべての同期スクリプトは以下の機能を持ちます：
+
+**1. スキーマバリデーション**
+- `--schema` 引数で public または dev を指定（必須）
+- public の場合は実行確認プロンプトを表示
+
+**2. ドライラン機能**
+- `--dry-run` オプションで実行
+- 実際の変更は行わず、統計のみ出力
+- 統計は `/tmp/` に保存され、ターミナルにも表示
+
+**3. GCS バックアップ**
+- 実行前に PostgreSQL テーブルを GCS にバックアップ
+- バックアップ先: `gs://nanitabeyo-private/system/PostgreSQL/csv_export/YYYYMMDD-HHMMSS/{table_name}.csv`
+- ドライラン時はバックアップをスキップ
+
+**4. 統計出力**
+- 挿入件数、更新件数、削除件数、スキップ件数を表示
+- ドライラン時は予定件数を表示
 
 **CASCADE 削除**:
 - 親カテゴリが削除されると、以下も自動削除
