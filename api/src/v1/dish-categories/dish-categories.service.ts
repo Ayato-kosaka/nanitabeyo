@@ -197,8 +197,8 @@ export class DishCategoriesService {
     // #533 【仕様】空文字をnullに正規化
     const timeSlotKey = dto.timeSlot || null;
     const sceneKey = dto.scene || null;
-    // #533 【仕様】satietyはmoodと別扱い（DTOに追加済み）
-    const satietyKey = dto.satiety || null;
+    // #533 【仕様】moodをsatietyKeyに変換（内部処理用）
+    const satietyKey = dto.mood || null;
     const tasteKey = dto.taste || null;
 
     // #533 【仕様】langCandidates生成（exact→base→en）
@@ -414,7 +414,8 @@ export class DishCategoriesService {
       const topicTitle = localizedText
         ? localizedText.topic_title
         : category.label_en;
-      const tagline = localizedText ? localizedText.tagline : '';
+      // #533 【設計】taglineをreasonとして使用（内部でtaglineだが、APIレスポンスではreason）
+      const reason = localizedText ? localizedText.tagline : '';
 
       // #533 【設計】category名はlocalLanguageCodeで取得
       let categoryName = category.label_en;
@@ -434,14 +435,9 @@ export class DishCategoriesService {
       items.push({
         category: categoryName,
         topicTitle,
-        reason: tagline,
+        reason,
         categoryId: category.id,
         imageUrl: category.image_url,
-        macroGenre:
-          candidate.macro_genre === '__unknown__'
-            ? null
-            : candidate.macro_genre,
-        tagline,
       });
     }
 
@@ -461,7 +457,7 @@ export class DishCategoriesService {
           address: dto.address,
           timeSlot: dto.timeSlot,
           scene: dto.scene,
-          mood: dto.mood || dto.satiety,
+          mood: dto.mood,
           languageTag: dto.languageTag,
         });
 
@@ -503,8 +499,6 @@ export class DishCategoriesService {
             reason: claudeRec.reason,
             categoryId: matchedCategory?.id || '',
             imageUrl: matchedCategory?.image_url || '',
-            macroGenre: matchedCategory?.macro_genre_qid || null,
-            tagline: '',
           };
         },
       );

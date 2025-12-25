@@ -4,8 +4,6 @@ export type DishCategoryRecommendationItem = {
 	reason: string;
 	categoryId: string;
 	imageUrl: string;
-	macroGenre?: string | null;
-	tagline?: string;
 };
 
 /** GET /v1/dish-categories/recommendations のレスポンス型 */
