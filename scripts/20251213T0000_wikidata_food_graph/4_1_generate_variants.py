@@ -8,8 +8,9 @@ BigQuery の dish_category_catalog から variants を生成し、
 dish_category_variant_catalog に格納する。
 
 【処理内容】
-1. dish_category_catalog から label_en, labels_json, aliases_json を取得
-2. variants を正規化・重複排除して生成（generate_variants.py と同じロジック）
+1. dish_category_catalog から label_en, labels_json を取得
+2. variants を正規化・重複排除して生成
+   - generate_variants.py のロジックを BigQuery データに適用
    - canonical 優先
    - 日本語は kata2hira, romaji 派生を生成
    - グローバル一意化（canonical優先 → source priority + QID番号で競合解決）
@@ -22,7 +23,7 @@ python3 4_1_generate_variants.py
 - Wikidata への新規アクセスは行わない
 - 既存の dish_category_catalog データのみを使用
 - テーブルは CREATE OR REPLACE で再生成される
-- generate_variants.py と同じロジックで variants を生成
+- generate_variants.py の設計思想に従う（4 sources のみ、alias 除外）
 """
 
 import sys
@@ -34,16 +35,11 @@ from typing import List, Dict, Set, Tuple
 from pathlib import Path
 from collections import defaultdict
 
-# 日本語処理用ライブラリ
-try:
-    import jaconv
-    from pykakasi import kakasi
-    _kks = kakasi()
-    JAPANESE_SUPPORT = True
-except ImportError:
-    logger_temp = logging.getLogger(__name__)
-    logger_temp.warning("jaconv or pykakasi not available - Japanese derivations will be skipped")
-    JAPANESE_SUPPORT = False
+# 日本語処理用ライブラリ（必須）
+import jaconv
+from pykakasi import kakasi
+
+_kks = kakasi()
 
 # プロジェクトルートのモジュールをインポート
 sys.path.append(str(Path(__file__).parent))
@@ -64,7 +60,6 @@ BQ_DATASET = "wikidata_food_graph"
 def norm_key(s: str) -> str:
     """
     文字列を正規化（NFKC → 空白圧縮 → 小文字化）
-    generate_variants.py と同じロジック
     
     Args:
         s: 正規化する文字列
@@ -82,7 +77,6 @@ def norm_key(s: str) -> str:
 def is_bad(s: str) -> bool:
     """
     空または無意味な文字列かどうかを判定
-    generate_variants.py と同じロジック
     
     Args:
         s: 判定する文字列
@@ -96,7 +90,6 @@ def is_bad(s: str) -> bool:
 def qid_num(qid: str) -> int:
     """
     QID から数値を抽出（競合解決用）
-    generate_variants.py と同じロジック
     
     Args:
         qid: Wikidata QID (例: "Q12345")
@@ -113,7 +106,6 @@ def qid_num(qid: str) -> int:
 def to_romaji(text: str) -> str:
     """
     日本語をローマ字に変換
-    generate_variants.py と同じロジック
     
     Args:
         text: 日本語テキスト
@@ -121,8 +113,6 @@ def to_romaji(text: str) -> str:
     Returns:
         ローマ字変換結果
     """
-    if not JAPANESE_SUPPORT:
-        return ""
     parts = _kks.convert(text)
     return "".join(p.get("hepburn", "") for p in parts).replace(" ", "")
 
@@ -130,18 +120,16 @@ def to_romaji(text: str) -> str:
 def extract_variants_from_json(
     item_qid: str,
     label_en: str,
-    labels_json: str,
-    aliases_json: str
+    labels_json: str
 ) -> List[Dict]:
     """
     JSON から variants を抽出
-    generate_variants.py と同じロジック（canonical 優先、日本語派生あり）
+    generate_variants.py のロジックを適用（labels のみ、aliases 除外）
     
     Args:
         item_qid: dish_category QID
         label_en: 英語ラベル
         labels_json: 全言語ラベルの JSON 文字列
-        aliases_json: 全言語別名の JSON 文字列
     
     Returns:
         candidates のリスト [{"qid": ..., "surface": ..., "source": ..., "canonical": bool}, ...]
@@ -170,6 +158,7 @@ def extract_variants_from_json(
         add_candidate(label_en, "canonical-label-en", canonical=True)
     
     # 2) labels_json からラベルを追加（日本語は派生も生成）
+    # NOTE: aliases は generate_variants.py で扱っていないため除外
     if labels_json:
         try:
             labels = json.loads(labels_json)
@@ -178,30 +167,12 @@ def extract_variants_from_json(
                     add_candidate(label_val, "wikidata-label")
                     
                     # 日本語の場合は派生形を生成
-                    if lang == "ja" and JAPANESE_SUPPORT:
+                    if lang == "ja":
                         hira = jaconv.kata2hira(label_val)
                         add_candidate(hira, "kata2hira")
                         add_candidate(to_romaji(hira), "romaji")
         except (json.JSONDecodeError, TypeError) as e:
             logger.warning(f"Failed to parse labels_json for {item_qid}: {e}")
-    
-    # 3) aliases_json から別名を追加（日本語は派生も生成）
-    if aliases_json:
-        try:
-            aliases = json.loads(aliases_json)
-            for lang, alias_list in aliases.items():
-                if isinstance(alias_list, list):
-                    for alias_val in alias_list:
-                        if isinstance(alias_val, str) and not is_bad(alias_val):
-                            add_candidate(alias_val, "wikidata-alias")
-                            
-                            # 日本語の場合は派生形を生成
-                            if lang == "ja" and JAPANESE_SUPPORT:
-                                hira = jaconv.kata2hira(alias_val)
-                                add_candidate(hira, "kata2hira")
-                                add_candidate(to_romaji(hira), "romaji")
-        except (json.JSONDecodeError, TypeError) as e:
-            logger.warning(f"Failed to parse aliases_json for {item_qid}: {e}")
     
     return candidates
 
@@ -210,7 +181,7 @@ def generate_variants(loader: BigQueryLoader) -> None:
     """
     dish_category_catalog から variants を生成し、
     dish_category_variant_catalog に格納
-    generate_variants.py と同じロジック（canonical優先、グローバル一意化）
+    generate_variants.py のロジックを適用（canonical優先、グローバル一意化）
     
     Args:
         loader: BigQueryLoader インスタンス
@@ -220,12 +191,12 @@ def generate_variants(loader: BigQueryLoader) -> None:
     logger.info("=" * 80)
     
     # 1) dish_category_catalog からデータ取得
+    # NOTE: aliases_json は取得せず、labels のみを使用（generate_variants.py に準拠）
     query = f"""
         SELECT
             item_qid,
             label_en,
-            labels_json,
-            aliases_json
+            labels_json
         FROM `{loader.dataset_ref}.dish_category_catalog`
         WHERE item_qid IS NOT NULL
     """
@@ -247,10 +218,9 @@ def generate_variants(loader: BigQueryLoader) -> None:
         item_qid = row.item_qid
         label_en = row.label_en or ""
         labels_json = row.labels_json or ""
-        aliases_json = row.aliases_json or ""
         
         candidates = extract_variants_from_json(
-            item_qid, label_en, labels_json, aliases_json
+            item_qid, label_en, labels_json
         )
         
         all_candidates.extend(candidates)
@@ -259,12 +229,11 @@ def generate_variants(loader: BigQueryLoader) -> None:
     logger.info(f"Generated {stats['total_candidates']} candidates from {stats['total_categories']} categories")
     
     # 3) グローバル一意化（canonical 優先 → 非canonicalは競合解決）
-    # generate_variants.py と同じロジック
+    # generate_variants.py の source_priority に厳密に従う（4 sources のみ）
     source_priority = {
         "wikidata-label": 0,
         "kata2hira": 1,
         "romaji": 2,
-        "wikidata-alias": 3,
         "canonical-label-en": -1
     }
     
@@ -365,11 +334,6 @@ def main():
     logger.info("BigQuery Variants Generation Script")
     logger.info("=" * 80)
     logger.info(f"Project: {GCP_PROJECT}, Dataset: {BQ_DATASET}")
-    
-    if not JAPANESE_SUPPORT:
-        logger.warning("⚠️  Japanese support libraries not available")
-        logger.warning("    Install: pip install jaconv pykakasi")
-        logger.warning("    Japanese derivations (kata2hira, romaji) will be skipped")
     
     # BigQuery Loader 初期化
     loader = BigQueryLoader(GCP_PROJECT, BQ_DATASET)
