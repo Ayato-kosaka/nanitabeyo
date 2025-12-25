@@ -23,6 +23,11 @@ export class QueryDishCategoryRecommendationsDto {
 	@IsString()
 	scene?: string;
 
+	/** 満腹度 (satiety) 例: 'hearty', 'light' など */
+	@IsOptional()
+	@IsString()
+	satiety?: string;
+
 	/** ユーザーのお腹の減り具合 (mood) 例: 'hearty', 'light' など */
 	@IsOptional()
 	@IsString()

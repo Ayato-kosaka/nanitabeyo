@@ -41,20 +41,22 @@ model config {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_categories {
-  id                      String                    @id
-  label_en                String
-  labels                  Json
-  image_url               String
-  origin                  String[]
-  cuisine                 String[]
-  tags                    String[]
-  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime                  @default(now()) @db.Timestamptz(6)
-  lock_no                 Int                       @default(0)
-  macro_genre_qid         String?
-  dish_category_ancestors dish_category_ancestors[]
-  dish_category_variants  dish_category_variants[]
-  dishes                  dishes[]
+  id                         String                        @id
+  label_en                   String
+  labels                     Json
+  image_url                  String
+  origin                     String[]
+  cuisine                    String[]
+  tags                       String[]
+  created_at                 DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                      @default(now()) @db.Timestamptz(6)
+  lock_no                    Int                           @default(0)
+  macro_genre_qid            String?
+  dish_category_ancestors    dish_category_ancestors[]
+  dish_category_variants     dish_category_variants[]
+  dishes                     dishes[]
+  dish_category_features     dish_category_features[]
+  dish_category_localized_text dish_category_localized_text[]
 
   @@index([tags], map: "idx_dish_categories_tags", type: Gin)
   @@schema("dev")
@@ -86,6 +88,44 @@ model dish_category_variants {
 
   @@index([surface_form, dish_category_id], map: "idx_dcv_surface_form_prefix_cover")
   @@index([dish_category_id], map: "idx_dish_category_variants_dish_category_id")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_category_features {
+  category_id  String          @map("category_id")
+  feature_type String
+  feature_key  String
+  score        Float
+  source       String
+  run_id       String
+  updated_at   DateTime        @default(now()) @db.Timestamptz(6)
+  note         String?
+  dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([category_id, feature_type, feature_key])
+  @@index([category_id, feature_type], map: "idx_dcf_category_type")
+  @@index([feature_type, feature_key], map: "idx_dcf_feature_type_key")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_category_localized_text {
+  category_id     String   @map("category_id")
+  lang            String
+  topic_title     String
+  tagline         String
+  source          String
+  selected_run_id String
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+  note            String?
+  dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([category_id, lang])
+  @@index([category_id], map: "idx_dclt_category")
+  @@index([lang], map: "idx_dclt_lang")
   @@schema("dev")
 }
 
