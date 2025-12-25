@@ -2,6 +2,8 @@
 "","User","U","DataBase","DB","users","アプリ利用者のプロフィール・認証基礎情報（UUID 主キー・ユーザ名・最終ログインなど）"
 "","Dish","D","DataBase","DB","dish_categories","Wikidata 由来の料理カテゴリーマスター。多言語ラベル・起源国・上位タグを保持"
 "","Dish","D","DataBase","DB","dish_category_variants","料理カテゴリに対する表記揺れ辞書（かな・ローマ字・俗称）。検索リコメンド用"
+"","Dish","D","DataBase","DB","dish_category_features","dish_category の特徴量（gate / satiety / scene / taste 等）、BigQuery から同期"
+"","Dish","D","DataBase","DB","dish_category_localized_text","dish_category の感情訴求型コピー（LLM生成）、BigQuery から同期"
 "","Dish","D","DataBase","DB","dishes","実店舗で提供される具体的な料理 1 品のマスター。カテゴリ・店舗 FK を保持"
 "","Dish","D","DataBase","DB","dish_media","ユーザが投稿した料理写真 / 動画メタデータ（ストレージパス・メディア種別など）"
 "","Dish","D","DataBase","DB","dish_media_likes","ユーザの “いいね” アクションを記録する中間テーブル（dish_media × user）"

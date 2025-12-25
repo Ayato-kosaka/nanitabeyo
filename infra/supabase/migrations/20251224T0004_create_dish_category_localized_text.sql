@@ -27,18 +27,16 @@ CREATE TABLE dish_category_localized_text (
     locale           TEXT        NOT NULL,
     topic_title      TEXT        NOT NULL,
     tagline          TEXT        NOT NULL,
-    source           TEXT        NOT NULL,
     synced_at        TIMESTAMPTZ NOT NULL,
     
     PRIMARY KEY (dish_category_id, locale)
 );
 
 -- インデックス作成
-CREATE INDEX idx_dclt_category 
-  ON dish_category_localized_text(dish_category_id);
-
-CREATE INDEX idx_dclt_locale 
-  ON dish_category_localized_text(locale);
+-- 負荷が高い場合は、以下のインデックスを有効化検討
+-- CREATE INDEX dclt_cat_locale_inc
+--   ON dish_category_localized_text (dish_category_id, locale)
+--   INCLUDE (topic_title, tagline);
 
 -- コメント
 COMMENT ON TABLE dish_category_localized_text 
@@ -55,9 +53,6 @@ COMMENT ON COLUMN dish_category_localized_text.topic_title
 
 COMMENT ON COLUMN dish_category_localized_text.tagline 
   IS 'キャッチコピー（最大45文字）';
-
-COMMENT ON COLUMN dish_category_localized_text.source 
-  IS 'データソース（llm | manual）';
 
 COMMENT ON COLUMN dish_category_localized_text.synced_at 
   IS 'BigQuery から最後に同期された日時';
