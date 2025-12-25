@@ -15,3 +15,7 @@ tenacity==8.2.3
 
 # PostgreSQL client (for BQ→PG sync)
 psycopg2-binary==2.9.9
+
+# Japanese text processing (for variants generation)
+jaconv==0.3.4
+pykakasi==2.2.1
