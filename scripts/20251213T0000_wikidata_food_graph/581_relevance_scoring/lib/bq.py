@@ -172,7 +172,22 @@ class BigQueryClient:
             job_config=job_config
         )
         
-        load_job.result()  # 完了を待つ
+        try:
+            load_job.result()  # 完了を待つ
+        except Exception as e:
+            logger.error(f"Failed to load rows to {table_id}: {e}")
+            for err in load_job.errors:
+                logger.error(f"  Error: {err}")
+                message = err.get("message", "")
+                row_index = None
+                if "Rows:" in message:
+                    try:
+                        row_index = int(message.split("Rows:")[1].split(";")[0].strip()) - 1
+                    except:
+                        pass
+                if row_index is not None and 0 <= row_index < len(rows):
+                    logger.error(f"    Problematic row: {rows[row_index]}")
+            raise e
         
         logger.info(f"Loaded {load_job.output_rows} rows to {table_id}")
         return load_job.output_rows
@@ -210,21 +225,23 @@ class BigQueryClient:
         logger.info(f"MERGE completed: affected {stats['inserted']} rows")
         return stats
 
-
-def get_wikidata_food_llm_labels_schema() -> List[bigquery.SchemaField]:
+def get_wikidata_food_llm_feature_scores_schema() -> List[bigquery.SchemaField]:
     """
-    wikidata_food_llm_labels テーブルのスキーマを返す
+    wikidata_food_llm_feature_scores テーブルのスキーマを返す
     
     Returns:
         スキーマのリスト
     """
     return [
         bigquery.SchemaField("item_qid", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("task", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("label", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("confidence", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("feature_type", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("feature_key", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("score", "FLOAT", mode="REQUIRED"),
+        bigquery.SchemaField("confidence", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("reason", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("phase", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("task", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("model", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("run_id", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("created_at", "TIMESTAMP", mode="REQUIRED")
+        bigquery.SchemaField("created_at", "TIMESTAMP", mode="REQUIRED"),
     ]

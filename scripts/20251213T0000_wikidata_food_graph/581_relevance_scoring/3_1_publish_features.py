@@ -104,7 +104,7 @@ def main():
         ORDER BY phase, feature_type
         """
         
-        results = bq_client.query_to_list(preview_query)
+        results = bq_client.execute_query(preview_query)
         
         logger.info("")
         logger.info("Preview of features to be published:")
@@ -143,7 +143,7 @@ def main():
     
     # クエリ実行
     logger.info("Executing MERGE query...")
-    bq_client.execute_query(query)
+    bq_client.execute_merge(query)
     
     # 投入件数を確認
     check_query = f"""
@@ -156,7 +156,7 @@ def main():
     ORDER BY feature_type
     """
     
-    results = bq_client.query_to_list(check_query)
+    results = bq_client.execute_query(check_query)
     
     logger.info("=" * 80)
     logger.info("✅ Step 3-1 completed successfully!")

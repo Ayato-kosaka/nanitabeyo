@@ -24,7 +24,7 @@
 -- -----------------------------------------------------------------------------
 -- wikidata_food_llm_labels: LLM ラベリング結果テーブル
 -- -----------------------------------------------------------------------------
--- gpt-4.1-mini によるラベリング結果を保存
+-- gpt-4.1-mini などによるラベリング結果を保存
 -- バッチごとに run_id を分けて格納し、後からやり直しや比較ができるようにする
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_labels` (
@@ -36,6 +36,27 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_labels` (
   model       STRING,            -- 'gpt-4.1-mini' など
   run_id      STRING NOT NULL,   -- バッチ実行ごとの識別子（例: '20251215T0000_v1'）
   created_at  TIMESTAMP NOT NULL -- LLM 結果の登録日時
+);
+
+-- -----------------------------------------------------------------------------
+-- wikidata_food_llm_feature_scores: LLM feature スコアテーブル
+-- -----------------------------------------------------------------------------
+-- #581 relevance_scoring の Phase1（スコアリング）とPhase2（レビュー）の結果を保存
+-- 各 feature_type / feature_key ごとに 1 row で格納
+-- 複数 run_id での比較・差分確認が可能
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_feature_scores` (
+  item_qid     STRING NOT NULL,   -- dish_category QID
+  feature_type STRING NOT NULL,   -- 'timeSlot' / 'scene' / 'satiety' / 'taste'
+  feature_key  STRING NOT NULL,   -- 'morning' / 'solo' / 'hearty' / 'sweet' など
+  score        FLOAT64 NOT NULL,  -- 0 / 0.5 / 1 のみ
+  confidence   STRING,            -- 'high' / 'medium' / 'low'
+  reason       STRING,            -- <= 120 chars（日本語可）
+  phase        STRING NOT NULL,   -- 'phase1' / 'phase2'
+  task         STRING NOT NULL,   -- '#581_relevance_scoring'
+  model        STRING NOT NULL,   -- 'gpt-4.1-mini' など
+  run_id       STRING NOT NULL,   -- Batch API run_id（例: '20251223T0000_phase1'）
+  created_at   TIMESTAMP NOT NULL -- 登録日時
 );
 
 

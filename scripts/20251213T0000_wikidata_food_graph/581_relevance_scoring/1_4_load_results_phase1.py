@@ -28,7 +28,7 @@ from typing import List, Dict, Any
 # #581 【設計】lib モジュールをインポート
 sys.path.insert(0, str(Path(__file__).parent))
 from lib.io import load_yaml_config, read_jsonl
-from lib.bq import BigQueryClient
+from lib.bq import BigQueryClient, get_wikidata_food_llm_feature_scores_schema
 from lib.metrics import MetricsCollector
 
 # ログ設定
@@ -88,7 +88,7 @@ def parse_batch_response(response: Dict) -> List[Dict]:
         return feature_scores
         
     except Exception as e:
-        logger.error(f"Failed to parse response: {e}")
+        logger.error(f"Failed to parse response at custom_id={response.get('custom_id')}: {e}")
         logger.debug(f"Response: {response}")
         return []
 
@@ -173,7 +173,7 @@ def main():
     bq_client = BigQueryClient()
     
     table_id = f"{config['dataset']}.wikidata_food_llm_feature_scores"
-    bq_client.load_rows(table_id, bq_rows)
+    bq_client.load_from_rows(table_id, bq_rows, get_wikidata_food_llm_feature_scores_schema())
     
     logger.info(f"Loaded {len(bq_rows)} rows to {table_id}")
     

@@ -71,7 +71,7 @@ def fetch_phase1_scores(bq_client: BigQueryClient, config: Dict) -> Dict[str, Li
     """
     
     logger.info("Fetching Phase1 scores from BigQuery...")
-    rows = bq_client.query_to_list(query)
+    rows = bq_client.execute_query(query)
     
     # item_qid でグループ化
     scores_by_qid = {}

@@ -13,20 +13,34 @@
 -- - item_qid
 -- - label_ja, desc_ja, aliases_top_ja（最小構成）
 
+
 WITH gate_allowed AS (
-  SELECT DISTINCT
-    item_qid
-  FROM `${DATASET}.dish_category_features_catalog`
-  WHERE feature_type = 'gate'
-    AND feature_key LIKE 'region:%'  -- region whitelist のみ
-    AND score = 1
+  SELECT
+    gate.item_qid,
+    MAX(
+      COALESCE(market_salience.score, 0)
+      * COALESCE(dine_out_orderability.score, 0)
+    ) AS priority_score
+  FROM `${DATASET}.dish_category_features_catalog` gate
+  LEFT JOIN `${DATASET}.dish_category_features_catalog` market_salience
+    ON market_salience.item_qid = gate.item_qid
+   AND market_salience.feature_type = 'market_salience'
+   AND market_salience.feature_key = 'region:country:JP'
+  LEFT JOIN `${DATASET}.dish_category_features_catalog` dine_out_orderability
+    ON dine_out_orderability.item_qid = gate.item_qid
+   AND dine_out_orderability.feature_type = 'dine_out_orderability'
+   AND dine_out_orderability.feature_key = 'global'
+  WHERE gate.feature_type = 'gate'
+    AND gate.score = 1
+  GROUP BY gate.item_qid
 ),
 catalog_items AS (
   SELECT
     cat.item_qid,
     cat.labels_json,
     cat.descriptions_json,
-    cat.aliases_json
+    cat.aliases_json,
+    gate.priority_score
   FROM `${DATASET}.dish_category_catalog` AS cat
   INNER JOIN gate_allowed AS gate
     ON cat.item_qid = gate.item_qid
@@ -51,5 +65,6 @@ SELECT
     ', '
   ) AS aliases_top_ja
 FROM catalog_items
+ORDER BY priority_score DESC, item_qid
 ${MAX_ITEMS_LIMIT}
 ;

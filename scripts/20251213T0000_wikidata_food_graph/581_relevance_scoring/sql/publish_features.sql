@@ -17,48 +17,50 @@
 --   source: 'llm'
 --   run_id: ${FINAL_RUN_ID}
 
--- 最終スコアを決定（Phase2 優先、deny 除外）
-WITH phase_priority AS (
-  SELECT
-    item_qid,
-    feature_type,
-    feature_key,
-    score,
-    confidence,
-    reason,
-    model,
-    run_id,
-    phase,
-    -- Phase2 を優先（ROW_NUMBER で phase2 を先頭に）
-    ROW_NUMBER() OVER (
-      PARTITION BY item_qid, feature_type, feature_key
-      ORDER BY 
-        CASE phase WHEN 'phase2' THEN 1 ELSE 2 END,
-        created_at DESC
-    ) AS priority
-  FROM `${DATASET}.wikidata_food_llm_feature_scores`
-  WHERE task = '${TASK}'
-    AND run_id LIKE '${RUN_ID_PREFIX}%'
-    -- deny は除外（confidence が 'deny' の場合は除外）
-    AND confidence != 'deny'
-),
-final_scores AS (
-  SELECT
-    item_qid,
-    feature_type,
-    feature_key,
-    score,
-    confidence,
-    reason,
-    model,
-    run_id,
-    phase
-  FROM phase_priority
-  WHERE priority = 1
-)
 -- MERGE で投入（既存の同じ feature_type/feature_key は更新、なければ挿入）
 MERGE `${DATASET}.dish_category_features_catalog` AS target
-USING final_scores AS source
+USING (
+  -- 最終スコアを決定（Phase2 優先、deny 除外）
+  WITH phase_priority AS (
+    SELECT
+      item_qid,
+      feature_type,
+      feature_key,
+      score,
+      confidence,
+      reason,
+      model,
+      run_id,
+      phase,
+      -- Phase2 を優先（ROW_NUMBER で phase2 を先頭に）
+      ROW_NUMBER() OVER (
+        PARTITION BY item_qid, feature_type, feature_key
+        ORDER BY 
+          CASE phase WHEN 'phase2' THEN 1 ELSE 2 END,
+          created_at DESC
+      ) AS priority
+    FROM `${DATASET}.wikidata_food_llm_feature_scores`
+    WHERE task = '${TASK}'
+      AND run_id LIKE '${RUN_ID_PREFIX}%'
+      -- deny は除外（confidence が 'deny' の場合は除外）
+      AND confidence != 'deny'
+  ),
+  final_scores AS (
+    SELECT
+      item_qid,
+      feature_type,
+      feature_key,
+      score,
+      confidence,
+      reason,
+      model,
+      run_id,
+      phase
+    FROM phase_priority
+    WHERE priority = 1
+  )
+  SELECT * FROM final_scores
+) AS source
 ON target.item_qid = source.item_qid
   AND target.feature_type = source.feature_type
   AND target.feature_key = source.feature_key

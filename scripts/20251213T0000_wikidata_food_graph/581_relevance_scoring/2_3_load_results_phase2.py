@@ -41,7 +41,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def parse_batch_response(response: Dict) -> Dict[str, Any]:
+def parse_batch_response(response: Dict, phase1_response: Dict) -> Dict[str, Any]:
     """
     Batch API レスポンスをパースしてレビュー結果を抽出
     
@@ -54,6 +54,7 @@ def parse_batch_response(response: Dict) -> Dict[str, Any]:
     try:
         body = response.get('response', {}).get('body', {})
         choices = body.get('choices', [])
+
         
         if not choices:
             logger.warning(f"No choices in response for custom_id={response.get('custom_id')}")
@@ -70,6 +71,14 @@ def parse_batch_response(response: Dict) -> Dict[str, Any]:
         parsed_args = json.loads(function_args)
         
         results = parsed_args.get('results', [])
+
+        phase1_body = phase1_response.get('response', {}).get('body', {})
+        phase1_choices = phase1_body.get('choices', [])
+        phase1_message = phase1_choices[0].get('message', {}) if phase1_choices else {}
+        phase1_tool_calls = phase1_message.get('tool_calls', []) if phase1_message else []
+        phase1_function_args = phase1_tool_calls[0].get('function', {}).get('arguments', '{}') if phase1_tool_calls else '{}'
+        phase1_parsed_args = json.loads(phase1_function_args)
+        phase1_results = phase1_parsed_args.get('results', []) if phase1_parsed_args else []
         
         # 各アイテムのレビューを処理
         accept_count = 0
@@ -88,7 +97,23 @@ def parse_batch_response(response: Dict) -> Dict[str, Any]:
                 
                 if action == 'accept':
                     accept_count += 1
-                    # accept の場合は Phase1 スコアをそのまま使うので記録不要
+                    # typeof phase1_results
+                    phase1_score = next((res for res in phase1_results
+                                         if res.get('item_qid') == item_qid
+                                            and any(f.get('feature_type') == feature_type and f.get('feature_key') == feature_key
+                                                    for f in res.get('features', []))), None)
+                    if not phase1_score:
+                        logger.warning(f"Phase1 score not found for {item_qid} {feature_type} {feature_key}")
+                        continue
+                    # accept の場合は Phase1 スコアをそのまま使用
+                    feature_scores.append({
+                        'item_qid': item_qid,
+                        'feature_type': feature_type,
+                        'feature_key': feature_key,
+                        'score': phase1_score.get('score'),
+                        'confidence': review.get('new_confidence', ''),
+                        'reason': review.get('new_reason', '')[:120]
+                    })
                 
                 elif action == 'edit':
                     edit_count += 1
@@ -155,8 +180,17 @@ def main():
         logger.error("Please run 2_2_poll_batch_phase2.py first")
         sys.exit(1)
     
+    # Phase 1 の結果を読み込み
+    phase1_results_file = Path(config['results_dir']) / "results_phase1.jsonl"
+    if not phase1_results_file.exists():
+        logger.error(f"Phase1 results file not found: {phase1_results_file}")
+        logger.error("Please run 1_3_load_results_phase1.py first")
+        sys.exit(1)
+    
     responses = read_jsonl(results_file)
+    phase1_responses = read_jsonl(phase1_results_file)
     logger.info(f"Loaded {len(responses)} responses from {results_file}")
+    logger.info(f"Loaded {len(phase1_responses)} Phase1 responses from {phase1_results_file}")
     
     # レスポンスをパース
     logger.info("Parsing responses...")
@@ -167,8 +201,8 @@ def main():
     success_count = 0
     error_count = 0
     
-    for response in responses:
-        result = parse_batch_response(response)
+    for i, response in enumerate(responses):
+        result = parse_batch_response(response, phase1_responses[i])
         if result['accept'] > 0 or result['edit'] > 0 or result['deny'] > 0:
             all_feature_scores.extend(result['scores'])
             total_accept += result['accept']
