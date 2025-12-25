@@ -8,22 +8,22 @@
 
 ## 目的
 
-* ユーザーの「食べたい料理に気づく」体験を支えるため、料理カテゴリごとに感情訴求型コピーを生成
-* 生成結果は **LLM実行ログとしてすべて保持**（`wikidata_food_copy_generations`）
-* **アプリ・DBに投入するのは「採用版のみ」**（`dish_category_localized_text_catalog`）
-* 再実行・比較・モデル変更・プロンプト調整を前提に、**run_id 管理 + Batch API + 2-pass** の運用基盤を整える
+- ユーザーの「食べたい料理に気づく」体験を支えるため、料理カテゴリごとに感情訴求型コピーを生成
+- 生成結果は **LLM実行ログとしてすべて保持**（`wikidata_food_copy_generations`）
+- **アプリ・DBに投入するのは「採用版のみ」**（`dish_category_localized_text_catalog`）
+- 再実行・比較・モデル変更・プロンプト調整を前提に、**run_id 管理 + Batch API + 2-pass** の運用基盤を整える
 
 ## アーキテクチャ
 
 ### テーブル責務
 
-| レイヤ | テーブル | 方針 |
-|-------|---------|------|
-| LLM生成ログ | `wikidata_food_copy_generations` | append-only / 全run保持 |
-| 採用版 | `dish_category_localized_text_catalog` | **常に採用版のみ・ユニーク** |
+| レイヤ      | テーブル                               | 方針                         |
+| ----------- | -------------------------------------- | ---------------------------- |
+| LLM生成ログ | `wikidata_food_copy_generations`       | append-only / 全run保持      |
+| 採用版      | `dish_category_localized_text_catalog` | **常に採用版のみ・ユニーク** |
 
-* **confidence は catalog に持たない** - 採用条件は投入時のフィルタで完結
-* catalog は「どれが採用されたか」の **結果テーブル**
+- **confidence は catalog に持たない** - 採用条件は投入時のフィルタで完結
+- catalog は「どれが採用されたか」の **結果テーブル**
 
 ### 出力仕様
 
@@ -152,6 +152,7 @@ python3 1_5_load_results.py
 ```
 
 **処理内容:**
+
 - Batch API のレスポンスをパース
 - `wikidata_food_copy_generations` テーブルにロード
 - メトリクス集計・出力（`p1_metrics.json`）
@@ -163,6 +164,7 @@ python3 1_6_publish_catalog.py
 ```
 
 **処理内容:**
+
 - Pass1 結果から confidence='high' のみを抽出
 - `dish_category_localized_text_catalog` に MERGE 反映
 
@@ -330,7 +332,7 @@ curl https://api.openai.com/v1/batches/$BATCH_ID \
 
    ```yaml
    # config.yml
-   max_items: 100  # テスト時は小さな値を指定
+   max_items: 100 # テスト時は小さな値を指定
    ```
 
 2. **サンプリングして目視確認する**
@@ -354,7 +356,7 @@ curl https://api.openai.com/v1/batches/$BATCH_ID \
 
   ```yaml
   # config.yml
-  run_id_prefix: "20251222T0000"  # 新しいタイムスタンプ
+  run_id_prefix: "20251222T0000" # 新しいタイムスタンプ
   ```
 
 ## 関連ドキュメント

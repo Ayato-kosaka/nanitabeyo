@@ -25,7 +25,7 @@ batch_api: true
 batch_poll_interval_sec: 30
 
 # テスト用データ制限（null = 全件処理）
-max_items: 150  # gpt-4o のキュー上限が 90,000 enqueued tokens のため分割実行
+max_items: 150 # gpt-4o のキュー上限が 90,000 enqueued tokens のため分割実行
 # TODO: スクリプトの実行を OFFSET 付きループに変更したい
 
 # ファイルパス設定
@@ -48,8 +48,8 @@ topic_title_max_chars: 14
 tagline_max_chars: 45
 
 # 入力カード設定
-max_desc_chars: 200  # description の truncate 文字数
-max_aliases: 5       # 別名の最大数
+max_desc_chars: 200 # description の truncate 文字数
+max_aliases: 5 # 別名の最大数
 
 # バッチサイズ
-batch_size: 1  # 1リクエストあたりのアイテム数
+batch_size: 1 # 1リクエストあたりのアイテム数

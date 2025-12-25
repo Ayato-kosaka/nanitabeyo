@@ -55,6 +55,7 @@ python3 4_1_generate_variants.py
 - `dish_category_variant_catalog` に格納
 
 **処理内容**:
+
 - label_en を canonical として追加
 - labels_json から全言語ラベルを抽出
 - aliases_json から別名を抽出
@@ -71,6 +72,7 @@ python3 4_2_process_images.py
 - `dish_category_images` に source_type='wikimedia' として格納
 
 **処理内容**:
+
 - Special:FilePath からファイル名を抽出
 - MediaWiki ファイル名を正規化
 - MD5 ハッシュで実体URLを生成
@@ -96,6 +98,7 @@ python3 9_1_sync_dish_categories.py --schema public
 ```
 
 **処理内容**:
+
 - dish_category_catalog と dish_macro_genre_analysis を JOIN
 - macro_genre_qid を取得
 - 画像は manual > analysis > wikimedia の優先順位で選定
@@ -114,6 +117,7 @@ python3 9_2_sync_dish_category_features.py --schema dev --dry-run
 ```
 
 **処理内容**:
+
 - dish_category_features_catalog から取得
 - PostgreSQL へ全件置き換え（DELETE + INSERT）
 - 実行前に GCS へバックアップ
@@ -129,6 +133,7 @@ python3 9_3_sync_dish_category_localized_text.py --schema dev --dry-run
 ```
 
 **処理内容**:
+
 - dish_category_localized_text_catalog から取得
 - PostgreSQL へ全件置き換え（DELETE + INSERT）
 - 実行前に GCS へバックアップ
@@ -144,6 +149,7 @@ python3 9_4_sync_dish_category_variants.py --schema dev --dry-run
 ```
 
 **処理内容**:
+
 - dish_category_variant_catalog から取得
 - source='bq_generated' を付与
 - PostgreSQL へ全件置き換え（DELETE + INSERT）
@@ -154,24 +160,29 @@ python3 9_4_sync_dish_category_variants.py --schema dev --dry-run
 すべての同期スクリプトは以下の機能を持ちます：
 
 **1. スキーマバリデーション**
+
 - `--schema` 引数で public または dev を指定（必須）
 - public の場合は実行確認プロンプトを表示
 
 **2. ドライラン機能**
+
 - `--dry-run` オプションで実行
 - 実際の変更は行わず、統計のみ出力
 - 統計は `/tmp/` に保存され、ターミナルにも表示
 
 **3. GCS バックアップ**
+
 - 実行前に PostgreSQL テーブルを GCS にバックアップ
 - バックアップ先: `gs://nanitabeyo-private/system/PostgreSQL/csv_export/YYYYMMDD-HHMMSS/{table_name}.csv`
 - ドライラン時はバックアップをスキップ
 
 **4. 統計出力**
+
 - 挿入件数、更新件数、削除件数、スキップ件数を表示
 - ドライラン時は予定件数を表示
 
 **CASCADE 削除**:
+
 - 親カテゴリが削除されると、以下も自動削除
   - `dish_category_variants`
   - `dish_category_features`
@@ -269,16 +280,18 @@ bq query --use_legacy_sql=false \
 ### スクリプトが失敗した場合
 
 1. ログを確認
+
    ```bash
    # 標準エラー出力を確認
    python3 10_1_sync_bq_to_pg.py 2>&1 | tee sync.log
    ```
 
 2. BigQuery 同期ログを確認
+
    ```bash
    bq query --use_legacy_sql=false \
-     "SELECT * FROM \`food-scroll.wikidata_food_graph.pg_sync_logs\` 
-      WHERE status = 'error' 
+     "SELECT * FROM \`food-scroll.wikidata_food_graph.pg_sync_logs\`
+      WHERE status = 'error'
       ORDER BY start_time DESC LIMIT 10"
    ```
 
@@ -348,8 +361,8 @@ AND tc.constraint_type = 'FOREIGN KEY';
 
 ```bash
 bq query --use_legacy_sql=false \
-  "SELECT COUNT(*), source_type 
-   FROM \`food-scroll.wikidata_food_graph.dish_category_images\` 
+  "SELECT COUNT(*), source_type
+   FROM \`food-scroll.wikidata_food_graph.dish_category_images\`
    GROUP BY source_type"
 ```
 
@@ -361,6 +374,7 @@ pip install -r requirements.txt
 ```
 
 必要なパッケージ:
+
 - `google-cloud-bigquery>=3.14.1`: BigQuery クライアント
 - `psycopg2-binary>=2.9.9`: PostgreSQL クライアント
 - `SPARQLWrapper==2.0.0`: Wikidata SPARQL クエリ

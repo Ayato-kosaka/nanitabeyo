@@ -9,6 +9,7 @@
 ### 1. 文字列 Truncate 機能の追加
 
 #### 定数の追加
+
 ```python
 MAX_STRING_LENGTH = 10000  # 1フィールドあたりの最大文字数
 MAX_ALIASES_COUNT = 1000   # aliases配列の最大要素数
@@ -17,21 +18,25 @@ MAX_ALIASES_COUNT = 1000   # aliases配列の最大要素数
 #### 追加された関数
 
 ##### `truncate_string(value, max_length)`
+
 - 単純文字列の切り詰め
 - None 安全
 
 ##### `truncate_multilang_field(field_value, max_length)`
+
 - 多言語 JSON フィールド（labels_json, descriptions_json）の切り詰め
 - 各言語の文字列を個別に切り詰め
 - JSON 全体が max_length を超える場合は、優先言語順（en, ja, ar, es, fr, hi, ko, zh）に言語を保持
 - JSON エスケープを考慮したサイズ見積もり（安全マージン 20%）
 
 ##### `truncate_aliases_field(field_value, max_length, max_count)`
+
 - aliases_json フィールドの切り詰め
 - 要素数制限（1,000 件）
 - 各要素の文字数制限（10,000 文字）
 
 ##### `apply_truncation(core_data)`
+
 - 全フィールドに truncate を適用
 - 切り詰め統計情報を返す
 - in-place で core_data を変更
@@ -43,12 +48,14 @@ MAX_ALIASES_COUNT = 1000   # aliases配列の最大要素数
 ##### `load_core_data_to_bigquery(bq_loader, core_data)`
 
 **旧実装:**
+
 ```python
 # insertAll を使用
 errors = bq_loader.client.insert_rows_json(temp_table_id, batch)
 ```
 
 **新実装:**
+
 ```python
 # 1. truncate 処理を適用
 truncate_stats = apply_truncation(core_data)
@@ -76,6 +83,7 @@ if load_job.errors:
 ```
 
 ##### `delete_stale_entries(bq_loader, candidate_qids)`
+
 - 同様に insertAll から Load Job に移行
 - 一貫性のため
 
@@ -97,13 +105,13 @@ finally:
 
 ## 受け入れ条件の確認
 
-| # | 条件 | 状態 | 備考 |
-|---|------|------|------|
-| 1 | insertAll を呼ばない | ✅ 完了 | insert_rows_json の使用なし |
-| 2 | 13451 items 以上で 413 が発生しない | ⏳ 要検証 | Load Job はファイルベースなのでリクエストサイズ制限なし |
-| 3 | 文字列が 10,000 文字を超えない | ✅ 完了 | truncate 処理で保証 |
-| 4 | 既存の後続処理が動作する | ⏳ 要検証 | MERGE/DELETE 処理は変更なし |
-| 5 | ロード失敗時に例外とログが出力される | ✅ 完了 | エラーハンドリング実装済み |
+| #   | 条件                                 | 状態      | 備考                                                    |
+| --- | ------------------------------------ | --------- | ------------------------------------------------------- |
+| 1   | insertAll を呼ばない                 | ✅ 完了   | insert_rows_json の使用なし                             |
+| 2   | 13451 items 以上で 413 が発生しない  | ⏳ 要検証 | Load Job はファイルベースなのでリクエストサイズ制限なし |
+| 3   | 文字列が 10,000 文字を超えない       | ✅ 完了   | truncate 処理で保証                                     |
+| 4   | 既存の後続処理が動作する             | ⏳ 要検証 | MERGE/DELETE 処理は変更なし                             |
+| 5   | ロード失敗時に例外とログが出力される | ✅ 完了   | エラーハンドリング実装済み                              |
 
 ## テスト方法
 
@@ -122,6 +130,7 @@ python3 3_2_refresh_dish_category_catalog_core.py
 ### 確認ポイント
 
 1. **Truncate ログの確認**
+
    ```
    Applying truncation to XXXX items...
    Truncation statistics:
@@ -130,11 +139,13 @@ python3 3_2_refresh_dish_category_catalog_core.py
    ```
 
 2. **JSONL ファイルサイズの確認**
+
    ```
    JSONL file written: XX.XX MB
    ```
 
 3. **Load Job の成功確認**
+
    ```
    Loaded XXXX rows to temp table
    ```
