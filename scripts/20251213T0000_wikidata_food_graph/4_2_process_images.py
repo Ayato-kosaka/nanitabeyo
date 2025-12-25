@@ -30,6 +30,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Dict
 from pathlib import Path
+from google.cloud import bigquery
 
 # プロジェクトルートのモジュールをインポート
 sys.path.append(str(Path(__file__).parent))
@@ -224,7 +225,7 @@ def process_images(loader: BigQueryLoader) -> None:
     loader.execute_sql(create_sql)
     
     # データ挿入
-    job_config = loader.client.LoadJobConfig(
+    job_config = bigquery.LoadJobConfig(
         write_disposition="WRITE_APPEND",
         schema=[
             {"name": "dish_category_id", "type": "STRING", "mode": "REQUIRED"},

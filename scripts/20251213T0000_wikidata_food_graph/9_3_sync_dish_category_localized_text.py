@@ -119,7 +119,7 @@ def sync_dish_category_localized_text(
     
     sql = """
         INSERT INTO dish_category_localized_text (
-            dish_category_id, locale, topic_title, tagline, source, synced_at
+            dish_category_id, locale, topic_title, tagline, synced_at
         ) VALUES %s
     """
     
@@ -129,7 +129,6 @@ def sync_dish_category_localized_text(
             text["locale"],
             text["topic_title"],
             text["tagline"],
-            text["source"],
             text["synced_at"]
         )
         for text in texts

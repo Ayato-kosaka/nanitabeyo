@@ -119,7 +119,7 @@ def sync_dish_category_features(
     
     sql = """
         INSERT INTO dish_category_features (
-            dish_category_id, feature_type, feature_key, score, source, synced_at
+            dish_category_id, feature_type, feature_key, score, synced_at
         ) VALUES %s
     """
     
@@ -129,7 +129,6 @@ def sync_dish_category_features(
             feat["feature_type"],
             feat["feature_key"],
             feat["score"],
-            feat["source"],
             feat["synced_at"]
         )
         for feat in features

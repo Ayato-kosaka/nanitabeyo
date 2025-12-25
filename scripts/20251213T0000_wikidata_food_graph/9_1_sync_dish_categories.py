@@ -36,6 +36,7 @@ from typing import List, Dict, Optional
 from pathlib import Path
 import psycopg2
 from psycopg2.extras import execute_values
+from google.cloud import bigquery
 
 # プロジェクトルートのモジュールをインポート
 sys.path.append(str(Path(__file__).parent))
@@ -53,55 +54,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def select_representative_image(
-    loader: BigQueryLoader, 
-    category_id: str
-) -> Optional[str]:
-    """
-    カテゴリの代表画像を優先順位に基づいて選定
-    優先順位: manual > analysis > wikimedia
-    
-    Args:
-        loader: BigQueryLoader インスタンス
-        category_id: dish_category QID
-    
-    Returns:
-        代表画像URL、なければ None
-    """
-    query = f"""
-        SELECT image_url, source_type
-        FROM `{loader.dataset_ref}.dish_category_images`
-        WHERE dish_category_id = @category_id
-        ORDER BY
-            CASE source_type
-                WHEN 'manual' THEN 1
-                WHEN 'analysis' THEN 2
-                WHEN 'wikimedia' THEN 3
-                WHEN 'partner' THEN 4
-                ELSE 5
-            END,
-            COALESCE(score, 0) DESC
-        LIMIT 1
-    """
-    
-    job_config = loader.client.QueryJobConfig(
-        query_parameters=[
-            loader.client.ScalarQueryParameter("category_id", "STRING", category_id)
-        ]
-    )
-    
-    try:
-        job = loader.client.query(query, job_config=job_config)
-        rows = list(job.result())
-        
-        if rows:
-            return rows[0].image_url
-    except Exception as e:
-        logger.warning(f"Failed to get image for {category_id}: {e}")
-    
-    return None
-
-
 def fetch_dish_categories_from_bq(loader: BigQueryLoader) -> Dict[str, Dict]:
     """
     BigQuery から dish_categories データを取得
@@ -116,17 +68,42 @@ def fetch_dish_categories_from_bq(loader: BigQueryLoader) -> Dict[str, Dict]:
     
     # dish_category_catalog と dish_macro_genre_analysis を JOIN
     query = f"""
+        WITH ranked_images AS (
         SELECT
-            cat.item_qid as id,
-            cat.label_en,
-            cat.labels_json as labels,
-            cat.image_url,
-            cat.tags,
-            TIMESTAMP('1970-01-01 00:00:00+00') as created_at,
-            mg.macro_genre_qid
+            dish_category_id,
+            image_url,
+            ROW_NUMBER() OVER (
+            PARTITION BY dish_category_id
+            ORDER BY
+                CASE source_type
+                WHEN 'manual' THEN 1
+                WHEN 'analysis' THEN 2
+                WHEN 'wikimedia' THEN 3
+                WHEN 'partner' THEN 4
+                ELSE 5
+                END,
+                COALESCE(score, 0) DESC
+            ) AS rn
+        FROM `{loader.dataset_ref}.dish_category_images`
+        ),
+        rep_images AS (
+        SELECT dish_category_id, image_url
+        FROM ranked_images
+        WHERE rn = 1
+        )
+        SELECT
+        cat.item_qid as id,
+        cat.label_en,
+        cat.labels_json as labels,
+        COALESCE(rep.image_url, '') as image_url,
+        cat.tags,
+        TIMESTAMP('1970-01-01 00:00:00+00') as created_at,
+        mg.macro_genre_qid
         FROM `{loader.dataset_ref}.dish_category_catalog` cat
+        LEFT JOIN rep_images rep
+        ON rep.dish_category_id = cat.item_qid
         LEFT JOIN `{loader.dataset_ref}.dish_macro_genre_analysis` mg
-            ON cat.item_qid = mg.item_qid
+        ON cat.item_qid = mg.item_qid
         WHERE cat.item_qid IS NOT NULL
     """
     
@@ -149,6 +126,49 @@ def fetch_dish_categories_from_bq(loader: BigQueryLoader) -> Dict[str, Dict]:
     logger.info(f"Fetched {len(categories)} categories from BigQuery")
     return categories
 
+def log_category_references_before_delete(pg_conn, to_delete_ids: set, limit: int = 50) -> int:
+    """
+    削除予定カテゴリが dishes から参照されているかを集計してログ出しする。
+    Returns: 参照されている dishes の総件数
+    """
+    if not to_delete_ids:
+        return 0
+
+    ids = list(to_delete_ids)
+
+    logger.info(f"Checking references for {to_delete_ids} categories scheduled for deletion...")
+
+    # 総参照数
+    pg_conn.cursor.execute(
+        """
+        SELECT COUNT(*) 
+        FROM dishes
+        WHERE category_id = ANY(%s)
+        """,
+        (ids,)
+    )
+    total_refs = pg_conn.cursor.fetchone()[0] or 0
+
+    if total_refs > 0:
+        logger.warning(f"⚠️ {len(to_delete_ids)} categories scheduled for deletion are referenced by dishes: {total_refs} dish rows")
+
+        # どのカテゴリが何件参照されているか（上位）
+        pg_conn.cursor.execute(
+            """
+            SELECT category_id, COUNT(*) AS cnt
+            FROM dishes
+            WHERE category_id = ANY(%s)
+            GROUP BY category_id
+            ORDER BY cnt DESC
+            LIMIT %s
+            """,
+            (ids, limit)
+        )
+        rows = pg_conn.cursor.fetchall()
+        for cat_id, cnt in rows:
+            logger.warning(f"  - category_id={cat_id}: {cnt} dishes")
+
+    return total_refs
 
 def sync_dish_categories(
     loader: BigQueryLoader,
@@ -173,35 +193,44 @@ def sync_dish_categories(
     bq_categories = fetch_dish_categories_from_bq(loader)
     bq_category_ids = set(bq_categories.keys())
     
-    # 2. 画像の代表選定
-    logger.info("Selecting representative images...")
+    # 2. 同期用データ整形
     categories_to_sync = []
-    
     for category_id, cat_data in bq_categories.items():
-        # 画像の代表選定（manual > analysis > wikimedia）
-        representative_image = select_representative_image(loader, category_id)
-        if not representative_image:
-            representative_image = cat_data["image_url"] or ""
-        
         categories_to_sync.append({
             "id": category_id,
             "label_en": cat_data["label_en"],
             "labels": cat_data["labels"],
-            "image_url": representative_image,
+            "image_url": cat_data["image_url"],
             "tags": cat_data["tags"],
             "created_at": cat_data["created_at"],
             "macro_genre_qid": cat_data["macro_genre_qid"],
             "synced_at": synced_at
         })
     
-    if dry_run:
-        logger.info(f"[DRY-RUN] Would sync {len(categories_to_sync)} categories")
-        stats.inserted = len(categories_to_sync)
-        return stats
-    
     # 3. PostgreSQL の既存データを取得
     pg_conn.cursor.execute("SELECT id FROM dish_categories")
     pg_category_ids = {row[0] for row in pg_conn.cursor.fetchall()}
+
+    to_delete = pg_category_ids - bq_category_ids
+    if to_delete:
+        # 事前バリデーション（参照チェック）
+        ref_count = log_category_references_before_delete(pg_conn, to_delete, limit=50)
+
+        # 安全のため：参照があるなら削除中止（推奨）
+        if ref_count > 0:
+            raise RuntimeError(
+                f"Refusing to delete {len(to_delete)} dish_categories because they are referenced by {ref_count} dishes. "
+                "Investigate before proceeding."
+            )
+
+    if dry_run:
+        new_ids = bq_category_ids - pg_category_ids
+        existing_ids = bq_category_ids & pg_category_ids
+
+        stats.inserted = len(new_ids)
+        stats.updated = len(existing_ids)
+        stats.deleted = len(to_delete)
+        return stats
     
     # 4. UPSERT
     if categories_to_sync:
@@ -245,8 +274,6 @@ def sync_dish_categories(
         logger.info(f"✅ Upserted {len(categories_to_sync)} categories")
     
     # 5. 削除処理（BQ に存在しないカテゴリ）
-    to_delete = pg_category_ids - bq_category_ids
-    
     if to_delete:
         logger.info(f"Deleting {len(to_delete)} categories...")
         

@@ -58,7 +58,6 @@ python3 4_1_generate_variants.py
 
 - label_en を canonical として追加
 - labels_json から全言語ラベルを抽出
-- aliases_json から別名を抽出
 - グローバル一意性を保証（表記揺れは単独一意）
 
 ### 3. 画像処理

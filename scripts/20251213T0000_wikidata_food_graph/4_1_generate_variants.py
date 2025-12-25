@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Set, Tuple
 from pathlib import Path
 from collections import defaultdict
+from google.cloud import bigquery
 
 # 日本語処理用ライブラリ（必須）
 import jaconv
@@ -239,10 +240,21 @@ def generate_variants(loader: BigQueryLoader) -> None:
     
     winners = {}  # surface -> candidate_index
     
-    # まず canonical を確定（優先）
+    # まず canonical を確定（surface が衝突したら qid_num が小さい方を採用）
     for i, c in enumerate(all_candidates):
-        if c["canonical"]:
-            winners[c["surface"]] = i
+        if not c["canonical"]:
+            continue
+
+        surf = c["surface"]
+        if surf not in winners:
+            winners[surf] = i
+            continue
+
+        # winners には canonical しか入っていない段階なので qid_num が小さい方を採用
+        cur_idx = winners[surf]
+        cur = all_candidates[cur_idx]
+        if qid_num(c["qid"]) < qid_num(cur["qid"]):
+            winners[surf] = i
     
     # 非canonical を surface ごとにグループ化
     by_surface = defaultdict(list)
@@ -308,7 +320,7 @@ def generate_variants(loader: BigQueryLoader) -> None:
     loader.execute_sql(create_sql)
     
     # データ挿入
-    job_config = loader.client.LoadJobConfig(
+    job_config = bigquery.LoadJobConfig(
         write_disposition="WRITE_APPEND",
         schema=[
             {"name": "dish_category_id", "type": "STRING", "mode": "REQUIRED"},
