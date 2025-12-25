@@ -16,14 +16,14 @@ prev_run_id: null
 final_run_id: "20251223T0000_final"
 
 # モデル設定
-model: "gpt-4.1-mini"  # gpt-5-mini も選択可能
+model: "gpt-4.1-mini" # gpt-5-mini も選択可能
 
 # Batch API設定
 batch_api: true
 batch_poll_interval_sec: 30
 
 # テスト用データ制限（null = 全件処理）
-max_items: null  # テスト時は 100 等を指定
+max_items: null # テスト時は 100 等を指定
 
 # ファイルパス設定
 input_export_path: "/tmp/wikidata_food_relevance_scoring"

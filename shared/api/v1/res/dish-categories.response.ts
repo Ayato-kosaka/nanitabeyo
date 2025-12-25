@@ -12,11 +12,10 @@ export type DishCategoryRecommendationItem = {
 export type QueryDishCategoryRecommendationsResponse = {
 	items: DishCategoryRecommendationItem[];
 	meta: {
-		source: 'feature_scoring' | 'claude_fallback';
+		source: "feature_scoring" | "claude_fallback";
 		candidateCount: number;
 		returnedCount: number;
 	};
 };
 
 export type ArchetypeType = "classic" | "discovery" | "trend";
-

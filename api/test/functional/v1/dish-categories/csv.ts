@@ -237,13 +237,13 @@ export function createTestResults(
     languageTag: request.languageTag,
 
     // Response summary
-    responseCount: response.data?.length || 0,
+    responseCount: response.data?.items?.length || 0,
     fullResponse: response.data,
   };
 
   // If successful and has data, create one row per category with category index
-  if (response.success && response.data && response.data.length > 0) {
-    return response.data.map((item, index) => ({
+  if (response.success && response.data?.items && response.data.items.length > 0) {
+    return response.data.items.map((item, index) => ({
       ...baseResult,
       categoryIndex: index + 1, // 1-based index for each category in this request
       category: item.category,
@@ -299,7 +299,7 @@ export function generateSummary(results: TestResult[]): TestSummary {
 
   const uniqueCategories = new Set(
     successful.flatMap(
-      (r) => r.fullResponse?.map((item) => item.category) || [],
+      (r) => r.fullResponse?.items?.map((item) => item.category) || [],
     ),
   ).size;
 

@@ -77,11 +77,9 @@ export class DishCategoriesService {
 
         // #533 【フォールバック】候補0件の場合はClaude経路へ
         if (candidates.length === 0) {
-          this.logger.info(
-            'FallbackToClaude',
-            'getRecommendations',
-            { reason: 'no_candidates' },
-          );
+          this.logger.log('FallbackToClaude', 'getRecommendations', {
+            reason: 'no_candidates',
+          });
           return this.fallbackToClaude(dto);
         }
 
@@ -90,11 +88,10 @@ export class DishCategoriesService {
 
         // #533 【フォールバック】6件未満の場合はClaude経路へ
         if (selectedCandidates.length < TARGET_SLATE_SIZE) {
-          this.logger.info(
-            'FallbackToClaude',
-            'getRecommendations',
-            { reason: 'insufficient_candidates', count: selectedCandidates.length },
-          );
+          this.logger.log('FallbackToClaude', 'getRecommendations', {
+            reason: 'insufficient_candidates',
+            count: selectedCandidates.length,
+          });
           return this.fallbackToClaude(dto);
         }
 
@@ -108,11 +105,9 @@ export class DishCategoriesService {
 
         // #533 【フォールバック】ローカライズテキスト取得失敗時はClaude経路へ
         if (localizedTexts.length === 0) {
-          this.logger.warn(
-            'FallbackToClaude',
-            'getRecommendations',
-            { reason: 'no_localized_text' },
-          );
+          this.logger.warn('FallbackToClaude', 'getRecommendations', {
+            reason: 'no_localized_text',
+          });
           return this.fallbackToClaude(dto);
         }
 
@@ -141,7 +136,7 @@ export class DishCategoriesService {
 
       // #533 【ログ】必須項目ログ出力
       const elapsedMs = Date.now() - startTime;
-      this.logger.info('RecommendationsReturned', 'getRecommendations', {
+      this.logger.log('RecommendationsReturned', 'getRecommendations', {
         elapsed_ms: elapsedMs,
         addressTokens: normalized.addressTokens,
         conditions: {
@@ -282,7 +277,10 @@ export class DishCategoriesService {
     if (selected.length < TARGET_SLATE_SIZE) {
       for (const candidate of sortedByRel) {
         if (selected.length >= CORE_SIZE + VARIETY_SIZE) break;
-        if (!selected.includes(candidate) && !usedGenres.has(candidate.macro_genre)) {
+        if (
+          !selected.includes(candidate) &&
+          !usedGenres.has(candidate.macro_genre)
+        ) {
           selected.push(candidate);
           usedGenres.add(candidate.macro_genre);
         }
@@ -344,9 +342,10 @@ export class DishCategoriesService {
   /**
    * #533 【設計】weighted randomサンプリング（final_scoreを重みとする）
    */
-  private weightedRandomSample<
-    T extends { final_score: number },
-  >(candidates: T[], count: number): T[] {
+  private weightedRandomSample<T extends { final_score: number }>(
+    candidates: T[],
+    count: number,
+  ): T[] {
     if (candidates.length === 0) return [];
     if (candidates.length <= count) return candidates;
 
@@ -401,49 +400,52 @@ export class DishCategoriesService {
     }>,
     localLanguageCode: string,
   ): DishCategoryRecommendationItem[] {
-    return selectedCandidates
-      .map((candidate) => {
-        const category = categories.find((c) => c.id === candidate.category_id);
-        if (!category) return null;
+    const items: DishCategoryRecommendationItem[] = [];
 
-        const localizedText = localizedTexts.find(
-          (lt) => lt.category_id === candidate.category_id,
-        );
+    for (const candidate of selectedCandidates) {
+      const category = categories.find((c) => c.id === candidate.category_id);
+      if (!category) continue;
 
-        // #533 【設計】ローカライズテキストがない場合はカテゴリ名をフォールバック
-        const topicTitle = localizedText
-          ? localizedText.topic_title
-          : category.label_en;
-        const tagline = localizedText ? localizedText.tagline : '';
+      const localizedText = localizedTexts.find(
+        (lt) => lt.category_id === candidate.category_id,
+      );
 
-        // #533 【設計】category名はlocalLanguageCodeで取得
-        let categoryName = category.label_en;
-        if (localLanguageCode && category.labels) {
-          try {
-            const labels = category.labels as Record<string, string>;
-            categoryName =
-              labels[localLanguageCode] ||
-              labels['en'] ||
-              category.label_en;
-          } catch (error) {
-            this.logger.warn('LabelsParsingError', 'buildResponseItems', {
-              categoryId: category.id,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            });
-          }
+      // #533 【設計】ローカライズテキストがない場合はカテゴリ名をフォールバック
+      const topicTitle = localizedText
+        ? localizedText.topic_title
+        : category.label_en;
+      const tagline = localizedText ? localizedText.tagline : '';
+
+      // #533 【設計】category名はlocalLanguageCodeで取得
+      let categoryName = category.label_en;
+      if (localLanguageCode && category.labels) {
+        try {
+          const labels = category.labels as Record<string, string>;
+          categoryName =
+            labels[localLanguageCode] || labels['en'] || category.label_en;
+        } catch (error) {
+          this.logger.warn('LabelsParsingError', 'buildResponseItems', {
+            categoryId: category.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
+      }
 
-        return {
-          category: categoryName,
-          topicTitle,
-          reason: tagline,
-          categoryId: category.id,
-          imageUrl: category.image_url,
-          macroGenre: candidate.macro_genre === '__unknown__' ? null : candidate.macro_genre,
-          tagline,
-        };
-      })
-      .filter((item): item is DishCategoryRecommendationItem => item !== null);
+      items.push({
+        category: categoryName,
+        topicTitle,
+        reason: tagline,
+        categoryId: category.id,
+        imageUrl: category.image_url,
+        macroGenre:
+          candidate.macro_genre === '__unknown__'
+            ? null
+            : candidate.macro_genre,
+        tagline,
+      });
+    }
+
+    return items;
   }
 
   /**

@@ -415,3 +415,4 @@ export class DishCategoriesRepository {
 
     return result;
   }
+}
