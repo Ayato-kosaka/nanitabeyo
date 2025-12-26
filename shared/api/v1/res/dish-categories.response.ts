@@ -7,13 +7,6 @@ export type DishCategoryRecommendationItem = {
 };
 
 /** GET /v1/dish-categories/recommendations のレスポンス型 */
-export type QueryDishCategoryRecommendationsResponse = {
-	items: DishCategoryRecommendationItem[];
-	meta: {
-		source: "feature_scoring" | "claude_fallback";
-		candidateCount: number;
-		returnedCount: number;
-	};
-};
+export type QueryDishCategoryRecommendationsResponse = DishCategoryRecommendationItem[];
 
 export type ArchetypeType = "classic" | "discovery" | "trend";

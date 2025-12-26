@@ -6,13 +6,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
+import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
+import { Prisma } from '../../../../shared/prisma';
 
 @Injectable()
 export class DishCategoriesRepository {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly remoteConfigService: RemoteConfigService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   async findDishCategoryById(id: string) {
     this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
@@ -123,7 +127,6 @@ export class DishCategoriesRepository {
    * #533 【仕様】料理カテゴリ候補をスコアリングして取得（WITH params/weights構造）
    */
   async findCategoryCandidatesWithScores(
-    tx: any,
     params: {
       addressTokens: string[];
       regionTokens: string[];
@@ -144,21 +147,51 @@ export class DishCategoriesRepository {
       final_score: number;
     }>
   > {
+    const startTime = Date.now();
+
+    const [wTime, wScene, wSatiety, wTaste, wMarketSalience, wDineOutOrderability, wEps, wAlpha] =
+      await this.remoteConfigService.getRemoteConfigValues([
+        'dish_category_recommendation_weight_time_slot',
+        'dish_category_recommendation_weight_scene',
+        'dish_category_recommendation_weight_satiety',
+        'dish_category_recommendation_weight_taste',
+        'dish_category_recommendation_weight_market_salience',
+        'dish_category_recommendation_weight_dine_out_orderability',
+        'dish_category_recommendation_weighted_random_eps',
+        'dish_category_recommendation_weighted_random_alpha',
+      ]).then(values => values.map(v => {
+        const float = parseFloat(v)
+        if (isNaN(float) || float < 0) {
+          this.logger.warn(
+            'InvalidRemoteConfigValue',
+            'findCategoryCandidatesWithScores',
+            { value: v },
+          );
+          return 0;
+        }
+        return float;
+      }));
+
     this.logger.debug(
       'FindCategoryCandidatesWithScores',
       'findCategoryCandidatesWithScores',
       {
-        addressTokensCount: params.addressTokens.length,
-        hasTimeSlot: !!params.timeSlotKey,
-        hasScene: !!params.sceneKey,
-        hasSatiety: !!params.satietyKey,
-        hasTaste: !!params.tasteKey,
-        candidateLimit: params.candidateLimit,
-      },
+        params,
+        weights: {
+          wTime,
+          wScene,
+          wSatiety,
+          wTaste,
+          wMarketSalience,
+          wDineOutOrderability,
+          wEps,
+          wAlpha,
+        },
+      }
     );
 
     // #533 【設計】SQLは WITH params, weights で一元管理
-    const result = await tx.$queryRaw<
+    const result = await this.prisma.prisma.$queryRaw<
       Array<{
         category_id: string;
         macro_genre: string | null;
@@ -181,10 +214,15 @@ export class DishCategoriesRepository {
       ),
       weights AS (
         SELECT
-          1.0::numeric AS w_time,
-          1.0::numeric AS w_scene,
-          1.0::numeric AS w_sat,
-          1.0::numeric AS w_taste
+          ${wTime}::numeric AS w_time,
+          ${wScene}::numeric AS w_scene,
+          ${wSatiety}::numeric AS w_sat,
+          ${wTaste}::numeric AS w_taste,
+          ${wMarketSalience}::numeric AS w_market_salience,
+          ${wDineOutOrderability}::numeric AS w_dine_out_orderability,
+          -- 分母0になって壊れないように下限値を設定
+          ${Math.max(wEps, 1e-6)}::numeric AS w_eps,
+          ${wAlpha}::numeric AS w_alpha
       ),
       -- #533 【設計】gate whitelist: region_tokens + 'region:scope:global' でフィルタ
       region_ok_categories AS (
@@ -234,43 +272,6 @@ export class DishCategoriesRepository {
           AND t_feat.feature_type = 'taste'
           AND t_feat.feature_key = p.taste_key
       ),
-      -- #533 【設計】market_salience / orderability を region_fallback_keys で探索
-      market_salience_resolved AS (
-        SELECT
-          bc.category_id,
-          COALESCE(
-            (
-              SELECT dcf.score
-              FROM dish_category_features dcf, params p,
-                UNNEST(p.region_fallback_keys) WITH ORDINALITY AS fb(key, ord)
-              WHERE dcf.dish_category_id = bc.category_id
-                AND dcf.feature_type = 'market_salience'
-                AND dcf.feature_key = fb.key
-              ORDER BY fb.ord ASC
-              LIMIT 1
-            ),
-            0
-          ) AS market_salience_score
-        FROM base_candidates bc
-      ),
-      orderability_resolved AS (
-        SELECT
-          bc.category_id,
-          COALESCE(
-            (
-              SELECT dcf.score
-              FROM dish_category_features dcf, params p,
-                UNNEST(p.region_fallback_keys) WITH ORDINALITY AS fb(key, ord)
-              WHERE dcf.dish_category_id = bc.category_id
-                AND dcf.feature_type = 'dine_out_orderability'
-                AND dcf.feature_key = fb.key
-              ORDER BY fb.ord ASC
-              LIMIT 1
-            ),
-            0
-          ) AS dine_out_orderability_score
-        FROM base_candidates bc
-      ),
       -- #533 【設計】rel_score と final_score を計算
       scored_candidates AS (
         SELECT
@@ -280,8 +281,8 @@ export class DishCategoriesRepository {
           COALESCE(bc.sc_score, 0) AS sc_score,
           COALESCE(bc.sat_score, 0) AS sat_score,
           COALESCE(bc.t_score, 0) AS t_score,
-          ms.market_salience_score,
-          ord_r.dine_out_orderability_score,
+          COALESCE(r.market_salience_score, 0) AS market_salience_score,
+          COALESCE(r.dine_out_orderability_score, 0) AS dine_out_orderability_score,
           -- weight_sum: 指定された条件のweightのみ加算
           (
             CASE WHEN p.time_slot_key IS NOT NULL THEN w.w_time ELSE 0 END +
@@ -289,7 +290,8 @@ export class DishCategoriesRepository {
             CASE WHEN p.satiety_key IS NOT NULL THEN w.w_sat ELSE 0 END +
             CASE WHEN p.taste_key IS NOT NULL THEN w.w_taste ELSE 0 END
           ) AS weight_sum,
-          -- #533 【設計】weight_sum=0 のとき rel_score=1（決定事項）
+          -- #533 【設計】weight_sum=0 のとき rel_score=1
+          -- 検索条件が無いとき、market/orderability だけで回せるようにする
           CASE
             WHEN (
               CASE WHEN p.time_slot_key IS NOT NULL THEN w.w_time ELSE 0 END +
@@ -315,8 +317,24 @@ export class DishCategoriesRepository {
         FROM base_candidates bc
         CROSS JOIN params p
         CROSS JOIN weights w
-        JOIN market_salience_resolved ms ON ms.category_id = bc.category_id
-        JOIN orderability_resolved ord_r ON ord_r.category_id = bc.category_id
+        -- #533 【設計】market_salience / orderability を region_fallback_keys で探索
+        LEFT JOIN LATERAL (
+          WITH ranked AS (
+            SELECT DISTINCT ON (dcf.feature_type)
+              dcf.feature_type,
+              dcf.score
+            FROM UNNEST(p.region_fallback_keys) WITH ORDINALITY AS fb(key, ord)
+            JOIN dish_category_features dcf
+              ON dcf.dish_category_id = bc.category_id
+            AND dcf.feature_key = fb.key
+            AND dcf.feature_type IN ('market_salience', 'dine_out_orderability')
+            ORDER BY dcf.feature_type, fb.ord
+          )
+          SELECT
+            MAX(score) FILTER (WHERE feature_type = 'market_salience') AS market_salience_score,
+            MAX(score) FILTER (WHERE feature_type = 'dine_out_orderability') AS dine_out_orderability_score
+          FROM ranked
+        ) r ON true
       ),
       final_scored AS (
         SELECT
@@ -326,22 +344,35 @@ export class DishCategoriesRepository {
           market_salience_score,
           dine_out_orderability_score,
           -- #533 【設計】final_score計算式
-          rel_score * (0.6 + 0.4 * market_salience_score) * (0.1 + 0.9 * dine_out_orderability_score) AS final_score
+          rel_score * (1 - w.w_market_salience + w.w_market_salience * market_salience_score)
+            * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * dine_out_orderability_score)
+          AS final_score,
+          w.w_eps,
+          w.w_alpha
         FROM scored_candidates
+        CROSS JOIN weights w
         WHERE
           -- #533 【設計】final_score > 0 のみ対象
-          rel_score * (0.6 + 0.4 * market_salience_score) * (0.1 + 0.9 * dine_out_orderability_score) > 0
+          rel_score * (1 - w.w_market_salience + w.w_market_salience * market_salience_score)
+            * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * dine_out_orderability_score)
+             > 0
       )
-      -- #533 【設計】weighted random でソート（final_scoreが大きいほど前に来やすい）
       SELECT
-        category_id,
-        macro_genre,
-        rel_score,
-        market_salience_score,
-        dine_out_orderability_score,
-        final_score
+      category_id,
+      macro_genre,
+      rel_score,
+      market_salience_score,
+      dine_out_orderability_score,
+      final_score
       FROM final_scored, params p
-      ORDER BY -LN(RANDOM()) / GREATEST(final_score, 0.1) ASC
+      -- #533 【設計】weighted random でソート（final_scoreが大きいほど前に来やすい）
+      --   alpha: スコア差の効かせ方（探索温度）
+      --     - alpha > 1 : 高スコアをより優遇（安定・探索弱め）
+      --     - alpha = 1 : 通常（現状と同じ）
+      --     - alpha < 1 : 差を縮める（探索強め）
+      --   eps: weight の下限値
+      --     final_score が 0 に近い候補が過度に前に出ないようにする安全弁
+      ORDER BY -LN(GREATEST(RANDOM(), 1e-12)) / POWER(GREATEST(final_score, w_eps), w_alpha) ASC
       LIMIT p.candidate_limit
     `;
 
@@ -349,7 +380,9 @@ export class DishCategoriesRepository {
       'CandidatesWithScoresFound',
       'findCategoryCandidatesWithScores',
       {
+        durationMs: Date.now() - startTime,
         count: result.length,
+        sampleResults: result.slice(0, 10), // Log only first 10 results for brevity
       },
     );
 
@@ -360,17 +393,9 @@ export class DishCategoriesRepository {
    * #582 【仕様】ローカライズ文言を取得（langCandidates順でフォールバック）
    */
   async findLocalizedTexts(
-    tx: any,
     categoryIds: string[],
     langCandidates: string[],
-  ): Promise<
-    Array<{
-      category_id: string;
-      lang: string;
-      topic_title: string;
-      tagline: string;
-    }>
-  > {
+  ): Promise<PrismaDishCategoryLocalizedText[]> {
     this.logger.debug('FindLocalizedTexts', 'findLocalizedTexts', {
       categoryIdsCount: categoryIds.length,
       langCandidates,
@@ -380,34 +405,36 @@ export class DishCategoriesRepository {
       return [];
     }
 
-    // #582 【設計】DISTINCT ON + ORDER BY CASE で優先順位付けフォールバック
-    const caseClauses = langCandidates
-      .map((lang, idx) => `WHEN locale = '${lang}' THEN ${idx + 1}`)
-      .join('\n          ');
+    // 該当するローカライズ文言をすべて取得
+    // DISTINCT ON + ORDER BY CASE で優先度の高いものを抽出する方法もあるが、
+    // 性能トレードオフで今回は Prisma ORM を利用する。
+    const dishCategoryLocalizations = await this.prisma.prisma.dish_category_localized_text.findMany({
+      where: {
+        dish_category_id: { in: categoryIds },
+        locale: { in: langCandidates },
+      },
+    });
 
-    const result = await tx.$queryRaw<
-      Array<{
-        category_id: string;
-        lang: string;
-        topic_title: string;
-        tagline: string;
-      }>
-    >`
-      SELECT DISTINCT ON (dish_category_id)
-        dish_category_id AS category_id,
-        locale AS lang,
-        topic_title,
-        tagline
-      FROM dish_category_localized_text
-      WHERE dish_category_id = ANY(${categoryIds}::text[])
-        AND locale = ANY(${langCandidates}::text[])
-      ORDER BY
-        dish_category_id,
-        CASE
-          ${caseClauses}
-          ELSE ${langCandidates.length + 1}
-        END ASC
-    `;
+    // locale優先度マップ（小さいほど優先）
+    const prio = new Map(langCandidates.map((l, i) => [l, i]));
+
+    // dish_category_id ごとに最優先を採用
+    const bestByCategory = new Map<string, PrismaDishCategoryLocalizedText>();
+
+    for (const r of dishCategoryLocalizations) {
+      const cur = bestByCategory.get(r.dish_category_id);
+      if (!cur) {
+        // 未登録なら即登録
+        bestByCategory.set(r.dish_category_id, r);
+        continue;
+      }
+      // 既存より優先度が高ければ更新
+      const curP = prio.get(cur.locale) ?? Number.POSITIVE_INFINITY;
+      const newP = prio.get(r.locale) ?? Number.POSITIVE_INFINITY;
+      if (newP < curP) bestByCategory.set(r.dish_category_id, r);
+    }
+
+    const result = Array.from(bestByCategory.values());
 
     this.logger.debug('LocalizedTextsFound', 'findLocalizedTexts', {
       count: result.length,

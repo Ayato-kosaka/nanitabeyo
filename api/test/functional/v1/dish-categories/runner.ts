@@ -282,7 +282,7 @@ export class DishCategoriesTestRunner {
         // Log progress
         const status = response.success ? '✅' : '❌';
         const progressPercent = ((index / total) * 100).toFixed(1);
-        const categoryCount = response.data?.items?.length || 0;
+        const categoryCount = response.data?.length || 0;
         console.log(
           `${status} [${progressPercent}%] ${index}/${total} - ${params.address} (${params.languageTag}) - ${duration}ms - ${categoryCount} categories`,
         );
