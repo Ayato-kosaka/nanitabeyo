@@ -5,8 +5,15 @@ import { Platform } from "react-native";
  * // #596 【バグ】GET/DELETE の querystring 生成で `undefined/null` が文字列化される不具合修正
  * クエリストリング生成時に undefined/null/空文字を除外する
  *
- * @param payload - リクエストパラメータオブジェクト
+ * @param payload - リクエストパラメータオブジェクト（プリミティブ値のみを想定）
  * @returns クエリストリング（先頭に ? を含む。パラメータなしの場合は空文字）
+ *
+ * 【仕様】以下の値はクエリに含めない:
+ * - undefined: 未選択・未指定の状態を表す
+ * - null: 明示的な null 値
+ * - "": 空文字列（「未指定」として扱う。空文字を送る必要がある場合は別途対応）
+ *
+ * 【注意】0, false などの falsy だが有効な値は保持される
  */
 const toQueryString = (payload: Record<string, unknown>): string => {
 	const entries = Object.entries(payload)
