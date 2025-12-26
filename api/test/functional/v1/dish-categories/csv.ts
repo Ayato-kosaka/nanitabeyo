@@ -242,7 +242,11 @@ export function createTestResults(
   };
 
   // If successful and has data, create one row per category with category index
-  if (response.success && response.data && response.data.length > 0) {
+  if (
+    response.success &&
+    response.data &&
+    response.data.length > 0
+  ) {
     return response.data.map((item, index) => ({
       ...baseResult,
       categoryIndex: index + 1, // 1-based index for each category in this request
@@ -294,7 +298,7 @@ export function generateSummary(results: TestResult[]): TestSummary {
   const averageResponseCount =
     successful.length > 0
       ? successful.reduce((sum, r) => sum + (r.responseCount || 0), 0) /
-        successful.length
+      successful.length
       : 0;
 
   const uniqueCategories = new Set(
@@ -350,8 +354,8 @@ Performance:
 
 Errors by Status Code:
 ${Object.entries(summary.errorsByStatus)
-  .map(([status, count]) => `- ${status}: ${count}`)
-  .join('\n')}
+      .map(([status, count]) => `- ${status}: ${count}`)
+      .join('\n')}
 `;
 
   await fs.promises.writeFile(logPath, logContent);

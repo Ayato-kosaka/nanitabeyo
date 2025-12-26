@@ -39544,6 +39544,7 @@ export namespace Prisma {
   export type dish_category_variantsWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     surface_form?: string
+    dish_category_id_surface_form?: dish_category_variantsDish_category_idSurface_formCompoundUniqueInput
     AND?: dish_category_variantsWhereInput | dish_category_variantsWhereInput[]
     OR?: dish_category_variantsWhereInput[]
     NOT?: dish_category_variantsWhereInput | dish_category_variantsWhereInput[]
@@ -39551,7 +39552,7 @@ export namespace Prisma {
     source?: StringNullableFilter<"dish_category_variants"> | string | null
     created_at?: DateTimeFilter<"dish_category_variants"> | Date | string
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
-  }, "id" | "surface_form">
+  }, "id" | "surface_form" | "dish_category_id_surface_form">
 
   export type dish_category_variantsOrderByWithAggregationInput = {
     id?: SortOrder
@@ -44160,6 +44161,11 @@ export namespace Prisma {
     gte?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedUuidFilter<$PrismaModel> | string
+  }
+
+  export type dish_category_variantsDish_category_idSurface_formCompoundUniqueInput = {
+    dish_category_id: string
+    surface_form: string
   }
 
   export type dish_category_variantsCountOrderByAggregateInput = {
