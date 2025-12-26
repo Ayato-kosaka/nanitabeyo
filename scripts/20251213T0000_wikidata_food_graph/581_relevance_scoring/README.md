@@ -8,64 +8,64 @@
 
 ## 目的
 
-* dish_category（**gate whitelist 通過済み**）に対し、**「外食文脈での自然さ」**を軸にした複数の relevance feature を LLM で付与する
-* 本スコアは **人気・想起・市場規模とは独立**した特徴量とし、下流ランキングにおいて「文脈的に不自然な組み合わせ」を**弱く・一貫して沈める**ことを目的とする
-* すべて **0 / 0.5 / 1 の離散値**で付与し、重み付け・合成は downstream に委ねる
-* **Batch API 前提**で run_id 管理・再実行・差分比較が可能な運用とする
+- dish_category（**gate whitelist 通過済み**）に対し、**「外食文脈での自然さ」**を軸にした複数の relevance feature を LLM で付与する
+- 本スコアは **人気・想起・市場規模とは独立**した特徴量とし、下流ランキングにおいて「文脈的に不自然な組み合わせ」を**弱く・一貫して沈める**ことを目的とする
+- すべて **0 / 0.5 / 1 の離散値**で付与し、重み付け・合成は downstream に委ねる
+- **Batch API 前提**で run_id 管理・再実行・差分比較が可能な運用とする
 
 ## Feature 定義
 
 ### A) timeSlot（時間帯適性）
 
-* morning / lunch / afternoon / dinner / late_night
-* 外食における時間帯での自然さを評価
+- morning / lunch / afternoon / dinner / late_night
+- 外食における時間帯での自然さを評価
 
 ### B) scene（誰と食べるか）
 
-* solo / date / friends / family / drinking
-* 社会的シーンでの自然さを評価
+- solo / date / friends / family / drinking
+- 社会的シーンでの自然さを評価
 
 ### C) satiety（満腹感）
 
-* hearty / normal / light
-* 料理のボリューム感を評価
+- hearty / normal / light
+- 料理のボリューム感を評価
 
 ### D) taste（印象タグ）
 
-* sweet / spicy / healthy / junk / alcohol
-* 味覚・印象の特徴を評価（複数1可）
+- sweet / spicy / healthy / junk / alcohol
+- 味覚・印象の特徴を評価（複数1可）
 
 ## スコア定義
 
 すべての feature で共通：
 
-| score | 定義                           |
-| ----- | ---------------------------- |
-| 1     | その文脈で自然・典型的                  |
-| 0.5   | 可能だが典型的ではない（迷ったらこれ）          |
-| 0     | その文脈で不自然・不適切                 |
+| score | 定義                                   |
+| ----- | -------------------------------------- |
+| 1     | その文脈で自然・典型的                 |
+| 0.5   | 可能だが典型的ではない（迷ったらこれ） |
+| 0     | その文脈で不自然・不適切               |
 
 ## アーキテクチャ
 
 ### Phase 1: スコアリング
 
-* 全 feature を rubric に基づいてスコアリング
-* 出力は **1 feature = 1 row**
-* 結果を `wikidata_food_llm_feature_scores` に投入
+- 全 feature を rubric に基づいてスコアリング
+- 出力は **1 feature = 1 row**
+- 結果を `wikidata_food_llm_feature_scores` に投入
 
 ### Phase 2: レビュー
 
-* Phase1 の結果をレビューし、`accept / edit / deny` を判定
-* edit は **隣接スコア修正（0↔0.5↔1）のみ**
-* deny は投入しない
-* edit / accept 結果を **新 run_id** で再投入
+- Phase1 の結果をレビューし、`accept / edit / deny` を判定
+- edit は **隣接スコア修正（0↔0.5↔1）のみ**
+- deny は投入しない
+- edit / accept 結果を **新 run_id** で再投入
 
 ### Phase 3: 公開
 
-* Phase2 が存在する場合は Phase2 を優先
-* なければ Phase1 を採用
-* deny レコードは除外
-* `dish_category_features_catalog` に MERGE 反映
+- Phase2 が存在する場合は Phase2 を優先
+- なければ Phase1 を採用
+- deny レコードは除外
+- `dish_category_features_catalog` に MERGE 反映
 
 ## ディレクトリ構成
 
@@ -435,7 +435,7 @@ curl https://api.openai.com/v1/batches/$BATCH_ID \
 
   ```yaml
   # config.yml で run_id_prefix を変更
-  run_id_prefix: "20251224T0000"  # 新しいタイムスタンプ
+  run_id_prefix: "20251224T0000" # 新しいタイムスタンプ
   ```
 
 ## 関連ドキュメント
@@ -462,16 +462,16 @@ curl https://api.openai.com/v1/batches/$BATCH_ID \
 
 ### 明示的に評価しないもの
 
-* 年齢層・世代差
-* 個人嗜好
-* 健康・ダイエット観点
-* 人気・定番度・文化的重要性
+- 年齢層・世代差
+- 個人嗜好
+- 健康・ダイエット観点
+- 人気・定番度・文化的重要性
 
 ※ 迷った場合は **0.5 に倒す**
 
 ### Phase2 レビュールール
 
-* rubric 適用チェック専用
-* 新しい判断軸・例外ルールは作らない
-* edit は隣接スコア修正（0↔0.5↔1）のみ
-* 大きなジャンプ（0↔1）は deny 扱い
+- rubric 適用チェック専用
+- 新しい判断軸・例外ルールは作らない
+- edit は隣接スコア修正（0↔0.5↔1）のみ
+- 大きなジャンプ（0↔1）は deny 扱い

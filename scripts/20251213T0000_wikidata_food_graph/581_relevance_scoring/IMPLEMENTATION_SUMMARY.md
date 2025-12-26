@@ -7,6 +7,7 @@ Successfully implemented a comprehensive relevance scoring system for dish_categ
 ## What Was Implemented
 
 ### 1. Database Infrastructure
+
 - **New Table**: `wikidata_food_llm_feature_scores`
   - Stores all LLM-generated feature scores
   - Supports Phase1 and Phase2 results
@@ -16,6 +17,7 @@ Successfully implemented a comprehensive relevance scoring system for dish_categ
 ### 2. Complete Processing Pipeline
 
 #### Phase 1: Initial Scoring (5 scripts)
+
 1. `1_1_export_input.py` - Exports gate-allowed dish_categories from BigQuery
 2. `1_2_build_payload_phase1.py` - Builds Batch API payload with rubric prompts
 3. `1_3_submit_batch_phase1.py` - Submits batch to OpenAI
@@ -23,12 +25,14 @@ Successfully implemented a comprehensive relevance scoring system for dish_categ
 5. `1_4_load_results_phase1.py` - Parses results and loads to BigQuery
 
 #### Phase 2: Review & Refinement (4 scripts)
+
 1. `2_1_build_payload_phase2.py` - Builds review payload with Phase1 results
 2. `2_2_submit_batch_phase2.py` - Submits review batch
 3. `2_2_poll_batch_phase2.py` - Polls for review completion
 4. `2_3_load_results_phase2.py` - Parses review decisions (accept/edit/deny)
 
 #### Phase 3: Publishing (1 script)
+
 1. `3_1_publish_features.py` - Merges final scores to features_catalog
    - Includes dry-run mode for safety
    - Implements Phase2 > Phase1 priority
@@ -37,6 +41,7 @@ Successfully implemented a comprehensive relevance scoring system for dish_categ
 ### 3. Prompt Engineering
 
 #### Phase1 Scoring Prompt (`prompts/jp_relevance_scoring_phase1.py`)
+
 - **336 lines** of comprehensive rubric definitions
 - Evaluates 4 feature types across 18 dimensions
 - Strict score constraints (0, 0.5, 1 only)
@@ -44,12 +49,14 @@ Successfully implemented a comprehensive relevance scoring system for dish_categ
 - Default to 0.5 when uncertain
 
 **Feature Definitions:**
+
 - **timeSlot** (5): morning, lunch, afternoon, dinner, late_night
 - **scene** (5): solo, date, friends, family, drinking
 - **satiety** (3): hearty, normal, light
 - **taste** (5): sweet, spicy, healthy, junk, alcohol
 
 #### Phase2 Review Prompt (`prompts/jp_relevance_scoring_phase2.py`)
+
 - **252 lines** of review logic
 - Three actions: accept, edit, deny
 - Adjacent score modification only (0↔0.5↔1)
@@ -57,16 +64,19 @@ Successfully implemented a comprehensive relevance scoring system for dish_categ
 - No new judgment axes
 
 ### 4. Library Modules (Reused from 575_dine_out_orderability)
+
 - `lib/bq.py` - BigQuery operations (export, load, query)
 - `lib/batch_api.py` - OpenAI Batch API client
 - `lib/io.py` - File I/O utilities
 - `lib/metrics.py` - Metrics collection and analysis
 
 ### 5. SQL Queries
+
 - `sql/export_input.sql` - Extracts gate-allowed items with Japanese metadata
 - `sql/publish_features.sql` - Merges final scores with priority handling
 
 ### 6. Configuration & Documentation
+
 - `config.yml` - Complete configuration with feature definitions
 - `README.md` - 10KB+ comprehensive documentation
 - `validate.sh` - Automated validation script
@@ -116,6 +126,7 @@ scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring/
 - **Validation**: 165 lines in validate.sh
 
 ### Breakdown by Component:
+
 - Phase1 scripts: 752 lines
 - Phase2 scripts: 746 lines
 - Publishing script: 186 lines
@@ -126,30 +137,35 @@ scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring/
 ## Key Design Features
 
 ### 1. Rubric-Based Evaluation
+
 - No popularity bias
 - Context-focused scoring
 - Consistent evaluation criteria
 - Default to 0.5 for borderline cases
 
 ### 2. Two-Phase Architecture
+
 - **Phase1**: Initial scoring by LLM
 - **Phase2**: Review and refinement
 - Phase2 results override Phase1
 - Denied items excluded from final output
 
 ### 3. Batch API Integration
+
 - Cost-effective processing
 - Automatic retries and error handling
 - Status polling with configurable intervals
 - Result downloading and parsing
 
 ### 4. Data Management
+
 - Append-only architecture
 - Full audit trail with run_id
 - No overwrites (new run_id per execution)
 - Phase priority handling in SQL
 
 ### 5. Safety Features
+
 - Dry-run mode for publishing
 - Validation script for pre-flight checks
 - Graceful error handling
@@ -170,12 +186,14 @@ All validation checks passed successfully:
 ## How to Use
 
 ### Prerequisites
+
 1. Python 3.8+ with dependencies installed
 2. GCP authentication configured
 3. OpenAI API key set in environment
 4. BigQuery tables created (run migration)
 
 ### Execution Flow
+
 ```bash
 cd scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring
 
@@ -203,12 +221,14 @@ python3 3_1_publish_features.py            # Actual publish
 ## Expected Output
 
 ### Feature Scores
+
 - **18 scores per dish_category**
 - Values: 0, 0.5, or 1
 - Confidence: high, medium, low
 - Reason: Short explanation (≤120 chars)
 
 ### Metrics
+
 - Input/success/error counts
 - Feature type distribution
 - Score distribution (0, 0.5, 1)
@@ -216,7 +236,9 @@ python3 3_1_publish_features.py            # Actual publish
 - Review actions (accept, edit, deny)
 
 ### Published Features
+
 Final results in `dish_category_features_catalog`:
+
 - Phase2 preferred over Phase1
 - Deny records excluded
 - Full metadata in JSON note field
@@ -232,16 +254,19 @@ Final results in `dish_category_features_catalog`:
 ## Maintenance
 
 ### Updating Rubrics
+
 - Edit `prompts/jp_relevance_scoring_phase1.py`
 - Use new run_id_prefix in config.yml
 - Re-run full pipeline
 
 ### Monitoring
+
 - Check metrics files in `/tmp/wikidata_food_relevance_scoring/results/`
 - Query BigQuery for score distributions
 - Review Phase2 accept/edit/deny rates
 
 ### Troubleshooting
+
 - See README.md for detailed troubleshooting guide
 - Check batch status via OpenAI API
 - Review error logs in script output
@@ -259,11 +284,13 @@ Final results in `dish_category_features_catalog`:
 ## Related Work
 
 This implementation follows the pattern established by:
+
 - #575: dine_out_orderability (single-feature scoring)
 - #572: market_salience (popularity scoring)
 - #557: region_gate (binary classification)
 
 Key improvements over previous implementations:
+
 1. Multi-feature evaluation (18 features vs 1)
 2. Structured feature output format
 3. Enhanced Phase2 review logic
