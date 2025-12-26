@@ -33,9 +33,7 @@ import type {
 	PopularDishCategoriesWithMediaResponse,
 	PopularDishCategoryWithMedia,
 	CandidateDishMedia,
-	UpdateDishCategoryImagesResponse,
 } from "@shared/api/v1/res";
-import type { UpdateDishCategoryImagesDto } from "@shared/api/v1/dto";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -125,29 +123,27 @@ export default function DishCategoryImageOptimizerPage() {
 		}
 
 		try {
-			const result = await callBackend<UpdateDishCategoryImagesDto, UpdateDishCategoryImagesResponse>(
-				"tools/dish-categories/update-images",
-				{
-					method: "POST",
-					requestPayload: { items },
-				},
-			);
-
-			if (result.success) {
-				showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitSuccess", { count: result.updatedCount }));
-				// 成功後はリセット
-				setSelectedMap({});
-				// カテゴリを再取得
-				await fetchCategories();
-			} else {
-				showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
-			}
-
-			logFrontendEvent({
-				event_name: "tools_images_updated",
-				error_level: "log",
-				payload: { count: items.length, success: result.success },
-			});
+			// const result = await callBackend<UpdateDishCategoryImagesDto, UpdateDishCategoryImagesResponse>(
+			// 	"tools/dish-categories/update-images",
+			// 	{
+			// 		method: "POST",
+			// 		requestPayload: { items },
+			// 	},
+			// );
+			// if (result.success) {
+			// 	showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitSuccess", { count: result.updatedCount }));
+			// 	// 成功後はリセット
+			// 	setSelectedMap({});
+			// 	// カテゴリを再取得
+			// 	await fetchCategories();
+			// } else {
+			// 	showSnackbar(i18n.t("Tools.DishCategoryImageOptimizer.submitError"));
+			// }
+			// logFrontendEvent({
+			// 	event_name: "tools_images_updated",
+			// 	error_level: "log",
+			// 	payload: { count: items.length, success: result.success },
+			// });
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "tools_images_update_error",
