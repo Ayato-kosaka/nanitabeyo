@@ -105,38 +105,28 @@ model dish_category_variants {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_category_features {
-  category_id  String          @map("category_id")
-  feature_type String
-  feature_key  String
-  score        Float
-  source       String
-  run_id       String
-  updated_at   DateTime        @default(now()) @db.Timestamptz(6)
-  note         String?
-  dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_category_id String
+  feature_type     String
+  feature_key      String
+  score            Float
+  synced_at        DateTime        @db.Timestamptz(6)
+  dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([category_id, feature_type, feature_key])
-  @@index([category_id, feature_type], map: "idx_dcf_category_type")
-  @@index([feature_type, feature_key], map: "idx_dcf_feature_type_key")
+  @@id([dish_category_id, feature_type, feature_key])
   @@schema("dev")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_category_localized_text {
-  category_id     String   @map("category_id")
-  lang            String
-  topic_title     String
-  tagline         String
-  source          String
-  selected_run_id String
-  updated_at      DateTime @default(now()) @db.Timestamptz(6)
-  note            String?
-  dish_categories dish_categories @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_category_id String
+  locale           String
+  topic_title      String
+  tagline          String
+  synced_at        DateTime        @db.Timestamptz(6)
+  dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([category_id, lang])
-  @@index([category_id], map: "idx_dclt_category")
-  @@index([lang], map: "idx_dclt_lang")
+  @@id([dish_category_id, locale])
   @@schema("dev")
 }
 

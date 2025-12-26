@@ -188,7 +188,7 @@ export class DishCategoriesRepository {
       ),
       -- #533 【設計】gate whitelist: region_tokens + 'region:scope:global' でフィルタ
       region_ok_categories AS (
-        SELECT DISTINCT dcf.category_id
+        SELECT DISTINCT dcf.dish_category_id AS category_id
         FROM dish_category_features dcf, params p
         WHERE dcf.feature_type = 'gate'
           AND (
@@ -215,22 +215,22 @@ export class DishCategoriesRepository {
         JOIN dish_categories dc ON dc.id = roc.category_id
         -- timeSlot
         LEFT JOIN dish_category_features ts_feat
-          ON ts_feat.category_id = roc.category_id
+          ON ts_feat.dish_category_id = roc.category_id
           AND ts_feat.feature_type = 'timeSlot'
           AND ts_feat.feature_key = p.time_slot_key
         -- scene
         LEFT JOIN dish_category_features sc_feat
-          ON sc_feat.category_id = roc.category_id
+          ON sc_feat.dish_category_id = roc.category_id
           AND sc_feat.feature_type = 'scene'
           AND sc_feat.feature_key = p.scene_key
         -- satiety
         LEFT JOIN dish_category_features sat_feat
-          ON sat_feat.category_id = roc.category_id
+          ON sat_feat.dish_category_id = roc.category_id
           AND sat_feat.feature_type = 'satiety'
           AND sat_feat.feature_key = p.satiety_key
         -- taste
         LEFT JOIN dish_category_features t_feat
-          ON t_feat.category_id = roc.category_id
+          ON t_feat.dish_category_id = roc.category_id
           AND t_feat.feature_type = 'taste'
           AND t_feat.feature_key = p.taste_key
       ),
@@ -243,7 +243,7 @@ export class DishCategoriesRepository {
               SELECT dcf.score
               FROM dish_category_features dcf, params p,
                 UNNEST(p.region_fallback_keys) WITH ORDINALITY AS fb(key, ord)
-              WHERE dcf.category_id = bc.category_id
+              WHERE dcf.dish_category_id = bc.category_id
                 AND dcf.feature_type = 'market_salience'
                 AND dcf.feature_key = fb.key
               ORDER BY fb.ord ASC
@@ -261,7 +261,7 @@ export class DishCategoriesRepository {
               SELECT dcf.score
               FROM dish_category_features dcf, params p,
                 UNNEST(p.region_fallback_keys) WITH ORDINALITY AS fb(key, ord)
-              WHERE dcf.category_id = bc.category_id
+              WHERE dcf.dish_category_id = bc.category_id
                 AND dcf.feature_type = 'dine_out_orderability'
                 AND dcf.feature_key = fb.key
               ORDER BY fb.ord ASC
@@ -382,7 +382,7 @@ export class DishCategoriesRepository {
 
     // #582 【設計】DISTINCT ON + ORDER BY CASE で優先順位付けフォールバック
     const caseClauses = langCandidates
-      .map((lang, idx) => `WHEN lang = '${lang}' THEN ${idx + 1}`)
+      .map((lang, idx) => `WHEN locale = '${lang}' THEN ${idx + 1}`)
       .join('\n          ');
 
     const result = await tx.$queryRaw<
@@ -393,16 +393,16 @@ export class DishCategoriesRepository {
         tagline: string;
       }>
     >`
-      SELECT DISTINCT ON (category_id)
-        category_id,
-        lang,
+      SELECT DISTINCT ON (dish_category_id)
+        dish_category_id AS category_id,
+        locale AS lang,
         topic_title,
         tagline
       FROM dish_category_localized_text
-      WHERE category_id = ANY(${categoryIds}::text[])
-        AND lang = ANY(${langCandidates}::text[])
+      WHERE dish_category_id = ANY(${categoryIds}::text[])
+        AND locale = ANY(${langCandidates}::text[])
       ORDER BY
-        category_id,
+        dish_category_id,
         CASE
           ${caseClauses}
           ELSE ${langCandidates.length + 1}
