@@ -19,12 +19,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthAnonGuard, PermissionGuard } from '../../core/auth/auth.guard';
 
 // DTO / Response
-import { UpdateDishCategoryImagesDto } from '@shared/v1/dto';
-import {
-  PopularDishCategoriesWithMediaResponse,
-  UpdateDishCategoryImagesResponse,
-  UpdateDishCategoryImagesErrorResponse,
-} from '@shared/v1/res';
+import { PopularDishCategoriesWithMediaResponse } from '@shared/v1/res';
 
 // Service
 import { ToolsDishCategoriesService } from './tools-dish-categories.service';
@@ -55,34 +50,5 @@ export class ToolsDishCategoriesController {
   })
   async getPopularCategoriesWithMedia(): Promise<PopularDishCategoriesWithMediaResponse> {
     return this.toolsDishCategoriesService.getPopularCategoriesWithMedia();
-  }
-
-  /**
-   * #494 選択されたメディアでカテゴリ画像を一括更新
-   * POST /tools/dish-categories/update-images
-   */
-  @Post('update-images')
-  @UseGuards(AuthAnonGuard, PermissionGuard)
-  @Permissions('tools.dish-categories.update-images')
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({
-    summary: 'カテゴリ画像一括更新',
-    description:
-      '選択されたdish_mediaのサムネイルでdish_categories.image_urlを更新',
-  })
-  @ApiResponse({
-    status: 200,
-    description: '更新成功',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'バリデーションエラー',
-  })
-  async updateCategoryImages(
-    @Body() dto: UpdateDishCategoryImagesDto,
-  ): Promise<
-    UpdateDishCategoryImagesResponse | UpdateDishCategoryImagesErrorResponse
-  > {
-    return this.toolsDishCategoriesService.updateCategoryImages(dto);
   }
 }

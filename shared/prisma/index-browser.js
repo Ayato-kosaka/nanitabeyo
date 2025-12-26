@@ -24,12 +24,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 7.1.0
- * Query Engine version: ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba
+ * Prisma Client JS version: 7.2.0
+ * Query Engine version: 0c8ef2ce45c83248ab3df073180d5eda9e8be7a3
  */
 Prisma.prismaVersion = {
-  client: "7.1.0",
-  engine: "ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba"
+  client: "7.2.0",
+  engine: "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -143,19 +143,26 @@ exports.Prisma.Dish_categoriesScalarFieldEnum = {
   label_en: 'label_en',
   labels: 'labels',
   image_url: 'image_url',
-  origin: 'origin',
-  cuisine: 'cuisine',
   tags: 'tags',
   created_at: 'created_at',
-  updated_at: 'updated_at',
-  lock_no: 'lock_no',
-  macro_genre_qid: 'macro_genre_qid'
+  macro_genre_qid: 'macro_genre_qid',
+  synced_at: 'synced_at'
 };
 
-exports.Prisma.Dish_category_ancestorsScalarFieldEnum = {
+exports.Prisma.Dish_category_featuresScalarFieldEnum = {
   dish_category_id: 'dish_category_id',
-  ancestor_qid: 'ancestor_qid',
-  depth: 'depth'
+  feature_type: 'feature_type',
+  feature_key: 'feature_key',
+  score: 'score',
+  synced_at: 'synced_at'
+};
+
+exports.Prisma.Dish_category_localized_textScalarFieldEnum = {
+  dish_category_id: 'dish_category_id',
+  locale: 'locale',
+  topic_title: 'topic_title',
+  tagline: 'tagline',
+  synced_at: 'synced_at'
 };
 
 exports.Prisma.Dish_category_variantsScalarFieldEnum = {
@@ -275,12 +282,6 @@ exports.Prisma.Frontend_event_logsScalarFieldEnum = {
   created_at: 'created_at',
   created_app_version: 'created_app_version',
   created_commit_id: 'created_commit_id'
-};
-
-exports.Prisma.Macro_genre_whitelistScalarFieldEnum = {
-  macro_genre_qid: 'macro_genre_qid',
-  label_en: 'label_en',
-  label_ja: 'label_ja'
 };
 
 exports.Prisma.Notification_recipientsScalarFieldEnum = {
@@ -502,7 +503,8 @@ exports.Prisma.ModelName = {
   backend_event_logs: 'backend_event_logs',
   config: 'config',
   dish_categories: 'dish_categories',
-  dish_category_ancestors: 'dish_category_ancestors',
+  dish_category_features: 'dish_category_features',
+  dish_category_localized_text: 'dish_category_localized_text',
   dish_category_variants: 'dish_category_variants',
   dish_media: 'dish_media',
   dish_media_analysis_results: 'dish_media_analysis_results',
@@ -513,7 +515,6 @@ exports.Prisma.ModelName = {
   dishes: 'dishes',
   external_api_logs: 'external_api_logs',
   frontend_event_logs: 'frontend_event_logs',
-  macro_genre_whitelist: 'macro_genre_whitelist',
   notification_recipients: 'notification_recipients',
   notifications: 'notifications',
   payouts: 'payouts',

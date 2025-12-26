@@ -26,26 +26,3 @@ export type PopularDishCategoryWithMedia = {
  * GET /tools/dish-categories/popular-with-media のレスポンス
  */
 export type PopularDishCategoriesWithMediaResponse = PopularDishCategoryWithMedia[];
-
-/**
- * POST /tools/dish-categories/update-images の成功レスポンス
- */
-export type UpdateDishCategoryImagesResponse = {
-	/** 成功フラグ */
-	success: true;
-	/** 更新されたカテゴリ数 */
-	updatedCount: number;
-};
-
-/**
- * POST /tools/dish-categories/update-images の失敗レスポンス
- */
-export type UpdateDishCategoryImagesErrorResponse = {
-	/** 失敗フラグ */
-	success: false;
-	/** エラー情報 */
-	error: {
-		message: string;
-		detail?: string[];
-	};
-};

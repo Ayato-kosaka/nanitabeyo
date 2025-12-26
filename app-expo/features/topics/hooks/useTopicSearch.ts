@@ -98,7 +98,10 @@ export const useTopicSearch = () => {
 					);
 					dishItems = dishItems.concat(
 						importResponse.filter(
-							(imported) => !dishItems.find((existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id),
+							(imported) =>
+								!dishItems.find(
+									(existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id,
+								),
 						),
 					);
 				}
@@ -227,8 +230,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-												typeof createDishCategoryVariantResponse.labels === "object" &&
-												params.localLanguageCode in createDishCategoryVariantResponse.labels
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,

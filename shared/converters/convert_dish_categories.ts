@@ -17,13 +17,10 @@ export function convertSupabaseToPrisma_DishCategories(supabase: SupabaseDishCat
     label_en: supabase.label_en,
     labels: supabase.labels,
     image_url: supabase.image_url,
-    origin: supabase.origin,
-    cuisine: supabase.cuisine,
     tags: supabase.tags,
     macro_genre_qid: supabase.macro_genre_qid,
     created_at: new Date(supabase.created_at),
-    updated_at: new Date(supabase.updated_at),
-    lock_no: supabase.lock_no,
+    synced_at: supabase.synced_at !== null ? new Date(supabase.synced_at) : null,
   };
 }
 
@@ -38,12 +35,9 @@ export function convertPrismaToSupabase_DishCategories(prisma: PrismaDishCategor
     label_en: prisma.label_en,
     labels: prisma.labels,
     image_url: prisma.image_url,
-    origin: prisma.origin,
-    cuisine: prisma.cuisine,
     tags: prisma.tags,
     macro_genre_qid: prisma.macro_genre_qid,
     created_at: prisma.created_at?.toISOString() ?? null,
-    updated_at: prisma.updated_at?.toISOString() ?? null,
-    lock_no: prisma.lock_no,
+    synced_at: prisma.synced_at?.toISOString() ?? null,
   };
 }

@@ -65,64 +65,93 @@ export type Database = {
 			dish_categories: {
 				Row: {
 					created_at: string;
-					cuisine: string[];
 					id: string;
 					image_url: string;
 					label_en: string;
 					labels: Json;
-					lock_no: number;
 					macro_genre_qid: string | null;
-					origin: string[];
+					synced_at: string | null;
 					tags: string[];
-					updated_at: string;
 				};
 				Insert: {
 					created_at?: string;
-					cuisine: string[];
 					id: string;
 					image_url: string;
 					label_en: string;
 					labels: Json;
-					lock_no?: number;
 					macro_genre_qid?: string | null;
-					origin: string[];
+					synced_at?: string | null;
 					tags: string[];
-					updated_at?: string;
 				};
 				Update: {
 					created_at?: string;
-					cuisine?: string[];
 					id?: string;
 					image_url?: string;
 					label_en?: string;
 					labels?: Json;
-					lock_no?: number;
 					macro_genre_qid?: string | null;
-					origin?: string[];
+					synced_at?: string | null;
 					tags?: string[];
-					updated_at?: string;
 				};
 				Relationships: [];
 			};
-			dish_category_ancestors: {
+			dish_category_features: {
 				Row: {
-					ancestor_qid: string;
-					depth: number;
 					dish_category_id: string;
+					feature_key: string;
+					feature_type: string;
+					score: number;
+					synced_at: string;
 				};
 				Insert: {
-					ancestor_qid: string;
-					depth: number;
 					dish_category_id: string;
+					feature_key: string;
+					feature_type: string;
+					score: number;
+					synced_at: string;
 				};
 				Update: {
-					ancestor_qid?: string;
-					depth?: number;
 					dish_category_id?: string;
+					feature_key?: string;
+					feature_type?: string;
+					score?: number;
+					synced_at?: string;
 				};
 				Relationships: [
 					{
-						foreignKeyName: "dish_category_ancestors_dish_category_id_fkey";
+						foreignKeyName: "dish_category_features_dish_category_id_fkey";
+						columns: ["dish_category_id"];
+						isOneToOne: false;
+						referencedRelation: "dish_categories";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			dish_category_localized_text: {
+				Row: {
+					dish_category_id: string;
+					locale: string;
+					synced_at: string;
+					tagline: string;
+					topic_title: string;
+				};
+				Insert: {
+					dish_category_id: string;
+					locale: string;
+					synced_at: string;
+					tagline: string;
+					topic_title: string;
+				};
+				Update: {
+					dish_category_id?: string;
+					locale?: string;
+					synced_at?: string;
+					tagline?: string;
+					topic_title?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "dish_category_localized_text_dish_category_id_fkey";
 						columns: ["dish_category_id"];
 						isOneToOne: false;
 						referencedRelation: "dish_categories";
@@ -586,24 +615,6 @@ export type Database = {
 					path_name?: string | null;
 					payload?: string | null;
 					user_id?: string | null;
-				};
-				Relationships: [];
-			};
-			macro_genre_whitelist: {
-				Row: {
-					label_en: string | null;
-					label_ja: string | null;
-					macro_genre_qid: string;
-				};
-				Insert: {
-					label_en?: string | null;
-					label_ja?: string | null;
-					macro_genre_qid: string;
-				};
-				Update: {
-					label_en?: string | null;
-					label_ja?: string | null;
-					macro_genre_qid?: string;
 				};
 				Relationships: [];
 			};
