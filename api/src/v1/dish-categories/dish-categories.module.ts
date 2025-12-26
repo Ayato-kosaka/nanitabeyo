@@ -14,16 +14,18 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module';
 import { ClaudeModule } from '../../core/claude/claude.module';
+import { RemoteConfigModule } from 'src/core/remote-config/remote-config.module';
 
 @Module({
   imports: [
     PrismaModule,
     LoggerModule,
     ClaudeModule,
+    RemoteConfigModule,
     forwardRef(() => AuthModule),
   ],
   controllers: [DishCategoriesController],
   providers: [DishCategoriesService, DishCategoriesRepository],
   exports: [DishCategoriesService, DishCategoriesRepository],
 })
-export class DishCategoriesModule {}
+export class DishCategoriesModule { }
