@@ -15,6 +15,7 @@ import { ClaudeService } from '../../core/claude/claude.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
+import { DishCategoryCandidateNormalizedInput } from './dish-categories.interface';
 
 // #533 【定数】候補取得上限数
 const CANDIDATE_LIMIT = 200;
@@ -128,19 +129,8 @@ export class DishCategoriesService {
   /**
    * #533 【仕様】入力正規化ロジック
    */
-  private normalizeInput(dto: QueryDishCategoryRecommendationsDto): {
-    // addressをカンマ区切りで分割したトークン群
-    addressTokens: string[];
-    // addressTokens の接頭辞に "region:" を付与したもの
-    regionTokens: string[];
-    // regionFallbackKeys生成（狭い地域→広い地域→global）
-    regionFallbackKeys: string[];
-    timeSlotKey: string | null;
-    sceneKey: string | null;
-    satietyKey: string | null;
-    tasteKey: string | null;
-    langCandidates: string[];
-  } {
+  private normalizeInput(dto: QueryDishCategoryRecommendationsDto):
+    DishCategoryCandidateNormalizedInput {
     // #533 【仕様】addressのパース
     const addressTokens = dto.address
       .split(',')
@@ -157,7 +147,7 @@ export class DishCategoriesService {
     // #533 【仕様】regionFallbackKeys生成（狭い地域→広い地域→global）
     const regionFallbackKeys = [...regionTokens]
       .reverse()
-      .concat('region:scope:global');
+      .concat('global');
 
     // #533 【仕様】空文字をnullに正規化
     const timeSlotKey = dto.timeSlot || null;

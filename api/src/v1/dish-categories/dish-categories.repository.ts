@@ -9,6 +9,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
 import { Prisma } from '../../../../shared/prisma';
+import { DishCategoryCandidateNormalizedInput } from './dish-categories.interface';
 
 @Injectable()
 export class DishCategoriesRepository {
@@ -128,13 +129,13 @@ export class DishCategoriesRepository {
    */
   async findCategoryCandidatesWithScores(
     params: {
-      addressTokens: string[];
-      regionTokens: string[];
-      regionFallbackKeys: string[];
-      timeSlotKey: string | null;
-      sceneKey: string | null;
-      satietyKey: string | null;
-      tasteKey: string | null;
+      addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
+      regionTokens: DishCategoryCandidateNormalizedInput['regionTokens'];
+      regionFallbackKeys: DishCategoryCandidateNormalizedInput['regionFallbackKeys'];
+      timeSlotKey: DishCategoryCandidateNormalizedInput['timeSlotKey'];
+      sceneKey: DishCategoryCandidateNormalizedInput['sceneKey'];
+      satietyKey: DishCategoryCandidateNormalizedInput['satietyKey'];
+      tasteKey: DishCategoryCandidateNormalizedInput['tasteKey'];
       candidateLimit: number;
     },
   ): Promise<
@@ -364,7 +365,7 @@ export class DishCategoriesRepository {
       market_salience_score,
       dine_out_orderability_score,
       final_score
-      FROM final_scored, params p
+      FROM final_scored
       -- #533 【設計】weighted random でソート（final_scoreが大きいほど前に来やすい）
       --   alpha: スコア差の効かせ方（探索温度）
       --     - alpha > 1 : 高スコアをより優遇（安定・探索弱め）
@@ -373,7 +374,9 @@ export class DishCategoriesRepository {
       --   eps: weight の下限値
       --     final_score が 0 に近い候補が過度に前に出ないようにする安全弁
       ORDER BY -LN(GREATEST(RANDOM(), 1e-12)) / POWER(GREATEST(final_score, w_eps), w_alpha) ASC
-      LIMIT p.candidate_limit
+      -- PostgreSQL の LIMIT は 同一クエリレベルの行（FROM 句のテーブル/CTE別名の列）を参照できないため、
+      -- ここでは SELECT で params を参照して制限をかける。
+      LIMIT (SELECT candidate_limit FROM params)
     `;
 
     this.logger.debug(
