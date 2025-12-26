@@ -52,77 +52,56 @@ def sync_dish_category_localized_text(
     dry_run: bool = False
 ) -> SyncStats:
     """
-    dish_category_localized_text を同期
-    
-    Args:
-        loader: BigQueryLoader インスタンス
-        pg_conn: PostgreSQL 接続
-        dry_run: ドライラン
-    
-    Returns:
-        統計情報
+    dish_category_localized_text を同期（全置換：DELETE→INSERT）
+    ※ DELETE と INSERT は同一トランザクションで実行し、途中失敗で空にならないようにする
     """
     stats = SyncStats()
     synced_at = datetime.now(timezone.utc).isoformat()
-    
+
     # 1. BigQuery からデータ取得
     logger.info("Fetching dish_category_localized_text from BigQuery...")
-    
+
     query = f"""
         SELECT
             item_qid as dish_category_id,
             locale,
             topic_title,
-            tagline,
-            source
+            tagline
         FROM `{loader.dataset_ref}.dish_category_localized_text_catalog`
         WHERE item_qid IS NOT NULL
     """
-    
+
     job = loader.client.query(query)
     rows = list(job.result())
-    
+
     texts = [
         {
             "dish_category_id": row.dish_category_id,
             "locale": row.locale,
             "topic_title": row.topic_title,
             "tagline": row.tagline,
-            "source": row.source,
             "synced_at": synced_at
         }
         for row in rows
     ]
-    
+
     logger.info(f"Fetched {len(texts)} localized texts from BigQuery")
-    
+
     if dry_run:
         logger.info(f"[DRY-RUN] Would sync {len(texts)} localized texts")
         stats.inserted = len(texts)
         return stats
-    
+
     if not texts:
         logger.warning("No localized texts to sync")
         return stats
-    
-    # 2. 既存データをクリア（全置き換え戦略）
-    logger.info("Clearing existing localized texts...")
-    pg_conn.cursor.execute("SELECT COUNT(*) FROM dish_category_localized_text")
-    existing_count = pg_conn.cursor.fetchone()[0]
-    
-    pg_conn.cursor.execute("DELETE FROM dish_category_localized_text")
-    pg_conn.conn.commit()
-    stats.deleted = existing_count
-    
-    # 3. UPSERT
-    logger.info(f"Inserting {len(texts)} localized texts...")
-    
+
     sql = """
         INSERT INTO dish_category_localized_text (
             dish_category_id, locale, topic_title, tagline, synced_at
         ) VALUES %s
     """
-    
+
     values = [
         (
             text["dish_category_id"],
@@ -133,13 +112,25 @@ def sync_dish_category_localized_text(
         )
         for text in texts
     ]
-    
-    execute_values(pg_conn.cursor, sql, values)
-    pg_conn.conn.commit()
-    
+
+    # 2-3. 全置換を 1 トランザクションで実行（途中失敗で空にならない）
+    logger.info("Clearing existing localized texts and inserting new ones (single transaction)...")
+    with pg_conn.conn:
+        with pg_conn.conn.cursor() as cur:
+            # 任意：同期中の中途半端を避けたい/二重起動が怖い場合はロック
+            # cur.execute("LOCK TABLE dish_category_localized_text IN EXCLUSIVE MODE")
+
+            cur.execute("SELECT COUNT(*) FROM dish_category_localized_text")
+            existing_count = cur.fetchone()[0]
+
+            cur.execute("DELETE FROM dish_category_localized_text")
+            stats.deleted = existing_count
+
+            logger.info(f"Inserting {len(texts)} localized texts...")
+            execute_values(cur, sql, values)
+
     stats.inserted = len(texts)
     logger.info(f"✅ Inserted {len(texts)} localized texts")
-    
     return stats
 
 

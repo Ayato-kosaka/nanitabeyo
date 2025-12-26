@@ -52,90 +52,94 @@ def sync_dish_category_variants(
     dry_run: bool = False
 ) -> SyncStats:
     """
-    dish_category_variants を同期
-    
-    Args:
-        loader: BigQueryLoader インスタンス
-        pg_conn: PostgreSQL 接続
-        dry_run: ドライラン
-    
-    Returns:
-        統計情報
+    dish_category_variants を同期（UPSERT）
+    - 旧BQ由来(source in BQ_SOURCES)のみ削除
+    - アプリ由来(sourceは削除・上書きしない)
+    - (dish_category_id, surface_form) で UPSERT（要: Postgres側にUNIQUE）
+    - surface_form 単体 UNIQUE に引っかかるケースは例外で落ちる（要件どおり）
     """
+    import re
+    from collections import defaultdict
     stats = SyncStats()
-    
-    # 1. BigQuery からデータ取得
-    logger.info("Fetching dish_category_variants from BigQuery...")
-    
+
+    BQ_SOURCES = ["wikidata-label", "kata2hira", "romaji", "canonical-label-en"]
+
+    # 1) BQ取得
     query = f"""
-        SELECT
-            dish_category_id,
-            surface_form,
-            source,
-            created_at
+        SELECT dish_category_id, surface_form, source, created_at
         FROM `{loader.dataset_ref}.dish_category_variant_catalog`
         WHERE dish_category_id IS NOT NULL
+          AND surface_form IS NOT NULL
+          AND surface_form != ''
     """
-    
-    job = loader.client.query(query)
-    rows = list(job.result())
-    
-    variants = [
-        {
-            "dish_category_id": row.dish_category_id,
-            "surface_form": row.surface_form,
-            "source": row.source or "bq_generated",  # デフォルトソース
-            "created_at": row.created_at
-        }
-        for row in rows
-    ]
-    
+    rows = list(loader.client.query(query).result())
+    variants = [{
+        "dish_category_id": r.dish_category_id,
+        "surface_form": r.surface_form,
+        "source": r.source or "bq_generated",
+        "created_at": r.created_at,
+    } for r in rows]
+
     logger.info(f"Fetched {len(variants)} variants from BigQuery")
-    
-    if dry_run:
-        logger.info(f"[DRY-RUN] Would sync {len(variants)} variants")
-        stats.inserted = len(variants)
-        return stats
-    
     if not variants:
-        logger.warning("No variants to sync")
         return stats
-    
-    # 2. 既存データをクリア（全置き換え戦略）
-    logger.info("Clearing existing variants...")
-    pg_conn.cursor.execute("SELECT COUNT(*) FROM dish_category_variants")
-    existing_count = pg_conn.cursor.fetchone()[0]
-    
-    pg_conn.cursor.execute("DELETE FROM dish_category_variants")
-    pg_conn.conn.commit()
-    stats.deleted = existing_count
-    
-    # 3. UPSERT
-    logger.info(f"Inserting {len(variants)} variants...")
-    
-    sql = """
-        INSERT INTO dish_category_variants (
-            dish_category_id, surface_form, source, created_at
-        ) VALUES %s
-    """
-    
-    values = [
-        (
-            var["dish_category_id"],
-            var["surface_form"],
-            var["source"],
-            var["created_at"]
+
+    values = [(v["dish_category_id"], v["surface_form"], v["source"], v["created_at"]) for v in variants]
+
+    if dry_run:
+        logger.info(f"[DRY-RUN] Would delete old BQ sources and sync {len(values)} rows")
+        stats.inserted = len(values)
+        return stats
+
+    try:
+        pg_conn.cursor.execute("BEGIN")
+
+        # 2) 旧BQ由来だけ削除
+        pg_conn.cursor.execute(
+            "DELETE FROM dish_category_variants WHERE source = ANY(%s)",
+            (BQ_SOURCES,)
         )
-        for var in variants
-    ]
-    
-    execute_values(pg_conn.cursor, sql, values)
-    pg_conn.conn.commit()
-    
-    stats.inserted = len(variants)
-    logger.info(f"✅ Inserted {len(variants)} variants")
-    
-    return stats
+        stats.deleted = pg_conn.cursor.rowcount
+        logger.info(f"Deleted {stats.deleted} old BQ variants")
+
+        # 3) アプリ由来と衝突する surface_form があるか事前チェック（あれば落とす）
+        #    - BQ側 surface_form を一時的に配列にして問い合わせ（量が多いので本当は一時テーブルがより良いが、まずは素直に）
+        bq_surface_forms = list({v["surface_form"] for v in variants})
+        pg_conn.cursor.execute(
+            """
+            SELECT surface_form, dish_category_id, source
+            FROM dish_category_variants
+            WHERE source <> ALL(%s)
+              AND surface_form = ANY(%s)
+            """,
+            (BQ_SOURCES, bq_surface_forms)
+        )
+        conflicts = pg_conn.cursor.fetchall()
+        if conflicts:
+            # 先頭だけログ
+            for sf, dcid, src in conflicts[:20]:
+                logger.error(f"[CONFLICT] BQ surface_form conflicts with APP row: surface_form='{sf}', dish_category_id={dcid}, source={src}")
+            raise ValueError(f"BQ conflicts with APP-managed variants: {len(conflicts)} surface_forms")
+
+        # 4) ここまで来たら「アプリ由来とは衝突しない」ことが保証されたので、BQ勝ちUPSERTしてOK
+        insert_sql = """
+            INSERT INTO dish_category_variants (
+                dish_category_id, surface_form, source, created_at
+            ) VALUES %s
+            ON CONFLICT (surface_form)
+            DO UPDATE SET
+                dish_category_id = EXCLUDED.dish_category_id,
+                source = EXCLUDED.source,
+                created_at = EXCLUDED.created_at
+        """
+        execute_values(pg_conn.cursor, insert_sql, values)
+        pg_conn.conn.commit()
+        stats.inserted = len(values)
+        return stats
+
+    except Exception:
+        pg_conn.conn.rollback()
+        raise
 
 
 def main():

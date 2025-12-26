@@ -74,7 +74,6 @@ def sync_dish_category_features(
             feature_type,
             feature_key,
             score,
-            source
         FROM `{loader.dataset_ref}.dish_category_features_catalog`
         WHERE item_qid IS NOT NULL
     """
@@ -88,7 +87,6 @@ def sync_dish_category_features(
             "feature_type": row.feature_type,
             "feature_key": row.feature_key,
             "score": row.score,
-            "source": row.source,
             "synced_at": synced_at
         }
         for row in rows
@@ -107,36 +105,41 @@ def sync_dish_category_features(
     
     # 2. 既存データをクリア（全置き換え戦略）
     logger.info("Clearing existing features...")
-    pg_conn.cursor.execute("SELECT COUNT(*) FROM dish_category_features")
-    existing_count = pg_conn.cursor.fetchone()[0]
-    
-    pg_conn.cursor.execute("DELETE FROM dish_category_features")
-    pg_conn.conn.commit()
-    stats.deleted = existing_count
-    
-    # 3. UPSERT
-    logger.info(f"Inserting {len(features)} features...")
-    
-    sql = """
-        INSERT INTO dish_category_features (
-            dish_category_id, feature_type, feature_key, score, synced_at
-        ) VALUES %s
-    """
-    
-    values = [
-        (
-            feat["dish_category_id"],
-            feat["feature_type"],
-            feat["feature_key"],
-            feat["score"],
-            feat["synced_at"]
-        )
-        for feat in features
-    ]
-    
-    execute_values(pg_conn.cursor, sql, values)
-    pg_conn.conn.commit()
-    
+
+    with pg_conn.conn:  # ← このブロックが1トランザクション
+        with pg_conn.conn.cursor() as cur:
+            # 任意：同期中の整合性を優先したいならロック（並列実行や読取りが気になる場合）
+            # cur.execute("LOCK TABLE dish_category_features IN EXCLUSIVE MODE")
+
+            cur.execute("SELECT COUNT(*) FROM dish_category_features")
+            existing_count = cur.fetchone()[0]
+
+            cur.execute("DELETE FROM dish_category_features")
+            stats.deleted = existing_count
+
+            # 3. INSERT
+            logger.info(f"Inserting {len(features)} features...")
+
+            sql = """
+                INSERT INTO dish_category_features (
+                    dish_category_id, feature_type, feature_key, score, synced_at
+                ) VALUES %s
+            """
+
+            values = [
+                (
+                    feat["dish_category_id"],
+                    feat["feature_type"],
+                    feat["feature_key"],
+                    feat["score"],
+                    feat["synced_at"]
+                )
+                for feat in features
+            ]
+
+            execute_values(cur, sql, values)
+
+    # ここに来た時点で成功なら commit 済み（例外なら rollback 済み）
     stats.inserted = len(features)
     logger.info(f"✅ Inserted {len(features)} features")
     
