@@ -20,7 +20,7 @@ export class DishCategoriesRepository {
     private readonly prisma: PrismaService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   async findDishCategoryById(id: string) {
     this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
