@@ -107,23 +107,4 @@ export class ToolsDishCategoriesRepository {
       include: { dishes: true },
     });
   }
-
-  /**
-   * #494 【設計】dish_categoryのimage_urlとmetadataを更新
-   * トランザクション内で実行される想定
-   */
-  async updateDishCategoryImage(
-    tx: Prisma.TransactionClient,
-    categoryId: string,
-    newImageUrl: string,
-  ) {
-    return tx.dish_categories.update({
-      where: { id: categoryId },
-      data: {
-        image_url: newImageUrl,
-        updated_at: new Date(),
-        lock_no: { increment: 1 },
-      },
-    });
-  }
 }

@@ -1,4 +1,18 @@
 import { IsOptional, IsString, Matches } from "class-validator";
+import { Transform } from "class-transformer";
+
+// 共通の正規化: undefined / null / 空文字 / "undefined" / "null" を undefined にする
+const normalizeOptionalString = () =>
+	Transform(({ value }) => {
+		if (value === undefined || value === null) return undefined;
+		if (typeof value !== "string") return value; // 念のため
+
+		const v = value.trim();
+		if (v === "" || v.toLowerCase() === "undefined" || v.toLowerCase() === "null") {
+			return undefined;
+		}
+		return v;
+	});
 
 /**
  * Query parameters for GET /v1/dish-categories/recommendations
@@ -15,21 +29,25 @@ export class QueryDishCategoryRecommendationsDto {
 
 	/** 利用時間帯 (timeSlot) 例: 'lunch', 'dinner', 'late_night' など */
 	@IsOptional()
+	@normalizeOptionalString()
 	@IsString()
 	timeSlot?: string;
 
 	/** シーン (scene) 例: 'date', 'family', 'solo' など */
 	@IsOptional()
+	@normalizeOptionalString()
 	@IsString()
 	scene?: string;
 
-	/** ユーザーのお腹の減り具合 (mood) 例: 'hearty', 'light' など */
+	/** ユーザーのお腹の減り具合 (mood) 例: 'heavy', 'light' など */
 	@IsOptional()
+	@normalizeOptionalString()
 	@IsString()
 	mood?: string;
 
 	/** 味の好み (taste) 例: 'spicy', 'savory', 'sweet' など */
 	@IsOptional()
+	@normalizeOptionalString()
 	@IsString()
 	taste?: string;
 

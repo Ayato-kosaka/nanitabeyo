@@ -98,7 +98,10 @@ export const useTopicSearch = () => {
 					);
 					dishItems = dishItems.concat(
 						importResponse.filter(
-							(imported) => !dishItems.find((existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id),
+							(imported) =>
+								!dishItems.find(
+									(existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id,
+								),
 						),
 					);
 				}
@@ -151,6 +154,7 @@ export const useTopicSearch = () => {
 						timeSlot: params.timeSlot,
 						scene: params.scene,
 						mood: params.mood,
+						taste: params.taste,
 						languageTag: locale,
 						localLanguageCode: params.localLanguageCode,
 					},

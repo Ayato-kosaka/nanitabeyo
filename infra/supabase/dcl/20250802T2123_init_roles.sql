@@ -18,6 +18,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO prisma_prod_rw;
 
+-- 本番は public をデフォルトスキーマにする(extensions も見れる)
+ALTER ROLE prisma_prod_rw SET search_path = public, extensions;
+
 -- ==============================================
 -- USER: prisma_dev
 -- ==============================================
@@ -66,7 +69,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA test
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA test
   GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO prisma_dev;
 
-
+-- デフォルトスキーマを dev にする(extensions も見れる)
+ALTER ROLE prisma_dev SET search_path = dev, extensions;
 
 
 -- ==============================================
@@ -117,7 +121,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA test
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA test
   GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO prisma_dev_cr;
 
-
+-- デフォルトスキーマを dev にする(extensions も見れる)
+ALTER ROLE prisma_dev_cr SET search_path = dev, extensions;
 
 
 

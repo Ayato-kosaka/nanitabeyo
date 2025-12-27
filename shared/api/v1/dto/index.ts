@@ -48,5 +48,3 @@ export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
 export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";
-
-export { UpdateDishCategoryImagesDto, UpdateDishCategoryImageItem } from "./tools/update-dish-category-images.dto";

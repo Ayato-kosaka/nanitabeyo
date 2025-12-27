@@ -32,10 +32,17 @@ export type config = $Result.DefaultSelection<Prisma.$configPayload>
  */
 export type dish_categories = $Result.DefaultSelection<Prisma.$dish_categoriesPayload>
 /**
- * Model dish_category_ancestors
+ * Model dish_category_features
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
-export type dish_category_ancestors = $Result.DefaultSelection<Prisma.$dish_category_ancestorsPayload>
+export type dish_category_features = $Result.DefaultSelection<Prisma.$dish_category_featuresPayload>
+/**
+ * Model dish_category_localized_text
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_category_localized_text = $Result.DefaultSelection<Prisma.$dish_category_localized_textPayload>
 /**
  * Model dish_category_variants
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -101,11 +108,6 @@ export type external_api_logs = $Result.DefaultSelection<Prisma.$external_api_lo
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
 export type frontend_event_logs = $Result.DefaultSelection<Prisma.$frontend_event_logsPayload>
-/**
- * Model macro_genre_whitelist
- * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
- */
-export type macro_genre_whitelist = $Result.DefaultSelection<Prisma.$macro_genre_whitelistPayload>
 /**
  * Model notification_recipients
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -426,14 +428,24 @@ export class PrismaClient<
   get dish_categories(): Prisma.dish_categoriesDelegate<ExtArgs, ClientOptions>;
 
   /**
-   * `prisma.dish_category_ancestors`: Exposes CRUD operations for the **dish_category_ancestors** model.
+   * `prisma.dish_category_features`: Exposes CRUD operations for the **dish_category_features** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more Dish_category_ancestors
-    * const dish_category_ancestors = await prisma.dish_category_ancestors.findMany()
+    * // Fetch zero or more Dish_category_features
+    * const dish_category_features = await prisma.dish_category_features.findMany()
     * ```
     */
-  get dish_category_ancestors(): Prisma.dish_category_ancestorsDelegate<ExtArgs, ClientOptions>;
+  get dish_category_features(): Prisma.dish_category_featuresDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_category_localized_text`: Exposes CRUD operations for the **dish_category_localized_text** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_category_localized_texts
+    * const dish_category_localized_texts = await prisma.dish_category_localized_text.findMany()
+    * ```
+    */
+  get dish_category_localized_text(): Prisma.dish_category_localized_textDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.dish_category_variants`: Exposes CRUD operations for the **dish_category_variants** model.
@@ -534,16 +546,6 @@ export class PrismaClient<
     * ```
     */
   get frontend_event_logs(): Prisma.frontend_event_logsDelegate<ExtArgs, ClientOptions>;
-
-  /**
-   * `prisma.macro_genre_whitelist`: Exposes CRUD operations for the **macro_genre_whitelist** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more Macro_genre_whitelists
-    * const macro_genre_whitelists = await prisma.macro_genre_whitelist.findMany()
-    * ```
-    */
-  get macro_genre_whitelist(): Prisma.macro_genre_whitelistDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.notification_recipients`: Exposes CRUD operations for the **notification_recipients** model.
@@ -754,8 +756,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 7.1.0
-   * Query Engine version: ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba
+   * Prisma Client JS version: 7.2.0
+   * Query Engine version: 0c8ef2ce45c83248ab3df073180d5eda9e8be7a3
    */
   export type PrismaVersion = {
     client: string
@@ -1141,7 +1143,8 @@ export namespace Prisma {
     backend_event_logs: 'backend_event_logs',
     config: 'config',
     dish_categories: 'dish_categories',
-    dish_category_ancestors: 'dish_category_ancestors',
+    dish_category_features: 'dish_category_features',
+    dish_category_localized_text: 'dish_category_localized_text',
     dish_category_variants: 'dish_category_variants',
     dish_media: 'dish_media',
     dish_media_analysis_results: 'dish_media_analysis_results',
@@ -1152,7 +1155,6 @@ export namespace Prisma {
     dishes: 'dishes',
     external_api_logs: 'external_api_logs',
     frontend_event_logs: 'frontend_event_logs',
-    macro_genre_whitelist: 'macro_genre_whitelist',
     notification_recipients: 'notification_recipients',
     notifications: 'notifications',
     payouts: 'payouts',
@@ -1184,7 +1186,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_ancestors" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "macro_genre_whitelist" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
+      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_features" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1410,77 +1412,151 @@ export namespace Prisma {
           }
         }
       }
-      dish_category_ancestors: {
-        payload: Prisma.$dish_category_ancestorsPayload<ExtArgs>
-        fields: Prisma.dish_category_ancestorsFieldRefs
+      dish_category_features: {
+        payload: Prisma.$dish_category_featuresPayload<ExtArgs>
+        fields: Prisma.dish_category_featuresFieldRefs
         operations: {
           findUnique: {
-            args: Prisma.dish_category_ancestorsFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload> | null
+            args: Prisma.dish_category_featuresFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload> | null
           }
           findUniqueOrThrow: {
-            args: Prisma.dish_category_ancestorsFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>
+            args: Prisma.dish_category_featuresFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>
           }
           findFirst: {
-            args: Prisma.dish_category_ancestorsFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload> | null
+            args: Prisma.dish_category_featuresFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload> | null
           }
           findFirstOrThrow: {
-            args: Prisma.dish_category_ancestorsFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>
+            args: Prisma.dish_category_featuresFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>
           }
           findMany: {
-            args: Prisma.dish_category_ancestorsFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>[]
+            args: Prisma.dish_category_featuresFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>[]
           }
           create: {
-            args: Prisma.dish_category_ancestorsCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>
+            args: Prisma.dish_category_featuresCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>
           }
           createMany: {
-            args: Prisma.dish_category_ancestorsCreateManyArgs<ExtArgs>
+            args: Prisma.dish_category_featuresCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
           createManyAndReturn: {
-            args: Prisma.dish_category_ancestorsCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>[]
+            args: Prisma.dish_category_featuresCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>[]
           }
           delete: {
-            args: Prisma.dish_category_ancestorsDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>
+            args: Prisma.dish_category_featuresDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>
           }
           update: {
-            args: Prisma.dish_category_ancestorsUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>
+            args: Prisma.dish_category_featuresUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>
           }
           deleteMany: {
-            args: Prisma.dish_category_ancestorsDeleteManyArgs<ExtArgs>
+            args: Prisma.dish_category_featuresDeleteManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateMany: {
-            args: Prisma.dish_category_ancestorsUpdateManyArgs<ExtArgs>
+            args: Prisma.dish_category_featuresUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateManyAndReturn: {
-            args: Prisma.dish_category_ancestorsUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>[]
+            args: Prisma.dish_category_featuresUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>[]
           }
           upsert: {
-            args: Prisma.dish_category_ancestorsUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$dish_category_ancestorsPayload>
+            args: Prisma.dish_category_featuresUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_featuresPayload>
           }
           aggregate: {
-            args: Prisma.Dish_category_ancestorsAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateDish_category_ancestors>
+            args: Prisma.Dish_category_featuresAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_category_features>
           }
           groupBy: {
-            args: Prisma.dish_category_ancestorsGroupByArgs<ExtArgs>
-            result: $Utils.Optional<Dish_category_ancestorsGroupByOutputType>[]
+            args: Prisma.dish_category_featuresGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_featuresGroupByOutputType>[]
           }
           count: {
-            args: Prisma.dish_category_ancestorsCountArgs<ExtArgs>
-            result: $Utils.Optional<Dish_category_ancestorsCountAggregateOutputType> | number
+            args: Prisma.dish_category_featuresCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_featuresCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_category_localized_text: {
+        payload: Prisma.$dish_category_localized_textPayload<ExtArgs>
+        fields: Prisma.dish_category_localized_textFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_category_localized_textFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_category_localized_textFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_category_localized_textFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_category_localized_textFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>
+          }
+          findMany: {
+            args: Prisma.dish_category_localized_textFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>[]
+          }
+          create: {
+            args: Prisma.dish_category_localized_textCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>
+          }
+          createMany: {
+            args: Prisma.dish_category_localized_textCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_category_localized_textCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_category_localized_textDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>
+          }
+          update: {
+            args: Prisma.dish_category_localized_textUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_category_localized_textDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_category_localized_textUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_category_localized_textUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_category_localized_textUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_localized_textPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_category_localized_textAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_category_localized_text>
+          }
+          groupBy: {
+            args: Prisma.dish_category_localized_textGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_localized_textGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_category_localized_textCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_localized_textCountAggregateOutputType> | number
           }
         }
       }
@@ -2221,80 +2297,6 @@ export namespace Prisma {
           count: {
             args: Prisma.frontend_event_logsCountArgs<ExtArgs>
             result: $Utils.Optional<Frontend_event_logsCountAggregateOutputType> | number
-          }
-        }
-      }
-      macro_genre_whitelist: {
-        payload: Prisma.$macro_genre_whitelistPayload<ExtArgs>
-        fields: Prisma.macro_genre_whitelistFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.macro_genre_whitelistFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.macro_genre_whitelistFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>
-          }
-          findFirst: {
-            args: Prisma.macro_genre_whitelistFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.macro_genre_whitelistFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>
-          }
-          findMany: {
-            args: Prisma.macro_genre_whitelistFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>[]
-          }
-          create: {
-            args: Prisma.macro_genre_whitelistCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>
-          }
-          createMany: {
-            args: Prisma.macro_genre_whitelistCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.macro_genre_whitelistCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>[]
-          }
-          delete: {
-            args: Prisma.macro_genre_whitelistDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>
-          }
-          update: {
-            args: Prisma.macro_genre_whitelistUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>
-          }
-          deleteMany: {
-            args: Prisma.macro_genre_whitelistDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.macro_genre_whitelistUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.macro_genre_whitelistUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>[]
-          }
-          upsert: {
-            args: Prisma.macro_genre_whitelistUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$macro_genre_whitelistPayload>
-          }
-          aggregate: {
-            args: Prisma.Macro_genre_whitelistAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateMacro_genre_whitelist>
-          }
-          groupBy: {
-            args: Prisma.macro_genre_whitelistGroupByArgs<ExtArgs>
-            result: $Utils.Optional<Macro_genre_whitelistGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.macro_genre_whitelistCountArgs<ExtArgs>
-            result: $Utils.Optional<Macro_genre_whitelistCountAggregateOutputType> | number
           }
         }
       }
@@ -3593,7 +3595,8 @@ export namespace Prisma {
     backend_event_logs?: backend_event_logsOmit
     config?: configOmit
     dish_categories?: dish_categoriesOmit
-    dish_category_ancestors?: dish_category_ancestorsOmit
+    dish_category_features?: dish_category_featuresOmit
+    dish_category_localized_text?: dish_category_localized_textOmit
     dish_category_variants?: dish_category_variantsOmit
     dish_media?: dish_mediaOmit
     dish_media_analysis_results?: dish_media_analysis_resultsOmit
@@ -3604,7 +3607,6 @@ export namespace Prisma {
     dishes?: dishesOmit
     external_api_logs?: external_api_logsOmit
     frontend_event_logs?: frontend_event_logsOmit
-    macro_genre_whitelist?: macro_genre_whitelistOmit
     notification_recipients?: notification_recipientsOmit
     notifications?: notificationsOmit
     payouts?: payoutsOmit
@@ -3701,13 +3703,15 @@ export namespace Prisma {
    */
 
   export type Dish_categoriesCountOutputType = {
-    dish_category_ancestors: number
+    dish_category_features: number
+    dish_category_localized_text: number
     dish_category_variants: number
     dishes: number
   }
 
   export type Dish_categoriesCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_category_ancestors?: boolean | Dish_categoriesCountOutputTypeCountDish_category_ancestorsArgs
+    dish_category_features?: boolean | Dish_categoriesCountOutputTypeCountDish_category_featuresArgs
+    dish_category_localized_text?: boolean | Dish_categoriesCountOutputTypeCountDish_category_localized_textArgs
     dish_category_variants?: boolean | Dish_categoriesCountOutputTypeCountDish_category_variantsArgs
     dishes?: boolean | Dish_categoriesCountOutputTypeCountDishesArgs
   }
@@ -3726,8 +3730,15 @@ export namespace Prisma {
   /**
    * Dish_categoriesCountOutputType without action
    */
-  export type Dish_categoriesCountOutputTypeCountDish_category_ancestorsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: dish_category_ancestorsWhereInput
+  export type Dish_categoriesCountOutputTypeCountDish_category_featuresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_featuresWhereInput
+  }
+
+  /**
+   * Dish_categoriesCountOutputType without action
+   */
+  export type Dish_categoriesCountOutputTypeCountDish_category_localized_textArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_localized_textWhereInput
   }
 
   /**
@@ -6158,18 +6169,8 @@ export namespace Prisma {
 
   export type AggregateDish_categories = {
     _count: Dish_categoriesCountAggregateOutputType | null
-    _avg: Dish_categoriesAvgAggregateOutputType | null
-    _sum: Dish_categoriesSumAggregateOutputType | null
     _min: Dish_categoriesMinAggregateOutputType | null
     _max: Dish_categoriesMaxAggregateOutputType | null
-  }
-
-  export type Dish_categoriesAvgAggregateOutputType = {
-    lock_no: number | null
-  }
-
-  export type Dish_categoriesSumAggregateOutputType = {
-    lock_no: number | null
   }
 
   export type Dish_categoriesMinAggregateOutputType = {
@@ -6177,9 +6178,8 @@ export namespace Prisma {
     label_en: string | null
     image_url: string | null
     created_at: Date | null
-    updated_at: Date | null
-    lock_no: number | null
     macro_genre_qid: string | null
+    synced_at: Date | null
   }
 
   export type Dish_categoriesMaxAggregateOutputType = {
@@ -6187,9 +6187,8 @@ export namespace Prisma {
     label_en: string | null
     image_url: string | null
     created_at: Date | null
-    updated_at: Date | null
-    lock_no: number | null
     macro_genre_qid: string | null
+    synced_at: Date | null
   }
 
   export type Dish_categoriesCountAggregateOutputType = {
@@ -6197,33 +6196,21 @@ export namespace Prisma {
     label_en: number
     labels: number
     image_url: number
-    origin: number
-    cuisine: number
     tags: number
     created_at: number
-    updated_at: number
-    lock_no: number
     macro_genre_qid: number
+    synced_at: number
     _all: number
   }
 
-
-  export type Dish_categoriesAvgAggregateInputType = {
-    lock_no?: true
-  }
-
-  export type Dish_categoriesSumAggregateInputType = {
-    lock_no?: true
-  }
 
   export type Dish_categoriesMinAggregateInputType = {
     id?: true
     label_en?: true
     image_url?: true
     created_at?: true
-    updated_at?: true
-    lock_no?: true
     macro_genre_qid?: true
+    synced_at?: true
   }
 
   export type Dish_categoriesMaxAggregateInputType = {
@@ -6231,9 +6218,8 @@ export namespace Prisma {
     label_en?: true
     image_url?: true
     created_at?: true
-    updated_at?: true
-    lock_no?: true
     macro_genre_qid?: true
+    synced_at?: true
   }
 
   export type Dish_categoriesCountAggregateInputType = {
@@ -6241,13 +6227,10 @@ export namespace Prisma {
     label_en?: true
     labels?: true
     image_url?: true
-    origin?: true
-    cuisine?: true
     tags?: true
     created_at?: true
-    updated_at?: true
-    lock_no?: true
     macro_genre_qid?: true
+    synced_at?: true
     _all?: true
   }
 
@@ -6289,18 +6272,6 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Select which fields to average
-    **/
-    _avg?: Dish_categoriesAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: Dish_categoriesSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
      * Select which fields to find the minimum value
     **/
     _min?: Dish_categoriesMinAggregateInputType
@@ -6331,8 +6302,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: Dish_categoriesCountAggregateInputType | true
-    _avg?: Dish_categoriesAvgAggregateInputType
-    _sum?: Dish_categoriesSumAggregateInputType
     _min?: Dish_categoriesMinAggregateInputType
     _max?: Dish_categoriesMaxAggregateInputType
   }
@@ -6342,16 +6311,11 @@ export namespace Prisma {
     label_en: string
     labels: JsonValue
     image_url: string
-    origin: string[]
-    cuisine: string[]
     tags: string[]
     created_at: Date
-    updated_at: Date
-    lock_no: number
     macro_genre_qid: string | null
+    synced_at: Date | null
     _count: Dish_categoriesCountAggregateOutputType | null
-    _avg: Dish_categoriesAvgAggregateOutputType | null
-    _sum: Dish_categoriesSumAggregateOutputType | null
     _min: Dish_categoriesMinAggregateOutputType | null
     _max: Dish_categoriesMaxAggregateOutputType | null
   }
@@ -6375,14 +6339,12 @@ export namespace Prisma {
     label_en?: boolean
     labels?: boolean
     image_url?: boolean
-    origin?: boolean
-    cuisine?: boolean
     tags?: boolean
     created_at?: boolean
-    updated_at?: boolean
-    lock_no?: boolean
     macro_genre_qid?: boolean
-    dish_category_ancestors?: boolean | dish_categories$dish_category_ancestorsArgs<ExtArgs>
+    synced_at?: boolean
+    dish_category_features?: boolean | dish_categories$dish_category_featuresArgs<ExtArgs>
+    dish_category_localized_text?: boolean | dish_categories$dish_category_localized_textArgs<ExtArgs>
     dish_category_variants?: boolean | dish_categories$dish_category_variantsArgs<ExtArgs>
     dishes?: boolean | dish_categories$dishesArgs<ExtArgs>
     _count?: boolean | Dish_categoriesCountOutputTypeDefaultArgs<ExtArgs>
@@ -6393,13 +6355,10 @@ export namespace Prisma {
     label_en?: boolean
     labels?: boolean
     image_url?: boolean
-    origin?: boolean
-    cuisine?: boolean
     tags?: boolean
     created_at?: boolean
-    updated_at?: boolean
-    lock_no?: boolean
     macro_genre_qid?: boolean
+    synced_at?: boolean
   }, ExtArgs["result"]["dish_categories"]>
 
   export type dish_categoriesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -6407,13 +6366,10 @@ export namespace Prisma {
     label_en?: boolean
     labels?: boolean
     image_url?: boolean
-    origin?: boolean
-    cuisine?: boolean
     tags?: boolean
     created_at?: boolean
-    updated_at?: boolean
-    lock_no?: boolean
     macro_genre_qid?: boolean
+    synced_at?: boolean
   }, ExtArgs["result"]["dish_categories"]>
 
   export type dish_categoriesSelectScalar = {
@@ -6421,18 +6377,16 @@ export namespace Prisma {
     label_en?: boolean
     labels?: boolean
     image_url?: boolean
-    origin?: boolean
-    cuisine?: boolean
     tags?: boolean
     created_at?: boolean
-    updated_at?: boolean
-    lock_no?: boolean
     macro_genre_qid?: boolean
+    synced_at?: boolean
   }
 
-  export type dish_categoriesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "label_en" | "labels" | "image_url" | "origin" | "cuisine" | "tags" | "created_at" | "updated_at" | "lock_no" | "macro_genre_qid", ExtArgs["result"]["dish_categories"]>
+  export type dish_categoriesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "label_en" | "labels" | "image_url" | "tags" | "created_at" | "macro_genre_qid" | "synced_at", ExtArgs["result"]["dish_categories"]>
   export type dish_categoriesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    dish_category_ancestors?: boolean | dish_categories$dish_category_ancestorsArgs<ExtArgs>
+    dish_category_features?: boolean | dish_categories$dish_category_featuresArgs<ExtArgs>
+    dish_category_localized_text?: boolean | dish_categories$dish_category_localized_textArgs<ExtArgs>
     dish_category_variants?: boolean | dish_categories$dish_category_variantsArgs<ExtArgs>
     dishes?: boolean | dish_categories$dishesArgs<ExtArgs>
     _count?: boolean | Dish_categoriesCountOutputTypeDefaultArgs<ExtArgs>
@@ -6443,7 +6397,8 @@ export namespace Prisma {
   export type $dish_categoriesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "dish_categories"
     objects: {
-      dish_category_ancestors: Prisma.$dish_category_ancestorsPayload<ExtArgs>[]
+      dish_category_features: Prisma.$dish_category_featuresPayload<ExtArgs>[]
+      dish_category_localized_text: Prisma.$dish_category_localized_textPayload<ExtArgs>[]
       dish_category_variants: Prisma.$dish_category_variantsPayload<ExtArgs>[]
       dishes: Prisma.$dishesPayload<ExtArgs>[]
     }
@@ -6452,13 +6407,10 @@ export namespace Prisma {
       label_en: string
       labels: Prisma.JsonValue
       image_url: string
-      origin: string[]
-      cuisine: string[]
       tags: string[]
       created_at: Date
-      updated_at: Date
-      lock_no: number
       macro_genre_qid: string | null
+      synced_at: Date | null
     }, ExtArgs["result"]["dish_categories"]>
     composites: {}
   }
@@ -6853,7 +6805,8 @@ export namespace Prisma {
    */
   export interface Prisma__dish_categoriesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    dish_category_ancestors<T extends dish_categories$dish_category_ancestorsArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_ancestorsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_category_features<T extends dish_categories$dish_category_featuresArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_featuresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_category_localized_text<T extends dish_categories$dish_category_localized_textArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_localized_textArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_category_variants<T extends dish_categories$dish_category_variantsArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_variantsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_variantsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dishes<T extends dish_categories$dishesArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dishesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -6889,13 +6842,10 @@ export namespace Prisma {
     readonly label_en: FieldRef<"dish_categories", 'String'>
     readonly labels: FieldRef<"dish_categories", 'Json'>
     readonly image_url: FieldRef<"dish_categories", 'String'>
-    readonly origin: FieldRef<"dish_categories", 'String[]'>
-    readonly cuisine: FieldRef<"dish_categories", 'String[]'>
     readonly tags: FieldRef<"dish_categories", 'String[]'>
     readonly created_at: FieldRef<"dish_categories", 'DateTime'>
-    readonly updated_at: FieldRef<"dish_categories", 'DateTime'>
-    readonly lock_no: FieldRef<"dish_categories", 'Int'>
     readonly macro_genre_qid: FieldRef<"dish_categories", 'String'>
+    readonly synced_at: FieldRef<"dish_categories", 'DateTime'>
   }
     
 
@@ -7284,27 +7234,51 @@ export namespace Prisma {
   }
 
   /**
-   * dish_categories.dish_category_ancestors
+   * dish_categories.dish_category_features
    */
-  export type dish_categories$dish_category_ancestorsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_categories$dish_category_featuresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
-    where?: dish_category_ancestorsWhereInput
-    orderBy?: dish_category_ancestorsOrderByWithRelationInput | dish_category_ancestorsOrderByWithRelationInput[]
-    cursor?: dish_category_ancestorsWhereUniqueInput
+    include?: dish_category_featuresInclude<ExtArgs> | null
+    where?: dish_category_featuresWhereInput
+    orderBy?: dish_category_featuresOrderByWithRelationInput | dish_category_featuresOrderByWithRelationInput[]
+    cursor?: dish_category_featuresWhereUniqueInput
     take?: number
     skip?: number
-    distinct?: Dish_category_ancestorsScalarFieldEnum | Dish_category_ancestorsScalarFieldEnum[]
+    distinct?: Dish_category_featuresScalarFieldEnum | Dish_category_featuresScalarFieldEnum[]
+  }
+
+  /**
+   * dish_categories.dish_category_localized_text
+   */
+  export type dish_categories$dish_category_localized_textArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    where?: dish_category_localized_textWhereInput
+    orderBy?: dish_category_localized_textOrderByWithRelationInput | dish_category_localized_textOrderByWithRelationInput[]
+    cursor?: dish_category_localized_textWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_category_localized_textScalarFieldEnum | Dish_category_localized_textScalarFieldEnum[]
   }
 
   /**
@@ -7375,360 +7349,384 @@ export namespace Prisma {
 
 
   /**
-   * Model dish_category_ancestors
+   * Model dish_category_features
    */
 
-  export type AggregateDish_category_ancestors = {
-    _count: Dish_category_ancestorsCountAggregateOutputType | null
-    _avg: Dish_category_ancestorsAvgAggregateOutputType | null
-    _sum: Dish_category_ancestorsSumAggregateOutputType | null
-    _min: Dish_category_ancestorsMinAggregateOutputType | null
-    _max: Dish_category_ancestorsMaxAggregateOutputType | null
+  export type AggregateDish_category_features = {
+    _count: Dish_category_featuresCountAggregateOutputType | null
+    _avg: Dish_category_featuresAvgAggregateOutputType | null
+    _sum: Dish_category_featuresSumAggregateOutputType | null
+    _min: Dish_category_featuresMinAggregateOutputType | null
+    _max: Dish_category_featuresMaxAggregateOutputType | null
   }
 
-  export type Dish_category_ancestorsAvgAggregateOutputType = {
-    depth: number | null
+  export type Dish_category_featuresAvgAggregateOutputType = {
+    score: number | null
   }
 
-  export type Dish_category_ancestorsSumAggregateOutputType = {
-    depth: number | null
+  export type Dish_category_featuresSumAggregateOutputType = {
+    score: number | null
   }
 
-  export type Dish_category_ancestorsMinAggregateOutputType = {
+  export type Dish_category_featuresMinAggregateOutputType = {
     dish_category_id: string | null
-    ancestor_qid: string | null
-    depth: number | null
+    feature_type: string | null
+    feature_key: string | null
+    score: number | null
+    synced_at: Date | null
   }
 
-  export type Dish_category_ancestorsMaxAggregateOutputType = {
+  export type Dish_category_featuresMaxAggregateOutputType = {
     dish_category_id: string | null
-    ancestor_qid: string | null
-    depth: number | null
+    feature_type: string | null
+    feature_key: string | null
+    score: number | null
+    synced_at: Date | null
   }
 
-  export type Dish_category_ancestorsCountAggregateOutputType = {
+  export type Dish_category_featuresCountAggregateOutputType = {
     dish_category_id: number
-    ancestor_qid: number
-    depth: number
+    feature_type: number
+    feature_key: number
+    score: number
+    synced_at: number
     _all: number
   }
 
 
-  export type Dish_category_ancestorsAvgAggregateInputType = {
-    depth?: true
+  export type Dish_category_featuresAvgAggregateInputType = {
+    score?: true
   }
 
-  export type Dish_category_ancestorsSumAggregateInputType = {
-    depth?: true
+  export type Dish_category_featuresSumAggregateInputType = {
+    score?: true
   }
 
-  export type Dish_category_ancestorsMinAggregateInputType = {
+  export type Dish_category_featuresMinAggregateInputType = {
     dish_category_id?: true
-    ancestor_qid?: true
-    depth?: true
+    feature_type?: true
+    feature_key?: true
+    score?: true
+    synced_at?: true
   }
 
-  export type Dish_category_ancestorsMaxAggregateInputType = {
+  export type Dish_category_featuresMaxAggregateInputType = {
     dish_category_id?: true
-    ancestor_qid?: true
-    depth?: true
+    feature_type?: true
+    feature_key?: true
+    score?: true
+    synced_at?: true
   }
 
-  export type Dish_category_ancestorsCountAggregateInputType = {
+  export type Dish_category_featuresCountAggregateInputType = {
     dish_category_id?: true
-    ancestor_qid?: true
-    depth?: true
+    feature_type?: true
+    feature_key?: true
+    score?: true
+    synced_at?: true
     _all?: true
   }
 
-  export type Dish_category_ancestorsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type Dish_category_featuresAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which dish_category_ancestors to aggregate.
+     * Filter which dish_category_features to aggregate.
      */
-    where?: dish_category_ancestorsWhereInput
+    where?: dish_category_featuresWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of dish_category_ancestors to fetch.
+     * Determine the order of dish_category_features to fetch.
      */
-    orderBy?: dish_category_ancestorsOrderByWithRelationInput | dish_category_ancestorsOrderByWithRelationInput[]
+    orderBy?: dish_category_featuresOrderByWithRelationInput | dish_category_featuresOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
      * Sets the start position
      */
-    cursor?: dish_category_ancestorsWhereUniqueInput
+    cursor?: dish_category_featuresWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` dish_category_ancestors from the position of the cursor.
+     * Take `±n` dish_category_features from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` dish_category_ancestors.
+     * Skip the first `n` dish_category_features.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Count returned dish_category_ancestors
+     * Count returned dish_category_features
     **/
-    _count?: true | Dish_category_ancestorsCountAggregateInputType
+    _count?: true | Dish_category_featuresCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to average
     **/
-    _avg?: Dish_category_ancestorsAvgAggregateInputType
+    _avg?: Dish_category_featuresAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to sum
     **/
-    _sum?: Dish_category_ancestorsSumAggregateInputType
+    _sum?: Dish_category_featuresSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the minimum value
     **/
-    _min?: Dish_category_ancestorsMinAggregateInputType
+    _min?: Dish_category_featuresMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the maximum value
     **/
-    _max?: Dish_category_ancestorsMaxAggregateInputType
+    _max?: Dish_category_featuresMaxAggregateInputType
   }
 
-  export type GetDish_category_ancestorsAggregateType<T extends Dish_category_ancestorsAggregateArgs> = {
-        [P in keyof T & keyof AggregateDish_category_ancestors]: P extends '_count' | 'count'
+  export type GetDish_category_featuresAggregateType<T extends Dish_category_featuresAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_category_features]: P extends '_count' | 'count'
       ? T[P] extends true
         ? number
-        : GetScalarType<T[P], AggregateDish_category_ancestors[P]>
-      : GetScalarType<T[P], AggregateDish_category_ancestors[P]>
+        : GetScalarType<T[P], AggregateDish_category_features[P]>
+      : GetScalarType<T[P], AggregateDish_category_features[P]>
   }
 
 
 
 
-  export type dish_category_ancestorsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: dish_category_ancestorsWhereInput
-    orderBy?: dish_category_ancestorsOrderByWithAggregationInput | dish_category_ancestorsOrderByWithAggregationInput[]
-    by: Dish_category_ancestorsScalarFieldEnum[] | Dish_category_ancestorsScalarFieldEnum
-    having?: dish_category_ancestorsScalarWhereWithAggregatesInput
+  export type dish_category_featuresGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_featuresWhereInput
+    orderBy?: dish_category_featuresOrderByWithAggregationInput | dish_category_featuresOrderByWithAggregationInput[]
+    by: Dish_category_featuresScalarFieldEnum[] | Dish_category_featuresScalarFieldEnum
+    having?: dish_category_featuresScalarWhereWithAggregatesInput
     take?: number
     skip?: number
-    _count?: Dish_category_ancestorsCountAggregateInputType | true
-    _avg?: Dish_category_ancestorsAvgAggregateInputType
-    _sum?: Dish_category_ancestorsSumAggregateInputType
-    _min?: Dish_category_ancestorsMinAggregateInputType
-    _max?: Dish_category_ancestorsMaxAggregateInputType
+    _count?: Dish_category_featuresCountAggregateInputType | true
+    _avg?: Dish_category_featuresAvgAggregateInputType
+    _sum?: Dish_category_featuresSumAggregateInputType
+    _min?: Dish_category_featuresMinAggregateInputType
+    _max?: Dish_category_featuresMaxAggregateInputType
   }
 
-  export type Dish_category_ancestorsGroupByOutputType = {
+  export type Dish_category_featuresGroupByOutputType = {
     dish_category_id: string
-    ancestor_qid: string
-    depth: number
-    _count: Dish_category_ancestorsCountAggregateOutputType | null
-    _avg: Dish_category_ancestorsAvgAggregateOutputType | null
-    _sum: Dish_category_ancestorsSumAggregateOutputType | null
-    _min: Dish_category_ancestorsMinAggregateOutputType | null
-    _max: Dish_category_ancestorsMaxAggregateOutputType | null
+    feature_type: string
+    feature_key: string
+    score: number
+    synced_at: Date
+    _count: Dish_category_featuresCountAggregateOutputType | null
+    _avg: Dish_category_featuresAvgAggregateOutputType | null
+    _sum: Dish_category_featuresSumAggregateOutputType | null
+    _min: Dish_category_featuresMinAggregateOutputType | null
+    _max: Dish_category_featuresMaxAggregateOutputType | null
   }
 
-  type GetDish_category_ancestorsGroupByPayload<T extends dish_category_ancestorsGroupByArgs> = Prisma.PrismaPromise<
+  type GetDish_category_featuresGroupByPayload<T extends dish_category_featuresGroupByArgs> = Prisma.PrismaPromise<
     Array<
-      PickEnumerable<Dish_category_ancestorsGroupByOutputType, T['by']> &
+      PickEnumerable<Dish_category_featuresGroupByOutputType, T['by']> &
         {
-          [P in ((keyof T) & (keyof Dish_category_ancestorsGroupByOutputType))]: P extends '_count'
+          [P in ((keyof T) & (keyof Dish_category_featuresGroupByOutputType))]: P extends '_count'
             ? T[P] extends boolean
               ? number
-              : GetScalarType<T[P], Dish_category_ancestorsGroupByOutputType[P]>
-            : GetScalarType<T[P], Dish_category_ancestorsGroupByOutputType[P]>
+              : GetScalarType<T[P], Dish_category_featuresGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_category_featuresGroupByOutputType[P]>
         }
       >
     >
 
 
-  export type dish_category_ancestorsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type dish_category_featuresSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     dish_category_id?: boolean
-    ancestor_qid?: boolean
-    depth?: boolean
+    feature_type?: boolean
+    feature_key?: boolean
+    score?: boolean
+    synced_at?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["dish_category_ancestors"]>
+  }, ExtArgs["result"]["dish_category_features"]>
 
-  export type dish_category_ancestorsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type dish_category_featuresSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     dish_category_id?: boolean
-    ancestor_qid?: boolean
-    depth?: boolean
+    feature_type?: boolean
+    feature_key?: boolean
+    score?: boolean
+    synced_at?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["dish_category_ancestors"]>
+  }, ExtArgs["result"]["dish_category_features"]>
 
-  export type dish_category_ancestorsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type dish_category_featuresSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     dish_category_id?: boolean
-    ancestor_qid?: boolean
-    depth?: boolean
+    feature_type?: boolean
+    feature_key?: boolean
+    score?: boolean
+    synced_at?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["dish_category_ancestors"]>
+  }, ExtArgs["result"]["dish_category_features"]>
 
-  export type dish_category_ancestorsSelectScalar = {
+  export type dish_category_featuresSelectScalar = {
     dish_category_id?: boolean
-    ancestor_qid?: boolean
-    depth?: boolean
+    feature_type?: boolean
+    feature_key?: boolean
+    score?: boolean
+    synced_at?: boolean
   }
 
-  export type dish_category_ancestorsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"dish_category_id" | "ancestor_qid" | "depth", ExtArgs["result"]["dish_category_ancestors"]>
-  export type dish_category_ancestorsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"dish_category_id" | "feature_type" | "feature_key" | "score" | "synced_at", ExtArgs["result"]["dish_category_features"]>
+  export type dish_category_featuresInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
   }
-  export type dish_category_ancestorsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
   }
-  export type dish_category_ancestorsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
   }
 
-  export type $dish_category_ancestorsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "dish_category_ancestors"
+  export type $dish_category_featuresPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_category_features"
     objects: {
       dish_categories: Prisma.$dish_categoriesPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       dish_category_id: string
-      ancestor_qid: string
-      depth: number
-    }, ExtArgs["result"]["dish_category_ancestors"]>
+      feature_type: string
+      feature_key: string
+      score: number
+      synced_at: Date
+    }, ExtArgs["result"]["dish_category_features"]>
     composites: {}
   }
 
-  type dish_category_ancestorsGetPayload<S extends boolean | null | undefined | dish_category_ancestorsDefaultArgs> = $Result.GetResult<Prisma.$dish_category_ancestorsPayload, S>
+  type dish_category_featuresGetPayload<S extends boolean | null | undefined | dish_category_featuresDefaultArgs> = $Result.GetResult<Prisma.$dish_category_featuresPayload, S>
 
-  type dish_category_ancestorsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<dish_category_ancestorsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: Dish_category_ancestorsCountAggregateInputType | true
+  type dish_category_featuresCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_category_featuresFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_category_featuresCountAggregateInputType | true
     }
 
-  export interface dish_category_ancestorsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_category_ancestors'], meta: { name: 'dish_category_ancestors' } }
+  export interface dish_category_featuresDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_category_features'], meta: { name: 'dish_category_features' } }
     /**
-     * Find zero or one Dish_category_ancestors that matches the filter.
-     * @param {dish_category_ancestorsFindUniqueArgs} args - Arguments to find a Dish_category_ancestors
+     * Find zero or one Dish_category_features that matches the filter.
+     * @param {dish_category_featuresFindUniqueArgs} args - Arguments to find a Dish_category_features
      * @example
-     * // Get one Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.findUnique({
+     * // Get one Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.findUnique({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUnique<T extends dish_category_ancestorsFindUniqueArgs>(args: SelectSubset<T, dish_category_ancestorsFindUniqueArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    findUnique<T extends dish_category_featuresFindUniqueArgs>(args: SelectSubset<T, dish_category_featuresFindUniqueArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find one Dish_category_ancestors that matches the filter or throw an error with `error.code='P2025'`
+     * Find one Dish_category_features that matches the filter or throw an error with `error.code='P2025'`
      * if no matches were found.
-     * @param {dish_category_ancestorsFindUniqueOrThrowArgs} args - Arguments to find a Dish_category_ancestors
+     * @param {dish_category_featuresFindUniqueOrThrowArgs} args - Arguments to find a Dish_category_features
      * @example
-     * // Get one Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.findUniqueOrThrow({
+     * // Get one Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.findUniqueOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUniqueOrThrow<T extends dish_category_ancestorsFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_category_ancestorsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    findUniqueOrThrow<T extends dish_category_featuresFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_category_featuresFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find the first Dish_category_ancestors that matches the filter.
+     * Find the first Dish_category_features that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_category_ancestorsFindFirstArgs} args - Arguments to find a Dish_category_ancestors
+     * @param {dish_category_featuresFindFirstArgs} args - Arguments to find a Dish_category_features
      * @example
-     * // Get one Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.findFirst({
+     * // Get one Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.findFirst({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirst<T extends dish_category_ancestorsFindFirstArgs>(args?: SelectSubset<T, dish_category_ancestorsFindFirstArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    findFirst<T extends dish_category_featuresFindFirstArgs>(args?: SelectSubset<T, dish_category_featuresFindFirstArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find the first Dish_category_ancestors that matches the filter or
+     * Find the first Dish_category_features that matches the filter or
      * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_category_ancestorsFindFirstOrThrowArgs} args - Arguments to find a Dish_category_ancestors
+     * @param {dish_category_featuresFindFirstOrThrowArgs} args - Arguments to find a Dish_category_features
      * @example
-     * // Get one Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.findFirstOrThrow({
+     * // Get one Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.findFirstOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirstOrThrow<T extends dish_category_ancestorsFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_category_ancestorsFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    findFirstOrThrow<T extends dish_category_featuresFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_category_featuresFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find zero or more Dish_category_ancestors that matches the filter.
+     * Find zero or more Dish_category_features that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_category_ancestorsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @param {dish_category_featuresFindManyArgs} args - Arguments to filter and select certain fields only.
      * @example
-     * // Get all Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.findMany()
+     * // Get all Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.findMany()
      * 
-     * // Get first 10 Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.findMany({ take: 10 })
+     * // Get first 10 Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.findMany({ take: 10 })
      * 
      * // Only select the `dish_category_id`
-     * const dish_category_ancestorsWithDish_category_idOnly = await prisma.dish_category_ancestors.findMany({ select: { dish_category_id: true } })
+     * const dish_category_featuresWithDish_category_idOnly = await prisma.dish_category_features.findMany({ select: { dish_category_id: true } })
      * 
      */
-    findMany<T extends dish_category_ancestorsFindManyArgs>(args?: SelectSubset<T, dish_category_ancestorsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+    findMany<T extends dish_category_featuresFindManyArgs>(args?: SelectSubset<T, dish_category_featuresFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
 
     /**
-     * Create a Dish_category_ancestors.
-     * @param {dish_category_ancestorsCreateArgs} args - Arguments to create a Dish_category_ancestors.
+     * Create a Dish_category_features.
+     * @param {dish_category_featuresCreateArgs} args - Arguments to create a Dish_category_features.
      * @example
-     * // Create one Dish_category_ancestors
-     * const Dish_category_ancestors = await prisma.dish_category_ancestors.create({
+     * // Create one Dish_category_features
+     * const Dish_category_features = await prisma.dish_category_features.create({
      *   data: {
-     *     // ... data to create a Dish_category_ancestors
+     *     // ... data to create a Dish_category_features
      *   }
      * })
      * 
      */
-    create<T extends dish_category_ancestorsCreateArgs>(args: SelectSubset<T, dish_category_ancestorsCreateArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    create<T extends dish_category_featuresCreateArgs>(args: SelectSubset<T, dish_category_featuresCreateArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Create many Dish_category_ancestors.
-     * @param {dish_category_ancestorsCreateManyArgs} args - Arguments to create many Dish_category_ancestors.
+     * Create many Dish_category_features.
+     * @param {dish_category_featuresCreateManyArgs} args - Arguments to create many Dish_category_features.
      * @example
-     * // Create many Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.createMany({
+     * // Create many Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.createMany({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      *     
      */
-    createMany<T extends dish_category_ancestorsCreateManyArgs>(args?: SelectSubset<T, dish_category_ancestorsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    createMany<T extends dish_category_featuresCreateManyArgs>(args?: SelectSubset<T, dish_category_featuresCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Dish_category_ancestors and returns the data saved in the database.
-     * @param {dish_category_ancestorsCreateManyAndReturnArgs} args - Arguments to create many Dish_category_ancestors.
+     * Create many Dish_category_features and returns the data saved in the database.
+     * @param {dish_category_featuresCreateManyAndReturnArgs} args - Arguments to create many Dish_category_features.
      * @example
-     * // Create many Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.createManyAndReturn({
+     * // Create many Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.createManyAndReturn({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      * 
-     * // Create many Dish_category_ancestors and only return the `dish_category_id`
-     * const dish_category_ancestorsWithDish_category_idOnly = await prisma.dish_category_ancestors.createManyAndReturn({
+     * // Create many Dish_category_features and only return the `dish_category_id`
+     * const dish_category_featuresWithDish_category_idOnly = await prisma.dish_category_features.createManyAndReturn({
      *   select: { dish_category_id: true },
      *   data: [
      *     // ... provide data here
@@ -7738,28 +7736,28 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    createManyAndReturn<T extends dish_category_ancestorsCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_category_ancestorsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+    createManyAndReturn<T extends dish_category_featuresCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_category_featuresCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
 
     /**
-     * Delete a Dish_category_ancestors.
-     * @param {dish_category_ancestorsDeleteArgs} args - Arguments to delete one Dish_category_ancestors.
+     * Delete a Dish_category_features.
+     * @param {dish_category_featuresDeleteArgs} args - Arguments to delete one Dish_category_features.
      * @example
-     * // Delete one Dish_category_ancestors
-     * const Dish_category_ancestors = await prisma.dish_category_ancestors.delete({
+     * // Delete one Dish_category_features
+     * const Dish_category_features = await prisma.dish_category_features.delete({
      *   where: {
-     *     // ... filter to delete one Dish_category_ancestors
+     *     // ... filter to delete one Dish_category_features
      *   }
      * })
      * 
      */
-    delete<T extends dish_category_ancestorsDeleteArgs>(args: SelectSubset<T, dish_category_ancestorsDeleteArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    delete<T extends dish_category_featuresDeleteArgs>(args: SelectSubset<T, dish_category_featuresDeleteArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Update one Dish_category_ancestors.
-     * @param {dish_category_ancestorsUpdateArgs} args - Arguments to update one Dish_category_ancestors.
+     * Update one Dish_category_features.
+     * @param {dish_category_featuresUpdateArgs} args - Arguments to update one Dish_category_features.
      * @example
-     * // Update one Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.update({
+     * // Update one Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.update({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -7769,30 +7767,30 @@ export namespace Prisma {
      * })
      * 
      */
-    update<T extends dish_category_ancestorsUpdateArgs>(args: SelectSubset<T, dish_category_ancestorsUpdateArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    update<T extends dish_category_featuresUpdateArgs>(args: SelectSubset<T, dish_category_featuresUpdateArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Delete zero or more Dish_category_ancestors.
-     * @param {dish_category_ancestorsDeleteManyArgs} args - Arguments to filter Dish_category_ancestors to delete.
+     * Delete zero or more Dish_category_features.
+     * @param {dish_category_featuresDeleteManyArgs} args - Arguments to filter Dish_category_features to delete.
      * @example
-     * // Delete a few Dish_category_ancestors
-     * const { count } = await prisma.dish_category_ancestors.deleteMany({
+     * // Delete a few Dish_category_features
+     * const { count } = await prisma.dish_category_features.deleteMany({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      * 
      */
-    deleteMany<T extends dish_category_ancestorsDeleteManyArgs>(args?: SelectSubset<T, dish_category_ancestorsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    deleteMany<T extends dish_category_featuresDeleteManyArgs>(args?: SelectSubset<T, dish_category_featuresDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more Dish_category_ancestors.
+     * Update zero or more Dish_category_features.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_category_ancestorsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @param {dish_category_featuresUpdateManyArgs} args - Arguments to update one or more rows.
      * @example
-     * // Update many Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.updateMany({
+     * // Update many Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.updateMany({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -7802,14 +7800,14 @@ export namespace Prisma {
      * })
      * 
      */
-    updateMany<T extends dish_category_ancestorsUpdateManyArgs>(args: SelectSubset<T, dish_category_ancestorsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    updateMany<T extends dish_category_featuresUpdateManyArgs>(args: SelectSubset<T, dish_category_featuresUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more Dish_category_ancestors and returns the data updated in the database.
-     * @param {dish_category_ancestorsUpdateManyAndReturnArgs} args - Arguments to update many Dish_category_ancestors.
+     * Update zero or more Dish_category_features and returns the data updated in the database.
+     * @param {dish_category_featuresUpdateManyAndReturnArgs} args - Arguments to update many Dish_category_features.
      * @example
-     * // Update many Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.updateManyAndReturn({
+     * // Update many Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.updateManyAndReturn({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -7818,8 +7816,8 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Update zero or more Dish_category_ancestors and only return the `dish_category_id`
-     * const dish_category_ancestorsWithDish_category_idOnly = await prisma.dish_category_ancestors.updateManyAndReturn({
+     * // Update zero or more Dish_category_features and only return the `dish_category_id`
+     * const dish_category_featuresWithDish_category_idOnly = await prisma.dish_category_features.updateManyAndReturn({
      *   select: { dish_category_id: true },
      *   where: {
      *     // ... provide filter here
@@ -7832,56 +7830,56 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    updateManyAndReturn<T extends dish_category_ancestorsUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_category_ancestorsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+    updateManyAndReturn<T extends dish_category_featuresUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_category_featuresUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
-     * Create or update one Dish_category_ancestors.
-     * @param {dish_category_ancestorsUpsertArgs} args - Arguments to update or create a Dish_category_ancestors.
+     * Create or update one Dish_category_features.
+     * @param {dish_category_featuresUpsertArgs} args - Arguments to update or create a Dish_category_features.
      * @example
-     * // Update or create a Dish_category_ancestors
-     * const dish_category_ancestors = await prisma.dish_category_ancestors.upsert({
+     * // Update or create a Dish_category_features
+     * const dish_category_features = await prisma.dish_category_features.upsert({
      *   create: {
-     *     // ... data to create a Dish_category_ancestors
+     *     // ... data to create a Dish_category_features
      *   },
      *   update: {
      *     // ... in case it already exists, update
      *   },
      *   where: {
-     *     // ... the filter for the Dish_category_ancestors we want to update
+     *     // ... the filter for the Dish_category_features we want to update
      *   }
      * })
      */
-    upsert<T extends dish_category_ancestorsUpsertArgs>(args: SelectSubset<T, dish_category_ancestorsUpsertArgs<ExtArgs>>): Prisma__dish_category_ancestorsClient<$Result.GetResult<Prisma.$dish_category_ancestorsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    upsert<T extends dish_category_featuresUpsertArgs>(args: SelectSubset<T, dish_category_featuresUpsertArgs<ExtArgs>>): Prisma__dish_category_featuresClient<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
 
     /**
-     * Count the number of Dish_category_ancestors.
+     * Count the number of Dish_category_features.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_category_ancestorsCountArgs} args - Arguments to filter Dish_category_ancestors to count.
+     * @param {dish_category_featuresCountArgs} args - Arguments to filter Dish_category_features to count.
      * @example
-     * // Count the number of Dish_category_ancestors
-     * const count = await prisma.dish_category_ancestors.count({
+     * // Count the number of Dish_category_features
+     * const count = await prisma.dish_category_features.count({
      *   where: {
-     *     // ... the filter for the Dish_category_ancestors we want to count
+     *     // ... the filter for the Dish_category_features we want to count
      *   }
      * })
     **/
-    count<T extends dish_category_ancestorsCountArgs>(
-      args?: Subset<T, dish_category_ancestorsCountArgs>,
+    count<T extends dish_category_featuresCountArgs>(
+      args?: Subset<T, dish_category_featuresCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
         ? T['select'] extends true
           ? number
-          : GetScalarType<T['select'], Dish_category_ancestorsCountAggregateOutputType>
+          : GetScalarType<T['select'], Dish_category_featuresCountAggregateOutputType>
         : number
     >
 
     /**
-     * Allows you to perform aggregations operations on a Dish_category_ancestors.
+     * Allows you to perform aggregations operations on a Dish_category_features.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {Dish_category_ancestorsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @param {Dish_category_featuresAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
      * @example
      * // Ordered by age ascending
      * // Where email contains prisma.io
@@ -7901,13 +7899,13 @@ export namespace Prisma {
      *   take: 10,
      * })
     **/
-    aggregate<T extends Dish_category_ancestorsAggregateArgs>(args: Subset<T, Dish_category_ancestorsAggregateArgs>): Prisma.PrismaPromise<GetDish_category_ancestorsAggregateType<T>>
+    aggregate<T extends Dish_category_featuresAggregateArgs>(args: Subset<T, Dish_category_featuresAggregateArgs>): Prisma.PrismaPromise<GetDish_category_featuresAggregateType<T>>
 
     /**
-     * Group by Dish_category_ancestors.
+     * Group by Dish_category_features.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {dish_category_ancestorsGroupByArgs} args - Group by arguments.
+     * @param {dish_category_featuresGroupByArgs} args - Group by arguments.
      * @example
      * // Group by city, order by createdAt, get count
      * const result = await prisma.user.groupBy({
@@ -7922,14 +7920,14 @@ export namespace Prisma {
      * 
     **/
     groupBy<
-      T extends dish_category_ancestorsGroupByArgs,
+      T extends dish_category_featuresGroupByArgs,
       HasSelectOrTake extends Or<
         Extends<'skip', Keys<T>>,
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: dish_category_ancestorsGroupByArgs['orderBy'] }
-        : { orderBy?: dish_category_ancestorsGroupByArgs['orderBy'] },
+        ? { orderBy: dish_category_featuresGroupByArgs['orderBy'] }
+        : { orderBy?: dish_category_featuresGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -7978,20 +7976,20 @@ export namespace Prisma {
             ? never
             : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
         }[OrderFields]
-    >(args: SubsetIntersection<T, dish_category_ancestorsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_ancestorsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+    >(args: SubsetIntersection<T, dish_category_featuresGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_featuresGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
   /**
-   * Fields of the dish_category_ancestors model
+   * Fields of the dish_category_features model
    */
-  readonly fields: dish_category_ancestorsFieldRefs;
+  readonly fields: dish_category_featuresFieldRefs;
   }
 
   /**
-   * The delegate class that acts as a "Promise-like" for dish_category_ancestors.
+   * The delegate class that acts as a "Promise-like" for dish_category_features.
    * Why is this prefixed with `Prisma__`?
    * Because we want to prevent naming conflicts as mentioned in
    * https://github.com/prisma/prisma-client-js/issues/707
    */
-  export interface Prisma__dish_category_ancestorsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+  export interface Prisma__dish_category_featuresClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     dish_categories<T extends dish_categoriesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_categoriesDefaultArgs<ExtArgs>>): Prisma__dish_categoriesClient<$Result.GetResult<Prisma.$dish_categoriesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
@@ -8020,423 +8018,1483 @@ export namespace Prisma {
 
 
   /**
-   * Fields of the dish_category_ancestors model
+   * Fields of the dish_category_features model
    */
-  interface dish_category_ancestorsFieldRefs {
-    readonly dish_category_id: FieldRef<"dish_category_ancestors", 'String'>
-    readonly ancestor_qid: FieldRef<"dish_category_ancestors", 'String'>
-    readonly depth: FieldRef<"dish_category_ancestors", 'Int'>
+  interface dish_category_featuresFieldRefs {
+    readonly dish_category_id: FieldRef<"dish_category_features", 'String'>
+    readonly feature_type: FieldRef<"dish_category_features", 'String'>
+    readonly feature_key: FieldRef<"dish_category_features", 'String'>
+    readonly score: FieldRef<"dish_category_features", 'Float'>
+    readonly synced_at: FieldRef<"dish_category_features", 'DateTime'>
   }
     
 
   // Custom InputTypes
   /**
-   * dish_category_ancestors findUnique
+   * dish_category_features findUnique
    */
-  export type dish_category_ancestorsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * Filter, which dish_category_ancestors to fetch.
+     * Filter, which dish_category_features to fetch.
      */
-    where: dish_category_ancestorsWhereUniqueInput
+    where: dish_category_featuresWhereUniqueInput
   }
 
   /**
-   * dish_category_ancestors findUniqueOrThrow
+   * dish_category_features findUniqueOrThrow
    */
-  export type dish_category_ancestorsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * Filter, which dish_category_ancestors to fetch.
+     * Filter, which dish_category_features to fetch.
      */
-    where: dish_category_ancestorsWhereUniqueInput
+    where: dish_category_featuresWhereUniqueInput
   }
 
   /**
-   * dish_category_ancestors findFirst
+   * dish_category_features findFirst
    */
-  export type dish_category_ancestorsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * Filter, which dish_category_ancestors to fetch.
+     * Filter, which dish_category_features to fetch.
      */
-    where?: dish_category_ancestorsWhereInput
+    where?: dish_category_featuresWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of dish_category_ancestors to fetch.
+     * Determine the order of dish_category_features to fetch.
      */
-    orderBy?: dish_category_ancestorsOrderByWithRelationInput | dish_category_ancestorsOrderByWithRelationInput[]
+    orderBy?: dish_category_featuresOrderByWithRelationInput | dish_category_featuresOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for dish_category_ancestors.
+     * Sets the position for searching for dish_category_features.
      */
-    cursor?: dish_category_ancestorsWhereUniqueInput
+    cursor?: dish_category_featuresWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` dish_category_ancestors from the position of the cursor.
+     * Take `±n` dish_category_features from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` dish_category_ancestors.
+     * Skip the first `n` dish_category_features.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of dish_category_ancestors.
+     * Filter by unique combinations of dish_category_features.
      */
-    distinct?: Dish_category_ancestorsScalarFieldEnum | Dish_category_ancestorsScalarFieldEnum[]
+    distinct?: Dish_category_featuresScalarFieldEnum | Dish_category_featuresScalarFieldEnum[]
   }
 
   /**
-   * dish_category_ancestors findFirstOrThrow
+   * dish_category_features findFirstOrThrow
    */
-  export type dish_category_ancestorsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * Filter, which dish_category_ancestors to fetch.
+     * Filter, which dish_category_features to fetch.
      */
-    where?: dish_category_ancestorsWhereInput
+    where?: dish_category_featuresWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of dish_category_ancestors to fetch.
+     * Determine the order of dish_category_features to fetch.
      */
-    orderBy?: dish_category_ancestorsOrderByWithRelationInput | dish_category_ancestorsOrderByWithRelationInput[]
+    orderBy?: dish_category_featuresOrderByWithRelationInput | dish_category_featuresOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for dish_category_ancestors.
+     * Sets the position for searching for dish_category_features.
      */
-    cursor?: dish_category_ancestorsWhereUniqueInput
+    cursor?: dish_category_featuresWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` dish_category_ancestors from the position of the cursor.
+     * Take `±n` dish_category_features from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` dish_category_ancestors.
+     * Skip the first `n` dish_category_features.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of dish_category_ancestors.
+     * Filter by unique combinations of dish_category_features.
      */
-    distinct?: Dish_category_ancestorsScalarFieldEnum | Dish_category_ancestorsScalarFieldEnum[]
+    distinct?: Dish_category_featuresScalarFieldEnum | Dish_category_featuresScalarFieldEnum[]
   }
 
   /**
-   * dish_category_ancestors findMany
+   * dish_category_features findMany
    */
-  export type dish_category_ancestorsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * Filter, which dish_category_ancestors to fetch.
+     * Filter, which dish_category_features to fetch.
      */
-    where?: dish_category_ancestorsWhereInput
+    where?: dish_category_featuresWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of dish_category_ancestors to fetch.
+     * Determine the order of dish_category_features to fetch.
      */
-    orderBy?: dish_category_ancestorsOrderByWithRelationInput | dish_category_ancestorsOrderByWithRelationInput[]
+    orderBy?: dish_category_featuresOrderByWithRelationInput | dish_category_featuresOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for listing dish_category_ancestors.
+     * Sets the position for listing dish_category_features.
      */
-    cursor?: dish_category_ancestorsWhereUniqueInput
+    cursor?: dish_category_featuresWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` dish_category_ancestors from the position of the cursor.
+     * Take `±n` dish_category_features from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` dish_category_ancestors.
+     * Skip the first `n` dish_category_features.
      */
     skip?: number
-    distinct?: Dish_category_ancestorsScalarFieldEnum | Dish_category_ancestorsScalarFieldEnum[]
+    distinct?: Dish_category_featuresScalarFieldEnum | Dish_category_featuresScalarFieldEnum[]
   }
 
   /**
-   * dish_category_ancestors create
+   * dish_category_features create
    */
-  export type dish_category_ancestorsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * The data needed to create a dish_category_ancestors.
+     * The data needed to create a dish_category_features.
      */
-    data: XOR<dish_category_ancestorsCreateInput, dish_category_ancestorsUncheckedCreateInput>
+    data: XOR<dish_category_featuresCreateInput, dish_category_featuresUncheckedCreateInput>
   }
 
   /**
-   * dish_category_ancestors createMany
+   * dish_category_features createMany
    */
-  export type dish_category_ancestorsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to create many dish_category_ancestors.
+     * The data used to create many dish_category_features.
      */
-    data: dish_category_ancestorsCreateManyInput | dish_category_ancestorsCreateManyInput[]
+    data: dish_category_featuresCreateManyInput | dish_category_featuresCreateManyInput[]
     skipDuplicates?: boolean
   }
 
   /**
-   * dish_category_ancestors createManyAndReturn
+   * dish_category_features createManyAndReturn
    */
-  export type dish_category_ancestorsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelectCreateManyAndReturn<ExtArgs> | null
+    select?: dish_category_featuresSelectCreateManyAndReturn<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
-     * The data used to create many dish_category_ancestors.
+     * The data used to create many dish_category_features.
      */
-    data: dish_category_ancestorsCreateManyInput | dish_category_ancestorsCreateManyInput[]
+    data: dish_category_featuresCreateManyInput | dish_category_featuresCreateManyInput[]
     skipDuplicates?: boolean
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsIncludeCreateManyAndReturn<ExtArgs> | null
+    include?: dish_category_featuresIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
-   * dish_category_ancestors update
+   * dish_category_features update
    */
-  export type dish_category_ancestorsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * The data needed to update a dish_category_ancestors.
+     * The data needed to update a dish_category_features.
      */
-    data: XOR<dish_category_ancestorsUpdateInput, dish_category_ancestorsUncheckedUpdateInput>
+    data: XOR<dish_category_featuresUpdateInput, dish_category_featuresUncheckedUpdateInput>
     /**
-     * Choose, which dish_category_ancestors to update.
+     * Choose, which dish_category_features to update.
      */
-    where: dish_category_ancestorsWhereUniqueInput
+    where: dish_category_featuresWhereUniqueInput
   }
 
   /**
-   * dish_category_ancestors updateMany
+   * dish_category_features updateMany
    */
-  export type dish_category_ancestorsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to update dish_category_ancestors.
+     * The data used to update dish_category_features.
      */
-    data: XOR<dish_category_ancestorsUpdateManyMutationInput, dish_category_ancestorsUncheckedUpdateManyInput>
+    data: XOR<dish_category_featuresUpdateManyMutationInput, dish_category_featuresUncheckedUpdateManyInput>
     /**
-     * Filter which dish_category_ancestors to update
+     * Filter which dish_category_features to update
      */
-    where?: dish_category_ancestorsWhereInput
+    where?: dish_category_featuresWhereInput
     /**
-     * Limit how many dish_category_ancestors to update.
+     * Limit how many dish_category_features to update.
      */
     limit?: number
   }
 
   /**
-   * dish_category_ancestors updateManyAndReturn
+   * dish_category_features updateManyAndReturn
    */
-  export type dish_category_ancestorsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelectUpdateManyAndReturn<ExtArgs> | null
+    select?: dish_category_featuresSelectUpdateManyAndReturn<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
-     * The data used to update dish_category_ancestors.
+     * The data used to update dish_category_features.
      */
-    data: XOR<dish_category_ancestorsUpdateManyMutationInput, dish_category_ancestorsUncheckedUpdateManyInput>
+    data: XOR<dish_category_featuresUpdateManyMutationInput, dish_category_featuresUncheckedUpdateManyInput>
     /**
-     * Filter which dish_category_ancestors to update
+     * Filter which dish_category_features to update
      */
-    where?: dish_category_ancestorsWhereInput
+    where?: dish_category_featuresWhereInput
     /**
-     * Limit how many dish_category_ancestors to update.
+     * Limit how many dish_category_features to update.
      */
     limit?: number
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsIncludeUpdateManyAndReturn<ExtArgs> | null
+    include?: dish_category_featuresIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
-   * dish_category_ancestors upsert
+   * dish_category_features upsert
    */
-  export type dish_category_ancestorsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * The filter to search for the dish_category_ancestors to update in case it exists.
+     * The filter to search for the dish_category_features to update in case it exists.
      */
-    where: dish_category_ancestorsWhereUniqueInput
+    where: dish_category_featuresWhereUniqueInput
     /**
-     * In case the dish_category_ancestors found by the `where` argument doesn't exist, create a new dish_category_ancestors with this data.
+     * In case the dish_category_features found by the `where` argument doesn't exist, create a new dish_category_features with this data.
      */
-    create: XOR<dish_category_ancestorsCreateInput, dish_category_ancestorsUncheckedCreateInput>
+    create: XOR<dish_category_featuresCreateInput, dish_category_featuresUncheckedCreateInput>
     /**
-     * In case the dish_category_ancestors was found with the provided `where` argument, update it with this data.
+     * In case the dish_category_features was found with the provided `where` argument, update it with this data.
      */
-    update: XOR<dish_category_ancestorsUpdateInput, dish_category_ancestorsUncheckedUpdateInput>
+    update: XOR<dish_category_featuresUpdateInput, dish_category_featuresUncheckedUpdateInput>
   }
 
   /**
-   * dish_category_ancestors delete
+   * dish_category_features delete
    */
-  export type dish_category_ancestorsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
     /**
-     * Filter which dish_category_ancestors to delete.
+     * Filter which dish_category_features to delete.
      */
-    where: dish_category_ancestorsWhereUniqueInput
+    where: dish_category_featuresWhereUniqueInput
   }
 
   /**
-   * dish_category_ancestors deleteMany
+   * dish_category_features deleteMany
    */
-  export type dish_category_ancestorsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which dish_category_ancestors to delete
+     * Filter which dish_category_features to delete
      */
-    where?: dish_category_ancestorsWhereInput
+    where?: dish_category_featuresWhereInput
     /**
-     * Limit how many dish_category_ancestors to delete.
+     * Limit how many dish_category_features to delete.
      */
     limit?: number
   }
 
   /**
-   * dish_category_ancestors without action
+   * dish_category_features without action
    */
-  export type dish_category_ancestorsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type dish_category_featuresDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the dish_category_ancestors
+     * Select specific fields to fetch from the dish_category_features
      */
-    select?: dish_category_ancestorsSelect<ExtArgs> | null
+    select?: dish_category_featuresSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the dish_category_ancestors
+     * Omit specific fields from the dish_category_features
      */
-    omit?: dish_category_ancestorsOmit<ExtArgs> | null
+    omit?: dish_category_featuresOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: dish_category_ancestorsInclude<ExtArgs> | null
+    include?: dish_category_featuresInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_category_localized_text
+   */
+
+  export type AggregateDish_category_localized_text = {
+    _count: Dish_category_localized_textCountAggregateOutputType | null
+    _min: Dish_category_localized_textMinAggregateOutputType | null
+    _max: Dish_category_localized_textMaxAggregateOutputType | null
+  }
+
+  export type Dish_category_localized_textMinAggregateOutputType = {
+    dish_category_id: string | null
+    locale: string | null
+    topic_title: string | null
+    tagline: string | null
+    synced_at: Date | null
+  }
+
+  export type Dish_category_localized_textMaxAggregateOutputType = {
+    dish_category_id: string | null
+    locale: string | null
+    topic_title: string | null
+    tagline: string | null
+    synced_at: Date | null
+  }
+
+  export type Dish_category_localized_textCountAggregateOutputType = {
+    dish_category_id: number
+    locale: number
+    topic_title: number
+    tagline: number
+    synced_at: number
+    _all: number
+  }
+
+
+  export type Dish_category_localized_textMinAggregateInputType = {
+    dish_category_id?: true
+    locale?: true
+    topic_title?: true
+    tagline?: true
+    synced_at?: true
+  }
+
+  export type Dish_category_localized_textMaxAggregateInputType = {
+    dish_category_id?: true
+    locale?: true
+    topic_title?: true
+    tagline?: true
+    synced_at?: true
+  }
+
+  export type Dish_category_localized_textCountAggregateInputType = {
+    dish_category_id?: true
+    locale?: true
+    topic_title?: true
+    tagline?: true
+    synced_at?: true
+    _all?: true
+  }
+
+  export type Dish_category_localized_textAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_localized_text to aggregate.
+     */
+    where?: dish_category_localized_textWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_localized_texts to fetch.
+     */
+    orderBy?: dish_category_localized_textOrderByWithRelationInput | dish_category_localized_textOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_category_localized_textWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_localized_texts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_localized_texts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_category_localized_texts
+    **/
+    _count?: true | Dish_category_localized_textCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_category_localized_textMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_category_localized_textMaxAggregateInputType
+  }
+
+  export type GetDish_category_localized_textAggregateType<T extends Dish_category_localized_textAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_category_localized_text]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_category_localized_text[P]>
+      : GetScalarType<T[P], AggregateDish_category_localized_text[P]>
+  }
+
+
+
+
+  export type dish_category_localized_textGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_localized_textWhereInput
+    orderBy?: dish_category_localized_textOrderByWithAggregationInput | dish_category_localized_textOrderByWithAggregationInput[]
+    by: Dish_category_localized_textScalarFieldEnum[] | Dish_category_localized_textScalarFieldEnum
+    having?: dish_category_localized_textScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_category_localized_textCountAggregateInputType | true
+    _min?: Dish_category_localized_textMinAggregateInputType
+    _max?: Dish_category_localized_textMaxAggregateInputType
+  }
+
+  export type Dish_category_localized_textGroupByOutputType = {
+    dish_category_id: string
+    locale: string
+    topic_title: string
+    tagline: string
+    synced_at: Date
+    _count: Dish_category_localized_textCountAggregateOutputType | null
+    _min: Dish_category_localized_textMinAggregateOutputType | null
+    _max: Dish_category_localized_textMaxAggregateOutputType | null
+  }
+
+  type GetDish_category_localized_textGroupByPayload<T extends dish_category_localized_textGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_category_localized_textGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_category_localized_textGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_category_localized_textGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_category_localized_textGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_category_localized_textSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    dish_category_id?: boolean
+    locale?: boolean
+    topic_title?: boolean
+    tagline?: boolean
+    synced_at?: boolean
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_localized_text"]>
+
+  export type dish_category_localized_textSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    dish_category_id?: boolean
+    locale?: boolean
+    topic_title?: boolean
+    tagline?: boolean
+    synced_at?: boolean
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_localized_text"]>
+
+  export type dish_category_localized_textSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    dish_category_id?: boolean
+    locale?: boolean
+    topic_title?: boolean
+    tagline?: boolean
+    synced_at?: boolean
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_localized_text"]>
+
+  export type dish_category_localized_textSelectScalar = {
+    dish_category_id?: boolean
+    locale?: boolean
+    topic_title?: boolean
+    tagline?: boolean
+    synced_at?: boolean
+  }
+
+  export type dish_category_localized_textOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"dish_category_id" | "locale" | "topic_title" | "tagline" | "synced_at", ExtArgs["result"]["dish_category_localized_text"]>
+  export type dish_category_localized_textInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+  }
+  export type dish_category_localized_textIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+  }
+  export type dish_category_localized_textIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+  }
+
+  export type $dish_category_localized_textPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_category_localized_text"
+    objects: {
+      dish_categories: Prisma.$dish_categoriesPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      dish_category_id: string
+      locale: string
+      topic_title: string
+      tagline: string
+      synced_at: Date
+    }, ExtArgs["result"]["dish_category_localized_text"]>
+    composites: {}
+  }
+
+  type dish_category_localized_textGetPayload<S extends boolean | null | undefined | dish_category_localized_textDefaultArgs> = $Result.GetResult<Prisma.$dish_category_localized_textPayload, S>
+
+  type dish_category_localized_textCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_category_localized_textFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_category_localized_textCountAggregateInputType | true
+    }
+
+  export interface dish_category_localized_textDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_category_localized_text'], meta: { name: 'dish_category_localized_text' } }
+    /**
+     * Find zero or one Dish_category_localized_text that matches the filter.
+     * @param {dish_category_localized_textFindUniqueArgs} args - Arguments to find a Dish_category_localized_text
+     * @example
+     * // Get one Dish_category_localized_text
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_category_localized_textFindUniqueArgs>(args: SelectSubset<T, dish_category_localized_textFindUniqueArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_category_localized_text that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_category_localized_textFindUniqueOrThrowArgs} args - Arguments to find a Dish_category_localized_text
+     * @example
+     * // Get one Dish_category_localized_text
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_category_localized_textFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_category_localized_textFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_localized_text that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_localized_textFindFirstArgs} args - Arguments to find a Dish_category_localized_text
+     * @example
+     * // Get one Dish_category_localized_text
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_category_localized_textFindFirstArgs>(args?: SelectSubset<T, dish_category_localized_textFindFirstArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_localized_text that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_localized_textFindFirstOrThrowArgs} args - Arguments to find a Dish_category_localized_text
+     * @example
+     * // Get one Dish_category_localized_text
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_category_localized_textFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_category_localized_textFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_category_localized_texts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_localized_textFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_category_localized_texts
+     * const dish_category_localized_texts = await prisma.dish_category_localized_text.findMany()
+     * 
+     * // Get first 10 Dish_category_localized_texts
+     * const dish_category_localized_texts = await prisma.dish_category_localized_text.findMany({ take: 10 })
+     * 
+     * // Only select the `dish_category_id`
+     * const dish_category_localized_textWithDish_category_idOnly = await prisma.dish_category_localized_text.findMany({ select: { dish_category_id: true } })
+     * 
+     */
+    findMany<T extends dish_category_localized_textFindManyArgs>(args?: SelectSubset<T, dish_category_localized_textFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_category_localized_text.
+     * @param {dish_category_localized_textCreateArgs} args - Arguments to create a Dish_category_localized_text.
+     * @example
+     * // Create one Dish_category_localized_text
+     * const Dish_category_localized_text = await prisma.dish_category_localized_text.create({
+     *   data: {
+     *     // ... data to create a Dish_category_localized_text
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_category_localized_textCreateArgs>(args: SelectSubset<T, dish_category_localized_textCreateArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_category_localized_texts.
+     * @param {dish_category_localized_textCreateManyArgs} args - Arguments to create many Dish_category_localized_texts.
+     * @example
+     * // Create many Dish_category_localized_texts
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_category_localized_textCreateManyArgs>(args?: SelectSubset<T, dish_category_localized_textCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_category_localized_texts and returns the data saved in the database.
+     * @param {dish_category_localized_textCreateManyAndReturnArgs} args - Arguments to create many Dish_category_localized_texts.
+     * @example
+     * // Create many Dish_category_localized_texts
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_category_localized_texts and only return the `dish_category_id`
+     * const dish_category_localized_textWithDish_category_idOnly = await prisma.dish_category_localized_text.createManyAndReturn({
+     *   select: { dish_category_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_category_localized_textCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_category_localized_textCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_category_localized_text.
+     * @param {dish_category_localized_textDeleteArgs} args - Arguments to delete one Dish_category_localized_text.
+     * @example
+     * // Delete one Dish_category_localized_text
+     * const Dish_category_localized_text = await prisma.dish_category_localized_text.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_category_localized_text
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_category_localized_textDeleteArgs>(args: SelectSubset<T, dish_category_localized_textDeleteArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_category_localized_text.
+     * @param {dish_category_localized_textUpdateArgs} args - Arguments to update one Dish_category_localized_text.
+     * @example
+     * // Update one Dish_category_localized_text
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_category_localized_textUpdateArgs>(args: SelectSubset<T, dish_category_localized_textUpdateArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_category_localized_texts.
+     * @param {dish_category_localized_textDeleteManyArgs} args - Arguments to filter Dish_category_localized_texts to delete.
+     * @example
+     * // Delete a few Dish_category_localized_texts
+     * const { count } = await prisma.dish_category_localized_text.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_category_localized_textDeleteManyArgs>(args?: SelectSubset<T, dish_category_localized_textDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_localized_texts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_localized_textUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_category_localized_texts
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_category_localized_textUpdateManyArgs>(args: SelectSubset<T, dish_category_localized_textUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_localized_texts and returns the data updated in the database.
+     * @param {dish_category_localized_textUpdateManyAndReturnArgs} args - Arguments to update many Dish_category_localized_texts.
+     * @example
+     * // Update many Dish_category_localized_texts
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_category_localized_texts and only return the `dish_category_id`
+     * const dish_category_localized_textWithDish_category_idOnly = await prisma.dish_category_localized_text.updateManyAndReturn({
+     *   select: { dish_category_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_category_localized_textUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_category_localized_textUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_category_localized_text.
+     * @param {dish_category_localized_textUpsertArgs} args - Arguments to update or create a Dish_category_localized_text.
+     * @example
+     * // Update or create a Dish_category_localized_text
+     * const dish_category_localized_text = await prisma.dish_category_localized_text.upsert({
+     *   create: {
+     *     // ... data to create a Dish_category_localized_text
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_category_localized_text we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_category_localized_textUpsertArgs>(args: SelectSubset<T, dish_category_localized_textUpsertArgs<ExtArgs>>): Prisma__dish_category_localized_textClient<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_category_localized_texts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_localized_textCountArgs} args - Arguments to filter Dish_category_localized_texts to count.
+     * @example
+     * // Count the number of Dish_category_localized_texts
+     * const count = await prisma.dish_category_localized_text.count({
+     *   where: {
+     *     // ... the filter for the Dish_category_localized_texts we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_category_localized_textCountArgs>(
+      args?: Subset<T, dish_category_localized_textCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_category_localized_textCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_category_localized_text.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_category_localized_textAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_category_localized_textAggregateArgs>(args: Subset<T, Dish_category_localized_textAggregateArgs>): Prisma.PrismaPromise<GetDish_category_localized_textAggregateType<T>>
+
+    /**
+     * Group by Dish_category_localized_text.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_localized_textGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_category_localized_textGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_category_localized_textGroupByArgs['orderBy'] }
+        : { orderBy?: dish_category_localized_textGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_category_localized_textGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_localized_textGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_category_localized_text model
+   */
+  readonly fields: dish_category_localized_textFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_category_localized_text.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_category_localized_textClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_categories<T extends dish_categoriesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_categoriesDefaultArgs<ExtArgs>>): Prisma__dish_categoriesClient<$Result.GetResult<Prisma.$dish_categoriesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_category_localized_text model
+   */
+  interface dish_category_localized_textFieldRefs {
+    readonly dish_category_id: FieldRef<"dish_category_localized_text", 'String'>
+    readonly locale: FieldRef<"dish_category_localized_text", 'String'>
+    readonly topic_title: FieldRef<"dish_category_localized_text", 'String'>
+    readonly tagline: FieldRef<"dish_category_localized_text", 'String'>
+    readonly synced_at: FieldRef<"dish_category_localized_text", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_category_localized_text findUnique
+   */
+  export type dish_category_localized_textFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_localized_text to fetch.
+     */
+    where: dish_category_localized_textWhereUniqueInput
+  }
+
+  /**
+   * dish_category_localized_text findUniqueOrThrow
+   */
+  export type dish_category_localized_textFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_localized_text to fetch.
+     */
+    where: dish_category_localized_textWhereUniqueInput
+  }
+
+  /**
+   * dish_category_localized_text findFirst
+   */
+  export type dish_category_localized_textFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_localized_text to fetch.
+     */
+    where?: dish_category_localized_textWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_localized_texts to fetch.
+     */
+    orderBy?: dish_category_localized_textOrderByWithRelationInput | dish_category_localized_textOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_localized_texts.
+     */
+    cursor?: dish_category_localized_textWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_localized_texts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_localized_texts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_localized_texts.
+     */
+    distinct?: Dish_category_localized_textScalarFieldEnum | Dish_category_localized_textScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_localized_text findFirstOrThrow
+   */
+  export type dish_category_localized_textFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_localized_text to fetch.
+     */
+    where?: dish_category_localized_textWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_localized_texts to fetch.
+     */
+    orderBy?: dish_category_localized_textOrderByWithRelationInput | dish_category_localized_textOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_localized_texts.
+     */
+    cursor?: dish_category_localized_textWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_localized_texts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_localized_texts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_localized_texts.
+     */
+    distinct?: Dish_category_localized_textScalarFieldEnum | Dish_category_localized_textScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_localized_text findMany
+   */
+  export type dish_category_localized_textFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_localized_texts to fetch.
+     */
+    where?: dish_category_localized_textWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_localized_texts to fetch.
+     */
+    orderBy?: dish_category_localized_textOrderByWithRelationInput | dish_category_localized_textOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_category_localized_texts.
+     */
+    cursor?: dish_category_localized_textWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_localized_texts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_localized_texts.
+     */
+    skip?: number
+    distinct?: Dish_category_localized_textScalarFieldEnum | Dish_category_localized_textScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_localized_text create
+   */
+  export type dish_category_localized_textCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_category_localized_text.
+     */
+    data: XOR<dish_category_localized_textCreateInput, dish_category_localized_textUncheckedCreateInput>
+  }
+
+  /**
+   * dish_category_localized_text createMany
+   */
+  export type dish_category_localized_textCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_category_localized_texts.
+     */
+    data: dish_category_localized_textCreateManyInput | dish_category_localized_textCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_category_localized_text createManyAndReturn
+   */
+  export type dish_category_localized_textCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_category_localized_texts.
+     */
+    data: dish_category_localized_textCreateManyInput | dish_category_localized_textCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_localized_text update
+   */
+  export type dish_category_localized_textUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_category_localized_text.
+     */
+    data: XOR<dish_category_localized_textUpdateInput, dish_category_localized_textUncheckedUpdateInput>
+    /**
+     * Choose, which dish_category_localized_text to update.
+     */
+    where: dish_category_localized_textWhereUniqueInput
+  }
+
+  /**
+   * dish_category_localized_text updateMany
+   */
+  export type dish_category_localized_textUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_category_localized_texts.
+     */
+    data: XOR<dish_category_localized_textUpdateManyMutationInput, dish_category_localized_textUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_localized_texts to update
+     */
+    where?: dish_category_localized_textWhereInput
+    /**
+     * Limit how many dish_category_localized_texts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_localized_text updateManyAndReturn
+   */
+  export type dish_category_localized_textUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_category_localized_texts.
+     */
+    data: XOR<dish_category_localized_textUpdateManyMutationInput, dish_category_localized_textUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_localized_texts to update
+     */
+    where?: dish_category_localized_textWhereInput
+    /**
+     * Limit how many dish_category_localized_texts to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_localized_text upsert
+   */
+  export type dish_category_localized_textUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_category_localized_text to update in case it exists.
+     */
+    where: dish_category_localized_textWhereUniqueInput
+    /**
+     * In case the dish_category_localized_text found by the `where` argument doesn't exist, create a new dish_category_localized_text with this data.
+     */
+    create: XOR<dish_category_localized_textCreateInput, dish_category_localized_textUncheckedCreateInput>
+    /**
+     * In case the dish_category_localized_text was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_category_localized_textUpdateInput, dish_category_localized_textUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_category_localized_text delete
+   */
+  export type dish_category_localized_textDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
+    /**
+     * Filter which dish_category_localized_text to delete.
+     */
+    where: dish_category_localized_textWhereUniqueInput
+  }
+
+  /**
+   * dish_category_localized_text deleteMany
+   */
+  export type dish_category_localized_textDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_localized_texts to delete
+     */
+    where?: dish_category_localized_textWhereInput
+    /**
+     * Limit how many dish_category_localized_texts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_localized_text without action
+   */
+  export type dish_category_localized_textDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_localized_text
+     */
+    select?: dish_category_localized_textSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_localized_text
+     */
+    omit?: dish_category_localized_textOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_localized_textInclude<ExtArgs> | null
   }
 
 
@@ -19960,975 +21018,6 @@ export namespace Prisma {
      * Omit specific fields from the frontend_event_logs
      */
     omit?: frontend_event_logsOmit<ExtArgs> | null
-  }
-
-
-  /**
-   * Model macro_genre_whitelist
-   */
-
-  export type AggregateMacro_genre_whitelist = {
-    _count: Macro_genre_whitelistCountAggregateOutputType | null
-    _min: Macro_genre_whitelistMinAggregateOutputType | null
-    _max: Macro_genre_whitelistMaxAggregateOutputType | null
-  }
-
-  export type Macro_genre_whitelistMinAggregateOutputType = {
-    macro_genre_qid: string | null
-    label_en: string | null
-    label_ja: string | null
-  }
-
-  export type Macro_genre_whitelistMaxAggregateOutputType = {
-    macro_genre_qid: string | null
-    label_en: string | null
-    label_ja: string | null
-  }
-
-  export type Macro_genre_whitelistCountAggregateOutputType = {
-    macro_genre_qid: number
-    label_en: number
-    label_ja: number
-    _all: number
-  }
-
-
-  export type Macro_genre_whitelistMinAggregateInputType = {
-    macro_genre_qid?: true
-    label_en?: true
-    label_ja?: true
-  }
-
-  export type Macro_genre_whitelistMaxAggregateInputType = {
-    macro_genre_qid?: true
-    label_en?: true
-    label_ja?: true
-  }
-
-  export type Macro_genre_whitelistCountAggregateInputType = {
-    macro_genre_qid?: true
-    label_en?: true
-    label_ja?: true
-    _all?: true
-  }
-
-  export type Macro_genre_whitelistAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which macro_genre_whitelist to aggregate.
-     */
-    where?: macro_genre_whitelistWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of macro_genre_whitelists to fetch.
-     */
-    orderBy?: macro_genre_whitelistOrderByWithRelationInput | macro_genre_whitelistOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: macro_genre_whitelistWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` macro_genre_whitelists from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` macro_genre_whitelists.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned macro_genre_whitelists
-    **/
-    _count?: true | Macro_genre_whitelistCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: Macro_genre_whitelistMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: Macro_genre_whitelistMaxAggregateInputType
-  }
-
-  export type GetMacro_genre_whitelistAggregateType<T extends Macro_genre_whitelistAggregateArgs> = {
-        [P in keyof T & keyof AggregateMacro_genre_whitelist]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateMacro_genre_whitelist[P]>
-      : GetScalarType<T[P], AggregateMacro_genre_whitelist[P]>
-  }
-
-
-
-
-  export type macro_genre_whitelistGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: macro_genre_whitelistWhereInput
-    orderBy?: macro_genre_whitelistOrderByWithAggregationInput | macro_genre_whitelistOrderByWithAggregationInput[]
-    by: Macro_genre_whitelistScalarFieldEnum[] | Macro_genre_whitelistScalarFieldEnum
-    having?: macro_genre_whitelistScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: Macro_genre_whitelistCountAggregateInputType | true
-    _min?: Macro_genre_whitelistMinAggregateInputType
-    _max?: Macro_genre_whitelistMaxAggregateInputType
-  }
-
-  export type Macro_genre_whitelistGroupByOutputType = {
-    macro_genre_qid: string
-    label_en: string | null
-    label_ja: string | null
-    _count: Macro_genre_whitelistCountAggregateOutputType | null
-    _min: Macro_genre_whitelistMinAggregateOutputType | null
-    _max: Macro_genre_whitelistMaxAggregateOutputType | null
-  }
-
-  type GetMacro_genre_whitelistGroupByPayload<T extends macro_genre_whitelistGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<Macro_genre_whitelistGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof Macro_genre_whitelistGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], Macro_genre_whitelistGroupByOutputType[P]>
-            : GetScalarType<T[P], Macro_genre_whitelistGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type macro_genre_whitelistSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    macro_genre_qid?: boolean
-    label_en?: boolean
-    label_ja?: boolean
-  }, ExtArgs["result"]["macro_genre_whitelist"]>
-
-  export type macro_genre_whitelistSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    macro_genre_qid?: boolean
-    label_en?: boolean
-    label_ja?: boolean
-  }, ExtArgs["result"]["macro_genre_whitelist"]>
-
-  export type macro_genre_whitelistSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    macro_genre_qid?: boolean
-    label_en?: boolean
-    label_ja?: boolean
-  }, ExtArgs["result"]["macro_genre_whitelist"]>
-
-  export type macro_genre_whitelistSelectScalar = {
-    macro_genre_qid?: boolean
-    label_en?: boolean
-    label_ja?: boolean
-  }
-
-  export type macro_genre_whitelistOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"macro_genre_qid" | "label_en" | "label_ja", ExtArgs["result"]["macro_genre_whitelist"]>
-
-  export type $macro_genre_whitelistPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "macro_genre_whitelist"
-    objects: {}
-    scalars: $Extensions.GetPayloadResult<{
-      macro_genre_qid: string
-      label_en: string | null
-      label_ja: string | null
-    }, ExtArgs["result"]["macro_genre_whitelist"]>
-    composites: {}
-  }
-
-  type macro_genre_whitelistGetPayload<S extends boolean | null | undefined | macro_genre_whitelistDefaultArgs> = $Result.GetResult<Prisma.$macro_genre_whitelistPayload, S>
-
-  type macro_genre_whitelistCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<macro_genre_whitelistFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: Macro_genre_whitelistCountAggregateInputType | true
-    }
-
-  export interface macro_genre_whitelistDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['macro_genre_whitelist'], meta: { name: 'macro_genre_whitelist' } }
-    /**
-     * Find zero or one Macro_genre_whitelist that matches the filter.
-     * @param {macro_genre_whitelistFindUniqueArgs} args - Arguments to find a Macro_genre_whitelist
-     * @example
-     * // Get one Macro_genre_whitelist
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends macro_genre_whitelistFindUniqueArgs>(args: SelectSubset<T, macro_genre_whitelistFindUniqueArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one Macro_genre_whitelist that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {macro_genre_whitelistFindUniqueOrThrowArgs} args - Arguments to find a Macro_genre_whitelist
-     * @example
-     * // Get one Macro_genre_whitelist
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends macro_genre_whitelistFindUniqueOrThrowArgs>(args: SelectSubset<T, macro_genre_whitelistFindUniqueOrThrowArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first Macro_genre_whitelist that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {macro_genre_whitelistFindFirstArgs} args - Arguments to find a Macro_genre_whitelist
-     * @example
-     * // Get one Macro_genre_whitelist
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends macro_genre_whitelistFindFirstArgs>(args?: SelectSubset<T, macro_genre_whitelistFindFirstArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first Macro_genre_whitelist that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {macro_genre_whitelistFindFirstOrThrowArgs} args - Arguments to find a Macro_genre_whitelist
-     * @example
-     * // Get one Macro_genre_whitelist
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends macro_genre_whitelistFindFirstOrThrowArgs>(args?: SelectSubset<T, macro_genre_whitelistFindFirstOrThrowArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more Macro_genre_whitelists that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {macro_genre_whitelistFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all Macro_genre_whitelists
-     * const macro_genre_whitelists = await prisma.macro_genre_whitelist.findMany()
-     * 
-     * // Get first 10 Macro_genre_whitelists
-     * const macro_genre_whitelists = await prisma.macro_genre_whitelist.findMany({ take: 10 })
-     * 
-     * // Only select the `macro_genre_qid`
-     * const macro_genre_whitelistWithMacro_genre_qidOnly = await prisma.macro_genre_whitelist.findMany({ select: { macro_genre_qid: true } })
-     * 
-     */
-    findMany<T extends macro_genre_whitelistFindManyArgs>(args?: SelectSubset<T, macro_genre_whitelistFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a Macro_genre_whitelist.
-     * @param {macro_genre_whitelistCreateArgs} args - Arguments to create a Macro_genre_whitelist.
-     * @example
-     * // Create one Macro_genre_whitelist
-     * const Macro_genre_whitelist = await prisma.macro_genre_whitelist.create({
-     *   data: {
-     *     // ... data to create a Macro_genre_whitelist
-     *   }
-     * })
-     * 
-     */
-    create<T extends macro_genre_whitelistCreateArgs>(args: SelectSubset<T, macro_genre_whitelistCreateArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many Macro_genre_whitelists.
-     * @param {macro_genre_whitelistCreateManyArgs} args - Arguments to create many Macro_genre_whitelists.
-     * @example
-     * // Create many Macro_genre_whitelists
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends macro_genre_whitelistCreateManyArgs>(args?: SelectSubset<T, macro_genre_whitelistCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many Macro_genre_whitelists and returns the data saved in the database.
-     * @param {macro_genre_whitelistCreateManyAndReturnArgs} args - Arguments to create many Macro_genre_whitelists.
-     * @example
-     * // Create many Macro_genre_whitelists
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Macro_genre_whitelists and only return the `macro_genre_qid`
-     * const macro_genre_whitelistWithMacro_genre_qidOnly = await prisma.macro_genre_whitelist.createManyAndReturn({
-     *   select: { macro_genre_qid: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends macro_genre_whitelistCreateManyAndReturnArgs>(args?: SelectSubset<T, macro_genre_whitelistCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a Macro_genre_whitelist.
-     * @param {macro_genre_whitelistDeleteArgs} args - Arguments to delete one Macro_genre_whitelist.
-     * @example
-     * // Delete one Macro_genre_whitelist
-     * const Macro_genre_whitelist = await prisma.macro_genre_whitelist.delete({
-     *   where: {
-     *     // ... filter to delete one Macro_genre_whitelist
-     *   }
-     * })
-     * 
-     */
-    delete<T extends macro_genre_whitelistDeleteArgs>(args: SelectSubset<T, macro_genre_whitelistDeleteArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one Macro_genre_whitelist.
-     * @param {macro_genre_whitelistUpdateArgs} args - Arguments to update one Macro_genre_whitelist.
-     * @example
-     * // Update one Macro_genre_whitelist
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends macro_genre_whitelistUpdateArgs>(args: SelectSubset<T, macro_genre_whitelistUpdateArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more Macro_genre_whitelists.
-     * @param {macro_genre_whitelistDeleteManyArgs} args - Arguments to filter Macro_genre_whitelists to delete.
-     * @example
-     * // Delete a few Macro_genre_whitelists
-     * const { count } = await prisma.macro_genre_whitelist.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends macro_genre_whitelistDeleteManyArgs>(args?: SelectSubset<T, macro_genre_whitelistDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more Macro_genre_whitelists.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {macro_genre_whitelistUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many Macro_genre_whitelists
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends macro_genre_whitelistUpdateManyArgs>(args: SelectSubset<T, macro_genre_whitelistUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more Macro_genre_whitelists and returns the data updated in the database.
-     * @param {macro_genre_whitelistUpdateManyAndReturnArgs} args - Arguments to update many Macro_genre_whitelists.
-     * @example
-     * // Update many Macro_genre_whitelists
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more Macro_genre_whitelists and only return the `macro_genre_qid`
-     * const macro_genre_whitelistWithMacro_genre_qidOnly = await prisma.macro_genre_whitelist.updateManyAndReturn({
-     *   select: { macro_genre_qid: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends macro_genre_whitelistUpdateManyAndReturnArgs>(args: SelectSubset<T, macro_genre_whitelistUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one Macro_genre_whitelist.
-     * @param {macro_genre_whitelistUpsertArgs} args - Arguments to update or create a Macro_genre_whitelist.
-     * @example
-     * // Update or create a Macro_genre_whitelist
-     * const macro_genre_whitelist = await prisma.macro_genre_whitelist.upsert({
-     *   create: {
-     *     // ... data to create a Macro_genre_whitelist
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the Macro_genre_whitelist we want to update
-     *   }
-     * })
-     */
-    upsert<T extends macro_genre_whitelistUpsertArgs>(args: SelectSubset<T, macro_genre_whitelistUpsertArgs<ExtArgs>>): Prisma__macro_genre_whitelistClient<$Result.GetResult<Prisma.$macro_genre_whitelistPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of Macro_genre_whitelists.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {macro_genre_whitelistCountArgs} args - Arguments to filter Macro_genre_whitelists to count.
-     * @example
-     * // Count the number of Macro_genre_whitelists
-     * const count = await prisma.macro_genre_whitelist.count({
-     *   where: {
-     *     // ... the filter for the Macro_genre_whitelists we want to count
-     *   }
-     * })
-    **/
-    count<T extends macro_genre_whitelistCountArgs>(
-      args?: Subset<T, macro_genre_whitelistCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], Macro_genre_whitelistCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a Macro_genre_whitelist.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {Macro_genre_whitelistAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends Macro_genre_whitelistAggregateArgs>(args: Subset<T, Macro_genre_whitelistAggregateArgs>): Prisma.PrismaPromise<GetMacro_genre_whitelistAggregateType<T>>
-
-    /**
-     * Group by Macro_genre_whitelist.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {macro_genre_whitelistGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends macro_genre_whitelistGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: macro_genre_whitelistGroupByArgs['orderBy'] }
-        : { orderBy?: macro_genre_whitelistGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, macro_genre_whitelistGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMacro_genre_whitelistGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the macro_genre_whitelist model
-   */
-  readonly fields: macro_genre_whitelistFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for macro_genre_whitelist.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__macro_genre_whitelistClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the macro_genre_whitelist model
-   */
-  interface macro_genre_whitelistFieldRefs {
-    readonly macro_genre_qid: FieldRef<"macro_genre_whitelist", 'String'>
-    readonly label_en: FieldRef<"macro_genre_whitelist", 'String'>
-    readonly label_ja: FieldRef<"macro_genre_whitelist", 'String'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * macro_genre_whitelist findUnique
-   */
-  export type macro_genre_whitelistFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * Filter, which macro_genre_whitelist to fetch.
-     */
-    where: macro_genre_whitelistWhereUniqueInput
-  }
-
-  /**
-   * macro_genre_whitelist findUniqueOrThrow
-   */
-  export type macro_genre_whitelistFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * Filter, which macro_genre_whitelist to fetch.
-     */
-    where: macro_genre_whitelistWhereUniqueInput
-  }
-
-  /**
-   * macro_genre_whitelist findFirst
-   */
-  export type macro_genre_whitelistFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * Filter, which macro_genre_whitelist to fetch.
-     */
-    where?: macro_genre_whitelistWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of macro_genre_whitelists to fetch.
-     */
-    orderBy?: macro_genre_whitelistOrderByWithRelationInput | macro_genre_whitelistOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for macro_genre_whitelists.
-     */
-    cursor?: macro_genre_whitelistWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` macro_genre_whitelists from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` macro_genre_whitelists.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of macro_genre_whitelists.
-     */
-    distinct?: Macro_genre_whitelistScalarFieldEnum | Macro_genre_whitelistScalarFieldEnum[]
-  }
-
-  /**
-   * macro_genre_whitelist findFirstOrThrow
-   */
-  export type macro_genre_whitelistFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * Filter, which macro_genre_whitelist to fetch.
-     */
-    where?: macro_genre_whitelistWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of macro_genre_whitelists to fetch.
-     */
-    orderBy?: macro_genre_whitelistOrderByWithRelationInput | macro_genre_whitelistOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for macro_genre_whitelists.
-     */
-    cursor?: macro_genre_whitelistWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` macro_genre_whitelists from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` macro_genre_whitelists.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of macro_genre_whitelists.
-     */
-    distinct?: Macro_genre_whitelistScalarFieldEnum | Macro_genre_whitelistScalarFieldEnum[]
-  }
-
-  /**
-   * macro_genre_whitelist findMany
-   */
-  export type macro_genre_whitelistFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * Filter, which macro_genre_whitelists to fetch.
-     */
-    where?: macro_genre_whitelistWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of macro_genre_whitelists to fetch.
-     */
-    orderBy?: macro_genre_whitelistOrderByWithRelationInput | macro_genre_whitelistOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing macro_genre_whitelists.
-     */
-    cursor?: macro_genre_whitelistWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` macro_genre_whitelists from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` macro_genre_whitelists.
-     */
-    skip?: number
-    distinct?: Macro_genre_whitelistScalarFieldEnum | Macro_genre_whitelistScalarFieldEnum[]
-  }
-
-  /**
-   * macro_genre_whitelist create
-   */
-  export type macro_genre_whitelistCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * The data needed to create a macro_genre_whitelist.
-     */
-    data: XOR<macro_genre_whitelistCreateInput, macro_genre_whitelistUncheckedCreateInput>
-  }
-
-  /**
-   * macro_genre_whitelist createMany
-   */
-  export type macro_genre_whitelistCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many macro_genre_whitelists.
-     */
-    data: macro_genre_whitelistCreateManyInput | macro_genre_whitelistCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * macro_genre_whitelist createManyAndReturn
-   */
-  export type macro_genre_whitelistCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * The data used to create many macro_genre_whitelists.
-     */
-    data: macro_genre_whitelistCreateManyInput | macro_genre_whitelistCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * macro_genre_whitelist update
-   */
-  export type macro_genre_whitelistUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * The data needed to update a macro_genre_whitelist.
-     */
-    data: XOR<macro_genre_whitelistUpdateInput, macro_genre_whitelistUncheckedUpdateInput>
-    /**
-     * Choose, which macro_genre_whitelist to update.
-     */
-    where: macro_genre_whitelistWhereUniqueInput
-  }
-
-  /**
-   * macro_genre_whitelist updateMany
-   */
-  export type macro_genre_whitelistUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update macro_genre_whitelists.
-     */
-    data: XOR<macro_genre_whitelistUpdateManyMutationInput, macro_genre_whitelistUncheckedUpdateManyInput>
-    /**
-     * Filter which macro_genre_whitelists to update
-     */
-    where?: macro_genre_whitelistWhereInput
-    /**
-     * Limit how many macro_genre_whitelists to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * macro_genre_whitelist updateManyAndReturn
-   */
-  export type macro_genre_whitelistUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * The data used to update macro_genre_whitelists.
-     */
-    data: XOR<macro_genre_whitelistUpdateManyMutationInput, macro_genre_whitelistUncheckedUpdateManyInput>
-    /**
-     * Filter which macro_genre_whitelists to update
-     */
-    where?: macro_genre_whitelistWhereInput
-    /**
-     * Limit how many macro_genre_whitelists to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * macro_genre_whitelist upsert
-   */
-  export type macro_genre_whitelistUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * The filter to search for the macro_genre_whitelist to update in case it exists.
-     */
-    where: macro_genre_whitelistWhereUniqueInput
-    /**
-     * In case the macro_genre_whitelist found by the `where` argument doesn't exist, create a new macro_genre_whitelist with this data.
-     */
-    create: XOR<macro_genre_whitelistCreateInput, macro_genre_whitelistUncheckedCreateInput>
-    /**
-     * In case the macro_genre_whitelist was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<macro_genre_whitelistUpdateInput, macro_genre_whitelistUncheckedUpdateInput>
-  }
-
-  /**
-   * macro_genre_whitelist delete
-   */
-  export type macro_genre_whitelistDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
-    /**
-     * Filter which macro_genre_whitelist to delete.
-     */
-    where: macro_genre_whitelistWhereUniqueInput
-  }
-
-  /**
-   * macro_genre_whitelist deleteMany
-   */
-  export type macro_genre_whitelistDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which macro_genre_whitelists to delete
-     */
-    where?: macro_genre_whitelistWhereInput
-    /**
-     * Limit how many macro_genre_whitelists to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * macro_genre_whitelist without action
-   */
-  export type macro_genre_whitelistDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the macro_genre_whitelist
-     */
-    select?: macro_genre_whitelistSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the macro_genre_whitelist
-     */
-    omit?: macro_genre_whitelistOmit<ExtArgs> | null
   }
 
 
@@ -38511,25 +38600,35 @@ export namespace Prisma {
     label_en: 'label_en',
     labels: 'labels',
     image_url: 'image_url',
-    origin: 'origin',
-    cuisine: 'cuisine',
     tags: 'tags',
     created_at: 'created_at',
-    updated_at: 'updated_at',
-    lock_no: 'lock_no',
-    macro_genre_qid: 'macro_genre_qid'
+    macro_genre_qid: 'macro_genre_qid',
+    synced_at: 'synced_at'
   };
 
   export type Dish_categoriesScalarFieldEnum = (typeof Dish_categoriesScalarFieldEnum)[keyof typeof Dish_categoriesScalarFieldEnum]
 
 
-  export const Dish_category_ancestorsScalarFieldEnum: {
+  export const Dish_category_featuresScalarFieldEnum: {
     dish_category_id: 'dish_category_id',
-    ancestor_qid: 'ancestor_qid',
-    depth: 'depth'
+    feature_type: 'feature_type',
+    feature_key: 'feature_key',
+    score: 'score',
+    synced_at: 'synced_at'
   };
 
-  export type Dish_category_ancestorsScalarFieldEnum = (typeof Dish_category_ancestorsScalarFieldEnum)[keyof typeof Dish_category_ancestorsScalarFieldEnum]
+  export type Dish_category_featuresScalarFieldEnum = (typeof Dish_category_featuresScalarFieldEnum)[keyof typeof Dish_category_featuresScalarFieldEnum]
+
+
+  export const Dish_category_localized_textScalarFieldEnum: {
+    dish_category_id: 'dish_category_id',
+    locale: 'locale',
+    topic_title: 'topic_title',
+    tagline: 'tagline',
+    synced_at: 'synced_at'
+  };
+
+  export type Dish_category_localized_textScalarFieldEnum = (typeof Dish_category_localized_textScalarFieldEnum)[keyof typeof Dish_category_localized_textScalarFieldEnum]
 
 
   export const Dish_category_variantsScalarFieldEnum: {
@@ -38679,15 +38778,6 @@ export namespace Prisma {
   };
 
   export type Frontend_event_logsScalarFieldEnum = (typeof Frontend_event_logsScalarFieldEnum)[keyof typeof Frontend_event_logsScalarFieldEnum]
-
-
-  export const Macro_genre_whitelistScalarFieldEnum: {
-    macro_genre_qid: 'macro_genre_qid',
-    label_en: 'label_en',
-    label_ja: 'label_ja'
-  };
-
-  export type Macro_genre_whitelistScalarFieldEnum = (typeof Macro_genre_whitelistScalarFieldEnum)[keyof typeof Macro_genre_whitelistScalarFieldEnum]
 
 
   export const Notification_recipientsScalarFieldEnum: {
@@ -39002,6 +39092,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -39103,20 +39207,6 @@ export namespace Prisma {
    * Reference to a field of type 'restaurant_bid_status[]'
    */
   export type ListEnumrestaurant_bid_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'restaurant_bid_status[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'Float'
-   */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-  /**
-   * Reference to a field of type 'Float[]'
-   */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
   /**
    * Deep Input Types
@@ -39245,14 +39335,12 @@ export namespace Prisma {
     label_en?: StringFilter<"dish_categories"> | string
     labels?: JsonFilter<"dish_categories">
     image_url?: StringFilter<"dish_categories"> | string
-    origin?: StringNullableListFilter<"dish_categories">
-    cuisine?: StringNullableListFilter<"dish_categories">
     tags?: StringNullableListFilter<"dish_categories">
     created_at?: DateTimeFilter<"dish_categories"> | Date | string
-    updated_at?: DateTimeFilter<"dish_categories"> | Date | string
-    lock_no?: IntFilter<"dish_categories"> | number
     macro_genre_qid?: StringNullableFilter<"dish_categories"> | string | null
-    dish_category_ancestors?: Dish_category_ancestorsListRelationFilter
+    synced_at?: DateTimeNullableFilter<"dish_categories"> | Date | string | null
+    dish_category_features?: Dish_category_featuresListRelationFilter
+    dish_category_localized_text?: Dish_category_localized_textListRelationFilter
     dish_category_variants?: Dish_category_variantsListRelationFilter
     dishes?: DishesListRelationFilter
   }
@@ -39262,14 +39350,12 @@ export namespace Prisma {
     label_en?: SortOrder
     labels?: SortOrder
     image_url?: SortOrder
-    origin?: SortOrder
-    cuisine?: SortOrder
     tags?: SortOrder
     created_at?: SortOrder
-    updated_at?: SortOrder
-    lock_no?: SortOrder
     macro_genre_qid?: SortOrderInput | SortOrder
-    dish_category_ancestors?: dish_category_ancestorsOrderByRelationAggregateInput
+    synced_at?: SortOrderInput | SortOrder
+    dish_category_features?: dish_category_featuresOrderByRelationAggregateInput
+    dish_category_localized_text?: dish_category_localized_textOrderByRelationAggregateInput
     dish_category_variants?: dish_category_variantsOrderByRelationAggregateInput
     dishes?: dishesOrderByRelationAggregateInput
   }
@@ -39282,14 +39368,12 @@ export namespace Prisma {
     label_en?: StringFilter<"dish_categories"> | string
     labels?: JsonFilter<"dish_categories">
     image_url?: StringFilter<"dish_categories"> | string
-    origin?: StringNullableListFilter<"dish_categories">
-    cuisine?: StringNullableListFilter<"dish_categories">
     tags?: StringNullableListFilter<"dish_categories">
     created_at?: DateTimeFilter<"dish_categories"> | Date | string
-    updated_at?: DateTimeFilter<"dish_categories"> | Date | string
-    lock_no?: IntFilter<"dish_categories"> | number
     macro_genre_qid?: StringNullableFilter<"dish_categories"> | string | null
-    dish_category_ancestors?: Dish_category_ancestorsListRelationFilter
+    synced_at?: DateTimeNullableFilter<"dish_categories"> | Date | string | null
+    dish_category_features?: Dish_category_featuresListRelationFilter
+    dish_category_localized_text?: Dish_category_localized_textListRelationFilter
     dish_category_variants?: Dish_category_variantsListRelationFilter
     dishes?: DishesListRelationFilter
   }, "id">
@@ -39299,18 +39383,13 @@ export namespace Prisma {
     label_en?: SortOrder
     labels?: SortOrder
     image_url?: SortOrder
-    origin?: SortOrder
-    cuisine?: SortOrder
     tags?: SortOrder
     created_at?: SortOrder
-    updated_at?: SortOrder
-    lock_no?: SortOrder
     macro_genre_qid?: SortOrderInput | SortOrder
+    synced_at?: SortOrderInput | SortOrder
     _count?: dish_categoriesCountOrderByAggregateInput
-    _avg?: dish_categoriesAvgOrderByAggregateInput
     _max?: dish_categoriesMaxOrderByAggregateInput
     _min?: dish_categoriesMinOrderByAggregateInput
-    _sum?: dish_categoriesSumOrderByAggregateInput
   }
 
   export type dish_categoriesScalarWhereWithAggregatesInput = {
@@ -39321,61 +39400,124 @@ export namespace Prisma {
     label_en?: StringWithAggregatesFilter<"dish_categories"> | string
     labels?: JsonWithAggregatesFilter<"dish_categories">
     image_url?: StringWithAggregatesFilter<"dish_categories"> | string
-    origin?: StringNullableListFilter<"dish_categories">
-    cuisine?: StringNullableListFilter<"dish_categories">
     tags?: StringNullableListFilter<"dish_categories">
     created_at?: DateTimeWithAggregatesFilter<"dish_categories"> | Date | string
-    updated_at?: DateTimeWithAggregatesFilter<"dish_categories"> | Date | string
-    lock_no?: IntWithAggregatesFilter<"dish_categories"> | number
     macro_genre_qid?: StringNullableWithAggregatesFilter<"dish_categories"> | string | null
+    synced_at?: DateTimeNullableWithAggregatesFilter<"dish_categories"> | Date | string | null
   }
 
-  export type dish_category_ancestorsWhereInput = {
-    AND?: dish_category_ancestorsWhereInput | dish_category_ancestorsWhereInput[]
-    OR?: dish_category_ancestorsWhereInput[]
-    NOT?: dish_category_ancestorsWhereInput | dish_category_ancestorsWhereInput[]
-    dish_category_id?: StringFilter<"dish_category_ancestors"> | string
-    ancestor_qid?: StringFilter<"dish_category_ancestors"> | string
-    depth?: IntFilter<"dish_category_ancestors"> | number
+  export type dish_category_featuresWhereInput = {
+    AND?: dish_category_featuresWhereInput | dish_category_featuresWhereInput[]
+    OR?: dish_category_featuresWhereInput[]
+    NOT?: dish_category_featuresWhereInput | dish_category_featuresWhereInput[]
+    dish_category_id?: StringFilter<"dish_category_features"> | string
+    feature_type?: StringFilter<"dish_category_features"> | string
+    feature_key?: StringFilter<"dish_category_features"> | string
+    score?: FloatFilter<"dish_category_features"> | number
+    synced_at?: DateTimeFilter<"dish_category_features"> | Date | string
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
   }
 
-  export type dish_category_ancestorsOrderByWithRelationInput = {
+  export type dish_category_featuresOrderByWithRelationInput = {
     dish_category_id?: SortOrder
-    ancestor_qid?: SortOrder
-    depth?: SortOrder
+    feature_type?: SortOrder
+    feature_key?: SortOrder
+    score?: SortOrder
+    synced_at?: SortOrder
     dish_categories?: dish_categoriesOrderByWithRelationInput
   }
 
-  export type dish_category_ancestorsWhereUniqueInput = Prisma.AtLeast<{
-    dish_category_id_ancestor_qid?: dish_category_ancestorsDish_category_idAncestor_qidCompoundUniqueInput
-    AND?: dish_category_ancestorsWhereInput | dish_category_ancestorsWhereInput[]
-    OR?: dish_category_ancestorsWhereInput[]
-    NOT?: dish_category_ancestorsWhereInput | dish_category_ancestorsWhereInput[]
-    dish_category_id?: StringFilter<"dish_category_ancestors"> | string
-    ancestor_qid?: StringFilter<"dish_category_ancestors"> | string
-    depth?: IntFilter<"dish_category_ancestors"> | number
+  export type dish_category_featuresWhereUniqueInput = Prisma.AtLeast<{
+    dish_category_id_feature_type_feature_key?: dish_category_featuresDish_category_idFeature_typeFeature_keyCompoundUniqueInput
+    AND?: dish_category_featuresWhereInput | dish_category_featuresWhereInput[]
+    OR?: dish_category_featuresWhereInput[]
+    NOT?: dish_category_featuresWhereInput | dish_category_featuresWhereInput[]
+    dish_category_id?: StringFilter<"dish_category_features"> | string
+    feature_type?: StringFilter<"dish_category_features"> | string
+    feature_key?: StringFilter<"dish_category_features"> | string
+    score?: FloatFilter<"dish_category_features"> | number
+    synced_at?: DateTimeFilter<"dish_category_features"> | Date | string
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
-  }, "dish_category_id_ancestor_qid">
+  }, "dish_category_id_feature_type_feature_key">
 
-  export type dish_category_ancestorsOrderByWithAggregationInput = {
+  export type dish_category_featuresOrderByWithAggregationInput = {
     dish_category_id?: SortOrder
-    ancestor_qid?: SortOrder
-    depth?: SortOrder
-    _count?: dish_category_ancestorsCountOrderByAggregateInput
-    _avg?: dish_category_ancestorsAvgOrderByAggregateInput
-    _max?: dish_category_ancestorsMaxOrderByAggregateInput
-    _min?: dish_category_ancestorsMinOrderByAggregateInput
-    _sum?: dish_category_ancestorsSumOrderByAggregateInput
+    feature_type?: SortOrder
+    feature_key?: SortOrder
+    score?: SortOrder
+    synced_at?: SortOrder
+    _count?: dish_category_featuresCountOrderByAggregateInput
+    _avg?: dish_category_featuresAvgOrderByAggregateInput
+    _max?: dish_category_featuresMaxOrderByAggregateInput
+    _min?: dish_category_featuresMinOrderByAggregateInput
+    _sum?: dish_category_featuresSumOrderByAggregateInput
   }
 
-  export type dish_category_ancestorsScalarWhereWithAggregatesInput = {
-    AND?: dish_category_ancestorsScalarWhereWithAggregatesInput | dish_category_ancestorsScalarWhereWithAggregatesInput[]
-    OR?: dish_category_ancestorsScalarWhereWithAggregatesInput[]
-    NOT?: dish_category_ancestorsScalarWhereWithAggregatesInput | dish_category_ancestorsScalarWhereWithAggregatesInput[]
-    dish_category_id?: StringWithAggregatesFilter<"dish_category_ancestors"> | string
-    ancestor_qid?: StringWithAggregatesFilter<"dish_category_ancestors"> | string
-    depth?: IntWithAggregatesFilter<"dish_category_ancestors"> | number
+  export type dish_category_featuresScalarWhereWithAggregatesInput = {
+    AND?: dish_category_featuresScalarWhereWithAggregatesInput | dish_category_featuresScalarWhereWithAggregatesInput[]
+    OR?: dish_category_featuresScalarWhereWithAggregatesInput[]
+    NOT?: dish_category_featuresScalarWhereWithAggregatesInput | dish_category_featuresScalarWhereWithAggregatesInput[]
+    dish_category_id?: StringWithAggregatesFilter<"dish_category_features"> | string
+    feature_type?: StringWithAggregatesFilter<"dish_category_features"> | string
+    feature_key?: StringWithAggregatesFilter<"dish_category_features"> | string
+    score?: FloatWithAggregatesFilter<"dish_category_features"> | number
+    synced_at?: DateTimeWithAggregatesFilter<"dish_category_features"> | Date | string
+  }
+
+  export type dish_category_localized_textWhereInput = {
+    AND?: dish_category_localized_textWhereInput | dish_category_localized_textWhereInput[]
+    OR?: dish_category_localized_textWhereInput[]
+    NOT?: dish_category_localized_textWhereInput | dish_category_localized_textWhereInput[]
+    dish_category_id?: StringFilter<"dish_category_localized_text"> | string
+    locale?: StringFilter<"dish_category_localized_text"> | string
+    topic_title?: StringFilter<"dish_category_localized_text"> | string
+    tagline?: StringFilter<"dish_category_localized_text"> | string
+    synced_at?: DateTimeFilter<"dish_category_localized_text"> | Date | string
+    dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
+  }
+
+  export type dish_category_localized_textOrderByWithRelationInput = {
+    dish_category_id?: SortOrder
+    locale?: SortOrder
+    topic_title?: SortOrder
+    tagline?: SortOrder
+    synced_at?: SortOrder
+    dish_categories?: dish_categoriesOrderByWithRelationInput
+  }
+
+  export type dish_category_localized_textWhereUniqueInput = Prisma.AtLeast<{
+    dish_category_id_locale?: dish_category_localized_textDish_category_idLocaleCompoundUniqueInput
+    AND?: dish_category_localized_textWhereInput | dish_category_localized_textWhereInput[]
+    OR?: dish_category_localized_textWhereInput[]
+    NOT?: dish_category_localized_textWhereInput | dish_category_localized_textWhereInput[]
+    dish_category_id?: StringFilter<"dish_category_localized_text"> | string
+    locale?: StringFilter<"dish_category_localized_text"> | string
+    topic_title?: StringFilter<"dish_category_localized_text"> | string
+    tagline?: StringFilter<"dish_category_localized_text"> | string
+    synced_at?: DateTimeFilter<"dish_category_localized_text"> | Date | string
+    dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
+  }, "dish_category_id_locale">
+
+  export type dish_category_localized_textOrderByWithAggregationInput = {
+    dish_category_id?: SortOrder
+    locale?: SortOrder
+    topic_title?: SortOrder
+    tagline?: SortOrder
+    synced_at?: SortOrder
+    _count?: dish_category_localized_textCountOrderByAggregateInput
+    _max?: dish_category_localized_textMaxOrderByAggregateInput
+    _min?: dish_category_localized_textMinOrderByAggregateInput
+  }
+
+  export type dish_category_localized_textScalarWhereWithAggregatesInput = {
+    AND?: dish_category_localized_textScalarWhereWithAggregatesInput | dish_category_localized_textScalarWhereWithAggregatesInput[]
+    OR?: dish_category_localized_textScalarWhereWithAggregatesInput[]
+    NOT?: dish_category_localized_textScalarWhereWithAggregatesInput | dish_category_localized_textScalarWhereWithAggregatesInput[]
+    dish_category_id?: StringWithAggregatesFilter<"dish_category_localized_text"> | string
+    locale?: StringWithAggregatesFilter<"dish_category_localized_text"> | string
+    topic_title?: StringWithAggregatesFilter<"dish_category_localized_text"> | string
+    tagline?: StringWithAggregatesFilter<"dish_category_localized_text"> | string
+    synced_at?: DateTimeWithAggregatesFilter<"dish_category_localized_text"> | Date | string
   }
 
   export type dish_category_variantsWhereInput = {
@@ -39402,6 +39544,7 @@ export namespace Prisma {
   export type dish_category_variantsWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     surface_form?: string
+    dish_category_id_surface_form?: dish_category_variantsDish_category_idSurface_formCompoundUniqueInput
     AND?: dish_category_variantsWhereInput | dish_category_variantsWhereInput[]
     OR?: dish_category_variantsWhereInput[]
     NOT?: dish_category_variantsWhereInput | dish_category_variantsWhereInput[]
@@ -39409,7 +39552,7 @@ export namespace Prisma {
     source?: StringNullableFilter<"dish_category_variants"> | string | null
     created_at?: DateTimeFilter<"dish_category_variants"> | Date | string
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
-  }, "id" | "surface_form">
+  }, "id" | "surface_form" | "dish_category_id_surface_form">
 
   export type dish_category_variantsOrderByWithAggregationInput = {
     id?: SortOrder
@@ -40168,48 +40311,6 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"frontend_event_logs"> | Date | string
     created_app_version?: StringWithAggregatesFilter<"frontend_event_logs"> | string
     created_commit_id?: StringWithAggregatesFilter<"frontend_event_logs"> | string
-  }
-
-  export type macro_genre_whitelistWhereInput = {
-    AND?: macro_genre_whitelistWhereInput | macro_genre_whitelistWhereInput[]
-    OR?: macro_genre_whitelistWhereInput[]
-    NOT?: macro_genre_whitelistWhereInput | macro_genre_whitelistWhereInput[]
-    macro_genre_qid?: StringFilter<"macro_genre_whitelist"> | string
-    label_en?: StringNullableFilter<"macro_genre_whitelist"> | string | null
-    label_ja?: StringNullableFilter<"macro_genre_whitelist"> | string | null
-  }
-
-  export type macro_genre_whitelistOrderByWithRelationInput = {
-    macro_genre_qid?: SortOrder
-    label_en?: SortOrderInput | SortOrder
-    label_ja?: SortOrderInput | SortOrder
-  }
-
-  export type macro_genre_whitelistWhereUniqueInput = Prisma.AtLeast<{
-    macro_genre_qid?: string
-    AND?: macro_genre_whitelistWhereInput | macro_genre_whitelistWhereInput[]
-    OR?: macro_genre_whitelistWhereInput[]
-    NOT?: macro_genre_whitelistWhereInput | macro_genre_whitelistWhereInput[]
-    label_en?: StringNullableFilter<"macro_genre_whitelist"> | string | null
-    label_ja?: StringNullableFilter<"macro_genre_whitelist"> | string | null
-  }, "macro_genre_qid">
-
-  export type macro_genre_whitelistOrderByWithAggregationInput = {
-    macro_genre_qid?: SortOrder
-    label_en?: SortOrderInput | SortOrder
-    label_ja?: SortOrderInput | SortOrder
-    _count?: macro_genre_whitelistCountOrderByAggregateInput
-    _max?: macro_genre_whitelistMaxOrderByAggregateInput
-    _min?: macro_genre_whitelistMinOrderByAggregateInput
-  }
-
-  export type macro_genre_whitelistScalarWhereWithAggregatesInput = {
-    AND?: macro_genre_whitelistScalarWhereWithAggregatesInput | macro_genre_whitelistScalarWhereWithAggregatesInput[]
-    OR?: macro_genre_whitelistScalarWhereWithAggregatesInput[]
-    NOT?: macro_genre_whitelistScalarWhereWithAggregatesInput | macro_genre_whitelistScalarWhereWithAggregatesInput[]
-    macro_genre_qid?: StringWithAggregatesFilter<"macro_genre_whitelist"> | string
-    label_en?: StringNullableWithAggregatesFilter<"macro_genre_whitelist"> | string | null
-    label_ja?: StringNullableWithAggregatesFilter<"macro_genre_whitelist"> | string | null
   }
 
   export type notification_recipientsWhereInput = {
@@ -41391,14 +41492,12 @@ export namespace Prisma {
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
-    dish_category_ancestors?: dish_category_ancestorsCreateNestedManyWithoutDish_categoriesInput
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
   }
@@ -41408,14 +41507,12 @@ export namespace Prisma {
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
-    dish_category_ancestors?: dish_category_ancestorsUncheckedCreateNestedManyWithoutDish_categoriesInput
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
   }
@@ -41425,14 +41522,12 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
-    dish_category_ancestors?: dish_category_ancestorsUpdateManyWithoutDish_categoriesNestedInput
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -41442,14 +41537,12 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
-    dish_category_ancestors?: dish_category_ancestorsUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -41459,13 +41552,10 @@ export namespace Prisma {
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
+    synced_at?: Date | string | null
   }
 
   export type dish_categoriesUpdateManyMutationInput = {
@@ -41473,13 +41563,10 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_categoriesUncheckedUpdateManyInput = {
@@ -41487,54 +41574,120 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
-  export type dish_category_ancestorsCreateInput = {
-    ancestor_qid: string
-    depth: number
-    dish_categories: dish_categoriesCreateNestedOneWithoutDish_category_ancestorsInput
+  export type dish_category_featuresCreateInput = {
+    feature_type: string
+    feature_key: string
+    score: number
+    synced_at: Date | string
+    dish_categories: dish_categoriesCreateNestedOneWithoutDish_category_featuresInput
   }
 
-  export type dish_category_ancestorsUncheckedCreateInput = {
+  export type dish_category_featuresUncheckedCreateInput = {
     dish_category_id: string
-    ancestor_qid: string
-    depth: number
+    feature_type: string
+    feature_key: string
+    score: number
+    synced_at: Date | string
   }
 
-  export type dish_category_ancestorsUpdateInput = {
-    ancestor_qid?: StringFieldUpdateOperationsInput | string
-    depth?: IntFieldUpdateOperationsInput | number
-    dish_categories?: dish_categoriesUpdateOneRequiredWithoutDish_category_ancestorsNestedInput
+  export type dish_category_featuresUpdateInput = {
+    feature_type?: StringFieldUpdateOperationsInput | string
+    feature_key?: StringFieldUpdateOperationsInput | string
+    score?: FloatFieldUpdateOperationsInput | number
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_categories?: dish_categoriesUpdateOneRequiredWithoutDish_category_featuresNestedInput
   }
 
-  export type dish_category_ancestorsUncheckedUpdateInput = {
+  export type dish_category_featuresUncheckedUpdateInput = {
     dish_category_id?: StringFieldUpdateOperationsInput | string
-    ancestor_qid?: StringFieldUpdateOperationsInput | string
-    depth?: IntFieldUpdateOperationsInput | number
+    feature_type?: StringFieldUpdateOperationsInput | string
+    feature_key?: StringFieldUpdateOperationsInput | string
+    score?: FloatFieldUpdateOperationsInput | number
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type dish_category_ancestorsCreateManyInput = {
+  export type dish_category_featuresCreateManyInput = {
     dish_category_id: string
-    ancestor_qid: string
-    depth: number
+    feature_type: string
+    feature_key: string
+    score: number
+    synced_at: Date | string
   }
 
-  export type dish_category_ancestorsUpdateManyMutationInput = {
-    ancestor_qid?: StringFieldUpdateOperationsInput | string
-    depth?: IntFieldUpdateOperationsInput | number
+  export type dish_category_featuresUpdateManyMutationInput = {
+    feature_type?: StringFieldUpdateOperationsInput | string
+    feature_key?: StringFieldUpdateOperationsInput | string
+    score?: FloatFieldUpdateOperationsInput | number
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type dish_category_ancestorsUncheckedUpdateManyInput = {
+  export type dish_category_featuresUncheckedUpdateManyInput = {
     dish_category_id?: StringFieldUpdateOperationsInput | string
-    ancestor_qid?: StringFieldUpdateOperationsInput | string
-    depth?: IntFieldUpdateOperationsInput | number
+    feature_type?: StringFieldUpdateOperationsInput | string
+    feature_key?: StringFieldUpdateOperationsInput | string
+    score?: FloatFieldUpdateOperationsInput | number
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_localized_textCreateInput = {
+    locale: string
+    topic_title: string
+    tagline: string
+    synced_at: Date | string
+    dish_categories: dish_categoriesCreateNestedOneWithoutDish_category_localized_textInput
+  }
+
+  export type dish_category_localized_textUncheckedCreateInput = {
+    dish_category_id: string
+    locale: string
+    topic_title: string
+    tagline: string
+    synced_at: Date | string
+  }
+
+  export type dish_category_localized_textUpdateInput = {
+    locale?: StringFieldUpdateOperationsInput | string
+    topic_title?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_categories?: dish_categoriesUpdateOneRequiredWithoutDish_category_localized_textNestedInput
+  }
+
+  export type dish_category_localized_textUncheckedUpdateInput = {
+    dish_category_id?: StringFieldUpdateOperationsInput | string
+    locale?: StringFieldUpdateOperationsInput | string
+    topic_title?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_localized_textCreateManyInput = {
+    dish_category_id: string
+    locale: string
+    topic_title: string
+    tagline: string
+    synced_at: Date | string
+  }
+
+  export type dish_category_localized_textUpdateManyMutationInput = {
+    locale?: StringFieldUpdateOperationsInput | string
+    topic_title?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_localized_textUncheckedUpdateManyInput = {
+    dish_category_id?: StringFieldUpdateOperationsInput | string
+    locale?: StringFieldUpdateOperationsInput | string
+    topic_title?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_category_variantsCreateInput = {
@@ -42387,48 +42540,6 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     created_app_version?: StringFieldUpdateOperationsInput | string
     created_commit_id?: StringFieldUpdateOperationsInput | string
-  }
-
-  export type macro_genre_whitelistCreateInput = {
-    macro_genre_qid: string
-    label_en?: string | null
-    label_ja?: string | null
-  }
-
-  export type macro_genre_whitelistUncheckedCreateInput = {
-    macro_genre_qid: string
-    label_en?: string | null
-    label_ja?: string | null
-  }
-
-  export type macro_genre_whitelistUpdateInput = {
-    macro_genre_qid?: StringFieldUpdateOperationsInput | string
-    label_en?: NullableStringFieldUpdateOperationsInput | string | null
-    label_ja?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type macro_genre_whitelistUncheckedUpdateInput = {
-    macro_genre_qid?: StringFieldUpdateOperationsInput | string
-    label_en?: NullableStringFieldUpdateOperationsInput | string | null
-    label_ja?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type macro_genre_whitelistCreateManyInput = {
-    macro_genre_qid: string
-    label_en?: string | null
-    label_ja?: string | null
-  }
-
-  export type macro_genre_whitelistUpdateManyMutationInput = {
-    macro_genre_qid?: StringFieldUpdateOperationsInput | string
-    label_en?: NullableStringFieldUpdateOperationsInput | string | null
-    label_ja?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type macro_genre_whitelistUncheckedUpdateManyInput = {
-    macro_genre_qid?: StringFieldUpdateOperationsInput | string
-    label_en?: NullableStringFieldUpdateOperationsInput | string | null
-    label_ja?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type notification_recipientsCreateInput = {
@@ -43821,21 +43932,27 @@ export namespace Prisma {
     isEmpty?: boolean
   }
 
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
-  export type Dish_category_ancestorsListRelationFilter = {
-    every?: dish_category_ancestorsWhereInput
-    some?: dish_category_ancestorsWhereInput
-    none?: dish_category_ancestorsWhereInput
+  export type Dish_category_featuresListRelationFilter = {
+    every?: dish_category_featuresWhereInput
+    some?: dish_category_featuresWhereInput
+    none?: dish_category_featuresWhereInput
+  }
+
+  export type Dish_category_localized_textListRelationFilter = {
+    every?: dish_category_localized_textWhereInput
+    some?: dish_category_localized_textWhereInput
+    none?: dish_category_localized_textWhereInput
   }
 
   export type Dish_category_variantsListRelationFilter = {
@@ -43850,7 +43967,11 @@ export namespace Prisma {
     none?: dishesWhereInput
   }
 
-  export type dish_category_ancestorsOrderByRelationAggregateInput = {
+  export type dish_category_featuresOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type dish_category_localized_textOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -43867,17 +43988,10 @@ export namespace Prisma {
     label_en?: SortOrder
     labels?: SortOrder
     image_url?: SortOrder
-    origin?: SortOrder
-    cuisine?: SortOrder
     tags?: SortOrder
     created_at?: SortOrder
-    updated_at?: SortOrder
-    lock_no?: SortOrder
     macro_genre_qid?: SortOrder
-  }
-
-  export type dish_categoriesAvgOrderByAggregateInput = {
-    lock_no?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type dish_categoriesMaxOrderByAggregateInput = {
@@ -43885,9 +43999,8 @@ export namespace Prisma {
     label_en?: SortOrder
     image_url?: SortOrder
     created_at?: SortOrder
-    updated_at?: SortOrder
-    lock_no?: SortOrder
     macro_genre_qid?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type dish_categoriesMinOrderByAggregateInput = {
@@ -43895,13 +44008,8 @@ export namespace Prisma {
     label_en?: SortOrder
     image_url?: SortOrder
     created_at?: SortOrder
-    updated_at?: SortOrder
-    lock_no?: SortOrder
     macro_genre_qid?: SortOrder
-  }
-
-  export type dish_categoriesSumOrderByAggregateInput = {
-    lock_no?: SortOrder
+    synced_at?: SortOrder
   }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -43930,20 +44038,29 @@ export namespace Prisma {
     _max?: NestedJsonFilter<$PrismaModel>
   }
 
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type Dish_categoriesScalarRelationFilter = {
@@ -43951,35 +44068,87 @@ export namespace Prisma {
     isNot?: dish_categoriesWhereInput
   }
 
-  export type dish_category_ancestorsDish_category_idAncestor_qidCompoundUniqueInput = {
+  export type dish_category_featuresDish_category_idFeature_typeFeature_keyCompoundUniqueInput = {
     dish_category_id: string
-    ancestor_qid: string
+    feature_type: string
+    feature_key: string
   }
 
-  export type dish_category_ancestorsCountOrderByAggregateInput = {
+  export type dish_category_featuresCountOrderByAggregateInput = {
     dish_category_id?: SortOrder
-    ancestor_qid?: SortOrder
-    depth?: SortOrder
+    feature_type?: SortOrder
+    feature_key?: SortOrder
+    score?: SortOrder
+    synced_at?: SortOrder
   }
 
-  export type dish_category_ancestorsAvgOrderByAggregateInput = {
-    depth?: SortOrder
+  export type dish_category_featuresAvgOrderByAggregateInput = {
+    score?: SortOrder
   }
 
-  export type dish_category_ancestorsMaxOrderByAggregateInput = {
+  export type dish_category_featuresMaxOrderByAggregateInput = {
     dish_category_id?: SortOrder
-    ancestor_qid?: SortOrder
-    depth?: SortOrder
+    feature_type?: SortOrder
+    feature_key?: SortOrder
+    score?: SortOrder
+    synced_at?: SortOrder
   }
 
-  export type dish_category_ancestorsMinOrderByAggregateInput = {
+  export type dish_category_featuresMinOrderByAggregateInput = {
     dish_category_id?: SortOrder
-    ancestor_qid?: SortOrder
-    depth?: SortOrder
+    feature_type?: SortOrder
+    feature_key?: SortOrder
+    score?: SortOrder
+    synced_at?: SortOrder
   }
 
-  export type dish_category_ancestorsSumOrderByAggregateInput = {
-    depth?: SortOrder
+  export type dish_category_featuresSumOrderByAggregateInput = {
+    score?: SortOrder
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type dish_category_localized_textDish_category_idLocaleCompoundUniqueInput = {
+    dish_category_id: string
+    locale: string
+  }
+
+  export type dish_category_localized_textCountOrderByAggregateInput = {
+    dish_category_id?: SortOrder
+    locale?: SortOrder
+    topic_title?: SortOrder
+    tagline?: SortOrder
+    synced_at?: SortOrder
+  }
+
+  export type dish_category_localized_textMaxOrderByAggregateInput = {
+    dish_category_id?: SortOrder
+    locale?: SortOrder
+    topic_title?: SortOrder
+    tagline?: SortOrder
+    synced_at?: SortOrder
+  }
+
+  export type dish_category_localized_textMinOrderByAggregateInput = {
+    dish_category_id?: SortOrder
+    locale?: SortOrder
+    topic_title?: SortOrder
+    tagline?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type UuidFilter<$PrismaModel = never> = {
@@ -43992,6 +44161,11 @@ export namespace Prisma {
     gte?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedUuidFilter<$PrismaModel> | string
+  }
+
+  export type dish_category_variantsDish_category_idSurface_formCompoundUniqueInput = {
+    dish_category_id: string
+    surface_form: string
   }
 
   export type dish_category_variantsCountOrderByAggregateInput = {
@@ -44031,6 +44205,17 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -44152,6 +44337,22 @@ export namespace Prisma {
   export type dish_mediaSumOrderByAggregateInput = {
     lock_no?: SortOrder
     video_duration_ms?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -44619,24 +44820,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
     _max?: NestedEnumfrontend_event_logs_error_levelNullableFilter<$PrismaModel>
-  }
-
-  export type macro_genre_whitelistCountOrderByAggregateInput = {
-    macro_genre_qid?: SortOrder
-    label_en?: SortOrder
-    label_ja?: SortOrder
-  }
-
-  export type macro_genre_whitelistMaxOrderByAggregateInput = {
-    macro_genre_qid?: SortOrder
-    label_en?: SortOrder
-    label_ja?: SortOrder
-  }
-
-  export type macro_genre_whitelistMinOrderByAggregateInput = {
-    macro_genre_qid?: SortOrder
-    label_en?: SortOrder
-    label_ja?: SortOrder
   }
 
   export type NotificationsScalarRelationFilter = {
@@ -45126,17 +45309,6 @@ export namespace Prisma {
     _max?: NestedEnumrestaurant_bid_statusFilter<$PrismaModel>
   }
 
-  export type FloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type Restaurant_bidsListRelationFilter = {
     every?: restaurant_bidsWhereInput
     some?: restaurant_bidsWhereInput
@@ -45193,22 +45365,6 @@ export namespace Prisma {
   export type restaurantsSumOrderByAggregateInput = {
     latitude?: SortOrder
     longitude?: SortOrder
-  }
-
-  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type PermissionsScalarRelationFilter = {
@@ -45327,17 +45483,6 @@ export namespace Prisma {
     role_id?: SortOrder
   }
 
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
   export type usersCountOrderByAggregateInput = {
     id?: SortOrder
     display_name?: SortOrder
@@ -45385,20 +45530,6 @@ export namespace Prisma {
     lock_no?: SortOrder
   }
 
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
-  }
-
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -45415,23 +45546,22 @@ export namespace Prisma {
     set?: Date | string
   }
 
-  export type dish_categoriesCreateoriginInput = {
-    set: string[]
-  }
-
-  export type dish_categoriesCreatecuisineInput = {
-    set: string[]
-  }
-
   export type dish_categoriesCreatetagsInput = {
     set: string[]
   }
 
-  export type dish_category_ancestorsCreateNestedManyWithoutDish_categoriesInput = {
-    create?: XOR<dish_category_ancestorsCreateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput> | dish_category_ancestorsCreateWithoutDish_categoriesInput[] | dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput[]
-    connectOrCreate?: dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput | dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput[]
-    createMany?: dish_category_ancestorsCreateManyDish_categoriesInputEnvelope
-    connect?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
+  export type dish_category_featuresCreateNestedManyWithoutDish_categoriesInput = {
+    create?: XOR<dish_category_featuresCreateWithoutDish_categoriesInput, dish_category_featuresUncheckedCreateWithoutDish_categoriesInput> | dish_category_featuresCreateWithoutDish_categoriesInput[] | dish_category_featuresUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_featuresCreateOrConnectWithoutDish_categoriesInput | dish_category_featuresCreateOrConnectWithoutDish_categoriesInput[]
+    createMany?: dish_category_featuresCreateManyDish_categoriesInputEnvelope
+    connect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+  }
+
+  export type dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput = {
+    create?: XOR<dish_category_localized_textCreateWithoutDish_categoriesInput, dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput> | dish_category_localized_textCreateWithoutDish_categoriesInput[] | dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput | dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput[]
+    createMany?: dish_category_localized_textCreateManyDish_categoriesInputEnvelope
+    connect?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
   }
 
   export type dish_category_variantsCreateNestedManyWithoutDish_categoriesInput = {
@@ -45448,11 +45578,18 @@ export namespace Prisma {
     connect?: dishesWhereUniqueInput | dishesWhereUniqueInput[]
   }
 
-  export type dish_category_ancestorsUncheckedCreateNestedManyWithoutDish_categoriesInput = {
-    create?: XOR<dish_category_ancestorsCreateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput> | dish_category_ancestorsCreateWithoutDish_categoriesInput[] | dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput[]
-    connectOrCreate?: dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput | dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput[]
-    createMany?: dish_category_ancestorsCreateManyDish_categoriesInputEnvelope
-    connect?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
+  export type dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput = {
+    create?: XOR<dish_category_featuresCreateWithoutDish_categoriesInput, dish_category_featuresUncheckedCreateWithoutDish_categoriesInput> | dish_category_featuresCreateWithoutDish_categoriesInput[] | dish_category_featuresUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_featuresCreateOrConnectWithoutDish_categoriesInput | dish_category_featuresCreateOrConnectWithoutDish_categoriesInput[]
+    createMany?: dish_category_featuresCreateManyDish_categoriesInputEnvelope
+    connect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+  }
+
+  export type dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput = {
+    create?: XOR<dish_category_localized_textCreateWithoutDish_categoriesInput, dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput> | dish_category_localized_textCreateWithoutDish_categoriesInput[] | dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput | dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput[]
+    createMany?: dish_category_localized_textCreateManyDish_categoriesInputEnvelope
+    connect?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
   }
 
   export type dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput = {
@@ -45469,41 +45606,41 @@ export namespace Prisma {
     connect?: dishesWhereUniqueInput | dishesWhereUniqueInput[]
   }
 
-  export type dish_categoriesUpdateoriginInput = {
-    set?: string[]
-    push?: string | string[]
-  }
-
-  export type dish_categoriesUpdatecuisineInput = {
-    set?: string[]
-    push?: string | string[]
-  }
-
   export type dish_categoriesUpdatetagsInput = {
     set?: string[]
     push?: string | string[]
   }
 
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
-  export type dish_category_ancestorsUpdateManyWithoutDish_categoriesNestedInput = {
-    create?: XOR<dish_category_ancestorsCreateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput> | dish_category_ancestorsCreateWithoutDish_categoriesInput[] | dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput[]
-    connectOrCreate?: dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput | dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput[]
-    upsert?: dish_category_ancestorsUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_ancestorsUpsertWithWhereUniqueWithoutDish_categoriesInput[]
-    createMany?: dish_category_ancestorsCreateManyDish_categoriesInputEnvelope
-    set?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    disconnect?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    delete?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    connect?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    update?: dish_category_ancestorsUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_ancestorsUpdateWithWhereUniqueWithoutDish_categoriesInput[]
-    updateMany?: dish_category_ancestorsUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_ancestorsUpdateManyWithWhereWithoutDish_categoriesInput[]
-    deleteMany?: dish_category_ancestorsScalarWhereInput | dish_category_ancestorsScalarWhereInput[]
+  export type dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput = {
+    create?: XOR<dish_category_featuresCreateWithoutDish_categoriesInput, dish_category_featuresUncheckedCreateWithoutDish_categoriesInput> | dish_category_featuresCreateWithoutDish_categoriesInput[] | dish_category_featuresUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_featuresCreateOrConnectWithoutDish_categoriesInput | dish_category_featuresCreateOrConnectWithoutDish_categoriesInput[]
+    upsert?: dish_category_featuresUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_featuresUpsertWithWhereUniqueWithoutDish_categoriesInput[]
+    createMany?: dish_category_featuresCreateManyDish_categoriesInputEnvelope
+    set?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    disconnect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    delete?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    connect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    update?: dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput[]
+    updateMany?: dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput[]
+    deleteMany?: dish_category_featuresScalarWhereInput | dish_category_featuresScalarWhereInput[]
+  }
+
+  export type dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput = {
+    create?: XOR<dish_category_localized_textCreateWithoutDish_categoriesInput, dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput> | dish_category_localized_textCreateWithoutDish_categoriesInput[] | dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput | dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput[]
+    upsert?: dish_category_localized_textUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_localized_textUpsertWithWhereUniqueWithoutDish_categoriesInput[]
+    createMany?: dish_category_localized_textCreateManyDish_categoriesInputEnvelope
+    set?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    disconnect?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    delete?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    connect?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    update?: dish_category_localized_textUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_localized_textUpdateWithWhereUniqueWithoutDish_categoriesInput[]
+    updateMany?: dish_category_localized_textUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_localized_textUpdateManyWithWhereWithoutDish_categoriesInput[]
+    deleteMany?: dish_category_localized_textScalarWhereInput | dish_category_localized_textScalarWhereInput[]
   }
 
   export type dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput = {
@@ -45534,18 +45671,32 @@ export namespace Prisma {
     deleteMany?: dishesScalarWhereInput | dishesScalarWhereInput[]
   }
 
-  export type dish_category_ancestorsUncheckedUpdateManyWithoutDish_categoriesNestedInput = {
-    create?: XOR<dish_category_ancestorsCreateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput> | dish_category_ancestorsCreateWithoutDish_categoriesInput[] | dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput[]
-    connectOrCreate?: dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput | dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput[]
-    upsert?: dish_category_ancestorsUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_ancestorsUpsertWithWhereUniqueWithoutDish_categoriesInput[]
-    createMany?: dish_category_ancestorsCreateManyDish_categoriesInputEnvelope
-    set?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    disconnect?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    delete?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    connect?: dish_category_ancestorsWhereUniqueInput | dish_category_ancestorsWhereUniqueInput[]
-    update?: dish_category_ancestorsUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_ancestorsUpdateWithWhereUniqueWithoutDish_categoriesInput[]
-    updateMany?: dish_category_ancestorsUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_ancestorsUpdateManyWithWhereWithoutDish_categoriesInput[]
-    deleteMany?: dish_category_ancestorsScalarWhereInput | dish_category_ancestorsScalarWhereInput[]
+  export type dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput = {
+    create?: XOR<dish_category_featuresCreateWithoutDish_categoriesInput, dish_category_featuresUncheckedCreateWithoutDish_categoriesInput> | dish_category_featuresCreateWithoutDish_categoriesInput[] | dish_category_featuresUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_featuresCreateOrConnectWithoutDish_categoriesInput | dish_category_featuresCreateOrConnectWithoutDish_categoriesInput[]
+    upsert?: dish_category_featuresUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_featuresUpsertWithWhereUniqueWithoutDish_categoriesInput[]
+    createMany?: dish_category_featuresCreateManyDish_categoriesInputEnvelope
+    set?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    disconnect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    delete?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    connect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+    update?: dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput[]
+    updateMany?: dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput[]
+    deleteMany?: dish_category_featuresScalarWhereInput | dish_category_featuresScalarWhereInput[]
+  }
+
+  export type dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput = {
+    create?: XOR<dish_category_localized_textCreateWithoutDish_categoriesInput, dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput> | dish_category_localized_textCreateWithoutDish_categoriesInput[] | dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput | dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput[]
+    upsert?: dish_category_localized_textUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_localized_textUpsertWithWhereUniqueWithoutDish_categoriesInput[]
+    createMany?: dish_category_localized_textCreateManyDish_categoriesInputEnvelope
+    set?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    disconnect?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    delete?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    connect?: dish_category_localized_textWhereUniqueInput | dish_category_localized_textWhereUniqueInput[]
+    update?: dish_category_localized_textUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_localized_textUpdateWithWhereUniqueWithoutDish_categoriesInput[]
+    updateMany?: dish_category_localized_textUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_localized_textUpdateManyWithWhereWithoutDish_categoriesInput[]
+    deleteMany?: dish_category_localized_textScalarWhereInput | dish_category_localized_textScalarWhereInput[]
   }
 
   export type dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput = {
@@ -45576,18 +45727,40 @@ export namespace Prisma {
     deleteMany?: dishesScalarWhereInput | dishesScalarWhereInput[]
   }
 
-  export type dish_categoriesCreateNestedOneWithoutDish_category_ancestorsInput = {
-    create?: XOR<dish_categoriesCreateWithoutDish_category_ancestorsInput, dish_categoriesUncheckedCreateWithoutDish_category_ancestorsInput>
-    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_ancestorsInput
+  export type dish_categoriesCreateNestedOneWithoutDish_category_featuresInput = {
+    create?: XOR<dish_categoriesCreateWithoutDish_category_featuresInput, dish_categoriesUncheckedCreateWithoutDish_category_featuresInput>
+    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_featuresInput
     connect?: dish_categoriesWhereUniqueInput
   }
 
-  export type dish_categoriesUpdateOneRequiredWithoutDish_category_ancestorsNestedInput = {
-    create?: XOR<dish_categoriesCreateWithoutDish_category_ancestorsInput, dish_categoriesUncheckedCreateWithoutDish_category_ancestorsInput>
-    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_ancestorsInput
-    upsert?: dish_categoriesUpsertWithoutDish_category_ancestorsInput
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type dish_categoriesUpdateOneRequiredWithoutDish_category_featuresNestedInput = {
+    create?: XOR<dish_categoriesCreateWithoutDish_category_featuresInput, dish_categoriesUncheckedCreateWithoutDish_category_featuresInput>
+    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_featuresInput
+    upsert?: dish_categoriesUpsertWithoutDish_category_featuresInput
     connect?: dish_categoriesWhereUniqueInput
-    update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDish_category_ancestorsInput, dish_categoriesUpdateWithoutDish_category_ancestorsInput>, dish_categoriesUncheckedUpdateWithoutDish_category_ancestorsInput>
+    update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDish_category_featuresInput, dish_categoriesUpdateWithoutDish_category_featuresInput>, dish_categoriesUncheckedUpdateWithoutDish_category_featuresInput>
+  }
+
+  export type dish_categoriesCreateNestedOneWithoutDish_category_localized_textInput = {
+    create?: XOR<dish_categoriesCreateWithoutDish_category_localized_textInput, dish_categoriesUncheckedCreateWithoutDish_category_localized_textInput>
+    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_localized_textInput
+    connect?: dish_categoriesWhereUniqueInput
+  }
+
+  export type dish_categoriesUpdateOneRequiredWithoutDish_category_localized_textNestedInput = {
+    create?: XOR<dish_categoriesCreateWithoutDish_category_localized_textInput, dish_categoriesUncheckedCreateWithoutDish_category_localized_textInput>
+    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_localized_textInput
+    upsert?: dish_categoriesUpsertWithoutDish_category_localized_textInput
+    connect?: dish_categoriesWhereUniqueInput
+    update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDish_category_localized_textInput, dish_categoriesUpdateWithoutDish_category_localized_textInput>, dish_categoriesUncheckedUpdateWithoutDish_category_localized_textInput>
   }
 
   export type dish_categoriesCreateNestedOneWithoutDish_category_variantsInput = {
@@ -45682,6 +45855,14 @@ export namespace Prisma {
     connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
     createMany?: payoutsCreateManyDish_mediaInputEnvelope
     connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -46437,14 +46618,6 @@ export namespace Prisma {
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
   }
 
-  export type FloatFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
   export type dishesUpdateManyWithoutRestaurantsNestedInput = {
     create?: XOR<dishesCreateWithoutRestaurantsInput, dishesUncheckedCreateWithoutRestaurantsInput> | dishesCreateWithoutRestaurantsInput[] | dishesUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: dishesCreateOrConnectWithoutRestaurantsInput | dishesCreateOrConnectWithoutRestaurantsInput[]
@@ -46681,10 +46854,6 @@ export namespace Prisma {
     connectOrCreate?: restaurant_bidsCreateOrConnectWithoutUsersInput | restaurant_bidsCreateOrConnectWithoutUsersInput[]
     createMany?: restaurant_bidsCreateManyUsersInputEnvelope
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type dish_mediaUpdateManyWithoutUsersNestedInput = {
@@ -46972,6 +47141,17 @@ export namespace Prisma {
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -46996,20 +47176,18 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedFloatFilter<$PrismaModel = never> = {
@@ -47021,6 +47199,22 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type NestedUuidFilter<$PrismaModel = never> = {
@@ -47046,6 +47240,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -47210,64 +47420,51 @@ export namespace Prisma {
     _max?: NestedEnumrestaurant_bid_statusFilter<$PrismaModel>
   }
 
-  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+  export type dish_category_featuresCreateWithoutDish_categoriesInput = {
+    feature_type: string
+    feature_key: string
+    score: number
+    synced_at: Date | string
   }
 
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  export type dish_category_featuresUncheckedCreateWithoutDish_categoriesInput = {
+    feature_type: string
+    feature_key: string
+    score: number
+    synced_at: Date | string
   }
 
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  export type dish_category_featuresCreateOrConnectWithoutDish_categoriesInput = {
+    where: dish_category_featuresWhereUniqueInput
+    create: XOR<dish_category_featuresCreateWithoutDish_categoriesInput, dish_category_featuresUncheckedCreateWithoutDish_categoriesInput>
   }
 
-  export type dish_category_ancestorsCreateWithoutDish_categoriesInput = {
-    ancestor_qid: string
-    depth: number
+  export type dish_category_featuresCreateManyDish_categoriesInputEnvelope = {
+    data: dish_category_featuresCreateManyDish_categoriesInput | dish_category_featuresCreateManyDish_categoriesInput[]
+    skipDuplicates?: boolean
   }
 
-  export type dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput = {
-    ancestor_qid: string
-    depth: number
+  export type dish_category_localized_textCreateWithoutDish_categoriesInput = {
+    locale: string
+    topic_title: string
+    tagline: string
+    synced_at: Date | string
   }
 
-  export type dish_category_ancestorsCreateOrConnectWithoutDish_categoriesInput = {
-    where: dish_category_ancestorsWhereUniqueInput
-    create: XOR<dish_category_ancestorsCreateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput>
+  export type dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput = {
+    locale: string
+    topic_title: string
+    tagline: string
+    synced_at: Date | string
   }
 
-  export type dish_category_ancestorsCreateManyDish_categoriesInputEnvelope = {
-    data: dish_category_ancestorsCreateManyDish_categoriesInput | dish_category_ancestorsCreateManyDish_categoriesInput[]
+  export type dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput = {
+    where: dish_category_localized_textWhereUniqueInput
+    create: XOR<dish_category_localized_textCreateWithoutDish_categoriesInput, dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_localized_textCreateManyDish_categoriesInputEnvelope = {
+    data: dish_category_localized_textCreateManyDish_categoriesInput | dish_category_localized_textCreateManyDish_categoriesInput[]
     skipDuplicates?: boolean
   }
 
@@ -47327,29 +47524,58 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type dish_category_ancestorsUpsertWithWhereUniqueWithoutDish_categoriesInput = {
-    where: dish_category_ancestorsWhereUniqueInput
-    update: XOR<dish_category_ancestorsUpdateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedUpdateWithoutDish_categoriesInput>
-    create: XOR<dish_category_ancestorsCreateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedCreateWithoutDish_categoriesInput>
+  export type dish_category_featuresUpsertWithWhereUniqueWithoutDish_categoriesInput = {
+    where: dish_category_featuresWhereUniqueInput
+    update: XOR<dish_category_featuresUpdateWithoutDish_categoriesInput, dish_category_featuresUncheckedUpdateWithoutDish_categoriesInput>
+    create: XOR<dish_category_featuresCreateWithoutDish_categoriesInput, dish_category_featuresUncheckedCreateWithoutDish_categoriesInput>
   }
 
-  export type dish_category_ancestorsUpdateWithWhereUniqueWithoutDish_categoriesInput = {
-    where: dish_category_ancestorsWhereUniqueInput
-    data: XOR<dish_category_ancestorsUpdateWithoutDish_categoriesInput, dish_category_ancestorsUncheckedUpdateWithoutDish_categoriesInput>
+  export type dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput = {
+    where: dish_category_featuresWhereUniqueInput
+    data: XOR<dish_category_featuresUpdateWithoutDish_categoriesInput, dish_category_featuresUncheckedUpdateWithoutDish_categoriesInput>
   }
 
-  export type dish_category_ancestorsUpdateManyWithWhereWithoutDish_categoriesInput = {
-    where: dish_category_ancestorsScalarWhereInput
-    data: XOR<dish_category_ancestorsUpdateManyMutationInput, dish_category_ancestorsUncheckedUpdateManyWithoutDish_categoriesInput>
+  export type dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput = {
+    where: dish_category_featuresScalarWhereInput
+    data: XOR<dish_category_featuresUpdateManyMutationInput, dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesInput>
   }
 
-  export type dish_category_ancestorsScalarWhereInput = {
-    AND?: dish_category_ancestorsScalarWhereInput | dish_category_ancestorsScalarWhereInput[]
-    OR?: dish_category_ancestorsScalarWhereInput[]
-    NOT?: dish_category_ancestorsScalarWhereInput | dish_category_ancestorsScalarWhereInput[]
-    dish_category_id?: StringFilter<"dish_category_ancestors"> | string
-    ancestor_qid?: StringFilter<"dish_category_ancestors"> | string
-    depth?: IntFilter<"dish_category_ancestors"> | number
+  export type dish_category_featuresScalarWhereInput = {
+    AND?: dish_category_featuresScalarWhereInput | dish_category_featuresScalarWhereInput[]
+    OR?: dish_category_featuresScalarWhereInput[]
+    NOT?: dish_category_featuresScalarWhereInput | dish_category_featuresScalarWhereInput[]
+    dish_category_id?: StringFilter<"dish_category_features"> | string
+    feature_type?: StringFilter<"dish_category_features"> | string
+    feature_key?: StringFilter<"dish_category_features"> | string
+    score?: FloatFilter<"dish_category_features"> | number
+    synced_at?: DateTimeFilter<"dish_category_features"> | Date | string
+  }
+
+  export type dish_category_localized_textUpsertWithWhereUniqueWithoutDish_categoriesInput = {
+    where: dish_category_localized_textWhereUniqueInput
+    update: XOR<dish_category_localized_textUpdateWithoutDish_categoriesInput, dish_category_localized_textUncheckedUpdateWithoutDish_categoriesInput>
+    create: XOR<dish_category_localized_textCreateWithoutDish_categoriesInput, dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_localized_textUpdateWithWhereUniqueWithoutDish_categoriesInput = {
+    where: dish_category_localized_textWhereUniqueInput
+    data: XOR<dish_category_localized_textUpdateWithoutDish_categoriesInput, dish_category_localized_textUncheckedUpdateWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_localized_textUpdateManyWithWhereWithoutDish_categoriesInput = {
+    where: dish_category_localized_textScalarWhereInput
+    data: XOR<dish_category_localized_textUpdateManyMutationInput, dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_localized_textScalarWhereInput = {
+    AND?: dish_category_localized_textScalarWhereInput | dish_category_localized_textScalarWhereInput[]
+    OR?: dish_category_localized_textScalarWhereInput[]
+    NOT?: dish_category_localized_textScalarWhereInput | dish_category_localized_textScalarWhereInput[]
+    dish_category_id?: StringFilter<"dish_category_localized_text"> | string
+    locale?: StringFilter<"dish_category_localized_text"> | string
+    topic_title?: StringFilter<"dish_category_localized_text"> | string
+    tagline?: StringFilter<"dish_category_localized_text"> | string
+    synced_at?: DateTimeFilter<"dish_category_localized_text"> | Date | string
   }
 
   export type dish_category_variantsUpsertWithWhereUniqueWithoutDish_categoriesInput = {
@@ -47408,82 +47634,146 @@ export namespace Prisma {
     lock_no?: IntFilter<"dishes"> | number
   }
 
-  export type dish_categoriesCreateWithoutDish_category_ancestorsInput = {
+  export type dish_categoriesCreateWithoutDish_category_featuresInput = {
     id: string
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
+    synced_at?: Date | string | null
+    dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
   }
 
-  export type dish_categoriesUncheckedCreateWithoutDish_category_ancestorsInput = {
+  export type dish_categoriesUncheckedCreateWithoutDish_category_featuresInput = {
     id: string
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
+    synced_at?: Date | string | null
+    dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
   }
 
-  export type dish_categoriesCreateOrConnectWithoutDish_category_ancestorsInput = {
+  export type dish_categoriesCreateOrConnectWithoutDish_category_featuresInput = {
     where: dish_categoriesWhereUniqueInput
-    create: XOR<dish_categoriesCreateWithoutDish_category_ancestorsInput, dish_categoriesUncheckedCreateWithoutDish_category_ancestorsInput>
+    create: XOR<dish_categoriesCreateWithoutDish_category_featuresInput, dish_categoriesUncheckedCreateWithoutDish_category_featuresInput>
   }
 
-  export type dish_categoriesUpsertWithoutDish_category_ancestorsInput = {
-    update: XOR<dish_categoriesUpdateWithoutDish_category_ancestorsInput, dish_categoriesUncheckedUpdateWithoutDish_category_ancestorsInput>
-    create: XOR<dish_categoriesCreateWithoutDish_category_ancestorsInput, dish_categoriesUncheckedCreateWithoutDish_category_ancestorsInput>
+  export type dish_categoriesUpsertWithoutDish_category_featuresInput = {
+    update: XOR<dish_categoriesUpdateWithoutDish_category_featuresInput, dish_categoriesUncheckedUpdateWithoutDish_category_featuresInput>
+    create: XOR<dish_categoriesCreateWithoutDish_category_featuresInput, dish_categoriesUncheckedCreateWithoutDish_category_featuresInput>
     where?: dish_categoriesWhereInput
   }
 
-  export type dish_categoriesUpdateToOneWithWhereWithoutDish_category_ancestorsInput = {
+  export type dish_categoriesUpdateToOneWithWhereWithoutDish_category_featuresInput = {
     where?: dish_categoriesWhereInput
-    data: XOR<dish_categoriesUpdateWithoutDish_category_ancestorsInput, dish_categoriesUncheckedUpdateWithoutDish_category_ancestorsInput>
+    data: XOR<dish_categoriesUpdateWithoutDish_category_featuresInput, dish_categoriesUncheckedUpdateWithoutDish_category_featuresInput>
   }
 
-  export type dish_categoriesUpdateWithoutDish_category_ancestorsInput = {
+  export type dish_categoriesUpdateWithoutDish_category_featuresInput = {
     id?: StringFieldUpdateOperationsInput | string
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
   }
 
-  export type dish_categoriesUncheckedUpdateWithoutDish_category_ancestorsInput = {
+  export type dish_categoriesUncheckedUpdateWithoutDish_category_featuresInput = {
     id?: StringFieldUpdateOperationsInput | string
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
+  }
+
+  export type dish_categoriesCreateWithoutDish_category_localized_textInput = {
+    id: string
+    label_en: string
+    labels: JsonNullValueInput | InputJsonValue
+    image_url: string
+    tags?: dish_categoriesCreatetagsInput | string[]
+    created_at?: Date | string
+    macro_genre_qid?: string | null
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
+    dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
+  }
+
+  export type dish_categoriesUncheckedCreateWithoutDish_category_localized_textInput = {
+    id: string
+    label_en: string
+    labels: JsonNullValueInput | InputJsonValue
+    image_url: string
+    tags?: dish_categoriesCreatetagsInput | string[]
+    created_at?: Date | string
+    macro_genre_qid?: string | null
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
+  }
+
+  export type dish_categoriesCreateOrConnectWithoutDish_category_localized_textInput = {
+    where: dish_categoriesWhereUniqueInput
+    create: XOR<dish_categoriesCreateWithoutDish_category_localized_textInput, dish_categoriesUncheckedCreateWithoutDish_category_localized_textInput>
+  }
+
+  export type dish_categoriesUpsertWithoutDish_category_localized_textInput = {
+    update: XOR<dish_categoriesUpdateWithoutDish_category_localized_textInput, dish_categoriesUncheckedUpdateWithoutDish_category_localized_textInput>
+    create: XOR<dish_categoriesCreateWithoutDish_category_localized_textInput, dish_categoriesUncheckedCreateWithoutDish_category_localized_textInput>
+    where?: dish_categoriesWhereInput
+  }
+
+  export type dish_categoriesUpdateToOneWithWhereWithoutDish_category_localized_textInput = {
+    where?: dish_categoriesWhereInput
+    data: XOR<dish_categoriesUpdateWithoutDish_category_localized_textInput, dish_categoriesUncheckedUpdateWithoutDish_category_localized_textInput>
+  }
+
+  export type dish_categoriesUpdateWithoutDish_category_localized_textInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label_en?: StringFieldUpdateOperationsInput | string
+    labels?: JsonNullValueInput | InputJsonValue
+    image_url?: StringFieldUpdateOperationsInput | string
+    tags?: dish_categoriesUpdatetagsInput | string[]
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
+    dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
+  }
+
+  export type dish_categoriesUncheckedUpdateWithoutDish_category_localized_textInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label_en?: StringFieldUpdateOperationsInput | string
+    labels?: JsonNullValueInput | InputJsonValue
+    image_url?: StringFieldUpdateOperationsInput | string
+    tags?: dish_categoriesUpdatetagsInput | string[]
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -47493,14 +47783,12 @@ export namespace Prisma {
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
-    dish_category_ancestors?: dish_category_ancestorsCreateNestedManyWithoutDish_categoriesInput
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
   }
 
@@ -47509,14 +47797,12 @@ export namespace Prisma {
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
-    dish_category_ancestors?: dish_category_ancestorsUncheckedCreateNestedManyWithoutDish_categoriesInput
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
   }
 
@@ -47541,14 +47827,12 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
-    dish_category_ancestors?: dish_category_ancestorsUpdateManyWithoutDish_categoriesNestedInput
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
   }
 
@@ -47557,14 +47841,12 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
-    dish_category_ancestors?: dish_category_ancestorsUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
 
@@ -48788,14 +49070,12 @@ export namespace Prisma {
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
-    dish_category_ancestors?: dish_category_ancestorsCreateNestedManyWithoutDish_categoriesInput
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
   }
 
@@ -48804,14 +49084,12 @@ export namespace Prisma {
     label_en: string
     labels: JsonNullValueInput | InputJsonValue
     image_url: string
-    origin?: dish_categoriesCreateoriginInput | string[]
-    cuisine?: dish_categoriesCreatecuisineInput | string[]
     tags?: dish_categoriesCreatetagsInput | string[]
     created_at?: Date | string
-    updated_at?: Date | string
-    lock_no?: number
     macro_genre_qid?: string | null
-    dish_category_ancestors?: dish_category_ancestorsUncheckedCreateNestedManyWithoutDish_categoriesInput
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
   }
 
@@ -48939,14 +49217,12 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
-    dish_category_ancestors?: dish_category_ancestorsUpdateManyWithoutDish_categoriesNestedInput
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
   }
 
@@ -48955,14 +49231,12 @@ export namespace Prisma {
     label_en?: StringFieldUpdateOperationsInput | string
     labels?: JsonNullValueInput | InputJsonValue
     image_url?: StringFieldUpdateOperationsInput | string
-    origin?: dish_categoriesUpdateoriginInput | string[]
-    cuisine?: dish_categoriesUpdatecuisineInput | string[]
     tags?: dish_categoriesUpdatetagsInput | string[]
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
-    lock_no?: IntFieldUpdateOperationsInput | number
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
-    dish_category_ancestors?: dish_category_ancestorsUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
 
@@ -50183,9 +50457,18 @@ export namespace Prisma {
     data: XOR<restaurant_bidsUpdateManyMutationInput, restaurant_bidsUncheckedUpdateManyWithoutUsersInput>
   }
 
-  export type dish_category_ancestorsCreateManyDish_categoriesInput = {
-    ancestor_qid: string
-    depth: number
+  export type dish_category_featuresCreateManyDish_categoriesInput = {
+    feature_type: string
+    feature_key: string
+    score: number
+    synced_at: Date | string
+  }
+
+  export type dish_category_localized_textCreateManyDish_categoriesInput = {
+    locale: string
+    topic_title: string
+    tagline: string
+    synced_at: Date | string
   }
 
   export type dish_category_variantsCreateManyDish_categoriesInput = {
@@ -50204,19 +50487,46 @@ export namespace Prisma {
     lock_no?: number
   }
 
-  export type dish_category_ancestorsUpdateWithoutDish_categoriesInput = {
-    ancestor_qid?: StringFieldUpdateOperationsInput | string
-    depth?: IntFieldUpdateOperationsInput | number
+  export type dish_category_featuresUpdateWithoutDish_categoriesInput = {
+    feature_type?: StringFieldUpdateOperationsInput | string
+    feature_key?: StringFieldUpdateOperationsInput | string
+    score?: FloatFieldUpdateOperationsInput | number
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type dish_category_ancestorsUncheckedUpdateWithoutDish_categoriesInput = {
-    ancestor_qid?: StringFieldUpdateOperationsInput | string
-    depth?: IntFieldUpdateOperationsInput | number
+  export type dish_category_featuresUncheckedUpdateWithoutDish_categoriesInput = {
+    feature_type?: StringFieldUpdateOperationsInput | string
+    feature_key?: StringFieldUpdateOperationsInput | string
+    score?: FloatFieldUpdateOperationsInput | number
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type dish_category_ancestorsUncheckedUpdateManyWithoutDish_categoriesInput = {
-    ancestor_qid?: StringFieldUpdateOperationsInput | string
-    depth?: IntFieldUpdateOperationsInput | number
+  export type dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesInput = {
+    feature_type?: StringFieldUpdateOperationsInput | string
+    feature_key?: StringFieldUpdateOperationsInput | string
+    score?: FloatFieldUpdateOperationsInput | number
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_localized_textUpdateWithoutDish_categoriesInput = {
+    locale?: StringFieldUpdateOperationsInput | string
+    topic_title?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_localized_textUncheckedUpdateWithoutDish_categoriesInput = {
+    locale?: StringFieldUpdateOperationsInput | string
+    topic_title?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesInput = {
+    locale?: StringFieldUpdateOperationsInput | string
+    topic_title?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_category_variantsUpdateWithoutDish_categoriesInput = {

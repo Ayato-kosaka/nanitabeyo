@@ -23,7 +23,7 @@ export const TEST_PARAMETERS = {
 
   // Mood options from frontend constants
   moods: [
-    'hearty',
+    'heavy',
     'light',
     'sweet',
     'spicy',
