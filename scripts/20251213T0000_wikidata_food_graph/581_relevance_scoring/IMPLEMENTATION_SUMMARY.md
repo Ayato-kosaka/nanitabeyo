@@ -52,7 +52,7 @@ Successfully implemented a comprehensive relevance scoring system for dish_categ
 
 - **timeSlot** (5): morning, lunch, afternoon, dinner, late_night
 - **scene** (5): solo, date, friends, family, drinking
-- **satiety** (3): hearty, normal, light
+- **satiety** (3): heavy, normal, light
 - **taste** (5): sweet, spicy, healthy, junk, alcohol
 
 #### Phase2 Review Prompt (`prompts/jp_relevance_scoring_phase2.py`)

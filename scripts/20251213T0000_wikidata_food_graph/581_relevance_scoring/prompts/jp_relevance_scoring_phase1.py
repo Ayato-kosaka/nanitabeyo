@@ -64,7 +64,7 @@ B) scene (誰と食べるか):
    solo / date / friends / family / drinking
 
 C) satiety (満腹感):
-   hearty / normal / light
+   heavy / normal / light
 
 D) taste (印象タグ):
    sweet / spicy / healthy / junk / alcohol
@@ -194,13 +194,13 @@ IMPORTANT GUARDRAILS:
   then set normal=0.5 (NOT 1), even if it is a common meal.
 - light reflects "軽めの満腹感" (少量・軽食・小皿・つまみ・デザート等)。居酒屋適性とは別。
 - If uncertain -> 0.5.
-- hearty=1 is STRICT: use 1 ONLY when the category itself is defined as "ガッツリ/重い/高ボリューム".
+- heavy=1 is STRICT: use 1 ONLY when the category itself is defined as "ガッツリ/重い/高ボリューム".
   If the heaviness depends on portion/restaurant/option (例: チャーハン, 焼きそば, 焼きうどん, 餃子),
-  then prefer hearty=0.5 (unless clearly a heavy variant category).
-- OVERRIDE: If the category is fried-cutlet / deep-fried main (例: 豚カツ) or fried+staple combo (例: カツカレー), prefer hearty=1.
+  then prefer heavy=0.5 (unless clearly a heavy variant category).
+- OVERRIDE: If the category is fried-cutlet / deep-fried main (例: 豚カツ) or fried+staple combo (例: カツカレー), prefer heavy=1.
 - OVERRIDE: light=0.5 is allowed for small-plate / one-dish items that can be eaten lightly (例: 餃子, 小皿中華), even if not a "snack".
 
-hearty:
+heavy:
 - 1: ボリュームがあり満腹になる
 - 0.5: 中程度の満腹感
 - 0: 軽め
@@ -264,7 +264,7 @@ Return exactly one structured result per item using the tool spec.
 For each item, output ALL features:
 - timeSlot: morning, lunch, afternoon, dinner, late_night
 - scene: solo, date, friends, family, drinking
-- satiety: hearty, normal, light
+- satiety: heavy, normal, light
 - taste: sweet, spicy, healthy, junk, alcohol
 
 Each feature must have:

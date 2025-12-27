@@ -8,7 +8,8 @@ BigQuery → PostgreSQL: dish_category_features テーブルの同期
 
 【処理内容】
 1. BigQuery から dish_category_features_catalog を取得
-2. PostgreSQL へ UPSERT
+2. PostgreSQL の dish_category_features を全削除
+3. 1 のデータを PostgreSQL に INSERT
 
 【使用方法】
 # 通常実行

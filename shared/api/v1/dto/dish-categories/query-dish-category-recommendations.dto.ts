@@ -39,7 +39,7 @@ export class QueryDishCategoryRecommendationsDto {
 	@IsString()
 	scene?: string;
 
-	/** ユーザーのお腹の減り具合 (mood) 例: 'hearty', 'light' など */
+	/** ユーザーのお腹の減り具合 (mood) 例: 'heavy', 'light' など */
 	@IsOptional()
 	@normalizeOptionalString()
 	@IsString()

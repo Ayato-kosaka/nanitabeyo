@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_labels` (
 CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_feature_scores` (
   item_qid     STRING NOT NULL,   -- dish_category QID
   feature_type STRING NOT NULL,   -- 'timeSlot' / 'scene' / 'satiety' / 'taste'
-  feature_key  STRING NOT NULL,   -- 'morning' / 'solo' / 'hearty' / 'sweet' など
+  feature_key  STRING NOT NULL,   -- 'morning' / 'solo' / 'heavy' / 'sweet' など
   score        FLOAT64 NOT NULL,  -- 0 / 0.5 / 1 のみ
   confidence   STRING,            -- 'high' / 'medium' / 'low'
   reason       STRING,            -- <= 120 chars（日本語可）
