@@ -82,7 +82,6 @@ export default function SearchScreen() {
 			{ until: 5, slot: "late_night" },
 			{ until: 10, slot: "morning" },
 			{ until: 15, slot: "lunch" },
-			{ until: 17, slot: "afternoon" },
 			{ until: 22, slot: "dinner" },
 			{ until: 24, slot: "late_night" },
 		];
