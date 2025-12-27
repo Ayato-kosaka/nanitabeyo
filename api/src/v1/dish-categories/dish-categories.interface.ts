@@ -26,5 +26,6 @@ export interface DishCategoryCandidateWithScores {
   dine_out_orderability_score: number;
   final_score: number;
   rnd_value: number;
-  weighted_random_score: number;
+  random_unit: number;
+  order_score: number;
 }

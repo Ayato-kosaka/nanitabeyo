@@ -20,7 +20,7 @@ export class DishCategoriesRepository {
     private readonly prisma: PrismaService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   async findDishCategoryById(id: string) {
     this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
@@ -149,8 +149,7 @@ export class DishCategoriesRepository {
       wTaste,
       wMarketSalience,
       wDineOutOrderability,
-      wEps,
-      wAlpha,
+      scoreJitterRatio,
     ] = await this.remoteConfigService
       .getRemoteConfigValues([
         'dish_category_recommendation_weight_time_slot',
@@ -159,8 +158,7 @@ export class DishCategoriesRepository {
         'dish_category_recommendation_weight_taste',
         'dish_category_recommendation_weight_market_salience',
         'dish_category_recommendation_weight_dine_out_orderability',
-        'dish_category_recommendation_weighted_random_eps',
-        'dish_category_recommendation_weighted_random_alpha',
+        'dish_category_recommendation_score_jitter_ratio',
       ])
       .then((values) =>
         values.map((v) => {
@@ -189,8 +187,7 @@ export class DishCategoriesRepository {
           wTaste,
           wMarketSalience,
           wDineOutOrderability,
-          wEps,
-          wAlpha,
+          scoreJitterRatio,
         },
       },
     );
@@ -218,9 +215,7 @@ export class DishCategoriesRepository {
           ${wTaste}::numeric AS w_taste,
           ${wMarketSalience}::numeric AS w_market_salience,
           ${wDineOutOrderability}::numeric AS w_dine_out_orderability,
-          -- 分母0になって壊れないように下限値を設定
-          ${Math.max(wEps, 1e-6)}::numeric AS w_eps,
-          ${wAlpha}::numeric AS w_alpha
+          ${Math.min(Math.max(scoreJitterRatio, 0), 1)}::numeric AS score_jitter_ratio
       ),
       -- #533 【設計】gate whitelist: region_tokens + 'region:scope:global' でフィルタ
       region_ok_categories AS (
@@ -349,8 +344,7 @@ export class DishCategoriesRepository {
           sc.rel_score * (1 - w.w_market_salience + w.w_market_salience * sc.market_salience_score)
             * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * sc.dine_out_orderability_score)
           AS final_score,
-          w.w_eps AS w_eps,
-          w.w_alpha AS w_alpha
+          w.score_jitter_ratio AS score_jitter_ratio
         FROM scored_candidates sc
         CROSS JOIN weights w
       ),
@@ -361,17 +355,14 @@ export class DishCategoriesRepository {
         FROM final_scored
         WHERE final_score > 0
       ),
-      -- #533 【設計】weighted random でソート（final_scoreが大きいほど前に来やすい）
-      --   alpha: スコア差の効かせ方（探索温度）
-      --     - alpha > 1 : 高スコアをより優遇（安定・探索弱め）
-      --     - alpha = 1 : 通常（現状と同じ）
-      --     - alpha < 1 : 差を縮める（探索強め）
-      --   eps: weight の下限値
-      --     final_score が 0 に近い候補が過度に前に出ないようにする安全弁
+      -- #598 【設計】スコア忠実な微小揺らぎを加えた順序付け
+      -- order_score = final_score * (1 + score_jitter_ratio * random_unit)
+      -- random_unit = 2 * rnd_value - 1  （[-1, 1]）
+      --   rnd_value: [0,1) の一様乱数
       candidates_with_scores AS (
         SELECT f.*,
-        -LN(GREATEST(f.rnd_value, 1e-12)) / POWER(GREATEST(f.final_score, f.w_eps), f.w_alpha)
-          AS weighted_random_score
+        (2 * f.rnd_value - 1) AS random_unit,
+        (f.final_score * GREATEST(1 + f.score_jitter_ratio * (2 * f.rnd_value - 1), 0)) AS order_score
         FROM final_scored_filtered f
       )
       SELECT
@@ -386,9 +377,10 @@ export class DishCategoriesRepository {
         dine_out_orderability_score,
         final_score,
         rnd_value,
-        weighted_random_score
+        random_unit,
+        order_score
       FROM candidates_with_scores
-      ORDER BY weighted_random_score ASC
+      ORDER BY order_score DESC
       -- PostgreSQL の LIMIT は 同一クエリレベルの行（FROM 句のテーブル/CTE別名の列）を参照できないため、
       -- ここでは SELECT で params を参照して制限をかける。
       LIMIT (SELECT candidate_limit FROM params)
