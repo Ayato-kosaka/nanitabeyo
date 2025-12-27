@@ -9,7 +9,10 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
 import { Prisma } from '../../../../shared/prisma';
-import { DishCategoryCandidateNormalizedInput, DishCategoryCandidateWithScores } from './dish-categories.interface';
+import {
+  DishCategoryCandidateNormalizedInput,
+  DishCategoryCandidateWithScores,
+} from './dish-categories.interface';
 
 @Injectable()
 export class DishCategoriesRepository {
@@ -17,7 +20,7 @@ export class DishCategoriesRepository {
     private readonly prisma: PrismaService,
     private readonly remoteConfigService: RemoteConfigService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   async findDishCategoryById(id: string) {
     this.logger.debug('FindDishCategoryById', 'findDishCategoryById', { id });
@@ -127,22 +130,29 @@ export class DishCategoriesRepository {
   /**
    * #533 【仕様】料理カテゴリ候補をスコアリングして取得（WITH params/weights構造）
    */
-  async findCategoryCandidatesWithScores(
-    params: {
-      addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
-      regionTokens: DishCategoryCandidateNormalizedInput['regionTokens'];
-      regionFallbackKeys: DishCategoryCandidateNormalizedInput['regionFallbackKeys'];
-      timeSlotKey: DishCategoryCandidateNormalizedInput['timeSlotKey'];
-      sceneKey: DishCategoryCandidateNormalizedInput['sceneKey'];
-      satietyKey: DishCategoryCandidateNormalizedInput['satietyKey'];
-      tasteKey: DishCategoryCandidateNormalizedInput['tasteKey'];
-      candidateLimit: number;
-    },
-  ): Promise<DishCategoryCandidateWithScores[]> {
+  async findCategoryCandidatesWithScores(params: {
+    addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
+    regionTokens: DishCategoryCandidateNormalizedInput['regionTokens'];
+    regionFallbackKeys: DishCategoryCandidateNormalizedInput['regionFallbackKeys'];
+    timeSlotKey: DishCategoryCandidateNormalizedInput['timeSlotKey'];
+    sceneKey: DishCategoryCandidateNormalizedInput['sceneKey'];
+    satietyKey: DishCategoryCandidateNormalizedInput['satietyKey'];
+    tasteKey: DishCategoryCandidateNormalizedInput['tasteKey'];
+    candidateLimit: number;
+  }): Promise<DishCategoryCandidateWithScores[]> {
     const startTime = Date.now();
 
-    const [wTime, wScene, wSatiety, wTaste, wMarketSalience, wDineOutOrderability, wEps, wAlpha] =
-      await this.remoteConfigService.getRemoteConfigValues([
+    const [
+      wTime,
+      wScene,
+      wSatiety,
+      wTaste,
+      wMarketSalience,
+      wDineOutOrderability,
+      wEps,
+      wAlpha,
+    ] = await this.remoteConfigService
+      .getRemoteConfigValues([
         'dish_category_recommendation_weight_time_slot',
         'dish_category_recommendation_weight_scene',
         'dish_category_recommendation_weight_satiety',
@@ -151,18 +161,21 @@ export class DishCategoriesRepository {
         'dish_category_recommendation_weight_dine_out_orderability',
         'dish_category_recommendation_weighted_random_eps',
         'dish_category_recommendation_weighted_random_alpha',
-      ]).then(values => values.map(v => {
-        const float = parseFloat(v)
-        if (isNaN(float) || float < 0) {
-          this.logger.warn(
-            'InvalidRemoteConfigValue',
-            'findCategoryCandidatesWithScores',
-            { value: v },
-          );
-          return 0;
-        }
-        return float;
-      }));
+      ])
+      .then((values) =>
+        values.map((v) => {
+          const float = parseFloat(v);
+          if (isNaN(float) || float < 0) {
+            this.logger.warn(
+              'InvalidRemoteConfigValue',
+              'findCategoryCandidatesWithScores',
+              { value: v },
+            );
+            return 0;
+          }
+          return float;
+        }),
+      );
 
     this.logger.debug(
       'FindCategoryCandidatesWithScores',
@@ -179,7 +192,7 @@ export class DishCategoriesRepository {
           wEps,
           wAlpha,
         },
-      }
+      },
     );
 
     // #533 【設計】SQLは WITH params, weights で一元管理
@@ -413,12 +426,13 @@ export class DishCategoriesRepository {
     // 該当するローカライズ文言をすべて取得
     // DISTINCT ON + ORDER BY CASE で優先度の高いものを抽出する方法もあるが、
     // 性能トレードオフで今回は Prisma ORM を利用する。
-    const dishCategoryLocalizations = await this.prisma.prisma.dish_category_localized_text.findMany({
-      where: {
-        dish_category_id: { in: categoryIds },
-        locale: { in: langCandidates },
-      },
-    });
+    const dishCategoryLocalizations =
+      await this.prisma.prisma.dish_category_localized_text.findMany({
+        where: {
+          dish_category_id: { in: categoryIds },
+          locale: { in: langCandidates },
+        },
+      });
 
     // locale優先度マップ（小さいほど優先）
     const prio = new Map(langCandidates.map((l, i) => [l, i]));

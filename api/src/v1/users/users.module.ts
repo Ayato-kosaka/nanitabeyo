@@ -22,15 +22,10 @@ import { DishCategoriesModule } from '../dish-categories/dish-categories.module'
     forwardRef(() => AuthModule), // For JWT Guards and CurrentUser decorator
     DishMediaModule,
     CloudTasksModule,
-    DishCategoriesModule
+    DishCategoriesModule,
   ],
   controllers: [UsersController],
-  providers: [
-    UsersService,
-    UsersRepository,
-    UsersMapper,
-    UsersAssembler,
-  ],
+  providers: [UsersService, UsersRepository, UsersMapper, UsersAssembler],
   exports: [UsersService, UsersRepository, UsersAssembler],
 })
-export class UsersModule { }
+export class UsersModule {}

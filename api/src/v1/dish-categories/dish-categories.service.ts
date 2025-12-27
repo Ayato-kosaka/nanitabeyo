@@ -15,7 +15,10 @@ import { ClaudeService } from '../../core/claude/claude.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
-import { DishCategoryCandidateNormalizedInput, DishCategoryCandidateWithScores } from './dish-categories.interface';
+import {
+  DishCategoryCandidateNormalizedInput,
+  DishCategoryCandidateWithScores,
+} from './dish-categories.interface';
 import { shuffle } from 'src/core/utils/backend-utils';
 
 // #533 【定数】候補取得上限数
@@ -28,9 +31,8 @@ const VARIETY_SIZE = 1;
 const EXPLORE_SIZE = 2;
 
 // #533 【定数】Explore選出用パーセンタイル
-const EXPLORE_LOW_PCT = 0.10;  // 上位10%は除外
-const EXPLORE_HIGH_PCT = 0.40; // 上位40%までは許可
-
+const EXPLORE_LOW_PCT = 0.1; // 上位10%は除外
+const EXPLORE_HIGH_PCT = 0.4; // 上位40%までは許可
 
 @Injectable()
 export class DishCategoriesService {
@@ -39,7 +41,7 @@ export class DishCategoriesService {
     private readonly claudeService: ClaudeService,
     private readonly logger: AppLoggerService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   /**
    * #533 【仕様】料理カテゴリ提案を生成（オンライン処理）
@@ -62,18 +64,16 @@ export class DishCategoriesService {
 
       // #533 【仕様】Step 2: 候補取得＋スレート構成＋ローカライズ
       // Step 2-1: 候補取得（SQL scoring）
-      const candidates = await this.repo.findCategoryCandidatesWithScores(
-        {
-          addressTokens: normalized.addressTokens,
-          regionTokens: normalized.regionTokens,
-          regionFallbackKeys: normalized.regionFallbackKeys,
-          timeSlotKey: normalized.timeSlotKey,
-          sceneKey: normalized.sceneKey,
-          satietyKey: normalized.satietyKey,
-          tasteKey: normalized.tasteKey,
-          candidateLimit: CANDIDATE_LIMIT,
-        },
-      )
+      const candidates = await this.repo.findCategoryCandidatesWithScores({
+        addressTokens: normalized.addressTokens,
+        regionTokens: normalized.regionTokens,
+        regionFallbackKeys: normalized.regionFallbackKeys,
+        timeSlotKey: normalized.timeSlotKey,
+        sceneKey: normalized.sceneKey,
+        satietyKey: normalized.satietyKey,
+        tasteKey: normalized.tasteKey,
+        candidateLimit: CANDIDATE_LIMIT,
+      });
 
       // #533 【フォールバック】候補0件の場合はClaude経路へ
       if (candidates.length === 0) {
@@ -130,8 +130,9 @@ export class DishCategoriesService {
   /**
    * #533 【仕様】入力正規化ロジック
    */
-  private normalizeInput(dto: QueryDishCategoryRecommendationsDto):
-    DishCategoryCandidateNormalizedInput {
+  private normalizeInput(
+    dto: QueryDishCategoryRecommendationsDto,
+  ): DishCategoryCandidateNormalizedInput {
     // #533 【仕様】addressのパース
     const addressTokens = dto.address
       .split(',')
@@ -146,9 +147,7 @@ export class DishCategoriesService {
     const regionTokens = addressTokens.map((token) => `region:${token}`);
 
     // #533 【仕様】regionFallbackKeys生成（狭い地域→広い地域→global）
-    const regionFallbackKeys = [...regionTokens]
-      .reverse()
-      .concat('global');
+    const regionFallbackKeys = [...regionTokens].reverse().concat('global');
 
     // #533 【仕様】空文字をnullに正規化
     const timeSlotKey = dto.timeSlot || null;
@@ -188,9 +187,7 @@ export class DishCategoriesService {
   /**
    * #533 【仕様】スレート構成ロジック（Core/Variety/Explore）
    */
-  private constructSlate(
-    candidates: DishCategoryCandidateWithScores[],
-  ): Array<{
+  private constructSlate(candidates: DishCategoryCandidateWithScores[]): Array<{
     category_id: string;
     macro_genre: string | null;
     rel_score: number;
@@ -255,14 +252,10 @@ export class DishCategoriesService {
 
     // #533 同じような並びにならないように表示順をシャッフルして返す
     // fillup を末尾固定
-    const middleItems = selected.filter(
-      (c) => c.selected_reason !== 'fillup',
-    );
-    const fillupItems = selected.filter(
-      (c) => c.selected_reason === 'fillup',
-    );
+    const middleItems = selected.filter((c) => c.selected_reason !== 'fillup');
+    const fillupItems = selected.filter((c) => c.selected_reason === 'fillup');
 
-    const finalSelected = [...(shuffle(middleItems)), ...fillupItems];
+    const finalSelected = [...shuffle(middleItems), ...fillupItems];
 
     this.logger.debug('ConstructedSlate', 'constructSlate', {
       selectedCount: finalSelected.length,
@@ -270,20 +263,20 @@ export class DishCategoriesService {
       selectedDetails: finalSelected,
     });
 
-    return finalSelected
-      .map((value) => ({
-        category_id: value.category_id,
-        macro_genre: value.macro_genre,
-        rel_score: value.rel_score,
-        final_score: value.final_score,
-      }));
+    return finalSelected.map((value) => ({
+      category_id: value.category_id,
+      macro_genre: value.macro_genre,
+      rel_score: value.rel_score,
+      final_score: value.final_score,
+    }));
   }
 
-
-  /**   
+  /**
    * #533 【仕様】Explore選出ロジック（mid-band一様ランダム選出）
    */
-  private pickExploreFromMidBand<T extends { category_id: string; macro_genre: string | null }>(
+  private pickExploreFromMidBand<
+    T extends { category_id: string; macro_genre: string | null },
+  >(
     candidatesInSqlOrder: T[],
     count: number,
     selectedCategoryIds: Set<string>,

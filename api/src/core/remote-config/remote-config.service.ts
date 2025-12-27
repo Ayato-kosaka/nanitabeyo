@@ -8,7 +8,7 @@ import {
 
 @Injectable()
 export class RemoteConfigService {
-  constructor(private readonly staticMasterService: StaticMasterService) { }
+  constructor(private readonly staticMasterService: StaticMasterService) {}
 
   /**
    * 🔧 Remote Config の静的マスタから指定キーの値を取得する。
@@ -20,7 +20,9 @@ export class RemoteConfigService {
    * @returns 対応する設定値配列（string[]）
    * @throws 無効な構造や存在しないキーに対しては例外を投げる
    */
-  async getRemoteConfigValues(keys: (keyof RemoteConfigValues)[]): Promise<string[]> {
+  async getRemoteConfigValues(
+    keys: (keyof RemoteConfigValues)[],
+  ): Promise<string[]> {
     // 🔄 静的マスタから設定データを取得
     const configJson = await this.staticMasterService.getStaticMaster('config');
     const rawConfig = configJson.reduce(
@@ -52,7 +54,9 @@ export class RemoteConfigService {
       const value = parsedConfig[key];
 
       if (typeof value !== 'string') {
-        throw new Error(`Remote config value for key "${key}" must be a string.`);
+        throw new Error(
+          `Remote config value for key "${key}" must be a string.`,
+        );
       }
 
       values.push(value);

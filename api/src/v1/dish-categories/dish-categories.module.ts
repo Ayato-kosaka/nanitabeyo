@@ -28,4 +28,4 @@ import { RemoteConfigModule } from 'src/core/remote-config/remote-config.module'
   providers: [DishCategoriesService, DishCategoriesRepository],
   exports: [DishCategoriesService, DishCategoriesRepository],
 })
-export class DishCategoriesModule { }
+export class DishCategoriesModule {}
