@@ -15,7 +15,8 @@ import { ClaudeService } from '../../core/claude/claude.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
-import { DishCategoryCandidateNormalizedInput } from './dish-categories.interface';
+import { DishCategoryCandidateNormalizedInput, DishCategoryCandidateWithScores } from './dish-categories.interface';
+import { shuffle } from 'src/core/utils/backend-utils';
 
 // #533 【定数】候補取得上限数
 const CANDIDATE_LIMIT = 200;
@@ -27,8 +28,8 @@ const VARIETY_SIZE = 1;
 const EXPLORE_SIZE = 2;
 
 // #533 【定数】Explore選出用パーセンタイル
-const EXPLORE_LOW_PCT = 0.20;  // 上位20%は除外
-const EXPLORE_HIGH_PCT = 0.60; // 上位60%までは許可
+const EXPLORE_LOW_PCT = 0.10;  // 上位10%は除外
+const EXPLORE_HIGH_PCT = 0.40; // 上位40%までは許可
 
 
 @Injectable()
@@ -59,7 +60,7 @@ export class DishCategoriesService {
       // #533 【仕様】Step 1: 入力正規化
       const normalized = this.normalizeInput(dto);
 
-      // #533 【仕様】Step 2: トランザクション内で候補取得＋スレート構成＋ローカライズ
+      // #533 【仕様】Step 2: 候補取得＋スレート構成＋ローカライズ
       // Step 2-1: 候補取得（SQL scoring）
       const candidates = await this.repo.findCategoryCandidatesWithScores(
         {
@@ -188,19 +189,16 @@ export class DishCategoriesService {
    * #533 【仕様】スレート構成ロジック（Core/Variety/Explore）
    */
   private constructSlate(
-    candidates: Array<{
-      category_id: string;
-      macro_genre: string | null;
-      rel_score: number;
-      final_score: number;
-    }>,
+    candidates: DishCategoryCandidateWithScores[],
   ): Array<{
     category_id: string;
     macro_genre: string | null;
     rel_score: number;
     final_score: number;
   }> {
-    const selected: typeof candidates = [];
+    const selected: (DishCategoryCandidateWithScores & {
+      selected_reason: 'core' | 'variety' | 'explore' | 'fillup';
+    })[] = [];
     const selectedCategoryIds = new Set<string>();
     const usedGenres = new Set<string>();
 
@@ -209,13 +207,10 @@ export class DishCategoriesService {
       if (selected.length >= CORE_SIZE) break;
       const genre = candidate.macro_genre;
       if (genre && usedGenres.has(genre)) continue;
-      selected.push(candidate);
+      selected.push({ ...candidate, selected_reason: 'core' });
       selectedCategoryIds.add(candidate.category_id);
       genre && usedGenres.add(genre);
     }
-    this.logger.debug('ConstructSlateCore', 'constructSlate', {
-      selectedCount: selected.length,
-    });
 
     // #533 【設計】Variety: 1件（未使用macro_genre）
     if (selected.length < TARGET_SLATE_SIZE) {
@@ -224,14 +219,10 @@ export class DishCategoriesService {
         const genre = candidate.macro_genre;
         if (selectedCategoryIds.has(candidate.category_id)) continue;
         if (genre && usedGenres.has(genre)) continue;
-        selected.push(candidate);
+        selected.push({ ...candidate, selected_reason: 'variety' });
         selectedCategoryIds.add(candidate.category_id);
         genre && usedGenres.add(genre);
       }
-
-      this.logger.debug('ConstructSlateVariety', 'constructSlate', {
-        selectedCount: selected.length,
-      });
     }
 
     // #533 【設計】Explore: 2件
@@ -245,14 +236,10 @@ export class DishCategoriesService {
 
       for (const candidate of exploreSelected) {
         if (selected.length >= TARGET_SLATE_SIZE) break;
-        selected.push(candidate);
+        selected.push({ ...candidate, selected_reason: 'explore' });
         selectedCategoryIds.add(candidate.category_id);
         candidate.macro_genre && usedGenres.add(candidate.macro_genre);
       }
-
-      this.logger.debug('ConstructSlateExplore', 'constructSlate', {
-        selectedCount: selected.length,
-      });
     }
 
     // Step 2: macro_genre重複を許容してfinal_score上位から埋める
@@ -260,17 +247,36 @@ export class DishCategoriesService {
       for (const candidate of candidates) {
         if (selected.length >= TARGET_SLATE_SIZE) break;
         if (!selectedCategoryIds.has(candidate.category_id)) {
-          selected.push(candidate);
+          selected.push({ ...candidate, selected_reason: 'fillup' });
           selectedCategoryIds.add(candidate.category_id);
         }
       }
-
-      this.logger.debug('ConstructSlateFillUp', 'constructSlate', {
-        selectedCount: selected.length,
-      });
     }
 
-    return selected;
+    // #533 同じような並びにならないように表示順をシャッフルして返す
+    // fillup を末尾固定
+    const middleItems = selected.filter(
+      (c) => c.selected_reason !== 'fillup',
+    );
+    const fillupItems = selected.filter(
+      (c) => c.selected_reason === 'fillup',
+    );
+
+    const finalSelected = [...(shuffle(middleItems)), ...fillupItems];
+
+    this.logger.debug('ConstructedSlate', 'constructSlate', {
+      selectedCount: finalSelected.length,
+      // ログ設計のリスクがあるため、安定したら項目を減らす
+      selectedDetails: finalSelected,
+    });
+
+    return finalSelected
+      .map((value) => ({
+        category_id: value.category_id,
+        macro_genre: value.macro_genre,
+        rel_score: value.rel_score,
+        final_score: value.final_score,
+      }));
   }
 
 

@@ -14,3 +14,18 @@ export type DishCategoryCandidateNormalizedInput = {
     tasteKey: string | null;
     langCandidates: string[];
 }
+
+export interface DishCategoryCandidateWithScores {
+    category_id: string;
+    macro_genre: string | null;
+    time_slot_score: number;
+    scene_score: number;
+    satiety_score: number;
+    taste_score: number;
+    rel_score: number;
+    market_salience_score: number;
+    dine_out_orderability_score: number;
+    final_score: number;
+    rnd_value: number;
+    weighted_random_score: number;
+}

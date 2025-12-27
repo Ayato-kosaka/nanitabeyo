@@ -9,7 +9,7 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
 import { Prisma } from '../../../../shared/prisma';
-import { DishCategoryCandidateNormalizedInput } from './dish-categories.interface';
+import { DishCategoryCandidateNormalizedInput, DishCategoryCandidateWithScores } from './dish-categories.interface';
 
 @Injectable()
 export class DishCategoriesRepository {
@@ -138,16 +138,7 @@ export class DishCategoriesRepository {
       tasteKey: DishCategoryCandidateNormalizedInput['tasteKey'];
       candidateLimit: number;
     },
-  ): Promise<
-    Array<{
-      category_id: string;
-      macro_genre: string | null;
-      rel_score: number;
-      market_salience_score: number;
-      dine_out_orderability_score: number;
-      final_score: number;
-    }>
-  > {
+  ): Promise<DishCategoryCandidateWithScores[]> {
     const startTime = Date.now();
 
     const [wTime, wScene, wSatiety, wTaste, wMarketSalience, wDineOutOrderability, wEps, wAlpha] =
@@ -193,14 +184,7 @@ export class DishCategoriesRepository {
 
     // #533 【設計】SQLは WITH params, weights で一元管理
     const result = await this.prisma.prisma.$queryRaw<
-      Array<{
-        category_id: string;
-        macro_genre: string | null;
-        rel_score: number;
-        market_salience_score: number;
-        dine_out_orderability_score: number;
-        final_score: number;
-      }>
+      DishCategoryCandidateWithScores[]
     >`
       WITH params AS (
         SELECT
@@ -278,10 +262,10 @@ export class DishCategoriesRepository {
         SELECT
           bc.category_id,
           bc.macro_genre,
-          COALESCE(bc.ts_score, 0) AS ts_score,
-          COALESCE(bc.sc_score, 0) AS sc_score,
-          COALESCE(bc.sat_score, 0) AS sat_score,
-          COALESCE(bc.t_score, 0) AS t_score,
+          COALESCE(bc.ts_score, 0) AS time_slot_score,
+          COALESCE(bc.sc_score, 0) AS scene_score,
+          COALESCE(bc.sat_score, 0) AS satiety_score,
+          COALESCE(bc.t_score, 0) AS taste_score,
           COALESCE(r.market_salience_score, 0) AS market_salience_score,
           COALESCE(r.dine_out_orderability_score, 0) AS dine_out_orderability_score,
           -- weight_sum: 指定された条件のweightのみ加算
@@ -338,34 +322,32 @@ export class DishCategoriesRepository {
         ) r ON true
       ),
       final_scored AS (
-        SELECT
-          category_id,
-          macro_genre,
-          rel_score,
-          market_salience_score,
-          dine_out_orderability_score,
+        SELECT 
+          sc.category_id,
+          sc.macro_genre,
+          sc.time_slot_score,
+          sc.scene_score,
+          sc.satiety_score,
+          sc.taste_score,
+          sc.rel_score,
+          sc.market_salience_score,
+          sc.dine_out_orderability_score,
           -- #533 【設計】final_score計算式
-          rel_score * (1 - w.w_market_salience + w.w_market_salience * market_salience_score)
-            * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * dine_out_orderability_score)
+          sc.rel_score * (1 - w.w_market_salience + w.w_market_salience * sc.market_salience_score)
+            * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * sc.dine_out_orderability_score)
           AS final_score,
-          w.w_eps,
-          w.w_alpha
-        FROM scored_candidates
+          w.w_eps AS w_eps,
+          w.w_alpha AS w_alpha
+        FROM scored_candidates sc
         CROSS JOIN weights w
-        WHERE
-          -- #533 【設計】final_score > 0 のみ対象
-          rel_score * (1 - w.w_market_salience + w.w_market_salience * market_salience_score)
-            * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * dine_out_orderability_score)
-             > 0
-      )
-      SELECT
-      category_id,
-      macro_genre,
-      rel_score,
-      market_salience_score,
-      dine_out_orderability_score,
-      final_score
-      FROM final_scored
+      ),
+      -- #533 【設計】final_score > 0 のみ対象
+      final_scored_filtered AS (
+        SELECT *,
+          RANDOM() AS rnd_value
+        FROM final_scored
+        WHERE final_score > 0
+      ),
       -- #533 【設計】weighted random でソート（final_scoreが大きいほど前に来やすい）
       --   alpha: スコア差の効かせ方（探索温度）
       --     - alpha > 1 : 高スコアをより優遇（安定・探索弱め）
@@ -373,7 +355,27 @@ export class DishCategoriesRepository {
       --     - alpha < 1 : 差を縮める（探索強め）
       --   eps: weight の下限値
       --     final_score が 0 に近い候補が過度に前に出ないようにする安全弁
-      ORDER BY -LN(GREATEST(RANDOM(), 1e-12)) / POWER(GREATEST(final_score, w_eps), w_alpha) ASC
+      candidates_with_scores AS (
+        SELECT f.*,
+        -LN(GREATEST(f.rnd_value, 1e-12)) / POWER(GREATEST(f.final_score, f.w_eps), f.w_alpha)
+          AS weighted_random_score
+        FROM final_scored_filtered f
+      )
+      SELECT
+        category_id,
+        macro_genre,
+        time_slot_score,
+        scene_score,
+        satiety_score,
+        taste_score,
+        rel_score,
+        market_salience_score,
+        dine_out_orderability_score,
+        final_score,
+        rnd_value,
+        weighted_random_score
+      FROM candidates_with_scores
+      ORDER BY weighted_random_score ASC
       -- PostgreSQL の LIMIT は 同一クエリレベルの行（FROM 句のテーブル/CTE別名の列）を参照できないため、
       -- ここでは SELECT で params を参照して制限をかける。
       LIMIT (SELECT candidate_limit FROM params)
@@ -385,7 +387,7 @@ export class DishCategoriesRepository {
       {
         durationMs: Date.now() - startTime,
         count: result.length,
-        sampleResults: result.slice(0, 10), // Log only first 10 results for brevity
+        sampleResults: result.slice(0, 6), // Log only first 6 results for brevity
       },
     );
 
