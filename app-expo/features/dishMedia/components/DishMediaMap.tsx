@@ -6,7 +6,7 @@ import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -38,6 +38,8 @@ const BREATHE_OFFSET = 16;
 const SNAP_THRESHOLD = 0.5;
 // #293 【設計】初回呼吸アニメーション表示済みフラグのキー
 const BREATHE_ANIMATION_SHOWN_KEY = "@dishMediaMap:breatheAnimationShown";
+// #293 【設計】ハンドルの色（半透明白）
+const HANDLE_COLOR = "rgba(255, 255, 255, 0.4)";
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -107,14 +109,20 @@ export default function DishMediaMap({
 	// #293 【設計】初回呼吸アニメーション実行フラグ
 	const [breatheAnimationShown, setBreatheAnimationShown] = useState<boolean | null>(null);
 
-	// #293 【設計】初回表示フラグの読み込み（永続化）
+	// #293 【設計】初回表示フラグの読み込み（永続化、エラーハンドリング付き）
 	useEffect(() => {
-		AsyncStorage.getItem(BREATHE_ANIMATION_SHOWN_KEY).then((value) => {
-			setBreatheAnimationShown(value === "true");
-		});
+		AsyncStorage.getItem(BREATHE_ANIMATION_SHOWN_KEY)
+			.then((value) => {
+				setBreatheAnimationShown(value === "true");
+			})
+			.catch(() => {
+				// #293 【設計】ストレージ読み込みエラー時は初回扱いにする
+				setBreatheAnimationShown(false);
+			});
 	}, []);
 
 	// #293 【設計】初回のみ呼吸アニメーション実行（10〜20px下方向に軽く動いて戻る）
+	// #293 【設計】初回のみ呼吸アニメーション実行（16px下方向に軽く動いて戻る）
 	useEffect(() => {
 		if (breatheAnimationShown === false) {
 			// 初回のみ実行
@@ -124,8 +132,10 @@ export default function DishMediaMap({
 				});
 			}, 500); // マウント後 500ms 待機
 
-			// フラグを保存
-			AsyncStorage.setItem(BREATHE_ANIMATION_SHOWN_KEY, "true");
+			// #293 【設計】フラグを保存（エラーは無視）
+			AsyncStorage.setItem(BREATHE_ANIMATION_SHOWN_KEY, "true").catch(() => {
+				// #293 【設計】ストレージ書き込みエラーは無視（次回も再生される）
+			});
 			setBreatheAnimationShown(true);
 
 			return () => clearTimeout(timer);
@@ -337,7 +347,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 5,
 		borderRadius: 2.5,
-		backgroundColor: "rgba(255, 255, 255, 0.4)",
+		backgroundColor: HANDLE_COLOR,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
