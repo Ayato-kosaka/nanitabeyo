@@ -6,6 +6,9 @@ import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
 	DishMediaEntriesStore,
 	IdType,
@@ -21,10 +24,20 @@ import i18n from "@/lib/i18n";
 
 const { width, height } = Dimensions.get("window");
 
-// Map takes top 1/5 of screen, carousel takes bottom 4/5
-const CAROUSEL_HEIGHT = height * 0.8;
+// #293 【設計】Carousel の展開/縮小比率（画面高さに対する割合）
+const EXPANDED_RATIO = 0.8;
+const COLLAPSED_RATIO = 0.2;
+const CAROUSEL_HEIGHT = height * EXPANDED_RATIO;
 // parallaxScrollingScale
 const PARALLAX_SCALE = 0.85;
+// #293 【設計】ハンドル高さ（ドラッグ可能領域）
+const HANDLE_HEIGHT = 44;
+// #293 【設計】呼吸アニメーションのオフセット
+const BREATHE_OFFSET = 16;
+// #293 【設計】スナップ判定の閾値（0.5 = 中間点）
+const SNAP_THRESHOLD = 0.5;
+// #293 【設計】初回呼吸アニメーション表示済みフラグのキー
+const BREATHE_ANIMATION_SHOWN_KEY = "@dishMediaMap:breatheAnimationShown";
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -85,6 +98,66 @@ export default function DishMediaMap({
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
+
+	// #293 【設計】Carousel の上下移動量（0 = Expanded, MAX_TRANSLATE_Y = Collapsed）
+	const MAX_TRANSLATE_Y = height * (EXPANDED_RATIO - COLLAPSED_RATIO);
+	const translateY = useSharedValue(0);
+	const gestureStartY = useSharedValue(0);
+
+	// #293 【設計】初回呼吸アニメーション実行フラグ
+	const [breatheAnimationShown, setBreatheAnimationShown] = useState<boolean | null>(null);
+
+	// #293 【設計】初回表示フラグの読み込み（永続化）
+	useEffect(() => {
+		AsyncStorage.getItem(BREATHE_ANIMATION_SHOWN_KEY).then((value) => {
+			setBreatheAnimationShown(value === "true");
+		});
+	}, []);
+
+	// #293 【設計】初回のみ呼吸アニメーション実行（10〜20px下方向に軽く動いて戻る）
+	useEffect(() => {
+		if (breatheAnimationShown === false) {
+			// 初回のみ実行
+			const timer = setTimeout(() => {
+				translateY.value = withTiming(BREATHE_OFFSET, { duration: 300 }, () => {
+					translateY.value = withTiming(0, { duration: 300 });
+				});
+			}, 500); // マウント後 500ms 待機
+
+			// フラグを保存
+			AsyncStorage.setItem(BREATHE_ANIMATION_SHOWN_KEY, "true");
+			setBreatheAnimationShown(true);
+
+			return () => clearTimeout(timer);
+		}
+	}, [breatheAnimationShown, translateY]);
+
+	// #293 【設計】ドラッグジェスチャーハンドラー（ハンドル領域でのみ有効）
+	const panGesture = Gesture.Pan()
+		.onStart(() => {
+			gestureStartY.value = translateY.value;
+		})
+		.onUpdate((event) => {
+			const newY = gestureStartY.value + event.translationY;
+			// 0 〜 MAX_TRANSLATE_Y の範囲に制限
+			translateY.value = Math.max(0, Math.min(newY, MAX_TRANSLATE_Y));
+		})
+		.onEnd((event) => {
+			// #293 【設計】スナップ判定（中間点 or 速度ベース）
+			const velocity = event.velocityY;
+			const shouldCollapse =
+				velocity > 500 || (Math.abs(velocity) < 500 && translateY.value > MAX_TRANSLATE_Y * SNAP_THRESHOLD);
+
+			translateY.value = withSpring(shouldCollapse ? MAX_TRANSLATE_Y : 0, {
+				damping: 20,
+				stiffness: 200,
+			});
+		});
+
+	// #293 【設計】Carousel コンテナのアニメーションスタイル
+	const animatedCarouselStyle = useAnimatedStyle(() => ({
+		transform: [{ translateY: translateY.value }],
+	}));
 
 	const getMapRegion = useCallback((): Region => {
 		if (restaurants.length === 0) {
@@ -196,8 +269,16 @@ export default function DishMediaMap({
 				</MapView>
 			</View>
 
-			{/* Carousel - Bottom 4/5 of screen, overlapping map */}
-			{
+			{/* #293 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
+			<Animated.View style={[styles.carouselWrapper, animatedCarouselStyle]}>
+				{/* #293 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
+				<GestureDetector gesture={panGesture}>
+					<View style={styles.handleContainer}>
+						<View style={styles.handle} />
+					</View>
+				</GestureDetector>
+
+				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
 				<Carousel
 					ref={carouselRef}
 					width={width}
@@ -214,7 +295,7 @@ export default function DishMediaMap({
 					style={styles.carousel}
 					containerStyle={styles.carouselContainer}
 				/>
-			}
+			</Animated.View>
 		</View>
 	);
 }
@@ -235,13 +316,33 @@ const styles = StyleSheet.create({
 	map: {
 		flex: 1,
 	},
-	carouselContainer: {
+	// #293 【設計】Carousel 全体を包むラッパー（translateY でアニメーション）
+	carouselWrapper: {
 		position: "absolute",
+		height: CAROUSEL_HEIGHT + HANDLE_HEIGHT,
+		left: 0,
+		right: 0,
+		bottom: -(CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
+		zIndex: 2,
+	},
+	// #293 【設計】ドラッグハンドルコンテナ（タップ可能領域）
+	handleContainer: {
+		height: HANDLE_HEIGHT,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "transparent",
+	},
+	// #293 【設計】ハンドル（短い横棒）
+	handle: {
+		width: 40,
+		height: 5,
+		borderRadius: 2.5,
+		backgroundColor: "rgba(255, 255, 255, 0.4)",
+	},
+	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
 		left: 0,
 		right: 0,
-		bottom: -(CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2, // carousel の仕組みで scale(0.9) で縮小されるため、中央に配置するための調整
-		zIndex: 2,
 	},
 	carousel: {
 		flex: 1,
