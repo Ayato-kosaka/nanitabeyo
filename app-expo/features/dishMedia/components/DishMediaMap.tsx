@@ -8,7 +8,6 @@ import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
 	DishMediaEntriesStore,
 	IdType,
@@ -26,18 +25,14 @@ const { width, height } = Dimensions.get("window");
 
 // #293 【設計】Carousel の展開/縮小比率（画面高さに対する割合）
 const EXPANDED_RATIO = 0.8;
-const COLLAPSED_RATIO = 0.2;
+const COLLAPSED_RATIO = 0.4;
 const CAROUSEL_HEIGHT = height * EXPANDED_RATIO;
 // parallaxScrollingScale
 const PARALLAX_SCALE = 0.85;
 // #293 【設計】ハンドル高さ（ドラッグ可能領域）
 const HANDLE_HEIGHT = 44;
-// #293 【設計】呼吸アニメーションのオフセット
-const BREATHE_OFFSET = 16;
 // #293 【設計】スナップ判定の閾値（0.5 = 中間点）
 const SNAP_THRESHOLD = 0.5;
-// #293 【設計】初回呼吸アニメーション表示済みフラグのキー
-const BREATHE_ANIMATION_SHOWN_KEY = "@dishMediaMap:breatheAnimationShown";
 // #293 【設計】ハンドルの色（半透明白）
 const HANDLE_COLOR = "rgba(255, 255, 255, 0.4)";
 
@@ -103,44 +98,15 @@ export default function DishMediaMap({
 
 	// #293 【設計】Carousel の上下移動量（0 = Expanded, MAX_TRANSLATE_Y = Collapsed）
 	const MAX_TRANSLATE_Y = height * (EXPANDED_RATIO - COLLAPSED_RATIO);
-	const translateY = useSharedValue(0);
+	const translateY = useSharedValue(MAX_TRANSLATE_Y);
 	const gestureStartY = useSharedValue(0);
 
-	// #293 【設計】初回呼吸アニメーション実行フラグ
-	const [breatheAnimationShown, setBreatheAnimationShown] = useState<boolean | null>(null);
-
-	// #293 【設計】初回表示フラグの読み込み（永続化、エラーハンドリング付き）
+	// #293 【設計】 初期表示時に展開状態にアニメーション
 	useEffect(() => {
-		AsyncStorage.getItem(BREATHE_ANIMATION_SHOWN_KEY)
-			.then((value) => {
-				setBreatheAnimationShown(value === "true");
-			})
-			.catch(() => {
-				// #293 【設計】ストレージ読み込みエラー時は初回扱いにする
-				setBreatheAnimationShown(false);
-			});
+		translateY.value = withSpring(0, {
+			duration: 3000,
+		});
 	}, []);
-
-	// #293 【設計】初回のみ呼吸アニメーション実行（10〜20px下方向に軽く動いて戻る）
-	// #293 【設計】初回のみ呼吸アニメーション実行（16px下方向に軽く動いて戻る）
-	useEffect(() => {
-		if (breatheAnimationShown === false) {
-			// 初回のみ実行
-			const timer = setTimeout(() => {
-				translateY.value = withTiming(BREATHE_OFFSET, { duration: 300 }, () => {
-					translateY.value = withTiming(0, { duration: 300 });
-				});
-			}, 500); // マウント後 500ms 待機
-
-			// #293 【設計】フラグを保存（エラーは無視）
-			AsyncStorage.setItem(BREATHE_ANIMATION_SHOWN_KEY, "true").catch(() => {
-				// #293 【設計】ストレージ書き込みエラーは無視（次回も再生される）
-			});
-			setBreatheAnimationShown(true);
-
-			return () => clearTimeout(timer);
-		}
-	}, [breatheAnimationShown, translateY]);
 
 	// #293 【設計】ドラッグジェスチャーハンドラー（ハンドル領域でのみ有効）
 	const panGesture = Gesture.Pan()
@@ -329,7 +295,7 @@ const styles = StyleSheet.create({
 	// #293 【設計】Carousel 全体を包むラッパー（translateY でアニメーション）
 	carouselWrapper: {
 		position: "absolute",
-		height: CAROUSEL_HEIGHT + HANDLE_HEIGHT,
+		height: CAROUSEL_HEIGHT,
 		left: 0,
 		right: 0,
 		bottom: -(CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
@@ -337,10 +303,14 @@ const styles = StyleSheet.create({
 	},
 	// #293 【設計】ドラッグハンドルコンテナ（タップ可能領域）
 	handleContainer: {
+		position: "absolute",
+		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
 		height: HANDLE_HEIGHT,
+		width: "100%",
 		justifyContent: "center",
 		alignItems: "center",
 		backgroundColor: "transparent",
+		zIndex: 3,
 	},
 	// #293 【設計】ハンドル（短い横棒）
 	handle: {
