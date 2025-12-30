@@ -6,7 +6,7 @@ import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
 	DishMediaEntriesStore,
@@ -23,17 +23,17 @@ import i18n from "@/lib/i18n";
 
 const { width, height } = Dimensions.get("window");
 
-// #293 【設計】Carousel の展開/縮小比率（画面高さに対する割合）
+// #605 【設計】Carousel の展開/縮小比率（画面高さに対する割合）
 const EXPANDED_RATIO = 0.8;
 const COLLAPSED_RATIO = 0.4;
 const CAROUSEL_HEIGHT = height * EXPANDED_RATIO;
 // parallaxScrollingScale
 const PARALLAX_SCALE = 0.85;
-// #293 【設計】ハンドル高さ（ドラッグ可能領域）
+// #605 【設計】ハンドル高さ（ドラッグ可能領域）
 const HANDLE_HEIGHT = 44;
-// #293 【設計】スナップ判定の閾値（0.5 = 中間点）
+// #605 【設計】スナップ判定の閾値（0.5 = 中間点）
 const SNAP_THRESHOLD = 0.5;
-// #293 【設計】ハンドルの色（半透明白）
+// #605 【設計】ハンドルの色（半透明白）
 const HANDLE_COLOR = "rgba(255, 255, 255, 0.4)";
 
 interface DishMediaMapProps {
@@ -96,19 +96,21 @@ export default function DishMediaMap({
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
 
-	// #293 【設計】Carousel の上下移動量（0 = Expanded, MAX_TRANSLATE_Y = Collapsed）
+	// #605 【設計】Carousel の上下移動量（0 = Expanded, MAX_TRANSLATE_Y = Collapsed）
 	const MAX_TRANSLATE_Y = height * (EXPANDED_RATIO - COLLAPSED_RATIO);
 	const translateY = useSharedValue(MAX_TRANSLATE_Y);
 	const gestureStartY = useSharedValue(0);
 
-	// #293 【設計】 初期表示時に展開状態にアニメーション
+	// #605 【設計】 初期表示時に展開状態にアニメーション
 	useEffect(() => {
+		// #605 TODO: withTiming に変更検討
 		translateY.value = withSpring(0, {
 			duration: 3000,
 		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// #293 【設計】ドラッグジェスチャーハンドラー（ハンドル領域でのみ有効）
+	// #605 【設計】ドラッグジェスチャーハンドラー（ハンドル領域でのみ有効）
 	const panGesture = Gesture.Pan()
 		.onStart(() => {
 			gestureStartY.value = translateY.value;
@@ -119,7 +121,7 @@ export default function DishMediaMap({
 			translateY.value = Math.max(0, Math.min(newY, MAX_TRANSLATE_Y));
 		})
 		.onEnd((event) => {
-			// #293 【設計】スナップ判定（中間点 or 速度ベース）
+			// #605 【設計】スナップ判定（中間点 or 速度ベース）
 			const velocity = event.velocityY;
 			const shouldCollapse =
 				velocity > 500 || (Math.abs(velocity) < 500 && translateY.value > MAX_TRANSLATE_Y * SNAP_THRESHOLD);
@@ -130,7 +132,7 @@ export default function DishMediaMap({
 			});
 		});
 
-	// #293 【設計】Carousel コンテナのアニメーションスタイル
+	// #605 【設計】Carousel コンテナのアニメーションスタイル
 	const animatedCarouselStyle = useAnimatedStyle(() => ({
 		transform: [{ translateY: translateY.value }],
 	}));
@@ -245,9 +247,9 @@ export default function DishMediaMap({
 				</MapView>
 			</View>
 
-			{/* #293 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
+			{/* #605 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
 			<Animated.View style={[styles.carouselWrapper, animatedCarouselStyle]}>
-				{/* #293 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
+				{/* #605 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
 				<GestureDetector gesture={panGesture}>
 					<View style={styles.handleContainer}>
 						<View style={styles.handle} />
@@ -292,7 +294,7 @@ const styles = StyleSheet.create({
 	map: {
 		flex: 1,
 	},
-	// #293 【設計】Carousel 全体を包むラッパー（translateY でアニメーション）
+	// #605 【設計】Carousel 全体を包むラッパー（translateY でアニメーション）
 	carouselWrapper: {
 		position: "absolute",
 		height: CAROUSEL_HEIGHT,
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
 		bottom: -(CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
 		zIndex: 2,
 	},
-	// #293 【設計】ドラッグハンドルコンテナ（タップ可能領域）
+	// #605 【設計】ドラッグハンドルコンテナ（タップ可能領域）
 	handleContainer: {
 		position: "absolute",
 		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
@@ -312,7 +314,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "transparent",
 		zIndex: 3,
 	},
-	// #293 【設計】ハンドル（短い横棒）
+	// #605 【設計】ハンドル（短い横棒）
 	handle: {
 		width: 40,
 		height: 5,
