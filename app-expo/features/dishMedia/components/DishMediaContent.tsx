@@ -254,16 +254,16 @@ export default function DishMediaContent({
 		],
 	);
 
+	// #607 【設計】メディア表示コンテナを useMemo で定義し、条件分岐を簡潔化
+	const mediaContainer = useMemo(
+		() => <View style={StyleSheet.absoluteFill}>{mediaDisplayContent}</View>,
+		[mediaDisplayContent],
+	);
+
 	return (
 		<View style={styles.container}>
 			{/* #607 【設計】メディア表示部分のみ GestureDetector でラップし、写真ドラッグで sheet を上下できるようにする */}
-			{sheetPanGesture ? (
-				<GestureDetector gesture={sheetPanGesture}>
-					<View style={StyleSheet.absoluteFill}>{mediaDisplayContent}</View>
-				</GestureDetector>
-			) : (
-				<View style={StyleSheet.absoluteFill}>{mediaDisplayContent}</View>
-			)}
+			{sheetPanGesture ? <GestureDetector gesture={sheetPanGesture}>{mediaContainer}</GestureDetector> : mediaContainer}
 
 			{/* #607 【設計】DishReviewsSection は GestureDetector の外側に配置し、縦スクロールを守る */}
 			<DishReviewsSection

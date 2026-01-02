@@ -35,6 +35,10 @@ const HANDLE_HEIGHT = 44;
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
 const HANDLE_COLOR = "rgba(255, 255, 255, 0.4)";
+// #607 【設計】ジェスチャー競合回避の閾値（横方向の移動でPanを失敗扱いにする距離）
+const PAN_FAIL_OFFSET_X = 15;
+// #607 【設計】ジェスチャー競合回避の閾値（縦方向の移動でPanを有効化する距離）
+const PAN_ACTIVE_OFFSET_Y = 8;
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -113,8 +117,8 @@ export default function DishMediaMap({
 	// #605 【設計】ドラッグジェスチャーハンドラー（ハンドル領域でのみ有効）
 	// #607 【設計】横スワイプとの競合回避のため failOffsetX と activeOffsetY を設定
 	const panGesture = Gesture.Pan()
-		.failOffsetX([-15, 15]) // #607 【設計】横方向に15px以上動いたら Pan を失敗扱いにしてCarousel横スワイプを優先
-		.activeOffsetY([-8, 8]) // #607 【設計】縦に8px以上明確に動いた時だけ sheet ドラッグを開始
+		.failOffsetX([-PAN_FAIL_OFFSET_X, PAN_FAIL_OFFSET_X]) // #607 【設計】横方向に一定以上動いたら Pan を失敗扱いにしてCarousel横スワイプを優先
+		.activeOffsetY([-PAN_ACTIVE_OFFSET_Y, PAN_ACTIVE_OFFSET_Y]) // #607 【設計】縦に明確に動いた時だけ sheet ドラッグを開始
 		.onStart(() => {
 			gestureStartY.value = translateY.value;
 		})
