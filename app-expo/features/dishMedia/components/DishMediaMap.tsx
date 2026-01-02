@@ -111,7 +111,10 @@ export default function DishMediaMap({
 	}, []);
 
 	// #605 【設計】ドラッグジェスチャーハンドラー（ハンドル領域でのみ有効）
+	// #607 【設計】横スワイプとの競合回避のため failOffsetX と activeOffsetY を設定
 	const panGesture = Gesture.Pan()
+		.failOffsetX([-15, 15]) // #607 【設計】横方向に15px以上動いたら Pan を失敗扱いにしてCarousel横スワイプを優先
+		.activeOffsetY([-8, 8]) // #607 【設計】縦に8px以上明確に動いた時だけ sheet ドラッグを開始
 		.onStart(() => {
 			gestureStartY.value = translateY.value;
 		})
@@ -210,10 +213,11 @@ export default function DishMediaMap({
 					sessionId={sessionId.current}
 					entriesKey={entriesKey}
 					idType={idType}
+					sheetPanGesture={panGesture}
 				/>
 			</View>
 		),
-		[currentIndex, getTitle, entriesKey, idType],
+		[currentIndex, getTitle, entriesKey, idType, panGesture],
 	);
 
 	return (
@@ -304,6 +308,7 @@ const styles = StyleSheet.create({
 		zIndex: 2,
 	},
 	// #605 【設計】ドラッグハンドルコンテナ（タップ可能領域）
+	// #607 【設計】視認性向上のため半透明黒背景を追加
 	handleContainer: {
 		position: "absolute",
 		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
@@ -311,15 +316,21 @@ const styles = StyleSheet.create({
 		width: "100%",
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "transparent",
+		backgroundColor: "rgba(0,0,0,0.08)",
 		zIndex: 3,
 	},
 	// #605 【設計】ハンドル（短い横棒）
+	// #607 【設計】黒シャドー追加で白背景・明るい写真でも視認できるように
 	handle: {
 		width: 40,
 		height: 5,
 		borderRadius: 2.5,
 		backgroundColor: HANDLE_COLOR,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.35,
+		shadowRadius: 3,
+		elevation: 4,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
