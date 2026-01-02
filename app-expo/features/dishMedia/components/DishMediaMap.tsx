@@ -234,10 +234,11 @@ export default function DishMediaMap({
 
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
-				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
+				{/* #235 【バグ】region を initialRegion に変更してちらつきを防止（controlled運用をやめる） */}
+				<MapView ref={mapRef} style={styles.map} initialRegion={getMapRegion()}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${index}`}
+							key={`marker-${restaurant.id}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
