@@ -86,14 +86,14 @@ export default function SettingsScreen() {
 				const playStoreUrl = Env.PLAY_STORE_URL;
 				// URL からパッケージ名を抽出（例: https://play.google.com/store/apps/details?id=<package>）
 				const packageMatch = playStoreUrl.match(/id=([^&]+)/);
-				// パッケージ名が抽出できない場合は URL 全体を使用
-				if (!packageMatch) {
-					primaryUrl = playStoreUrl;
-					fallbackUrl = playStoreUrl;
-				} else {
+				if (packageMatch) {
 					const packageName = packageMatch[1];
 					primaryUrl = `market://details?id=${packageName}&showAllReviews=true`;
 					fallbackUrl = `https://play.google.com/store/apps/details?id=${packageName}&showAllReviews=true`;
+				} else {
+					// パッケージ名が抽出できない場合は URL 全体を使用
+					primaryUrl = playStoreUrl;
+					fallbackUrl = playStoreUrl;
 				}
 			} else {
 				// web など他のプラットフォームでは何もしない
