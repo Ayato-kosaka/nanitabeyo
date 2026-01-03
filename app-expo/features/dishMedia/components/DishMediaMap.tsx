@@ -34,7 +34,7 @@ const HANDLE_HEIGHT = 44;
 // #605 【設計】スナップ判定の閾値（0.5 = 中間点）
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
-const HANDLE_COLOR = "rgba(255, 255, 255, 0.4)";
+const HANDLE_COLOR = "#FFFFFFFF";
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -321,6 +321,11 @@ const styles = StyleSheet.create({
 		height: 5,
 		borderRadius: 2.5,
 		backgroundColor: HANDLE_COLOR,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.55,
+		shadowRadius: 3,
+		elevation: 4,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
