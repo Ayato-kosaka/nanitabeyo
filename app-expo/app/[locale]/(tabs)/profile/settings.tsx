@@ -23,6 +23,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Env } from "@/constants/Env";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
+	const { showSnackbar } = useSnackbar();
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
 		"guidelines" | "terms" | "privacy" | "copyright" | null
 	>(null);
@@ -71,29 +73,64 @@ export default function SettingsScreen() {
 			if (Platform.OS === "ios") {
 				// iOS: itms-apps:// を優先、不可なら https:// にフォールバック
 				const appStoreUrl = Env.APP_STORE_URL;
+				if (!appStoreUrl) {
+					logFrontendEvent({
+						event_name: "settings_leave_review_open_store_failed",
+						error_level: "warn",
+						payload: { platform: Platform.OS, reason: "missing_app_store_url" },
+					});
+					return;
+				}
 				// URL から App ID を抽出（例: https://apps.apple.com/app/id<APP_ID>）
 				const appIdMatch = appStoreUrl.match(/id(\d+)/);
 				if (appIdMatch) {
 					primaryUrl = `itms-apps://apps.apple.com/app/id${appIdMatch[1]}?action=write-review`;
 					fallbackUrl = `${appStoreUrl}?action=write-review`;
 				} else {
-					// App ID が見つからない場合は https:// のみ使用
-					primaryUrl = `${appStoreUrl}?action=write-review`;
-					fallbackUrl = primaryUrl;
+					// App ID が見つからない場合は不正な URL と判断し、スキップ
+					logFrontendEvent({
+						event_name: "settings_leave_review_open_store_failed",
+						error_level: "warn",
+						payload: {
+							platform: Platform.OS,
+							reason: "invalid_app_store_url_format",
+							appStoreUrl,
+						},
+					});
+					return;
 				}
 			} else if (Platform.OS === "android") {
 				// Android: market:// を優先、不可なら https:// にフォールバック
 				const playStoreUrl = Env.PLAY_STORE_URL;
+				if (!playStoreUrl) {
+					logFrontendEvent({
+						event_name: "settings_leave_review_open_store_failed",
+						error_level: "warn",
+						payload: { platform: Platform.OS, reason: "missing_play_store_url" },
+					});
+					return;
+				}
 				// URL からパッケージ名を抽出（例: https://play.google.com/store/apps/details?id=<package>）
 				const packageMatch = playStoreUrl.match(/id=([^&]+)/);
-				if (packageMatch) {
-					const packageName = packageMatch[1];
+
+				const packageName = packageMatch?.[1];
+				// パッケージ名は Play Store の一般的なフォーマット（英数字・ドット・アンダースコア）のみ許可
+				const isValidPackageName = typeof packageName === "string" && /^[A-Za-z0-9._]+$/.test(packageName);
+				if (isValidPackageName) {
 					primaryUrl = `market://details?id=${packageName}&showAllReviews=true`;
 					fallbackUrl = `https://play.google.com/store/apps/details?id=${packageName}&showAllReviews=true`;
 				} else {
-					// パッケージ名が抽出できない場合は URL 全体を使用
-					primaryUrl = playStoreUrl;
-					fallbackUrl = playStoreUrl;
+					// パッケージ名が抽出・検証できない場合は不正な URL で遷移しないようにスキップ
+					logFrontendEvent({
+						event_name: "settings_leave_review_open_store_failed",
+						error_level: "warn",
+						payload: {
+							platform: Platform.OS,
+							reason: "invalid_play_store_url_format",
+							playStoreUrl,
+						},
+					});
+					return;
 				}
 			} else {
 				// web など他のプラットフォームでは何もしない
@@ -122,6 +159,7 @@ export default function SettingsScreen() {
 				error_level: "error",
 				payload: { error: (error as Error).message },
 			});
+			showSnackbar(i18n.t("Common.error"));
 		}
 	}, [logFrontendEvent]);
 
@@ -138,13 +176,13 @@ export default function SettingsScreen() {
 			title: i18n.t("Settings.rateDialogTitle"),
 			okLabel: i18n.t("Settings.rateDialogOk"),
 			cancelLabel: i18n.t("Common.cancel"),
-			onConfirm: () => {
+			onConfirm: async () => {
 				logFrontendEvent({
 					event_name: "settings_leave_review_confirmed",
 					error_level: "log",
 					payload: {},
 				});
-				openStoreReviewPage();
+				await openStoreReviewPage();
 			},
 		});
 	}, [lightImpact, logFrontendEvent, showDialog, openStoreReviewPage]);
