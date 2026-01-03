@@ -86,11 +86,22 @@ export default function SettingsScreen() {
 				const playStoreUrl = Env.PLAY_STORE_URL;
 				// URL からパッケージ名を抽出（例: https://play.google.com/store/apps/details?id=<package>）
 				const packageMatch = playStoreUrl.match(/id=([^&]+)/);
-				const packageName = packageMatch ? packageMatch[1] : "com.nanitabeyo";
-				primaryUrl = `market://details?id=${packageName}&showAllReviews=true`;
-				fallbackUrl = `https://play.google.com/store/apps/details?id=${packageName}&showAllReviews=true`;
+				// パッケージ名が抽出できない場合は URL 全体を使用
+				if (!packageMatch) {
+					primaryUrl = playStoreUrl;
+					fallbackUrl = playStoreUrl;
+				} else {
+					const packageName = packageMatch[1];
+					primaryUrl = `market://details?id=${packageName}&showAllReviews=true`;
+					fallbackUrl = `https://play.google.com/store/apps/details?id=${packageName}&showAllReviews=true`;
+				}
 			} else {
 				// web など他のプラットフォームでは何もしない
+				logFrontendEvent({
+					event_name: "settings_leave_review_open_store_skipped",
+					error_level: "log",
+					payload: { platform: Platform.OS, reason: "unsupported_platform" },
+				});
 				return;
 			}
 
