@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
@@ -26,6 +26,7 @@ interface DishMediaContentProps {
 	sessionId: string;
 	entriesKey: string;
 	idType: IdType;
+	onCardPress?: (entry: NormalizedDishMediaEntry) => void; // #613 【設計】カード押下時のコールバック（DishMediaMap用）
 }
 
 export default function DishMediaContent({
@@ -36,6 +37,7 @@ export default function DishMediaContent({
 	sessionId,
 	entriesKey,
 	idType,
+	onCardPress, // #613 【設計】カード押下時のコールバック
 }: DishMediaContentProps) {
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {
@@ -165,8 +167,9 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.mediaUrl,
 	]);
 
-	return (
-		<View style={styles.container}>
+	// #613 【設計】コンテンツ本体（onCardPress がある場合は TouchableOpacity で包む）
+	const contentBody = (
+		<>
 			{/* Background Media (Image or Video) */}
 			{isVideo ? (
 				<>
@@ -245,6 +248,22 @@ export default function DishMediaContent({
 					<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
 				</View>
 			</View>
+		</>
+	);
+
+	return (
+		<View style={styles.container}>
+			{/* #613 【設計】onCardPress がある場合は TouchableOpacity で包む */}
+			{onCardPress ? (
+				<TouchableOpacity
+					style={StyleSheet.absoluteFill}
+					activeOpacity={0.95}
+					onPress={() => onCardPress(dishMediaEntry)}>
+					{contentBody}
+				</TouchableOpacity>
+			) : (
+				contentBody
+			)}
 		</View>
 	);
 }

@@ -14,9 +14,10 @@ import type { SupabaseRestaurants } from "@shared/converters/convert_restaurants
 interface UseDishMediaActionsProps {
 	dishMediaId: string;
 	restaurant: Pick<SupabaseRestaurants, "id" | "name" | "google_place_id" | "latitude" | "longitude">;
+	source: string; // #613 【設計】どのコンポーネントから呼ばれたかを識別
 }
 
-export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaActionsProps) {
+export function useDishMediaActions({ dishMediaId, restaurant, source }: UseDishMediaActionsProps) {
 	const { lightImpact } = useHaptics();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
@@ -33,6 +34,7 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 				restaurantId: restaurant.id,
 				googlePlaceId: restaurant.google_place_id,
 				fromDishMediaId: dishMediaId,
+				source, // #613 【設計】呼び出し元を記録
 			},
 		});
 
@@ -56,10 +58,11 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 					restaurantId: restaurant.id,
 					googlePlaceId: restaurant.google_place_id,
 					error: error instanceof Error ? error.message : "Unknown error",
+					source, // #613 【設計】呼び出し元を記録
 				},
 			});
 		}
-	}, [dishMediaId, restaurant, lightImpact, logFrontendEvent, showSnackbar]);
+	}, [dishMediaId, restaurant, lightImpact, logFrontendEvent, showSnackbar, source]);
 
 	// #613 【設計】友人に共有する処理を共通化
 	const shareRestaurant = useCallback(async () => {
@@ -75,6 +78,7 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 					dishMediaId: dishMediaId,
 					restaurantId: restaurant.id,
 					shareUrl,
+					source, // #613 【設計】呼び出し元を記録
 				},
 			});
 
@@ -89,6 +93,7 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 							dishMediaId: dishMediaId,
 							restaurantId: restaurant.id,
 							shareUrl,
+							source, // #613 【設計】呼び出し元を記録
 						},
 					});
 				},
@@ -101,6 +106,7 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 							restaurantId: restaurant.id,
 							shareUrl,
 							error,
+							source, // #613 【設計】呼び出し元を記録
 						},
 					});
 				},
@@ -114,10 +120,11 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 					dishMediaId: dishMediaId,
 					restaurantId: restaurant.id,
 					error: error instanceof Error ? error.message : "Unknown error",
+					source, // #613 【設計】呼び出し元を記録
 				},
 			});
 		}
-	}, [dishMediaId, restaurant, locale, lightImpact, logFrontendEvent, showSnackbar]);
+	}, [dishMediaId, restaurant, locale, lightImpact, logFrontendEvent, showSnackbar, source]);
 
 	return {
 		openInGoogleMaps,

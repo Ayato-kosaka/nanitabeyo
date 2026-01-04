@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { StyleSheet, View, Dimensions, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Dimensions, Text } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
@@ -24,6 +24,13 @@ import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
+import { useLogger } from "@/hooks/useLogger";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useLocale } from "@/hooks/useLocale";
+import * as Linking from "expo-linking";
+import { Platform } from "react-native";
+import { getGoogleMapsLink } from "@/lib/googlePlaces";
+import { generateShareUrl, handleShare } from "@/lib/share";
 
 const { width, height } = Dimensions.get("window");
 
@@ -98,9 +105,12 @@ export default function DishMediaMap({
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
-	const { selectionChanged } = useHaptics();
+	const { selectionChanged, lightImpact } = useHaptics();
 	const { showActionSheetWithOptions } = useActionSheet();
 	const { callBackend } = useAPICall();
+	const { logFrontendEvent } = useLogger();
+	const { showSnackbar } = useSnackbar();
+	const locale = useLocale();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
@@ -208,82 +218,151 @@ export default function DishMediaMap({
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
-	// #613 【設計】現在表示中のカードに対応する restaurant と dishMediaId を取得
-	const currentRestaurant = useMemo(() => {
-		if (!restaurants[currentIndex]) return null;
-		return restaurants[currentIndex];
-	}, [restaurants, currentIndex]);
+	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
+	const handleCardPress = useCallback(
+		async (entry: NormalizedDishMediaEntry) => {
+			const dishMediaId = entry.dish_media.id;
+			const restaurant = entry.restaurant;
+			const source = "DishMediaMap"; // #613 【設計】呼び出し元を明示
 
-	const currentDishMediaId = useMemo(() => {
-		if (!ids[currentIndex]) return null;
-		const state = useDishMediaEntriesStore.getState();
-		const entry =
-			idType === "dish_media"
-				? selectEntryByMediaId(ids[currentIndex])(state)
-				: selectEntryByReviewId(ids[currentIndex])(state);
-		return entry?.dish_media.id ?? null;
-	}, [ids, currentIndex, idType]);
+			const options = [
+				i18n.t("ActionSheet.openInGoogleMaps"),
+				i18n.t("ActionSheet.shareWithFriends"),
+				i18n.t("ActionSheet.cancel"),
+			];
+			const cancelButtonIndex = 2;
 
-	// #613 【設計】useDishMediaActions hooks を使用
-	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
-		dishMediaId: currentDishMediaId ?? "",
-		restaurant: currentRestaurant ?? {
-			id: "",
-			name: "",
-			google_place_id: "",
-			latitude: 0,
-			longitude: 0,
+			showActionSheetWithOptions(
+				{
+					title: i18n.t("ActionSheet.title"),
+					options,
+					cancelButtonIndex,
+				},
+				async (selectedIndex?: number) => {
+					if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
+
+					switch (selectedIndex) {
+						case 0: {
+							// #613 【設計】Google マップで開く
+							lightImpact();
+
+							logFrontendEvent({
+								event_name: "map_pin_clicked",
+								error_level: "log",
+								payload: {
+									restaurantId: restaurant.id,
+									googlePlaceId: restaurant.google_place_id,
+									fromDishMediaId: dishMediaId,
+									source,
+								},
+							});
+
+							try {
+								const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
+								if (Platform.OS === "web") {
+									window.open(mapUrl, "_blank", "noopener,noreferrer");
+								} else if (canOpen) {
+									await Linking.openURL(mapUrl);
+								} else {
+									showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
+								}
+
+								// Reaction を登録
+								try {
+									await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
+										method: "POST",
+										requestPayload: { action_type: "open_map" },
+									});
+								} catch (error) {
+									console.log("Map open reaction error ignored:", error);
+								}
+							} catch (error) {
+								showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
+								logFrontendEvent({
+									event_name: "map_pin_open_failed",
+									error_level: "error",
+									payload: {
+										restaurantId: restaurant.id,
+										googlePlaceId: restaurant.google_place_id,
+										error: error instanceof Error ? error.message : "Unknown error",
+										source,
+									},
+								});
+							}
+							break;
+						}
+						case 1: {
+							// #613 【設計】友人に共有する
+							lightImpact();
+
+							try {
+								const shareUrl = generateShareUrl(`/${locale}/posts?ids=${dishMediaId}`);
+
+								logFrontendEvent({
+									event_name: "dish_share_attempted",
+									error_level: "log",
+									payload: {
+										dishMediaId,
+										restaurantId: restaurant.id,
+										shareUrl,
+										source,
+									},
+								});
+
+								await handleShare(
+									shareUrl,
+									i18n.t("DishMediaContent.share.title", { dishName: restaurant.name }),
+									() => {
+										logFrontendEvent({
+											event_name: "dish_share_success",
+											error_level: "log",
+											payload: {
+												dishMediaId,
+												restaurantId: restaurant.id,
+												shareUrl,
+												source,
+											},
+										});
+									},
+									(error) => {
+										logFrontendEvent({
+											event_name: "dish_share_failed",
+											error_level: "error",
+											payload: {
+												dishMediaId,
+												restaurantId: restaurant.id,
+												shareUrl,
+												error,
+												source,
+											},
+										});
+									},
+									showSnackbar,
+								);
+							} catch (error) {
+								logFrontendEvent({
+									event_name: "dish_share_error",
+									error_level: "error",
+									payload: {
+										dishMediaId,
+										restaurantId: restaurant.id,
+										error: error instanceof Error ? error.message : "Unknown error",
+										source,
+									},
+								});
+							}
+							break;
+						}
+					}
+				},
+			);
 		},
-	});
-
-	// #613 【設計】ActionSheet を開く処理
-	const handleOpenActionSheet = useCallback(() => {
-		if (!currentRestaurant || !currentDishMediaId) return;
-
-		const options = [
-			i18n.t("ActionSheet.openInGoogleMaps"),
-			i18n.t("ActionSheet.shareWithFriends"),
-			i18n.t("ActionSheet.cancel"),
-		];
-		const cancelButtonIndex = 2;
-
-		showActionSheetWithOptions(
-			{
-				title: i18n.t("ActionSheet.title"),
-				options,
-				cancelButtonIndex,
-			},
-			async (selectedIndex?: number) => {
-				if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
-
-				switch (selectedIndex) {
-					case 0:
-						// Google マップで開く
-						await openInGoogleMaps();
-						break;
-					case 1:
-						// 友人に共有する
-						await shareRestaurant();
-						break;
-				}
-			},
-		);
-	}, [
-		currentRestaurant,
-		currentDishMediaId,
-		openInGoogleMaps,
-		shareRestaurant,
-		showActionSheetWithOptions,
-		callBackend,
-	]);
+		[showActionSheetWithOptions, callBackend, lightImpact, logFrontendEvent, showSnackbar, locale],
+	);
 
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: string; index: number }) => (
-			<TouchableOpacity
-				style={styles.carouselItem}
-				activeOpacity={0.95}
-				onPress={handleOpenActionSheet}
-				disabled={index !== currentIndex}>
+			<View style={styles.carouselItem}>
 				<DishMediaContent
 					id={item}
 					carouselRef={carouselRef}
@@ -292,10 +371,11 @@ export default function DishMediaMap({
 					sessionId={sessionId.current}
 					entriesKey={entriesKey}
 					idType={idType}
+					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 				/>
-			</TouchableOpacity>
+			</View>
 		),
-		[currentIndex, getTitle, entriesKey, idType, handleOpenActionSheet],
+		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
 	);
 
 	return (

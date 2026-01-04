@@ -58,10 +58,11 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
 	}, [id, idType]);
 
-	// #<チケット番号> 【設計】ActionButtons の押下処理を hooks で共通化
+	// #613 【設計】ActionButtons の押下処理を hooks で共通化
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
 		dishMediaId,
 		restaurant,
+		source: "ActionButtons", // #613 【設計】呼び出し元を明示
 	});
 
 	const {
