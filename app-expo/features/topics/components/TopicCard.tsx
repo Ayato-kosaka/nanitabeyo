@@ -107,7 +107,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	}, []);
 
 	// #615 【UX】画像ロード完了時にスケルトンを非表示
-	const handleLoadEnd = useCallback(() => {
+	const handleLoad = useCallback(() => {
 		setImageLoadState("loaded");
 	}, []);
 
@@ -181,7 +181,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 				transition={100}
 				style={styles.cardImage}
 				onLoadStart={handleLoadStart}
-				onLoadEnd={handleLoadEnd}
+				onLoad={handleLoad}
 				onError={handleImageError}
 			/>
 
