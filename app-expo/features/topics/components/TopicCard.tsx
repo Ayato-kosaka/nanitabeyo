@@ -34,16 +34,22 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（タイムスタンプは reloadToken 変更時のみ生成）
-	const source = useMemo(() => {
-		const timestamp = reloadToken > 0 ? Date.now() : "";
+	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（reloadToken 変更時のみタイムスタンプ生成）
+	const imageUrlWithCacheBuster = useMemo(() => {
+		if (reloadToken === 0) {
+			return item.imageUrl;
+		}
 		const separator = item.imageUrl.includes("?") ? "&" : "?";
-		const cacheBuster = reloadToken > 0 ? `${separator}t=${timestamp}_${reloadToken}` : "";
-		return {
-			uri: `${item.imageUrl}${cacheBuster}`,
+		return `${item.imageUrl}${separator}t=${reloadToken}_${item.categoryId}`;
+	}, [item.imageUrl, item.categoryId, reloadToken]);
+
+	const source = useMemo(
+		() => ({
+			uri: imageUrlWithCacheBuster,
 			headers: WIKIMEDIA_HEADERS,
-		};
-	}, [item.imageUrl, reloadToken]);
+		}),
+		[imageUrlWithCacheBuster],
+	);
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
@@ -110,6 +116,12 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	// #615 【バグ】画像ロード失敗時、最大2回まで自動リトライ（軽いバックオフ付き）
 	const handleImageError = useCallback(() => {
+		// #615 【バグ】既存のリトライタイマーをクリアして重複を防ぐ
+		if (retryTimerRef.current) {
+			clearTimeout(retryTimerRef.current);
+			retryTimerRef.current = null;
+		}
+
 		setErrorCount((prevCount) => {
 			const newCount = prevCount + 1;
 
@@ -149,6 +161,11 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
 	const handleManualRetry = useCallback(() => {
+		// #615 【バグ】既存のリトライタイマーをクリアしてレースコンディションを防ぐ
+		if (retryTimerRef.current) {
+			clearTimeout(retryTimerRef.current);
+			retryTimerRef.current = null;
+		}
 		setErrorCount(0);
 		setHasFailed(false);
 		setIsLoading(true);

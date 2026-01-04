@@ -8,6 +8,9 @@ interface SkeletonShimmerProps {
 	borderRadius?: number;
 }
 
+// #615 【設計】デフォルトの shimmer 移動幅（レスポンシブでない場合のフォールバック）
+const DEFAULT_SHIMMER_WIDTH = 300;
+
 // #615 【UX】画像ロード中に shimmer スケルトンを表示（低速回線でも視認性安定）
 export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({ width, height, borderRadius = 0 }) => {
 	const animatedValue = useRef(new Animated.Value(0)).current;
@@ -32,7 +35,7 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({ width, height,
 	}, [animatedValue]);
 
 	// #615 【設計】画面幅の 80% を shimmer の移動範囲とする（レスポンシブ対応）
-	const shimmerWidth = typeof width === "number" ? width * 0.8 : 300;
+	const shimmerWidth = typeof width === "number" ? width * 0.8 : DEFAULT_SHIMMER_WIDTH;
 	const translateX = animatedValue.interpolate({
 		inputRange: [0, 1],
 		outputRange: [-shimmerWidth, shimmerWidth],

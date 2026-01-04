@@ -179,7 +179,7 @@ export default function TopicsScreen() {
 							label={i18n.t("Topics.chooseThis")}
 							icon={<ThumbsUp size={20} color="#FFF" />}
 							onPress={() => handleViewDetails(visibleTopics[currentIndex])}
-							disabled={isScrolling || !visibleTopics[currentIndex]}
+							disabled={isScrolling || currentIndex >= visibleTopics.length}
 						/>
 					</View>
 				)}
