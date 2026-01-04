@@ -59,7 +59,7 @@ export default function TopicsScreen() {
 			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 			router.back();
 		}
-	}, [params, searchTopics, showSnackbar]);
+	}, [params, searchTopics, showSnackbar, router]);
 
 	const handleViewDetails = useCallback(
 		(topic: Topic) => {
