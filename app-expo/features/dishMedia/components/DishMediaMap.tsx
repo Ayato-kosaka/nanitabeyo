@@ -88,8 +88,6 @@ export default function DishMediaMap({
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
 				google_place_id: restaurant.google_place_id,
-				latitude: restaurant.latitude,
-				longitude: restaurant.longitude,
 			}));
 	}, [ids, idType]);
 
@@ -97,7 +95,6 @@ export default function DishMediaMap({
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
-	const { showActionSheetWithOptions } = useActionSheet();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
@@ -205,11 +202,11 @@ export default function DishMediaMap({
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
+	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
+	const { showActionSheetWithOptions } = useActionSheet();
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
 		source: "DishMediaMap",
 	});
-
-	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
 	const handleCardPress = useCallback(
 		async (entry: NormalizedDishMediaEntry) => {
 			const dishMediaId = entry.dish_media.id;
