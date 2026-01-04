@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { StyleSheet, View, Dimensions, Text } from "react-native";
+import { StyleSheet, View, Dimensions, Text, TouchableOpacity } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
@@ -20,6 +20,10 @@ import {
 import { shallow } from "zustand/shallow";
 import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
+import { useActionSheet } from "@expo/react-native-action-sheet";
+import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { useAPICall } from "@/hooks/useAPICall";
+import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 
 const { width, height } = Dimensions.get("window");
 
@@ -85,6 +89,9 @@ export default function DishMediaMap({
 				name: restaurant.name,
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
+				google_place_id: restaurant.google_place_id,
+				latitude: restaurant.latitude,
+				longitude: restaurant.longitude,
 			}));
 	}, [ids, idType]);
 
@@ -92,6 +99,8 @@ export default function DishMediaMap({
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
+	const { showActionSheetWithOptions } = useActionSheet();
+	const { callBackend } = useAPICall();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
@@ -199,9 +208,91 @@ export default function DishMediaMap({
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
+	// #<チケット番号> 【設計】現在表示中のカードに対応する restaurant と dishMediaId を取得
+	const currentRestaurant = useMemo(() => {
+		if (!restaurants[currentIndex]) return null;
+		return restaurants[currentIndex];
+	}, [restaurants, currentIndex]);
+
+	const currentDishMediaId = useMemo(() => {
+		if (!ids[currentIndex]) return null;
+		const state = useDishMediaEntriesStore.getState();
+		const entry =
+			idType === "dish_media"
+				? selectEntryByMediaId(ids[currentIndex])(state)
+				: selectEntryByReviewId(ids[currentIndex])(state);
+		return entry?.dish_media.id ?? null;
+	}, [ids, currentIndex, idType]);
+
+	// #<チケット番号> 【設計】useDishMediaActions hooks を使用
+	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
+		dishMediaId: currentDishMediaId ?? "",
+		restaurant: currentRestaurant ?? {
+			id: "",
+			name: "",
+			google_place_id: "",
+			latitude: 0,
+			longitude: 0,
+		},
+	});
+
+	// #<チケット番号> 【設計】ActionSheet を開く処理
+	const handleOpenActionSheet = useCallback(() => {
+		if (!currentRestaurant || !currentDishMediaId) return;
+
+		const options = [
+			i18n.t("ActionSheet.openInGoogleMaps"),
+			i18n.t("ActionSheet.shareWithFriends"),
+			i18n.t("ActionSheet.cancel"),
+		];
+		const cancelButtonIndex = 2;
+
+		showActionSheetWithOptions(
+			{
+				title: i18n.t("ActionSheet.title"),
+				options,
+				cancelButtonIndex,
+			},
+			async (selectedIndex?: number) => {
+				if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
+
+				switch (selectedIndex) {
+					case 0:
+						// Google マップで開く
+						await openInGoogleMaps();
+						// Reaction を登録
+						try {
+							await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${currentDishMediaId}/reaction`, {
+								method: "POST",
+								requestPayload: { action_type: "open_map" },
+							});
+						} catch (error) {
+							console.log("Map open reaction error ignored:", error);
+						}
+						break;
+					case 1:
+						// 友人に共有する
+						await shareRestaurant();
+						break;
+				}
+			},
+		);
+	}, [
+		currentRestaurant,
+		currentDishMediaId,
+		openInGoogleMaps,
+		shareRestaurant,
+		showActionSheetWithOptions,
+		callBackend,
+	]);
+
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: string; index: number }) => (
-			<View style={styles.carouselItem}>
+			<TouchableOpacity
+				style={styles.carouselItem}
+				activeOpacity={0.95}
+				onPress={handleOpenActionSheet}
+				disabled={index !== currentIndex}>
 				<DishMediaContent
 					id={item}
 					carouselRef={carouselRef}
@@ -211,9 +302,9 @@ export default function DishMediaMap({
 					entriesKey={entriesKey}
 					idType={idType}
 				/>
-			</View>
+			</TouchableOpacity>
 		),
-		[currentIndex, getTitle, entriesKey, idType],
+		[currentIndex, getTitle, entriesKey, idType, handleOpenActionSheet],
 	);
 
 	return (

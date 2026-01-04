@@ -495,5 +495,11 @@
 			"selected": "Seleccionado",
 			"dishCount": "{{count}} platos"
 		}
+	},
+	"ActionSheet": {
+		"title": "¿Te interesa este restaurante?",
+		"openInGoogleMaps": "Abrir en Google Maps",
+		"shareWithFriends": "Compartir con amigos",
+		"cancel": "Cancelar"
 	}
 }

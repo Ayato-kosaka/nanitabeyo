@@ -495,5 +495,11 @@
 			"selected": "已选择",
 			"dishCount": "{{count}}道菜"
 		}
+	},
+	"ActionSheet": {
+		"title": "对这家餐厅感兴趣吗？",
+		"openInGoogleMaps": "在 Google 地图中打开",
+		"shareWithFriends": "与朋友分享",
+		"cancel": "取消"
 	}
 }

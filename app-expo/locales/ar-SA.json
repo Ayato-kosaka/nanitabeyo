@@ -495,5 +495,11 @@
 			"selected": "محدد",
 			"dishCount": "{{count}} أطباق"
 		}
+	},
+	"ActionSheet": {
+		"title": "هل أنت مهتم بهذا المطعم؟",
+		"openInGoogleMaps": "فتح في خرائط Google",
+		"shareWithFriends": "مشاركة مع الأصدقاء",
+		"cancel": "إلغاء"
 	}
 }
