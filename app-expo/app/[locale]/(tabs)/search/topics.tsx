@@ -92,7 +92,7 @@ export default function TopicsScreen() {
 
 	const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
-	// #615 【バグ】visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
+	// #615 visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
 	useEffect(() => {
 		if (visibleTopics.length > 0 && currentIndex >= visibleTopics.length) {
 			const newIndex = Math.max(0, visibleTopics.length - 1);

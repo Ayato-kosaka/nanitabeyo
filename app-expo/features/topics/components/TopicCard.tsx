@@ -23,14 +23,14 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	const [isSaved, setIsSaved] = useState(false);
 	// #615 【UX】画像ロード状態管理（スケルトン表示用）
 	const [isLoading, setIsLoading] = useState(true);
-	// #615 【バグ】画像ロード失敗回数（自動リトライ制御用）
+	// #615 画像ロード失敗回数（自動リトライ制御用）
 	const [errorCount, setErrorCount] = useState(0);
 	// #615 【UX】画像ロードが完全に失敗したかフラグ（失敗UI表示用）
 	const [hasFailed, setHasFailed] = useState(false);
 	// #615 【設計】画像リロードトークン（キャッシュ回避用クエリパラメータ）
 	const [reloadToken, setReloadToken] = useState(0);
-	// #615 【バグ】リトライタイマーの参照を保持（unmount 時のクリーンアップ用）
-	const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+	// #615 リトライタイマーの参照を保持（unmount 時のクリーンアップ用）
+	const retryTimerRef = useRef<number | null>(null);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
@@ -114,9 +114,9 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		setHasFailed(false);
 	}, []);
 
-	// #615 【バグ】画像ロード失敗時、最大2回まで自動リトライ（軽いバックオフ付き）
+	// #615 画像ロード失敗時、最大2回まで自動リトライ（軽いバックオフ付き）
 	const handleImageError = useCallback(() => {
-		// #615 【バグ】既存のリトライタイマーをクリアして重複を防ぐ
+		// #615 既存のリトライタイマーをクリアして重複を防ぐ
 		if (retryTimerRef.current) {
 			clearTimeout(retryTimerRef.current);
 			retryTimerRef.current = null;
@@ -150,7 +150,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		});
 	}, [item.categoryId, item.imageUrl, logFrontendEvent]);
 
-	// #615 【バグ】unmount 時にリトライタイマーをクリーンアップ（unmounted component への state 更新を防ぐ）
+	// #615 unmount 時にリトライタイマーをクリーンアップ（unmounted component への state 更新を防ぐ）
 	useEffect(() => {
 		return () => {
 			if (retryTimerRef.current) {
@@ -161,7 +161,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
 	const handleManualRetry = useCallback(() => {
-		// #615 【バグ】既存のリトライタイマーをクリアしてレースコンディションを防ぐ
+		// #615 既存のリトライタイマーをクリアしてレースコンディションを防ぐ
 		if (retryTimerRef.current) {
 			clearTimeout(retryTimerRef.current);
 			retryTimerRef.current = null;
@@ -196,22 +196,22 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 				</View>
 			)}
 
-			{/* #615 【UX】画像ロード失敗時の UI（アイコン + 再読み込み導線） */}
-			{hasFailed && (
-				<TouchableOpacity style={styles.failureOverlay} onPress={handleManualRetry} activeOpacity={0.8}>
-					<View style={styles.failureContent}>
-						<ImageOff size={48} color="#FFF" strokeWidth={1.5} />
-						<Text style={styles.failureText}>{i18n.t("Topics.imageLoadFailed")}</Text>
-						<View style={styles.retryButton}>
-							<RefreshCw size={16} color="#FFF" />
-							<Text style={styles.retryText}>{i18n.t("Topics.tapToReload")}</Text>
-						</View>
-					</View>
-				</TouchableOpacity>
-			)}
-
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>
+				{/* #615 【UX】画像ロード失敗時の UI（アイコン + 再読み込み導線） */}
+				{hasFailed && (
+					<TouchableOpacity style={styles.failureOverlay} onPress={handleManualRetry} activeOpacity={0.8}>
+						<View style={styles.failureContent}>
+							<ImageOff size={48} color="#FFF" strokeWidth={1.5} />
+							<Text style={styles.failureText}>{i18n.t("Topics.imageLoadFailed")}</Text>
+							<View style={styles.retryButton}>
+								<RefreshCw size={16} color="#FFF" />
+								<Text style={styles.retryText}>{i18n.t("Topics.tapToReload")}</Text>
+							</View>
+						</View>
+					</TouchableOpacity>
+				)}
+
 				{/* Top Buttons */}
 				<View style={styles.topButtons}>
 					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
 		height: CARD_HEIGHT,
 		borderRadius: 24,
 		overflow: "hidden",
+		backgroundColor: "#EEE",
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
@@ -265,7 +266,6 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.7)",
 		justifyContent: "center",
 		alignItems: "center",
 		zIndex: 2,
@@ -284,12 +284,10 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 8,
-		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		paddingHorizontal: 20,
 		paddingVertical: 12,
 		borderRadius: 24,
-		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.3)",
 	},
 	retryText: {
 		fontSize: 14,
@@ -310,6 +308,7 @@ const styles = StyleSheet.create({
 	topButtons: {
 		alignSelf: "flex-end",
 		gap: 12,
+		zIndex: 4,
 	},
 	topButton: {
 		flexDirection: "row",
@@ -328,6 +327,7 @@ const styles = StyleSheet.create({
 	cardContent: {
 		flex: 1,
 		justifyContent: "flex-end",
+		zIndex: 1,
 	},
 	cardTitle: {
 		fontSize: 32,
