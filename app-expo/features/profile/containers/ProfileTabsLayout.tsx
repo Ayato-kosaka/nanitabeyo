@@ -47,9 +47,9 @@ export function ProfileTabsLayout() {
 		}
 		if (isOwnProfile) {
 			tabs.push("saved", "liked");
-			// if (!isGuest) {
-			// 	tabs.push("wallet");
-			// }
+			if (!isGuest) {
+				tabs.push("wallet");
+			}
 		}
 		return tabs;
 	}, [isOwnProfile]);

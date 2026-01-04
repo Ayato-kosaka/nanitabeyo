@@ -206,13 +206,13 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 						borderRadius={8}
 						style={{ flex: 1 }}
 					/>
-					{/* <PrimaryButton
+					<PrimaryButton
 						onPress={openBidModal}
 						label={i18n.t("Map.buttons.placeBid")}
 						icon={<DollarSign size={20} color="#FFF" />}
 						borderRadius={8}
 						style={{ flex: 1 }}
-					/> */}
+					/>
 				</View>
 			</View>
 		) : (
@@ -242,9 +242,9 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 					useCursorPaginationでレストランの入札履歴を取得し、
 					既存のFlatListレイアウトとフィルター機能を完全に維持
 				*/}
-				{/* <Tabs.Tab name="bids">
+				<Tabs.Tab name="bids">
 					<RestaurantBidsTab restaurantId={restaurant.id} />
-				</Tabs.Tab> */}
+				</Tabs.Tab>
 			</Tabs.Container>
 
 			{/* Review Modal */}

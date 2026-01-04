@@ -98,7 +98,7 @@ export default function MapScreen() {
 			currentRegion.current = newRegion;
 			mapRef.current?.animateToRegion(newRegion, 1000);
 			// Search restaurants at current location
-			// searchNearbyRestaurants(newRegion);
+			searchNearbyRestaurants(newRegion);
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
@@ -273,7 +273,7 @@ export default function MapScreen() {
 			</View>
 
 			{/* Search This Area Button */}
-			{/* <View style={styles.bottomActionContainer}>
+			<View style={styles.bottomActionContainer}>
 				<PrimaryButton
 					label={i18n.t("Map.buttons.searchNearby")}
 					onPress={() => searchNearbyRestaurants(currentRegion.current)}
@@ -282,7 +282,7 @@ export default function MapScreen() {
 					labelStyle={{ color: "#1A1A1A" }}
 					loading={isLoadingNearbyRestaurants}
 				/>
-			</View> */}
+			</View>
 
 			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
 				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}

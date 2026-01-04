@@ -278,13 +278,13 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 	);
 	return (
 		<View style={styles.rightActions} onLayout={handleLayout}>
-			{/* <TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant}>
+			<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant}>
 				<Image
 					source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
 					style={styles.restaurantAvatar}
 					onError={() => console.log("Failed to load restaurant avatar")}
 				/>
-			</TouchableOpacity> */}
+			</TouchableOpacity>
 
 			<View style={styles.actionContainer}>
 				<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
