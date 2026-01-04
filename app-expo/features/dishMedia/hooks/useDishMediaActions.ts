@@ -10,7 +10,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import i18n from "@/lib/i18n";
 import type { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 
-// #<チケット番号> 【設計】DishMedia の押下処理を hooks に切り出して共通化
+// #613 【設計】DishMedia の押下処理を hooks に切り出して共通化
 interface UseDishMediaActionsProps {
 	dishMediaId: string;
 	restaurant: Pick<SupabaseRestaurants, "id" | "name" | "google_place_id" | "latitude" | "longitude">;
@@ -22,7 +22,7 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 	const { logFrontendEvent } = useLogger();
 	const locale = useLocale();
 
-	// #<チケット番号> 【設計】Google Maps で開く処理を共通化（緯度経度優先）
+	// #613 【設計】Google Maps で開く処理を共通化（緯度経度優先）
 	const openInGoogleMaps = useCallback(async () => {
 		lightImpact();
 
@@ -37,7 +37,7 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 		});
 
 		try {
-			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant as SupabaseRestaurants);
+			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
 			if (Platform.OS === "web") {
 				window.open(mapUrl, "_blank", "noopener,noreferrer");
 				return;
@@ -61,7 +61,7 @@ export function useDishMediaActions({ dishMediaId, restaurant }: UseDishMediaAct
 		}
 	}, [dishMediaId, restaurant, lightImpact, logFrontendEvent, showSnackbar]);
 
-	// #<チケット番号> 【設計】友人に共有する処理を共通化
+	// #613 【設計】友人に共有する処理を共通化
 	const shareRestaurant = useCallback(async () => {
 		lightImpact();
 

@@ -208,7 +208,7 @@ export default function DishMediaMap({
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
-	// #<チケット番号> 【設計】現在表示中のカードに対応する restaurant と dishMediaId を取得
+	// #613 【設計】現在表示中のカードに対応する restaurant と dishMediaId を取得
 	const currentRestaurant = useMemo(() => {
 		if (!restaurants[currentIndex]) return null;
 		return restaurants[currentIndex];
@@ -224,7 +224,7 @@ export default function DishMediaMap({
 		return entry?.dish_media.id ?? null;
 	}, [ids, currentIndex, idType]);
 
-	// #<チケット番号> 【設計】useDishMediaActions hooks を使用
+	// #613 【設計】useDishMediaActions hooks を使用
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
 		dishMediaId: currentDishMediaId ?? "",
 		restaurant: currentRestaurant ?? {
@@ -236,7 +236,7 @@ export default function DishMediaMap({
 		},
 	});
 
-	// #<チケット番号> 【設計】ActionSheet を開く処理
+	// #613 【設計】ActionSheet を開く処理
 	const handleOpenActionSheet = useCallback(() => {
 		if (!currentRestaurant || !currentDishMediaId) return;
 
@@ -260,15 +260,6 @@ export default function DishMediaMap({
 					case 0:
 						// Google マップで開く
 						await openInGoogleMaps();
-						// Reaction を登録
-						try {
-							await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${currentDishMediaId}/reaction`, {
-								method: "POST",
-								requestPayload: { action_type: "open_map" },
-							});
-						} catch (error) {
-							console.log("Map open reaction error ignored:", error);
-						}
 						break;
 					case 1:
 						// 友人に共有する
