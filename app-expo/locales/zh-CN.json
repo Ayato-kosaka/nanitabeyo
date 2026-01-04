@@ -146,7 +146,9 @@
 		"empty": "没有可显示的菜品",
 		"retry": "返回搜索",
 		"chooseThis": "就选这个！",
-		"hiddenMessage": "{{title}}已被隐藏"
+		"hiddenMessage": "{{title}}已被隐藏",
+		"imageLoadFailed": "图片加载失败",
+		"tapToReload": "点击重新加载"
 	},
 	"Notifications": {
 		"title": "通知",
@@ -470,6 +472,9 @@
 		"title": "设置",
 		"sendFeedback": "发送反馈",
 		"leaveReview": "留下评价",
+		"rateDialogTitle": "您喜欢这个应用吗？",
+		"rateDialogMessage": "如果您喜欢，请在商店给我们评分。我们将打开评价页面。",
+		"rateDialogOk": "立即评分",
 		"communityGuidelines": "社区准则",
 		"terms": "条款和条件",
 		"privacy": "隐私政策",
@@ -492,5 +497,11 @@
 			"selected": "已选择",
 			"dishCount": "{{count}}道菜"
 		}
+	},
+	"ActionSheet": {
+		"title": "对这家餐厅感兴趣吗？",
+		"openInGoogleMaps": "在 Google 地图中打开",
+		"shareWithFriends": "与朋友分享",
+		"cancel": "取消"
 	}
 }

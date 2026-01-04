@@ -1,20 +1,16 @@
 import React, { useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned, User, Calendar } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
 import { formatLikeCount } from "../utils/text";
-import { generateShareUrl, handleShare } from "@/lib/share";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
-import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { getCacheKeyForImage } from "@/lib/image";
 import {
 	DishMediaEntriesStore,
@@ -26,6 +22,7 @@ import {
 import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
+import { useDishMediaActions } from "../hooks/useDishMediaActions";
 
 interface ActionButtonsProps {
 	id: string;
@@ -37,7 +34,6 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
-	const { showSnackbar } = useSnackbar();
 	const router = useRouter();
 	const locale = useLocale();
 
@@ -61,6 +57,11 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		if (!entry) throw new Error("ActionButtons: entry is undefined");
 		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
 	}, [id, idType]);
+
+	// #613 【設計】ActionButtons の押下処理を hooks で共通化
+	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
+		source: "ActionButtons", // #613 【設計】呼び出し元を明示
+	});
 
 	const {
 		BlurModal,
@@ -229,54 +230,12 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		});
 	};
 
-	const handleMapPinPress = async () => {
-		lightImpact();
-
-		logFrontendEvent({
-			event_name: "map_pin_clicked",
-			error_level: "log",
-			payload: {
-				restaurantId: restaurant.id,
-				googlePlaceId: restaurant.google_place_id,
-				fromDishMediaId: dishMediaId,
-			},
+	const handleMapPinPress = useCallback(() => {
+		return openInGoogleMaps({
+			dishMediaId,
+			restaurant,
 		});
-
-		try {
-			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
-			if (Platform.OS === "web") {
-				window.open(mapUrl, "_blank", "noopener,noreferrer"); // 別タブで開く
-				return;
-			}
-			if (canOpen) {
-				await Linking.openURL(mapUrl);
-			} else {
-				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			}
-		} catch (error) {
-			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			logFrontendEvent({
-				event_name: "map_pin_open_failed",
-				error_level: "error",
-				payload: {
-					restaurantId: restaurant.id,
-					googlePlaceId: restaurant.google_place_id,
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			});
-		}
-
-		// Reaction を登録する。重複する場合はエラーになるが無視する。
-		try {
-			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-				method: "POST",
-				requestPayload: { action_type: "open_map" },
-			});
-		} catch (error) {
-			// Ignore errors as per the comment
-			console.log("Map open reaction error ignored:", error);
-		}
-	};
+	}, [dishMediaId, restaurant, openInGoogleMaps]);
 
 	const handleMenuOptionPress = (onPress: () => void) => {
 		lightImpact();
@@ -293,64 +252,12 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		});
 	};
 
-	const handleSharePress = async () => {
-		lightImpact();
-
-		try {
-			const shareUrl = generateShareUrl(`/${locale}/posts?ids=${dishMediaId}`);
-
-			logFrontendEvent({
-				event_name: "dish_share_attempted",
-				error_level: "log",
-				payload: {
-					dishMediaId: dishMediaId,
-					restaurantId: restaurant.id,
-					shareUrl,
-				},
-			});
-
-			await handleShare(
-				shareUrl,
-				i18n.t("DishMediaContent.share.title", { dishName: restaurant.name }),
-				() => {
-					// Success callback
-					logFrontendEvent({
-						event_name: "dish_share_success",
-						error_level: "log",
-						payload: {
-							dishMediaId: dishMediaId,
-							restaurantId: restaurant.id,
-							shareUrl,
-						},
-					});
-				},
-				(error) => {
-					// Error callback
-					logFrontendEvent({
-						event_name: "dish_share_failed",
-						error_level: "error",
-						payload: {
-							dishMediaId: dishMediaId,
-							restaurantId: restaurant.id,
-							shareUrl,
-							error,
-						},
-					});
-				},
-				showSnackbar,
-			);
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "dish_share_error",
-				error_level: "error",
-				payload: {
-					dishMediaId: dishMediaId,
-					restaurantId: restaurant.id,
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			});
-		}
-	};
+	const handleSharePress = useCallback(() => {
+		return shareRestaurant({
+			dishMediaId,
+			restaurant,
+		});
+	}, [dishMediaId, restaurant, shareRestaurant]);
 
 	const menuOptions = [
 		{
@@ -371,13 +278,13 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 	);
 	return (
 		<View style={styles.rightActions} onLayout={handleLayout}>
-			{/* <TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant}>
+			<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant}>
 				<Image
 					source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
 					style={styles.restaurantAvatar}
 					onError={() => console.log("Failed to load restaurant avatar")}
 				/>
-			</TouchableOpacity> */}
+			</TouchableOpacity>
 
 			<View style={styles.actionContainer}>
 				<TouchableOpacity style={styles.actionButton} onPress={handleLike}>

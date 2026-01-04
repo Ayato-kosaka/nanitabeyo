@@ -20,6 +20,8 @@ import {
 import { shallow } from "zustand/shallow";
 import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
+import { useActionSheet } from "@expo/react-native-action-sheet";
+import { useDishMediaActions } from "../hooks/useDishMediaActions";
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,7 +36,7 @@ const HANDLE_HEIGHT = 44;
 // #605 【設計】スナップ判定の閾値（0.5 = 中間点）
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
-const HANDLE_COLOR = "rgba(255, 255, 255, 0.4)";
+const HANDLE_COLOR = "#FFFFFFFF";
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -85,6 +87,7 @@ export default function DishMediaMap({
 				name: restaurant.name,
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
+				google_place_id: restaurant.google_place_id,
 			}));
 	}, [ids, idType]);
 
@@ -199,6 +202,56 @@ export default function DishMediaMap({
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
+	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
+	const { showActionSheetWithOptions } = useActionSheet();
+	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
+		source: "DishMediaMap",
+	});
+	const handleCardPress = useCallback(
+		async (entry: NormalizedDishMediaEntry) => {
+			const dishMediaId = entry.dish_media.id;
+			const restaurant = entry.restaurant;
+
+			const options = [
+				i18n.t("ActionSheet.openInGoogleMaps"),
+				i18n.t("ActionSheet.shareWithFriends"),
+				i18n.t("ActionSheet.cancel"),
+			];
+			const cancelButtonIndex = 2;
+
+			showActionSheetWithOptions(
+				{
+					title: i18n.t("ActionSheet.title"),
+					options,
+					cancelButtonIndex,
+				},
+				async (selectedIndex?: number) => {
+					if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
+
+					switch (selectedIndex) {
+						case 0: {
+							// #613 【設計】Google マップで開く
+							await openInGoogleMaps({
+								dishMediaId,
+								restaurant,
+							});
+							break;
+						}
+						case 1: {
+							// #613 【設計】友人に共有する
+							await shareRestaurant({
+								dishMediaId,
+								restaurant,
+							});
+							break;
+						}
+					}
+				},
+			);
+		},
+		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
+	);
+
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: string; index: number }) => (
 			<View style={styles.carouselItem}>
@@ -210,10 +263,11 @@ export default function DishMediaMap({
 					sessionId={sessionId.current}
 					entriesKey={entriesKey}
 					idType={idType}
+					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 				/>
 			</View>
 		),
-		[currentIndex, getTitle, entriesKey, idType],
+		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
 	);
 
 	return (
@@ -234,10 +288,10 @@ export default function DishMediaMap({
 
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
-				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
+				<MapView ref={mapRef} style={styles.map} initialRegion={getMapRegion()}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${index}`}
+							key={`marker-${restaurant.google_place_id}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
@@ -320,6 +374,11 @@ const styles = StyleSheet.create({
 		height: 5,
 		borderRadius: 2.5,
 		backgroundColor: HANDLE_COLOR,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.55,
+		shadowRadius: 3,
+		elevation: 4,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,

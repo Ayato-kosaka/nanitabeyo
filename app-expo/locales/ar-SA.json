@@ -146,7 +146,9 @@
 		"empty": "لا توجد أطباق متاحة",
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
-		"hiddenMessage": "تم إخفاء {{title}}"
+		"hiddenMessage": "تم إخفاء {{title}}",
+		"imageLoadFailed": "فشل تحميل الصورة",
+		"tapToReload": "اضغط لإعادة التحميل"
 	},
 	"Notifications": {
 		"title": "الإشعارات",
@@ -470,6 +472,9 @@
 		"title": "الإعدادات",
 		"sendFeedback": "إرسال ملاحظات",
 		"leaveReview": "اترك تقييم",
+		"rateDialogTitle": "هل تستمتع بالتطبيق؟",
+		"rateDialogMessage": "إذا أعجبك، يرجى تقييمنا على المتجر. سنفتح صفحة التقييم.",
+		"rateDialogOk": "قيّم الآن",
 		"communityGuidelines": "إرشادات المجتمع",
 		"terms": "الشروط والأحكام",
 		"privacy": "سياسة الخصوصية",
@@ -492,5 +497,11 @@
 			"selected": "محدد",
 			"dishCount": "{{count}} أطباق"
 		}
+	},
+	"ActionSheet": {
+		"title": "هل أنت مهتم بهذا المطعم؟",
+		"openInGoogleMaps": "فتح في خرائط Google",
+		"shareWithFriends": "مشاركة مع الأصدقاء",
+		"cancel": "إلغاء"
 	}
 }

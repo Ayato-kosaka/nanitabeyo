@@ -146,7 +146,9 @@
 		"empty": "표시할 요리가 없습니다",
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
-		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다"
+		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
+		"imageLoadFailed": "이미지를 불러오지 못했습니다",
+		"tapToReload": "탭하여 다시 로드"
 	},
 	"Notifications": {
 		"title": "알림",
@@ -470,6 +472,9 @@
 		"title": "설정",
 		"sendFeedback": "피드백 보내기",
 		"leaveReview": "리뷰 남기기",
+		"rateDialogTitle": "앱이 마음에 드시나요?",
+		"rateDialogMessage": "마음에 드신다면 스토어에서 평가 부탁드립니다. 리뷰 페이지를 열겠습니다.",
+		"rateDialogOk": "지금 평가하기",
 		"communityGuidelines": "커뮤니티 가이드라인",
 		"terms": "이용약관",
 		"privacy": "개인정보 처리방침",
@@ -492,5 +497,11 @@
 			"selected": "선택됨",
 			"dishCount": "{{count}}개 요리"
 		}
+	},
+	"ActionSheet": {
+		"title": "이 레스토랑이 궁금하신가요?",
+		"openInGoogleMaps": "Google 지도에서 열기",
+		"shareWithFriends": "친구와 공유하기",
+		"cancel": "취소"
 	}
 }

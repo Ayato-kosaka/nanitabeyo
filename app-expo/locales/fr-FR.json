@@ -146,7 +146,9 @@
 		"empty": "Aucun plat disponible",
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
-		"hiddenMessage": "{{title}} a été masqué"
+		"hiddenMessage": "{{title}} a été masqué",
+		"imageLoadFailed": "Échec du chargement de l'image",
+		"tapToReload": "Appuyez pour recharger"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -470,6 +472,9 @@
 		"title": "Paramètres",
 		"sendFeedback": "Envoyer des commentaires",
 		"leaveReview": "Laisser un avis",
+		"rateDialogTitle": "Appréciez-vous l'application ?",
+		"rateDialogMessage": "Si vous l'aimez, veuillez nous noter sur le store. Nous allons ouvrir la page d'avis.",
+		"rateDialogOk": "Évaluer maintenant",
 		"communityGuidelines": "Directives de la communauté",
 		"terms": "Conditions générales",
 		"privacy": "Politique de confidentialité",
@@ -492,5 +497,11 @@
 			"selected": "Sélectionné",
 			"dishCount": "{{count}} plats"
 		}
+	},
+	"ActionSheet": {
+		"title": "Ce restaurant vous intéresse ?",
+		"openInGoogleMaps": "Ouvrir dans Google Maps",
+		"shareWithFriends": "Partager avec des amis",
+		"cancel": "Annuler"
 	}
 }
