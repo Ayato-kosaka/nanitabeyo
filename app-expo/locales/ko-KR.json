@@ -146,7 +146,9 @@
 		"empty": "표시할 요리가 없습니다",
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
-		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다"
+		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
+		"imageLoadFailed": "이미지를 불러오지 못했습니다",
+		"tapToReload": "탭하여 다시 로드"
 	},
 	"Notifications": {
 		"title": "알림",

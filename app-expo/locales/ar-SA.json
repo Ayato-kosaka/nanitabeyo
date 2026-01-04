@@ -146,7 +146,9 @@
 		"empty": "لا توجد أطباق متاحة",
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
-		"hiddenMessage": "تم إخفاء {{title}}"
+		"hiddenMessage": "تم إخفاء {{title}}",
+		"imageLoadFailed": "فشل تحميل الصورة",
+		"tapToReload": "اضغط لإعادة التحميل"
 	},
 	"Notifications": {
 		"title": "الإشعارات",

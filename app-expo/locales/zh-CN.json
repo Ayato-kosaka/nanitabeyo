@@ -146,7 +146,9 @@
 		"empty": "没有可显示的菜品",
 		"retry": "返回搜索",
 		"chooseThis": "就选这个！",
-		"hiddenMessage": "{{title}}已被隐藏"
+		"hiddenMessage": "{{title}}已被隐藏",
+		"imageLoadFailed": "图片加载失败",
+		"tapToReload": "点击重新加载"
 	},
 	"Notifications": {
 		"title": "通知",
