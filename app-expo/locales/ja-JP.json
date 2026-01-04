@@ -495,5 +495,11 @@
 			"selected": "選択済み",
 			"dishCount": "{{count}}件の料理"
 		}
+	},
+	"ActionSheet": {
+		"title": "このお店、気になる？",
+		"openInGoogleMaps": "Google マップで開く",
+		"shareWithFriends": "友人に共有する",
+		"cancel": "キャンセル"
 	}
 }

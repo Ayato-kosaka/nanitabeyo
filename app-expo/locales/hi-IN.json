@@ -496,5 +496,11 @@
 			"selected": "चयनित",
 			"dishCount": "{{count}} व्यंजन"
 		}
+	},
+	"ActionSheet": {
+		"title": "इस रेस्तरां में रुचि है?",
+		"openInGoogleMaps": "Google Maps में खोलें",
+		"shareWithFriends": "दोस्तों के साथ साझा करें",
+		"cancel": "रद्द करें"
 	}
 }

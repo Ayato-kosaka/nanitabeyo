@@ -495,5 +495,11 @@
 			"selected": "선택됨",
 			"dishCount": "{{count}}개 요리"
 		}
+	},
+	"ActionSheet": {
+		"title": "이 레스토랑이 궁금하신가요?",
+		"openInGoogleMaps": "Google 지도에서 열기",
+		"shareWithFriends": "친구와 공유하기",
+		"cancel": "취소"
 	}
 }

@@ -495,5 +495,11 @@
 			"selected": "Selected",
 			"dishCount": "{{count}} dishes"
 		}
+	},
+	"ActionSheet": {
+		"title": "Interested in this restaurant?",
+		"openInGoogleMaps": "Open in Google Maps",
+		"shareWithFriends": "Share with friends",
+		"cancel": "Cancel"
 	}
 }
