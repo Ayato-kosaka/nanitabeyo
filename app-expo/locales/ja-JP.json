@@ -146,7 +146,9 @@
 		"empty": "表示できる料理がありません",
 		"retry": "検索に戻る",
 		"chooseThis": "これにする！",
-		"hiddenMessage": "{{title}}を非表示にしました"
+		"hiddenMessage": "{{title}}を非表示にしました",
+		"imageLoadFailed": "画像を読み込めませんでした",
+		"tapToReload": "タップして再読み込み"
 	},
 	"Notifications": {
 		"title": "通知",
@@ -495,5 +497,11 @@
 			"selected": "選択済み",
 			"dishCount": "{{count}}件の料理"
 		}
+	},
+	"ActionSheet": {
+		"title": "このお店、気になる？",
+		"openInGoogleMaps": "Google マップで開く",
+		"shareWithFriends": "友人に共有する",
+		"cancel": "キャンセル"
 	}
 }

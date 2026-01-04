@@ -146,7 +146,9 @@
 		"empty": "No dishes available",
 		"retry": "Back to search",
 		"chooseThis": "Choose this!",
-		"hiddenMessage": "{{title}} has been hidden"
+		"hiddenMessage": "{{title}} has been hidden",
+		"imageLoadFailed": "Failed to load image",
+		"tapToReload": "Tap to reload"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -495,5 +497,11 @@
 			"selected": "Selected",
 			"dishCount": "{{count}} dishes"
 		}
+	},
+	"ActionSheet": {
+		"title": "Interested in this restaurant?",
+		"openInGoogleMaps": "Open in Google Maps",
+		"shareWithFriends": "Share with friends",
+		"cancel": "Cancel"
 	}
 }

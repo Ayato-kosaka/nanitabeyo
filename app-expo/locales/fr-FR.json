@@ -146,7 +146,9 @@
 		"empty": "Aucun plat disponible",
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
-		"hiddenMessage": "{{title}} a été masqué"
+		"hiddenMessage": "{{title}} a été masqué",
+		"imageLoadFailed": "Échec du chargement de l'image",
+		"tapToReload": "Appuyez pour recharger"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -495,5 +497,11 @@
 			"selected": "Sélectionné",
 			"dishCount": "{{count}} plats"
 		}
+	},
+	"ActionSheet": {
+		"title": "Ce restaurant vous intéresse ?",
+		"openInGoogleMaps": "Ouvrir dans Google Maps",
+		"shareWithFriends": "Partager avec des amis",
+		"cancel": "Annuler"
 	}
 }

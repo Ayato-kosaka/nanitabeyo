@@ -92,6 +92,18 @@ export default function TopicsScreen() {
 
 	const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
+	// #615 visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
+	useEffect(() => {
+		if (visibleTopics.length > 0 && currentIndex >= visibleTopics.length) {
+			const newIndex = Math.max(0, visibleTopics.length - 1);
+			setCurrentIndex(newIndex);
+			// Carousel の表示位置も補正
+			if (carouselRef.current) {
+				carouselRef.current.scrollTo({ index: newIndex, animated: false });
+			}
+		}
+	}, [visibleTopics.length, currentIndex]);
+
 	const handleSnapToItem = (index: number) => {
 		selectionChanged();
 		setCurrentIndex(index);
@@ -167,7 +179,7 @@ export default function TopicsScreen() {
 							label={i18n.t("Topics.chooseThis")}
 							icon={<ThumbsUp size={20} color="#FFF" />}
 							onPress={() => handleViewDetails(visibleTopics[currentIndex])}
-							disabled={isScrolling}
+							disabled={isScrolling || currentIndex >= visibleTopics.length}
 						/>
 					</View>
 				)}

@@ -184,25 +184,6 @@ export const useTopicSearch = () => {
 
 				// Early display: Set topics from initial response with category IDs
 				if (topicsResponseWithCategoryIds.length > 0) {
-					await Promise.allSettled(
-						topicsResponseWithCategoryIds
-							.filter((topic) => topic.imageUrl)
-							.map(async (topic) => {
-								try {
-									await prefetchWithUserAgent(topic.imageUrl!);
-								} catch (error) {
-									logFrontendEvent({
-										event_name: "image_preload_failed",
-										error_level: "warn",
-										payload: {
-											imageType: "topic_image",
-											imageUrl: topic.imageUrl,
-											error: error instanceof Error ? error.message : String(error),
-										},
-									});
-								}
-							}),
-					);
 					const initialTopics = topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
 					setTopics(initialTopics);
 					// Set loading to false after early display
@@ -231,8 +212,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												typeof createDishCategoryVariantResponse.labels === "object" &&
+												params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
@@ -255,25 +236,6 @@ export const useTopicSearch = () => {
 
 					// Add additional topics to the array (append to the end)
 					if (additionalTopicsWithCategoryIds.length > 0) {
-						await Promise.allSettled(
-							additionalTopicsWithCategoryIds
-								.filter((topic) => topic.imageUrl)
-								.map(async (topic) => {
-									try {
-										await prefetchWithUserAgent(topic.imageUrl!);
-									} catch (error) {
-										logFrontendEvent({
-											event_name: "image_preload_failed",
-											error_level: "warn",
-											payload: {
-												imageType: "topic_image",
-												imageUrl: topic.imageUrl,
-												error: error instanceof Error ? error.message : String(error),
-											},
-										});
-									}
-								}),
-						);
 						const additionalTopics = additionalTopicsWithCategoryIds.map((topic) => createTopic(topic));
 						setTopics((prevTopics) => [...prevTopics, ...additionalTopics]);
 					}

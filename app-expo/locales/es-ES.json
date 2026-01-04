@@ -146,7 +146,9 @@
 		"empty": "No hay platos disponibles",
 		"retry": "Volver a la búsqueda",
 		"chooseThis": "¡Este!",
-		"hiddenMessage": "{{title}} se ha ocultado"
+		"hiddenMessage": "{{title}} se ha ocultado",
+		"imageLoadFailed": "Error al cargar la imagen",
+		"tapToReload": "Toca para recargar"
 	},
 	"Notifications": {
 		"title": "Notificaciones",
@@ -495,5 +497,11 @@
 			"selected": "Seleccionado",
 			"dishCount": "{{count}} platos"
 		}
+	},
+	"ActionSheet": {
+		"title": "¿Te interesa este restaurante?",
+		"openInGoogleMaps": "Abrir en Google Maps",
+		"shareWithFriends": "Compartir con amigos",
+		"cancel": "Cancelar"
 	}
 }

@@ -146,7 +146,9 @@
 		"empty": "कोई व्यंजन उपलब्ध नहीं",
 		"retry": "खोज पर लौटें",
 		"chooseThis": "इसे चुनें!",
-		"hiddenMessage": "{{title}} को छिपा दिया गया है"
+		"hiddenMessage": "{{title}} को छिपा दिया गया है",
+		"imageLoadFailed": "चित्र लोड करने में विफल",
+		"tapToReload": "पुनः लोड करने के लिए टैप करें"
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",
@@ -496,5 +498,11 @@
 			"selected": "चयनित",
 			"dishCount": "{{count}} व्यंजन"
 		}
+	},
+	"ActionSheet": {
+		"title": "इस रेस्तरां में रुचि है?",
+		"openInGoogleMaps": "Google Maps में खोलें",
+		"shareWithFriends": "दोस्तों के साथ साझा करें",
+		"cancel": "रद्द करें"
 	}
 }
