@@ -82,6 +82,7 @@ export default function DishMediaMap({
 			.filter((restaurant): restaurant is NonNullable<typeof restaurant> => restaurant !== undefined)
 			.map((restaurant) => ({
 				id: restaurant.id,
+				google_place_id: restaurant.google_place_id,
 				name: restaurant.name,
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
@@ -238,7 +239,7 @@ export default function DishMediaMap({
 				<MapView ref={mapRef} style={styles.map} initialRegion={getMapRegion()}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${restaurant.id}`}
+							key={`marker-${restaurant.google_place_id}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.55,
 		shadowRadius: 3,
-		elevation: 4,
+		elevation: 8,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
