@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Trash, Bookmark, ImageOff, RefreshCw } from "lucide-react-native";
@@ -29,17 +29,21 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	const [hasFailed, setHasFailed] = useState(false);
 	// #615 【設計】画像リロードトークン（キャッシュ回避用クエリパラメータ）
 	const [reloadToken, setReloadToken] = useState(0);
+	// #615 【バグ】リトライタイマーの参照を保持（unmount 時のクリーンアップ用）
+	const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（タイムスタンプベース）
-	const source = useMemo(
-		() => ({
-			uri: `${item.imageUrl}${item.imageUrl.includes("?") ? "&" : "?"}t=${Date.now()}_${reloadToken}`,
+	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（タイムスタンプは reloadToken 変更時のみ生成）
+	const source = useMemo(() => {
+		const timestamp = reloadToken > 0 ? Date.now() : "";
+		const separator = item.imageUrl.includes("?") ? "&" : "?";
+		const cacheBuster = reloadToken > 0 ? `${separator}t=${timestamp}_${reloadToken}` : "";
+		return {
+			uri: `${item.imageUrl}${cacheBuster}`,
 			headers: WIKIMEDIA_HEADERS,
-		}),
-		[item.imageUrl, reloadToken],
-	);
+		};
+	}, [item.imageUrl, reloadToken]);
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
@@ -121,7 +125,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 			if (newCount <= MAX_AUTO_RETRY) {
 				// #615 【設計】自動リトライ中はスケルトンを維持。リトライごとに待機時間を増やす（バックオフ）
-				setTimeout(() => {
+				retryTimerRef.current = setTimeout(() => {
 					setReloadToken((prev) => prev + 1);
 				}, RETRY_DELAY_MS * newCount);
 			} else {
@@ -133,6 +137,15 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 			return newCount;
 		});
 	}, [item.categoryId, item.imageUrl, logFrontendEvent]);
+
+	// #615 【バグ】unmount 時にリトライタイマーをクリーンアップ（unmounted component への state 更新を防ぐ）
+	useEffect(() => {
+		return () => {
+			if (retryTimerRef.current) {
+				clearTimeout(retryTimerRef.current);
+			}
+		};
+	}, []);
 
 	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
 	const handleManualRetry = useCallback(() => {

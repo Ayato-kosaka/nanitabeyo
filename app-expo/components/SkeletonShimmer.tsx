@@ -31,9 +31,11 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({ width, height,
 		return () => animation.stop();
 	}, [animatedValue]);
 
+	// #615 【設計】画面幅の 80% を shimmer の移動範囲とする（レスポンシブ対応）
+	const shimmerWidth = typeof width === "number" ? width * 0.8 : 300;
 	const translateX = animatedValue.interpolate({
 		inputRange: [0, 1],
-		outputRange: [-300, 300],
+		outputRange: [-shimmerWidth, shimmerWidth],
 	});
 
 	return (
