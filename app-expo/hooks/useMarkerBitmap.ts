@@ -37,10 +37,8 @@ const getCacheKey = async (params: MarkerBitmapParams): Promise<string> => {
  * #235 【設計】キャッシュディレクトリの初期化
  */
 const ensureCacheDir = async () => {
-	const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
-	if (!dirInfo.exists) {
-		await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
-	}
+	// #235 【設計】intermediates: true により、既存ディレクトリでもエラーなし
+	await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
 };
 
 /**
@@ -56,8 +54,9 @@ const getCacheFiles = async (): Promise<Array<{ uri: string; modificationTime: n
 				const info = await FileSystem.getInfoAsync(uri);
 				return {
 					uri,
-					modificationTime: info.exists && !info.isDirectory && info.modificationTime ? info.modificationTime : 0,
-					size: info.exists && !info.isDirectory && info.size ? info.size : 0,
+					// #235 【設計】optional chaining で簡潔に記述
+					modificationTime: info.exists && !info.isDirectory ? (info.modificationTime ?? 0) : 0,
+					size: info.exists && !info.isDirectory ? (info.size ?? 0) : 0,
 				};
 			}),
 		);
@@ -84,13 +83,15 @@ const cleanupCache = async () => {
 			filesToDelete = files.slice(0, excess);
 		}
 
-		// #235 【設計】容量上限超過チェック
+		// #235 【設計】容量上限超過チェック（O(1) ルックアップのため Set を使用）
 		if (totalSize > MAX_CACHE_SIZE_BYTES) {
+			const filesToDeleteSet = new Set(filesToDelete.map((f) => f.uri));
 			let currentSize = totalSize;
 			for (const file of files) {
 				if (currentSize <= MAX_CACHE_SIZE_BYTES) break;
-				if (!filesToDelete.includes(file)) {
+				if (!filesToDeleteSet.has(file.uri)) {
 					filesToDelete.push(file);
+					filesToDeleteSet.add(file.uri);
 					currentSize -= file.size;
 				}
 			}

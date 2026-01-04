@@ -1,6 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Image, Platform } from "react-native";
-import { getCacheKeyForImage } from "@/lib/image";
+import { View, StyleSheet, Image } from "react-native";
 
 type Props = {
 	uri: string | undefined;

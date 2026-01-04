@@ -11,6 +11,9 @@ type Props = RNMarkerProps & {
 	color?: string;
 };
 
+// #235 【設計】オフスクリーン描画用Viewの配置位置（画面外）
+const OFFSCREEN_POSITION = -9999;
+
 /**
  * #235 【設計】bitmap icon 方式の Map ピンコンポーネント
  *
@@ -51,7 +54,7 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFF", ...pr
 	return (
 		<>
 			{/* #235 【設計】オフスクリーン描画用の View（画面外に配置） */}
-			<View style={{ position: "absolute", left: -9999, top: -9999 }}>
+			<View style={{ position: "absolute", left: OFFSCREEN_POSITION, top: OFFSCREEN_POSITION }}>
 				<View ref={activeMarker.viewRef}>
 					<BubblePinBitmap uri={uri} size={size} color="rgb(52, 119, 248)" />
 				</View>
