@@ -23,8 +23,6 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	const [isSaved, setIsSaved] = useState(false);
 	// #615 【UX】画像ロード状態管理（スケルトン表示用）
 	const [isLoading, setIsLoading] = useState(true);
-	// #615 画像ロード失敗回数（自動リトライ制御用）
-	const [errorCount, setErrorCount] = useState(0);
 	// #615 【UX】画像ロードが完全に失敗したかフラグ（失敗UI表示用）
 	const [hasFailed, setHasFailed] = useState(false);
 	// #615 【設計】画像リロードトークン（キャッシュ回避用クエリパラメータ）
