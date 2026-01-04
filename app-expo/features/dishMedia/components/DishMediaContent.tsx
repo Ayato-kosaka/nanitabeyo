@@ -26,7 +26,7 @@ interface DishMediaContentProps {
 	sessionId: string;
 	entriesKey: string;
 	idType: IdType;
-	onCardPress?: (entry: NormalizedDishMediaEntry) => void; // #613 【設計】カード押下時のコールバック（DishMediaMap用）
+	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
 }
 
 export default function DishMediaContent({
@@ -167,103 +167,91 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.mediaUrl,
 	]);
 
-	// #613 【設計】コンテンツ本体（onCardPress がある場合は TouchableOpacity で包む）
-	const contentBody = (
-		<>
-			{/* Background Media (Image or Video) */}
-			{isVideo ? (
-				<>
-					{/* #530 【設計】動画の場合: サムネイルを常に背景として表示 */}
-					<Image
-						source={thumbnailSource}
-						cachePolicy="memory-disk"
-						transition={100}
-						style={StyleSheet.absoluteFill}
-						contentFit="cover"
-					/>
-					{/* #530 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
-					{hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
-						<VideoPlayer
-							uri={dishMediaEntry.dish_media.mediaUrl}
+	return (
+		<View style={styles.container}>
+			<TouchableOpacity
+				style={StyleSheet.absoluteFill}
+				activeOpacity={!!onCardPress ? 0.95 : 1}
+				onPress={() => (!!onCardPress ? onCardPress(dishMediaEntry) : undefined)}>
+				{/* Background Media (Image or Video) */}
+				{isVideo ? (
+					<>
+						{/* #530 【設計】動画の場合: サムネイルを常に背景として表示 */}
+						<Image
+							source={thumbnailSource}
+							cachePolicy="memory-disk"
+							transition={100}
 							style={StyleSheet.absoluteFill}
-							shouldPlay={isActive}
-							onProgress={handleVideoProgress}
-							onLoop={handleVideoLoop}
+							contentFit="cover"
 						/>
-					)}
-				</>
-			) : (
-				<>
-					{/* #530 【設計】画像の場合: mediaUrl があれば表示、なければサムネイルを fallback */}
-					<Image
-						source={hasMediaUrl ? mediaSource : thumbnailSource}
-						cachePolicy="memory-disk"
-						transition={100}
-						style={StyleSheet.absoluteFill}
-						contentFit="cover"
-					/>
-				</>
-			)}
+						{/* #530 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
+						{hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
+							<VideoPlayer
+								uri={dishMediaEntry.dish_media.mediaUrl}
+								style={StyleSheet.absoluteFill}
+								shouldPlay={isActive}
+								onProgress={handleVideoProgress}
+								onLoop={handleVideoLoop}
+							/>
+						)}
+					</>
+				) : (
+					<>
+						{/* #530 【設計】画像の場合: mediaUrl があれば表示、なければサムネイルを fallback */}
+						<Image
+							source={hasMediaUrl ? mediaSource : thumbnailSource}
+							cachePolicy="memory-disk"
+							transition={100}
+							style={StyleSheet.absoluteFill}
+							contentFit="cover"
+						/>
+					</>
+				)}
 
-			{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
-			{isProcessing && (
-				<View style={styles.processingOverlay}>
-					<ActivityIndicator size="large" color="#fff" />
-					<Text style={styles.processingText}>{i18n.t("Common.processing")}</Text>
-				</View>
-			)}
+				{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
+				{isProcessing && (
+					<View style={styles.processingOverlay}>
+						<ActivityIndicator size="large" color="#fff" />
+						<Text style={styles.processingText}>{i18n.t("Common.processing")}</Text>
+					</View>
+				)}
 
-			{/* #530 【設計】エラーオーバーレイ（メディア共通） */}
-			{isFailed && (
-				<View style={styles.errorOverlay}>
-					<Text style={styles.errorText}>{i18n.t("DishMediaContent.errors.mediaUnavailable")}</Text>
-				</View>
-			)}
+				{/* #530 【設計】エラーオーバーレイ（メディア共通） */}
+				{isFailed && (
+					<View style={styles.errorOverlay}>
+						<Text style={styles.errorText}>{i18n.t("DishMediaContent.errors.mediaUnavailable")}</Text>
+					</View>
+				)}
 
-			{/* Top Header */}
-			<View style={styles.topHeader}>
-				<View style={styles.headerLeft}>
-					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
-					<View style={styles.priceRatingContainer}>
-						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
-						{/* <View style={styles.ratingContainer}>
+				{/* Top Header */}
+				<View style={styles.topHeader}>
+					<View style={styles.headerLeft}>
+						<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
+						<View style={styles.priceRatingContainer}>
+							{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
+							{/* <View style={styles.ratingContainer}>
               {renderStars(5, 4)}
               <Text style={styles.reviewCount}>(127)</Text>
             </View> */}
+						</View>
+					</View>
+					<View style={styles.headerRight}></View>
+				</View>
+
+				<DishReviewsSection
+					id={id}
+					idType={idType}
+					paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
+					carouselRef={carouselRef}
+				/>
+
+				{/* Action Buttons */}
+				<View pointerEvents="box-none" style={styles.bottomSection}>
+					<View pointerEvents="box-none" style={styles.actionRow}>
+						<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
 					</View>
 				</View>
-				<View style={styles.headerRight}></View>
-			</View>
-
-			<DishReviewsSection
-				id={id}
-				idType={idType}
-				paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
-				carouselRef={carouselRef}
-			/>
-
-			{/* Action Buttons */}
-			<View pointerEvents="box-none" style={styles.bottomSection}>
-				<View pointerEvents="box-none" style={styles.actionRow}>
-					<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
-				</View>
-			</View>
-		</>
-	);
-
-	return (
-		<View style={styles.container}>
-			{/* #613 【設計】onCardPress がある場合は TouchableOpacity で包む */}
-			{onCardPress ? (
-				<TouchableOpacity
-					style={StyleSheet.absoluteFill}
-					activeOpacity={0.95}
-					onPress={() => onCardPress(dishMediaEntry)}>
-					{contentBody}
-				</TouchableOpacity>
-			) : (
-				contentBody
-			)}
+			</TouchableOpacity>
 		</View>
 	);
 }

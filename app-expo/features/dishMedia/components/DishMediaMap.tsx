@@ -22,15 +22,6 @@ import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
-import { useAPICall } from "@/hooks/useAPICall";
-import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
-import { useLogger } from "@/hooks/useLogger";
-import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { useLocale } from "@/hooks/useLocale";
-import * as Linking from "expo-linking";
-import { Platform } from "react-native";
-import { getGoogleMapsLink } from "@/lib/googlePlaces";
-import { generateShareUrl, handleShare } from "@/lib/share";
 
 const { width, height } = Dimensions.get("window");
 
@@ -105,12 +96,8 @@ export default function DishMediaMap({
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
-	const { selectionChanged, lightImpact } = useHaptics();
+	const { selectionChanged } = useHaptics();
 	const { showActionSheetWithOptions } = useActionSheet();
-	const { callBackend } = useAPICall();
-	const { logFrontendEvent } = useLogger();
-	const { showSnackbar } = useSnackbar();
-	const locale = useLocale();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
@@ -218,12 +205,15 @@ export default function DishMediaMap({
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
+	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
+		source: "DishMediaMap",
+	});
+
 	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
 	const handleCardPress = useCallback(
 		async (entry: NormalizedDishMediaEntry) => {
 			const dishMediaId = entry.dish_media.id;
 			const restaurant = entry.restaurant;
-			const source = "DishMediaMap"; // #613 【設計】呼び出し元を明示
 
 			const options = [
 				i18n.t("ActionSheet.openInGoogleMaps"),
@@ -244,120 +234,25 @@ export default function DishMediaMap({
 					switch (selectedIndex) {
 						case 0: {
 							// #613 【設計】Google マップで開く
-							lightImpact();
-
-							logFrontendEvent({
-								event_name: "map_pin_clicked",
-								error_level: "log",
-								payload: {
-									restaurantId: restaurant.id,
-									googlePlaceId: restaurant.google_place_id,
-									fromDishMediaId: dishMediaId,
-									source,
-								},
+							await openInGoogleMaps({
+								dishMediaId,
+								restaurant,
 							});
-
-							try {
-								const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
-								if (Platform.OS === "web") {
-									window.open(mapUrl, "_blank", "noopener,noreferrer");
-								} else if (canOpen) {
-									await Linking.openURL(mapUrl);
-								} else {
-									showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-								}
-
-								// Reaction を登録
-								try {
-									await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-										method: "POST",
-										requestPayload: { action_type: "open_map" },
-									});
-								} catch (error) {
-									console.log("Map open reaction error ignored:", error);
-								}
-							} catch (error) {
-								showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-								logFrontendEvent({
-									event_name: "map_pin_open_failed",
-									error_level: "error",
-									payload: {
-										restaurantId: restaurant.id,
-										googlePlaceId: restaurant.google_place_id,
-										error: error instanceof Error ? error.message : "Unknown error",
-										source,
-									},
-								});
-							}
 							break;
 						}
 						case 1: {
 							// #613 【設計】友人に共有する
-							lightImpact();
-
-							try {
-								const shareUrl = generateShareUrl(`/${locale}/posts?ids=${dishMediaId}`);
-
-								logFrontendEvent({
-									event_name: "dish_share_attempted",
-									error_level: "log",
-									payload: {
-										dishMediaId,
-										restaurantId: restaurant.id,
-										shareUrl,
-										source,
-									},
-								});
-
-								await handleShare(
-									shareUrl,
-									i18n.t("DishMediaContent.share.title", { dishName: restaurant.name }),
-									() => {
-										logFrontendEvent({
-											event_name: "dish_share_success",
-											error_level: "log",
-											payload: {
-												dishMediaId,
-												restaurantId: restaurant.id,
-												shareUrl,
-												source,
-											},
-										});
-									},
-									(error) => {
-										logFrontendEvent({
-											event_name: "dish_share_failed",
-											error_level: "error",
-											payload: {
-												dishMediaId,
-												restaurantId: restaurant.id,
-												shareUrl,
-												error,
-												source,
-											},
-										});
-									},
-									showSnackbar,
-								);
-							} catch (error) {
-								logFrontendEvent({
-									event_name: "dish_share_error",
-									error_level: "error",
-									payload: {
-										dishMediaId,
-										restaurantId: restaurant.id,
-										error: error instanceof Error ? error.message : "Unknown error",
-										source,
-									},
-								});
-							}
+							await shareRestaurant({
+								dishMediaId,
+								restaurant,
+							});
 							break;
 						}
 					}
 				},
 			);
 		},
-		[showActionSheetWithOptions, callBackend, lightImpact, logFrontendEvent, showSnackbar, locale],
+		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
 	);
 
 	const renderCarouselItem = useCallback(

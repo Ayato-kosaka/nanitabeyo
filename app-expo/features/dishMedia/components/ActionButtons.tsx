@@ -60,8 +60,6 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 
 	// #613 【設計】ActionButtons の押下処理を hooks で共通化
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
-		dishMediaId,
-		restaurant,
 		source: "ActionButtons", // #613 【設計】呼び出し元を明示
 	});
 
@@ -232,21 +230,12 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		});
 	};
 
-	const handleMapPinPress = async () => {
-		// #<チケット番号> 【設計】hooks で共通化した処理を呼び出し
-		await openInGoogleMaps();
-
-		// Reaction を登録する。重複する場合はエラーになるが無視する。
-		try {
-			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-				method: "POST",
-				requestPayload: { action_type: "open_map" },
-			});
-		} catch (error) {
-			// Ignore errors as per the comment
-			console.log("Map open reaction error ignored:", error);
-		}
-	};
+	const handleMapPinPress = useCallback(() => {
+		return openInGoogleMaps({
+			dishMediaId,
+			restaurant,
+		});
+	}, [dishMediaId, restaurant, openInGoogleMaps]);
 
 	const handleMenuOptionPress = (onPress: () => void) => {
 		lightImpact();
@@ -263,10 +252,12 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		});
 	};
 
-	const handleSharePress = async () => {
-		// #<チケット番号> 【設計】hooks で共通化した処理を呼び出し
-		await shareRestaurant();
-	};
+	const handleSharePress = useCallback(() => {
+		return shareRestaurant({
+			dishMediaId,
+			restaurant,
+		});
+	}, [dishMediaId, restaurant, shareRestaurant]);
 
 	const menuOptions = [
 		{
