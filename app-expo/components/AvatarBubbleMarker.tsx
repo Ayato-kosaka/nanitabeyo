@@ -65,7 +65,7 @@ export const AvatarBubbleMarker = React.memo(function AvatarBubbleMarker({
 				bottom: -tailOffset,
 			},
 		};
-	}, [size, color, radius, tailOffset, tailSize]);
+	}, [size, color]);
 
 	return (
 		<Marker {...props}>
