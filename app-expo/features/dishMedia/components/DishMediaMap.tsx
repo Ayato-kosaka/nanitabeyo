@@ -3,7 +3,7 @@ import { StyleSheet, View, Dimensions, Text } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
-import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
+import { AvatarBubbleMarkerBitmap } from "../../../components/AvatarBubbleMarkerBitmap";
 import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
@@ -290,7 +290,7 @@ export default function DishMediaMap({
 			<View style={styles.mapContainer}>
 				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
 					{restaurants.map((restaurant, index) => (
-						<AvatarBubbleMarker
+						<AvatarBubbleMarkerBitmap
 							key={`marker-${index}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}

@@ -12,6 +12,19 @@ type Props = RNMarkerProps & {
 	color?: string;
 };
 
+/**
+ * #235 【設計】DEPRECATED: View Marker方式（Android で円形崩れ・ちらつき問題あり）
+ *
+ * 本コンポーネントは Android(Google Maps) で以下の問題が発生するため、
+ * 新規実装では AvatarBubbleMarkerBitmap を使用すること：
+ * - 円形が崩れて扇形や欠けた形で表示される
+ * - state/region更新時にちらつく（再キャプチャ処理起因）
+ *
+ * 問題の原因は View Marker の bitmap化処理で borderRadius/overflow:hidden が
+ * 端末/GPU依存で破綻すること。bitmap icon方式（AvatarBubbleMarkerBitmap）で根治。
+ *
+ * @deprecated Use AvatarBubbleMarkerBitmap instead
+ */
 export function AvatarBubbleMarker({ uri, size = 48, color = "#FFF", ...props }: Props) {
 	const radius = size / 2;
 	return (

@@ -13,7 +13,7 @@ import {
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
-import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
+import { AvatarBubbleMarkerBitmap } from "@/components/AvatarBubbleMarkerBitmap";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
@@ -236,7 +236,7 @@ export default function MapScreen() {
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
 				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
-					<AvatarBubbleMarker
+					<AvatarBubbleMarkerBitmap
 						key={restaurantData.restaurant.id}
 						coordinate={{
 							latitude: restaurantData.restaurant.latitude,
