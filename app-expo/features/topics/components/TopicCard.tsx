@@ -32,13 +32,13 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避
+	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（タイムスタンプベース）
 	const source = useMemo(
 		() => ({
-			uri: `${item.imageUrl}${item.imageUrl.includes("?") ? "&" : "?"}reload=${reloadToken}`,
+			uri: `${item.imageUrl}${item.imageUrl.includes("?") ? "&" : "?"}t=${Date.now()}_${reloadToken}`,
 			headers: WIKIMEDIA_HEADERS,
 		}),
-		[item.imageUrl, reloadToken]
+		[item.imageUrl, reloadToken],
 	);
 
 	const handleSave = async () => {
@@ -106,28 +106,33 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 
 	// #615 【バグ】画像ロード失敗時、最大2回まで自動リトライ（軽いバックオフ付き）
 	const handleImageError = useCallback(() => {
-		logFrontendEvent({
-			event_name: "topic_image_load_error",
-			error_level: "log",
-			payload: {
-				topic_id: item.categoryId,
-				error_count: errorCount + 1,
-				image_url: item.imageUrl,
-			},
-		});
+		setErrorCount((prevCount) => {
+			const newCount = prevCount + 1;
 
-		if (errorCount < MAX_AUTO_RETRY) {
-			// 自動リトライ中はスケルトンを維持
-			setErrorCount((prev) => prev + 1);
-			setTimeout(() => {
-				setReloadToken((prev) => prev + 1);
-			}, RETRY_DELAY_MS * (errorCount + 1)); // #615 【設計】リトライごとに待機時間を増やす（バックオフ）
-		} else {
-			// 自動リトライ超過後は失敗確定
-			setIsLoading(false);
-			setHasFailed(true);
-		}
-	}, [errorCount, item.categoryId, item.imageUrl, logFrontendEvent]);
+			logFrontendEvent({
+				event_name: "topic_image_load_error",
+				error_level: "log",
+				payload: {
+					topic_id: item.categoryId,
+					error_count: newCount,
+					image_url: item.imageUrl,
+				},
+			});
+
+			if (newCount <= MAX_AUTO_RETRY) {
+				// #615 【設計】自動リトライ中はスケルトンを維持。リトライごとに待機時間を増やす（バックオフ）
+				setTimeout(() => {
+					setReloadToken((prev) => prev + 1);
+				}, RETRY_DELAY_MS * newCount);
+			} else {
+				// 自動リトライ超過後は失敗確定
+				setIsLoading(false);
+				setHasFailed(true);
+			}
+
+			return newCount;
+		});
+	}, [item.categoryId, item.imageUrl, logFrontendEvent]);
 
 	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
 	const handleManualRetry = useCallback(() => {
@@ -141,7 +146,6 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 			payload: { topic_id: item.categoryId },
 		});
 	}, [item.categoryId, logFrontendEvent]);
-
 
 	return (
 		<View style={styles.card}>

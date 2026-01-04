@@ -25,7 +25,7 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({ width, height,
 					duration: 1200,
 					useNativeDriver: true,
 				}),
-			])
+			]),
 		);
 		animation.start();
 		return () => animation.stop();
@@ -44,8 +44,7 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({ width, height,
 					{
 						transform: [{ translateX }],
 					},
-				]}
-			>
+				]}>
 				<LinearGradient
 					colors={["#E0E0E0", "#F5F5F5", "#E0E0E0"]}
 					start={{ x: 0, y: 0 }}
