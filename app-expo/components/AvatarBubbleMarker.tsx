@@ -1,10 +1,9 @@
 import React, { useMemo } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import { Marker } from "./MapView";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
-import { Platform } from "react-native";
 
 type Props = RNMarkerProps & {
 	uri: string | undefined;
