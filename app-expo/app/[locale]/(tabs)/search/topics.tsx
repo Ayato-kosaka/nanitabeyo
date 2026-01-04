@@ -102,7 +102,8 @@ export default function TopicsScreen() {
 				carouselRef.current.scrollTo({ index: newIndex, animated: false });
 			}
 		}
-	}, [visibleTopics.length, currentIndex]);
+		// @eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [visibleTopics.length]);
 
 	const handleSnapToItem = (index: number) => {
 		selectionChanged();

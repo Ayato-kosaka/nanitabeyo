@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
-import { prefetchWithUserAgent, wikimediaThumbFromOriginal } from "@/lib/wikimedia";
+import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 import type {
 	BulkImportDishesDto,
 	CreateDishCategoryVariantDto,
