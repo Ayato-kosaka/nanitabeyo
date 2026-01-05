@@ -243,14 +243,16 @@
 ## Key Improvements
 
 ### Before (Old Implementation)
+
 ❌ Offscreen views inside each Marker component  
 ❌ MapView contains mixed children (Markers + Views)  
 ❌ No generation control (all generated immediately)  
 ❌ No priority system  
 ❌ iOS reactTag errors  
-❌ No concurrent generation limit  
+❌ No concurrent generation limit
 
 ### After (New Implementation)
+
 ✅ Single Renderer outside MapView  
 ✅ MapView contains ONLY Markers  
 ✅ Priority queue (high/low)  
@@ -258,7 +260,7 @@
 ✅ Stable generation (collapsable, requestAnimationFrame × 2)  
 ✅ Retry mechanism (3 attempts, exponential backoff)  
 ✅ On-demand active bitmap generation  
-✅ Color normalization for better cache hits  
+✅ Color normalization for better cache hits
 
 ## Performance Characteristics
 

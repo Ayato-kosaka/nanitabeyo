@@ -133,17 +133,17 @@ import { MarkerBitmapRendererProvider } from "@/components/MarkerBitmapRenderer"
 import { AvatarBubbleMarkerBitmap } from "@/components/AvatarBubbleMarkerBitmap";
 
 export default function MapScreen() {
-  return (
-    <MarkerBitmapRendererProvider>
-      <MapView>
-        <AvatarBubbleMarkerBitmap
-          coordinate={{ latitude: 35.6762, longitude: 139.6503 }}
-          uri="https://example.com/image.jpg"
-          color={isActive ? "rgb(52, 119, 248)" : "#FFF"}
-        />
-      </MapView>
-    </MarkerBitmapRendererProvider>
-  );
+	return (
+		<MarkerBitmapRendererProvider>
+			<MapView>
+				<AvatarBubbleMarkerBitmap
+					coordinate={{ latitude: 35.6762, longitude: 139.6503 }}
+					uri="https://example.com/image.jpg"
+					color={isActive ? "rgb(52, 119, 248)" : "#FFF"}
+				/>
+			</MapView>
+		</MarkerBitmapRendererProvider>
+	);
 }
 ```
 
