@@ -49,13 +49,16 @@
 			"fetchLocation": "위치를 가져오지 못했습니다",
 			"getCurrentLocation": "현재 위치를 가져오지 못했습니다",
 			"noLocationSelected": "위치를 선택해 주세요",
+			"noTimeSlotSelected": "시간대를 선택해 주세요",
+			"noSceneSelected": "장면을 선택해 주세요",
 			"searchFailed": "검색에 실패했습니다"
 		},
 		"sections": {
 			"location": "어디에서 찾을까요?",
 			"time": "시간대는?",
-			"scene": "어떤 상황?",
-			"mood": "기분은?",
+			"scene": "누구와 가시나요?",
+			"mood": "얼마나 배고프세요?",
+			"taste": "어떤 맛?",
 			"distance": "거리?",
 			"budget": "예산?",
 			"restrictions": "제한 조건"
@@ -69,7 +72,7 @@
 		},
 		"loading": "검색 중...",
 		"advancedToggle": {
-			"open": "상세 검색",
+			"open": "더 많은 옵션",
 			"close": "상세 검색 닫기"
 		},
 		"labels": {
@@ -100,13 +103,16 @@
 		"sceneOptions": {
 			"solo": "혼자",
 			"date": "데이트",
-			"group": "여럿과",
-			"largeGroup": "대규모",
-			"tourism": "관광"
+			"friends": "친구와",
+			"family": "가족과",
+			"drinking": "회식/파티"
 		},
 		"moodOptions": {
-			"hearty": "든든하게",
 			"light": "가볍게",
+			"normal": "보통",
+			"heavy": "든든하게"
+		},
+		"tasteOptions": {
 			"sweet": "달콤한 것",
 			"spicy": "매운 것",
 			"healthy": "건강식",
@@ -140,7 +146,9 @@
 		"empty": "표시할 요리가 없습니다",
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
-		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다"
+		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
+		"imageLoadFailed": "이미지를 불러오지 못했습니다",
+		"tapToReload": "탭하여 다시 로드"
 	},
 	"Notifications": {
 		"title": "알림",
@@ -464,6 +472,9 @@
 		"title": "설정",
 		"sendFeedback": "피드백 보내기",
 		"leaveReview": "리뷰 남기기",
+		"rateDialogTitle": "앱이 마음에 드시나요?",
+		"rateDialogMessage": "마음에 드신다면 스토어에서 평가 부탁드립니다. 리뷰 페이지를 열겠습니다.",
+		"rateDialogOk": "지금 평가하기",
 		"communityGuidelines": "커뮤니티 가이드라인",
 		"terms": "이용약관",
 		"privacy": "개인정보 처리방침",
@@ -486,5 +497,11 @@
 			"selected": "선택됨",
 			"dishCount": "{{count}}개 요리"
 		}
+	},
+	"ActionSheet": {
+		"title": "이 레스토랑이 궁금하신가요?",
+		"openInGoogleMaps": "Google 지도에서 열기",
+		"shareWithFriends": "친구와 공유하기",
+		"cancel": "취소"
 	}
 }

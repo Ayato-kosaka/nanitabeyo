@@ -161,3 +161,70 @@ ALTER TABLE `${DATASET}.dish_category_catalog`
     kind STRING,
     min_depth INT64
   >>;
+
+
+-- -----------------------------------------------------------------------------
+-- 8. dish_category_localized_text_catalog: 採用版 localized text カタログ（#582）
+-- -----------------------------------------------------------------------------
+-- #582 【設計】LLM生成の感情訴求型コピー（topic_title / tagline）の採用版を管理
+-- wikidata_food_copy_generations から confidence='high' のみを投入し、常に採用版のみ保持
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_localized_text_catalog` (
+  item_qid        STRING NOT NULL,   -- dish_category QID
+  locale          STRING NOT NULL,   -- BCP47 形式（'ja-JP', 'en'）
+  topic_title     STRING NOT NULL,   -- 感情訴求型タイトル（最大12-14文字）
+  tagline         STRING NOT NULL,   -- キャッチコピー（最大45文字）
+  source          STRING NOT NULL,   -- 'llm' / 'manual'
+  selected_run_id STRING NOT NULL,   -- 採用した run_id（監査・差分比較用）
+  updated_at      TIMESTAMP NOT NULL,-- 最終更新日時
+  note            STRING             -- 任意メモ（model / pass 情報など）
+);
+
+
+-- -----------------------------------------------------------------------------
+-- 9. dish_category_features_catalog: ゲート・ランキング特徴量カタログ
+-- -----------------------------------------------------------------------------
+-- #557 【設計】dish_category に対する特徴量（gate / mood / scene / taste 等）を統合管理
+-- gate 用途（region whitelist）、将来的には mood / scene / timeSlot / taste / archetype も追加
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_features_catalog` (
+  item_qid     STRING NOT NULL,  -- dish_category QID
+  feature_type STRING NOT NULL,  -- 'gate' | 'mood' | 'scene' | 'timeSlot' | 'taste' | 'archetype' ...
+  feature_key  STRING NOT NULL,  -- 'region:scope:global', 'region:country:JP', ...
+  score        FLOAT64 NOT NULL, -- gate は 1 固定、他の特徴量では重み付けに使用
+  source       STRING NOT NULL,  -- 'llm' | 'manual' | 'rule'
+  run_id       STRING NOT NULL,  -- LLM run 識別子（監査・差分比較用）
+  updated_at   TIMESTAMP NOT NULL, -- 最終更新日時
+  note         STRING             -- 任意メモ（confidence / short reason 等）
+);
+
+
+-- -----------------------------------------------------------------------------
+-- 10. dish_category_variant_catalog: variants 加工結果テーブル
+-- -----------------------------------------------------------------------------
+-- BigQuery で生成した variants の格納先
+-- PostgreSQL への同期元となる
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_variant_catalog` (
+  dish_category_id STRING NOT NULL,   -- dish_category QID
+  surface_form     STRING NOT NULL,   -- 正規化済み表記揺れ（小文字）
+  source           STRING NOT NULL,   -- 'wikidata-label' / 'kata2hira' / 'romaji' / 'canonical-label-en'
+  created_at       TIMESTAMP NOT NULL -- 生成日時
+);
+
+
+-- -----------------------------------------------------------------------------
+-- 11. dish_category_images: 画像候補テーブル
+-- -----------------------------------------------------------------------------
+-- dish_category に対する画像候補を管理
+-- 優先順位：manual > analysis > wikimedia > partner
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_images` (
+  dish_category_id STRING NOT NULL,   -- dish_category QID
+  image_url        STRING NOT NULL,   -- 画像URL
+  source_type      STRING NOT NULL,   -- 'wikimedia' / 'analysis' / 'manual' / 'partner'
+  source_ref       STRING,            -- Wikidata property id / 分析ジョブid / ユーザーid / パートナーid
+  score            FLOAT64,           -- 品質推定、CTR、解像度、NSFW検査結果など（分析ジョブ実行時に付与）
+  created_at       TIMESTAMP NOT NULL -- 登録日時
+);
+

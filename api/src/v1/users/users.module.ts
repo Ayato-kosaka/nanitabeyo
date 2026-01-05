@@ -9,10 +9,10 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { StorageModule } from '../../core/storage/storage.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 import { AuthModule } from '../../core/auth/auth.module';
-import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { DishMediaModule } from '../dish-media/dish-media.module';
 import { CloudTasksModule } from 'src/core/cloud-tasks/cloud-tasks.module';
 import { UsersAssembler } from './users.assembler';
+import { DishCategoriesModule } from '../dish-categories/dish-categories.module';
 
 @Module({
   imports: [
@@ -22,15 +22,10 @@ import { UsersAssembler } from './users.assembler';
     forwardRef(() => AuthModule), // For JWT Guards and CurrentUser decorator
     DishMediaModule,
     CloudTasksModule,
+    DishCategoriesModule,
   ],
   controllers: [UsersController],
-  providers: [
-    UsersService,
-    UsersRepository,
-    UsersMapper,
-    DishCategoriesRepository,
-    UsersAssembler,
-  ],
+  providers: [UsersService, UsersRepository, UsersMapper, UsersAssembler],
   exports: [UsersService, UsersRepository, UsersAssembler],
 })
 export class UsersModule {}

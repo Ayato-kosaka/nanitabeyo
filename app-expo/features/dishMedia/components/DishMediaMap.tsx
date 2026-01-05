@@ -6,6 +6,8 @@ import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
 	DishMediaEntriesStore,
 	IdType,
@@ -18,13 +20,23 @@ import {
 import { shallow } from "zustand/shallow";
 import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
+import { useActionSheet } from "@expo/react-native-action-sheet";
+import { useDishMediaActions } from "../hooks/useDishMediaActions";
 
 const { width, height } = Dimensions.get("window");
 
-// Map takes top 1/5 of screen, carousel takes bottom 4/5
-const CAROUSEL_HEIGHT = height * 0.8;
+// #605 【設計】Carousel の展開/縮小比率（画面高さに対する割合）
+const EXPANDED_RATIO = 0.8;
+const COLLAPSED_RATIO = 0.4;
+const CAROUSEL_HEIGHT = height * EXPANDED_RATIO;
 // parallaxScrollingScale
 const PARALLAX_SCALE = 0.85;
+// #605 【設計】ハンドル高さ（ドラッグ可能領域）
+const HANDLE_HEIGHT = 44;
+// #605 【設計】スナップ判定の閾値（0.5 = 中間点）
+const SNAP_THRESHOLD = 0.5;
+// #605 【設計】ハンドルの色（半透明白）
+const HANDLE_COLOR = "#FFFFFFFF";
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -75,6 +87,7 @@ export default function DishMediaMap({
 				name: restaurant.name,
 				coordinate: { latitude: restaurant.latitude, longitude: restaurant.longitude },
 				imageUrls: restaurant.imageUrls,
+				google_place_id: restaurant.google_place_id,
 			}));
 	}, [ids, idType]);
 
@@ -85,6 +98,47 @@ export default function DishMediaMap({
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
+
+	// #605 【設計】Carousel の上下移動量（0 = Expanded, MAX_TRANSLATE_Y = Collapsed）
+	const MAX_TRANSLATE_Y = height * (EXPANDED_RATIO - COLLAPSED_RATIO);
+	const translateY = useSharedValue(MAX_TRANSLATE_Y);
+	const gestureStartY = useSharedValue(0);
+
+	// #605 【設計】 初期表示時に展開状態にアニメーション
+	useEffect(() => {
+		// #605 TODO: withTiming に変更検討
+		translateY.value = withSpring(0, {
+			duration: 3000,
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	// #605 【設計】ドラッグジェスチャーハンドラー（ハンドル領域でのみ有効）
+	const panGesture = Gesture.Pan()
+		.onStart(() => {
+			gestureStartY.value = translateY.value;
+		})
+		.onUpdate((event) => {
+			const newY = gestureStartY.value + event.translationY;
+			// 0 〜 MAX_TRANSLATE_Y の範囲に制限
+			translateY.value = Math.max(0, Math.min(newY, MAX_TRANSLATE_Y));
+		})
+		.onEnd((event) => {
+			// #605 【設計】スナップ判定（中間点 or 速度ベース）
+			const velocity = event.velocityY;
+			const shouldCollapse =
+				velocity > 500 || (Math.abs(velocity) < 500 && translateY.value > MAX_TRANSLATE_Y * SNAP_THRESHOLD);
+
+			translateY.value = withSpring(shouldCollapse ? MAX_TRANSLATE_Y : 0, {
+				damping: 20,
+				stiffness: 200,
+			});
+		});
+
+	// #605 【設計】Carousel コンテナのアニメーションスタイル
+	const animatedCarouselStyle = useAnimatedStyle(() => ({
+		transform: [{ translateY: translateY.value }],
+	}));
 
 	const getMapRegion = useCallback((): Region => {
 		if (restaurants.length === 0) {
@@ -148,6 +202,56 @@ export default function DishMediaMap({
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
 
+	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
+	const { showActionSheetWithOptions } = useActionSheet();
+	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
+		source: "DishMediaMap",
+	});
+	const handleCardPress = useCallback(
+		async (entry: NormalizedDishMediaEntry) => {
+			const dishMediaId = entry.dish_media.id;
+			const restaurant = entry.restaurant;
+
+			const options = [
+				i18n.t("ActionSheet.openInGoogleMaps"),
+				i18n.t("ActionSheet.shareWithFriends"),
+				i18n.t("ActionSheet.cancel"),
+			];
+			const cancelButtonIndex = 2;
+
+			showActionSheetWithOptions(
+				{
+					title: i18n.t("ActionSheet.title"),
+					options,
+					cancelButtonIndex,
+				},
+				async (selectedIndex?: number) => {
+					if (selectedIndex === undefined || selectedIndex === cancelButtonIndex) return;
+
+					switch (selectedIndex) {
+						case 0: {
+							// #613 【設計】Google マップで開く
+							await openInGoogleMaps({
+								dishMediaId,
+								restaurant,
+							});
+							break;
+						}
+						case 1: {
+							// #613 【設計】友人に共有する
+							await shareRestaurant({
+								dishMediaId,
+								restaurant,
+							});
+							break;
+						}
+					}
+				},
+			);
+		},
+		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
+	);
+
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: string; index: number }) => (
 			<View style={styles.carouselItem}>
@@ -159,10 +263,11 @@ export default function DishMediaMap({
 					sessionId={sessionId.current}
 					entriesKey={entriesKey}
 					idType={idType}
+					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 				/>
 			</View>
 		),
-		[currentIndex, getTitle, entriesKey, idType],
+		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
 	);
 
 	return (
@@ -183,10 +288,10 @@ export default function DishMediaMap({
 
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
-				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
+				<MapView ref={mapRef} style={styles.map} initialRegion={getMapRegion()}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
-							key={`marker-${index}`}
+							key={`marker-${restaurant.google_place_id}`}
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
@@ -196,8 +301,16 @@ export default function DishMediaMap({
 				</MapView>
 			</View>
 
-			{/* Carousel - Bottom 4/5 of screen, overlapping map */}
-			{
+			{/* #605 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
+			<Animated.View style={[styles.carouselWrapper, animatedCarouselStyle]}>
+				{/* #605 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
+				<GestureDetector gesture={panGesture}>
+					<View style={styles.handleContainer}>
+						<View style={styles.handle} />
+					</View>
+				</GestureDetector>
+
+				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
 				<Carousel
 					ref={carouselRef}
 					width={width}
@@ -214,7 +327,7 @@ export default function DishMediaMap({
 					style={styles.carousel}
 					containerStyle={styles.carouselContainer}
 				/>
-			}
+			</Animated.View>
 		</View>
 	);
 }
@@ -235,13 +348,42 @@ const styles = StyleSheet.create({
 	map: {
 		flex: 1,
 	},
-	carouselContainer: {
+	// #605 【設計】Carousel 全体を包むラッパー（translateY でアニメーション）
+	carouselWrapper: {
 		position: "absolute",
 		height: CAROUSEL_HEIGHT,
 		left: 0,
 		right: 0,
-		bottom: -(CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2, // carousel の仕組みで scale(0.9) で縮小されるため、中央に配置するための調整
+		bottom: -(CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
 		zIndex: 2,
+	},
+	// #605 【設計】ドラッグハンドルコンテナ（タップ可能領域）
+	handleContainer: {
+		position: "absolute",
+		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2,
+		height: HANDLE_HEIGHT,
+		width: "100%",
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "transparent",
+		zIndex: 3,
+	},
+	// #605 【設計】ハンドル（短い横棒）
+	handle: {
+		width: 40,
+		height: 5,
+		borderRadius: 2.5,
+		backgroundColor: HANDLE_COLOR,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.55,
+		shadowRadius: 3,
+		elevation: 4,
+	},
+	carouselContainer: {
+		height: CAROUSEL_HEIGHT,
+		left: 0,
+		right: 0,
 	},
 	carousel: {
 		flex: 1,

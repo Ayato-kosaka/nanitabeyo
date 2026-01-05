@@ -114,7 +114,7 @@ The test suite covers parameters based on the frontend implementation:
 - **Languages** (8): en-US, ja-JP, fr-FR, zh-CN, ar-SA, ko-KR, es-ES, hi-IN
 - **Time Slots** (4): morning, lunch, dinner, late_night
 - **Scenes** (5): solo, date, group, large_group, tourism
-- **Moods** (7): hearty, light, sweet, spicy, healthy, junk, alcohol
+- **Moods** (7): heavy, light, sweet, spicy, healthy, junk, alcohol
 - **Restrictions** (9): Various combinations of dietary restrictions
 
 ### Output Format

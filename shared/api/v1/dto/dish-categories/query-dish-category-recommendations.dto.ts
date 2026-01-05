@@ -1,32 +1,55 @@
 import { IsOptional, IsString, Matches } from "class-validator";
+import { Transform } from "class-transformer";
+
+// 共通の正規化: undefined / null / 空文字 / "undefined" / "null" を undefined にする
+const normalizeOptionalString = () =>
+	Transform(({ value }) => {
+		if (value === undefined || value === null) return undefined;
+		if (typeof value !== "string") return value; // 念のため
+
+		const v = value.trim();
+		if (v === "" || v.toLowerCase() === "undefined" || v.toLowerCase() === "null") {
+			return undefined;
+		}
+		return v;
+	});
 
 /**
  * Query parameters for GET /v1/dish-categories/recommendations
  */
 export class QueryDishCategoryRecommendationsDto {
-	/** 住所 */
+	/**
+	 * 住所トークン
+	 * 例：
+	 * - "country:JP, administrative_area_level_1:Kyoto, locality:Kyoto"
+	 * - レガシー互換: "JP" （この場合 "country:JP" に変換）
+	 */
 	@IsString()
 	address!: string;
 
-	/** 時間帯 */
+	/** 利用時間帯 (timeSlot) 例: 'lunch', 'dinner', 'late_night' など */
 	@IsOptional()
+	@normalizeOptionalString()
 	@IsString()
 	timeSlot?: string;
 
-	/** シーン */
+	/** シーン (scene) 例: 'date', 'family', 'solo' など */
 	@IsOptional()
+	@normalizeOptionalString()
 	@IsString()
 	scene?: string;
 
-	/** 気分 */
+	/** ユーザーのお腹の減り具合 (mood) 例: 'heavy', 'light' など */
 	@IsOptional()
+	@normalizeOptionalString()
 	@IsString()
 	mood?: string;
 
-	/** 制限 */
+	/** 味の好み (taste) 例: 'spicy', 'savory', 'sweet' など */
 	@IsOptional()
-	@IsString({ each: true })
-	restrictions?: string[];
+	@normalizeOptionalString()
+	@IsString()
+	taste?: string;
 
 	/** 言語タグ (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA) */
 	/** TopicTitle や Reason の翻訳に使用される */

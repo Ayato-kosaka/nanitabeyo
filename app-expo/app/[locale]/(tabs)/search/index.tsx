@@ -5,12 +5,13 @@ import {
 	Search,
 	Clock,
 	Users,
-	Heart,
 	Navigation,
 	MapPin as Distance,
 	DollarSign,
 	Plus,
 	ChevronUp,
+	ChefHat,
+	Salad,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
@@ -23,6 +24,7 @@ import {
 	timeSlots,
 	sceneOptions,
 	moodOptions,
+	tasteOptions,
 	distanceOptions,
 	restrictionOptions,
 	priceLevelOptions,
@@ -42,9 +44,9 @@ export default function SearchScreen() {
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
-	const [scene, setScene] = useState<SearchParams["scene"] | undefined>(undefined);
+	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
-	const [restrictions, setRestrictions] = useState<string[]>([]);
+	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
 	const [isSearching, setIsSearching] = useState(false);
 	const [distance, setDistance] = useState<number>(500); // Default 500m
 	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
@@ -74,13 +76,17 @@ export default function SearchScreen() {
 			})
 			.catch(console.error);
 
-		// Auto-set time slot based on current time
+		// 端末時間帯に基づき timeSlot を自動設定
 		const hour = new Date().getHours();
-		if (hour < 10) setTimeSlot("morning");
-		else if (hour < 15) setTimeSlot("lunch");
-		else if (hour < 17) setTimeSlot("afternoon");
-		else if (hour < 22) setTimeSlot("dinner");
-		else setTimeSlot("late_night");
+		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
+			{ until: 5, slot: "late_night" },
+			{ until: 10, slot: "morning" },
+			{ until: 15, slot: "lunch" },
+			{ until: 22, slot: "dinner" },
+			{ until: 24, slot: "late_night" },
+		];
+		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
+		setTimeSlot(slot);
 	}, []);
 
 	const handleLocationClear = () => {
@@ -140,16 +146,18 @@ export default function SearchScreen() {
 		}
 	};
 
-	const toggleRestriction = (restrictionId: string) => {
-		lightImpact();
-		setRestrictions((prev) =>
-			prev.includes(restrictionId) ? prev.filter((id) => id !== restrictionId) : [...prev, restrictionId],
-		);
-	};
-
 	const handleSearch = async () => {
+		// #533 【仕様】location, timeSlot, scene を必須化（レコメンドAPI必須化対応）
 		if (!location) {
 			showSnackbar(i18n.t("Search.errors.noLocationSelected"));
+			return;
+		}
+		if (!timeSlot) {
+			showSnackbar(i18n.t("Search.errors.noTimeSlotSelected"));
+			return;
+		}
+		if (!scene) {
+			showSnackbar(i18n.t("Search.errors.noSceneSelected"));
 			return;
 		}
 
@@ -161,7 +169,7 @@ export default function SearchScreen() {
 			timeSlot,
 			scene,
 			mood,
-			restrictions,
+			taste,
 			distance,
 			priceLevels,
 		};
@@ -198,14 +206,20 @@ export default function SearchScreen() {
 		setTimeSlot(slotId);
 	};
 
+	// #533 【仕様】scene を必須化（解除不可、レコメンドAPI必須化対応）
 	const handleSceneSelect = (sceneId: SearchParams["scene"]) => {
 		lightImpact();
-		setScene(scene === sceneId ? undefined : sceneId);
+		setScene(sceneId);
 	};
 
 	const handleMoodSelect = (moodId: SearchParams["mood"]) => {
 		lightImpact();
 		setMood(mood === moodId ? undefined : moodId);
+	};
+
+	const handleTasteSelect = (tasteId: SearchParams["taste"]) => {
+		lightImpact();
+		setTaste(taste === tasteId ? undefined : tasteId);
 	};
 
 	const handleAdvancedToggle = () => {
@@ -256,6 +270,9 @@ export default function SearchScreen() {
 					<View style={styles.sectionHeader}>
 						<Clock size={20} color="#5EA2FF" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
+						<View style={styles.requiredBadge}>
+							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
+						</View>
 					</View>
 					<View style={styles.chipGrid}>
 						{timeSlots.map((slot) => (
@@ -277,6 +294,9 @@ export default function SearchScreen() {
 					<View style={styles.sectionHeader}>
 						<Users size={20} color="#5EA2FF" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
+						<View style={styles.requiredBadge}>
+							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
+						</View>
 					</View>
 					<View style={styles.chipGrid}>
 						{sceneOptions.map((option) => (
@@ -296,7 +316,7 @@ export default function SearchScreen() {
 				{/* Mood */}
 				<Card>
 					<View style={styles.sectionHeader}>
-						<Heart size={20} color="#5EA2FF" />
+						<Salad size={20} color="#5EA2FF" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
@@ -363,29 +383,53 @@ export default function SearchScreen() {
 							</View>
 						</Card>
 
-						{/* Restrictions */}
+						{/* Taste */}
 						<Card>
 							<View style={styles.sectionHeader}>
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
+								<ChefHat size={20} color="#5EA2FF" />
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.taste")}</Text>
 							</View>
-							<View style={styles.restrictionsContainer}>
-								{restrictionOptions.map((option) => (
+							<View style={styles.chipGrid}>
+								{tasteOptions.map((option) => (
 									<TouchableOpacity
 										key={option.id}
-										style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
-										onPress={() => toggleRestriction(option.id)}>
+										style={[styles.chip, taste === option.id && styles.selectedChip]}
+										onPress={() => handleTasteSelect(option.id)}>
 										<Text style={styles.chipEmoji}>{option.icon}</Text>
-										<Text
-											style={[
-												styles.restrictionChipText,
-												restrictions.includes(option.id) && styles.selectedRestrictionChipText,
-											]}>
+										<Text style={[styles.chipText, taste === option.id && styles.selectedChipText]}>
 											{i18n.t(option.label)}
 										</Text>
 									</TouchableOpacity>
 								))}
 							</View>
 						</Card>
+
+						{/* Restrictions */}
+						{
+							// #541 にて廃止
+							// (<Card>
+							// 	<View style={styles.sectionHeader}>
+							// 		<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
+							// 	</View>
+							// 	<View style={styles.restrictionsContainer}>
+							// 		{restrictionOptions.map((option) => (
+							// 			<TouchableOpacity
+							// 				key={option.id}
+							// 				style={[styles.restrictionChip, restrictions.includes(option.id) && styles.selectedRestrictionChip]}
+							// 				onPress={() => toggleRestriction(option.id)}>
+							// 				<Text style={styles.chipEmoji}>{option.icon}</Text>
+							// 				<Text
+							// 					style={[
+							// 						styles.restrictionChipText,
+							// 						restrictions.includes(option.id) && styles.selectedRestrictionChipText,
+							// 					]}>
+							// 					{i18n.t(option.label)}
+							// 				</Text>
+							// 			</TouchableOpacity>
+							// 		))}
+							// 	</View>
+							// </Card>)
+						}
 					</>
 				)}
 			</ScrollView>
@@ -393,9 +437,10 @@ export default function SearchScreen() {
 			{/* Search FAB */}
 			<View pointerEvents="box-none" style={styles.searchFabContainer}>
 				<TouchableOpacity
-					style={[styles.searchFab, !location && styles.disabledFab]}
+					style={[styles.searchFab, (!location || !timeSlot || !scene) && styles.disabledFab]}
 					onPress={handleSearch}
-					disabled={!location || isSearching}>
+					/* #533 【仕様】timeSlot と scene を必須化 */
+					disabled={!location || !timeSlot || !scene || isSearching}>
 					{isSearching ? (
 						<ActivityIndicator size="small" color="#FFF" />
 					) : (

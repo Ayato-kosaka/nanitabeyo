@@ -44,7 +44,7 @@ export default function RootLayout() {
 	useFrameworkReady();
 	const router = useRouter();
 	const locale = useLocale();
-	const scheme = useColorScheme();
+	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
 	const theme = getPaperTheme(scheme, locale);
 	const { logFrontendEvent } = useLogger();
 

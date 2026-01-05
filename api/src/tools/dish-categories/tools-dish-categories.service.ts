@@ -8,12 +8,9 @@ import { ToolsDishCategoriesRepository } from './tools-dish-categories.repositor
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { StorageService } from '../../core/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateDishCategoryImagesDto } from '@shared/v1/dto';
 import {
   PopularDishCategoriesWithMediaResponse,
   PopularDishCategoryWithMedia,
-  UpdateDishCategoryImagesResponse,
-  UpdateDishCategoryImagesErrorResponse,
 } from '@shared/v1/res';
 import { convertPrismaToSupabase_DishCategories } from '../../../../shared/converters/convert_dish_categories';
 import { convertPrismaToSupabase_DishMedia } from '../../../../shared/converters/convert_dish_media';
@@ -109,143 +106,5 @@ export class ToolsDishCategoriesService {
     );
 
     return result;
-  }
-
-  /**
-   * #494 【設計】選択されたメディアでカテゴリ画像を一括更新
-   * - トランザクションで全件処理、1件でも失敗したら全ロールバック
-   * - メディアのサムネイルをGCS公開バケットにコピー
-   */
-  async updateCategoryImages(
-    dto: UpdateDishCategoryImagesDto,
-  ): Promise<
-    UpdateDishCategoryImagesResponse | UpdateDishCategoryImagesErrorResponse
-  > {
-    this.logger.debug('UpdateCategoryImages', 'updateCategoryImages', {
-      itemCount: dto.items.length,
-    });
-
-    try {
-      // #494 【パフォーマンス】バッチでバリデーション用データを取得
-      const mediaIds = dto.items.map((item) => item.dishMediaId);
-      const categoryIds = dto.items.map((item) => item.dishCategoryId);
-
-      const [mediaList, categoryList] = await Promise.all([
-        this.repo.findDishMediaByIds(mediaIds),
-        this.repo.findDishCategoriesByIds(categoryIds),
-      ]);
-
-      // マップを作成して検証
-      const mediaMap = new Map(mediaList.map((m) => [m.id, m]));
-      const categoryMap = new Map(categoryList.map((c) => [c.id, c]));
-
-      const validationErrors: string[] = [];
-
-      for (const item of dto.items) {
-        if (!mediaMap.has(item.dishMediaId)) {
-          validationErrors.push(`dish_media not found: ${item.dishMediaId}`);
-        } else if (
-          mediaMap.get(item.dishMediaId)?.dishes.category_id !==
-          item.dishCategoryId
-        ) {
-          validationErrors.push(
-            `dish_media ${item.dishMediaId} is not linked to category ${item.dishCategoryId}`,
-          );
-        }
-        if (!categoryMap.has(item.dishCategoryId)) {
-          validationErrors.push(
-            `dish_category not found: ${item.dishCategoryId}`,
-          );
-        }
-      }
-
-      if (validationErrors.length > 0) {
-        return {
-          success: false,
-          error: {
-            message: 'Validation failed',
-            detail: validationErrors,
-          },
-        };
-      }
-
-      // private バケットから public バケットへコピー
-      // その後の処理でエラーが生じた場合、コピー先のオブジェクトが残るが許容する
-      const updateDataList = await Promise.all(
-        dto.items
-          // Wikimedia画像のみ更新対象とする（後から制約を緩めてもOK）
-          .filter((item) =>
-            categoryMap
-              .get(item.dishCategoryId)
-              ?.image_url.startsWith('https://upload.wikimedia.org'),
-          )
-          .map(async (item) => {
-            const media = mediaMap.get(item.dishMediaId)!;
-
-            const sourcePath = buildResizedPath({
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: media.id,
-              size: 1024,
-              originalPath: media.media_path,
-            });
-
-            // メタデータを構築
-            const transferMetadata = {
-              source_type: 'dish_media',
-              source_dish_media_id: item.dishMediaId,
-              source_path: sourcePath,
-              before_url:
-                categoryMap.get(item.dishCategoryId)?.image_url ?? null,
-              size: 1024,
-              transferred_at: new Date().toISOString(),
-            };
-
-            const { publicUrl } = await this.storage.copyToPublic(
-              sourcePath,
-              `dish_categories/image_url/${item.dishCategoryId}/${media.id}.webp`,
-              { metadata: transferMetadata },
-            );
-            return { ...item, newImageUrl: publicUrl };
-          }),
-      );
-
-      // トランザクションで一括更新
-      const updatedCount = await this.prisma.withTransaction(async (tx) => {
-        let count = 0;
-
-        for (const item of updateDataList) {
-          await this.repo.updateDishCategoryImage(
-            tx,
-            item.dishCategoryId,
-            item.newImageUrl,
-          );
-          count++;
-        }
-
-        return count;
-      });
-
-      this.logger.debug('CategoryImagesUpdated', 'updateCategoryImages', {
-        updatedCount,
-      });
-
-      return {
-        success: true,
-        updatedCount,
-      };
-    } catch (error) {
-      this.logger.error('UpdateCategoryImagesError', 'updateCategoryImages', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      return {
-        success: false,
-        error: {
-          message:
-            error instanceof Error ? error.message : 'Unknown error occurred',
-        },
-      };
-    }
   }
 }

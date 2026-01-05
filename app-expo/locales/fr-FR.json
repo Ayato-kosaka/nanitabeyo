@@ -49,13 +49,16 @@
 			"fetchLocation": "Échec de la récupération de la localisation",
 			"getCurrentLocation": "Impossible d'obtenir la position actuelle",
 			"noLocationSelected": "Veuillez sélectionner un lieu",
+			"noTimeSlotSelected": "Veuillez sélectionner un créneau horaire",
+			"noSceneSelected": "Veuillez sélectionner une scène",
 			"searchFailed": "La recherche a échoué"
 		},
 		"sections": {
 			"location": "Où chercher ?",
 			"time": "À quelle heure ?",
-			"scene": "Pour quelle occasion ?",
-			"mood": "Quelle est votre humeur ?",
+			"scene": "Avec qui allez-vous ?",
+			"mood": "Quelle faim avez-vous ?",
+			"taste": "Quels goûts ?",
 			"distance": "À quelle distance ?",
 			"budget": "Budget ?",
 			"restrictions": "Restrictions"
@@ -69,7 +72,7 @@
 		},
 		"loading": "Recherche...",
 		"advancedToggle": {
-			"open": "Recherche avancée",
+			"open": "Plus d'options",
 			"close": "Fermer la recherche avancée"
 		},
 		"labels": {
@@ -100,13 +103,16 @@
 		"sceneOptions": {
 			"solo": "Seul",
 			"date": "Rendez-vous",
-			"group": "Avec d'autres",
-			"largeGroup": "Grand groupe",
-			"tourism": "Tourisme"
+			"friends": "Avec des amis",
+			"family": "En famille",
+			"drinking": "Apéro/Fête"
 		},
 		"moodOptions": {
-			"hearty": "Copieux",
 			"light": "Léger",
+			"normal": "Normal",
+			"heavy": "Copieux"
+		},
+		"tasteOptions": {
 			"sweet": "Sucré",
 			"spicy": "Épicé",
 			"healthy": "Sain",
@@ -140,7 +146,9 @@
 		"empty": "Aucun plat disponible",
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
-		"hiddenMessage": "{{title}} a été masqué"
+		"hiddenMessage": "{{title}} a été masqué",
+		"imageLoadFailed": "Échec du chargement de l'image",
+		"tapToReload": "Appuyez pour recharger"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -464,6 +472,9 @@
 		"title": "Paramètres",
 		"sendFeedback": "Envoyer des commentaires",
 		"leaveReview": "Laisser un avis",
+		"rateDialogTitle": "Appréciez-vous l'application ?",
+		"rateDialogMessage": "Si vous l'aimez, veuillez nous noter sur le store. Nous allons ouvrir la page d'avis.",
+		"rateDialogOk": "Évaluer maintenant",
 		"communityGuidelines": "Directives de la communauté",
 		"terms": "Conditions générales",
 		"privacy": "Politique de confidentialité",
@@ -486,5 +497,11 @@
 			"selected": "Sélectionné",
 			"dishCount": "{{count}} plats"
 		}
+	},
+	"ActionSheet": {
+		"title": "Ce restaurant vous intéresse ?",
+		"openInGoogleMaps": "Ouvrir dans Google Maps",
+		"shareWithFriends": "Partager avec des amis",
+		"cancel": "Annuler"
 	}
 }

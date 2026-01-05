@@ -49,13 +49,16 @@
 			"fetchLocation": "स्थान प्राप्त करने में विफल",
 			"getCurrentLocation": "वर्तमान स्थान प्राप्त करने में विफल",
 			"noLocationSelected": "कृपया एक स्थान चुनें",
+			"noTimeSlotSelected": "कृपया एक समय स्लॉट चुनें",
+			"noSceneSelected": "कृपया एक दृश्य चुनें",
 			"searchFailed": "खोज विफल हुई"
 		},
 		"sections": {
 			"location": "कहां खोजें?",
 			"time": "कौन सा समय?",
-			"scene": "किस मौके के लिए?",
-			"mood": "आपका मूड क्या है?",
+			"scene": "आप किसके साथ जा रहे हैं?",
+			"mood": "आपको कितनी भूख है?",
+			"taste": "क्या स्वाद?",
 			"distance": "कितनी दूरी?",
 			"budget": "बजट?",
 			"restrictions": "प्रतिबंध"
@@ -69,7 +72,7 @@
 		},
 		"loading": "खोज जारी...",
 		"advancedToggle": {
-			"open": "उन्नत खोज",
+			"open": "अधिक विकल्प",
 			"close": "उन्नत खोज बंद करें"
 		},
 		"labels": {
@@ -100,13 +103,16 @@
 		"sceneOptions": {
 			"solo": "अकेले",
 			"date": "डेट",
-			"group": "अन्य लोगों के साथ",
-			"largeGroup": "बड़ा समूह",
-			"tourism": "पर्यटन"
+			"friends": "दोस्तों के साथ",
+			"family": "परिवार के साथ",
+			"drinking": "पार्टी/पीना"
 		},
 		"moodOptions": {
-			"hearty": "भरपेट",
 			"light": "हल्का",
+			"normal": "सामान्य",
+			"heavy": "भरपेट"
+		},
+		"tasteOptions": {
 			"sweet": "मीठा",
 			"spicy": "मसालेदार",
 			"healthy": "स्वस्थ",
@@ -140,7 +146,9 @@
 		"empty": "कोई व्यंजन उपलब्ध नहीं",
 		"retry": "खोज पर लौटें",
 		"chooseThis": "इसे चुनें!",
-		"hiddenMessage": "{{title}} को छिपा दिया गया है"
+		"hiddenMessage": "{{title}} को छिपा दिया गया है",
+		"imageLoadFailed": "चित्र लोड करने में विफल",
+		"tapToReload": "पुनः लोड करने के लिए टैप करें"
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",
@@ -465,6 +473,9 @@
 		"title": "सेटिंग्स",
 		"sendFeedback": "प्रतिक्रिया भेजें",
 		"leaveReview": "समीक्षा छोड़ें",
+		"rateDialogTitle": "क्या आपको ऐप पसंद है?",
+		"rateDialogMessage": "यदि आपको पसंद है, तो कृपया स्टोर पर हमें रेट करें। हम समीक्षा पृष्ठ खोलेंगे।",
+		"rateDialogOk": "अभी रेट करें",
 		"communityGuidelines": "समुदाय दिशानिर्देश",
 		"terms": "नियम और शर्तें",
 		"privacy": "गोपनीयता नीति",
@@ -487,5 +498,11 @@
 			"selected": "चयनित",
 			"dishCount": "{{count}} व्यंजन"
 		}
+	},
+	"ActionSheet": {
+		"title": "इस रेस्तरां में रुचि है?",
+		"openInGoogleMaps": "Google Maps में खोलें",
+		"shareWithFriends": "दोस्तों के साथ साझा करें",
+		"cancel": "रद्द करें"
 	}
 }

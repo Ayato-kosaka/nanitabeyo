@@ -49,13 +49,16 @@
 			"fetchLocation": "فشل في جلب الموقع",
 			"getCurrentLocation": "فشل في الحصول على الموقع الحالي",
 			"noLocationSelected": "يرجى اختيار موقع",
+			"noTimeSlotSelected": "يرجى اختيار فترة زمنية",
+			"noSceneSelected": "يرجى اختيار مشهد",
 			"searchFailed": "فشل البحث"
 		},
 		"sections": {
 			"location": "أين تبحث؟",
 			"time": "ما الوقت؟",
-			"scene": "لأي مناسبة؟",
-			"mood": "ما مزاجك؟",
+			"scene": "مع من تذهب؟",
+			"mood": "ما مقدار جوعك؟",
+			"taste": "ما النكهات؟",
 			"distance": "ما المسافة؟",
 			"budget": "الميزانية؟",
 			"restrictions": "القيود"
@@ -69,7 +72,7 @@
 		},
 		"loading": "جارٍ البحث...",
 		"advancedToggle": {
-			"open": "بحث متقدم",
+			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
 		},
 		"labels": {
@@ -100,13 +103,16 @@
 		"sceneOptions": {
 			"solo": "فردي",
 			"date": "موعد",
-			"group": "مع آخرين",
-			"largeGroup": "مجموعة كبيرة",
-			"tourism": "سياحة"
+			"friends": "مع الأصدقاء",
+			"family": "مع العائلة",
+			"drinking": "حفلة/مشروبات"
 		},
 		"moodOptions": {
-			"hearty": "مشبع",
 			"light": "خفيف",
+			"normal": "عادي",
+			"heavy": "مشبع"
+		},
+		"tasteOptions": {
 			"sweet": "حلو",
 			"spicy": "حار",
 			"healthy": "صحي",
@@ -140,7 +146,9 @@
 		"empty": "لا توجد أطباق متاحة",
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
-		"hiddenMessage": "تم إخفاء {{title}}"
+		"hiddenMessage": "تم إخفاء {{title}}",
+		"imageLoadFailed": "فشل تحميل الصورة",
+		"tapToReload": "اضغط لإعادة التحميل"
 	},
 	"Notifications": {
 		"title": "الإشعارات",
@@ -464,6 +472,9 @@
 		"title": "الإعدادات",
 		"sendFeedback": "إرسال ملاحظات",
 		"leaveReview": "اترك تقييم",
+		"rateDialogTitle": "هل تستمتع بالتطبيق؟",
+		"rateDialogMessage": "إذا أعجبك، يرجى تقييمنا على المتجر. سنفتح صفحة التقييم.",
+		"rateDialogOk": "قيّم الآن",
 		"communityGuidelines": "إرشادات المجتمع",
 		"terms": "الشروط والأحكام",
 		"privacy": "سياسة الخصوصية",
@@ -486,5 +497,11 @@
 			"selected": "محدد",
 			"dishCount": "{{count}} أطباق"
 		}
+	},
+	"ActionSheet": {
+		"title": "هل أنت مهتم بهذا المطعم؟",
+		"openInGoogleMaps": "فتح في خرائط Google",
+		"shareWithFriends": "مشاركة مع الأصدقاء",
+		"cancel": "إلغاء"
 	}
 }

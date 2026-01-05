@@ -870,3 +870,232 @@ class BigQueryLoader:
         affected = self.execute_dml(sql)
         logger.info(f"Applied {affected} macro_genre LLM labels (decision=A) to dish_blacklist (run_id={run_id})")
         return affected
+    
+    def get_region_label_targets(self, market: str) -> List[Dict]:
+        """
+        #557 【設計】region gate LLM ラベリング用に dish_category_catalog から対象を取得
+        image_url IS NOT NULL のもののみ（画像がないとアプリ側で出せないため）
+        
+        Args:
+            market: market キー（'scope:global' or 'country:JP'）
+        
+        Returns:
+            dish リスト [{'item_qid': 'Q...', 'label_en': '...', 'desc_en': '...', ...}, ...]
+        """
+        logger.info(f"Fetching region label targets for market={market} from BigQuery...")
+        
+        # #557 【設計】market に応じて日本語情報の有無を考慮
+        if market == "country:JP":
+            sql = f"""
+            SELECT
+              item_qid,
+              label_en,
+              label_ja,
+              desc_en,
+              desc_ja,
+              labels_json,
+              descriptions_json,
+              aliases_json,
+              sitelinks_json,
+              origin_qids,
+              cuisine_qids,
+              roots,
+              tags
+            FROM `{self.dataset_ref}.dish_category_catalog`
+            WHERE image_url IS NOT NULL
+              -- #557 【備考】・country:JP では、 label_ja IS NOT NULL に絞る。
+              -- spaghetti bolognese 等一部漏れるが、誤差の範囲とする。
+              AND label_ja IS NOT NULL
+            ORDER BY item_qid
+            """
+        else:
+            sql = f"""
+            SELECT
+              item_qid,
+              label_en,
+              desc_en,
+              labels_json,
+              descriptions_json,
+              aliases_json,
+              sitelinks_json,
+              origin_qids,
+              cuisine_qids,
+              roots,
+              tags
+            FROM `{self.dataset_ref}.dish_category_catalog`
+            WHERE image_url IS NOT NULL
+            ORDER BY item_qid
+            """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        items = []
+        for row in results:
+            item = {
+                "item_qid": row.item_qid,
+                "label_en": row.label_en,
+                "desc_en": row.desc_en,
+                "labels_json": row.labels_json,
+                "descriptions_json": row.descriptions_json,
+                "aliases_json": row.aliases_json,
+                "sitelinks_json": row.sitelinks_json,
+                "origin_qids": row.origin_qids,
+                "cuisine_qids": row.cuisine_qids,
+                "roots": row.roots,
+                "tags": row.tags
+            }
+            if market == "country:JP":
+                item["label_ja"] = row.label_ja
+                item["desc_ja"] = row.desc_ja
+            items.append(item)
+        
+        logger.info(f"Found {len(items)} items for market={market}")
+        return items
+    
+    def load_region_gate_llm_labels(
+        self,
+        labels: List[Dict],
+        task: str,
+        model: str,
+        run_id: str
+    ) -> None:
+        """
+        #557 【設計】wikidata_food_llm_labels テーブルに region gate LLM ラベリング結果をロード
+        
+        Args:
+            labels: ラベル情報のリスト
+                    [{'item_qid': 'Q12345', 'decision': 'allow', 'confidence': 'high', 
+                      'reason': '...'}, ...]
+            task: タスク識別子（例: '#557_region_scope_global'）
+            model: モデル名（例: 'gpt-4o-mini'）
+            run_id: バッチ実行ごとの識別子（例: '20251218T0000_global_v1'）
+        """
+        if not labels:
+            logger.warning("No labels to load")
+            return
+        
+        table_id = f"{self.dataset_ref}.wikidata_food_llm_labels"
+        logger.info(f"Loading {len(labels)} region gate labels to {table_id}")
+        
+        # #557 【設計】データを準備（decision を label カラムに格納）
+        now = datetime.now(timezone.utc)
+        rows_to_insert = [
+            {
+                "item_qid": label["item_qid"],
+                "task": task,
+                "label": label["decision"],  # allow/deny/uncertain
+                "confidence": label["confidence"],
+                "reason": label.get("reason", ""),
+                "model": model,
+                "run_id": run_id,
+                "created_at": now.isoformat()
+            }
+            for label in labels
+        ]
+        
+        errors = self.client.insert_rows_json(table_id, rows_to_insert)
+        
+        if errors:
+            logger.error(f"Errors occurred while loading labels: {errors}")
+            raise Exception(f"Failed to load labels: {errors}")
+        
+        logger.info(f"Successfully loaded {len(labels)} region gate labels")
+    
+    def apply_region_gate_features(
+        self,
+        task: str,
+        run_id: str,
+        market: str,
+        dry_run: bool = False
+    ) -> int:
+        """
+        #557 【設計】region gate LLM ラベリング結果を dish_category_features_catalog に MERGE 反映
+        allow & confidence=high のみ自動反映（Precision 最優先のホワイトリスト運用）
+        
+        Args:
+            task: タスク識別子（例: '#557_region_scope_global'）
+            run_id: バッチ実行ごとの識別子
+            market: market キー（'scope:global' or 'country:JP'）
+            dry_run: True の場合、実際には反映しない
+        
+        Returns:
+            影響を受けた行数
+        """
+        logger.info(f"Applying region gate features (task={task}, run_id={run_id}, market={market}, dry_run={dry_run})")
+        
+        feature_key = f"region:{market}"
+        
+        if dry_run:
+            # #557 【設計】dry-run では件数のみ確認
+            sql = f"""
+            SELECT COUNT(*) as count
+            FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+            WHERE task = '{task}'
+              AND run_id = '{run_id}'
+              AND label = 'allow'
+              AND confidence = 'high'
+            """
+            query_job = self.client.query(sql)
+            results = query_job.result()
+            count = list(results)[0].count
+            logger.info(f"[DRY-RUN] Would apply {count} region gate features")
+            return count
+        
+        # #557 【設計】MERGE で反映（過分削除含む）
+        now = datetime.now(timezone.utc)
+        sql = f"""
+        MERGE `{self.dataset_ref}.dish_category_features_catalog` AS target
+        USING (
+          SELECT
+            item_qid,
+            '{feature_key}' AS feature_key,
+            1.0 AS score,
+            'llm' AS source,
+            '{run_id}' AS run_id,
+            TIMESTAMP('{now.isoformat()}') AS updated_at,
+            CONCAT('confidence=', confidence, ' | ', reason) AS note
+          FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+          WHERE task = '{task}'
+            AND run_id = '{run_id}'
+            AND label = 'allow'
+            AND confidence = 'high'
+        ) AS source
+        ON target.item_qid = source.item_qid
+          AND target.feature_type = 'gate'
+          AND target.feature_key = source.feature_key
+          AND target.run_id = source.run_id
+        WHEN MATCHED THEN
+          UPDATE SET
+            score = source.score,
+            source = source.source,
+            updated_at = source.updated_at,
+            note = source.note
+        WHEN NOT MATCHED THEN
+          INSERT (item_qid, feature_type, feature_key, score, source, run_id, updated_at, note)
+          VALUES (source.item_qid, 'gate', source.feature_key, source.score, source.source, source.run_id, source.updated_at, source.note)
+        """
+        
+        affected = self.execute_dml(sql)
+        logger.info(f"Applied {affected} region gate features (run_id={run_id}, market={market})")
+        
+        # #557 【設計】過分削除：同一 run_id / market / feature_key で今回 allow/high に含まれないものを削除
+        delete_sql = f"""
+        DELETE FROM `{self.dataset_ref}.dish_category_features_catalog`
+        WHERE feature_type = 'gate'
+          AND feature_key = '{feature_key}'
+          AND run_id = '{run_id}'
+          AND item_qid NOT IN (
+            SELECT item_qid
+            FROM `{self.dataset_ref}.wikidata_food_llm_labels`
+            WHERE task = '{task}'
+              AND run_id = '{run_id}'
+              AND label = 'allow'
+              AND confidence = 'high'
+          )
+        """
+        
+        deleted = self.execute_dml(delete_sql)
+        logger.info(f"Deleted {deleted} obsolete region gate features (run_id={run_id}, market={market})")
+        
+        return affected

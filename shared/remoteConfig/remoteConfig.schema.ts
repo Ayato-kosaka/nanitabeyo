@@ -22,6 +22,13 @@ export const remoteConfigSchema = z.object({
 	v1_dish_comment_review_show_number: z.string(),
 	v1_dish_media_image_completion_threshold_ms: z.string(),
 	TOOLS_DISH_CATEGORIES_POPULAR_EXCLUDED_CATEGORY_IDS: z.string(),
+	dish_category_recommendation_weight_time_slot: z.string(),
+	dish_category_recommendation_weight_scene: z.string(),
+	dish_category_recommendation_weight_satiety: z.string(),
+	dish_category_recommendation_weight_taste: z.string(),
+	dish_category_recommendation_weight_market_salience: z.string(),
+	dish_category_recommendation_weight_dine_out_orderability: z.string(),
+	dish_category_recommendation_score_jitter_ratio: z.string(),
 });
 
 export type RemoteConfigValues = z.infer<typeof remoteConfigSchema>;

@@ -7,5 +7,15 @@ SPARQLWrapper==2.0.0
 # BigQuery client
 google-cloud-bigquery==3.14.1
 
+# Google Cloud Storage (for PostgreSQL backup)
+google-cloud-storage==2.10.0
+
 # Retry logic and backoff
 tenacity==8.2.3
+
+# PostgreSQL client (for BQ→PG sync)
+psycopg2-binary==2.9.9
+
+# Japanese text processing (for variants generation)
+jaconv==0.3.4
+pykakasi==2.2.1
