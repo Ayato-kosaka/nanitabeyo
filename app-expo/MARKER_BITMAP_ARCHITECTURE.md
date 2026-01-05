@@ -2,76 +2,111 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        Map Component (DishMediaMap)                  │
+│                    Map Component (DishMediaMap)                      │
 │                                                                       │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                 AvatarBubbleMarkerBitmap                     │   │
-│  │                                                               │   │
-│  │  Props: { uri, size, color, coordinate, onPress, ... }      │   │
-│  │                                                               │   │
-│  │  ┌───────────────────────────────────────────────────┐      │   │
-│  │  │         useMarkerBitmap Hook (Active)             │      │   │
-│  │  │  Input: { uri, size: 48, color: "rgb(52,119,248)" }│      │   │
-│  │  │  Output: { iconUri, isReady, viewRef, generate }  │      │   │
-│  │  └───────────────────────────────────────────────────┘      │   │
-│  │                                                               │   │
-│  │  ┌───────────────────────────────────────────────────┐      │   │
-│  │  │       useMarkerBitmap Hook (Inactive)             │      │   │
-│  │  │  Input: { uri, size: 48, color: "#FFF" }          │      │   │
-│  │  │  Output: { iconUri, isReady, viewRef, generate }  │      │   │
-│  │  └───────────────────────────────────────────────────┘      │   │
-│  │                                                               │   │
-│  │  ┌─────────────────────────────────────────────────┐        │   │
-│  │  │  Offscreen View (position: absolute, left: -9999) │        │   │
-│  │  │                                                   │        │   │
-│  │  │  ┌──────────────────────────────────────┐       │        │   │
-│  │  │  │  BubblePinBitmap (Active Blue)        │       │        │   │
-│  │  │  │  Ref → activeMarker.viewRef          │       │        │   │
-│  │  │  └──────────────────────────────────────┘       │        │   │
-│  │  │                                                   │        │   │
-│  │  │  ┌──────────────────────────────────────┐       │        │   │
-│  │  │  │  BubblePinBitmap (Inactive White)     │       │        │   │
-│  │  │  │  Ref → inactiveMarker.viewRef        │       │        │   │
-│  │  │  └──────────────────────────────────────┘       │        │   │
-│  │  └─────────────────────────────────────────────────┘        │   │
-│  │                                                               │   │
-│  │  ┌─────────────────────────────────────────────────┐        │   │
-│  │  │  Marker (react-native-maps)                      │        │   │
-│  │  │  icon={{ uri: currentMarker.iconUri }}           │        │   │
-│  │  │  tracksViewChanges={false}                       │        │   │
-│  │  └─────────────────────────────────────────────────┘        │   │
-│  └───────────────────────────────────────────────────────────┘   │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │           MarkerBitmapRendererProvider (NEW)                   │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Context: { requestBitmap, getState, subscribe }        │  │  │
+│  │  │  State: Map<string, GenerationState>                    │  │  │
+│  │  │  Queue: GenerationRequest[] (priority sorted)           │  │  │
+│  │  │  Concurrent Limit: 2 generations                        │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │                                                                 │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Offscreen View (position: absolute, left: -9999)       │  │  │
+│  │  │  (OUTSIDE MapView - at screen root)                     │  │  │
+│  │  │                                                           │  │  │
+│  │  │  ┌──────────────────────────────────────────┐           │  │  │
+│  │  │  │  View (collapsable={false})              │           │  │  │
+│  │  │  │  ref={renderViewRef}                     │           │  │  │
+│  │  │  │                                           │           │  │  │
+│  │  │  │  ┌────────────────────────────────────┐ │           │  │  │
+│  │  │  │  │  BubblePinBitmap                   │ │           │  │  │
+│  │  │  │  │  (current request only)            │ │           │  │  │
+│  │  │  │  └────────────────────────────────────┘ │           │  │  │
+│  │  │  └──────────────────────────────────────────┘           │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │                                                                 │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │                 Map Children                              │  │  │
+│  │  │                                                           │  │  │
+│  │  │  ┌───────────────────────────────────────────────────┐  │  │  │
+│  │  │  │         AvatarBubbleMarkerBitmap #1               │  │  │  │
+│  │  │  │  - Subscribe to Renderer                          │  │  │  │
+│  │  │  │  - Request inactive (priority: low)               │  │  │  │
+│  │  │  │  - Request active on-demand (priority: high)      │  │  │  │
+│  │  │  │                                                     │  │  │  │
+│  │  │  │  Renders: <Marker icon={{uri: iconUri}} />        │  │  │  │
+│  │  │  └───────────────────────────────────────────────────┘  │  │  │
+│  │  │                                                           │  │  │
+│  │  │  ┌───────────────────────────────────────────────────┐  │  │  │
+│  │  │  │         AvatarBubbleMarkerBitmap #2               │  │  │  │
+│  │  │  │  - Subscribe to Renderer                          │  │  │  │
+│  │  │  │  - Request inactive (priority: low)               │  │  │  │
+│  │  │  │  - Request active on-demand (priority: high)      │  │  │  │
+│  │  │  │                                                     │  │  │  │
+│  │  │  │  Renders: <Marker icon={{uri: iconUri}} />        │  │  │  │
+│  │  │  └───────────────────────────────────────────────────┘  │  │  │
+│  │  │                                                           │  │  │
+│  │  │  (No other Views mixed in MapView children)             │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    useMarkerBitmap Hook Flow                          │
+│              MarkerBitmapRenderer Generation Flow (NEW)               │
 │                                                                       │
-│  1. Initial Call                                                      │
+│  1. Marker mounts & requests bitmap                                  │
+│     requestBitmap({ uri, size, color, priority: "low" })            │
 │     ↓                                                                 │
-│  2. Generate Cache Key                                                │
-│     hash(uri|size|color) → "a1b2c3d4e5f6g7h8"                       │
+│  2. Check if already generating or ready                             │
+│     if (state.isReady || state.isGenerating) return;                │
 │     ↓                                                                 │
-│  3. Check Cache                                                       │
-│     FileSystem.cacheDirectory/marker-icons/a1b2c3d4e5f6g7h8.png     │
+│  3. Add to priority queue                                            │
+│     queueRef.current.push(request)                                   │
+│     ↓                                                                 │
+│  4. Sort queue by priority (high → low)                              │
+│     ↓                                                                 │
+│  5. Check concurrent generation limit                                │
+│     if (generatingCount >= 2) return;                                │
+│     ↓                                                                 │
+│  6. Generate Cache Key (with color normalization)                    │
+│     normalizeColor("rgb(52, 119, 248)") → "#3477F8"                 │
+│     hash(uri|size|normalizedColor) → "a1b2c3d4e5f6g7h8"             │
+│     ↓                                                                 │
+│  7. Check Cache                                                       │
+│     cacheDirectory/marker-icons/a1b2c3d4e5f6g7h8.png                │
 │     ↓                           ↓                                     │
 │  Cache Hit              Cache Miss                                    │
 │     ↓                           ↓                                     │
-│  Return URI          4. Capture View with react-native-view-shot     │
-│     ↓                           ↓                                     │
-│  Done                5. Save PNG to cache                             │
-│                                ↓                                      │
-│                       6. Return URI                                   │
-│                                ↓                                      │
-│                       7. Trigger Cleanup (async)                      │
-│                                ↓                                      │
-│                       8. LRU Cleanup if needed                        │
-│                          - Check file count > 200                     │
-│                          - Check total size > 20MB                    │
-│                          - Delete oldest files                        │
+│  Return URI          8. Render in offscreen View                     │
+│     ↓                   setCurrentRequest(request)                   │
+│  Done                   ↓                                             │
+│                       9. Wait for ref stability                       │
+│                          requestAnimationFrame()                      │
+│                          requestAnimationFrame()                      │
+│                          ↓                                            │
+│                       10. Capture View (with retry)                   │
+│                          captureRef(renderViewRef.current)           │
+│                          retry up to 3 times with backoff            │
+│                          ↓                                            │
+│                       11. Save PNG to cache                           │
+│                          FileSystem.moveAsync()                       │
+│                          ↓                                            │
+│                       12. Update state & notify subscribers          │
+│                          updateState({ iconUri, isReady: true })     │
+│                          ↓                                            │
+│                       13. Trigger Cleanup (async)                     │
+│                          cleanupCache()                               │
+│                          ↓                                            │
+│                       14. Process next in queue                       │
+│                          generatingCount--                            │
+│                          processQueue()                               │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      State Change Flow                                │
+│                      State Change Flow (IMPROVED)                     │
 │                                                                       │
 │  User Action: Carousel swipe to next restaurant                      │
 │     ↓                                                                 │
@@ -81,43 +116,90 @@
 │     - Previous marker: "rgb(52,119,248)" → "#FFF"                    │
 │     - New marker: "#FFF" → "rgb(52,119,248)"                         │
 │     ↓                                                                 │
-│  AvatarBubbleMarkerBitmap switches iconUri:                          │
-│     - Previous: activeMarker.iconUri → inactiveMarker.iconUri        │
-│     - New: inactiveMarker.iconUri → activeMarker.iconUri             │
+│  AvatarBubbleMarkerBitmap switches state:                            │
+│     - Previous: uses inactiveState (already cached)                  │
+│     - New: uses activeState                                           │
+│     ↓                                                                 │
+│  New marker checks if active bitmap is ready:                        │
+│     if (!activeState.isReady && !activeState.isGenerating) {         │
+│       requestBitmap({ ..., priority: "high" }) // on-demand          │
+│     }                                                                 │
+│     ↓                                                                 │
+│  High priority request jumps to front of queue                       │
 │     ↓                                                                 │
 │  Marker icon prop updates (PNG file path changes)                    │
 │     ↓                                                                 │
 │  Map renders with new bitmap icons                                   │
 │     ↓                                                                 │
-│  ✅ No re-capture, no flicker, just PNG swap!                        │
+│  ✅ No re-capture, no flicker, optimized generation!                │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     BubblePinBitmap Component                         │
+│                 Generation Stability Improvements (iOS)               │
 │                                                                       │
-│    ┌─────────────────────────────────────────┐                      │
-│    │         Container View                   │                      │
-│    │    (size x size+4, alignItems: center)   │                      │
-│    │                                          │                      │
-│    │  ┌─────────────────────────────────┐    │                      │
-│    │  │   Avatar Container               │    │                      │
-│    │  │   (borderRadius: size/2)         │    │                      │
-│    │  │   (overflow: hidden)             │    │                      │
-│    │  │                                  │    │                      │
-│    │  │  ┌────────────────────────┐     │    │                      │
-│    │  │  │  RN Image               │     │    │                      │
-│    │  │  │  (borderWidth: 2)       │     │    │                      │
-│    │  │  │  (borderColor: color)   │     │    │                      │
-│    │  │  │  (borderRadius: size/2) │     │    │                      │
-│    │  │  └────────────────────────┘     │    │                      │
-│    │  └─────────────────────────────────┘    │                      │
-│    │                                          │                      │
-│    │  ┌───────────────────┐                  │                      │
-│    │  │ Bubble Tail       │                  │                      │
-│    │  │ (8x8, rotate 45°) │                  │                      │
-│    │  │ (color: color)    │                  │                      │
-│    │  └───────────────────┘                  │                      │
-│    └─────────────────────────────────────────┘                      │
+│  Problem: "Error: No view found with reactTag"                       │
+│  ↓                                                                    │
+│  Solutions Applied:                                                   │
+│                                                                       │
+│  1. collapsable={false}                                              │
+│     → Prevents React Native from optimizing away the View           │
+│                                                                       │
+│  2. captureRef(viewRef.current, ...)                                 │
+│     → Uses actual ref instance, not ref object                       │
+│                                                                       │
+│  3. requestAnimationFrame() × 2                                      │
+│     → Waits for ref to be fully mounted and stable                   │
+│                                                                       │
+│  4. Retry with exponential backoff                                   │
+│     → Retry up to 3 times with 500ms, 1000ms, 1500ms delays         │
+│                                                                       │
+│  5. isMountedRef check                                               │
+│     → Prevents setState after unmount (screen navigation)            │
+│                                                                       │
+│  Result: ✅ Stable generation, no reactTag errors                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                  Performance Optimization (NEW)                       │
+│                                                                       │
+│  Initial Load Strategy:                                               │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ 5 markers mount simultaneously                                │   │
+│  │ ↓                                                             │   │
+│  │ Each requests INACTIVE bitmap (priority: "low")              │   │
+│  │ ↓                                                             │   │
+│  │ Queue: [inactive1, inactive2, inactive3, inactive4, inactive5] │   │
+│  │ ↓                                                             │   │
+│  │ Process 2 at a time (concurrent limit)                       │   │
+│  │ ↓                                                             │   │
+│  │ Generation: ~100-200ms per bitmap                            │   │
+│  │ ↓                                                             │   │
+│  │ Total: ~250-500ms for 5 markers (2 concurrent)               │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                       │
+│  Active On-Demand Strategy:                                          │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ User taps marker or carousel swipes                          │   │
+│  │ ↓                                                             │   │
+│  │ New active marker requests ACTIVE bitmap (priority: "high")  │   │
+│  │ ↓                                                             │   │
+│  │ High priority jumps to front of queue                        │   │
+│  │ ↓                                                             │   │
+│  │ Generation: ~100-200ms                                        │   │
+│  │ ↓                                                             │   │
+│  │ UI shows inactive immediately, active after generation       │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                       │
+│  Color Normalization:                                                │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ Input: "rgb(52, 119, 248)" or "#3477F8"                      │   │
+│  │ ↓                                                             │   │
+│  │ Normalize: "#3477F8" (always uppercase hex)                  │   │
+│  │ ↓                                                             │   │
+│  │ Cache key uses normalized color                              │   │
+│  │ ↓                                                             │   │
+│  │ Result: Higher cache hit rate                                │   │
+│  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -148,6 +230,7 @@
 │    ✅ Generate PNGs with react-native-view-shot                      │
 │    ✅ Cache PNGs in FileSystem.cacheDirectory                        │
 │    ✅ tracksViewChanges={false}                                      │
+│    ✅ Renderer 1個で全マーカー管理                                  │
 │                                                                       │
 │  Web:                                                                 │
 │    ✅ Use traditional View Marker approach                           │
@@ -157,27 +240,31 @@
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Key Benefits
+## Key Improvements
 
-### Before (View Marker)
+### Before (Old Implementation)
+❌ Offscreen views inside each Marker component  
+❌ MapView contains mixed children (Markers + Views)  
+❌ No generation control (all generated immediately)  
+❌ No priority system  
+❌ iOS reactTag errors  
+❌ No concurrent generation limit  
 
-❌ Android: Circle broken (fan-shaped/cut)  
-❌ Flickering on state/region updates  
-❌ GPU-dependent rendering issues  
-❌ `borderRadius` + `overflow: hidden` broken
-
-### After (Bitmap Icon)
-
-✅ Perfect circle on all Android devices  
-✅ No flickering (PNG swap only)  
-✅ Consistent rendering  
-✅ Pre-generated bitmaps cached  
-✅ O(n) cache cleanup performance
+### After (New Implementation)
+✅ Single Renderer outside MapView  
+✅ MapView contains ONLY Markers  
+✅ Priority queue (high/low)  
+✅ Concurrent generation limit (2)  
+✅ Stable generation (collapsable, requestAnimationFrame × 2)  
+✅ Retry mechanism (3 attempts, exponential backoff)  
+✅ On-demand active bitmap generation  
+✅ Color normalization for better cache hits  
 
 ## Performance Characteristics
 
-- **Initial Load**: ~100-200ms per unique image (cached after)
-- **State Change**: <10ms (PNG file path swap only)
+- **Initial Load**: ~250-500ms for 5 markers (2 concurrent, inactive only)
+- **Active Switch**: ~100-200ms (high priority, on-demand)
+- **State Change**: <10ms (PNG file path swap only, no re-generation)
 - **Memory**: Max 20MB cache (auto-cleanup)
 - **Storage**: Max 200 files (auto-cleanup)
 - **Network**: One-time image download per unique URL
