@@ -1,272 +1,272 @@
-# Bitmap Marker Implementation - Architecture Diagram
+# ビットマーカー実装 - アーキテクチャ図
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    Map Component (DishMediaMap)                      │
+│                    マップコンポーネント (DishMediaMap)               │
 │                                                                       │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │           MarkerBitmapRendererProvider (NEW)                   │  │
+│  │           MarkerBitmapRendererProvider（新規）                 │  │
 │  │  ┌─────────────────────────────────────────────────────────┐  │  │
 │  │  │  Context: { requestBitmap, getState, subscribe }        │  │  │
 │  │  │  State: Map<string, GenerationState>                    │  │  │
-│  │  │  Queue: GenerationRequest[] (priority sorted)           │  │  │
-│  │  │  Concurrent Limit: 2 generations                        │  │  │
+│  │  │  Queue: GenerationRequest[]（優先度ソート）               │  │  │
+│  │  │  同時生成上限: 2                                         │  │  │
 │  │  └─────────────────────────────────────────────────────────┘  │  │
 │  │                                                                 │  │
 │  │  ┌─────────────────────────────────────────────────────────┐  │  │
-│  │  │  Offscreen View (position: absolute, left: -9999)       │  │  │
-│  │  │  (OUTSIDE MapView - at screen root)                     │  │  │
+│  │  │  オフスクリーン View（position: absolute, left: -9999） │  │  │
+│  │  │  （MapViewの外、画面ルートに配置）                       │  │  │
 │  │  │                                                           │  │  │
 │  │  │  ┌──────────────────────────────────────────┐           │  │  │
-│  │  │  │  View (collapsable={false})              │           │  │  │
+│  │  │  │  View（collapsable={false}）             │           │  │  │
 │  │  │  │  ref={renderViewRef}                     │           │  │  │
 │  │  │  │                                           │           │  │  │
 │  │  │  │  ┌────────────────────────────────────┐ │           │  │  │
 │  │  │  │  │  BubblePinBitmap                   │ │           │  │  │
-│  │  │  │  │  (current request only)            │ │           │  │  │
+│  │  │  │  │  （現在のリクエストのみ）           │ │           │  │  │
 │  │  │  │  └────────────────────────────────────┘ │           │  │  │
 │  │  │  └──────────────────────────────────────────┘           │  │  │
 │  │  └─────────────────────────────────────────────────────────┘  │  │
 │  │                                                                 │  │
 │  │  ┌─────────────────────────────────────────────────────────┐  │  │
-│  │  │                 Map Children                              │  │  │
+│  │  │                 Map の子要素                              │  │  │
 │  │  │                                                           │  │  │
 │  │  │  ┌───────────────────────────────────────────────────┐  │  │  │
 │  │  │  │         AvatarBubbleMarkerBitmap #1               │  │  │  │
-│  │  │  │  - Subscribe to Renderer                          │  │  │  │
-│  │  │  │  - Request inactive (priority: low)               │  │  │  │
-│  │  │  │  - Request active on-demand (priority: high)      │  │  │  │
+│  │  │  │  - レンダラーへ購読                               │  │  │  │
+│  │  │  │  - 非アクティブ要求（優先度: 低）                 │  │  │  │
+│  │  │  │  - オンデマンドでアクティブ要求（優先度: 高）     │  │  │  │
 │  │  │  │                                                     │  │  │  │
-│  │  │  │  Renders: <Marker icon={{uri: iconUri}} />        │  │  │  │
+│  │  │  │  描画: <Marker icon={{uri: iconUri}} />            │  │  │  │
 │  │  │  └───────────────────────────────────────────────────┘  │  │  │
 │  │  │                                                           │  │  │
 │  │  │  ┌───────────────────────────────────────────────────┐  │  │  │
 │  │  │  │         AvatarBubbleMarkerBitmap #2               │  │  │  │
-│  │  │  │  - Subscribe to Renderer                          │  │  │  │
-│  │  │  │  - Request inactive (priority: low)               │  │  │  │
-│  │  │  │  - Request active on-demand (priority: high)      │  │  │  │
+│  │  │  │  - レンダラーへ購読                               │  │  │  │
+│  │  │  │  - 非アクティブ要求（優先度: 低）                 │  │  │  │
+│  │  │  │  - オンデマンドでアクティブ要求（優先度: 高）     │  │  │  │
 │  │  │  │                                                     │  │  │  │
-│  │  │  │  Renders: <Marker icon={{uri: iconUri}} />        │  │  │  │
+│  │  │  │  描画: <Marker icon={{uri: iconUri}} />            │  │  │  │
 │  │  │  └───────────────────────────────────────────────────┘  │  │  │
 │  │  │                                                           │  │  │
-│  │  │  (No other Views mixed in MapView children)             │  │  │
+│  │  │  （MapView の子には他の View を混在させない）            │  │  │
 │  │  └─────────────────────────────────────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│              MarkerBitmapRenderer Generation Flow (NEW)               │
+│              MarkerBitmapRenderer 生成フロー（新規）                  │
 │                                                                       │
-│  1. Marker mounts & requests bitmap                                  │
+│  1. マーカーがマウントされ、ビットマップを要求                      │
 │     requestBitmap({ uri, size, color, priority: "low" })            │
 │     ↓                                                                 │
-│  2. Check if already generating or ready                             │
+│  2. 生成中または準備済みかを確認                                     │
 │     if (state.isReady || state.isGenerating) return;                │
 │     ↓                                                                 │
-│  3. Add to priority queue                                            │
+│  3. 優先度キューへ追加                                               │
 │     queueRef.current.push(request)                                   │
 │     ↓                                                                 │
-│  4. Sort queue by priority (high → low)                              │
+│  4. 優先度でキューをソート（高 → 低）                                │
 │     ↓                                                                 │
-│  5. Check concurrent generation limit                                │
+│  5. 同時生成上限を確認                                               │
 │     if (generatingCount >= 2) return;                                │
 │     ↓                                                                 │
-│  6. Generate Cache Key (with color normalization)                    │
+│  6. キャッシュキー生成（色の正規化あり）                             │
 │     normalizeColor("rgb(52, 119, 248)") → "#3477F8"                 │
 │     hash(uri|size|normalizedColor) → "a1b2c3d4e5f6g7h8"             │
 │     ↓                                                                 │
-│  7. Check Cache                                                       │
+│  7. キャッシュ確認                                                    │
 │     cacheDirectory/marker-icons/a1b2c3d4e5f6g7h8.png                │
 │     ↓                           ↓                                     │
-│  Cache Hit              Cache Miss                                    │
+│  キャッシュヒット         キャッシュミス                               │
 │     ↓                           ↓                                     │
-│  Return URI          8. Render in offscreen View                     │
+│  URI を返す            8. オフスクリーン View でレンダリング           │
 │     ↓                   setCurrentRequest(request)                   │
-│  Done                   ↓                                             │
-│                       9. Wait for ref stability                       │
+│  完了                   ↓                                             │
+│                       9. ref の安定を待機                            │
 │                          requestAnimationFrame()                      │
 │                          requestAnimationFrame()                      │
 │                          ↓                                            │
-│                       10. Capture View (with retry)                   │
+│                       10. View をキャプチャ（リトライ付き）            │
 │                          captureRef(renderViewRef.current)           │
-│                          retry up to 3 times with backoff            │
+│                          バックオフで最大3回リトライ                  │
 │                          ↓                                            │
-│                       11. Save PNG to cache                           │
+│                       11. PNG をキャッシュへ保存                      │
 │                          FileSystem.moveAsync()                       │
 │                          ↓                                            │
-│                       12. Update state & notify subscribers          │
+│                       12. 状態更新 & 購読者へ通知                     │
 │                          updateState({ iconUri, isReady: true })     │
 │                          ↓                                            │
-│                       13. Trigger Cleanup (async)                     │
+│                       13. クリーンアップを非同期で実行                │
 │                          cleanupCache()                               │
 │                          ↓                                            │
-│                       14. Process next in queue                       │
+│                       14. 次のキューを処理                            │
 │                          generatingCount--                            │
 │                          processQueue()                               │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      State Change Flow (IMPROVED)                     │
+│                      状態変更フロー（改善）                           │
 │                                                                       │
-│  User Action: Carousel swipe to next restaurant                      │
+│  ユーザー操作: カルーセルで次のレストランへスワイプ                  │
 │     ↓                                                                 │
-│  currentIndex changes (e.g., 0 → 1)                                  │
+│  currentIndex が変化（例: 0 → 1）                                     │
 │     ↓                                                                 │
-│  Marker color prop changes:                                           │
-│     - Previous marker: "rgb(52,119,248)" → "#FFF"                    │
-│     - New marker: "#FFF" → "rgb(52,119,248)"                         │
+│  マーカーの color プロパティが変更                                   │
+│     - 以前のマーカー: "rgb(52,119,248)" → "#FFF"                    │
+│     - 新しいマーカー: "#FFF" → "rgb(52,119,248)"                     │
 │     ↓                                                                 │
-│  AvatarBubbleMarkerBitmap switches state:                            │
-│     - Previous: uses inactiveState (already cached)                  │
-│     - New: uses activeState                                           │
+│  AvatarBubbleMarkerBitmap が状態を切替                                │
+│     - 以前: 非アクティブ状態（キャッシュ済み）を使用                 │
+│     - 新規: アクティブ状態を使用                                      │
 │     ↓                                                                 │
-│  New marker checks if active bitmap is ready:                        │
+│  新しいマーカーがアクティブビットマップ準備済みかを確認              │
 │     if (!activeState.isReady && !activeState.isGenerating) {         │
-│       requestBitmap({ ..., priority: "high" }) // on-demand          │
+│       requestBitmap({ ..., priority: "high" }) // オンデマンド       │
 │     }                                                                 │
 │     ↓                                                                 │
-│  High priority request jumps to front of queue                       │
+│  高優先度要求はキューの先頭へ                                         │
 │     ↓                                                                 │
-│  Marker icon prop updates (PNG file path changes)                    │
+│  Marker の icon プロパティ更新（PNG パスが変化）                      │
 │     ↓                                                                 │
-│  Map renders with new bitmap icons                                   │
+│  Map が新しいビットマップアイコンでレンダリング                       │
 │     ↓                                                                 │
-│  ✅ No re-capture, no flicker, optimized generation!                │
+│  ✅ 再キャプチャなし、フリッカーなし、生成最適化！                   │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                 Generation Stability Improvements (iOS)               │
+│                 生成安定化の改善（iOS）                               │
 │                                                                       │
-│  Problem: "Error: No view found with reactTag"                       │
+│  課題: "Error: No view found with reactTag"                          │
 │  ↓                                                                    │
-│  Solutions Applied:                                                   │
+│  施策:                                                                │
 │                                                                       │
 │  1. collapsable={false}                                              │
-│     → Prevents React Native from optimizing away the View           │
+│     → React Native による View 最適化の除外                          │
 │                                                                       │
 │  2. captureRef(viewRef.current, ...)                                 │
-│     → Uses actual ref instance, not ref object                       │
+│     → ref オブジェクトではなく実インスタンスを使用                   │
 │                                                                       │
 │  3. requestAnimationFrame() × 2                                      │
-│     → Waits for ref to be fully mounted and stable                   │
+│     → ref が完全にマウント・安定するまで待機                         │
 │                                                                       │
-│  4. Retry with exponential backoff                                   │
-│     → Retry up to 3 times with 500ms, 1000ms, 1500ms delays         │
+│  4. 指数バックオフ付きリトライ                                       │
+│     → 500ms, 1000ms, 1500ms の遅延で最大3回                          │
 │                                                                       │
-│  5. isMountedRef check                                               │
-│     → Prevents setState after unmount (screen navigation)            │
+│  5. isMountedRef チェック                                             │
+│     → アンマウント後の setState を防止（画面遷移）                   │
 │                                                                       │
-│  Result: ✅ Stable generation, no reactTag errors                   │
+│  結果: ✅ 安定した生成、reactTag エラーなし                           │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                  Performance Optimization (NEW)                       │
+│                  パフォーマンス最適化（新規）                         │
 │                                                                       │
-│  Initial Load Strategy:                                               │
+│  初期ロード戦略:                                                      │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │ 5 markers mount simultaneously                                │   │
+│  │ マーカー5個が同時にマウント                                    │   │
 │  │ ↓                                                             │   │
-│  │ Each requests INACTIVE bitmap (priority: "low")              │   │
+│  │ 各マーカーが非アクティブビットマップを要求（優先度: 低）       │   │
 │  │ ↓                                                             │   │
-│  │ Queue: [inactive1, inactive2, inactive3, inactive4, inactive5] │   │
+│  │ キュー: [inactive1, inactive2, inactive3, inactive4, inactive5] │   │
 │  │ ↓                                                             │   │
-│  │ Process 2 at a time (concurrent limit)                       │   │
+│  │ 2つずつ処理（同時生成上限）                                   │   │
 │  │ ↓                                                             │   │
-│  │ Generation: ~100-200ms per bitmap                            │   │
+│  │ 生成: ビットマップあたり約100〜200ms                           │   │
 │  │ ↓                                                             │   │
-│  │ Total: ~250-500ms for 5 markers (2 concurrent)               │   │
+│  │ 合計: 約250〜500ms（2並列で5マーカーの非アクティブ生成）       │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                       │
-│  Active On-Demand Strategy:                                          │
+│  アクティブのオンデマンド戦略:                                       │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │ User taps marker or carousel swipes                          │   │
+│  │ ユーザーがマーカーをタップ、またはカルーセルをスワイプ          │   │
 │  │ ↓                                                             │   │
-│  │ New active marker requests ACTIVE bitmap (priority: "high")  │   │
+│  │ 新しいアクティブマーカーがアクティブビットマップを要求（高）    │   │
 │  │ ↓                                                             │   │
-│  │ High priority jumps to front of queue                        │   │
+│  │ 高優先度はキュー先頭へ                                         │   │
 │  │ ↓                                                             │   │
-│  │ Generation: ~100-200ms                                        │   │
+│  │ 生成: 約100〜200ms                                             │   │
 │  │ ↓                                                             │   │
-│  │ UI shows inactive immediately, active after generation       │   │
+│  │ UI は非アクティブを即表示、アクティブは生成後に更新             │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                       │
-│  Color Normalization:                                                │
+│  色の正規化:                                                          │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │ Input: "rgb(52, 119, 248)" or "#3477F8"                      │   │
+│  │ 入力: "rgb(52, 119, 248)" または "#3477F8"                   │   │
 │  │ ↓                                                             │   │
-│  │ Normalize: "#3477F8" (always uppercase hex)                  │   │
+│  │ 正規化: "#3477F8"（常に大文字の16進）                         │   │
 │  │ ↓                                                             │   │
-│  │ Cache key uses normalized color                              │   │
+│  │ キャッシュキーに正規化色を使用                                 │   │
 │  │ ↓                                                             │   │
-│  │ Result: Higher cache hit rate                                │   │
+│  │ 結果: キャッシュヒット率向上                                   │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      Cache Management (LRU)                           │
+│                      キャッシュ管理（LRU）                           │
 │                                                                       │
 │  FileSystem.cacheDirectory/marker-icons/                             │
-│  ├── a1b2c3d4.png (inactive, 5KB, 2024-01-04 10:00)                 │
-│  ├── a1b2c3d4_active.png (active, 5KB, 2024-01-04 10:00)            │
-│  ├── e5f6g7h8.png (inactive, 6KB, 2024-01-04 10:05)                 │
-│  ├── e5f6g7h8_active.png (active, 6KB, 2024-01-04 10:05)            │
-│  └── ... (up to 200 files or 20MB total)                             │
+│  ├── a1b2c3d4.png（非アクティブ, 5KB, 2024-01-04 10:00）            │
+│  ├── a1b2c3d4_active.png（アクティブ, 5KB, 2024-01-04 10:00）       │
+│  ├── e5f6g7h8.png（非アクティブ, 6KB, 2024-01-04 10:05）            │
+│  ├── e5f6g7h8_active.png（アクティブ, 6KB, 2024-01-04 10:05）       │
+│  └── ...（最大200ファイル、合計20MBまで）                            │
 │                                                                       │
-│  Cleanup Triggers:                                                    │
-│  1. File count > 200 → Delete oldest files                           │
-│  2. Total size > 20MB → Delete oldest files until under limit        │
+│  クリーンアップ発火条件:                                             │
+│  1. ファイル数 > 200 → 古いファイルを削除                           │
+│  2. 合計サイズ > 20MB → 制限以下になるまで古いファイルを削除       │
 │                                                                       │
-│  Cleanup Strategy:                                                    │
-│  - Sort by modificationTime (oldest first)                           │
-│  - Use Set for O(1) lookup (performance optimization)                │
-│  - Delete files asynchronously (non-blocking)                        │
+│  クリーンアップ戦略:                                                 │
+│  - modificationTime でソート（古い順）                               │
+│  - 高速化のため Set を使用（O(1) 参照）                             │
+│  - 非同期で削除（ノンブロッキング）                                  │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    Platform Differences                               │
+│                    プラットフォーム差異                              │
 │                                                                       │
 │  Android/iOS:                                                         │
-│    ✅ Use bitmap icon approach                                       │
-│    ✅ Generate PNGs with react-native-view-shot                      │
-│    ✅ Cache PNGs in FileSystem.cacheDirectory                        │
+│    ✅ ビットマップアイコン方式を使用                                 │
+│    ✅ react-native-view-shot で PNG 生成                             │
+│    ✅ FileSystem.cacheDirectory に PNG をキャッシュ                  │
 │    ✅ tracksViewChanges={false}                                      │
-│    ✅ Renderer 1個で全マーカー管理                                  │
+│    ✅ 単一のレンダラーで全マーカー管理                              │
 │                                                                       │
 │  Web:                                                                 │
-│    ✅ Use traditional View Marker approach                           │
-│    ✅ Skip PNG generation (not supported/needed)                     │
-│    ✅ Render BubblePinBitmap as Marker children                      │
-│    ✅ No caching needed                                               │
+│    ✅ 従来の View マーカー方式を使用                                 │
+│    ✅ PNG 生成をスキップ（非対応/不要）                              │
+│    ✅ BubblePinBitmap を Marker 子要素としてレンダリング             │
+│    ✅ キャッシュ不要                                                 │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Key Improvements
+## 主要な改善点
 
-### Before (Old Implementation)
+### 以前（旧実装）
 
-❌ Offscreen views inside each Marker component  
-❌ MapView contains mixed children (Markers + Views)  
-❌ No generation control (all generated immediately)  
-❌ No priority system  
-❌ iOS reactTag errors  
-❌ No concurrent generation limit
+❌ 各 Marker コンポーネント内にオフスクリーン View
+❌ MapView に Markers と Views が混在
+❌ 生成制御なし（即時に全生成）
+❌ 優先度システムなし
+❌ iOS の reactTag エラー
+❌ 同時生成上限なし
 
-### After (New Implementation)
+### 以後（新実装）
 
-✅ Single Renderer outside MapView  
-✅ MapView contains ONLY Markers  
-✅ Priority queue (high/low)  
-✅ Concurrent generation limit (2)  
-✅ Stable generation (collapsable, requestAnimationFrame × 2)  
-✅ Retry mechanism (3 attempts, exponential backoff)  
-✅ On-demand active bitmap generation  
-✅ Color normalization for better cache hits
+✅ MapView の外に単一レンダラー
+✅ MapView は Marker のみを子要素に保持
+✅ 優先度キュー（高/低）
+✅ 同時生成上限（2）
+✅ 安定生成（collapsable、requestAnimationFrame × 2）
+✅ リトライ機構（最大3回、指数バックオフ）
+✅ アクティブビットマップのオンデマンド生成
+✅ キャッシュヒット向上のための色正規化
 
-## Performance Characteristics
+## パフォーマンス特性
 
-- **Initial Load**: ~250-500ms for 5 markers (2 concurrent, inactive only)
-- **Active Switch**: ~100-200ms (high priority, on-demand)
-- **State Change**: <10ms (PNG file path swap only, no re-generation)
-- **Memory**: Max 20MB cache (auto-cleanup)
-- **Storage**: Max 200 files (auto-cleanup)
-- **Network**: One-time image download per unique URL
+- 初期ロード: 約250〜500ms（5マーカー、2並列、非アクティブのみ）
+- アクティブ切替: 約100〜200ms（高優先度、オンデマンド）
+- 状態変更: 10ms未満（PNG パスの差し替えのみ、再生成なし）
+- メモリ: キャッシュ最大20MB（自動クリーンアップ）
+- ストレージ: 最大200ファイル（自動クリーンアップ）
+- ネットワーク: 一意 URL ごとに画像を一度だけダウンロード

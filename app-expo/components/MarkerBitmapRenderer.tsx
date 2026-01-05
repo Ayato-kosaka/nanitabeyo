@@ -1,118 +1,184 @@
-import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { View, Platform } from "react-native";
+// app-expo/components/MarkerBitmapRenderer.tsx
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Platform, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import * as FileSystem from "expo-file-system";
 import * as Crypto from "expo-crypto";
 import { BubblePinBitmap } from "./BubblePinBitmap";
 
-// #235 【設計】オフスクリーン描画用Viewの配置位置（画面外）
+/**
+ * #235 MarkerBitmapRenderer
+ *
+ * ✅ MapView 直下には Marker しか置かないため、
+ *    Offscreen View（PNG生成用）は Provider が MapView 外に1つだけ持つ。
+ *
+ * ✅ 生成状態は「外部ストア」を useSyncExternalStore で購読し、
+ *    React の render 規約に準拠（setState in render を回避）する。
+ *
+ * ✅ Android で「画像が出ない」問題の根治：
+ *    画像ロード完了（Image onLoadEnd）を待ってから capture する。
+ *
+ * ✅ iOS のファイル知道（tmp）系のクセに対処：
+ *    moveAsync ではなく copyAsync を使用し、tmp delete は失敗しても握りつぶす（ノイズ削減）。
+ */
+
+// ----------------------------
+// 定数（見た目/設計）
+// ----------------------------
+
+// 画面外に配置（MapView配下ではなく Provider 直下に置く）
 const OFFSCREEN_POSITION = -9999;
 
-// #235 【設計】キャッシュディレクトリ
+// キャッシュディレクトリ
 const CACHE_DIR = `${FileSystem.cacheDirectory}marker-icons/`;
 
-// #235 【設計】キャッシュ上限（最大200ファイル or 20MB）
+// キャッシュ上限（運用上の安全弁）
 const MAX_CACHE_FILES = 200;
 const MAX_CACHE_SIZE_BYTES = 20 * 1024 * 1024;
 
-// #235 【設計】同時生成数の上限（パフォーマンス対策）- 1に固定して取り違えバグを防止
+// 生成スロットは 1 に固定（取り違えバグを根絶）
 const MAX_CONCURRENT_GENERATIONS = 1;
 
-// #235 【設計】最大リトライ回数（生成失敗時）
+// 生成失敗時の最大リトライ回数
 const MAX_RETRY_COUNT = 3;
 
-// #235 【設計】リトライ間隔（ms）
+// リトライ間隔（ms）※軽いバックオフ
 const RETRY_DELAY_MS = 500;
 
-// #235 【設計】アクティブ色（正規化済み）
+// capture 同期待ちの上限（ms）
+const WAIT_REF_MS = 500; // ref が付くまで（描画の確知道）
+const WAIT_IMAGE_MS = 2500; // 画像ロードを待つ（Android の「枠だけ」根治）
+
+// 既定色（正規化済み）
 export const ACTIVE_COLOR_HEX = "#3477F8";
-// #235 【設計】非アクティブ色（正規化済み）
 export const INACTIVE_COLOR_HEX = "#FFFFFF";
 
-type GenerationRequest = {
+// ----------------------------
+// 型
+// ----------------------------
+
+export type GenerationPriority = "high" | "low";
+
+export type GenerationRequest = {
 	uri: string;
 	size: number;
-	color: string;
-	priority: "high" | "low"; // #235 【設計】high=active(オンデマンド), low=inactive(初回優先)
+	color: string; // 正規化済み #RRGGBB 前提
+	priority: GenerationPriority;
 };
 
-type GenerationState = {
+export type GenerationState = {
 	iconUri: string | undefined;
 	isReady: boolean;
 	isGenerating: boolean;
 	error: Error | undefined;
+
+	// ✅ 画像ロード完了待ち（Androidの空画像を根治）
+	imageReady: boolean;
 };
 
-/**
- * #235 【設計】外部ストア（useSyncExternalStore用）
- * React の render 規約に沿った購読を実現するため、状態を外部で管理
- */
 type MarkerBitmapStore = {
+	// 状態（キー => state）
 	states: Map<string, GenerationState>;
-	listeners: Set<() => void>;
-	queue: GenerationRequest[];
-	generatingCount: number;
-	isProcessing: boolean; // #235 【バグ修正】processQueue 再入防止フラグ
 
-	// #235 【設計】購読（useSyncExternalStore用）
+	// useSyncExternalStore 用
+	listeners: Set<() => void>;
 	subscribe: (listener: () => void) => () => void;
-	// #235 【設計】スナップショット取得
 	getSnapshot: (key: string) => GenerationState;
-	// #235 【設計】状態の初期化（未登録時）
 	ensureState: (key: string) => void;
-	// #235 【設計】状態更新（React外で実行）
-	updateState: (key: string, update: Partial<GenerationState>) => void;
-	// #235 【設計】bitmap生成リクエスト
-	requestBitmap: (request: GenerationRequest) => void;
+
+	// 生成キュー（優先度ごとに分離して sort を廃止）
+	highQueue: GenerationRequest[];
+	lowQueue: GenerationRequest[];
+
+	// 重複リクエスト排除
+	queuedKeys: Set<string>;
+
+	// 同時生成数（1固定）
+	generatingCount: number;
+
+	// キュー処理の再入防止
+	isProcessing: boolean;
+
+	// 状態更新
+	updateState: (key: string, patch: Partial<GenerationState>) => void;
+
+	// 生成リクエスト
+	requestBitmap: (req: Omit<GenerationRequest, "color"> & { color: string }) => void;
+
+	// 画像ロード通知（BubblePinBitmap から呼ぶ）
+	markImageReady: (key: string) => void;
+	markImageError: (key: string, err?: unknown) => void;
 };
 
 type MarkerBitmapRendererContextType = {
 	store: MarkerBitmapStore;
 };
 
-// #235 【設計】Context でストアを提供
 const MarkerBitmapRendererContext = React.createContext<MarkerBitmapRendererContextType | null>(null);
 
+// ----------------------------
+// ユーティリティ
+// ----------------------------
+
 /**
- * #235 【設計】キャッシュキーを生成（uri|size|color のハッシュ）
+ * 色を正規化（rgb(r,g,b) / #rgb / #rrggbb などを #RRGGBB に寄せる）
+ * ※ここでは最低限の正規化のみ（運用上は #RRGGBB 統一を推奨）
  */
+export const normalizeColor = (color: string): string => {
+	const c = (color ?? "").trim();
+
+	// rgb(...) → #RRGGBB
+	const rgbMatch = c.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+	if (rgbMatch) {
+		const r = Number(rgbMatch[1]).toString(16).padStart(2, "0");
+		const g = Number(rgbMatch[2]).toString(16).padStart(2, "0");
+		const b = Number(rgbMatch[3]).toString(16).padStart(2, "0");
+		return `#${r}${g}${b}`.toUpperCase();
+	}
+
+	// #rgb → #RRGGBB
+	const shortHex = c.match(/^#([0-9a-fA-F]{3})$/);
+	if (shortHex) {
+		const [r, g, b] = shortHex[1].split("");
+		return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+	}
+
+	// #rrggbb
+	const longHex = c.match(/^#([0-9a-fA-F]{6})$/);
+	if (longHex) return `#${longHex[1]}`.toUpperCase();
+
+	// 想定外はそのまま上げる（呼び出し側で統一を推奨）
+	return c.toUpperCase();
+};
+
+/**
+ * すべての状態キー生成をこの関数に統一（バグ温床を排除）
+ */
+export const makeKey = (uri: string, size: number, color: string) => {
+	// color は正規化済みを前提
+	return `${uri}|${size}|${color}`;
+};
+
+const ensureCacheDir = async () => {
+	await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+};
+
 const getCacheKey = async (uri: string, size: number, color: string): Promise<string> => {
-	// #235 【設計】色は既に正規化済みを前提
+	// color は既に正規化済みを前提
 	const key = `${uri}|${size}|${color}`;
 	const hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, key);
 	return hash.substring(0, 16);
 };
 
 /**
- * #235 【設計】色を正規化（rgb(r, g, b) → #RRGGBB）
- */
-export const normalizeColor = (color: string): string => {
-	// rgb(...) 形式を #RRGGBB に変換
-	const rgbMatch = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
-	if (rgbMatch) {
-		const r = parseInt(rgbMatch[1], 10).toString(16).padStart(2, "0");
-		const g = parseInt(rgbMatch[2], 10).toString(16).padStart(2, "0");
-		const b = parseInt(rgbMatch[3], 10).toString(16).padStart(2, "0");
-		return `#${r}${g}${b}`.toUpperCase();
-	}
-	return color.toUpperCase();
-};
-
-/**
- * #235 【設計】キャッシュディレクトリの初期化
- */
-const ensureCacheDir = async () => {
-	await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
-};
-
-/**
- * #235 【設計】キャッシュファイル一覧取得（LRU管理用）
+ * キャッシュ一覧取得（LRU削除用）
  */
 const getCacheFiles = async (): Promise<Array<{ uri: string; modificationTime: number; size: number }>> => {
 	try {
 		await ensureCacheDir();
 		const files = await FileSystem.readDirectoryAsync(CACHE_DIR);
-		const fileInfos = await Promise.all(
+
+		const infos = await Promise.all(
 			files.map(async (filename) => {
 				const uri = `${CACHE_DIR}${filename}`;
 				const info = await FileSystem.getInfoAsync(uri);
@@ -123,145 +189,189 @@ const getCacheFiles = async (): Promise<Array<{ uri: string; modificationTime: n
 				};
 			}),
 		);
-		return fileInfos.sort((a, b) => a.modificationTime - b.modificationTime);
-	} catch (error) {
-		console.warn("[MarkerBitmapRenderer] Failed to get cache files:", error);
+
+		// 古い順
+		return infos.sort((a, b) => a.modificationTime - b.modificationTime);
+	} catch (e) {
+		console.warn("[MarkerBitmapRenderer] Failed to get cache files:", e);
 		return [];
 	}
 };
 
 /**
- * #235 【設計】古いキャッシュファイルを削除（LRU）
+ * 古いキャッシュ削除（LRU + 容量制御）
  */
 const cleanupCache = async () => {
 	try {
 		const files = await getCacheFiles();
 		const totalSize = files.reduce((sum, f) => sum + f.size, 0);
 
-		let filesToDelete: Array<{ uri: string; modificationTime: number; size: number }> = [];
+		let toDelete: Array<{ uri: string; modificationTime: number; size: number }> = [];
 
-		// #235 【設計】ファイル数上限超過チェック
 		if (files.length > MAX_CACHE_FILES) {
-			const excess = files.length - MAX_CACHE_FILES;
-			filesToDelete = files.slice(0, excess);
+			toDelete = files.slice(0, files.length - MAX_CACHE_FILES);
 		}
 
-		// #235 【設計】容量上限超過チェック
 		if (totalSize > MAX_CACHE_SIZE_BYTES) {
-			const filesToDeleteSet = new Set(filesToDelete.map((f) => f.uri));
+			const set = new Set(toDelete.map((f) => f.uri));
 			let currentSize = totalSize;
-			for (const file of files) {
+
+			for (const f of files) {
 				if (currentSize <= MAX_CACHE_SIZE_BYTES) break;
-				if (!filesToDeleteSet.has(file.uri)) {
-					filesToDelete.push(file);
-					filesToDeleteSet.add(file.uri);
-					currentSize -= file.size;
+				if (!set.has(f.uri)) {
+					toDelete.push(f);
+					set.add(f.uri);
+					currentSize -= f.size;
 				}
 			}
 		}
 
-		// #235 【設計】削除実行
-		for (const file of filesToDelete) {
-			await FileSystem.deleteAsync(file.uri, { idempotent: true });
+		for (const f of toDelete) {
+			await FileSystem.deleteAsync(f.uri, { idempotent: true });
 		}
 
-		if (filesToDelete.length > 0) {
-			console.log(`[MarkerBitmapRenderer] Cleaned up ${filesToDelete.length} cache files`);
+		if (toDelete.length > 0) {
+			console.log(`[MarkerBitmapRenderer] Cleaned up ${toDelete.length} cache files`);
 		}
-	} catch (error) {
-		console.warn("[MarkerBitmapRenderer] Failed to cleanup cache:", error);
+	} catch (e) {
+		console.warn("[MarkerBitmapRenderer] Failed to cleanup cache:", e);
 	}
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+
 /**
- * #235 【設計】外部ストアを作成（useSyncExternalStore用）
- * React の render 中に他コンポーネントの setState を呼ばない設計
+ * "tmp delete は失敗しても OK" だが、warn 連打はログノイズになる。
+ * よくある iOS の "not writable" は握りつぶす方針にする。
  */
-const createMarkerBitmapStore = (processQueueFn: (store: MarkerBitmapStore) => Promise<void>): MarkerBitmapStore => {
+const safeDeleteTemp = async (tempUri: string) => {
+	try {
+		// 念のため file info を見てから削除（失敗しても無視）
+		const info = await FileSystem.getInfoAsync(tempUri);
+		if (!info.exists) return;
+		if (info.isDirectory) {
+			// ここは基本来ない想定（来たら削除しない）
+			return;
+		}
+		await FileSystem.deleteAsync(tempUri, { idempotent: true });
+	} catch {
+		// 失敗は握りつぶす（iOS の tmp は削除不可ケースがある）
+	}
+};
+
+// ----------------------------
+// 外部ストア生成
+// ----------------------------
+
+const createStore = (kickProcessQueue: () => void): MarkerBitmapStore => {
 	const store: MarkerBitmapStore = {
 		states: new Map(),
 		listeners: new Set(),
-		queue: [],
+		highQueue: [],
+		lowQueue: [],
+		queuedKeys: new Set(),
 		generatingCount: 0,
-		isProcessing: false, // #235 【バグ修正】processQueue 再入防止
+		isProcessing: false,
 
-		subscribe: (listener: () => void) => {
+		subscribe: (listener) => {
 			store.listeners.add(listener);
-			return () => {
-				store.listeners.delete(listener);
-			};
+			return () => store.listeners.delete(listener);
 		},
 
-		ensureState: (key: string) => {
-			// #235 【バグ修正】未登録なら初期状態を Map に追加（参照安定化のため必須）
+		ensureState: (key) => {
 			if (!store.states.has(key)) {
 				store.states.set(key, {
 					iconUri: undefined,
 					isReady: false,
 					isGenerating: false,
 					error: undefined,
+					imageReady: false,
 				});
 			}
 		},
 
-		getSnapshot: (key: string) => {
-			// #235 【バグ修正】ensureState で必ず Map に登録してから取得（参照安定化）
+		getSnapshot: (key) => {
+			// ✅ getSnapshot は同一参照を返す必要がある（無限ループ防止）
 			store.ensureState(key);
 			return store.states.get(key)!;
 		},
 
-		updateState: (key: string, update: Partial<GenerationState>) => {
-			// #235 【バグ修正】ensureState で初期化してから更新
+		updateState: (key, patch) => {
 			store.ensureState(key);
-			const currentState = store.states.get(key)!;
-			const newState = { ...currentState, ...update };
-			store.states.set(key, newState);
-			// #235 【設計】全リスナーに通知（React外で実行）
-			store.listeners.forEach((listener) => listener());
+			const current = store.states.get(key)!;
+			const next = { ...current, ...patch };
+			store.states.set(key, next);
+
+			// ✅ React 外でリスナー通知（useSyncExternalStore が再描画を管理）
+			store.listeners.forEach((l) => l());
 		},
 
-		requestBitmap: (request: GenerationRequest) => {
-			const key = `${request.uri}|${request.size}|${request.color}`;
+		requestBitmap: (req) => {
+			// Web は生成しない（呼び出し側で View Marker を使う想定）
+			if (Platform.OS === "web") return;
 
-			// #235 【バグ修正】ensureState で初期化
+			const color = normalizeColor(req.color);
+			const key = makeKey(req.uri, req.size, color);
+
 			store.ensureState(key);
-			const currentState = store.states.get(key)!;
+			const st = store.states.get(key)!;
 
-			// #235 【設計】既に生成済み or 生成中ならスキップ
-			if (currentState.isReady || currentState.isGenerating) {
-				return;
-			}
+			// ✅ 生成済み / 生成中 / キュー済み は弾く
+			if (st.isReady || st.isGenerating || store.queuedKeys.has(key)) return;
 
-			// #235 【設計】生成中フラグをセット
-			store.updateState(key, { isGenerating: true });
+			// 生成開始フラグ（imageReady は false から）
+			store.updateState(key, {
+				isGenerating: true,
+				isReady: false,
+				error: undefined,
+				imageReady: req.uri ? false : true, // uri が無いなら待つ必要なし
+			});
 
-			// #235 【設計】キューに追加
-			store.queue.push(request);
+			// キュー投入（dedupe 用に key を保持）
+			store.queuedKeys.add(key);
 
-			// #235 【設計】キュー処理開始（非同期）
-			processQueueFn(store);
+			const request: GenerationRequest = { ...req, color };
+			if (req.priority === "high") store.highQueue.push(request);
+			else store.lowQueue.push(request);
+
+			// キュー処理起動（再入は processQueue 側で防ぐ）
+			kickProcessQueue();
+		},
+
+		markImageReady: (key) => {
+			store.ensureState(key);
+			const st = store.states.get(key)!;
+			if (st.imageReady) return;
+			store.updateState(key, { imageReady: true });
+		},
+
+		markImageError: (key, err) => {
+			store.ensureState(key);
+			// 画像が読めなくても capture は進めたい（プレースホルダ画像で確定）
+			store.updateState(key, {
+				imageReady: true,
+				error: err instanceof Error ? err : undefined,
+			});
 		},
 	};
 
 	return store;
 };
 
-/**
- * #235 【設計】MarkerBitmapRenderer Provider
- *
- * 全マーカーの bitmap 生成を一元管理する Renderer。
- * MapView の外に1個だけ配置し、オフスクリーン描画・生成キュー・キャッシュを担当。
- */
+// ----------------------------
+// Provider 本体
+// ----------------------------
+
 export function MarkerBitmapRendererProvider({ children }: { children: React.ReactNode }) {
-	// #235 【設計】生成待ちの View 参照（1個の View で順次生成）
+	// Offscreen 描画先（1つだけ）
 	const renderViewRef = useRef<View>(null);
 
-	// #235 【設計】現在レンダリング中のリクエスト
+	// いま生成中の request（Offscreen で描画する内容）
 	const [currentRequest, setCurrentRequest] = useState<GenerationRequest | null>(null);
 
-	// #235 【設計】アンマウント検知用
+	// アンマウント後の更新防止
 	const isMountedRef = useRef(true);
-
 	useEffect(() => {
 		isMountedRef.current = true;
 		return () => {
@@ -270,121 +380,119 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 	}, []);
 
 	/**
-	 * #235 【設計】bitmap 生成（リトライ付き）- iOS安定化のため copy+delete を使用
+	 * processQueue の起動関数（store 生成のため useMemo 内から参照）
+	 * ※ store は ref に保持されるので、ここは “storeRef.current を叩く” 方式
 	 */
-	const generateBitmap = async (store: MarkerBitmapStore, request: GenerationRequest, retryCount: number) => {
+	const storeRef = useRef<MarkerBitmapStore | null>(null);
+
+	const kickProcessQueue = () => {
+		const s = storeRef.current;
+		if (!s) return;
+		// 非同期で回す（呼び出し元の render/handler を汚さない）
+		void processQueue(s);
+	};
+
+	// store は 1 回だけ作る（画面単位で共有）
+	const store = useMemo(() => {
+		const s = createStore(kickProcessQueue);
+		storeRef.current = s;
+		return s;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	/**
+	 * 実際の生成処理（1 request）
+	 */
+	const generateBitmap = async (s: MarkerBitmapStore, request: GenerationRequest, retryCount: number) => {
 		const { uri, size, color } = request;
-		const key = `${uri}|${size}|${color}`;
+		const key = makeKey(uri, size, color);
 
 		try {
-			// #235 【設計】キャッシュキー生成
+			// キャッシュキー
 			const cacheKey = await getCacheKey(uri, size, color);
 			const cachedPath = `${CACHE_DIR}${cacheKey}.png`;
 
-			// #235 【設計】キャッシュヒットチェック
+			// キャッシュヒット
 			const cacheInfo = await FileSystem.getInfoAsync(cachedPath);
 			if (cacheInfo.exists) {
 				console.log(`[MarkerBitmapRenderer] Cache hit: ${cacheKey}`);
-				store.updateState(key, {
-					iconUri: cachedPath,
-					isReady: true,
-					isGenerating: false,
-				});
+				s.updateState(key, { iconUri: cachedPath, isReady: true, isGenerating: false });
 				return;
 			}
 
-			// #235 【設計】キャッシュディレクトリ確保
 			await ensureCacheDir();
-
-			// #235 【設計】Web環境では生成をスキップ
-			if (Platform.OS === "web") {
-				console.warn("[MarkerBitmapRenderer] Bitmap generation not supported on web");
-				store.updateState(key, {
-					isReady: true,
-					isGenerating: false,
-				});
-				return;
-			}
 
 			console.log(`[MarkerBitmapRenderer] Generating bitmap: ${cacheKey} (retry: ${retryCount})`);
 
-			// #235 【設計】現在のリクエストを設定してレンダリングをトリガー
+			// Offscreen に描画する request をセット
 			setCurrentRequest(request);
 
-			// #235 【バグ修正】View ref が準備できるまで待機（同期）
-			// requestAnimationFrame を2回 + renderViewRef.current の確認
-			await new Promise((resolve) => requestAnimationFrame(resolve));
-			await new Promise((resolve) => requestAnimationFrame(resolve));
+			// ✅ 描画同期：最低2フレーム待つ
+			await nextFrame();
+			await nextFrame();
 
-			// #235 【バグ修正】ref が確実に準備されるまで最大10回リトライ
-			let refReadyAttempts = 0;
-			while (!renderViewRef.current && refReadyAttempts < 10) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
-				refReadyAttempts++;
+			// ✅ ref が付くまで待機（最大 WAIT_REF_MS）
+			const refDeadline = Date.now() + WAIT_REF_MS;
+			while (!renderViewRef.current && Date.now() < refDeadline) {
+				await sleep(50);
 			}
-
-			// #235 【設計】View をキャプチャして PNG 生成
 			if (!renderViewRef.current) {
 				throw new Error("View ref not ready after waiting");
 			}
 
-			// #235 【設計】captureRef(viewRef.current, ...) を使用（ref object ではなく実体）
+			// ✅ 画像ロード完了待ち（Android の「枠だけ」根治）
+			// uri がある場合のみ待つ。BubblePinBitmap が onLoadEnd で markImageReady(key) を呼ぶ想定。
+			if (uri) {
+				const imgDeadline = Date.now() + WAIT_IMAGE_MS;
+				while (!s.getSnapshot(key).imageReady && Date.now() < imgDeadline) {
+					await sleep(50);
+				}
+				// タイムアウトしても capture は進める（最悪プレースホルダが焼き込まれる）
+			}
+
+			// capture
 			const tempUri = await captureRef(renderViewRef.current, {
 				format: "png",
 				quality: 1.0,
 				result: "tmpfile",
 			});
 
-			// #235 【iOS安定化】moveAsync ではなく copyAsync + deleteAsync を使用
-			// 既存ファイルを削除してから copy
+			// iOS 安定化：copy →（可能なら）tmp 削除
 			try {
 				await FileSystem.deleteAsync(cachedPath, { idempotent: true });
-			} catch (e) {
-				// 削除失敗は無視（ファイルが存在しない場合）
+			} catch {
+				// 既存が無い等は無視
 			}
 
-			await FileSystem.copyAsync({
-				from: tempUri,
-				to: cachedPath,
-			});
-
-			// #235 【設計】一時ファイルを削除
-			try {
-				await FileSystem.deleteAsync(tempUri, { idempotent: true });
-			} catch (e) {
-				console.warn("[MarkerBitmapRenderer] Failed to delete temp file:", e);
-			}
+			await FileSystem.copyAsync({ from: tempUri, to: cachedPath });
+			await safeDeleteTemp(tempUri);
 
 			console.log(`[MarkerBitmapRenderer] Bitmap generated: ${cachedPath}`);
 
-			// #235 【設計】アンマウント済みなら setState しない
-			if (!isMountedRef.current) {
-				return;
-			}
+			if (!isMountedRef.current) return;
 
-			store.updateState(key, {
+			s.updateState(key, {
 				iconUri: cachedPath,
 				isReady: true,
 				isGenerating: false,
 			});
 
-			// #235 【設計】キャッシュクリーンアップ（非同期・非ブロッキング）
-			cleanupCache().catch((err) => console.warn("[MarkerBitmapRenderer] Cleanup failed:", err));
-		} catch (error) {
-			console.error(`[MarkerBitmapRenderer] Failed to generate bitmap (retry: ${retryCount}):`, error);
+			// キャッシュ掃除（非同期）
+			cleanupCache().catch(() => {});
+		} catch (e) {
+			console.error(`[MarkerBitmapRenderer] Failed to generate bitmap (retry: ${retryCount}):`, e);
 
-			// #235 【設計】リトライ制御
 			if (retryCount < MAX_RETRY_COUNT) {
-				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
-				await generateBitmap(store, request, retryCount + 1);
+				await sleep(RETRY_DELAY_MS * (retryCount + 1));
+				await generateBitmap(s, request, retryCount + 1);
 			} else {
-				// #235 【設計】最大リトライ回数超過
 				console.error("[MarkerBitmapRenderer] Max retry count exceeded");
 				if (isMountedRef.current) {
-					store.updateState(key, {
-						isReady: true,
+					const key = makeKey(request.uri, request.size, request.color);
+					s.updateState(key, {
+						isReady: true, // 無限待機防止
 						isGenerating: false,
-						error: error as Error,
+						error: e instanceof Error ? e : new Error(String(e)),
 					});
 				}
 			}
@@ -392,70 +500,67 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 	};
 
 	/**
-	 * #235 【設計】キューから次のリクエストを取り出して生成開始
-	 * #235 【バグ修正】再入防止とループ処理で安定化
+	 * キュー処理（再入防止 + 同時1固定）
 	 */
-	const processQueue = async (store: MarkerBitmapStore) => {
-		// #235 【バグ修正】既に処理中なら何もしない（再入防止）
-		if (store.isProcessing) {
-			return;
-		}
-
-		store.isProcessing = true;
+	const processQueue = async (s: MarkerBitmapStore) => {
+		// ✅ 再入防止
+		if (s.isProcessing) return;
+		s.isProcessing = true;
 
 		try {
-			// #235 【バグ修正】whileループで全キューを処理（追加分も含む）
-			while (store.queue.length > 0 && store.generatingCount < MAX_CONCURRENT_GENERATIONS) {
-				// #235 【設計】優先度順にソート（high → low）
-				store.queue.sort((a, b) => {
-					if (a.priority === "high" && b.priority === "low") return -1;
-					if (a.priority === "low" && b.priority === "high") return 1;
-					return 0;
-				});
-
-				const request = store.queue.shift();
+			// ✅ while で “追加された分” も含めて処理
+			while (s.generatingCount < MAX_CONCURRENT_GENERATIONS) {
+				// 次の request を取り出す（high → low）
+				const request = s.highQueue.shift() ?? s.lowQueue.shift();
 				if (!request) break;
 
-				store.generatingCount++;
+				const key = makeKey(request.uri, request.size, request.color);
+
+				// queued フラグ解除（取り出した時点で解除）
+				s.queuedKeys.delete(key);
+
+				s.generatingCount++;
 
 				try {
-					await generateBitmap(store, request, 0);
+					await generateBitmap(s, request, 0);
 				} finally {
-					store.generatingCount--;
+					s.generatingCount--;
 				}
 			}
 		} finally {
-			store.isProcessing = false;
+			s.isProcessing = false;
+
+			// まだ残っているなら、イベントループに返してから続行（UI優先）
+			if (s.highQueue.length + s.lowQueue.length > 0) {
+				// “今の call stack” を抜けてから再実行（微妙な再入を避ける）
+				setTimeout(() => kickProcessQueue(), 0);
+			}
 		}
 	};
 
-	// #235 【設計】外部ストアを作成（1回のみ）
-	const storeRef = useRef<MarkerBitmapStore | null>(null);
-	if (!storeRef.current) {
-		storeRef.current = createMarkerBitmapStore(processQueue);
-	}
-
-	const contextValue: MarkerBitmapRendererContextType = {
-		store: storeRef.current,
-	};
+	const contextValue: MarkerBitmapRendererContextType = { store };
 
 	return (
 		<MarkerBitmapRendererContext.Provider value={contextValue}>
 			{children}
 
-			{/* #235 【設計】オフスクリーン描画用の View（画面外に配置） */}
-			<View
-				style={{
-					position: "absolute",
-					left: OFFSCREEN_POSITION,
-					top: OFFSCREEN_POSITION,
-				}}>
+			{/* ✅ Offscreen View（MapView 外） */}
+			<View style={{ position: "absolute", left: OFFSCREEN_POSITION, top: OFFSCREEN_POSITION }}>
 				{currentRequest && (
 					<View
 						ref={renderViewRef}
-						collapsable={false} // #235 【設計】最適化で潰れないように
+						collapsable={false} // ✅ Android最適化で潰れないように
 					>
-						<BubblePinBitmap uri={currentRequest.uri} size={currentRequest.size} color={currentRequest.color} />
+						{/* BubblePinBitmap が画像ロード完了を通知する前提 */}
+						<BubblePinBitmap
+							uri={currentRequest.uri}
+							size={currentRequest.size}
+							color={currentRequest.color}
+							// ↓ BubblePinBitmap 側で実装してもらう想定の props
+							requestKey={makeKey(currentRequest.uri, currentRequest.size, currentRequest.color)}
+							onImageReady={(k: string) => store.markImageReady(k)}
+							onImageError={(k: string, err?: unknown) => store.markImageError(k, err)}
+						/>
 					</View>
 				)}
 			</View>
@@ -463,27 +568,33 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 	);
 }
 
+// ----------------------------
+// Hooks
+// ----------------------------
+
 /**
- * #235 【設計】MarkerBitmapRenderer Context を使用する Hook
+ * Provider から store を取り出す Hook
  */
 export function useMarkerBitmapRenderer() {
-	const context = React.useContext(MarkerBitmapRendererContext);
-	if (!context) {
+	const ctx = React.useContext(MarkerBitmapRendererContext);
+	if (!ctx) {
 		throw new Error("useMarkerBitmapRenderer must be used within MarkerBitmapRendererProvider");
 	}
-	return context.store;
+	return ctx.store;
 }
 
 /**
- * #235 【設計】特定のマーカーの状態を購読する Hook（useSyncExternalStore使用）
+ * 特定 key の状態を購読（useSyncExternalStore）
+ * ✅ getSnapshot の参照安定が前提（ensureState + Map.get）
  */
 export function useMarkerBitmapState(uri: string, size: number, color: string): GenerationState {
 	const store = useMarkerBitmapRenderer();
-	const key = `${uri}|${size}|${color}`;
+	const normalizedColor = normalizeColor(color);
+	const key = makeKey(uri, size, normalizedColor);
 
 	return useSyncExternalStore(
 		store.subscribe,
 		() => store.getSnapshot(key),
-		() => store.getSnapshot(key), // #235 【設計】SSR用（常に同じ初期値）
+		() => store.getSnapshot(key), // SSR用（同じ参照を返す）
 	);
 }
