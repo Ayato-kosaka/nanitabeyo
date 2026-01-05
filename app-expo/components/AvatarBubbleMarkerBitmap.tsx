@@ -1,6 +1,6 @@
 // app-expo/components/AvatarBubbleMarkerBitmap.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { Marker } from "./MapView";
 import {
@@ -10,6 +10,7 @@ import {
 	ACTIVE_COLOR_HEX,
 	INACTIVE_COLOR_HEX,
 } from "./MarkerBitmapRenderer";
+import { BubblePinBitmap } from "./BubblePinBitmap";
 
 /**
  * #235 AvatarBubbleMarkerBitmap
@@ -78,6 +79,13 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 			color: INACTIVE_COLOR_HEX,
 			priority: "low",
 		});
+		// inactive だけでなく active もlow でリクエストしておく
+		store.requestBitmap({
+			uri,
+			size,
+			color: ACTIVE_COLOR_HEX,
+			priority: "low",
+		});
 	}, [uri, size, store]);
 
 	// ----------------------------
@@ -134,7 +142,13 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	// ----------------------------
 
 	if (Platform.OS === "web") {
-		return <Marker {...props}>{/* Web は bitmap 生成不要。従来の View Marker を使う */}</Marker>;
+		return (
+			<Marker {...props}>
+				<View style={{ width: size, height: size + 4 }}>
+					<BubblePinBitmap uri={uri} size={size} color={color} />
+				</View>
+			</Marker>
+		);
 	}
 
 	// ----------------------------

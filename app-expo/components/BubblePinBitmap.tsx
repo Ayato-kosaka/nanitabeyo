@@ -164,7 +164,7 @@ export function BubblePinBitmap({ uri, size = 48, color = "#FFFFFF", requestKey,
 					styles.bubbleTail,
 					{
 						backgroundColor: color,
-						bottom: -2,
+						bottom: 0,
 					},
 				]}
 			/>
