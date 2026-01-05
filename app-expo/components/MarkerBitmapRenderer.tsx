@@ -450,6 +450,11 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 				// タイムアウトしても capture は進める（最悪プレースホルダが焼き込まれる）
 			}
 
+			// ✅ 描画安定化待ち：さらに数フレーム待つ
+			await nextFrame();
+			await nextFrame();
+			await sleep(16);
+
 			// capture
 			const tempUri = await captureRef(renderViewRef.current, {
 				format: "png",

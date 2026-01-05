@@ -103,12 +103,15 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	// ----------------------------
 
 	/**
-	 * iOS では Marker の icon / image 更新が
-	 * 反映されないことがあるため、
-	 * bitmap 更新直後だけ tracksViewChanges を true にする。
+	 * iOS では icon/image prop の更新が不安定なため、
+	 * - bitmap URI が変わったとき
+	 * - placeholder から bitmap に切り替わったとき
+	 * の直後だけ tracksViewChanges=true にする
 	 */
 	const [tracksViewChanges, setTracksViewChanges] = useState(false);
 	const lastIconUriRef = useRef<string | undefined>(undefined);
+	const isPlaceholder = !(currentState.isReady && currentState.iconUri);
+	const shouldTrackViewChanges = Platform.OS === "ios" ? isPlaceholder || tracksViewChanges : tracksViewChanges;
 
 	useEffect(() => {
 		if (currentState.iconUri && currentState.iconUri !== lastIconUriRef.current) {
@@ -150,13 +153,13 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	const imageSource = currentState.isReady && currentState.iconUri ? { uri: currentState.iconUri } : PLACEHOLDER_IMAGE;
 
 	// iOS は image prop を優先（icon 更新不安定対策）
-	const markerImageProps = Platform.OS === "ios" ? { image: imageSource } : { icon: imageSource };
+	const markerImageProps = { icon: imageSource };
 
 	return (
 		<Marker
 			{...props}
 			{...markerImageProps}
-			tracksViewChanges={tracksViewChanges}
+			tracksViewChanges={shouldTrackViewChanges}
 			anchor={{ x: 0.5, y: 0.85 }} // tail を考慮して下寄せ
 		/>
 	);
