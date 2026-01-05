@@ -14,6 +14,7 @@ import {
 } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarkerBitmap } from "@/components/AvatarBubbleMarkerBitmap";
+import { MarkerBitmapRendererProvider } from "@/components/MarkerBitmapRenderer";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
@@ -228,66 +229,70 @@ export default function MapScreen() {
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
 	return (
-		<View style={styles.container}>
-			{/* Map */}
-			<MapView
-				ref={mapRef}
-				style={styles.map}
-				onRegionChangeComplete={handleRegionChangeComplete}
-				onPoiClick={handlePoiPress}>
-				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
-					<AvatarBubbleMarkerBitmap
-						key={restaurantData.restaurant.id}
-						coordinate={{
-							latitude: restaurantData.restaurant.latitude,
-							longitude: restaurantData.restaurant.longitude,
-						}}
-						onPress={() => handleMarkerPress(restaurantData)}
-						color="#FFF"
-						uri={restaurantData.restaurant.imageUrls?.sm}
+		<MarkerBitmapRendererProvider>
+			<View style={styles.container}>
+				{/* Map */}
+				<MapView
+					ref={mapRef}
+					style={styles.map}
+					onRegionChangeComplete={handleRegionChangeComplete}
+					onPoiClick={handlePoiPress}>
+					{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
+						<AvatarBubbleMarkerBitmap
+							key={restaurantData.restaurant.id}
+							coordinate={{
+								latitude: restaurantData.restaurant.latitude,
+								longitude: restaurantData.restaurant.longitude,
+							}}
+							onPress={() => handleMarkerPress(restaurantData)}
+							color="#FFF"
+							uri={restaurantData.restaurant.imageUrls?.sm}
+						/>
+					))}
+				</MapView>
+
+				{/* POI Loading Indicator */}
+				{isLoadingRestaurantCreation && (
+					<View style={styles.loadingOverlay}>
+						<ActivityIndicator size="large" color="#5EA2FF" />
+					</View>
+				)}
+
+				{/* Search Bar */}
+				<View style={styles.searchContainer}>
+					<LocationAutocomplete
+						value={searchQuery}
+						onChangeText={setSearchQuery}
+						onSelectSuggestion={handleAutocompleteSelect}
+						onClear={() => setSearchQuery("")}
+						placeholder={i18n.t("Map.placeholders.searchRestaurants")}
+						renderInputRight={
+							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
+								<Navigation size={20} color="#5EA2FF" />
+							</TouchableOpacity>
+						}
 					/>
-				))}
-			</MapView>
-
-			{/* POI Loading Indicator */}
-			{isLoadingRestaurantCreation && (
-				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
 				</View>
-			)}
 
-			{/* Search Bar */}
-			<View style={styles.searchContainer}>
-				<LocationAutocomplete
-					value={searchQuery}
-					onChangeText={setSearchQuery}
-					onSelectSuggestion={handleAutocompleteSelect}
-					onClear={() => setSearchQuery("")}
-					placeholder={i18n.t("Map.placeholders.searchRestaurants")}
-					renderInputRight={
-						<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-							<Navigation size={20} color="#5EA2FF" />
-						</TouchableOpacity>
-					}
-				/>
+				{/* Search This Area Button */}
+				<View style={styles.bottomActionContainer}>
+					<PrimaryButton
+						label={i18n.t("Map.buttons.searchNearby")}
+						onPress={() => searchNearbyRestaurants(currentRegion.current)}
+						colors={["#ffffff", "#ffffff"]}
+						shadowColor={"#000000"}
+						labelStyle={{ color: "#1A1A1A" }}
+						loading={isLoadingNearbyRestaurants}
+					/>
+				</View>
+
+				<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
+					{selectedPlace && (
+						<SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />
+					)}
+				</RestaurantBlurModal>
 			</View>
-
-			{/* Search This Area Button */}
-			<View style={styles.bottomActionContainer}>
-				<PrimaryButton
-					label={i18n.t("Map.buttons.searchNearby")}
-					onPress={() => searchNearbyRestaurants(currentRegion.current)}
-					colors={["#ffffff", "#ffffff"]}
-					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A" }}
-					loading={isLoadingNearbyRestaurants}
-				/>
-			</View>
-
-			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
-				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}
-			</RestaurantBlurModal>
-		</View>
+		</MarkerBitmapRendererProvider>
 	);
 }
 

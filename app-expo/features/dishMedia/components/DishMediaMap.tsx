@@ -4,6 +4,7 @@ import Carousel from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarkerBitmap } from "../../../components/AvatarBubbleMarkerBitmap";
+import { MarkerBitmapRendererProvider } from "../../../components/MarkerBitmapRenderer";
 import { useHaptics } from "@/hooks/useHaptics";
 import * as Crypto from "expo-crypto";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
@@ -271,64 +272,66 @@ export default function DishMediaMap({
 	);
 
 	return (
-		<View style={styles.container}>
-			{/* この位置に置かないとマップが起動しなくなる */}
-			{isLoading && (
-				<View style={styles.centerContainer}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
-					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
-				</View>
-			)}
-
-			{error && (
-				<View style={styles.centerContainer}>
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
-
-			{/* Map View - Top 1/5 of screen */}
-			<View style={styles.mapContainer}>
-				<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
-					{restaurants.map((restaurant, index) => (
-						<AvatarBubbleMarkerBitmap
-							key={`marker-${index}`}
-							coordinate={restaurant.coordinate}
-							onPress={() => handleMarkerPress(index)}
-							uri={restaurant.imageUrls?.sm}
-							color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
-						/>
-					))}
-				</MapView>
-			</View>
-
-			{/* #605 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
-			<Animated.View style={[styles.carouselWrapper, animatedCarouselStyle]}>
-				{/* #605 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
-				<GestureDetector gesture={panGesture}>
-					<View style={styles.handleContainer}>
-						<View style={styles.handle} />
+		<MarkerBitmapRendererProvider>
+			<View style={styles.container}>
+				{/* この位置に置かないとマップが起動しなくなる */}
+				{isLoading && (
+					<View style={styles.centerContainer}>
+						<ActivityIndicator size="large" color="#5EA2FF" />
+						<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 					</View>
-				</GestureDetector>
+				)}
 
-				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
-				<Carousel
-					ref={carouselRef}
-					width={width}
-					height={CAROUSEL_HEIGHT}
-					data={ids}
-					renderItem={renderCarouselItem}
-					onSnapToItem={handleIndexChange}
-					defaultIndex={initialIndex}
-					mode="parallax"
-					modeConfig={{
-						parallaxScrollingScale: PARALLAX_SCALE,
-						parallaxScrollingOffset: 75,
-					}}
-					style={styles.carousel}
-					containerStyle={styles.carouselContainer}
-				/>
-			</Animated.View>
-		</View>
+				{error && (
+					<View style={styles.centerContainer}>
+						<Text style={styles.errorText}>{error}</Text>
+					</View>
+				)}
+
+				{/* Map View - Top 1/5 of screen */}
+				<View style={styles.mapContainer}>
+					<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
+						{restaurants.map((restaurant, index) => (
+							<AvatarBubbleMarkerBitmap
+								key={`marker-${index}`}
+								coordinate={restaurant.coordinate}
+								onPress={() => handleMarkerPress(index)}
+								uri={restaurant.imageUrls?.sm}
+								color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
+							/>
+						))}
+					</MapView>
+				</View>
+
+				{/* #605 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
+				<Animated.View style={[styles.carouselWrapper, animatedCarouselStyle]}>
+					{/* #605 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
+					<GestureDetector gesture={panGesture}>
+						<View style={styles.handleContainer}>
+							<View style={styles.handle} />
+						</View>
+					</GestureDetector>
+
+					{/* Carousel - Bottom 4/5 of screen, overlapping map */}
+					<Carousel
+						ref={carouselRef}
+						width={width}
+						height={CAROUSEL_HEIGHT}
+						data={ids}
+						renderItem={renderCarouselItem}
+						onSnapToItem={handleIndexChange}
+						defaultIndex={initialIndex}
+						mode="parallax"
+						modeConfig={{
+							parallaxScrollingScale: PARALLAX_SCALE,
+							parallaxScrollingOffset: 75,
+						}}
+						style={styles.carousel}
+						containerStyle={styles.carouselContainer}
+					/>
+				</Animated.View>
+			</View>
+		</MarkerBitmapRendererProvider>
 	);
 }
 
