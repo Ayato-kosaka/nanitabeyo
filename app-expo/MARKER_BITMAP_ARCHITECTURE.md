@@ -160,17 +160,19 @@
 ## Key Benefits
 
 ### Before (View Marker)
+
 ❌ Android: Circle broken (fan-shaped/cut)  
 ❌ Flickering on state/region updates  
 ❌ GPU-dependent rendering issues  
-❌ `borderRadius` + `overflow: hidden` broken  
+❌ `borderRadius` + `overflow: hidden` broken
 
 ### After (Bitmap Icon)
+
 ✅ Perfect circle on all Android devices  
 ✅ No flickering (PNG swap only)  
 ✅ Consistent rendering  
 ✅ Pre-generated bitmaps cached  
-✅ O(n) cache cleanup performance  
+✅ O(n) cache cleanup performance
 
 ## Performance Characteristics
 
