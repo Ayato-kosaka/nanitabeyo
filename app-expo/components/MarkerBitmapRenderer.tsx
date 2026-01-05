@@ -52,11 +52,14 @@ type MarkerBitmapStore = {
 	listeners: Set<() => void>;
 	queue: GenerationRequest[];
 	generatingCount: number;
+	isProcessing: boolean; // #235 【バグ修正】processQueue 再入防止フラグ
 
 	// #235 【設計】購読（useSyncExternalStore用）
 	subscribe: (listener: () => void) => () => void;
 	// #235 【設計】スナップショット取得
 	getSnapshot: (key: string) => GenerationState;
+	// #235 【設計】状態の初期化（未登録時）
+	ensureState: (key: string) => void;
 	// #235 【設計】状態更新（React外で実行）
 	updateState: (key: string, update: Partial<GenerationState>) => void;
 	// #235 【設計】bitmap生成リクエスト
@@ -180,6 +183,7 @@ const createMarkerBitmapStore = (processQueueFn: (store: MarkerBitmapStore) => P
 		listeners: new Set(),
 		queue: [],
 		generatingCount: 0,
+		isProcessing: false, // #235 【バグ修正】processQueue 再入防止
 
 		subscribe: (listener: () => void) => {
 			store.listeners.add(listener);
@@ -188,19 +192,28 @@ const createMarkerBitmapStore = (processQueueFn: (store: MarkerBitmapStore) => P
 			};
 		},
 
-		getSnapshot: (key: string) => {
-			return (
-				store.states.get(key) ?? {
+		ensureState: (key: string) => {
+			// #235 【バグ修正】未登録なら初期状態を Map に追加（参照安定化のため必須）
+			if (!store.states.has(key)) {
+				store.states.set(key, {
 					iconUri: undefined,
 					isReady: false,
 					isGenerating: false,
 					error: undefined,
-				}
-			);
+				});
+			}
+		},
+
+		getSnapshot: (key: string) => {
+			// #235 【バグ修正】ensureState で必ず Map に登録してから取得（参照安定化）
+			store.ensureState(key);
+			return store.states.get(key)!;
 		},
 
 		updateState: (key: string, update: Partial<GenerationState>) => {
-			const currentState = store.getSnapshot(key);
+			// #235 【バグ修正】ensureState で初期化してから更新
+			store.ensureState(key);
+			const currentState = store.states.get(key)!;
 			const newState = { ...currentState, ...update };
 			store.states.set(key, newState);
 			// #235 【設計】全リスナーに通知（React外で実行）
@@ -209,7 +222,10 @@ const createMarkerBitmapStore = (processQueueFn: (store: MarkerBitmapStore) => P
 
 		requestBitmap: (request: GenerationRequest) => {
 			const key = `${request.uri}|${request.size}|${request.color}`;
-			const currentState = store.getSnapshot(key);
+
+			// #235 【バグ修正】ensureState で初期化
+			store.ensureState(key);
+			const currentState = store.states.get(key)!;
 
 			// #235 【設計】既に生成済み or 生成中ならスキップ
 			if (currentState.isReady || currentState.isGenerating) {
@@ -295,13 +311,21 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 			// #235 【設計】現在のリクエストを設定してレンダリングをトリガー
 			setCurrentRequest(request);
 
-			// #235 【設計】次フレーム以降に capture（ref 安定化のため）
+			// #235 【バグ修正】View ref が準備できるまで待機（同期）
+			// requestAnimationFrame を2回 + renderViewRef.current の確認
 			await new Promise((resolve) => requestAnimationFrame(resolve));
 			await new Promise((resolve) => requestAnimationFrame(resolve));
 
+			// #235 【バグ修正】ref が確実に準備されるまで最大10回リトライ
+			let refReadyAttempts = 0;
+			while (!renderViewRef.current && refReadyAttempts < 10) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				refReadyAttempts++;
+			}
+
 			// #235 【設計】View をキャプチャして PNG 生成
 			if (!renderViewRef.current) {
-				throw new Error("View ref not ready");
+				throw new Error("View ref not ready after waiting");
 			}
 
 			// #235 【設計】captureRef(viewRef.current, ...) を使用（ref object ではなく実体）
@@ -369,33 +393,39 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 
 	/**
 	 * #235 【設計】キューから次のリクエストを取り出して生成開始
+	 * #235 【バグ修正】再入防止とループ処理で安定化
 	 */
 	const processQueue = async (store: MarkerBitmapStore) => {
-		// #235 【設計】同時生成数の制限（1固定で取り違えバグ防止）
-		if (store.generatingCount >= MAX_CONCURRENT_GENERATIONS) {
+		// #235 【バグ修正】既に処理中なら何もしない（再入防止）
+		if (store.isProcessing) {
 			return;
 		}
 
-		// #235 【設計】優先度順にソート（high → low）
-		store.queue.sort((a, b) => {
-			if (a.priority === "high" && b.priority === "low") return -1;
-			if (a.priority === "low" && b.priority === "high") return 1;
-			return 0;
-		});
-
-		const request = store.queue.shift();
-		if (!request) return;
-
-		store.generatingCount++;
+		store.isProcessing = true;
 
 		try {
-			await generateBitmap(store, request, 0);
-		} finally {
-			store.generatingCount--;
-			// #235 【設計】次のキューを処理
-			if (store.queue.length > 0) {
-				processQueue(store);
+			// #235 【バグ修正】whileループで全キューを処理（追加分も含む）
+			while (store.queue.length > 0 && store.generatingCount < MAX_CONCURRENT_GENERATIONS) {
+				// #235 【設計】優先度順にソート（high → low）
+				store.queue.sort((a, b) => {
+					if (a.priority === "high" && b.priority === "low") return -1;
+					if (a.priority === "low" && b.priority === "high") return 1;
+					return 0;
+				});
+
+				const request = store.queue.shift();
+				if (!request) break;
+
+				store.generatingCount++;
+
+				try {
+					await generateBitmap(store, request, 0);
+				} finally {
+					store.generatingCount--;
+				}
 			}
+		} finally {
+			store.isProcessing = false;
 		}
 	};
 
