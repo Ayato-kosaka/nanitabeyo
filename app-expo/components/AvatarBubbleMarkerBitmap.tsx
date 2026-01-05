@@ -24,7 +24,7 @@ import {
  *    → bitmap（PNG）を icon / image として渡す
  *
  * 2. bitmap 未準備でも Marker は必ず表示する
- *    → 生成中は default marker (react-native-maps の既定アイコン) を使う
+ *    → 静的な placeholder PNG を使う（View fallback は使わない）
  *
  * 3. iOS は icon 更新が不安定なため image prop を優先
  *    → さらに icon/image 更新直後だけ tracksViewChanges を true にする
@@ -38,6 +38,10 @@ type Props = RNMarkerProps & {
 	size?: number;
 	color?: string;
 };
+
+// 静的プレースホルダ（bitmap未準備時の安全弁）
+// ※必ず存在するローカルアセットを使うこと
+const PLACEHOLDER_IMAGE = require("@/assets/images/marker-placeholder.png");
 
 export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ...props }: Props) {
 	const store = useMarkerBitmapRenderer();
@@ -138,19 +142,15 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	 * ❗️絶対ルール
 	 * - Marker を null で返さない
 	 * - bitmap 未準備でも必ず表示する
-	 *
-	 * #235 【UX改善】bitmap 未準備時は react-native-maps のデフォルトマーカーを使用
-	 * - 静的アセット不要（ビルド/デプロイ簡素化）
-	 * - Android の View Marker 問題を回避（children を使わない）
 	 */
 
-	// bitmap 準備済みの場合のみ icon/image を指定
-	const markerImageProps =
-		currentState.isReady && currentState.iconUri
-			? Platform.OS === "ios"
-				? { image: { uri: currentState.iconUri } }
-				: { icon: { uri: currentState.iconUri } }
-			: {}; // 未準備時は props 空 = デフォルトマーカー
+	// 表示する画像 URI（優先順位）
+	// 1. 生成済み bitmap
+	// 2. 静的 placeholder
+	const imageSource = currentState.isReady && currentState.iconUri ? { uri: currentState.iconUri } : PLACEHOLDER_IMAGE;
+
+	// iOS は image prop を優先（icon 更新不安定対策）
+	const markerImageProps = Platform.OS === "ios" ? { image: imageSource } : { icon: imageSource };
 
 	return (
 		<Marker
