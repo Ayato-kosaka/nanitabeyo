@@ -195,7 +195,13 @@ export default function DishMediaMap({
 		(index: number) => {
 			selectionChanged();
 			// ログ追加【仕様】dish_media_swiped_next ログ送信（前のインデックスと異なる場合のみ）
-			if (index !== currentIndex && ids.length > 0) {
+			if (
+				index !== currentIndex &&
+				index >= 0 &&
+				index < ids.length &&
+				currentIndex >= 0 &&
+				currentIndex < ids.length
+			) {
 				const state = useDishMediaEntriesStore.getState();
 				const previousEntry =
 					idType === "dish_media"
