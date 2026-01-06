@@ -400,6 +400,27 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	// 初回マウント時にアプリで使うサイズ/色の placeholder を先行生成しておく
+	useEffect(() => {
+		if (Platform.OS === "web") return;
+
+		// まずはアプリで使うサイズを列挙（現状48中心なら48だけでもOK）
+		const SIZES = [48]; // 必要なら [40,48,56] など
+		const COLORS = [INACTIVE_COLOR_HEX, ACTIVE_COLOR_HEX];
+
+		for (const size of SIZES) {
+			for (const color of COLORS) {
+				// ✅ uri無し（＝画像待ち無し）placeholder を先行生成
+				store.requestBitmap({
+					uri: "", // ←重要：uri無し placeholder
+					size,
+					color, // 正規化済み前提
+					priority: "high", // 初回の体感を上げるなら high
+				});
+			}
+		}
+	}, [store]);
+
 	/**
 	 * 実際の生成処理（1 request）
 	 */
