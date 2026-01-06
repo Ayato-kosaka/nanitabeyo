@@ -107,7 +107,7 @@ export default function TopicsScreen() {
 
 	const handleSnapToItem = (index: number) => {
 		selectionChanged();
-		// 【チケットXXX】topic_swiped_next ログ送信（前のインデックスと異なる場合のみ）
+		// ログ追加【仕様】topic_swiped_next ログ送信（前のインデックスと異なる場合のみ）
 		if (index !== currentIndex) {
 			logFrontendEvent({
 				event_name: "topic_swiped_next",

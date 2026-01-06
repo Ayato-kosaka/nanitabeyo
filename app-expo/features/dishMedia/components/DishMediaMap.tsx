@@ -194,7 +194,7 @@ export default function DishMediaMap({
 	const handleIndexChange = useCallback(
 		(index: number) => {
 			selectionChanged();
-			// 【チケットXXX】dish_media_swiped_next ログ送信（前のインデックスと異なる場合のみ）
+			// ログ追加【仕様】dish_media_swiped_next ログ送信（前のインデックスと異なる場合のみ）
 			if (index !== currentIndex && ids.length > 0) {
 				const state = useDishMediaEntriesStore.getState();
 				const previousEntry =
@@ -202,9 +202,7 @@ export default function DishMediaMap({
 						? selectEntryByMediaId(ids[currentIndex])(state)
 						: selectEntryByReviewId(ids[currentIndex])(state);
 				const newEntry =
-					idType === "dish_media"
-						? selectEntryByMediaId(ids[index])(state)
-						: selectEntryByReviewId(ids[index])(state);
+					idType === "dish_media" ? selectEntryByMediaId(ids[index])(state) : selectEntryByReviewId(ids[index])(state);
 
 				logFrontendEvent({
 					event_name: "dish_media_swiped_next",

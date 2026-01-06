@@ -92,7 +92,7 @@ export default function DishMediaContent({
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
 
-	// 【チケットXXX】dish_media_impression ログ送信（画面表示時に1回のみ、isActiveがtrueのときのみ）
+	// ログ追加【仕様】dish_media_impression ログ送信（画面表示時に1回のみ、isActiveがtrueのときのみ）
 	useEffect(() => {
 		if (isActive && !impressionLoggedRef.current) {
 			impressionLoggedRef.current = true;

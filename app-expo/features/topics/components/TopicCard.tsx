@@ -166,7 +166,7 @@ export const TopicCard = ({
 		};
 	}, []);
 
-	// 【チケットXXX】topic_impression ログ送信（カード表示時に1回のみ）
+	// ログ追加【仕様】topic_impression ログ送信（カード表示時に1回のみ）
 	useEffect(() => {
 		if (!impressionLoggedRef.current) {
 			impressionLoggedRef.current = true;
