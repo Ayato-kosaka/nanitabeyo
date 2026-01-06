@@ -4,11 +4,11 @@ import { Platform, View } from "react-native";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { Marker } from "@/components/MapView";
 import {
-        useMarkerBitmapRenderer,
-        useMarkerBitmapState,
-        normalizeColor,
-        ACTIVE_COLOR_HEX,
-        INACTIVE_COLOR_HEX,
+	useMarkerBitmapRenderer,
+	useMarkerBitmapState,
+	normalizeColor,
+	ACTIVE_COLOR_HEX,
+	INACTIVE_COLOR_HEX,
 } from "./MarkerBitmapRendererProvider";
 import { BubblePinBitmap } from "./BubblePinBitmap";
 
@@ -42,7 +42,7 @@ type Props = RNMarkerProps & {
 
 // 静的プレースホルダ（bitmap未準備時の安全弁）
 // ※必ず存在するローカルアセットを使うこと
-const PLACEHOLDER_IMAGE = require("@/assets/images/marker-placeholder.png");
+const PLACEHOLDER_IMAGE = require("../assets/marker-placeholder.png");
 
 export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ...props }: Props) {
 	const store = useMarkerBitmapRenderer();
