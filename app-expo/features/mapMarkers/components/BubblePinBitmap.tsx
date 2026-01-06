@@ -1,4 +1,4 @@
-// app-expo/components/BubblePinBitmap.tsx
+// app-expo/features/mapMarkers/components/BubblePinBitmap.tsx
 import React, { useEffect, useMemo, useRef } from "react";
 import { Image, StyleSheet, View } from "react-native";
 

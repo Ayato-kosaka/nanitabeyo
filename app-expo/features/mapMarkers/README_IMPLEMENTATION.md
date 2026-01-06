@@ -45,7 +45,7 @@
 - `size?: number` - ピンサイズ（デフォルト: 48）
 - `color?: string` - 枠色（デフォルト: "#FFF"）
 
-### 2. MarkerBitmapRenderer.tsx (新規)
+### 2. MarkerBitmapRendererProvider.tsx (新規)
 
 全マーカーの bitmap 生成を一元管理する Renderer。
 
@@ -129,8 +129,8 @@ bitmap icon使用Markerコンポーネント（Renderer統合版）。
 ### 基本的な使用
 
 ```tsx
-import { MarkerBitmapRendererProvider } from "@/components/MarkerBitmapRenderer";
-import { AvatarBubbleMarkerBitmap } from "@/components/AvatarBubbleMarkerBitmap";
+import { MarkerBitmapRendererProvider } from "@/features/mapMarkers";
+import { AvatarBubbleMarkerBitmap } from "@/features/mapMarkers";
 
 export default function MapScreen() {
 	return (

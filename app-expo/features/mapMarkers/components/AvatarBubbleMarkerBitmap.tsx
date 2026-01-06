@@ -1,15 +1,15 @@
-// app-expo/components/AvatarBubbleMarkerBitmap.tsx
+// app-expo/features/mapMarkers/components/AvatarBubbleMarkerBitmap.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Platform, View } from "react-native";
+import { Image, Platform, View } from "react-native";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
-import { Marker } from "./MapView";
+import { Marker } from "@/components/MapView";
 import {
 	useMarkerBitmapRenderer,
 	useMarkerBitmapState,
 	normalizeColor,
 	ACTIVE_COLOR_HEX,
 	INACTIVE_COLOR_HEX,
-} from "./MarkerBitmapRenderer";
+} from "./MarkerBitmapRendererProvider";
 import { BubblePinBitmap } from "./BubblePinBitmap";
 
 /**
@@ -42,10 +42,20 @@ type Props = RNMarkerProps & {
 
 // 静的プレースホルダ（bitmap未準備時の安全弁）
 // ※必ず存在するローカルアセットを使うこと
-const PLACEHOLDER_IMAGE = require("@/assets/images/marker-placeholder.png");
+const PLACEHOLDER_IMAGE = require("../assets/marker-placeholder.png");
 
 export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ...props }: Props) {
 	const store = useMarkerBitmapRenderer();
+
+	// ----------------------------
+	// プレースホルダ画像 URI 生成
+	// ----------------------------
+
+	const PLACEHOLDER_URI = useMemo(() => {
+		const resolved = Image.resolveAssetSource(PLACEHOLDER_IMAGE);
+		return resolved?.uri ?? "";
+	}, []);
+	const PLACEHOLDER_SOURCE = useMemo(() => ({ uri: PLACEHOLDER_URI }), [PLACEHOLDER_URI]);
 
 	// ----------------------------
 	// 色判定（正規化必須）
@@ -58,9 +68,17 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	// bitmap 状態購読
 	// ----------------------------
 
-	const activeState = useMarkerBitmapState(uri ?? "", size, ACTIVE_COLOR_HEX);
+	const NO_URI = "__marker__://no-uri";
+	const realKeyUri = uri ? uri : NO_URI;
+	const activeState = useMarkerBitmapState(realKeyUri, size, ACTIVE_COLOR_HEX);
+	const inactiveState = useMarkerBitmapState(realKeyUri, size, INACTIVE_COLOR_HEX);
 
-	const inactiveState = useMarkerBitmapState(uri ?? "", size, INACTIVE_COLOR_HEX);
+	// ----------------------------
+	// プレースホルダ状態購読
+	// ----------------------------
+
+	const activePlaceholderState = useMarkerBitmapState("", size, ACTIVE_COLOR_HEX);
+	const inactivePlaceholderState = useMarkerBitmapState("", size, INACTIVE_COLOR_HEX);
 
 	const currentState = isActive ? activeState : inactiveState;
 
@@ -164,7 +182,15 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	// 表示する画像 URI（優先順位）
 	// 1. 生成済み bitmap
 	// 2. 静的 placeholder
-	const imageSource = currentState.isReady && currentState.iconUri ? { uri: currentState.iconUri } : PLACEHOLDER_IMAGE;
+	const realState = isActive ? activeState : inactiveState;
+	const placeholderState = isActive ? activePlaceholderState : inactivePlaceholderState;
+	// 表示優先順位：real → renderer placeholder → static placeholder(保険)
+	const imageSource =
+		realState.isReady && realState.iconUri
+			? { uri: realState.iconUri }
+			: placeholderState.isReady && placeholderState.iconUri
+				? { uri: placeholderState.iconUri }
+				: PLACEHOLDER_SOURCE;
 
 	// iOS は image prop を優先（icon 更新不安定対策）
 	const markerImageProps = { icon: imageSource };
