@@ -289,10 +289,10 @@ export default function DishMediaMap({
 
 				{/* Map View - Top 1/5 of screen */}
 				<View style={styles.mapContainer}>
-					<MapView ref={mapRef} style={styles.map} region={getMapRegion()}>
+					<MapView ref={mapRef} style={styles.map} initialRegion={getMapRegion()}>
 						{restaurants.map((restaurant, index) => (
 							<AvatarBubbleMarkerBitmap
-								key={`marker-${index}`}
+								key={`marker-${restaurant.google_place_id}`}
 								coordinate={restaurant.coordinate}
 								onPress={() => handleMarkerPress(index)}
 								uri={restaurant.imageUrls?.sm}

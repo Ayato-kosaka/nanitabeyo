@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
@@ -17,6 +17,8 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import type { MediaProcessingStatus, QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface DishMediaContentProps {
 	id: string;
@@ -129,35 +131,21 @@ export default function DishMediaContent({
 
 				const status = updated.dish_media.media_processing_status;
 				const hasUrl = Boolean(updated.dish_media.mediaUrl);
-
-				// completed + URL が取れたらポーリング終了
-				if (status === "completed" && hasUrl) {
-					return;
-				}
-
-				// failed ならここで終了（以降はエラーオーバーレイ）
-				if (status === "failed") {
-					return;
-				}
+				if ((status === "completed" && hasUrl) || status === "failed") return;
 			} catch (e) {
 				console.error(e);
 				// エラー時はポーリング終了（無限ポーリング防止）
 				return;
 			}
 
-			// まだ processing なら再ポーリング
-			if (!cancelled) {
-				timeoutId = setTimeout(poll, INTERVAL);
-			}
+			if (!cancelled) timeoutId = setTimeout(poll, INTERVAL);
 		};
 
 		poll();
 
 		return () => {
 			cancelled = true;
-			if (timeoutId !== null) {
-				clearTimeout(timeoutId);
-			}
+			if (timeoutId !== null) clearTimeout(timeoutId);
 		};
 	}, [
 		isActive,
@@ -167,91 +155,116 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.mediaUrl,
 	]);
 
+	// #613 TapGesture 用の pressed state
+	const pressed = useSharedValue(0);
+	const pressStyle = useAnimatedStyle(() => ({
+		opacity: withTiming(pressed.value ? 0.95 : 1, { duration: 80 }),
+	}));
+
+	// #613 横スワイプと競合しないように maxDistance を設定
+	const tapGesture = useMemo(() => {
+		return (
+			Gesture.Tap()
+				// #611 移動したらタップ失敗になる
+				.maxDistance(10)
+				.onBegin(() => {
+					if (onCardPress) pressed.value = 1;
+				})
+				.onFinalize(() => {
+					pressed.value = 0;
+				})
+				.onEnd(() => {
+					if (!onCardPress) return;
+					// dishMediaEntry をJS側に渡して ActionSheet を開く
+					runOnJS(onCardPress)(dishMediaEntry);
+				})
+		);
+	}, [onCardPress, dishMediaEntry, pressed]);
+
 	return (
 		<View style={styles.container}>
-			<TouchableOpacity
-				style={StyleSheet.absoluteFill}
-				activeOpacity={!!onCardPress ? 0.95 : 1}
-				onPress={() => (!!onCardPress ? onCardPress(dishMediaEntry) : undefined)}>
-				{/* Background Media (Image or Video) */}
-				{isVideo ? (
-					<>
-						{/* #530 【設計】動画の場合: サムネイルを常に背景として表示 */}
-						<Image
-							source={thumbnailSource}
-							cachePolicy="memory-disk"
-							transition={100}
-							style={StyleSheet.absoluteFill}
-							contentFit="cover"
-						/>
-						{/* #530 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
-						{hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
-							<VideoPlayer
-								uri={dishMediaEntry.dish_media.mediaUrl}
+			<GestureDetector gesture={tapGesture}>
+				<Animated.View style={[StyleSheet.absoluteFill, pressStyle]}>
+					{/* Background Media (Image or Video) */}
+					{isVideo ? (
+						<>
+							{/* #530 【設計】動画の場合: サムネイルを常に背景として表示 */}
+							<Image
+								source={thumbnailSource}
+								cachePolicy="memory-disk"
+								transition={100}
 								style={StyleSheet.absoluteFill}
-								shouldPlay={isActive}
-								onProgress={handleVideoProgress}
-								onLoop={handleVideoLoop}
+								contentFit="cover"
 							/>
-						)}
-					</>
-				) : (
-					<>
-						{/* #530 【設計】画像の場合: mediaUrl があれば表示、なければサムネイルを fallback */}
-						<Image
-							source={hasMediaUrl ? mediaSource : thumbnailSource}
-							cachePolicy="memory-disk"
-							transition={100}
-							style={StyleSheet.absoluteFill}
-							contentFit="cover"
-						/>
-					</>
-				)}
+							{/* #530 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
+							{hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
+								<VideoPlayer
+									uri={dishMediaEntry.dish_media.mediaUrl}
+									style={StyleSheet.absoluteFill}
+									shouldPlay={isActive}
+									onProgress={handleVideoProgress}
+									onLoop={handleVideoLoop}
+								/>
+							)}
+						</>
+					) : (
+						<>
+							{/* #530 【設計】画像の場合: mediaUrl があれば表示、なければサムネイルを fallback */}
+							<Image
+								source={hasMediaUrl ? mediaSource : thumbnailSource}
+								cachePolicy="memory-disk"
+								transition={100}
+								style={StyleSheet.absoluteFill}
+								contentFit="cover"
+							/>
+						</>
+					)}
+				</Animated.View>
+			</GestureDetector>
 
-				{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
-				{isProcessing && (
-					<View style={styles.processingOverlay}>
-						<ActivityIndicator size="large" color="#fff" />
-						<Text style={styles.processingText}>{i18n.t("Common.processing")}</Text>
-					</View>
-				)}
+			{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
+			{isProcessing && (
+				<View style={styles.processingOverlay}>
+					<ActivityIndicator size="large" color="#fff" />
+					<Text style={styles.processingText}>{i18n.t("Common.processing")}</Text>
+				</View>
+			)}
 
-				{/* #530 【設計】エラーオーバーレイ（メディア共通） */}
-				{isFailed && (
-					<View style={styles.errorOverlay}>
-						<Text style={styles.errorText}>{i18n.t("DishMediaContent.errors.mediaUnavailable")}</Text>
-					</View>
-				)}
+			{/* #530 【設計】エラーオーバーレイ（メディア共通） */}
+			{isFailed && (
+				<View style={styles.errorOverlay}>
+					<Text style={styles.errorText}>{i18n.t("DishMediaContent.errors.mediaUnavailable")}</Text>
+				</View>
+			)}
 
-				{/* Top Header */}
-				<View style={styles.topHeader}>
-					<View style={styles.headerLeft}>
-						<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
-						<View style={styles.priceRatingContainer}>
-							{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
-							{/* <View style={styles.ratingContainer}>
+			{/* Top Header */}
+			<View style={styles.topHeader}>
+				<View style={styles.headerLeft}>
+					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
+					<View style={styles.priceRatingContainer}>
+						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
+						{/* <View style={styles.ratingContainer}>
               {renderStars(5, 4)}
               <Text style={styles.reviewCount}>(127)</Text>
             </View> */}
-						</View>
-					</View>
-					<View style={styles.headerRight}></View>
-				</View>
-
-				<DishReviewsSection
-					id={id}
-					idType={idType}
-					paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
-					carouselRef={carouselRef}
-				/>
-
-				{/* Action Buttons */}
-				<View pointerEvents="box-none" style={styles.bottomSection}>
-					<View pointerEvents="box-none" style={styles.actionRow}>
-						<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
 					</View>
 				</View>
-			</TouchableOpacity>
+				<View style={styles.headerRight}></View>
+			</View>
+
+			<DishReviewsSection
+				id={id}
+				idType={idType}
+				paddingRight={Math.max(16, rightActionsWidth + insets.right + 8)}
+				carouselRef={carouselRef}
+			/>
+
+			{/* Action Buttons */}
+			<View pointerEvents="box-none" style={styles.bottomSection}>
+				<View pointerEvents="box-none" style={styles.actionRow}>
+					<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
+				</View>
+			</View>
 		</View>
 	);
 }
