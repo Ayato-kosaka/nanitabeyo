@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -19,6 +19,7 @@ import type { MediaProcessingStatus, QueryDishMediaByIdsResponse } from "@shared
 import { useAPICall } from "@/hooks/useAPICall";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { useLogger } from "@/hooks/useLogger";
 
 interface DishMediaContentProps {
 	id: string;
@@ -29,6 +30,7 @@ interface DishMediaContentProps {
 	entriesKey: string;
 	idType: IdType;
 	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
+	displayIndex?: number;
 }
 
 export default function DishMediaContent({
@@ -40,6 +42,7 @@ export default function DishMediaContent({
 	entriesKey,
 	idType,
 	onCardPress, // #613 【設計】カード押下時のコールバック
+	displayIndex,
 }: DishMediaContentProps) {
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {
@@ -50,8 +53,11 @@ export default function DishMediaContent({
 	});
 
 	const { callBackend } = useAPICall();
+	const { logFrontendEvent } = useLogger();
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
+	// impression ログ送信済みフラグ（重複防止用）
+	const impressionLoggedRef = useRef(false);
 
 	const { handleVideoProgress, handleVideoLoop } = useMediaTracking({
 		isActive,
@@ -85,6 +91,22 @@ export default function DishMediaContent({
 	const isFailed = mediaProcessingStatus === "failed";
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
+
+	// 【チケットXXX】dish_media_impression ログ送信（画面表示時に1回のみ、isActiveがtrueのときのみ）
+	useEffect(() => {
+		if (isActive && !impressionLoggedRef.current) {
+			impressionLoggedRef.current = true;
+			logFrontendEvent({
+				event_name: "dish_media_impression",
+				error_level: "log",
+				payload: {
+					dish_media_id: dishMediaEntry.dish_media.id,
+					restaurant_id: dishMediaEntry.restaurant.id,
+					display_index: displayIndex ?? null,
+				},
+			});
+		}
+	}, [isActive, dishMediaEntry.dish_media.id, dishMediaEntry.restaurant.id, displayIndex, logFrontendEvent]);
 
 	useEffect(() => {
 		const mediaId = dishMediaEntry.dish_media.id;

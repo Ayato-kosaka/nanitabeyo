@@ -5,6 +5,7 @@ import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
 import * as Crypto from "expo-crypto";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -95,6 +96,7 @@ export default function DishMediaMap({
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
@@ -192,10 +194,33 @@ export default function DishMediaMap({
 	const handleIndexChange = useCallback(
 		(index: number) => {
 			selectionChanged();
+			// 【チケットXXX】dish_media_swiped_next ログ送信（前のインデックスと異なる場合のみ）
+			if (index !== currentIndex && ids.length > 0) {
+				const state = useDishMediaEntriesStore.getState();
+				const previousEntry =
+					idType === "dish_media"
+						? selectEntryByMediaId(ids[currentIndex])(state)
+						: selectEntryByReviewId(ids[currentIndex])(state);
+				const newEntry =
+					idType === "dish_media"
+						? selectEntryByMediaId(ids[index])(state)
+						: selectEntryByReviewId(ids[index])(state);
+
+				logFrontendEvent({
+					event_name: "dish_media_swiped_next",
+					error_level: "log",
+					payload: {
+						previous_index: currentIndex,
+						new_index: index,
+						previous_dish_media_id: previousEntry?.dish_media.id ?? null,
+						new_dish_media_id: newEntry?.dish_media.id ?? null,
+					},
+				});
+			}
 			setCurrentIndex(index);
 			onIndexChange?.(index);
 		},
-		[onIndexChange, selectionChanged],
+		[onIndexChange, selectionChanged, currentIndex, ids, idType, logFrontendEvent],
 	);
 
 	const handleMarkerPress = useCallback((index: number) => {
@@ -264,6 +289,7 @@ export default function DishMediaMap({
 					entriesKey={entriesKey}
 					idType={idType}
 					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
+					displayIndex={index}
 				/>
 			</View>
 		),

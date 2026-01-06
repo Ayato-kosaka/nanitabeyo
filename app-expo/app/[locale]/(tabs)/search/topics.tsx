@@ -107,11 +107,24 @@ export default function TopicsScreen() {
 
 	const handleSnapToItem = (index: number) => {
 		selectionChanged();
+		// 【チケットXXX】topic_swiped_next ログ送信（前のインデックスと異なる場合のみ）
+		if (index !== currentIndex) {
+			logFrontendEvent({
+				event_name: "topic_swiped_next",
+				error_level: "log",
+				payload: {
+					previous_index: currentIndex,
+					new_index: index,
+					previous_topic_id: visibleTopics[currentIndex]?.categoryId ?? null,
+					new_topic_id: visibleTopics[index]?.categoryId ?? null,
+				},
+			});
+		}
 		setCurrentIndex(index);
 	};
 
-	const renderCard = ({ item }: { item: Topic }) => (
-		<TopicCard key={item.categoryId} item={item} onHide={handleHideCard} />
+	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
+		<TopicCard key={item.categoryId} item={item} onHide={handleHideCard} displayIndex={index} />
 	);
 
 	if (isLoading) {
