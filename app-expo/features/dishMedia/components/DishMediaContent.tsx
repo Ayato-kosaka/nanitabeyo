@@ -21,6 +21,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useExpoImageLoadState } from "@/hooks/useExpoImageLoadState";
+import { useLogger } from "@/hooks/useLogger";
 
 interface DishMediaContentProps {
 	id: string;
@@ -52,6 +53,7 @@ export default function DishMediaContent({
 	});
 
 	const { callBackend } = useAPICall();
+	const { logFrontendEvent } = useLogger();
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
@@ -61,25 +63,6 @@ export default function DishMediaContent({
 		source: entriesKey,
 		dishMedia: dishMediaEntry.dish_media,
 	});
-
-	const mediaSource = useMemo(
-		() => ({
-			uri: dishMediaEntry.dish_media.mediaUrl ?? undefined,
-			cacheKey: dishMediaEntry.dish_media.mediaUrl
-				? getCacheKeyForImage(dishMediaEntry.dish_media.mediaUrl)
-				: undefined,
-		}),
-		[dishMediaEntry.dish_media],
-	);
-
-	// #511 【設計】サムネイル画像ソースは常に用意
-	const thumbnailSource = useMemo(
-		() => ({
-			uri: dishMediaEntry.dish_media.thumbnailImageUrl,
-			cacheKey: getCacheKeyForImage(dishMediaEntry.dish_media.thumbnailImageUrl),
-		}),
-		[dishMediaEntry.dish_media],
-	);
 
 	// #530 【設計】処理ステータスをメディア共通で扱う（動画/画像共通）
 	const mediaProcessingStatus = dishMediaEntry.dish_media.media_processing_status as MediaProcessingStatus;
@@ -195,14 +178,17 @@ export default function DishMediaContent({
 	// #630 【設計】背景画像ロード失敗時のログ記録（UI は追加しない）
 	useEffect(() => {
 		if (bgLoadState === "error") {
-			// TODO: #630 将来的には useLogger で統一的なログサービスに送信することを検討
-			console.error("[DishMediaContent] Background image load failed", {
-				bgUri,
-				mediaId: dishMediaEntry.dish_media.id,
-				mediaType: dishMediaEntry.dish_media.media_type,
+			logFrontendEvent({
+				event_name: "dish_media_background_image_load_error",
+				error_level: "error",
+				payload: {
+					media_id: dishMediaEntry.dish_media.id,
+					media_type: dishMediaEntry.dish_media.media_type,
+					bg_uri: bgUri,
+				},
 			});
 		}
-	}, [bgLoadState, bgUri, dishMediaEntry.dish_media.id, dishMediaEntry.dish_media.media_type]);
+	}, [bgLoadState, logFrontendEvent, dishMediaEntry.dish_media.id, dishMediaEntry.dish_media.media_type, bgUri]);
 
 	// #630 【UX】スケルトン表示条件（可読性向上のため派生状態として定義）
 	const shouldShowSkeleton = bgLoadState === "loading" && !isFailed && !isProcessing;
