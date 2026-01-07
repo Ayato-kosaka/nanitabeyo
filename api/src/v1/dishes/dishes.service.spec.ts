@@ -46,13 +46,15 @@ describe('DishesService - Google Places Fallback Logic (#636)', () => {
   let logger: jest.Mocked<AppLoggerService>;
 
   // Mock data helpers
-  const createMockPlace = (id: string, hasReviews = false, hasPhotos = false) => ({
+  const createMockPlace = (
+    id: string,
+    hasReviews = false,
+    hasPhotos = false,
+  ) => ({
     id,
     displayName: { text: `Place ${id}` },
     location: { latitude: 35.6762, longitude: 139.6503 },
-    addressComponents: [
-      { shortText: 'JP', types: ['country'] },
-    ],
+    addressComponents: [{ shortText: 'JP', types: ['country'] }],
     plusCode: null,
     reviews: hasReviews
       ? [
@@ -77,7 +79,10 @@ describe('DishesService - Google Places Fallback Logic (#636)', () => {
       : undefined,
   });
 
-  const createMockContextualContent = (hasReviews = false, hasPhotos = false) => ({
+  const createMockContextualContent = (
+    hasReviews = false,
+    hasPhotos = false,
+  ) => ({
     reviews: hasReviews
       ? [
           {

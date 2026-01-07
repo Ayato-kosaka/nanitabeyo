@@ -152,28 +152,27 @@ export class DishesService {
 
     const contextualContents = googlePlaces?.contextualContents;
 
+    // #636 【設計】contextualContents と places の長さが一致しない場合は警告ログを出す
+    if (
+      contextualContents &&
+      contextualContents.length !== googlePlaces.places.length
+    ) {
+      this.logger.warn(
+        'ContextualContentsLengthMismatch',
+        'bulkImportFromGoogle',
+        {
+          placesLength: googlePlaces.places.length,
+          contextualContentsLength: contextualContents.length,
+        },
+      );
+    }
+
     const results: BulkImportDishesResponse = [];
 
     // 各レストランに対してデータ登録処理（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
         const contextualContent = contextualContents?.[index];
-
-        // #636 【設計】contextualContents と places の長さが一致しない場合は警告ログを出す
-        if (
-          contextualContents &&
-          contextualContents.length !== googlePlaces.places!.length
-        ) {
-          this.logger.warn(
-            'ContextualContentsLengthMismatch',
-            'bulkImportFromGoogle',
-            {
-              placesLength: googlePlaces.places!.length,
-              contextualContentsLength: contextualContents.length,
-              placeId: place.id || 'unknown',
-            },
-          );
-        }
 
         // #636 【設計】photos: contextualContents.photos を優先、なければ place.photos にフォールバック
         const photos =
@@ -423,7 +422,7 @@ export class DishesService {
   }) {
     // 非同期ジョブ用のペイロード作成
     const jobId = `dish-create-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const idempotencyKey = `${placeId}-${dish.category_id}}`;
+    const idempotencyKey = `${placeId}-${dish.category_id}`;
 
     const jobPayload: CreateDishMediaEntryJobPayload = {
       jobId,
