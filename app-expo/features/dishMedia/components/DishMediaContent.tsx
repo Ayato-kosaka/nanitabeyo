@@ -93,7 +93,7 @@ export default function DishMediaContent({
 	// #630 【設計】背景画像 source 切替時に bgLoadState を初期化（thumbnail → mediaUrl 切替対応）
 	useEffect(() => {
 		setBgLoadState("loading");
-	}, [isVideo, hasMediaUrl, mediaSource.uri, thumbnailSource.uri]);
+	}, [isVideo, hasMediaUrl, dishMediaEntry.dish_media.mediaUrl, dishMediaEntry.dish_media.thumbnailImageUrl]);
 
 	// #630 【UX】背景画像ロード開始
 	const handleBgLoadStart = useCallback(() => {
@@ -107,13 +107,23 @@ export default function DishMediaContent({
 
 	// #630 【設計】背景画像ロード失敗時は console.error でログ記録（DishMediaContent では画像ロード失敗 UI は追加しない）
 	const handleBgError = useCallback(() => {
+		const sourceUri = isVideo
+			? dishMediaEntry.dish_media.thumbnailImageUrl
+			: (dishMediaEntry.dish_media.mediaUrl ?? dishMediaEntry.dish_media.thumbnailImageUrl);
 		console.error("DishMediaContent: background image load error", {
 			dishMediaId: dishMediaEntry.dish_media.id,
 			isVideo,
 			hasMediaUrl,
+			sourceUri,
 		});
 		setBgLoadState("error");
-	}, [dishMediaEntry.dish_media.id, isVideo, hasMediaUrl]);
+	}, [
+		dishMediaEntry.dish_media.id,
+		dishMediaEntry.dish_media.mediaUrl,
+		dishMediaEntry.dish_media.thumbnailImageUrl,
+		isVideo,
+		hasMediaUrl,
+	]);
 
 	useEffect(() => {
 		const mediaId = dishMediaEntry.dish_media.id;
