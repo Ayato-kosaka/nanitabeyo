@@ -20,14 +20,15 @@
 export function makeDishMediaEntriesKey(params: {
 	categoryId: string;
 	location:
-		| {
-				latitude: number;
-				longitude: number;
-		  }
-		| { place_id: string };
+	| {
+		latitude: number;
+		longitude: number;
+	}
+	| { place_id: string }
+	| { mainText: string };
 	radius: number;
 	priceLevels: string[];
-	languageCode: string;
+	languageCode?: string;
 }): string {
 	const { categoryId, location, radius, priceLevels, languageCode } = params;
 
@@ -35,12 +36,16 @@ export function makeDishMediaEntriesKey(params: {
 	const locationKey =
 		"place_id" in location
 			? `pid:${location.place_id}`
-			: `ll:${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
+			: "mainText" in location
+				? `mt:${location.mainText}`
+				: `ll:${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
 
 	// #633 【設計】priceLevels はソートして一意性を保証（順序によらず同じキーになる）
 	const sortedPriceLevels = [...priceLevels].sort();
 	const priceLevelsKey = sortedPriceLevels.join(",");
 
+	const languageCodeKey = languageCode ?? "default";
+
 	// #633 【設計】各要素を | で結合（可読性とデバッグのため）
-	return `cat:${categoryId}|loc:${locationKey}|r:${radius}|pr:${priceLevelsKey}|lang:${languageCode}`;
+	return `cat:${categoryId}|loc:${locationKey}|r:${radius}|pr:${priceLevelsKey}|lang:${languageCodeKey}`;
 }
