@@ -99,6 +99,24 @@ export default function DishMediaContent({
 		}
 	}, [isVideo, dishMediaEntry.dish_media.mediaUrl, dishMediaEntry.dish_media.thumbnailImageUrl]);
 
+	// #630 【設計】防御的プログラミング: bgUri が undefined の場合に警告
+	useEffect(() => {
+		if (!bgUri) {
+			console.warn("[DishMediaContent] bgUri is undefined", {
+				mediaId: dishMediaEntry.dish_media.id,
+				mediaType: dishMediaEntry.dish_media.media_type,
+				hasMediaUrl: Boolean(dishMediaEntry.dish_media.mediaUrl),
+				hasThumbnail: Boolean(dishMediaEntry.dish_media.thumbnailImageUrl),
+			});
+		}
+	}, [
+		bgUri,
+		dishMediaEntry.dish_media.id,
+		dishMediaEntry.dish_media.media_type,
+		dishMediaEntry.dish_media.mediaUrl,
+		dishMediaEntry.dish_media.thumbnailImageUrl,
+	]);
+
 	// #630 【設計】背景画像のロード状態管理（薄い共通化）
 	const { loadState: bgLoadState, handlers: bgLoadHandlers } = useExpoImageLoadState(bgUri);
 
@@ -183,6 +201,7 @@ export default function DishMediaContent({
 	// #630 【設計】背景画像ロード失敗時のログ記録（UI は追加しない）
 	useEffect(() => {
 		if (bgLoadState === "error") {
+			// TODO: #630 将来的には useLogger で統一的なログサービスに送信することを検討
 			console.error("[DishMediaContent] Background image load failed", {
 				bgUri,
 				mediaId: dishMediaEntry.dish_media.id,
