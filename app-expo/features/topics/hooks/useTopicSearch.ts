@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -106,32 +105,11 @@ export const useTopicSearch = () => {
 					);
 				}
 
-				// Preload dish media images
-				await Promise.allSettled(
-					dishItems.map(async (dishItem) => {
-						// #511 【設計】画像タイプの場合、mediaUrl は必ず存在する（画像は処理中でもオリジナルURLを返す）
-						// 動画の場合のみ null になりうるが、ここでは画像のみ対象なので null にはならない
-						if (dishItem.dish_media.media_type === "image" && dishItem.dish_media.mediaUrl) {
-							try {
-								await Image.prefetch(dishItem.dish_media.mediaUrl);
-							} catch (error) {
-								logFrontendEvent({
-									event_name: "image_preload_failed",
-									error_level: "warn",
-									payload: {
-										imageType: "dish_media",
-										imageUrl: dishItem.dish_media.mediaUrl,
-										error: error instanceof Error ? error.message : String(error),
-									},
-								});
-							}
-						}
-					}),
-				);
+				// #630 【設計】先読み削除（ロード中 skeleton を見せる方針に統一）
 				return dishItems.slice(0, searchResultRestaurantsNumber);
 			})();
 		},
-		[callBackend, locale, logFrontendEvent],
+		[callBackend, locale],
 	);
 
 	const searchTopics = useCallback(
@@ -212,8 +190,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-												typeof createDishCategoryVariantResponse.labels === "object" &&
-												params.localLanguageCode in createDishCategoryVariantResponse.labels
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
@@ -261,7 +239,7 @@ export const useTopicSearch = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend, locale, createDishItemsPromise, logFrontendEvent],
+		[callBackend, locale, createDishItemsPromise],
 	);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {
