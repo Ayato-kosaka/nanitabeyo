@@ -1,6 +1,6 @@
 // app-expo/features/mapMarkers/components/AvatarBubbleMarkerBitmap.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, Platform, View } from "react-native";
+import { Image as RNImage, Platform, View } from "react-native";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { Marker } from "@/components/MapView";
 import {
@@ -52,7 +52,8 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	// ----------------------------
 
 	const PLACEHOLDER_URI = useMemo(() => {
-		const resolved = Image.resolveAssetSource(PLACEHOLDER_IMAGE);
+		if (Platform.OS === "web") return "";
+		const resolved = RNImage.resolveAssetSource(PLACEHOLDER_IMAGE);
 		return resolved?.uri ?? "";
 	}, []);
 	const PLACEHOLDER_SOURCE = useMemo(() => ({ uri: PLACEHOLDER_URI }), [PLACEHOLDER_URI]);
