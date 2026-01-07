@@ -56,9 +56,6 @@ export default function ResultScreen() {
 		handleClose();
 	};
 
-	// #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
-	if (isLoading) return <RestaurantLoading />;
-
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
@@ -76,6 +73,13 @@ export default function ResultScreen() {
 				entriesKey={topicId}
 				idType={idType}
 			/>
+
+			{/* #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
+			{isLoading && (
+				<View style={StyleSheet.absoluteFill} pointerEvents="auto">
+					<RestaurantLoading />
+				</View>
+			)}
 		</LinearGradient>
 	);
 }
