@@ -19,6 +19,7 @@ import type { MediaProcessingStatus, QueryDishMediaByIdsResponse } from "@shared
 import { useAPICall } from "@/hooks/useAPICall";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 
 interface DishMediaContentProps {
 	id: string;
@@ -53,6 +54,9 @@ export default function DishMediaContent({
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
+	// #630 【UX】背景画像のロード状態管理（SkeletonShimmer 表示用）
+	const [bgLoadState, setBgLoadState] = useState<"loading" | "loaded" | "error">("loading");
+
 	const { handleVideoProgress, handleVideoLoop } = useMediaTracking({
 		isActive,
 		sessionId,
@@ -85,6 +89,31 @@ export default function DishMediaContent({
 	const isFailed = mediaProcessingStatus === "failed";
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
+
+	// #630 【設計】背景画像 source 切替時に bgLoadState を初期化（thumbnail → mediaUrl 切替対応）
+	useEffect(() => {
+		setBgLoadState("loading");
+	}, [isVideo, hasMediaUrl, mediaSource.uri, thumbnailSource.uri]);
+
+	// #630 【UX】背景画像ロード開始
+	const handleBgLoadStart = useCallback(() => {
+		setBgLoadState("loading");
+	}, []);
+
+	// #630 【UX】背景画像ロード完了
+	const handleBgLoad = useCallback(() => {
+		setBgLoadState("loaded");
+	}, []);
+
+	// #630 【設計】背景画像ロード失敗時は console.error でログ記録（DishMediaContent では画像ロード失敗 UI は追加しない）
+	const handleBgError = useCallback(() => {
+		console.error("DishMediaContent: background image load error", {
+			dishMediaId: dishMediaEntry.dish_media.id,
+			isVideo,
+			hasMediaUrl,
+		});
+		setBgLoadState("error");
+	}, [dishMediaEntry.dish_media.id, isVideo, hasMediaUrl]);
 
 	useEffect(() => {
 		const mediaId = dishMediaEntry.dish_media.id;
@@ -195,6 +224,9 @@ export default function DishMediaContent({
 								transition={100}
 								style={StyleSheet.absoluteFill}
 								contentFit="cover"
+								onLoadStart={handleBgLoadStart}
+								onLoad={handleBgLoad}
+								onError={handleBgError}
 							/>
 							{/* #530 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
 							{hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
@@ -216,11 +248,21 @@ export default function DishMediaContent({
 								transition={100}
 								style={StyleSheet.absoluteFill}
 								contentFit="cover"
+								onLoadStart={handleBgLoadStart}
+								onLoad={handleBgLoad}
+								onError={handleBgError}
 							/>
 						</>
 					)}
 				</Animated.View>
 			</GestureDetector>
+
+			{/* #630 【UX】背景画像ロード中の SkeletonShimmer（processing/failed より背面） */}
+			{bgLoadState === "loading" && !isProcessing && !isFailed && (
+				<View style={styles.skeletonOverlay}>
+					<SkeletonShimmer width="100%" height="100%" borderRadius={0} />
+				</View>
+			)}
 
 			{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
 			{isProcessing && (
@@ -362,6 +404,12 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "flex-end",
 		justifyContent: "flex-end",
+	},
+	// #630 【UX】背景画像ロード中の SkeletonShimmer オーバーレイ（zIndex: 2、pointerEvents: none）
+	skeletonOverlay: {
+		...StyleSheet.absoluteFillObject,
+		zIndex: 2,
+		pointerEvents: "none",
 	},
 	// #511 【設計】処理中オーバーレイスタイル
 	processingOverlay: {
