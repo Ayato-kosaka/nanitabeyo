@@ -11,7 +11,7 @@
  * DishMedia 検索の entriesKey を生成する。
  *
  * @param categoryId - 料理カテゴリ ID
- * @param location - 緯度経度（小数点以下4桁に切り捨て = 約11m精度）または place_id
+ * @param location - 緯度経度（小数点以下4桁に丸め = 約11m精度）または place_id
  * @param radius - 検索半径（メートル）
  * @param priceLevels - 価格帯の配列（ソート済み）
  * @param languageCode - 検索言語コード

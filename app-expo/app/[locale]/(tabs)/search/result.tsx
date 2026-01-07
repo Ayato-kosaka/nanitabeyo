@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X } from "lucide-react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
@@ -15,8 +15,23 @@ const idType = "dish_media" as const;
 export default function ResultScreen() {
 	// #633 【設計】topicId ではなく entriesKey を使用（Topics/SavedTopics 共通化）
 	const { entriesKey, location } = useLocalSearchParams<{ entriesKey: string; location?: string }>();
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+
+	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
+	useEffect(() => {
+		if (!entriesKey) {
+			logFrontendEvent({
+				event_name: "result_screen_invalid_entrieskey",
+				error_level: "error",
+				payload: { entriesKey, location },
+			});
+			router.back();
+		}
+	}, [entriesKey, location, logFrontendEvent]);
+
 	const selector = useCallback(
-		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
+		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey || "", idType)(state),
 		[entriesKey],
 	);
 	const { isLoading } = useDishMediaEntriesStore(selector, shallow);
@@ -30,11 +45,9 @@ export default function ResultScreen() {
 		}
 		return undefined;
 	}, [location]);
-	const { lightImpact } = useHaptics();
-	const { logFrontendEvent } = useLogger();
 
 	const { currentIndex, showCompletionModal, handleIndexChange, handleClose, handleReturnToCards } = useSearchResult(
-		entriesKey as string,
+		entriesKey || "",
 	);
 
 	useEffect(() => {
@@ -61,7 +74,8 @@ export default function ResultScreen() {
 	};
 
 	// #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
-	if (isLoading) return <RestaurantLoading />;
+	// #633 【防御】entriesKey が undefined の場合も loading を表示（戻る処理中）
+	if (isLoading || !entriesKey) return <RestaurantLoading />;
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
@@ -77,7 +91,7 @@ export default function ResultScreen() {
 			<DishMediaMap
 				onIndexChange={handleIndexChange}
 				initialLocation={initialLocation}
-				entriesKey={entriesKey} // #633 【設計】entriesKey を使用
+				entriesKey={entriesKey || ""} // #633 【設計】entriesKey を使用（防御的に空文字列を渡す）
 				idType={idType}
 			/>
 		</LinearGradient>

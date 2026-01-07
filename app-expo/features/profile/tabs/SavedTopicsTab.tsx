@@ -17,7 +17,7 @@ import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
 import { shallow } from "zustand/shallow";
-import { makeDishMediaEntriesKey } from "@/lib/dishMediaEntriesKey";
+import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 
 interface SavedTopicsTabProps {
