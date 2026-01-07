@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
 
 /**
  * #630 【設計】expo-image のロード状態管理フック（薄い共通化）
- * 
+ *
  * TopicCard / DishMediaContent で expo-image のロード状態（loading/loaded/error）を
  * 薄く共通化するためのフック。失敗 UI やリトライ機能は含まず、各画面が自由に実装できる。
- * 
+ *
  * @param sourceKey - 画像ソースを一意に識別するキー（通常は uri）。変更時に loading にリセット
  * @returns ロード状態と expo-image 用のイベントハンドラ
  */
