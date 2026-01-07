@@ -169,16 +169,10 @@ export const useTopicSearch = () => {
 					}));
 
 				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
+					// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
 					return {
 						...topic,
 						isHidden: false,
-						dishItemsPromise: createDishItemsPromise(
-							topic.categoryId,
-							topic.category,
-							params.location.latitude,
-							params.location.longitude,
-							params.localLanguageCode,
-						),
 					};
 				};
 
@@ -212,8 +206,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-												typeof createDishCategoryVariantResponse.labels === "object" &&
-												params.localLanguageCode in createDishCategoryVariantResponse.labels
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,

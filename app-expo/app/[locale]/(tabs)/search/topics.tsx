@@ -20,6 +20,8 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLogger } from "@/hooks/useLogger";
+import { makeDishMediaEntriesKey } from "@/lib/dishMediaEntriesKey";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 
 export default function TopicsScreen() {
 	const insets = useSafeAreaInsets();
@@ -41,7 +43,7 @@ export default function TopicsScreen() {
 	const carouselRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
 
-	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
+	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const {
 		BlurModal: HideTopicBlurModal,
@@ -63,27 +65,61 @@ export default function TopicsScreen() {
 
 	const handleViewDetails = useCallback(
 		(topic: Topic) => {
-			const { upsertDishMediaEntries, updateMediaIdsByKeyAsync } = useDishMediaEntriesStore.getState();
-			const idsPromise = topic.dishItemsPromise.then((items) => {
-				upsertDishMediaEntries(items);
-				return items.map((item) => String(item.dish_media.id));
+			// #633 【設計】SavedTopicsTab と同じパターンで entriesKey 駆動のオンデマンド取得
+			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
+				useDishMediaEntriesStore.getState();
+
+			// #633 【設計】entriesKey を生成（検索条件から一意のキーを作成）
+			const entriesKey = makeDishMediaEntriesKey({
+				categoryId: topic.categoryId,
+				location: params
+					? {
+							latitude: params.location.latitude,
+							longitude: params.location.longitude,
+						}
+					: { place_id: "unknown" }, // フォールバック（通常は params が存在する）
+				radius: 500, // デフォルト値（createDishItemsPromise と同じ）
+				priceLevels: [
+					"PRICE_LEVEL_INEXPENSIVE",
+					"PRICE_LEVEL_MODERATE",
+					"PRICE_LEVEL_EXPENSIVE",
+					"PRICE_LEVEL_VERY_EXPENSIVE",
+				],
+				languageCode: params?.localLanguageCode || "en",
 			});
-			updateMediaIdsByKeyAsync(topic.categoryId, idsPromise, (_, fetchedIds) => fetchedIds);
+
+			// #633 【設計】未取得 & 非ロード中の場合のみ fetch（重複実行を防止）
+			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
+				const getIds = async () => {
+					const dishItems = await createDishItemsPromise(
+						topic.categoryId,
+						topic.category,
+						params!.location.latitude,
+						params!.location.longitude,
+						params!.localLanguageCode,
+					);
+					upsertDishMediaEntries(dishItems);
+					return dishItems.map((item) => String(item.dish_media.id));
+				};
+				// #633 【設計】mergeFn を prev ?? fetched に変更（上書き事故を防止）
+				updateMediaIdsByKeyAsync(entriesKey, getIds(), (prev, fetched) => prev ?? fetched);
+			}
+
 			router.push({
 				pathname: "/[locale]/(tabs)/search/result",
 				params: {
 					locale,
-					topicId: topic.categoryId,
+					entriesKey, // #633 【設計】topicId ではなく entriesKey を渡す
 					...(params && { location: JSON.stringify(params.location) }),
 				},
 			});
 			logFrontendEvent({
 				event_name: "topic_view_details",
 				error_level: "log",
-				payload: { topic_id: topic.categoryId },
+				payload: { topic_id: topic.categoryId, entries_key: entriesKey },
 			});
 		},
-		[locale, params],
+		[locale, params, createDishItemsPromise, logFrontendEvent],
 	);
 
 	const handleBack = () => {

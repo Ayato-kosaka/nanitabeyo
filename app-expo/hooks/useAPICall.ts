@@ -16,13 +16,13 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 export type ApiError = {
 	/** クライアント側で使う大まかな分類コード */
 	code:
-	| "maintenance_mode"
-	| "unsupported_version"
-	| "forbidden"
-	| "http_error"
-	| "api_error"
-	| "invalid_response"
-	| "network_error";
+		| "maintenance_mode"
+		| "unsupported_version"
+		| "forbidden"
+		| "http_error"
+		| "api_error"
+		| "invalid_response"
+		| "network_error";
 
 	/** HTTP ステータス。ネットワークエラー等の場合は undefined or 0 */
 	status?: number;

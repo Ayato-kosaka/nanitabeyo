@@ -2,8 +2,8 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { useLogger } from "@/hooks/useLogger";
 
-// Encapsulates state and handlers for the search result screen
-export function useSearchResult(topicId: string) {
+// #633 【設計】entriesKey ベースに変更（topicId ではなく検索条件全体のキー）
+export function useSearchResult(entriesKey: string) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [showCompletionModal, setShowCompletionModal] = useState(false);
 	const { logFrontendEvent } = useLogger();
@@ -17,7 +17,7 @@ export function useSearchResult(topicId: string) {
 			event_name: "search_result_navigation",
 			error_level: "debug",
 			payload: {
-				topicId,
+				entriesKey, // #633 【設計】entriesKey をログに記録
 				fromIndex: previousIndex,
 				toIndex: index,
 				direction: index > previousIndex ? "next" : "previous",
@@ -31,7 +31,7 @@ export function useSearchResult(topicId: string) {
 		logFrontendEvent({
 			event_name: "search_result_exit",
 			error_level: "log",
-			payload: { topicId, finalIndex: currentIndex },
+			payload: { entriesKey, finalIndex: currentIndex }, // #633 【設計】entriesKey をログに記録
 		});
 		router.back();
 	};
@@ -41,7 +41,7 @@ export function useSearchResult(topicId: string) {
 		logFrontendEvent({
 			event_name: "search_result_return_to_cards",
 			error_level: "log",
-			payload: { topicId },
+			payload: { entriesKey }, // #633 【設計】entriesKey をログに記録
 		});
 		router.back();
 	};
