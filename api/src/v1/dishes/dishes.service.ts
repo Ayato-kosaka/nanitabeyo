@@ -145,9 +145,29 @@ export class DishesService {
       pageSize,
     });
 
-    const contextualContents = googlePlaces?.contextualContents;
-    if (!googlePlaces || !googlePlaces?.places || !contextualContents) {
+    // #636 【バグ】contextualContents は experimental で返却保証が弱いため、places のみ必須とする
+    if (!googlePlaces || !googlePlaces?.places) {
       throw new Error('No places found from Google Maps API');
+    }
+
+    const contextualContents = googlePlaces?.contextualContents;
+
+    // #636 【設計】contextualContents と places の長さが一致しない場合は警告ログを出す
+    const canUseContextual = !!contextualContents &&
+      contextualContents.length === googlePlaces.places.length;
+    if (contextualContents && !canUseContextual) {
+      this.logger.warn(
+        'ContextualContentsLengthMismatch',
+        'bulkImportFromGoogle',
+        {
+          placesLength: googlePlaces.places.length,
+          contextualContentsLength: contextualContents.length,
+        },
+      );
+    } else if (!contextualContents) {
+      this.logger.debug('ContextualContentsMissing', 'bulkImportFromGoogle', {
+        placesLength: googlePlaces.places.length,
+      });
     }
 
     const results: BulkImportDishesResponse = [];
@@ -155,7 +175,56 @@ export class DishesService {
     // 各レストランに対してデータ登録処理（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
-        const contextualContent = contextualContents[index];
+        const contextualContent = canUseContextual ? contextualContents[index] : undefined;
+
+        // #636 【設計】photos: contextualContents.photos を優先、なければ place.photos にフォールバック
+        const photos =
+          contextualContent?.photos && contextualContent.photos.length > 0
+            ? contextualContent.photos
+            : place.photos || [];
+
+        // #636 【設計】reviews: contextualContents.reviews を優先、なければ place.reviews にフォールバック
+        const reviews =
+          contextualContent?.reviews && contextualContent.reviews.length > 0
+            ? contextualContent.reviews
+            : place.reviews || [];
+
+        // #636 【設計】フォールバック発生時のモニタリングログ（どちらを使ったか記録）
+        if (
+          (!contextualContent?.reviews ||
+            contextualContent.reviews.length === 0) &&
+          place.reviews &&
+          place.reviews.length > 0
+        ) {
+          this.logger.log(
+            'ContextualReviewsMissingFallbackToPlaceReviews',
+            'bulkImportFromGoogle',
+            {
+              placeId: place.id || 'unknown',
+              dishCategoryName: dto.categoryName,
+              contextualReviewsCount: contextualContent?.reviews?.length || 0,
+              placeReviewsCount: place.reviews.length,
+            },
+          );
+        }
+
+        if (
+          (!contextualContent?.photos ||
+            contextualContent.photos.length === 0) &&
+          place.photos &&
+          place.photos.length > 0
+        ) {
+          this.logger.warn(
+            'ContextualPhotosMissingFallbackToPlacePhotos',
+            'bulkImportFromGoogle',
+            {
+              placeId: place.id || 'unknown',
+              dishCategoryName: dto.categoryName,
+              contextualPhotosCount: contextualContent?.photos?.length || 0,
+              placePhotosCount: place.photos.length,
+            },
+          );
+        }
 
         // Check required fields with proper validation for latitude/longitude
         const missingFields: string[] = [];
@@ -177,9 +246,6 @@ export class DishesService {
             `Invalid place data - missing fields: ${missingFields.join(', ')}`,
           );
         }
-
-        const reviews = contextualContent.reviews || [];
-        const photos = contextualContent.photos || [];
 
         if (!photos || photos.length === 0) {
           this.logger.warn('NoPhotoForPlace', 'bulkImportFromGoogle', {
@@ -286,7 +352,7 @@ export class DishesService {
             averageRating:
               dishReviews.length > 0
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
-                  dishReviews.length
+                dishReviews.length
                 : 0,
           },
           dish_media: {
@@ -359,7 +425,7 @@ export class DishesService {
   }) {
     // 非同期ジョブ用のペイロード作成
     const jobId = `dish-create-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const idempotencyKey = `${placeId}-${dish.category_id}}`;
+    const idempotencyKey = `${placeId}-${dish.category_id}`;
 
     const jobPayload: CreateDishMediaEntryJobPayload = {
       jobId,
