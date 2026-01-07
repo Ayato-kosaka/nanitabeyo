@@ -109,13 +109,7 @@ export default function DishMediaContent({
 				hasThumbnail: Boolean(dishMediaEntry.dish_media.thumbnailImageUrl),
 			});
 		}
-	}, [
-		bgUri,
-		dishMediaEntry.dish_media.id,
-		dishMediaEntry.dish_media.media_type,
-		dishMediaEntry.dish_media.mediaUrl,
-		dishMediaEntry.dish_media.thumbnailImageUrl,
-	]);
+	}, [bgUri]); // #630 bgUri 変更時のみチェック（他の値はログ用コンテキストのみ）
 
 	// #630 【設計】背景画像のロード状態管理（薄い共通化）
 	const { loadState: bgLoadState, handlers: bgLoadHandlers } = useExpoImageLoadState(bgUri);
@@ -210,6 +204,9 @@ export default function DishMediaContent({
 		}
 	}, [bgLoadState, bgUri, dishMediaEntry.dish_media.id, dishMediaEntry.dish_media.media_type]);
 
+	// #630 【UX】スケルトン表示条件（可読性向上のため派生状態として定義）
+	const shouldShowSkeleton = bgLoadState === "loading" && !isFailed && !isProcessing;
+
 	// #613 TapGesture 用の pressed state
 	const pressed = useSharedValue(0);
 	const pressStyle = useAnimatedStyle(() => ({
@@ -265,7 +262,7 @@ export default function DishMediaContent({
 			</GestureDetector>
 
 			{/* #630 【UX】背景画像ロード中のスケルトン表示（processing/error より下層） */}
-			{bgLoadState === "loading" && !isFailed && !isProcessing && (
+			{shouldShowSkeleton && (
 				<View style={styles.skeletonOverlay} pointerEvents="none">
 					<SkeletonShimmer width="100%" height="100%" />
 				</View>
