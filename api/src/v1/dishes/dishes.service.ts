@@ -145,17 +145,84 @@ export class DishesService {
       pageSize,
     });
 
-    const contextualContents = googlePlaces?.contextualContents;
-    if (!googlePlaces || !googlePlaces?.places || !contextualContents) {
+    // #636 【バグ】contextualContents は experimental で返却保証が弱いため、places のみ必須とする
+    if (!googlePlaces || !googlePlaces?.places) {
       throw new Error('No places found from Google Maps API');
     }
+
+    const contextualContents = googlePlaces?.contextualContents;
 
     const results: BulkImportDishesResponse = [];
 
     // 各レストランに対してデータ登録処理（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
-        const contextualContent = contextualContents[index];
+        const contextualContent = contextualContents?.[index];
+
+        // #636 【設計】contextualContents と places の長さが一致しない場合は警告ログを出す
+        if (
+          contextualContents &&
+          contextualContents.length !== googlePlaces.places!.length
+        ) {
+          this.logger.warn(
+            'ContextualContentsLengthMismatch',
+            'bulkImportFromGoogle',
+            {
+              placesLength: googlePlaces.places!.length,
+              contextualContentsLength: contextualContents.length,
+              placeId: place.id || 'unknown',
+            },
+          );
+        }
+
+        // #636 【設計】photos: contextualContents.photos を優先、なければ place.photos にフォールバック
+        const photos =
+          contextualContent?.photos && contextualContent.photos.length > 0
+            ? contextualContent.photos
+            : place.photos || [];
+
+        // #636 【設計】reviews: contextualContents.reviews を優先、なければ place.reviews にフォールバック
+        const reviews =
+          contextualContent?.reviews && contextualContent.reviews.length > 0
+            ? contextualContent.reviews
+            : place.reviews || [];
+
+        // #636 【設計】フォールバック発生時のモニタリングログ（どちらを使ったか記録）
+        if (
+          (!contextualContent?.reviews ||
+            contextualContent.reviews.length === 0) &&
+          place.reviews &&
+          place.reviews.length > 0
+        ) {
+          this.logger.warn(
+            'ContextualReviewsMissingFallbackToPlaceReviews',
+            'bulkImportFromGoogle',
+            {
+              placeId: place.id || 'unknown',
+              dishCategoryName: dto.categoryName,
+              contextualReviewsCount: contextualContent?.reviews?.length || 0,
+              placeReviewsCount: place.reviews.length,
+            },
+          );
+        }
+
+        if (
+          (!contextualContent?.photos ||
+            contextualContent.photos.length === 0) &&
+          place.photos &&
+          place.photos.length > 0
+        ) {
+          this.logger.warn(
+            'ContextualPhotosMissingFallbackToPlacePhotos',
+            'bulkImportFromGoogle',
+            {
+              placeId: place.id || 'unknown',
+              dishCategoryName: dto.categoryName,
+              contextualPhotosCount: contextualContent?.photos?.length || 0,
+              placePhotosCount: place.photos.length,
+            },
+          );
+        }
 
         // Check required fields with proper validation for latitude/longitude
         const missingFields: string[] = [];
@@ -177,9 +244,6 @@ export class DishesService {
             `Invalid place data - missing fields: ${missingFields.join(', ')}`,
           );
         }
-
-        const reviews = contextualContent.reviews || [];
-        const photos = contextualContent.photos || [];
 
         if (!photos || photos.length === 0) {
           this.logger.warn('NoPhotoForPlace', 'bulkImportFromGoogle', {
