@@ -73,10 +73,6 @@ export default function ResultScreen() {
 		handleClose();
 	};
 
-	// #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
-	// #633 【防御】entriesKey が undefined の場合も loading を表示（戻る処理中）
-	if (isLoading || !entriesKey) return <RestaurantLoading />;
-
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
@@ -94,6 +90,14 @@ export default function ResultScreen() {
 				entriesKey={entriesKey || ""} // #633 【設計】entriesKey を使用（防御的に空文字列を渡す）
 				idType={idType}
 			/>
+
+			{/* #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
+			{/* #633 【防御】entriesKey が undefined の場合も loading を表示（戻る処理中） */}
+			{(isLoading || !entriesKey) && (
+				<View style={StyleSheet.absoluteFill} pointerEvents="auto">
+					<RestaurantLoading />
+				</View>
+			)}
 		</LinearGradient>
 	);
 }

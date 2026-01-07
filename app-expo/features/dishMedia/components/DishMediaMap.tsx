@@ -72,7 +72,7 @@ export default function DishMediaMap({
 
 	// 画面を開いた時点の並びを固定するための state
 	// liked/unlike 等のリアルタイム反映は行わない
-	const [ids, setIds] = useState<string[]>([]);
+	const [ids, setIds] = useState<string[]>(() => liveIds);
 	useEffect(() => {
 		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
 	}, [liveIds, ids.length]);
@@ -145,6 +145,7 @@ export default function DishMediaMap({
 		transform: [{ translateY: translateY.value }],
 	}));
 
+	// マップの表示領域計算（全ピンが見えるように調整）
 	const getMapRegion = useCallback((): Region => {
 		if (restaurants.length === 0) {
 			return {
@@ -186,6 +187,7 @@ export default function DishMediaMap({
 			longitudeDelta: lngDelta,
 		};
 	}, [restaurants, initialLocation]);
+	const region = useMemo(() => getMapRegion(), [getMapRegion]);
 
 	useEffect(() => {
 		// 初期位置設定
@@ -339,7 +341,7 @@ export default function DishMediaMap({
 
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
-				<MapView ref={mapRef} style={styles.map} initialRegion={getMapRegion()}>
+				<MapView ref={mapRef} style={styles.map} initialRegion={region}>
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
 							key={`marker-${restaurant.google_place_id}`}
