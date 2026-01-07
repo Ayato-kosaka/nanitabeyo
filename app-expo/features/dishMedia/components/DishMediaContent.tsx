@@ -19,6 +19,8 @@ import type { MediaProcessingStatus, QueryDishMediaByIdsResponse } from "@shared
 import { useAPICall } from "@/hooks/useAPICall";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { SkeletonShimmer } from "@/components/SkeletonShimmer";
+import { useExpoImageLoadState } from "@/hooks/useExpoImageLoadState";
 
 interface DishMediaContentProps {
 	id: string;
@@ -85,6 +87,29 @@ export default function DishMediaContent({
 	const isFailed = mediaProcessingStatus === "failed";
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
+
+	// #630 【設計】背景画像として使用する URI を統一（動画/画像で分岐）
+	const bgUri = useMemo(() => {
+		if (isVideo) {
+			// #630 動画の場合: 常に thumbnail を背景として使用
+			return dishMediaEntry.dish_media.thumbnailImageUrl;
+		} else {
+			// #630 画像の場合: mediaUrl があれば使用、なければ thumbnail
+			return dishMediaEntry.dish_media.mediaUrl ?? dishMediaEntry.dish_media.thumbnailImageUrl;
+		}
+	}, [isVideo, dishMediaEntry.dish_media.mediaUrl, dishMediaEntry.dish_media.thumbnailImageUrl]);
+
+	// #630 【設計】背景画像のロード状態管理（薄い共通化）
+	const { loadState: bgLoadState, handlers: bgLoadHandlers } = useExpoImageLoadState(bgUri);
+
+	// #630 【設計】背景画像ソース（ロードハンドラと連動）
+	const bgSource = useMemo(
+		() => ({
+			uri: bgUri,
+			cacheKey: getCacheKeyForImage(bgUri),
+		}),
+		[bgUri],
+	);
 
 	useEffect(() => {
 		const mediaId = dishMediaEntry.dish_media.id;
@@ -155,6 +180,17 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.mediaUrl,
 	]);
 
+	// #630 【設計】背景画像ロード失敗時のログ記録（UI は追加しない）
+	useEffect(() => {
+		if (bgLoadState === "error") {
+			console.error("[DishMediaContent] Background image load failed", {
+				bgUri,
+				mediaId: dishMediaEntry.dish_media.id,
+				mediaType: dishMediaEntry.dish_media.media_type,
+			});
+		}
+	}, [bgLoadState, bgUri, dishMediaEntry.dish_media.id, dishMediaEntry.dish_media.media_type]);
+
 	// #613 TapGesture 用の pressed state
 	const pressed = useSharedValue(0);
 	const pressStyle = useAnimatedStyle(() => ({
@@ -185,42 +221,36 @@ export default function DishMediaContent({
 		<View style={styles.container}>
 			<GestureDetector gesture={tapGesture}>
 				<Animated.View style={[StyleSheet.absoluteFill, pressStyle]}>
-					{/* Background Media (Image or Video) */}
-					{isVideo ? (
-						<>
-							{/* #530 【設計】動画の場合: サムネイルを常に背景として表示 */}
-							<Image
-								source={thumbnailSource}
-								cachePolicy="memory-disk"
-								transition={100}
-								style={StyleSheet.absoluteFill}
-								contentFit="cover"
-							/>
-							{/* #530 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
-							{hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
-								<VideoPlayer
-									uri={dishMediaEntry.dish_media.mediaUrl}
-									style={StyleSheet.absoluteFill}
-									shouldPlay={isActive}
-									onProgress={handleVideoProgress}
-									onLoop={handleVideoLoop}
-								/>
-							)}
-						</>
-					) : (
-						<>
-							{/* #530 【設計】画像の場合: mediaUrl があれば表示、なければサムネイルを fallback */}
-							<Image
-								source={hasMediaUrl ? mediaSource : thumbnailSource}
-								cachePolicy="memory-disk"
-								transition={100}
-								style={StyleSheet.absoluteFill}
-								contentFit="cover"
-							/>
-						</>
+					{/* #630 【設計】背景画像を統一（動画/画像共通でロード状態管理） */}
+					<Image
+						source={bgSource}
+						cachePolicy="memory-disk"
+						transition={100}
+						style={StyleSheet.absoluteFill}
+						contentFit="cover"
+						onLoadStart={bgLoadHandlers.onLoadStart}
+						onLoad={bgLoadHandlers.onLoad}
+						onError={bgLoadHandlers.onError}
+					/>
+					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
+					{isVideo && hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
+						<VideoPlayer
+							uri={dishMediaEntry.dish_media.mediaUrl}
+							style={StyleSheet.absoluteFill}
+							shouldPlay={isActive}
+							onProgress={handleVideoProgress}
+							onLoop={handleVideoLoop}
+						/>
 					)}
 				</Animated.View>
 			</GestureDetector>
+
+			{/* #630 【UX】背景画像ロード中のスケルトン表示（processing/error より下層） */}
+			{bgLoadState === "loading" && !isFailed && !isProcessing && (
+				<View style={styles.skeletonOverlay} pointerEvents="none">
+					<SkeletonShimmer width="100%" height="100%" />
+				</View>
+			)}
 
 			{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
 			{isProcessing && (
@@ -362,6 +392,11 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "flex-end",
 		justifyContent: "flex-end",
+	},
+	// #630 【UX】背景画像ロード中のスケルトン表示（processing/error より下層 zIndex=2）
+	skeletonOverlay: {
+		...StyleSheet.absoluteFillObject,
+		zIndex: 2,
 	},
 	// #511 【設計】処理中オーバーレイスタイル
 	processingOverlay: {
