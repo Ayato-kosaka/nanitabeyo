@@ -58,7 +58,7 @@ export default function ProfileSearchResultScreen() {
 
 			{/* #420 店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
 			{isLoading && (
-				<View style={StyleSheet.absoluteFill} pointerEvents="auto">
+				<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
 					<RestaurantLoading />
 				</View>
 			)}
