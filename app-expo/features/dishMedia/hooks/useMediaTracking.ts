@@ -33,6 +33,16 @@ export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: Use
 	// ===== Impression Tracking =====
 	useEffect(() => {
 		if (isActive) {
+			if (!impressionId.current)
+				logFrontendEvent({
+					event_name: "dish_media_impression_started",
+					error_level: "log",
+					payload: {
+						dish_media_id: dishMedia.id,
+					},
+				});
+
+			// 新しいインプレッションを作成
 			const id = Crypto.randomUUID();
 			impressionId.current = id;
 			watchStartTime.current = new Date();

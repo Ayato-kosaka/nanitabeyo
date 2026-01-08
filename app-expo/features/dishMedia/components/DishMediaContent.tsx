@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -32,6 +32,7 @@ interface DishMediaContentProps {
 	entriesKey: string;
 	idType: IdType;
 	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
+	displayIndex?: number;
 }
 
 export default function DishMediaContent({
@@ -43,6 +44,7 @@ export default function DishMediaContent({
 	entriesKey,
 	idType,
 	onCardPress, // #613 【設計】カード押下時のコールバック
+	displayIndex,
 }: DishMediaContentProps) {
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {

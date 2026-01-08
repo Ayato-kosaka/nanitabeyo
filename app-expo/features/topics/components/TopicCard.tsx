@@ -20,7 +20,15 @@ const MAX_AUTO_RETRY = 2;
 const RETRY_DELAY_MS = 1000;
 
 // Display a single topic card inside the carousel
-export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
+export const TopicCard = ({
+	item,
+	onHide,
+	displayIndex,
+}: {
+	item: Topic;
+	onHide: (id: string) => void;
+	displayIndex?: number;
+}) => {
 	const [isSaved, setIsSaved] = useState(false);
 	// #615 画像ロード失敗回数（自動リトライ制御用）
 	const [errorCount, setErrorCount] = useState(0);
@@ -32,6 +40,8 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 	const retryTimerRef = useRef<number | null>(null);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	// impression ログ送信済みフラグ（重複防止用）
+	const impressionLoggedRef = useRef(false);
 
 	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（reloadToken 変更時のみタイムスタンプ生成）
 	const imageUrlWithCacheBuster = useMemo(() => {
@@ -153,6 +163,21 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 			}
 		};
 	}, []);
+
+	// ログ追加【仕様】topic_impression ログ送信（カード表示時に1回のみ）
+	useEffect(() => {
+		if (!impressionLoggedRef.current) {
+			impressionLoggedRef.current = true;
+			logFrontendEvent({
+				event_name: "topic_impression",
+				error_level: "log",
+				payload: {
+					topic_id: item.categoryId,
+					display_index: displayIndex ?? null,
+				},
+			});
+		}
+	}, [item.categoryId, displayIndex, logFrontendEvent]);
 
 	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
 	const handleManualRetry = useCallback(() => {
