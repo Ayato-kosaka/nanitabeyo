@@ -38,8 +38,8 @@ const HANDLE_HEIGHT = 44;
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
 const HANDLE_COLOR = "#FFFFFFFF";
-// #638 【設計】フローティングボタンのマージン（ハンドルからの距離）
-const FLOATING_BUTTON_MARGIN = 16;
+// #638 【設計】フローティングボタンのマージン（右端からの距離）
+const FLOATING_BUTTON_MARGIN = 8;
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -274,7 +274,7 @@ export default function DishMediaMap({
 	);
 
 	// #638 【設計】現在選択中のエントリーを取得
-	const currentEntry = useMemo(() => {
+	const getCurrentEntry = useCallback(() => {
 		if (ids.length === 0 || currentIndex >= ids.length) return null;
 		const currentId = ids[currentIndex];
 		const state = useDishMediaEntriesStore.getState();
@@ -283,12 +283,13 @@ export default function DishMediaMap({
 
 	// #638 【設計】フローティングボタン押下時に Google マップで開く
 	const handleOpenInGoogleMaps = useCallback(async () => {
+		const currentEntry = getCurrentEntry();
 		if (!currentEntry) return;
 		await openInGoogleMaps({
 			dishMediaId: currentEntry.dish_media.id,
 			restaurant: currentEntry.restaurant,
 		});
-	}, [currentEntry, openInGoogleMaps]);
+	}, [getCurrentEntry, openInGoogleMaps]);
 
 	return (
 		<View style={styles.container}>
@@ -323,23 +324,25 @@ export default function DishMediaMap({
 
 			{/* #605 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
 			<Animated.View style={[styles.carouselWrapper, animatedCarouselStyle]}>
+				{/* #638 【設計】Google マップで開くフローティングボタン（カード上部に配置） */}
+				<View style={styles.floatingButtonContainer} pointerEvents="box-none">
+					<PrimaryButton
+						label={i18n.t("Map.buttons.openInGoogle")}
+						onPress={handleOpenInGoogleMaps}
+						style={styles.floatingButton}
+						labelStyle={{ color: "#5EA2FF" }}
+						colors={["#F0F8FF", "#F0F8FF"]}
+						shadowColor="transparent"
+						borderRadius={8}
+					/>
+				</View>
+
 				{/* #605 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
 				<GestureDetector gesture={panGesture}>
 					<View style={styles.handleContainer}>
 						<View style={styles.handle} />
 					</View>
 				</GestureDetector>
-
-				{/* #638 【設計】Google マップで開くフローティングボタン（カード上部に配置） */}
-				{currentEntry && (
-					<View style={styles.floatingButtonContainer}>
-						<PrimaryButton
-							label={i18n.t("Map.buttons.openInGoogle")}
-							onPress={handleOpenInGoogleMaps}
-							style={styles.floatingButton}
-						/>
-					</View>
-				)}
 
 				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
 				<Carousel
@@ -414,16 +417,15 @@ const styles = StyleSheet.create({
 	// #638 【設計】フローティングボタンコンテナ（カード上部に配置）
 	floatingButtonContainer: {
 		position: "absolute",
-		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2 + HANDLE_HEIGHT + FLOATING_BUTTON_MARGIN,
-		left: 0,
-		right: 0,
-		alignItems: "center",
+		alignItems: "flex-end",
+		width: "100%",
 		zIndex: 4,
 	},
 	// #638 【設計】フローティングボタンスタイル
 	floatingButton: {
-		width: width * 0.7,
-		maxWidth: 320,
+		width: width * 0.4,
+		minWidth: 150,
+		marginRight: FLOATING_BUTTON_MARGIN,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
