@@ -94,7 +94,7 @@ export default function ResultScreen() {
 			{/* #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
 			{/* #633 【防御】entriesKey が undefined の場合も loading を表示（戻る処理中） */}
 			{(isLoading || !entriesKey) && (
-				<View style={StyleSheet.absoluteFill} pointerEvents="auto">
+				<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
 					<RestaurantLoading />
 				</View>
 			)}

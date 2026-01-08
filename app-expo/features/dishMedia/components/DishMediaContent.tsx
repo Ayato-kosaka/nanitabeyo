@@ -20,8 +20,8 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
-import { useExpoImageLoadState } from "@/hooks/useExpoImageLoadState";
 import { useLogger } from "@/hooks/useLogger";
+import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 
 interface DishMediaContentProps {
 	id: string;
@@ -97,17 +97,50 @@ export default function DishMediaContent({
 	}, [bgUri]); // #630 bgUri 変更時のみチェック（他の値はログ用コンテキストのみ）
 
 	// #630 【設計】背景画像のロード状態管理（薄い共通化）
-	const { loadState: bgLoadState, handlers: bgLoadHandlers } = useExpoImageLoadState(bgUri);
+	const {
+		uri: bgUriWithBuster,
+		loadState: bgLoadState,
+		handlers: bgLoadHandlers,
+	} = useImageLoadWithRetry({
+		uri: bgUri,
+		cacheBustingKey: dishMediaEntry.dish_media.id,
+		enableAutoRetry: true,
+		onErrorCountChange: (count) => {
+			logFrontendEvent({
+				event_name: "dish_media_background_image_load_error",
+				error_level: "log",
+				payload: {
+					media_id: dishMediaEntry.dish_media.id,
+					media_type: dishMediaEntry.dish_media.media_type,
+					bg_uri: bgUri,
+					error_count: count,
+				},
+			});
+		},
+		onGiveUp: (count) => {
+			logFrontendEvent({
+				event_name: "dish_media_background_image_load_error",
+				error_level: "error",
+				payload: {
+					media_id: dishMediaEntry.dish_media.id,
+					media_type: dishMediaEntry.dish_media.media_type,
+					bg_uri: bgUri,
+					error_count: count,
+				},
+			});
+		},
+	});
 
 	// #630 【設計】背景画像ソース（ロードハンドラと連動）
 	const bgSource = useMemo(
 		() => ({
-			uri: bgUri,
-			cacheKey: getCacheKeyForImage(bgUri),
+			uri: bgUriWithBuster,
+			cacheKey: getCacheKeyForImage(bgUriWithBuster ?? bgUri),
 		}),
-		[bgUri],
+		[bgUri, bgUriWithBuster],
 	);
 
+	// 【設計】メディア処理状況のポーリング
 	useEffect(() => {
 		const mediaId = dishMediaEntry.dish_media.id;
 		const shouldPoll =
@@ -176,21 +209,6 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.media_processing_status,
 		dishMediaEntry.dish_media.mediaUrl,
 	]);
-
-	// #630 【設計】背景画像ロード失敗時のログ記録（UI は追加しない）
-	useEffect(() => {
-		if (bgLoadState === "error") {
-			logFrontendEvent({
-				event_name: "dish_media_background_image_load_error",
-				error_level: "error",
-				payload: {
-					media_id: dishMediaEntry.dish_media.id,
-					media_type: dishMediaEntry.dish_media.media_type,
-					bg_uri: bgUri,
-				},
-			});
-		}
-	}, [bgLoadState, logFrontendEvent, dishMediaEntry.dish_media.id, dishMediaEntry.dish_media.media_type, bgUri]);
 
 	// #630 【UX】スケルトン表示条件（可読性向上のため派生状態として定義）
 	const shouldShowSkeleton = bgLoadState === "loading" && !isFailed && !isProcessing;

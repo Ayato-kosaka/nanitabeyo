@@ -11,13 +11,8 @@ import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
-import { useExpoImageLoadState } from "@/hooks/useExpoImageLoadState";
 import i18n from "@/lib/i18n";
-
-// #615 【設計】画像ロード失敗時の自動リトライ最大回数
-const MAX_AUTO_RETRY = 2;
-// #615 【設計】リトライ間隔（ミリ秒）
-const RETRY_DELAY_MS = 1000;
+import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 
 // Display a single topic card inside the carousel
 export const TopicCard = ({
@@ -30,37 +25,50 @@ export const TopicCard = ({
 	displayIndex?: number;
 }) => {
 	const [isSaved, setIsSaved] = useState(false);
-	// #615 画像ロード失敗回数（自動リトライ制御用）
-	const [errorCount, setErrorCount] = useState(0);
-	// #615 【設計】画像リロードトークン（キャッシュ回避用クエリパラメータ）
-	const [reloadToken, setReloadToken] = useState(0);
-	// #615 【設計】リトライ中状態（基本ロード状態とは別管理）
-	const [isRetrying, setIsRetrying] = useState(false);
-	// #615 リトライタイマーの参照を保持（unmount 時のクリーンアップ用）
-	const retryTimerRef = useRef<number | null>(null);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	// impression ログ送信済みフラグ（重複防止用）
-	const impressionLoggedRef = useRef(false);
 
-	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（reloadToken 変更時のみタイムスタンプ生成）
-	const imageUrlWithCacheBuster = useMemo(() => {
-		if (reloadToken === 0) {
-			return item.imageUrl;
-		}
-		const separator = item.imageUrl.includes("?") ? "&" : "?";
-		return `${item.imageUrl}${separator}t=${reloadToken}_${item.categoryId}`;
-	}, [item.imageUrl, item.categoryId, reloadToken]);
-
-	// #630 【設計】useExpoImageLoadState を使用して基本ロード状態を管理
-	const { loadState, handlers } = useExpoImageLoadState(imageUrlWithCacheBuster);
+	// #630 【設計】useImageLoadWithRetry を利用して、画像ロード状態 + 自動リトライ管理
+	const {
+		uri: imageUrl,
+		loadState,
+		isRetrying,
+		hasGivenUp,
+		handlers,
+		manualRetry,
+	} = useImageLoadWithRetry({
+		uri: item.imageUrl,
+		cacheBustingKey: item.categoryId,
+		onErrorCountChange: (count) => {
+			logFrontendEvent({
+				event_name: "topic_image_load_error",
+				error_level: "log",
+				payload: {
+					topic_id: item.categoryId,
+					error_count: count,
+					image_url: item.imageUrl,
+				},
+			});
+		},
+		onGiveUp: (count) => {
+			logFrontendEvent({
+				event_name: "topic_image_load_give_up",
+				error_level: "warn",
+				payload: {
+					topic_id: item.categoryId,
+					error_count: count,
+					image_url: item.imageUrl,
+				},
+			});
+		},
+	});
 
 	const source = useMemo(
 		() => ({
-			uri: imageUrlWithCacheBuster,
+			uri: imageUrl,
 			headers: WIKIMEDIA_HEADERS,
 		}),
-		[imageUrlWithCacheBuster],
+		[imageUrl],
 	);
 
 	const handleSave = async () => {
@@ -115,54 +123,8 @@ export const TopicCard = ({
 		onHide(item.categoryId);
 	};
 
-	// #630 【設計】共通フックの onError に TopicCard 固有のリトライロジックを追加
-	const handleImageError = useCallback(() => {
-		// #630 共通フックの onError を呼び出す
-		handlers.onError();
-
-		// #615 既存のリトライタイマーをクリアして重複を防ぐ
-		if (retryTimerRef.current) {
-			clearTimeout(retryTimerRef.current);
-			retryTimerRef.current = null;
-		}
-
-		setErrorCount((prevCount) => {
-			const newCount = prevCount + 1;
-
-			logFrontendEvent({
-				event_name: "topic_image_load_error",
-				error_level: "log",
-				payload: {
-					topic_id: item.categoryId,
-					error_count: newCount,
-					image_url: item.imageUrl,
-				},
-			});
-
-			if (newCount <= MAX_AUTO_RETRY) {
-				// #615 【設計】自動リトライ中はスケルトンを維持。リトライごとに待機時間を増やす（バックオフ）
-				setIsRetrying(true);
-				retryTimerRef.current = setTimeout(() => {
-					setReloadToken((prev) => prev + 1);
-					setIsRetrying(false);
-				}, RETRY_DELAY_MS * newCount);
-			} else {
-				// 自動リトライ超過後は失敗確定
-				setIsRetrying(false);
-			}
-
-			return newCount;
-		});
-	}, [handlers, item.categoryId, item.imageUrl, logFrontendEvent]);
-
-	// #615 unmount 時にリトライタイマーをクリーンアップ（unmounted component への state 更新を防ぐ）
-	useEffect(() => {
-		return () => {
-			if (retryTimerRef.current) {
-				clearTimeout(retryTimerRef.current);
-			}
-		};
-	}, []);
+	// impression ログ送信済みフラグ（重複防止用）
+	const impressionLoggedRef = useRef(false);
 
 	// ログ追加【仕様】topic_impression ログ送信（カード表示時に1回のみ）
 	useEffect(() => {
@@ -181,27 +143,18 @@ export const TopicCard = ({
 
 	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
 	const handleManualRetry = useCallback(() => {
-		// #615 既存のリトライタイマーをクリアしてレースコンディションを防ぐ
-		if (retryTimerRef.current) {
-			clearTimeout(retryTimerRef.current);
-			retryTimerRef.current = null;
-		}
-		setErrorCount(0);
-		setIsRetrying(true);
-		setReloadToken((prev) => prev + 1);
-		// #630 リトライ開始後、少し遅延させてから isRetrying を false にする（読み込み開始を待つ）
-		setTimeout(() => setIsRetrying(false), 100);
+		manualRetry();
 		logFrontendEvent({
 			event_name: "topic_image_manual_retry",
 			error_level: "log",
 			payload: { topic_id: item.categoryId },
 		});
-	}, [item.categoryId, logFrontendEvent]);
+	}, [manualRetry, item.categoryId, logFrontendEvent]);
 
 	// #630 【UX】派生状態: スケルトン表示条件（loading または retrying 中）
 	const shouldShowSkeleton = loadState === "loading" || isRetrying;
-	// #630 【UX】派生状態: 失敗UI表示条件（error かつ自動リトライ上限超過）
-	const shouldShowFailureUI = loadState === "error" && errorCount > MAX_AUTO_RETRY;
+	// #630 【UX】派生状態: 失敗UI表示条件
+	const shouldShowFailureUI = loadState === "error" && hasGivenUp;
 
 	return (
 		<View style={styles.card}>
@@ -212,7 +165,7 @@ export const TopicCard = ({
 				style={styles.cardImage}
 				onLoadStart={handlers.onLoadStart}
 				onLoad={handlers.onLoad}
-				onError={handleImageError}
+				onError={handlers.onError}
 			/>
 
 			{/* #615 【UX】画像ロード中のスケルトン表示 */}
