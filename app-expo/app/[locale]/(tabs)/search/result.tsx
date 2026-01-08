@@ -32,7 +32,7 @@ export default function ResultScreen() {
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey || "", idType)(state),
-		[entriesKey],
+		[entriesKey, idType],
 	);
 	const { isLoading } = useDishMediaEntriesStore(selector, shallow);
 	const initialLocation = useMemo(() => {

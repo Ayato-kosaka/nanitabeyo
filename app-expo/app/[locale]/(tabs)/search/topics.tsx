@@ -14,7 +14,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { LinearGradient } from "expo-linear-gradient";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { CARD_WIDTH, CARD_HEIGHT, width, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "@/features/topics/constants";
+import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -81,8 +81,8 @@ export default function TopicsScreen() {
 					latitude: params.location.latitude,
 					longitude: params.location.longitude,
 				},
-				radius: DEFAULT_SEARCH_RADIUS, // #633 【設計】constants から参照（createDishItemsPromise と同じ）
-				priceLevels: [...DEFAULT_PRICE_LEVELS], // #633 【設計】constants から参照（createDishItemsPromise と同じ）
+				radius: params.distance,
+				priceLevels: params.priceLevels,
 				languageCode: params.localLanguageCode,
 			});
 
@@ -95,12 +95,14 @@ export default function TopicsScreen() {
 						params.location.latitude,
 						params.location.longitude,
 						params.localLanguageCode,
+						params.distance,
+						params.priceLevels,
 					);
 					upsertDishMediaEntries(dishItems);
+					console.log("getIds dishItems:", dishItems);
 					return dishItems.map((item) => String(item.dish_media.id));
 				};
-				// #633 【設計】mergeFn を prev ?? fetched に変更（上書き事故を防止）
-				updateMediaIdsByKeyAsync(entriesKey, getIds(), (prev, fetched) => prev ?? fetched);
+				updateMediaIdsByKeyAsync(entriesKey, getIds(), (_, fetched) => fetched);
 			}
 
 			router.push({
