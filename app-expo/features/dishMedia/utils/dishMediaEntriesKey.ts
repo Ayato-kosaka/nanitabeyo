@@ -13,7 +13,7 @@
  * @param categoryId - 料理カテゴリ ID
  * @param location - 緯度経度（小数点以下4桁に丸め = 約11m精度）または place_id
  * @param radius - 検索半径（メートル）
- * @param priceLevels - 価格帯の配列（ソート済み）
+ * @param priceLevels - 価格帯の配列（順序は問わない）
  * @param languageCode - 検索言語コード
  * @returns 一意の entriesKey 文字列
  */
