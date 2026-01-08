@@ -593,13 +593,13 @@ export const mockDishItems: (DishMediaEntry & {
 	},
 ];
 
+// #633 【設計】モックデータから dishItemsPromise を削除（重い処理はユーザー操作後に限定）
 export const mockTopicCards: Topic[] = [
 	{
 		categoryId: "card_1",
 		category: "味噌ラーメン",
 		topicTitle: "濃厚味噌ラーメン",
 		reason: "コクのある味噌スープと香ばしい炒め野菜が夜の食欲をかき立てる。",
-		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4nqgnYqPr-Q73EMitftL7WnRGlMjcZBdSU-1fhcEsVTC3wdineaj4P_lVEUHHdXvOnPwhG7_ako4TS3pNDSwhVv_Dmx5yB2ZDR5f5_0bEQwkXWftHEWnljDb0fT9z8bYuL1JOmI=w426-h240-k-no",
 	},
@@ -608,7 +608,6 @@ export const mockTopicCards: Topic[] = [
 		category: "一人焼肉",
 		topicTitle: "ソロ焼肉で至福の夜",
 		reason: "誰にも気兼ねせず、自分のペースで焼き上げる肉は格別のご褒美。",
-		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipN7p6dRdFPv6mJZkpvoya8MZlJb23fME9KRF9Fg=w408-h271-k-no",
 	},
 	{
@@ -616,7 +615,6 @@ export const mockTopicCards: Topic[] = [
 		category: "油そば",
 		topicTitle: "旨タレ絡む油そば",
 		reason: "濃いめの特製タレと麺の食感で一口ごとに満足感が増す。",
-		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4npr2MUHlL9tLu1_mMfU3vSvsUlffxoYTRZPwMz-OgG6yzByp7Id0OOrEe7aXaw_FCZ8yl8_YxdeYWcK8lLOAVgahObUJBr1wn94TJO958BI2Us4C537404w4kd__KGV2_EMtsUt=w408-h306-k-no",
 	},
@@ -625,7 +623,6 @@ export const mockTopicCards: Topic[] = [
 		category: "唐揚げ定食",
 		topicTitle: "ジューシー唐揚げ定食",
 		reason: "カリッと揚がった唐揚げからあふれる肉汁が食欲を直撃。",
-		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipMCK846QdzWMTFmIIib1hCRNvGjsmgQ08tdbjRp=w408-h326-k-no",
 	},
 	{
@@ -633,7 +630,6 @@ export const mockTopicCards: Topic[] = [
 		category: "ハンバーグ",
 		topicTitle: "肉汁あふれるハンバーグ",
 		reason: "ナイフを入れた瞬間に溢れる肉汁と香ばしさで贅沢な満足感を。",
-		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl:
 			"https://lh3.googleusercontent.com/gps-cs-s/AC9h4npFJRl34iWIfASQQ-4YKpjHxuLb6ILDUPoEYdtici0y0lvH4WyEO9vZobZvqdtZB5OLp_lpNRVnR_0YCOCIdHfnHaMF2y2Wc0mOTCbwKntJ4v03vQAFsOeFnAMyqu-w65UwBiXP5g=w408-h306-k-no",
 	},
@@ -642,7 +638,6 @@ export const mockTopicCards: Topic[] = [
 		category: "韓国料理",
 		topicTitle: "ピリ辛韓国料理",
 		reason: "甘辛ダレや香ばしい風味がクセになる。疲れた夜に元気をチャージ。",
-		dishItemsPromise: Promise.resolve(mockDishItems),
 		imageUrl: "https://lh3.googleusercontent.com/p/AF1QipPW3SRWwsAxuNRdSd479pA-pNL67QaYY6mxpEAt=w408-h326-k-no",
 	},
 ];

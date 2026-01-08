@@ -19,7 +19,7 @@ import type {
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
-import { CARD_WIDTH } from "../constants";
+import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -29,7 +29,7 @@ export const useTopicSearch = () => {
 	const locale = useLocale();
 	const { logFrontendEvent } = useLogger();
 
-	// Helper function to create dishItemsPromise with image preloading (DRY principle)
+	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
 	const createDishItemsPromise = useCallback(
 		(
 			categoryId: Topic["categoryId"],
@@ -37,13 +37,8 @@ export const useTopicSearch = () => {
 			latitude: number,
 			longitude: number,
 			searchLocationLanguageCode: string,
-			radius: number = 500, // Default 500m
-			priceLevels: string[] = [
-				"PRICE_LEVEL_INEXPENSIVE",
-				"PRICE_LEVEL_MODERATE",
-				"PRICE_LEVEL_EXPENSIVE",
-				"PRICE_LEVEL_VERY_EXPENSIVE",
-			],
+			radius: number = DEFAULT_SEARCH_RADIUS,
+			priceLevels: string[] = [...DEFAULT_PRICE_LEVELS],
 		): Promise<DishMediaEntry[]> => {
 			return (async (): Promise<DishMediaEntry[]> => {
 				// Get restaurant number from remote config
@@ -147,16 +142,10 @@ export const useTopicSearch = () => {
 					}));
 
 				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
+					// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
 					return {
 						...topic,
 						isHidden: false,
-						dishItemsPromise: createDishItemsPromise(
-							topic.categoryId,
-							topic.category,
-							params.location.latitude,
-							params.location.longitude,
-							params.localLanguageCode,
-						),
 					};
 				};
 
