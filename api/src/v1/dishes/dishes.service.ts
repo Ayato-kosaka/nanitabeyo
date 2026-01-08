@@ -153,7 +153,8 @@ export class DishesService {
     const contextualContents = googlePlaces?.contextualContents;
 
     // #636 【設計】contextualContents と places の長さが一致しない場合は警告ログを出す
-    const canUseContextual = !!contextualContents &&
+    const canUseContextual =
+      !!contextualContents &&
       contextualContents.length === googlePlaces.places.length;
     if (contextualContents && !canUseContextual) {
       this.logger.warn(
@@ -175,7 +176,9 @@ export class DishesService {
     // 各レストランに対してデータ登録処理（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
       try {
-        const contextualContent = canUseContextual ? contextualContents[index] : undefined;
+        const contextualContent = canUseContextual
+          ? contextualContents[index]
+          : undefined;
 
         // #636 【設計】photos: contextualContents.photos を優先、なければ place.photos にフォールバック
         const photos =
@@ -352,7 +355,7 @@ export class DishesService {
             averageRating:
               dishReviews.length > 0
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
-                dishReviews.length
+                  dishReviews.length
                 : 0,
           },
           dish_media: {

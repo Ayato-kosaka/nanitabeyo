@@ -22,6 +22,7 @@ import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { PrimaryButton } from "@/components/PrimaryButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -270,6 +271,23 @@ export default function DishMediaMap({
 		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
 	);
 
+	// #638 【設計】現在選択中のエントリーを取得
+	const currentEntry = useMemo(() => {
+		if (ids.length === 0 || currentIndex >= ids.length) return null;
+		const currentId = ids[currentIndex];
+		const state = useDishMediaEntriesStore.getState();
+		return idType === "dish_media" ? selectEntryByMediaId(currentId)(state) : selectEntryByReviewId(currentId)(state);
+	}, [ids, currentIndex, idType]);
+
+	// #638 【設計】フローティングボタン押下時に Google マップで開く
+	const handleOpenInGoogleMaps = useCallback(async () => {
+		if (!currentEntry) return;
+		await openInGoogleMaps({
+			dishMediaId: currentEntry.dish_media.id,
+			restaurant: currentEntry.restaurant,
+		});
+	}, [currentEntry, openInGoogleMaps]);
+
 	return (
 		<View style={styles.container}>
 			{/* この位置に置かないとマップが起動しなくなる */}
@@ -309,6 +327,17 @@ export default function DishMediaMap({
 						<View style={styles.handle} />
 					</View>
 				</GestureDetector>
+
+				{/* #638 【設計】Google マップで開くフローティングボタン（カード上部に配置） */}
+				{currentEntry && (
+					<View style={styles.floatingButtonContainer}>
+						<PrimaryButton
+							label={i18n.t("Map.buttons.openInGoogle")}
+							onPress={handleOpenInGoogleMaps}
+							style={styles.floatingButton}
+						/>
+					</View>
+				)}
 
 				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
 				<Carousel
@@ -379,6 +408,20 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.55,
 		shadowRadius: 3,
 		elevation: 4,
+	},
+	// #638 【設計】フローティングボタンコンテナ（カード上部に配置）
+	floatingButtonContainer: {
+		position: "absolute",
+		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2 + HANDLE_HEIGHT + 16,
+		left: 0,
+		right: 0,
+		alignItems: "center",
+		zIndex: 4,
+	},
+	// #638 【設計】フローティングボタンスタイル
+	floatingButton: {
+		width: width * 0.7,
+		maxWidth: 320,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
