@@ -58,8 +58,6 @@ export default function DishMediaContent({
 	const { logFrontendEvent } = useLogger();
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
-	// impression ログ送信済みフラグ（重複防止用）
-	const impressionLoggedRef = useRef(false);
 
 	const { handleVideoProgress, handleVideoLoop } = useMediaTracking({
 		isActive,
@@ -74,22 +72,6 @@ export default function DishMediaContent({
 	const isFailed = mediaProcessingStatus === "failed";
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
-
-	// ログ追加【仕様】dish_media_impression ログ送信（画面表示時に1回のみ、isActiveがtrueのときのみ）
-	useEffect(() => {
-		if (isActive && !impressionLoggedRef.current) {
-			impressionLoggedRef.current = true;
-			logFrontendEvent({
-				event_name: "dish_media_impression",
-				error_level: "log",
-				payload: {
-					dish_media_id: dishMediaEntry.dish_media.id,
-					restaurant_id: dishMediaEntry.restaurant.id,
-					display_index: displayIndex ?? null,
-				},
-			});
-		}
-	}, [isActive, dishMediaEntry.dish_media.id, dishMediaEntry.restaurant.id, displayIndex, logFrontendEvent]);
 
 	// #630 【設計】背景画像として使用する URI を統一（動画/画像で分岐）
 	const bgUri = useMemo(() => {
