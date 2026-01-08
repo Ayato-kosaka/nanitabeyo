@@ -214,6 +214,12 @@ export class LocationsService {
             'places.location',
             'places.addressComponents',
             'places.plusCode',
+            'places.photos.name', // #636 【バグ】contextualContents が返らない場合のフォールバック用
+            'places.photos.widthPx',
+            'places.photos.heightPx',
+            'places.reviews.originalText', // #636 【バグ】contextualContents が返らない場合のフォールバック用
+            'places.reviews.rating',
+            'places.reviews.authorAttribution',
             'contextualContents.photos.name',
             'contextualContents.photos.widthPx',
             'contextualContents.photos.heightPx',

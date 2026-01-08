@@ -9,12 +9,12 @@ export type SearchParams = Omit<LocationDetailsResponse, "viewport"> & {
 	priceLevels: string[]; // price levels
 };
 
+// #633 【設計】Topic 型から dishItemsPromise を削除（重い処理はユーザー操作後に限定）
 export interface Topic {
 	category: string;
 	topicTitle: string;
 	reason: string;
 	categoryId: string;
 	imageUrl: string;
-	dishItemsPromise: Promise<DishMediaEntry[]>;
 	isHidden?: boolean;
 }

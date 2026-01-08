@@ -43,9 +43,6 @@ export default function ProfileSearchResultScreen() {
 		router.back();
 	};
 
-	// #420 店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
-	if (isLoading) return <RestaurantLoading />;
-
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
@@ -58,6 +55,13 @@ export default function ProfileSearchResultScreen() {
 			{/* Feed Content */}
 			{/* <DishMediaFeed items={dishes} onIndexChange={handleIndexChange} /> */}
 			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
+
+			{/* #420 店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
+			{isLoading && (
+				<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
+					<RestaurantLoading />
+				</View>
+			)}
 		</LinearGradient>
 	);
 }
