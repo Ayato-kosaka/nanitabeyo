@@ -5,6 +5,7 @@ import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
 import * as Crypto from "expo-crypto";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -22,6 +23,7 @@ import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { PrimaryButton } from "@/components/PrimaryButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -37,6 +39,8 @@ const HANDLE_HEIGHT = 44;
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
 const HANDLE_COLOR = "#FFFFFFFF";
+// #638 【設計】フローティングボタンのマージン（右端からの距離）
+const FLOATING_BUTTON_MARGIN = 8;
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -95,6 +99,7 @@ export default function DishMediaMap({
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
+	const { logFrontendEvent } = useLogger();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
 	const sessionId = useRef(Crypto.randomUUID());
@@ -194,10 +199,37 @@ export default function DishMediaMap({
 	const handleIndexChange = useCallback(
 		(index: number) => {
 			selectionChanged();
+			// ログ追加【仕様】dish_media_swiped_next ログ送信（前のインデックスと異なる場合のみ）
+			if (
+				index !== currentIndex &&
+				index >= 0 &&
+				index < ids.length &&
+				currentIndex >= 0 &&
+				currentIndex < ids.length
+			) {
+				const state = useDishMediaEntriesStore.getState();
+				const previousEntry =
+					idType === "dish_media"
+						? selectEntryByMediaId(ids[currentIndex])(state)
+						: selectEntryByReviewId(ids[currentIndex])(state);
+				const newEntry =
+					idType === "dish_media" ? selectEntryByMediaId(ids[index])(state) : selectEntryByReviewId(ids[index])(state);
+
+				logFrontendEvent({
+					event_name: "dish_media_swiped_next",
+					error_level: "log",
+					payload: {
+						previous_index: currentIndex,
+						new_index: index,
+						previous_dish_media_id: previousEntry?.dish_media.id ?? null,
+						new_dish_media_id: newEntry?.dish_media.id ?? null,
+					},
+				});
+			}
 			setCurrentIndex(index);
 			onIndexChange?.(index);
 		},
-		[onIndexChange, selectionChanged],
+		[onIndexChange, selectionChanged, currentIndex, ids, idType, logFrontendEvent],
 	);
 
 	const handleMarkerPress = useCallback((index: number) => {
@@ -266,11 +298,30 @@ export default function DishMediaMap({
 					entriesKey={entriesKey}
 					idType={idType}
 					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
+					displayIndex={index}
 				/>
 			</View>
 		),
 		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
 	);
+
+	// #638 【設計】現在選択中のエントリーを取得
+	const getCurrentEntry = useCallback(() => {
+		if (ids.length === 0 || currentIndex >= ids.length) return null;
+		const currentId = ids[currentIndex];
+		const state = useDishMediaEntriesStore.getState();
+		return idType === "dish_media" ? selectEntryByMediaId(currentId)(state) : selectEntryByReviewId(currentId)(state);
+	}, [ids, currentIndex, idType]);
+
+	// #638 【設計】フローティングボタン押下時に Google マップで開く
+	const handleOpenInGoogleMaps = useCallback(async () => {
+		const currentEntry = getCurrentEntry();
+		if (!currentEntry) return;
+		await openInGoogleMaps({
+			dishMediaId: currentEntry.dish_media.id,
+			restaurant: currentEntry.restaurant,
+		});
+	}, [getCurrentEntry, openInGoogleMaps]);
 
 	return (
 		<MarkerBitmapRendererProvider>
@@ -306,6 +357,18 @@ export default function DishMediaMap({
 
 				{/* #605 【設計】Carousel を Animated.View で包み、translateY で上下移動 */}
 				<Animated.View style={[styles.carouselWrapper, animatedCarouselStyle]}>
+					{/* #638 【設計】Google マップで開くフローティングボタン（カード上部に配置） */}
+					<View style={styles.floatingButtonContainer} pointerEvents="box-none">
+						<PrimaryButton
+							label={i18n.t("Map.buttons.openInGoogle")}
+							onPress={handleOpenInGoogleMaps}
+							labelStyle={{ color: "#5EA2FF" }}
+							colors={["#F0F8FF", "#F0F8FF"]}
+							shadowColor="transparent"
+							borderRadius={8}
+						/>
+					</View>
+
 					{/* #605 【設計】ドラッグハンドル（上端バー周辺のみドラッグ可能） */}
 					<GestureDetector gesture={panGesture}>
 						<View style={styles.handleContainer}>
@@ -383,6 +446,12 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.55,
 		shadowRadius: 3,
 		elevation: 4,
+	},
+	// #638 【設計】フローティングボタンコンテナ（カード上部に配置）
+	floatingButtonContainer: {
+		position: "absolute",
+		right: FLOATING_BUTTON_MARGIN,
+		zIndex: 4,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,

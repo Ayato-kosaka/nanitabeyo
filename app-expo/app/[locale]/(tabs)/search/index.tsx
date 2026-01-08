@@ -36,6 +36,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -48,13 +49,10 @@ export default function SearchScreen() {
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
 	const [isSearching, setIsSearching] = useState(false);
-	const [distance, setDistance] = useState<number>(500); // Default 500m
+	const [distance, setDistance] = useState<number>(DEFAULT_SEARCH_RADIUS);
 	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
-		"PRICE_LEVEL_INEXPENSIVE",
-		"PRICE_LEVEL_MODERATE",
-		"PRICE_LEVEL_EXPENSIVE",
-		"PRICE_LEVEL_VERY_EXPENSIVE",
-	]); // Default all selected
+		...DEFAULT_PRICE_LEVELS,
+	]);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();

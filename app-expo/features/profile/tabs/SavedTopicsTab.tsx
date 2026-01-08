@@ -17,6 +17,8 @@ import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import type { AutocompleteLocation } from "@shared/api/v1/res";
 import { shallow } from "zustand/shallow";
+import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
+import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 
 interface SavedTopicsTabProps {
 	isOwnProfile: boolean;
@@ -139,7 +141,12 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 
 			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
 				useDishMediaEntriesStore.getState();
-			const entriesKey = `saved-topic-${selectedTopic.id}-${location.place_id}`;
+			const entriesKey = makeDishMediaEntriesKey({
+				categoryId: selectedTopic.id,
+				location: { place_id: location.place_id },
+				radius: DEFAULT_SEARCH_RADIUS,
+				priceLevels: [...DEFAULT_PRICE_LEVELS],
+			});
 
 			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
 				const getIds = async () => {
