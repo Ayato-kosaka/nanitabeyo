@@ -24,8 +24,7 @@ export function makeDishMediaEntriesKey(params: {
 		latitude: number;
 		longitude: number;
 	}
-	| { place_id: string }
-	| { mainText: string };
+	| { place_id: string };
 	radius: number;
 	priceLevels: string[];
 	languageCode?: string;
@@ -36,9 +35,7 @@ export function makeDishMediaEntriesKey(params: {
 	const locationKey =
 		"place_id" in location
 			? `pid:${location.place_id}`
-			: "mainText" in location
-				? `mt:${location.mainText}`
-				: `ll:${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
+			: `ll:${location.latitude.toFixed(4)},${location.longitude.toFixed(4)}`;
 
 	// #633 【設計】priceLevels はソートして一意性を保証（順序によらず同じキーになる）
 	const sortedPriceLevels = [...priceLevels].sort();

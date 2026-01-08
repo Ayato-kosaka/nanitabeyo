@@ -143,7 +143,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				useDishMediaEntriesStore.getState();
 			const entriesKey = makeDishMediaEntriesKey({
 				categoryId: selectedTopic.id,
-				location: { mainText: location.mainText },
+				location: { place_id: location.place_id },
 				radius: DEFAULT_SEARCH_RADIUS,
 				priceLevels: [...DEFAULT_PRICE_LEVELS],
 			});
