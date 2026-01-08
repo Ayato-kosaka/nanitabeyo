@@ -199,7 +199,11 @@ export const useAPICall = () => {
 					});
 					showDialog(i18n.t("Error.unsupportedVersion"), {
 						okLabel: i18n.t("Common.goStore"),
-						onConfirm: () => storeUrl && Linking.openURL(storeUrl),
+						onConfirm: () => {
+							if (storeUrl) {
+								Linking.openURL(storeUrl);
+							}
+						},
 					});
 					throw {
 						code: "unsupported_version",
