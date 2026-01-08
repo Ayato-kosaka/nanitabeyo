@@ -38,6 +38,8 @@ const HANDLE_HEIGHT = 44;
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
 const HANDLE_COLOR = "#FFFFFFFF";
+// #638 【設計】フローティングボタンのマージン（ハンドルからの距離）
+const FLOATING_BUTTON_MARGIN = 16;
 
 interface DishMediaMapProps {
 	initialIndex?: number;
@@ -412,7 +414,7 @@ const styles = StyleSheet.create({
 	// #638 【設計】フローティングボタンコンテナ（カード上部に配置）
 	floatingButtonContainer: {
 		position: "absolute",
-		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2 + HANDLE_HEIGHT + 16,
+		top: (CAROUSEL_HEIGHT * (1 - PARALLAX_SCALE)) / 2 + HANDLE_HEIGHT + FLOATING_BUTTON_MARGIN,
 		left: 0,
 		right: 0,
 		alignItems: "center",
