@@ -329,7 +329,6 @@ export default function DishMediaMap({
 					<PrimaryButton
 						label={i18n.t("Map.buttons.openInGoogle")}
 						onPress={handleOpenInGoogleMaps}
-						style={styles.floatingButton}
 						labelStyle={{ color: "#5EA2FF" }}
 						colors={["#F0F8FF", "#F0F8FF"]}
 						shadowColor="transparent"
@@ -417,15 +416,8 @@ const styles = StyleSheet.create({
 	// #638 【設計】フローティングボタンコンテナ（カード上部に配置）
 	floatingButtonContainer: {
 		position: "absolute",
-		alignItems: "flex-end",
-		width: "100%",
+		right: FLOATING_BUTTON_MARGIN,
 		zIndex: 4,
-	},
-	// #638 【設計】フローティングボタンスタイル
-	floatingButton: {
-		width: width * 0.4,
-		minWidth: 150,
-		marginRight: FLOATING_BUTTON_MARGIN,
 	},
 	carouselContainer: {
 		height: CAROUSEL_HEIGHT,
