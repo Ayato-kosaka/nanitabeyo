@@ -12,6 +12,7 @@ import {
 	ChevronUp,
 	ChefHat,
 	Salad,
+	HelpCircle,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
@@ -35,13 +36,16 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { useSearchTutorial } from "@/hooks/useSearchTutorial";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
+import { TutorialBottomSheet } from "@/components/TutorialBottomSheet";
 
 export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
@@ -54,6 +58,7 @@ export default function SearchScreen() {
 		...DEFAULT_PRICE_LEVELS,
 	]);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+	const [showTutorial, setShowTutorial] = useState(false);
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
@@ -66,13 +71,10 @@ export default function SearchScreen() {
 			payload: { screen: "search" },
 		});
 
-		// Auto-detect current location on mount
-		getCurrentLocation()
-			.then((currentLocation) => {
-				setLocation(currentLocation);
-				setLocationQuery(i18n.t("Search.currentLocation"));
-			})
-			.catch(console.error);
+		// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
+		if (!isTutorialLoading && hasSeenTutorial === false) {
+			setShowTutorial(true);
+		}
 
 		// 端末時間帯に基づき timeSlot を自動設定
 		const hour = new Date().getHours();
@@ -85,7 +87,7 @@ export default function SearchScreen() {
 		];
 		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
 		setTimeSlot(slot);
-	}, []);
+	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent]);
 
 	const handleLocationClear = () => {
 		lightImpact();
@@ -225,11 +227,46 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
+	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
+	const handleOpenTutorial = () => {
+		lightImpact();
+		setShowTutorial(true);
+		logFrontendEvent({
+			event_name: "search_tutorial_opened",
+			error_level: "log",
+			payload: { opened_reason: "manual" },
+		});
+	};
+
+	// #642 【設計】チュートリアル完了時の処理
+	const handleTutorialCompleted = () => {
+		markTutorialAsSeen();
+		logFrontendEvent({
+			event_name: "search_tutorial_completed",
+			error_level: "log",
+			payload: { completed: true },
+		});
+	};
+
+	// #642 【設計】チュートリアルから位置情報取得を要求
+	const handleTutorialRequestLocation = async () => {
+		await handleUseCurrentLocation();
+		logFrontendEvent({
+			event_name: "search_tutorial_location_requested",
+			error_level: "log",
+			payload: { from_tutorial: true },
+		});
+	};
+
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
+				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
+				<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
+					<HelpCircle size={24} color="#5EA2FF" />
+				</TouchableOpacity>
 			</View>
 
 			<ScrollView
@@ -449,6 +486,14 @@ export default function SearchScreen() {
 					)}
 				</TouchableOpacity>
 			</View>
+
+			{/* #642 【設計】チュートリアル BottomSheet */}
+			<TutorialBottomSheet
+				visible={showTutorial}
+				onClose={() => setShowTutorial(false)}
+				onCompleted={handleTutorialCompleted}
+				onRequestCurrentLocation={handleTutorialRequestLocation}
+			/>
 		</SafeAreaView>
 	);
 }
@@ -468,6 +513,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 24,
 		paddingTop: 20,
 		paddingBottom: 20,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	helpButton: {
+		padding: 8,
 	},
 	headerTitle: {
 		fontSize: 20,
