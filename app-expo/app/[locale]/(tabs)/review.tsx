@@ -44,8 +44,8 @@ export default function ReviewScreen() {
 			error_level: "log",
 			payload: {},
 		});
-		// Map画面に遷移（店舗選択機能を利用）
-		router.push("/map");
+		// #644 【設計】Map画面に遷移（店舗選択機能を利用）
+		router.push("/(tabs)/map");
 	};
 
 	return (
