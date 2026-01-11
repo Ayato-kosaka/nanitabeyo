@@ -84,27 +84,29 @@ export default function RootLayout() {
 			<SeoHead />
 			<PaperProvider theme={theme}>
 				<SnackbarProvider>
-					<DialogProvider>
-						<AuthProvider>
-							<PushTokenRegistration />
-							<MetaAppEventsInitializer />
-							<GestureHandlerRootView style={{ flex: 1 }}>
-								<Portal.Host>
-									<SplashHandler>
-										<HealthCheckInitializer>
-											<AppProvider>
-												<Stack screenOptions={{ header: () => null }}>
-													<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-													<Stack.Screen name="+not-found" />
-												</Stack>
-												<StatusBar style="light" />
-											</AppProvider>
-										</HealthCheckInitializer>
-									</SplashHandler>
-								</Portal.Host>
-							</GestureHandlerRootView>
-						</AuthProvider>
-					</DialogProvider>
+					<GestureHandlerRootView style={{ flex: 1 }}>
+						<DialogProvider>
+							<AuthProvider>
+								<PushTokenRegistration />
+								<MetaAppEventsInitializer />
+								<GestureHandlerRootView style={{ flex: 1 }}>
+									<Portal.Host>
+										<SplashHandler>
+											<HealthCheckInitializer>
+												<AppProvider>
+													<Stack screenOptions={{ header: () => null }}>
+														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+														<Stack.Screen name="+not-found" />
+													</Stack>
+													<StatusBar style="light" />
+												</AppProvider>
+											</HealthCheckInitializer>
+										</SplashHandler>
+									</Portal.Host>
+								</GestureHandlerRootView>
+							</AuthProvider>
+						</DialogProvider>
+					</GestureHandlerRootView>
 				</SnackbarProvider>
 			</PaperProvider>
 		</>

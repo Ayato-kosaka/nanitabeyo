@@ -27,7 +27,6 @@ import {
 	moodOptions,
 	tasteOptions,
 	distanceOptions,
-	restrictionOptions,
 	priceLevelOptions,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
@@ -36,10 +35,10 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import { useSearchTutorial } from "@/hooks/useSearchTutorial";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
-import { TutorialBottomSheet } from "@/components/TutorialBottomSheet";
+import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
+import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -265,7 +264,7 @@ export default function SearchScreen() {
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
 				<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
-					<HelpCircle size={24} color="#5EA2FF" />
+					<HelpCircle size={24} color="#6B7280" />
 				</TouchableOpacity>
 			</View>
 
