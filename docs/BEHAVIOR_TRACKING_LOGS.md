@@ -38,6 +38,7 @@
 **目的**: 「刺さらなかった」のか「見ていない」のかを切り分ける
 
 **分析用途**:
+
 - impression → topic_view_details の遷移率
 - topic_view_details / impression（純粋な魅力度）
 
@@ -61,6 +62,7 @@
 **目的**: 比較行動の有無、候補数不足 or 選びきれない問題の検出
 
 **分析用途**:
+
 - スワイプ回数と map 到達率の相関
 - トピック間の比較行動パターン分析
 
@@ -83,6 +85,7 @@
 **目的**: 料理詳細まで見たかどうかの判別
 
 **分析用途**:
+
 - dish_saved / impression（満足度代理指標）
 - impression からの map_pin_clicked 遷移率
 
@@ -106,6 +109,7 @@
 **目的**: 料理詳細まで見た上での不満足検出
 
 **分析用途**:
+
 - swipe_next 回数と dish_saved の相関
 - 料理間の比較行動パターン分析
 
@@ -132,7 +136,7 @@ useEffect(() => {
 
 ```typescript
 if (index >= 0 && index < array.length && currentIndex >= 0) {
-  // 安全にアクセス
+	// 安全にアクセス
 }
 ```
 
@@ -203,13 +207,13 @@ if (index >= 0 && index < array.length && currentIndex >= 0) {
 
 ```typescript
 interface CreateFrontendLogDto {
-  event_name: string;
-  path_name: string;
-  payload: Record<string, any>;
-  error_level: "verbose" | "debug" | "log" | "warn" | "error";
-  created_at: string;
-  created_app_version: string;
-  created_commit_id: string;
+	event_name: string;
+	path_name: string;
+	payload: Record<string, any>;
+	error_level: "verbose" | "debug" | "log" | "warn" | "error";
+	created_at: string;
+	created_app_version: string;
+	created_commit_id: string;
 }
 ```
 

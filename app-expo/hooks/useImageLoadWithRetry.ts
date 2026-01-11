@@ -70,9 +70,7 @@ export const useImageLoadWithRetry = ({
 		if (reloadToken === 0) return uri;
 
 		const separator = uri.includes("?") ? "&" : "?";
-		const cacheParam = cacheBustingKey
-			? `${reloadToken}_${cacheBustingKey}`
-			: String(reloadToken);
+		const cacheParam = cacheBustingKey ? `${reloadToken}_${cacheBustingKey}` : String(reloadToken);
 
 		return `${uri}${separator}t=${cacheParam}`;
 	}, [uri, reloadToken, cacheBustingKey]);
