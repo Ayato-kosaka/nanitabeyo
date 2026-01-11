@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import {
 	MapPin,
@@ -225,8 +225,13 @@ export default function SearchScreen() {
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
 	const isTutorialSupportedLocale = useMemo(() => ["ja-JP", "ja"].includes(locale), [locale]);
+	// チュートリアル初期処理実行済みフラグ
+	const didInitTutorialState = useRef(false);
+
 	useEffect(() => {
 		if (isTutorialLoading) return;
+		if (didInitTutorialState.current) return;
+		didInitTutorialState.current = true;
 
 		if (!isTutorialSupportedLocale) {
 			// #642 【設計】対応言語以外ではチュートリアルを表示しない
@@ -239,7 +244,7 @@ export default function SearchScreen() {
 			return;
 		}
 
-		if (hasSeenTutorial === false && !showTutorial) {
+		if (hasSeenTutorial === false) {
 			// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
 			setShowTutorial(true);
 			logFrontendEvent({
@@ -247,7 +252,7 @@ export default function SearchScreen() {
 				error_level: "log",
 				payload: { opened_reason: "auto" },
 			});
-		} else if (hasSeenTutorial === true && !showTutorial) {
+		} else if (hasSeenTutorial === true) {
 			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
 			getCurrentLocation()
 				.then((currentLocation) => {
@@ -256,14 +261,7 @@ export default function SearchScreen() {
 				})
 				.catch(console.error);
 		}
-	}, [
-		isTutorialLoading,
-		hasSeenTutorial,
-		logFrontendEvent,
-		getCurrentLocation,
-		showTutorial,
-		isTutorialSupportedLocale,
-	]);
+	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isTutorialSupportedLocale]);
 
 	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
 	const handleOpenTutorial = () => {
