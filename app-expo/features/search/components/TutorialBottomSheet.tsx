@@ -1,16 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, Dimensions, TouchableOpacity, Text } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import i18n from "@/lib/i18n";
 import { TutorialPage } from "@/components/TutorialPage";
+import i18n from "@/lib/i18n";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export type TutorialBottomSheetProps = {
 	visible: boolean;
+	pageConfigs: readonly TutorialPageConst[];
 	onClose: () => void;
 	onCompleted?: () => void;
 	onRequestCurrentLocation: () => Promise<void>;
+};
+
+export type TutorialPageConst = {
+	image: any;
+	titleKey: string;
+	bodyLineKeys: string[];
+	primaryCtaLabelKey: string;
+	secondaryCtaLabelKey?: string;
 };
 
 // FlatList の 1 アイテム = 1 ページ分の設定
@@ -33,6 +42,7 @@ type TutorialPageConfig = {
  */
 export function TutorialBottomSheet({
 	visible,
+	pageConfigs,
 	onClose,
 	onCompleted,
 	onRequestCurrentLocation,
@@ -141,41 +151,23 @@ export function TutorialBottomSheet({
 	 * チュートリアルページ定義
 	 */
 	const tutorialPages: TutorialPageConfig[] = useMemo(() => {
-		const pagesLength = 4;
+		const pagesLength = pageConfigs.length;
 
-		return [
-			{
-				image: require("@/assets/images/tutorial/search-page1.webp"),
-				title: i18n.t("Search.tutorial.page1.title"),
-				bodyLines: [i18n.t("Search.tutorial.page1.body1"), i18n.t("Search.tutorial.page1.body2")],
-				primaryCtaLabel: i18n.t("Search.tutorial.page1.cta"),
-				onPrimaryCtaPress: () => handleNextPage(0, pagesLength),
-			},
-			{
-				image: require("@/assets/images/tutorial/search-page2.webp"),
-				title: i18n.t("Search.tutorial.page2.title"),
-				bodyLines: [i18n.t("Search.tutorial.page2.body1"), i18n.t("Search.tutorial.page2.body2")],
-				primaryCtaLabel: i18n.t("Search.tutorial.page2.cta"),
-				onPrimaryCtaPress: () => handleNextPage(1, pagesLength),
-			},
-			{
-				image: require("@/assets/images/tutorial/search-page3.webp"),
-				title: i18n.t("Search.tutorial.page3.title"),
-				bodyLines: [i18n.t("Search.tutorial.page3.body1"), i18n.t("Search.tutorial.page3.body2")],
-				primaryCtaLabel: i18n.t("Search.tutorial.page3.cta"),
-				onPrimaryCtaPress: () => handleNextPage(2, pagesLength),
-			},
-			{
-				image: require("@/assets/images/tutorial/search-page4.webp"),
-				title: i18n.t("Search.tutorial.page4.title"),
-				bodyLines: [i18n.t("Search.tutorial.page4.body1"), i18n.t("Search.tutorial.page4.body2")],
-				primaryCtaLabel: i18n.t("Search.tutorial.page4.primaryCta"),
-				onPrimaryCtaPress: handleRequestLocation,
-				secondaryCtaLabel: i18n.t("Search.tutorial.page4.secondaryCta"),
-				onSecondaryCtaPress: handleSkip,
-			},
-		];
-	}, [handleNextPage, handleRequestLocation, handleSkip]);
+		return pageConfigs.map((config, index) => ({
+			image: config.image,
+			title: i18n.t(config.titleKey),
+			bodyLines: config.bodyLineKeys.map((key) => i18n.t(key)),
+			primaryCtaLabel: i18n.t(config.primaryCtaLabelKey),
+			onPrimaryCtaPress:
+				index === pagesLength - 1
+					? handleRequestLocation
+					: () => {
+							handleNextPage(index, pagesLength);
+						},
+			secondaryCtaLabel: config.secondaryCtaLabelKey ? i18n.t(config.secondaryCtaLabelKey) : undefined,
+			onSecondaryCtaPress: index === pagesLength - 1 ? handleSkip : undefined,
+		}));
+	}, [pageConfigs, handleNextPage, handleRequestLocation, handleSkip]);
 
 	// 現在ページの CTA 設定
 	const currentConfig = tutorialPages[currentPage] ?? tutorialPages[0];
@@ -191,6 +183,8 @@ export function TutorialBottomSheet({
 			// ▼ ハンドル下げで閉じたいので true にする
 			enablePanDownToClose={true}
 			enableOverDrag={false}
+			// 横スクロールコンテンツと競合するので false にする
+			enableContentPanningGesture={false}
 			backdropComponent={renderBackdrop}
 			onChange={handleSheetChange}
 			backgroundStyle={styles.sheetBackground}

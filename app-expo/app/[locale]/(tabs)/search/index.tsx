@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import {
 	MapPin,
@@ -28,6 +28,7 @@ import {
 	tasteOptions,
 	distanceOptions,
 	priceLevelOptions,
+	TUTORIAL_PAGES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
@@ -39,6 +40,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
+import { Image } from "expo-image";
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -222,17 +224,46 @@ export default function SearchScreen() {
 	// ========== チュートリアル表示制御 ==========
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
+	const isTutorialSupportedLocale = useMemo(() => ["ja-JP", "ja"].includes(locale), [locale]);
 	useEffect(() => {
-		// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
-		if (!isTutorialLoading && hasSeenTutorial === false) {
+		if (isTutorialLoading) return;
+
+		if (!isTutorialSupportedLocale) {
+			// #642 【設計】対応言語以外ではチュートリアルを表示しない
+			getCurrentLocation()
+				.then((currentLocation) => {
+					setLocation(currentLocation);
+					setLocationQuery(i18n.t("Search.currentLocation"));
+				})
+				.catch(console.error);
+			return;
+		}
+
+		if (hasSeenTutorial === false && !showTutorial) {
+			// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
 			setShowTutorial(true);
 			logFrontendEvent({
 				event_name: "search_tutorial_auto_opened",
 				error_level: "log",
 				payload: { opened_reason: "auto" },
 			});
+		} else if (hasSeenTutorial === true && !showTutorial) {
+			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
+			getCurrentLocation()
+				.then((currentLocation) => {
+					setLocation(currentLocation);
+					setLocationQuery(i18n.t("Search.currentLocation"));
+				})
+				.catch(console.error);
 		}
-	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent]);
+	}, [
+		isTutorialLoading,
+		hasSeenTutorial,
+		logFrontendEvent,
+		getCurrentLocation,
+		showTutorial,
+		isTutorialSupportedLocale,
+	]);
 
 	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
 	const handleOpenTutorial = () => {
@@ -271,9 +302,11 @@ export default function SearchScreen() {
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
-				<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
-					<HelpCircle size={24} color="#6B7280" />
-				</TouchableOpacity>
+				{isTutorialSupportedLocale && (
+					<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
+						<HelpCircle size={24} color="#6B7280" />
+					</TouchableOpacity>
+				)}
 			</View>
 
 			<ScrollView
@@ -497,10 +530,17 @@ export default function SearchScreen() {
 			{/* #642 【設計】チュートリアル BottomSheet */}
 			<TutorialBottomSheet
 				visible={showTutorial}
+				pageConfigs={TUTORIAL_PAGES}
 				onClose={() => setShowTutorial(false)}
 				onCompleted={handleTutorialCompleted}
 				onRequestCurrentLocation={handleTutorialRequestLocation}
 			/>
+			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
+			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }}>
+				{TUTORIAL_PAGES.map((src, i) => (
+					<Image key={i} source={src.image} />
+				))}
+			</View>
 		</SafeAreaView>
 	);
 }

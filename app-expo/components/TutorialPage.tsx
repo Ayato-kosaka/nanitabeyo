@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import React from "react";
-import { View, Text, StyleSheet, Image, ImageSourcePropType } from "react-native";
+import { View, Text, StyleSheet, ImageSourcePropType } from "react-native";
 
 export type TutorialPageProps = {
 	image: ImageSourcePropType;
@@ -18,7 +19,7 @@ export function TutorialPage({ image, title, bodyLines }: TutorialPageProps) {
 		<View style={styles.container}>
 			{/* 16:9 イラスト画像 */}
 			<View style={styles.imageContainer}>
-				<Image source={image} style={styles.image} resizeMode="contain" />
+				<Image source={image} style={styles.image} contentFit="cover" />
 			</View>
 
 			{/* タイトル */}
