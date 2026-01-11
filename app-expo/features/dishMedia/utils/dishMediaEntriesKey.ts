@@ -20,11 +20,11 @@
 export function makeDishMediaEntriesKey(params: {
 	categoryId: string;
 	location:
-	| {
-		latitude: number;
-		longitude: number;
-	}
-	| { place_id: string };
+		| {
+				latitude: number;
+				longitude: number;
+		  }
+		| { place_id: string };
 	radius: number;
 	priceLevels: string[];
 	languageCode?: string;

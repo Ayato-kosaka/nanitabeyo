@@ -1,5 +1,6 @@
 // Constants and option data for the search feature
 import i18n from "@/lib/i18n";
+import type { TutorialPageConst } from "./components/TutorialBottomSheet";
 
 export const timeSlots = [
 	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
@@ -61,3 +62,31 @@ export const restrictionOptions = [
 	{ id: "seafood_allergy", label: "Search.restrictionOptions.seafoodAllergy", icon: "🐟" },
 	{ id: "halal", label: "Search.restrictionOptions.halal", icon: "🕌" },
 ];
+
+export const TUTORIAL_PAGES = [
+	{
+		image: require("@/assets/images/tutorial/search-page1.webp"),
+		titleKey: "Search.tutorial.page1.title",
+		bodyLineKeys: ["Search.tutorial.page1.body1", "Search.tutorial.page1.body2"],
+		primaryCtaLabelKey: "Search.tutorial.page1.cta",
+	},
+	{
+		image: require("@/assets/images/tutorial/search-page2.webp"),
+		titleKey: "Search.tutorial.page2.title",
+		bodyLineKeys: ["Search.tutorial.page2.body1", "Search.tutorial.page2.body2"],
+		primaryCtaLabelKey: "Search.tutorial.page2.cta",
+	},
+	{
+		image: require("@/assets/images/tutorial/search-page3.webp"),
+		titleKey: "Search.tutorial.page3.title",
+		bodyLineKeys: ["Search.tutorial.page3.body1", "Search.tutorial.page3.body2"],
+		primaryCtaLabelKey: "Search.tutorial.page3.cta",
+	},
+	{
+		image: require("@/assets/images/tutorial/search-page4.webp"),
+		titleKey: "Search.tutorial.page4.title",
+		bodyLineKeys: ["Search.tutorial.page4.body1", "Search.tutorial.page4.body2"],
+		primaryCtaLabelKey: "Search.tutorial.page4.primaryCta",
+		secondaryCtaLabelKey: "Search.tutorial.page4.secondaryCta",
+	},
+] as const satisfies readonly TutorialPageConst[];
