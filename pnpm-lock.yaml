@@ -243,6 +243,9 @@ importers:
       "@expo/vector-icons":
         specifier: ^14.1.0
         version: 14.1.0(expo-font@13.3.2(expo@53.0.24(@babel/core@7.28.5)(@expo/metro-runtime@5.0.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)))(graphql@16.8.1)(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      "@gorhom/bottom-sheet":
+        specifier: ^5.2.8
+        version: 5.2.8(@types/react@19.0.14)(react-native-gesture-handler@2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       "@lucide/lab":
         specifier: ^0.1.2
         version: 0.1.2
@@ -1632,6 +1635,29 @@ packages:
     resolution:
       { integrity: sha512-53TptLMmoRy+tTxolqcH7cz2h9wFKGR4foNAOpIhkFSNu5iOehOGwjicjememZTkyfvhHPtWt4UU0cMU+3pQFA== }
     engines: { node: ">=14.0.0" }
+
+  "@gorhom/bottom-sheet@5.2.8":
+    resolution:
+      { integrity: sha512-+N27SMpbBxXZQ/IA2nlEV6RGxL/qSFHKfdFKcygvW+HqPG5jVNb1OqehLQsGfBP+Up42i0gW5ppI+DhpB7UCzA== }
+    peerDependencies:
+      "@types/react": "*"
+      "@types/react-native": "*"
+      react: "*"
+      react-native: "*"
+      react-native-gesture-handler: ">=2.16.1"
+      react-native-reanimated: ">=3.16.0 || >=4.0.0-"
+    peerDependenciesMeta:
+      "@types/react":
+        optional: true
+      "@types/react-native":
+        optional: true
+
+  "@gorhom/portal@1.0.14":
+    resolution:
+      { integrity: sha512-MXyL4xvCjmgaORr/rtryDNFy3kU4qUbKlwtQqqsygd0xX3mhKjOLn6mQK8wfu0RkoE0pBE0nAasRoHua+/QZ7A== }
+    peerDependencies:
+      react: "*"
+      react-native: "*"
 
   "@grpc/grpc-js@1.14.1":
     resolution:
@@ -13528,6 +13554,23 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  "@gorhom/bottom-sheet@5.2.8(@types/react@19.0.14)(react-native-gesture-handler@2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      "@gorhom/portal": 1.0.14(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      invariant: 2.2.4
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+      react-native-gesture-handler: 2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      react-native-reanimated: 3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+    optionalDependencies:
+      "@types/react": 19.0.14
+
+  "@gorhom/portal@1.0.14(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      nanoid: 3.3.11
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
 
   "@grpc/grpc-js@1.14.1":
     dependencies:

@@ -126,6 +126,33 @@
 			"nutAllergy": "Alergia a las nueces",
 			"seafoodAllergy": "Alergia a mariscos",
 			"halal": "Halal"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "Descubre lo que quieres comer",
+				"body1": "Resuelve el dilema \"¿Qué como hoy?\" de una vez.",
+				"body2": "Sugerimos platos y restaurantes según tu ubicación y hora.",
+				"cta": "Siguiente"
+			},
+			"page2": {
+				"title": "Ve fotos y descubre lo que deseas",
+				"body1": "Sugerimos 6 platos que coinciden con tus preferencias actuales.",
+				"body2": "Mira las fotos y elige intuitivamente lo que quieres comer.",
+				"cta": "Siguiente"
+			},
+			"page3": {
+				"title": "Fotos y reseñas te ayudan a decidir dónde ir",
+				"body1": "Sugerimos 5 restaurantes que sirven el plato elegido.",
+				"body2": "Explora fotos, reseñas y el mapa para elegir rápidamente un lugar.",
+				"cta": "Siguiente"
+			},
+			"page4": {
+				"title": "Comencemos",
+				"body1": "Usaremos tu ubicación actual para sugerir restaurantes cercanos.",
+				"body2": "Puedes cambiar esto en cualquier momento en la configuración.",
+				"primaryCta": "Usar ubicación actual",
+				"secondaryCta": "Más tarde"
+			}
 		}
 	},
 	"Topics": {

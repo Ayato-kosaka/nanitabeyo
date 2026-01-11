@@ -126,6 +126,33 @@
 			"nutAllergy": "Allergie aux noix",
 			"seafoodAllergy": "Allergie aux fruits de mer",
 			"halal": "Halal"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "Découvrez ce que vous voulez manger",
+				"body1": "Résolvez le dilemme \"Que devrais-je manger aujourd'hui?\" en une fois.",
+				"body2": "Nous suggérons des plats et des restaurants en fonction de votre emplacement et de l'heure.",
+				"cta": "Suivant"
+			},
+			"page2": {
+				"title": "Regardez les photos et découvrez ce que vous désirez",
+				"body1": "Nous suggérons 6 plats qui correspondent à vos préférences actuelles.",
+				"body2": "Regardez les photos et choisissez intuitivement ce que vous voulez manger.",
+				"cta": "Suivant"
+			},
+			"page3": {
+				"title": "Photos et avis vous aident à décider où aller",
+				"body1": "Nous suggérons 5 restaurants qui servent le plat que vous avez choisi.",
+				"body2": "Parcourez les photos, les avis et la carte pour choisir rapidement un endroit.",
+				"cta": "Suivant"
+			},
+			"page4": {
+				"title": "Commençons",
+				"body1": "Nous utiliserons votre position actuelle pour suggérer des restaurants à proximité.",
+				"body2": "Vous pouvez le modifier à tout moment dans les paramètres.",
+				"primaryCta": "Utiliser la position actuelle",
+				"secondaryCta": "Plus tard"
+			}
 		}
 	},
 	"Topics": {

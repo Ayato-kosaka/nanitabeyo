@@ -126,6 +126,33 @@
 			"nutAllergy": "Nut allergy",
 			"seafoodAllergy": "Seafood allergy",
 			"halal": "Halal"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "Discover what you want to eat",
+				"body1": "Solve the \"What should I eat today?\" dilemma all at once.",
+				"body2": "We suggest dishes and restaurants based on your location and time.",
+				"cta": "Next"
+			},
+			"page2": {
+				"title": "See photos and discover what you crave",
+				"body1": "We suggest 6 dishes that match your current preferences.",
+				"body2": "Look at photos and intuitively choose what you want to eat.",
+				"cta": "Next"
+			},
+			"page3": {
+				"title": "Photos and reviews help you decide where to go",
+				"body1": "We suggest 5 restaurants that serve your chosen dish.",
+				"body2": "Browse photos, reviews, and the map to quickly pick a place.",
+				"cta": "Next"
+			},
+			"page4": {
+				"title": "Let's get started",
+				"body1": "We'll use your current location to suggest nearby restaurants.",
+				"body2": "You can change this anytime in settings.",
+				"primaryCta": "Use current location",
+				"secondaryCta": "Later"
+			}
 		}
 	},
 	"Topics": {
