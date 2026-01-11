@@ -572,7 +572,21 @@ export function ReviewForm({
 				)}
 			</Animated.View>
 			<Card style={{ gap: 16 }}>
-				{/* #644 【設計】レビュー入力 - メディアなしモード（prefilledMedia指定時）では短文placeholder＋100文字制限 */}
+				{/* 
+					#644 【設計】レビュー入力フィールド仕様
+					
+					prefilledMedia が存在する場合（みんなの投稿サムネから遷移）:
+					- 既存メディアに対するテキストレビュー追加モード
+					- 短文 placeholder（豚骨スープが...）を使用
+					- 100文字制限を適用
+					- 文字数カウンタを表示
+					
+					prefilledMedia が null の場合（写真・動画を投稿するボタンから遷移）:
+					- 新規メディア＋レビュー投稿モード
+					- 通常 placeholder（レビューを入力）を使用
+					- 文字数制限なし
+					- 文字数カウンタ非表示
+				*/}
 				<View>
 					<TextInput
 						style={[styles.textInput, styles.textArea]}
