@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { MapPinned, Bell, User, Search } from "lucide-react-native";
+import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -44,6 +44,13 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.map"),
 					tabBarIcon: ({ size, color }) => <MapPinned size={ICON_SIZE} color={color} />,
+				}}
+			/>
+			<Tabs.Screen
+				name="review"
+				options={{
+					title: i18n.t("Tabs.review"),
+					tabBarIcon: ({ size, color }) => <Pencil size={ICON_SIZE} color={color} />,
 				}}
 			/>
 			<Tabs.Screen

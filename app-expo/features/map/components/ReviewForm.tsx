@@ -567,16 +567,29 @@ export function ReviewForm({
 				)}
 			</Animated.View>
 			<Card style={{ gap: 16 }}>
-				{/* レビュー入力 */}
-				<TextInput
-					style={[styles.textInput, styles.textArea]}
-					placeholder={i18n.t("Map.placeholders.enterReview")}
-					value={reviewText}
-					onChangeText={setReviewText}
-					multiline
-					numberOfLines={4}
-					textAlignVertical="top"
-				/>
+				{/* #644 【設計】レビュー入力 - メディアなしモード（prefilledMedia指定時）では短文placeholder＋100文字制限 */}
+				<View>
+					<TextInput
+						style={[styles.textInput, styles.textArea]}
+						placeholder={
+							prefilledMedia
+								? i18n.t("Map.placeholders.enterReviewShort")
+								: i18n.t("Map.placeholders.enterReview")
+						}
+						value={reviewText}
+						onChangeText={setReviewText}
+						multiline
+						numberOfLines={4}
+						textAlignVertical="top"
+						maxLength={prefilledMedia ? 100 : undefined}
+					/>
+					{/* #644 【設計】文字数カウンタ：prefilledMediaモード時のみ表示 */}
+					{prefilledMedia && (
+						<Text style={styles.characterCount}>
+							{i18n.t("Review.characterCount", { current: reviewText.length, max: 100 })}
+						</Text>
+					)}
+				</View>
 
 				{/* 価格入力 行 */}
 				<View style={styles.inputRow}>
@@ -820,5 +833,11 @@ const styles = StyleSheet.create({
 	consentLink: {
 		color: "#2563EB",
 		textDecorationLine: "underline",
+	},
+	characterCount: {
+		fontSize: 12,
+		color: "#6B7280",
+		textAlign: "right",
+		marginTop: 4,
 	},
 });

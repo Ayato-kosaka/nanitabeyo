@@ -201,7 +201,7 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 				<View style={styles.actionButtons}>
 					<PrimaryButton
 						onPress={handleReviewButtonPress}
-						label={i18n.t("Map.buttons.postReview")}
+						label={i18n.t("Map.buttons.postPhotoVideoReview")}
 						icon={<Camera size={20} color="#FFF" />}
 						borderRadius={8}
 						style={{ flex: 1 }}
