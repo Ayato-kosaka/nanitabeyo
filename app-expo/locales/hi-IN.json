@@ -200,6 +200,7 @@
 		"home": "होम",
 		"search": "खोज",
 		"map": "मानचित्र",
+		"review": "समीक्षा",
 		"notifications": "सूचनाएँ",
 		"profile": "प्रोफ़ाइल"
 	},
@@ -291,6 +292,7 @@
 	"Map": {
 		"buttons": {
 			"postReview": "समीक्षा पोस्ट करें",
+			"postPhotoVideoReview": "फोटो/वीडियो पोस्ट करें",
 			"placeBid": "बोली लगाएं",
 			"bid": "बोली",
 			"searchNearby": "इस क्षेत्र में खोजें",
@@ -311,8 +313,10 @@
 			"searchRestaurants": "रेस्टोरेंट खोजें",
 			"enterPrice": "मूल्य दर्ज करें",
 			"enterReview": "समीक्षा दर्ज करें",
+			"enterReviewShort": "पोर्क शोरबा अविश्वसनीय रूप से समृद्ध और स्वादिष्ट था!",
 			"enterBidAmount": "बोली राशि दर्ज करें",
-			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)"
+			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)",
+			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
@@ -504,5 +508,26 @@
 		"openInGoogleMaps": "Google Maps में खोलें",
 		"shareWithFriends": "दोस्तों के साथ साझा करें",
 		"cancel": "रद्द करें"
+	},
+	"Review": {
+		"title": "समीक्षा पोस्ट करें",
+		"hero": {
+			"title": "अपने पसंदीदा रेस्तरां की समीक्षा लिखें\nऔर जहां आप गए हैं वह साझा करें"
+		},
+		"guest": {
+			"description": "समीक्षा लिखने के लिए लॉग इन करें",
+			"loginButton": "लॉग इन करें"
+		},
+		"authenticated": {
+			"postButton": "✏️ रेस्तरां की समीक्षा पोस्ट करें"
+		},
+		"selectRestaurant": {
+			"title": "समीक्षा करने के लिए एक रेस्तरां चुनें"
+		},
+		"emptyState": {
+			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
+		},
+		"everybodyPostsTitle": "सभी की समीक्षाएं",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }

@@ -200,6 +200,7 @@
 		"home": "Inicio",
 		"search": "Buscar",
 		"map": "Mapa",
+		"review": "Reseña",
 		"notifications": "Notificaciones",
 		"profile": "Perfil"
 	},
@@ -292,6 +293,7 @@
 		"currentLocation": "Ubicación actual",
 		"buttons": {
 			"postReview": "Publicar Reseña",
+			"postPhotoVideoReview": "Publicar Foto/Video",
 			"placeBid": "Hacer Oferta",
 			"bid": "Ofertar",
 			"searchNearby": "Buscar en esta área",
@@ -312,8 +314,10 @@
 			"searchRestaurants": "Buscar restaurantes",
 			"enterPrice": "Ingresa el precio",
 			"enterReview": "Ingresa tu reseña",
+			"enterReviewShort": "¡El caldo de cerdo estaba increíblemente rico y delicioso!",
 			"enterBidAmount": "Ingresa el monto de la oferta",
-			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)"
+			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)",
+			"searchRestaurantsForReview": "Buscar por nombre o área"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
@@ -503,5 +507,26 @@
 		"openInGoogleMaps": "Abrir en Google Maps",
 		"shareWithFriends": "Compartir con amigos",
 		"cancel": "Cancelar"
+	},
+	"Review": {
+		"title": "Publicar una Reseña",
+		"hero": {
+			"title": "Escribe reseñas de tus restaurantes favoritos\ny comparte los lugares que has visitado"
+		},
+		"guest": {
+			"description": "Inicia sesión para escribir reseñas",
+			"loginButton": "Iniciar Sesión"
+		},
+		"authenticated": {
+			"postButton": "✏️ Publicar una reseña de restaurante"
+		},
+		"selectRestaurant": {
+			"title": "Selecciona un restaurante para reseñar"
+		},
+		"emptyState": {
+			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."
+		},
+		"everybodyPostsTitle": "Reseñas de Todos",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }

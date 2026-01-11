@@ -200,6 +200,7 @@
 		"home": "홈",
 		"search": "검색",
 		"map": "지도",
+		"review": "리뷰",
 		"notifications": "알림",
 		"profile": "프로필"
 	},
@@ -292,6 +293,7 @@
 		"currentLocation": "현재 위치",
 		"buttons": {
 			"postReview": "리뷰 게시",
+			"postPhotoVideoReview": "사진/동영상 게시",
 			"placeBid": "입찰하기",
 			"bid": "입찰",
 			"searchNearby": "이 지역에서 검색",
@@ -312,8 +314,10 @@
 			"searchRestaurants": "레스토랑 검색",
 			"enterPrice": "가격 입력",
 			"enterReview": "리뷰 입력",
+			"enterReviewShort": "돼지 국물이 정말 진하고 맛있었어요!",
 			"enterBidAmount": "입찰 금액 입력",
-			"enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)"
+			"enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)",
+			"searchRestaurantsForReview": "이름이나 지역으로 검색"
 		},
 		"labels": {
 			"endDate": "종료일:",
@@ -503,5 +507,26 @@
 		"openInGoogleMaps": "Google 지도에서 열기",
 		"shareWithFriends": "친구와 공유하기",
 		"cancel": "취소"
+	},
+	"Review": {
+		"title": "리뷰 게시",
+		"hero": {
+			"title": "좋아하는 레스토랑에 대한 리뷰를 작성하고\n방문한 장소를 공유하세요"
+		},
+		"guest": {
+			"description": "로그인하여 리뷰 작성하기",
+			"loginButton": "로그인"
+		},
+		"authenticated": {
+			"postButton": "✏️ 레스토랑 리뷰 게시하기"
+		},
+		"selectRestaurant": {
+			"title": "리뷰할 레스토랑을 선택하세요"
+		},
+		"emptyState": {
+			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
+		},
+		"everybodyPostsTitle": "모두의 리뷰",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }

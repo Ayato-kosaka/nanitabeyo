@@ -200,6 +200,7 @@
 		"home": "Accueil",
 		"search": "Recherche",
 		"map": "Carte",
+		"review": "Avis",
 		"notifications": "Notifications",
 		"profile": "Profil"
 	},
@@ -292,6 +293,7 @@
 		"currentLocation": "Localisation actuelle",
 		"buttons": {
 			"postReview": "Publier un avis",
+			"postPhotoVideoReview": "Publier une Photo/Vidéo",
 			"placeBid": "Placer une enchère",
 			"bid": "Enchérir",
 			"searchNearby": "Rechercher dans cette zone",
@@ -312,8 +314,10 @@
 			"searchRestaurants": "Rechercher des restaurants",
 			"enterPrice": "Entrez le prix",
 			"enterReview": "Entrez votre avis",
+			"enterReviewShort": "Le bouillon de porc était incroyablement riche et délicieux!",
 			"enterBidAmount": "Entrez le montant de l'enchère",
-			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)"
+			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)",
+			"searchRestaurantsForReview": "Rechercher par nom ou zone"
 		},
 		"labels": {
 			"endDate": "Date de fin:",
@@ -503,5 +507,26 @@
 		"openInGoogleMaps": "Ouvrir dans Google Maps",
 		"shareWithFriends": "Partager avec des amis",
 		"cancel": "Annuler"
+	},
+	"Review": {
+		"title": "Publier un Avis",
+		"hero": {
+			"title": "Écrivez des avis sur vos restaurants préférés\net partagez les endroits que vous avez visités"
+		},
+		"guest": {
+			"description": "Connectez-vous pour écrire des avis",
+			"loginButton": "Se Connecter"
+		},
+		"authenticated": {
+			"postButton": "✏️ Publier un avis de restaurant"
+		},
+		"selectRestaurant": {
+			"title": "Sélectionnez un restaurant à évaluer"
+		},
+		"emptyState": {
+			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
+		},
+		"everybodyPostsTitle": "Avis de Tout le Monde",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }

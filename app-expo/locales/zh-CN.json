@@ -200,6 +200,7 @@
 		"home": "首页",
 		"search": "搜索",
 		"map": "地图",
+		"review": "评论",
 		"notifications": "通知",
 		"profile": "个人资料"
 	},
@@ -291,6 +292,7 @@
 	"Map": {
 		"buttons": {
 			"postReview": "发布评论",
+			"postPhotoVideoReview": "发布照片/视频",
 			"placeBid": "出价",
 			"bid": "出价",
 			"searchNearby": "在此区域搜索",
@@ -311,8 +313,10 @@
 			"searchRestaurants": "搜索餐厅",
 			"enterPrice": "输入价格",
 			"enterReview": "输入评论",
+			"enterReviewShort": "猪骨汤超级浓郁美味！",
 			"enterBidAmount": "输入出价金额",
-			"enterDishCategory": "输入菜品类别（例如：火锅、点心）"
+			"enterDishCategory": "输入菜品类别（例如：火锅、点心）",
+			"searchRestaurantsForReview": "按名称或区域搜索"
 		},
 		"labels": {
 			"endDate": "结束日期:",
@@ -503,5 +507,26 @@
 		"openInGoogleMaps": "在 Google 地图中打开",
 		"shareWithFriends": "与朋友分享",
 		"cancel": "取消"
+	},
+	"Review": {
+		"title": "发布评论",
+		"hero": {
+			"title": "为您喜欢的餐厅撰写评论\n并分享您去过的地方"
+		},
+		"guest": {
+			"description": "登录以撰写评论",
+			"loginButton": "登录"
+		},
+		"authenticated": {
+			"postButton": "✏️ 发布餐厅评论"
+		},
+		"selectRestaurant": {
+			"title": "选择要评论的餐厅"
+		},
+		"emptyState": {
+			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
+		},
+		"everybodyPostsTitle": "大家的评论",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }

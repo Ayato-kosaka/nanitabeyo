@@ -200,6 +200,7 @@
 		"home": "ホーム",
 		"search": "検索",
 		"map": "マップ",
+		"review": "レビュー",
 		"notifications": "通知",
 		"profile": "プロフィール"
 	},
@@ -292,6 +293,7 @@
 		"currentLocation": "現在地",
 		"buttons": {
 			"postReview": "レビュー投稿",
+			"postPhotoVideoReview": "写真・動画を投稿する",
 			"placeBid": "入札する",
 			"bid": "入札",
 			"searchNearby": "このエリアで探す",
@@ -312,8 +314,10 @@
 			"searchRestaurants": "レストランを検索",
 			"enterPrice": "料金を入力",
 			"enterReview": "レビューを入力",
+			"enterReviewShort": "豚骨スープが最高に濃厚で美味かった！",
 			"enterBidAmount": "入札額を入力",
-			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)"
+			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)",
+			"searchRestaurantsForReview": "店名やエリアで検索"
 		},
 		"labels": {
 			"endDate": "終了日:",
@@ -503,5 +507,26 @@
 		"openInGoogleMaps": "Google マップで開く",
 		"shareWithFriends": "友人に共有する",
 		"cancel": "キャンセル"
+	},
+	"Review": {
+		"title": "レビューを投稿する",
+		"hero": {
+			"title": "おすすめのお店のレビューを書いて\n行ったお店を投稿しよう"
+		},
+		"guest": {
+			"description": "ログインしてレビューを書こう",
+			"loginButton": "ログインする"
+		},
+		"authenticated": {
+			"postButton": "✏️ お店のレビューを投稿しよう"
+		},
+		"selectRestaurant": {
+			"title": "レビューするお店を選んでください"
+		},
+		"emptyState": {
+			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
+		},
+		"everybodyPostsTitle": "みんなの投稿",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }

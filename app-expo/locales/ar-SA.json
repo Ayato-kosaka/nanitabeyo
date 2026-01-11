@@ -200,6 +200,7 @@
 		"home": "الصفحة الرئيسية",
 		"search": "البحث",
 		"map": "الخريطة",
+		"review": "المراجعة",
 		"notifications": "الإشعارات",
 		"profile": "الملف الشخصي"
 	},
@@ -292,6 +293,7 @@
 		"currentLocation": "الموقع الحالي",
 		"buttons": {
 			"postReview": "نشر مراجعة",
+			"postPhotoVideoReview": "نشر صورة/فيديو",
 			"placeBid": "تقديم عرض",
 			"bid": "عرض",
 			"searchNearby": "ابحث في هذه المنطقة",
@@ -312,8 +314,10 @@
 			"searchRestaurants": "البحث عن المطاعم",
 			"enterPrice": "أدخل السعر",
 			"enterReview": "أدخل مراجعتك",
+			"enterReviewShort": "حساء لحم الخنزير كان غنيًا ولذيذًا بشكل لا يصدق!",
 			"enterBidAmount": "أدخل مبلغ العرض",
-			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)"
+			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)",
+			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
@@ -503,5 +507,26 @@
 		"openInGoogleMaps": "فتح في خرائط Google",
 		"shareWithFriends": "مشاركة مع الأصدقاء",
 		"cancel": "إلغاء"
+	},
+	"Review": {
+		"title": "نشر مراجعة",
+		"hero": {
+			"title": "اكتب مراجعات لمطاعمك المفضلة\nوشارك الأماكن التي زرتها"
+		},
+		"guest": {
+			"description": "سجل الدخول لكتابة المراجعات",
+			"loginButton": "تسجيل الدخول"
+		},
+		"authenticated": {
+			"postButton": "✏️ نشر مراجعة مطعم"
+		},
+		"selectRestaurant": {
+			"title": "اختر مطعماً لمراجعته"
+		},
+		"emptyState": {
+			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
+		},
+		"everybodyPostsTitle": "مراجعات الجميع",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }

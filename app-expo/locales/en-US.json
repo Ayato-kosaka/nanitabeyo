@@ -200,6 +200,7 @@
 		"home": "Home",
 		"search": "Search",
 		"map": "Map",
+		"review": "Review",
 		"notifications": "Notifications",
 		"profile": "Profile"
 	},
@@ -291,6 +292,7 @@
 	"Map": {
 		"buttons": {
 			"postReview": "Post Review",
+			"postPhotoVideoReview": "Post Photo/Video",
 			"placeBid": "Place Bid",
 			"bid": "Bid",
 			"searchNearby": "Search in this area",
@@ -311,8 +313,10 @@
 			"searchRestaurants": "Search restaurants",
 			"enterPrice": "Enter price",
 			"enterReview": "Enter review",
+			"enterReviewShort": "The pork broth was incredibly rich and delicious!",
 			"enterBidAmount": "Enter bid amount",
-			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)"
+			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
+			"searchRestaurantsForReview": "Search by name or area"
 		},
 		"labels": {
 			"endDate": "End date:",
@@ -503,5 +507,26 @@
 		"openInGoogleMaps": "Open in Google Maps",
 		"shareWithFriends": "Share with friends",
 		"cancel": "Cancel"
+	},
+	"Review": {
+		"title": "Post a Review",
+		"hero": {
+			"title": "Write reviews for your favorite restaurants\nand share the places you've been"
+		},
+		"guest": {
+			"description": "Log in to write reviews",
+			"loginButton": "Log In"
+		},
+		"authenticated": {
+			"postButton": "✏️ Post a restaurant review"
+		},
+		"selectRestaurant": {
+			"title": "Select a restaurant to review"
+		},
+		"emptyState": {
+			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
+		},
+		"everybodyPostsTitle": "Everyone's Reviews",
+		"characterCount": "{{current}}/{{max}}"
 	}
 }
