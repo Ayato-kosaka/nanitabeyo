@@ -44,7 +44,6 @@ export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
@@ -57,7 +56,6 @@ export default function SearchScreen() {
 		...DEFAULT_PRICE_LEVELS,
 	]);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-	const [showTutorial, setShowTutorial] = useState(false);
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
@@ -70,11 +68,6 @@ export default function SearchScreen() {
 			payload: { screen: "search" },
 		});
 
-		// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
-		if (!isTutorialLoading && hasSeenTutorial === false) {
-			setShowTutorial(true);
-		}
-
 		// 端末時間帯に基づき timeSlot を自動設定
 		const hour = new Date().getHours();
 		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
@@ -86,7 +79,7 @@ export default function SearchScreen() {
 		];
 		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
 		setTimeSlot(slot);
-	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent]);
+	}, [logFrontendEvent]);
 
 	const handleLocationClear = () => {
 		lightImpact();
@@ -225,6 +218,21 @@ export default function SearchScreen() {
 		lightImpact();
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
+
+	// ========== チュートリアル表示制御 ==========
+	const [showTutorial, setShowTutorial] = useState(false);
+	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
+	useEffect(() => {
+		// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
+		if (!isTutorialLoading && hasSeenTutorial === false) {
+			setShowTutorial(true);
+			logFrontendEvent({
+				event_name: "search_tutorial_auto_opened",
+				error_level: "log",
+				payload: { opened_reason: "auto" },
+			});
+		}
+	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent]);
 
 	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
 	const handleOpenTutorial = () => {
