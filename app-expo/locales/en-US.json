@@ -548,7 +548,12 @@
 			"postButton": "✏️ Post a restaurant review"
 		},
 		"selectRestaurant": {
-			"title": "Select a restaurant to review"
+			"title": "Select a restaurant to review",
+			"searchThisArea": "Search this area",
+			"savedRestaurantList": "Saved Restaurants",
+			"postPhotoVideo": "Post Photo/Video",
+			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
 		},
 		"emptyState": {
 			"noReviews": "No reviews yet.\nBe the first to review this restaurant."

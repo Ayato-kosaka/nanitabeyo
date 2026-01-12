@@ -19,6 +19,7 @@ import {
   QueryMeSavedDishCategoriesDto,
   QueryMeSavedDishMediaDto,
   UpdateUserProfileDto,
+  QuerySavedRestaurantsDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -26,11 +27,13 @@ import { AppLoggerService } from '../../core/logger/logger.service';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
+import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
 import { DishMediaEntry } from '@shared/v1/res';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -42,6 +45,8 @@ export class UsersService {
     private readonly dishMediaService: DishMediaService,
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
+    private readonly restaurantsRepo: RestaurantsRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async getUserByIds(userId: string[]) {
@@ -269,6 +274,59 @@ export class UsersService {
 
     return {
       data: dishMediaEntryItemsResult.items,
+      nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*             GET /v1/users/me/saved-restaurants                    */
+  /* ------------------------------------------------------------------ */
+  // #644 【設計】保存したお店を位置情報で検索
+  async getMySavedNearbyRestaurants(
+    userId: string,
+    dto: QuerySavedRestaurantsDto,
+  ) {
+    this.logger.debug(
+      'GetMySavedNearbyRestaurants',
+      'getMySavedNearbyRestaurants',
+      {
+        userId,
+        lat: dto.lat,
+        lng: dto.lng,
+        radius: dto.radius,
+        limit: dto.limit,
+        offset: dto.offset,
+      },
+    );
+
+    const items = await this.prisma.$transaction(async (tx) => {
+      return this.restaurantsRepo.searchNearbySavedRestaurants(tx, {
+        lat: dto.lat,
+        lng: dto.lng,
+        radius: dto.radius,
+        limit: dto.limit ?? 20,
+        offset: dto.offset ?? 0,
+        userId,
+      });
+    });
+
+    // #644 【設計】nextCursor 計算（offset + 件数）
+    const nextCursor =
+      items.length < (dto.limit ?? 20)
+        ? null
+        : String((dto.offset ?? 0) + items.length);
+
+    this.logger.debug(
+      'GetMySavedNearbyRestaurantsResult',
+      'getMySavedNearbyRestaurants',
+      {
+        count: items.length,
+        nextCursor,
+      },
+    );
+
+    return {
+      data: items,
       nextCursor,
     };
   }

@@ -4,6 +4,7 @@ import { SupabaseDishCategories } from "../../../converters/convert_dish_categor
 import { PaginatedResponse } from "./paginated-response";
 import { DishMediaEntry } from "./dish-media.response";
 import { SupabaseUsers } from "../../../converters/convert_users";
+import { RestaurantsEntity } from "./restaurants.response";
 
 /**
  * ユーザープロフィール情報
@@ -32,6 +33,16 @@ export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishC
 
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
+
+/** GET /v1/users/me/saved-restaurants のレスポンス型 */
+export type QueryMeSavedRestaurantsResponse = PaginatedResponse<{
+	restaurant: RestaurantsEntity;
+	meta: {
+		reviewCount: number;
+		averageRating: number;
+		lastSavedAt: Date | null;
+	};
+}>;
 
 /** GET /v1/users/:id のレスポンス型 */
 export type GetUserProfileResponse = UserProfile;
