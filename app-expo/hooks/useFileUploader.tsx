@@ -4,7 +4,8 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import type { CreateUserUploadSignedUrlDto } from "@shared/api/v1/dto";
 import type { CreateUserUploadSignedUrlResponse } from "@shared/api/v1/res";
-import * as FileSystem from "expo-file-system";
+// #SDK54 【設計】expo-file-system 19.x では legacy API を使用（新 API は File/Directory クラス）
+import * as FileSystem from "expo-file-system/legacy";
 
 export interface UploadProgress {
 	loaded: number;
@@ -119,14 +120,13 @@ export function useFileUploader() {
 
 				const localUri = await downloadToLocalIfNeeded(uri);
 
-				// #SDK54 【設計】expo-file-system 19.x では uploadType が削除されたためコメントアウト
+				// #SDK54 【設計】expo-file-system 19.x legacy API を使用（uploadType は不要になった）
 				const uploadTask = FileSystem.createUploadTask(
 					signedUrlResponse.putUrl,
 					localUri,
 					{
 						httpMethod: "PUT",
 						headers: { "Content-Type": mimeType },
-						// uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // SDK54 では不要
 					},
 					(progress) => {
 						const percentage = (progress.totalBytesSent / progress.totalBytesExpectedToSend) * 100;
@@ -227,8 +227,8 @@ const downloadToLocalIfNeeded = async (uri: string): Promise<string> => {
 	if (Platform.OS === "web") return uri; // WebはそのままfetchでOK
 	if (uri.startsWith("file://")) return uri;
 	// http(s) → 一時ファイルに保存
-	// #SDK54 【設計】FileSystem.Directories.CacheDirectory を使用（SDK54 の新API）
-	const tmp = `${FileSystem.Directories.CacheDirectory}/avatar-${Date.now()}.tmp`;
+	// #SDK54 【設計】cacheDirectory は legacy API で使用可能（新 API は Paths.cache）
+	const tmp = `${FileSystem.cacheDirectory}avatar-${Date.now()}.tmp`;
 	const { uri: localUri, status } = await FileSystem.downloadAsync(uri, tmp);
 	if (status < 200 || status >= 300) throw new Error(`Download failed: ${status}`);
 	return localUri;

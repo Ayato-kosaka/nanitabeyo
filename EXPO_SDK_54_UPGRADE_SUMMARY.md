@@ -12,6 +12,7 @@
 BottomSheet v5 系は **Reanimated 4.x + React Native 0.81** を前提に最適化されている。
 
 旧環境（Expo 53, RN 0.79, Reanimated 3.x）では:
+
 - dev client: ゆるい動作で問題なし
 - preview ビルド: New Architecture / Hermes 最適化 / Reanimated JSI がフル動作 → ネイティブ差分が顕在化
 
@@ -19,66 +20,70 @@ BottomSheet v5 系は **Reanimated 4.x + React Native 0.81** を前提に最適�
 
 ### 1. 主要な依存関係のアップデート
 
-| パッケージ | 旧バージョン | 新バージョン | 備考 |
-|-----------|------------|------------|------|
-| expo | 53.0.0 | **54.0.31** | メインアップデート |
-| react-native | 0.79.5 | **0.81.5** | BottomSheet v5 推奨 |
-| react | 19.0.0 | **19.1.0** | |
-| react-dom | 19.0.0 | **19.1.0** | |
-| react-native-reanimated | 3.17.4 | **4.1.6** | BottomSheet v5 推奨 |
-| react-native-gesture-handler | 2.24.0 | **2.28.0** | |
-| react-native-worklets-core | (なし) | **1.6.2** | Reanimated 4 で必須 |
-| @types/react | 19.0.14 | **19.1.17** | peer dependency 解決 |
-| @gorhom/bottom-sheet | 5.2.8 | 5.2.8 | 維持 |
+| パッケージ                   | 旧バージョン | 新バージョン | 備考                 |
+| ---------------------------- | ------------ | ------------ | -------------------- |
+| expo                         | 53.0.0       | **54.0.31**  | メインアップデート   |
+| react-native                 | 0.79.5       | **0.81.5**   | BottomSheet v5 推奨  |
+| react                        | 19.0.0       | **19.1.0**   |                      |
+| react-dom                    | 19.0.0       | **19.1.0**   |                      |
+| react-native-reanimated      | 3.17.4       | **4.1.6**    | BottomSheet v5 推奨  |
+| react-native-gesture-handler | 2.24.0       | **2.28.0**   |                      |
+| react-native-worklets-core   | (なし)       | **1.6.2**    | Reanimated 4 で必須  |
+| @types/react                 | 19.0.14      | **19.1.17**  | peer dependency 解決 |
+| @gorhom/bottom-sheet         | 5.2.8        | 5.2.8        | 維持                 |
 
 ### 2. コード変更（最小限）
 
 #### a. `app-expo/app.config.ts`
+
 - `expo-secure-store` プラグインを追加（Expo SDK 54 で必須）
 
 ```typescript
 plugins: [
-  "expo-router",
-  "expo-video",
-  "expo-audio",
-  "expo-notifications",
-  "expo-secure-store", // 追加
-  // ...
-]
+	"expo-router",
+	"expo-video",
+	"expo-audio",
+	"expo-notifications",
+	"expo-secure-store", // 追加
+	// ...
+];
 ```
 
 #### b. `app-expo/hooks/useFileUploader.tsx`
+
 FileSystem API の変更対応（expo-file-system 19.x）
 
 **変更1: uploadType の削除**
+
 ```typescript
 // 旧: SDK 53
 const uploadTask = FileSystem.createUploadTask(
-  signedUrlResponse.putUrl,
-  localUri,
-  {
-    httpMethod: "PUT",
-    headers: { "Content-Type": mimeType },
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // 削除
-  },
-  // ...
+	signedUrlResponse.putUrl,
+	localUri,
+	{
+		httpMethod: "PUT",
+		headers: { "Content-Type": mimeType },
+		uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // 削除
+	},
+	// ...
 );
 
 // 新: SDK 54
 // #SDK54 【設計】expo-file-system 19.x では uploadType が削除されたためコメントアウト
 const uploadTask = FileSystem.createUploadTask(
-  signedUrlResponse.putUrl,
-  localUri,
-  {
-    httpMethod: "PUT",
-    headers: { "Content-Type": mimeType },
-    // uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // SDK54 では不要
-  },
-  // ...
+	signedUrlResponse.putUrl,
+	localUri,
+	{
+		httpMethod: "PUT",
+		headers: { "Content-Type": mimeType },
+		// uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // SDK54 では不要
+	},
+	// ...
 );
 ```
 
 **変更2: cacheDirectory の API 変更**
+
 ```typescript
 // 旧: SDK 53
 const tmp = `${FileSystem.cacheDirectory}avatar-${Date.now()}.tmp`;
@@ -90,7 +95,8 @@ const tmp = `${FileSystem.Directories.CacheDirectory}/avatar-${Date.now()}.tmp`;
 
 ### 3. その他の自動更新
 
-Expo SDK 54 に伴い、40+ の expo-* パッケージが自動的に適切なバージョンに更新されました:
+Expo SDK 54 に伴い、40+ の expo-\* パッケージが自動的に適切なバージョンに更新されました:
+
 - expo-camera: 16.1.11 → 17.0.10
 - expo-router: 5.1.7 → 6.0.21
 - expo-image: 2.4.1 → 3.0.11
@@ -113,6 +119,7 @@ pnpx eas-cli build --profile preview --platform ios --no-wait
 ```
 
 **確認項目:**
+
 - [ ] ビルドが成功すること
 - [ ] ビルドした IPA を TestFlight または直接インストールして動作確認
 - [ ] 検索タブを開く
@@ -127,6 +134,7 @@ pnpx eas-cli build --profile preview --platform android --no-wait
 ```
 
 **確認項目:**
+
 - [ ] ビルドが成功すること
 - [ ] regression が無いこと
 
@@ -138,6 +146,7 @@ pnpm start
 ```
 
 **確認項目:**
+
 - [ ] Metro bundler が起動すること
 - [ ] iOS/Android デバイスでアプリが起動すること
 - [ ] 既存機能に影響がないこと
@@ -154,6 +163,7 @@ pnpm start
 ### TypeScript 型エラー（既存、今回のアップグレードとは無関係）
 
 `pnpm typecheck` で多数のエラーが出ますが、これらは既存の問題です:
+
 - `@shared` モジュールの import 解決問題
 - 一部の `any` 型の使用
 
