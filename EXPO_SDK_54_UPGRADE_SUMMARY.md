@@ -20,17 +20,26 @@ BottomSheet v5 系は **Reanimated 4.x + React Native 0.81** を前提に最適�
 
 ### 1. 主要な依存関係のアップデート
 
-| パッケージ                   | 旧バージョン | 新バージョン | 備考                 |
-| ---------------------------- | ------------ | ------------ | -------------------- |
-| expo                         | 53.0.0       | **54.0.31**  | メインアップデート   |
-| react-native                 | 0.79.5       | **0.81.5**   | BottomSheet v5 推奨  |
-| react                        | 19.0.0       | **19.1.0**   |                      |
-| react-dom                    | 19.0.0       | **19.1.0**   |                      |
-| react-native-reanimated      | 3.17.4       | **4.1.6**    | BottomSheet v5 推奨  |
-| react-native-gesture-handler | 2.24.0       | **2.28.0**   |                      |
-| react-native-worklets-core   | (なし)       | **1.6.2**    | Reanimated 4 で必須  |
-| @types/react                 | 19.0.14      | **19.1.17**  | peer dependency 解決 |
-| @gorhom/bottom-sheet         | 5.2.8        | 5.2.8        | 維持                 |
+| パッケージ                   | 旧バージョン | 新バージョン | 備考                       |
+| ---------------------------- | ------------ | ------------ | -------------------------- |
+| expo                         | 53.0.0       | **54.0.31**  | メインアップデート         |
+| react-native                 | 0.79.5       | **0.81.5**   | BottomSheet v5 推奨        |
+| react                        | 19.0.0       | **19.1.0**   |                            |
+| react-dom                    | 19.0.0       | **19.1.0**   |                            |
+| react-native-reanimated      | 3.17.4       | **4.1.6**    | BottomSheet v5 推奨        |
+| react-native-gesture-handler | 2.24.0       | **2.28.0**   |                            |
+| react-native-worklets-core   | (なし)       | **1.6.2**    | Reanimated 4 で必須        |
+| react-native-worklets        | (なし)       | **0.7.1**    | Reanimated 4 peer dep 対応 |
+| expo-asset                   | (なし)       | **12.0.12**  | expo-audio peer dep 対応   |
+| @types/react                 | 19.0.14      | **19.1.17**  | peer dependency 解決       |
+| @gorhom/bottom-sheet         | 5.2.8        | 5.2.8        | 維持                       |
+
+**削除したパッケージ（直接インストール不要）:**
+
+- `@expo/config-plugins` - expo パッケージから import すべき
+- `expo-modules-autolinking` - 他の Expo パッケージが自動的にインストール
+- `expo-modules-core` - expo パッケージの API を使用すべき
+- `eas-cli` - グローバルインストールまたは npx 使用推奨
 
 ### 2. コード変更（最小限）
 
@@ -115,7 +124,31 @@ Expo SDK 54 に伴い、40+ の expo-\* パッケージが自動的に適切な�
 - ✅ `pnpm install --frozen-lockfile` (1分10秒)
 - ✅ `pnpm build` (12秒) - ビルド成功
 - ✅ `pnpm format` (7秒) - コードフォーマット正常
+- ✅ `npx expo-doctor` - 13/17 チェック通過、致命的なエラーなし
 - ✅ Git コミット完了
+
+### Expo Doctor 結果詳細
+
+**通過したチェック (13/17):**
+
+- ✅ 依存関係のピアデペンデンシー要件を満たしている
+- ✅ package.json の構文が正しい
+- ✅ Expo SDK との互換性確認
+- ✅ その他基本チェック
+
+**失敗したチェック (4/17):**
+
+1. **Expo config スキーマチェック** - ネットワークエラー（オフライン環境のため）
+2. **Metro config** - monorepo 用の watchFolders カスタマイズのため意図的な差異
+3. **React Native Directory メタデータ検証** - ネットワークエラー（オフライン環境のため）
+4. **パッケージバージョンマッチング** - react-native-worklets が 0.5.1 期待だが 0.7.1 を使用（新しいバージョンで問題なし）
+
+**対応済み:**
+
+- ✅ `eas-cli` を devDependencies から削除（グローバルインストールまたは npx 使用推奨）
+- ✅ `@expo/config-plugins`、`expo-modules-autolinking`、`expo-modules-core` を削除（直接インストール不要）
+- ✅ `expo-asset` を追加（expo-audio のピアデペンデンシー）
+- ✅ `react-native-worklets` を追加（react-native-reanimated のピアデペンデンシー）
 
 ## 🔜 次の検証ステップ
 
