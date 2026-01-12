@@ -39,7 +39,7 @@ export default function ReviewScreen() {
 		openLoginModal();
 	};
 
-	// #644 【設計】ログイン済みユーザー用：店舗選択（Map画面）に遷移
+	// #644 【設計】ログイン済みユーザー用：店舗選択画面に遷移
 	const handlePostReviewPress = () => {
 		lightImpact();
 		logFrontendEvent({
@@ -47,8 +47,8 @@ export default function ReviewScreen() {
 			error_level: "log",
 			payload: {},
 		});
-		// #644 【設計】Map画面に遷移（店舗選択機能を利用）
-		router.push("/(tabs)/map");
+		// #644 【設計】レビュー用の店舗選択画面に遷移
+		router.push("/(tabs)/review/selectRestaurant");
 	};
 
 	return (
