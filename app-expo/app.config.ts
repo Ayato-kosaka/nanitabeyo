@@ -193,6 +193,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			{
 				ios: {
 					useFrameworks: "static",
+					// #647 react-native-mapsのnon-modular headerエラー対策としてbuildReactNativeFromSourceを有効化
 					"buildReactNativeFromSource": true,
 				},
 			},
