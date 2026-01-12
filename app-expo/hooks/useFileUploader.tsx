@@ -1,235 +1,319 @@
+// app-expo/hooks/useFileUploader.tsx
 import { useCallback, useRef, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
+import { fetch as expoFetch } from "expo/fetch";
+import { Directory, File, Paths } from "expo-file-system";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import type { CreateUserUploadSignedUrlDto } from "@shared/api/v1/dto";
 import type { CreateUserUploadSignedUrlResponse } from "@shared/api/v1/res";
-// #SDK54 【設計】expo-file-system 19.x では legacy API を使用（新 API は File/Directory クラス）
-import * as FileSystem from "expo-file-system/legacy";
 
 export interface UploadProgress {
+	/** 送信済みバイト数（概念的・ステージベース） */
 	loaded: number;
+	/** 総バイト数（分かる場合のみ設定。分からなければ 0） */
 	total: number;
+	/** 0–100 (%)。ステージベースで 0 / 100 を通知 */
 	percentage: number;
+	/** "idle" | "preparing" | "uploading" | "done" | "error" */
+	stage: "idle" | "preparing" | "uploading" | "done" | "error";
 }
 
-export interface FileUploaderOptions {
+export interface UploadFileOptions {
 	mimeType: string;
 	baseFileName: string;
 }
 
-export function useFileUploader() {
-	const { callBackend } = useAPICall();
+export interface UseFileUploaderResult {
+	/**
+	 * 既存コードと互換:
+	 *  - 第1引数: URI
+	 *  - 第2引数: { mimeType, baseFileName }
+	 *  - 戻り値: サーバー側で扱う「パス文字列」
+	 */
+	uploadFile: (uri: string, options: UploadFileOptions) => Promise<string>;
+	isUploading: boolean;
+	progress: UploadProgress;
+	cancel: () => void;
+}
+
+/**
+ * #SDK54 モダン FileSystem API + expo/fetch ベースのアップローダ
+ *
+ * - legacy API（createUploadTask / downloadAsync / cacheDirectory）非使用
+ * - File / Directory / Paths + expo/fetch で実装
+ * - 既存の呼び出しシグネチャ (uri, { mimeType, baseFileName }) を維持
+ * - 戻り値は string (mediaPath / thumbnailPath / avatar_path 用)
+ */
+export function useFileUploader(): UseFileUploaderResult {
 	const { logFrontendEvent } = useLogger();
 
 	const [isUploading, setIsUploading] = useState(false);
-	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-	const [uploadError, setUploadError] = useState<string | null>(null);
+	const [progress, setProgress] = useState<UploadProgress>({
+		loaded: 0,
+		total: 0,
+		percentage: 0,
+		stage: "idle",
+	});
 
-	const cancelTokenRef = useRef<{ cancel: () => void } | null>(null);
+	// 現在進行中のアップロードを中断するための AbortController
+	const abortControllerRef = useRef<AbortController | null>(null);
 
-	const getSignedUrl = useCallback(
-		async (fileUploaderOptions: FileUploaderOptions) => {
+	const updateProgress = useCallback((partial: Partial<UploadProgress>) => {
+		setProgress((prev) => {
+			const next: UploadProgress = {
+				...prev,
+				...partial,
+			};
+
+			// ステージに応じてだいたいの percentage を補正
+			if (partial.stage === "preparing" && next.percentage < 5) {
+				next.percentage = 5;
+			} else if (partial.stage === "uploading" && next.percentage < 10) {
+				next.percentage = 10;
+			} else if (partial.stage === "done") {
+				next.percentage = 100;
+				next.loaded = next.total || next.loaded;
+			}
+
+			return next;
+		});
+	}, []);
+
+	/**
+	 * URI からアップロード用の body を解決
+	 * - Web: Blob / File
+	 * - ネイティブ: expo-file-system の File インスタンス
+	 *
+	 * TS 的には any を返し、expo/fetch 側で受ける（実装的には OK）
+	 */
+	const resolveUploadBodyFromUri = useCallback(
+		async (uri: string, mimeType: string, fileName?: string): Promise<{ body: any; totalBytes: number }> => {
+			// Web → ブラウザの fetch / Blob を使う
+			if (Platform.OS === "web") {
+				const res = await fetch(uri);
+				if (!res.ok) {
+					throw new Error(`Failed to load source file on web. status=${res.status}`);
+				}
+				const blob = await res.blob();
+				const totalBytes = blob.size ?? 0;
+
+				// fileName があればブラウザの File に包んであげるとサーバー側で扱いやすい
+				const webFile = fileName != null ? new window.File([blob], fileName, { type: mimeType }) : blob;
+
+				return {
+					body: webFile,
+					totalBytes,
+				};
+			}
+
+			// ネイティブ: HTTP(S) → cache にダウンロードしてから File として扱う
+			if (uri.startsWith("http://") || uri.startsWith("https://")) {
+				const uploadsDir = new Directory(Paths.cache, "uploads");
+				uploadsDir.create({ intermediates: true });
+
+				const downloadedFile = await File.downloadFileAsync(uri, uploadsDir);
+				const totalBytes = downloadedFile.size ?? 0;
+
+				return {
+					body: downloadedFile, // expo/fetch は File をそのまま body に取れる
+					totalBytes,
+				};
+			}
+
+			// それ以外（file://, content://, asset 等）はその URI を指す File として扱う
+			const file = new File(uri);
+			const totalBytes = file.size ?? 0;
+
+			return {
+				body: file,
+				totalBytes,
+			};
+		},
+		[],
+	);
+
+	const cancel = useCallback(() => {
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+			abortControllerRef.current = null;
+			updateProgress({ stage: "error" });
+		}
+	}, [updateProgress]);
+
+	const { callBackend } = useAPICall();
+	const createSignedUrl = useCallback(
+		async (requestPayload: CreateUserUploadSignedUrlDto) => {
 			return callBackend<CreateUserUploadSignedUrlDto, CreateUserUploadSignedUrlResponse>(
 				"v1/user-uploads/signed-url",
 				{
 					method: "POST",
-					requestPayload: fileUploaderOptions,
+					requestPayload,
 				},
 			);
 		},
 		[callBackend],
 	);
 
-	/**
-	 * ファイルアップロード（署名付きURL方式）
-	 * @param uri file:// や asset:// のローカルパス
-	 * @param fileUploaderOptions アップロードオプション
-	 */
 	const uploadFile = useCallback(
-		async (uri: string, fileUploaderOptions: FileUploaderOptions): Promise<string> => {
+		async (uri: string, options: UploadFileOptions): Promise<string> => {
+			const { mimeType, baseFileName } = options;
+
+			if (isUploading) {
+				logFrontendEvent({
+					event_name: "file_upload_in_progress_error",
+					error_level: "warn",
+					payload: {},
+				});
+				throw new Error("Another upload is already in progress.");
+			}
+
 			setIsUploading(true);
-			setUploadProgress({ loaded: 0, total: 0, percentage: 0 });
-			setUploadError(null);
-			const { mimeType, baseFileName } = fileUploaderOptions;
+			updateProgress({
+				stage: "preparing",
+				loaded: 0,
+				total: 0,
+				percentage: 0,
+			});
+
+			const abortController = new AbortController();
+			abortControllerRef.current = abortController;
 
 			try {
-				// ---- Step 1: Get signed URL from backend ----
-				const signedUrlResponse = await getSignedUrl(fileUploaderOptions);
+				// 1. 署名付き URL を取得
+				const signedUrlPayload = {
+					mimeType,
+					baseFileName,
+				} as CreateUserUploadSignedUrlDto;
 
-				// ---- Step 2: Perform upload (streamed, no Blob) ----
 				logFrontendEvent({
-					event_name: "file_upload_started",
+					event_name: "file_upload_signed_url_request",
 					error_level: "log",
-					payload: { mimeType, objectPath: signedUrlResponse.objectPath },
+					payload: {
+						mimeType,
+						baseFileName,
+					},
 				});
 
-				if (Platform.OS === "web") {
-					// Expo Web では expo-file-system の createUploadTask（内部の uploadTaskStartAsync）が未実装
-					// そのため、Web 環境では fetch で PUT リクエストを送る
+				// 1. 署名付き URL をバックエンドから取得
+				const signedUrlResponse = await createSignedUrl(signedUrlPayload);
 
-					// ---- Web: fetch PUT（進捗は完了時に100%へ）----
-					const controller = new AbortController();
-					cancelTokenRef.current = { cancel: () => controller.abort() };
-
-					// uri は blob:, data:, https: などを想定
-					const src = await fetch(uri);
-					const blob = await src.blob();
-
-					try {
-						const resp = await fetch(signedUrlResponse.putUrl, {
-							method: "PUT",
-							mode: "cors", // 明示
-							credentials: "omit", // 署名URLはCookie不要
-							referrerPolicy: "no-referrer",
-							headers: { "Content-Type": mimeType },
-							body: blob,
-							signal: controller.signal,
-							cache: "no-store",
-						});
-
-						if (!resp.ok) {
-							// ここに来る＝CORSは通過している。ステータスをログ出し
-							const text = await resp.text().catch(() => "");
-							throw new Error(`Upload failed: ${resp.status} ${resp.statusText} ${text}`);
-						}
-
-						setUploadProgress({ loaded: blob.size, total: blob.size, percentage: 100 });
-
-						logFrontendEvent({
-							event_name: "file_upload_success",
-							error_level: "log",
-							payload: { objectPath: signedUrlResponse.objectPath, status: resp.status },
-						});
-
-						return signedUrlResponse.objectPath;
-					} catch (e: any) {
-						// CORS で弾かれた場合はここに来て "TypeError: Failed to fetch"
-						logFrontendEvent({
-							event_name: "file_upload_failed",
-							error_level: "error",
-							payload: {
-								error: e?.message || "Failed to fetch",
-								name: e?.name,
-								baseFileName: baseFileName,
-							},
-						});
-						throw e;
-					}
+				if (!signedUrlResponse?.putUrl) {
+					throw new Error("Signed URL response does not contain putUrl.");
 				}
 
-				const localUri = await downloadToLocalIfNeeded(uri);
+				// 2. URI → File / Blob を解決
+				const { body, totalBytes } = await resolveUploadBodyFromUri(uri, mimeType, baseFileName);
 
-				// #SDK54 【設計】expo-file-system 19.x legacy API を使用（uploadType は不要になった）
-				const uploadTask = FileSystem.createUploadTask(
-					signedUrlResponse.putUrl,
-					localUri,
-					{
-						httpMethod: "PUT",
-						headers: { "Content-Type": mimeType },
+				updateProgress({
+					stage: "uploading",
+					total: totalBytes,
+					// まだ送信前なので loaded=0, percentage=10 程度にして「準備完了」を演出
+					loaded: 0,
+					percentage: 10,
+				});
+
+				logFrontendEvent({
+					event_name: "file_upload_start_via_expo_fetch",
+					error_level: "log",
+					payload: {
+						totalBytes,
+						mimeType,
 					},
-					(progress) => {
-						const percentage = (progress.totalBytesSent / progress.totalBytesExpectedToSend) * 100;
-						setUploadProgress({
-							loaded: progress.totalBytesSent,
-							total: progress.totalBytesExpectedToSend,
-							percentage,
-						});
+				});
 
-						logFrontendEvent({
-							event_name: "file_upload_progress",
-							error_level: "debug",
-							payload: {
-								percentage: percentage.toFixed(1),
-								loaded: progress.totalBytesSent,
-								total: progress.totalBytesExpectedToSend,
-							},
-						});
+				// 3. expo/fetch で PUT アップロード
+				const response = await expoFetch(signedUrlResponse.putUrl, {
+					method: "PUT",
+					headers: {
+						"Content-Type": mimeType,
 					},
-				);
+					body, // 型は any だが、expo/fetch は File / Blob をそのまま受け取れる
+					signal: abortController.signal,
+				});
 
-				cancelTokenRef.current = { cancel: () => uploadTask.cancelAsync() };
-
-				const result = await uploadTask.uploadAsync();
-
-				if (!result) throw new Error("Upload failed: No response");
-
-				if (result.status >= 200 && result.status < 300) {
-					setUploadProgress((p) => (p ? { ...p, percentage: 100, loaded: p.total, total: p.total } : null));
-
+				if (!response.ok) {
+					const text = await response.text().catch(() => "");
 					logFrontendEvent({
-						event_name: "file_upload_success",
-						error_level: "log",
+						event_name: "file_upload_failed",
+						error_level: "error",
 						payload: {
-							objectPath: signedUrlResponse.objectPath,
-							status: result.status,
+							status: response.status,
+							body: text.slice(0, 200),
 						},
 					});
-
-					return signedUrlResponse.objectPath;
+					throw new Error(`Upload failed: status=${response.status} body=${text.slice(0, 200)}`);
 				}
 
-				throw new Error(`Upload failed with status ${result.status}`);
-			} catch (err: any) {
-				const errorMessage = err?.message || "Upload failed";
-				setUploadError(errorMessage);
+				// 4. レスポンスから「パス文字列」を取り出す
+				const anyRes = signedUrlResponse as any;
+				const uploadedPath: string | undefined =
+					anyRes.path ?? anyRes.filePath ?? anyRes.key ?? anyRes.url ?? anyRes.getUrl;
 
-				logFrontendEvent({
-					event_name: "file_upload_failed",
-					error_level: "error",
-					payload: { error: errorMessage, baseFileName: baseFileName },
+				if (!uploadedPath || typeof uploadedPath !== "string") {
+					logFrontendEvent({
+						event_name: "file_upload_no_path_in_response_error",
+						error_level: "error",
+						payload: {},
+					});
+					throw new Error(
+						"Upload signed URL response does not contain a path string (expected path/filePath/key/url/getUrl).",
+					);
+				}
+
+				updateProgress({
+					stage: "done",
+					loaded: totalBytes,
+					total: totalBytes,
+					percentage: 100,
 				});
 
-				throw err;
+				logFrontendEvent({
+					event_name: "file_upload_succeeded",
+					error_level: "log",
+					payload: {
+						totalBytes,
+					},
+				});
+
+				// 既存コードが期待している string を返す
+				return uploadedPath;
+			} catch (error: any) {
+				if (error?.name === "AbortError") {
+					logFrontendEvent({
+						event_name: "file_upload_aborted",
+						error_level: "warn",
+						payload: {},
+					});
+					updateProgress({
+						stage: "error",
+					});
+					throw new Error("Upload aborted");
+				}
+
+				logFrontendEvent({
+					event_name: "file_upload_error",
+					error_level: "error",
+					payload: {
+						message: error?.message,
+					},
+				});
+				updateProgress({
+					stage: "error",
+				});
+				throw error;
 			} finally {
 				setIsUploading(false);
-				cancelTokenRef.current = null;
+				abortControllerRef.current = null;
 			}
 		},
-		[getSignedUrl, logFrontendEvent],
+		[createSignedUrl, isUploading, logFrontendEvent, resolveUploadBodyFromUri, updateProgress],
 	);
 
-	const cancelUpload = useCallback(() => {
-		cancelTokenRef.current?.cancel();
-	}, []);
-
-	const clearError = useCallback(() => {
-		setUploadError(null);
-	}, []);
-
-	const formatFileSize = (bytes: number): string => {
-		if (bytes === 0) return "0 B";
-		const k = 1024;
-		const sizes = ["B", "KB", "MB", "GB"];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-	};
-
-	const formatProgress = (progress: UploadProgress): string => {
-		return `${formatFileSize(progress.loaded)} / ${formatFileSize(progress.total)} (${progress.percentage.toFixed(1)}%)`;
-	};
-
 	return {
-		isUploading,
-		uploadProgress,
-		uploadError,
 		uploadFile,
-		cancelUpload,
-		clearError,
-		getSignedUrl,
-		formatFileSize,
-		formatProgress,
+		isUploading,
+		progress,
+		cancel,
 	};
 }
-
-// #SDK54 【設計】必要に応じてローカルファイルにダウンロードするユーティリティ
-const downloadToLocalIfNeeded = async (uri: string): Promise<string> => {
-	if (Platform.OS === "web") return uri; // WebはそのままfetchでOK
-	if (uri.startsWith("file://")) return uri;
-	// http(s) → 一時ファイルに保存
-	// #SDK54 【設計】cacheDirectory は legacy API で使用可能（新 API は Paths.cache）
-	const tmp = `${FileSystem.cacheDirectory}avatar-${Date.now()}.tmp`;
-	const { uri: localUri, status } = await FileSystem.downloadAsync(uri, tmp);
-	if (status < 200 || status >= 300) throw new Error(`Download failed: ${status}`);
-	return localUri;
-};
