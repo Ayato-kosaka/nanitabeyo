@@ -119,13 +119,14 @@ export function useFileUploader() {
 
 				const localUri = await downloadToLocalIfNeeded(uri);
 
+				// #SDK54 【設計】expo-file-system 19.x では uploadType が削除されたためコメントアウト
 				const uploadTask = FileSystem.createUploadTask(
 					signedUrlResponse.putUrl,
 					localUri,
 					{
 						httpMethod: "PUT",
 						headers: { "Content-Type": mimeType },
-						uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+						// uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // SDK54 では不要
 					},
 					(progress) => {
 						const percentage = (progress.totalBytesSent / progress.totalBytesExpectedToSend) * 100;
@@ -221,12 +222,13 @@ export function useFileUploader() {
 	};
 }
 
-// 必要に応じてローカルファイルにダウンロードするユーティリティ
+// #SDK54 【設計】必要に応じてローカルファイルにダウンロードするユーティリティ
 const downloadToLocalIfNeeded = async (uri: string): Promise<string> => {
 	if (Platform.OS === "web") return uri; // WebはそのままfetchでOK
 	if (uri.startsWith("file://")) return uri;
 	// http(s) → 一時ファイルに保存
-	const tmp = `${FileSystem.cacheDirectory}avatar-${Date.now()}.tmp`;
+	// #SDK54 【設計】FileSystem.Directories.CacheDirectory を使用（SDK54 の新API）
+	const tmp = `${FileSystem.Directories.CacheDirectory}/avatar-${Date.now()}.tmp`;
 	const { uri: localUri, status } = await FileSystem.downloadAsync(uri, tmp);
 	if (status < 200 || status >= 300) throw new Error(`Download failed: ${status}`);
 	return localUri;

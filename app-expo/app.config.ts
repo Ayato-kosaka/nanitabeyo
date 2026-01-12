@@ -97,6 +97,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-video",
 		"expo-audio",
 		"expo-notifications",
+		"expo-secure-store",
 		[
 			"expo-splash-screen",
 			{
