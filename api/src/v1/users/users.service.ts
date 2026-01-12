@@ -299,7 +299,7 @@ export class UsersService {
       },
     );
 
-    const items = await this.prisma.$transaction(async (tx) => {
+    const items = await this.prisma.prisma.$transaction(async (tx) => {
       return this.restaurantsRepo.searchNearbySavedRestaurants(tx, {
         lat: dto.lat,
         lng: dto.lng,

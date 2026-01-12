@@ -47,7 +47,7 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*            近隣かつ「保存済み」のレストランを取得する。            */

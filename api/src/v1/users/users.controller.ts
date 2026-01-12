@@ -265,8 +265,16 @@ export class UsersController {
   @ApiQuery({ name: 'lat', required: true, description: 'Latitude' })
   @ApiQuery({ name: 'lng', required: true, description: 'Longitude' })
   @ApiQuery({ name: 'radius', required: true, description: 'Radius in meters' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Limit (default: 20)' })
-  @ApiQuery({ name: 'offset', required: false, description: 'Offset (default: 0)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Limit (default: 20)',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Offset (default: 0)',
+  })
   @ApiResponse({ status: 200, description: '取得成功' })
   async getMeSavedRestaurants(
     @Query() query: QuerySavedRestaurantsDto,
