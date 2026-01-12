@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
-import { Camera, DollarSign, ExternalLink } from "lucide-react-native";
+import { Camera } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
@@ -9,9 +9,7 @@ import i18n from "@/lib/i18n";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
-import { BidForm } from "@/features/map/components/BidForm";
 import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantReviewsTab";
-import { RestaurantBidsTab } from "@/features/map/components/tabs/RestaurantBidsTab";
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
@@ -31,7 +29,8 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 		<View style={styles.tabContainer}>
 			{tabNames.map((name, i) => {
 				const isActive = currentIndex === i;
-				const label = name === "reviews" ? i18n.t("Map.tabs.reviews") : i18n.t("Map.tabs.bids");
+				// #644 【設計】レビュー専用モーダルでは「みんなの投稿」のみ表示
+				const label = i18n.t("Review.everybodyPostsTitle");
 				return (
 					<TouchableOpacity
 						key={name}
@@ -46,7 +45,7 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 }
 
 export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: QueryRestaurantsResponse[number]) {
-	const { lightImpact, mediumImpact } = useHaptics();
+	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
@@ -59,42 +58,12 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 		close: closeReviewModal,
 	} = useBlurModal({ intensity: 100, zIndex: 1200 });
 	const {
-		BlurModal: BidBlurModal,
-		open: openBidModal,
-		close: closeBidModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1300 });
-	const {
 		BlurModal: LoginBlurModal,
 		open: openLoginModal,
 		close: closeLoginModal,
 	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
-	// Processing state for submit actions
-	const [isProcessing, setIsProcessing] = useState(false);
-
-	const handleBid = async (bidAmount: string) => {
-		if (!bidAmount) return;
-		mediumImpact();
-		setIsProcessing(true);
-		try {
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-			logFrontendEvent({
-				event_name: "restaurant_bid_submitted",
-				error_level: "log",
-				payload: { restaurantId: restaurant?.id, bidAmount: Number(bidAmount) },
-			});
-			closeBidModal();
-		} catch {
-			logFrontendEvent({
-				event_name: "restaurant_bid_submission_failed",
-				error_level: "error",
-				payload: { restaurantId: restaurant?.id, bidAmount: Number(bidAmount) },
-			});
-		} finally {
-			setIsProcessing(false);
-		}
-	};
-
+	// #644 【設計】写真・動画を投稿するボタン押下時の処理（メディア選択ありモード）
 	const handleReviewButtonPress = async () => {
 		lightImpact();
 		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
@@ -178,47 +147,21 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 					</View>
 				</Card>
 
-				{restaurantMeta.maxEndDate && (
-					<View style={styles.bidAmountContainer}>
-						<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
-						<Text style={styles.bidAmount}>
-							{i18n.t("Search.currencySuffix")}
-							{restaurantMeta.totalCents.toLocaleString()}
-						</Text>
-						<Text style={styles.remainingDays}>
-							{i18n.t("Common.daysRemaining", {
-								count: Math.max(
-									0,
-									Math.ceil(
-										(new Date(restaurantMeta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-									),
-								),
-							})}
-						</Text>
-					</View>
-				)}
-
+				{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿する」 */}
 				<View style={styles.actionButtons}>
 					<PrimaryButton
 						onPress={handleReviewButtonPress}
-						label={i18n.t("Map.buttons.postReview")}
+						label={i18n.t("Map.buttons.postPhotoVideoReview")}
 						icon={<Camera size={20} color="#FFF" />}
 						borderRadius={8}
-						style={{ flex: 1 }}
-					/>
-					<PrimaryButton
-						onPress={openBidModal}
-						label={i18n.t("Map.buttons.placeBid")}
-						icon={<DollarSign size={20} color="#FFF" />}
-						borderRadius={8}
-						style={{ flex: 1 }}
+						style={{ width: "100%" }}
 					/>
 				</View>
 			</View>
 		) : (
 			<Card />
 		);
-	}, [handleHeaderLayout, handleReviewButtonPress, openBidModal, handleOpenGoogleMaps, restaurant]);
+	}, [handleHeaderLayout, handleReviewButtonPress, handleOpenGoogleMaps, restaurant]);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
@@ -230,30 +173,16 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 				renderTabBar={renderTabBar}
 				headerContainerStyle={{ shadowColor: "transparent", backgroundColor: "transparent" }}>
 				{/* 
-					レビュータブ: RestaurantReviewsTabコンポーネントを使用
-					useCursorPaginationでレストランの料理メディアを取得し、
-					既存のGridListレイアウトを完全に維持
+					#644 【設計】レビュータブ: RestaurantReviewsTabコンポーネントを使用
+					みんなの投稿サムネ押下でReviewFormモーダルが開く（既存メディア利用モード）
 				*/}
 				<Tabs.Tab name="reviews">
 					<RestaurantReviewsTab restaurantId={restaurant.id} />
 				</Tabs.Tab>
-				{/* 
-					入札タブ: RestaurantBidsTabコンポーネントを使用
-					useCursorPaginationでレストランの入札履歴を取得し、
-					既存のFlatListレイアウトとフィルター機能を完全に維持
-				*/}
-				<Tabs.Tab name="bids">
-					<RestaurantBidsTab restaurantId={restaurant.id} />
-				</Tabs.Tab>
 			</Tabs.Container>
 
-			{/* Review Modal */}
+			{/* #644 【設計】Review Modal - メディア選択ありモード */}
 			<ReviewBlurModal>{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} />}</ReviewBlurModal>
-
-			{/* Bid Modal */}
-			<BidBlurModal>
-				{({ close }) => <BidForm onSubmit={handleBid} onCancel={close} isProcessing={isProcessing} />}
-			</BidBlurModal>
 
 			{/* Login Modal */}
 			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
@@ -295,29 +224,6 @@ const styles = StyleSheet.create({
 	},
 	reviewCount: {
 		fontSize: 12,
-		color: "#666",
-	},
-	bidAmountContainer: {
-		backgroundColor: "#F0F8FF",
-		padding: 16,
-		borderRadius: 12,
-		alignItems: "center",
-		marginVertical: 12,
-		marginHorizontal: 16,
-	},
-	bidAmountLabel: {
-		fontSize: 12,
-		color: "#666",
-		marginBottom: 4,
-	},
-	bidAmount: {
-		fontSize: 28,
-		fontWeight: "bold",
-		color: "#007AFF",
-		marginBottom: 4,
-	},
-	remainingDays: {
-		fontSize: 14,
 		color: "#666",
 	},
 	actionButtons: {

@@ -12,14 +12,12 @@ import {
 	type CreateRestaurantResponse,
 	ErrorCode,
 } from "@shared/api/v1/res";
-import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
-import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
+import type { CreateRestaurantDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
-import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
+import { SelectedRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
-import { PrimaryButton } from "@/components/PrimaryButton";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -32,8 +30,6 @@ export default function SelectRestaurantScreen() {
 	const { showSnackbar } = useSnackbar();
 	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
-	const [isLoadingNearbyRestaurants, setIsLoadingNearbyRestaurants] = useState(false);
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
 	const {
 		BlurModal: RestaurantBlurModal,
@@ -53,41 +49,6 @@ export default function SelectRestaurantScreen() {
 		longitudeDelta: 0.01,
 	});
 
-	// #644 【設計】Search nearby restaurants when region changes
-	const searchNearbyRestaurants = useCallback(
-		async (region: Region) => {
-			if (isLoadingNearbyRestaurants) return;
-
-			setIsLoadingNearbyRestaurants(true);
-			try {
-				const results = await callBackend<QueryRestaurantsDto, QueryRestaurantsResponse>("v1/restaurants/search", {
-					method: "GET",
-					requestPayload: {
-						lat: region.latitude,
-						lng: region.longitude,
-						radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000, // Approximate radius based on map view
-						limit: 16,
-					},
-				});
-				setRestaurants(results);
-				logFrontendEvent({
-					event_name: "restaurant_search_success",
-					error_level: "log",
-					payload: { count: results.length, lat: region.latitude, lng: region.longitude },
-				});
-			} catch (error) {
-				logFrontendEvent({
-					event_name: "restaurant_search_error",
-					error_level: "error",
-					payload: { error, lat: region.latitude, lng: region.longitude },
-				});
-			} finally {
-				setIsLoadingNearbyRestaurants(false);
-			}
-		},
-		[callBackend, isLoadingNearbyRestaurants, logFrontendEvent],
-	);
-
 	useEffect(() => {
 		// #644 【設計】Screen view logging for review restaurant selection
 		logFrontendEvent({
@@ -105,8 +66,6 @@ export default function SelectRestaurantScreen() {
 			};
 			currentRegion.current = newRegion;
 			mapRef.current?.animateToRegion(newRegion, 1000);
-			// Search restaurants at current location
-			searchNearbyRestaurants(newRegion);
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
@@ -115,16 +74,6 @@ export default function SelectRestaurantScreen() {
 	const handleRegionChangeComplete = useCallback((region: Region) => {
 		currentRegion.current = region;
 	}, []);
-
-	// #644 【設計】独自のマーカー押下時にレストラン詳細モーダルを表示
-	const handleMarkerPress = useCallback(
-		(pressedPlace: QueryRestaurantsResponse[number]) => {
-			lightImpact();
-			setSelectedPlace(pressedPlace);
-			openRestaurantModal();
-		},
-		[lightImpact, openRestaurantModal],
-	);
 
 	// #644 【設計】レストラン作成＆詳細モーダル表示を行う関数
 	// #525 【設計】エラーハンドリングを整備し、422/404/network_error 等を適切にスナックバーで通知
@@ -247,20 +196,8 @@ export default function SelectRestaurantScreen() {
 				ref={mapRef}
 				style={styles.map}
 				onRegionChangeComplete={handleRegionChangeComplete}
-				onPoiClick={handlePoiPress}>
-				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
-					<AvatarBubbleMarker
-						key={restaurantData.restaurant.id}
-						coordinate={{
-							latitude: restaurantData.restaurant.latitude,
-							longitude: restaurantData.restaurant.longitude,
-						}}
-						onPress={() => handleMarkerPress(restaurantData)}
-						color="#FFF"
-						uri={restaurantData.restaurant.imageUrls?.sm}
-					/>
-				))}
-			</MapView>
+				onPoiClick={handlePoiPress}
+			/>
 
 			{/* POI Loading Indicator */}
 			{isLoadingRestaurantCreation && (
@@ -282,18 +219,6 @@ export default function SelectRestaurantScreen() {
 							<Navigation size={20} color="#5EA2FF" />
 						</TouchableOpacity>
 					}
-				/>
-			</View>
-
-			{/* Search This Area Button */}
-			<View style={styles.bottomActionContainer}>
-				<PrimaryButton
-					label={i18n.t("Map.buttons.searchNearby")}
-					onPress={() => searchNearbyRestaurants(currentRegion.current)}
-					colors={["#ffffff", "#ffffff"]}
-					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A" }}
-					loading={isLoadingNearbyRestaurants}
 				/>
 			</View>
 
@@ -333,13 +258,6 @@ const styles = StyleSheet.create({
 	searchContainer: {
 		position: "absolute",
 		top: 70,
-		left: 16,
-		right: 16,
-		zIndex: 10,
-	},
-	bottomActionContainer: {
-		position: "absolute",
-		bottom: 20,
 		left: 16,
 		right: 16,
 		zIndex: 10,
