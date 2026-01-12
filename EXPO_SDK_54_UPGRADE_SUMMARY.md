@@ -53,7 +53,18 @@ plugins: [
 
 FileSystem API の変更対応（expo-file-system 19.x）
 
-**変更1: uploadType の削除**
+**変更1: legacy API の使用**
+
+```typescript
+// 旧: SDK 53
+import * as FileSystem from "expo-file-system";
+
+// 新: SDK 54
+// #SDK54 【設計】expo-file-system 19.x では legacy API を使用（新 API は File/Directory クラス）
+import * as FileSystem from "expo-file-system/legacy";
+```
+
+**変更2: uploadType の削除**
 
 ```typescript
 // 旧: SDK 53
@@ -63,34 +74,31 @@ const uploadTask = FileSystem.createUploadTask(
 	{
 		httpMethod: "PUT",
 		headers: { "Content-Type": mimeType },
-		uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // 削除
+		uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // SDK54 legacy では不要
 	},
 	// ...
 );
 
-// 新: SDK 54
-// #SDK54 【設計】expo-file-system 19.x では uploadType が削除されたためコメントアウト
+// 新: SDK 54 (legacy API)
+// #SDK54 【設計】expo-file-system 19.x legacy API を使用（uploadType は不要になった）
 const uploadTask = FileSystem.createUploadTask(
 	signedUrlResponse.putUrl,
 	localUri,
 	{
 		httpMethod: "PUT",
 		headers: { "Content-Type": mimeType },
-		// uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, // SDK54 では不要
 	},
 	// ...
 );
 ```
 
-**変更2: cacheDirectory の API 変更**
+**変更3: cacheDirectory の継続使用**
 
 ```typescript
-// 旧: SDK 53
+// SDK 54 legacy API では cacheDirectory が引き続き利用可能
+// #SDK54 【設計】cacheDirectory は legacy API で使用可能（新 API は Paths.cache）
 const tmp = `${FileSystem.cacheDirectory}avatar-${Date.now()}.tmp`;
-
-// 新: SDK 54
-// #SDK54 【設計】FileSystem.Directories.CacheDirectory を使用（SDK54 の新API）
-const tmp = `${FileSystem.Directories.CacheDirectory}/avatar-${Date.now()}.tmp`;
+const { uri: localUri, status } = await FileSystem.downloadAsync(uri, tmp);
 ```
 
 ### 3. その他の自動更新
