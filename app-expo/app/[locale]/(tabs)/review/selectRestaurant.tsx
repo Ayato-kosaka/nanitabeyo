@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Dimensions } from "react-native";
-import { Navigation, RotateCw, ChevronLeft } from "lucide-react-native";
-import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
+import { Navigation, ChevronLeft } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -24,17 +23,11 @@ import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaura
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { Image } from "expo-image";
-import { getCacheKeyForImage } from "@/lib/image";
 import { router } from "expo-router";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { useAuth } from "@/contexts/AuthProvider";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.92;
-const CARD_HEIGHT = 100;
+import { SavedRestaurantsSheet } from "@/features/review/components/SavedRestaurantsSheet";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -203,7 +196,6 @@ export default function SelectRestaurantScreen() {
 	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
 	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
 	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
-	const carouselRef = useRef<ICarouselInstance | null>(null);
 
 	// #644 【設計】保存したお店を現在地で検索
 	const searchSavedRestaurants = useCallback(
@@ -258,12 +250,8 @@ export default function SelectRestaurantScreen() {
 				return;
 			}
 
-			// アクティブ更新 + カルーセルをそのカードへスクロール
+			// アクティブ更新（スクロールはシート側で active ID を監視して同期）
 			setActiveRestaurantId(restaurant.restaurant.id);
-			carouselRef.current?.scrollTo({
-				index,
-				animated: true,
-			});
 		},
 		[activeRestaurantId, lightImpact, openRestaurantModal, savedRestaurants],
 	);
@@ -332,39 +320,6 @@ export default function SelectRestaurantScreen() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// #644 【設計】保存したお店カードのレンダラー
-	const renderSavedRestaurantItem = useCallback(
-		({ item }: { item: SavedRestaurant }) => (
-			<View style={styles.savedRestaurantItemContainer}>
-				<TouchableOpacity
-					style={styles.savedRestaurantCard}
-					onPress={() => handleSavedRestaurantCardPress(item)}
-					activeOpacity={0.7}>
-					<Image
-						source={{
-							uri: item.restaurant.imageUrls?.md,
-							cacheKey: getCacheKeyForImage(item.restaurant.imageUrls?.md),
-						}}
-						style={styles.savedRestaurantImage}
-					/>
-					<View style={styles.savedRestaurantInfo}>
-						<Text style={styles.savedRestaurantName} numberOfLines={2}>
-							{item.restaurant.name}
-						</Text>
-						<PrimaryButton
-							onPress={() => handleSavedRestaurantReviewPress(item)}
-							label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
-							colors={["#5EA2FF", "#5EA2FF"]}
-							labelStyle={{ color: "#FFF", fontSize: 12 }}
-							style={{ alignSelf: "flex-end" }}
-						/>
-					</View>
-				</TouchableOpacity>
-			</View>
-		),
-		[handleSavedRestaurantCardPress, handleSavedRestaurantReviewPress],
-	);
-
 	return (
 		<MarkerBitmapRendererProvider>
 			<SafeAreaView edges={["top"]} style={styles.container}>
@@ -426,66 +381,16 @@ export default function SelectRestaurantScreen() {
 					/>
 				</View>
 
-				{/* #644 【設計】保存したお店リスト領域 */}
-				<View style={styles.savedRestaurantsContainer}>
-					{/* 「このエリアで再検索」ボタン */}
-					<View style={styles.searchButtonContainer}>
-						<PrimaryButton
-							onPress={() => searchSavedRestaurants(currentRegion.current)}
-							label={i18n.t("Review.selectRestaurant.searchThisArea")}
-							icon={<RotateCw size={16} color="#357AFF" />}
-							colors={["#ffffff", "#ffffff"]}
-							shadowColor={"#000000"}
-							labelStyle={{ color: "#357AFF", fontSize: 14 }}
-							loading={isLoadingSavedRestaurants}
-						/>
-					</View>
-
-					{/* 保存したお店リストのタイトルとカード */}
-					<View style={styles.savedRestaurantsSection}>
-						{savedRestaurants.length > 0 ? (
-							<>
-								<Text style={styles.savedRestaurantsTitle}>
-									{i18n.t("Review.selectRestaurant.savedRestaurantList")}
-								</Text>
-
-								<View style={styles.carouselWrapper}>
-									<Carousel<SavedRestaurant>
-										ref={carouselRef}
-										data={savedRestaurants}
-										loop={false}
-										// カルーセルコンテナ（ビューポート）
-										style={styles.carousel}
-										// 「1ページの論理サイズ」 = カード幅
-										width={SCREEN_WIDTH}
-										height={CARD_HEIGHT + 24} // マージン分
-										// 1カード単位でカチッとスナップ
-										pagingEnabled={false}
-										snapEnabled
-										maxScrollDistancePerSwipe={CARD_WIDTH + 40} // 1回で飛べる距離を制限
-										// ちょっとだけ前後カードを見せる Parallax モード
-										mode="parallax"
-										modeConfig={{
-											parallaxScrollingScale: 1, // 拡大なし
-											parallaxAdjacentItemScale: 1, // 隣もスケール変えない
-											parallaxScrollingOffset: ((SCREEN_WIDTH - CARD_WIDTH) * 3) / 4, // チラ見え量（マージンの半分）
-										}}
-										onSnapToItem={(index) => {
-											const restaurant = savedRestaurants[index];
-											if (restaurant) {
-												setActiveRestaurantId(restaurant.restaurant.id);
-											}
-										}}
-										scrollAnimationDuration={350}
-										renderItem={renderSavedRestaurantItem}
-									/>
-								</View>
-							</>
-						) : savedRestaurants.length === 0 && !isLoadingSavedRestaurants ? (
-							<Text style={styles.emptyStateText}>{i18n.t("Review.selectRestaurant.noSavedRestaurantsInArea")}</Text>
-						) : null}
-					</View>
-				</View>
+				{/* Saved Restaurants BottomSheet */}
+				<SavedRestaurantsSheet
+					savedRestaurants={savedRestaurants}
+					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
+					activeRestaurantId={activeRestaurantId}
+					onSearchThisArea={() => searchSavedRestaurants(currentRegion.current)}
+					onRestaurantCardPress={handleSavedRestaurantCardPress}
+					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
+					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
+				/>
 
 				<RestaurantBlurModal>
 					{selectedPlace && (
@@ -564,85 +469,5 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		zIndex: 20,
-	},
-	// #644 【設計】保存したお店リスト関連のスタイル
-	savedRestaurantsContainer: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		zIndex: 10,
-	},
-	savedRestaurantsSection: {
-		backgroundColor: "#FFFFFF",
-		paddingTop: 12,
-		borderTopLeftRadius: 16,
-		borderTopRightRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: -2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 8,
-		elevation: 5,
-	},
-	searchButtonContainer: {
-		alignItems: "center",
-		marginBottom: 12,
-	},
-	savedRestaurantsTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#666",
-		marginHorizontal: 16,
-		marginBottom: 8,
-	},
-	carouselWrapper: {
-		width: SCREEN_WIDTH, // これが「表示領域」
-		alignItems: "center", // 中央寄せでカードを表示
-		paddingVertical: 4,
-	},
-	carousel: {
-		width: SCREEN_WIDTH,
-		height: CARD_HEIGHT + 24, // シャドー用に少し余裕
-	},
-	savedRestaurantItemContainer: {
-		width: CARD_WIDTH,
-		height: CARD_HEIGHT,
-		marginHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2, // 中央寄せのためのマージン
-		marginVertical: 12,
-	},
-	savedRestaurantCard: {
-		flex: 1,
-		flexDirection: "row",
-		backgroundColor: "#FFF",
-		borderRadius: 12,
-		overflow: "hidden", // ここはカード内側の丸み用
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.2,
-		shadowRadius: 8,
-		elevation: 5,
-	},
-	savedRestaurantImage: {
-		width: 100,
-		height: CARD_HEIGHT,
-	},
-	savedRestaurantInfo: {
-		flex: 1,
-		padding: 12,
-		justifyContent: "space-between",
-	},
-	savedRestaurantName: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 8,
-	},
-	emptyStateText: {
-		fontSize: 14,
-		color: "#666",
-		textAlign: "center",
-		marginHorizontal: 16,
-		marginTop: 8,
-		marginBottom: 16,
 	},
 });
