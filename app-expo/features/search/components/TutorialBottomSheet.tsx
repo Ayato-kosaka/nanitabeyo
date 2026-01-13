@@ -194,8 +194,8 @@ export function TutorialBottomSheet({
 				<BottomSheetFlatList
 					ref={flatListRef}
 					data={tutorialPages}
-					keyExtractor={(_, index) => `tutorial-page-${index}`}
-					renderItem={({ item }) => (
+					keyExtractor={(_: TutorialPageConfig, index: number) => `tutorial-page-${index}`}
+					renderItem={({ item }: { item: TutorialPageConfig }) => (
 						<View style={styles.pageContainer}>
 							<TutorialPage image={item.image} title={item.title} bodyLines={item.bodyLines} />
 						</View>
@@ -205,7 +205,7 @@ export function TutorialBottomSheet({
 					showsHorizontalScrollIndicator={false}
 					viewabilityConfig={viewabilityConfig}
 					onViewableItemsChanged={handleViewableItemsChanged}
-					getItemLayout={(_, index) => ({
+					getItemLayout={(_: TutorialPageConfig, index: number) => ({
 						length: SCREEN_WIDTH,
 						offset: SCREEN_WIDTH * index,
 						index,

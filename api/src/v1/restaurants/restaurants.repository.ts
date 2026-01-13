@@ -26,6 +26,15 @@ export type RestaurantWithMeta = {
   };
 };
 
+export type SavedRestaurantWithMeta = {
+  restaurant: PrismaRestaurants;
+  meta: {
+    reviewCount: number;
+    averageRating: number;
+    lastSavedAt: Date | null;
+  };
+};
+
 export type RestaurantDishMediaEntry = DishMediaEntryEntity & {
   dish: {
     reviewCount: number;
@@ -38,7 +47,160 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
+
+  /* ------------------------------------------------------------------ */
+  /*            近隣かつ「保存済み」のレストランを取得する。            */
+  /* ------------------------------------------------------------------ */
+  async searchNearbySavedRestaurants(
+    tx: Prisma.TransactionClient,
+    dto: {
+      // TODO: 共通 DTO 化を行うこと。
+      lat: number;
+      lng: number;
+      radius: number; // meter
+      limit?: number;
+      offset?: number;
+      userId: string;
+    },
+  ): Promise<SavedRestaurantWithMeta[]> {
+    this.logger.debug(
+      'SearchNearbySavedRestaurants',
+      'searchNearbySavedRestaurants',
+      {
+        lat: dto.lat,
+        lng: dto.lng,
+        radius: dto.radius,
+        userId: dto.userId,
+        limit: dto.limit,
+      },
+    );
+
+    // 半径（m）→（km）
+    const radiusInKm = dto.radius / 1000;
+    // 緯度・経度のざっくりとしたバウンディングボックス用の度数（1度 ≒ 111km）
+    const radiusInDegrees = radiusInKm / 111;
+
+    // 生 SQL で集計。Prisma のテンプレートタグにより ${} 内はバインドパラメータとして扱われる。
+    // - reactions / dish_media / dishes を辿って「保存された dish_media の属するレストラン」を抽出
+    // - 保存日時（reactions.created_at）の降順でソート
+    // - 距離フィルタは searchNearbyRestaurants と同じロジック（地球半径 6371km の球面三角法）
+    const rawResult = await tx.$queryRaw<
+      (Pick<
+        PrismaRestaurants,
+        | 'id'
+        | 'google_place_id'
+        | 'name'
+        | 'name_language_code'
+        | 'latitude'
+        | 'longitude'
+        | 'image_url'
+        | 'image_path'
+        | 'address_components'
+        | 'plus_code'
+        | 'created_at'
+      > & {
+        review_count: number;
+        average_rating: number;
+        last_saved_at: Date | null;
+      })[]
+    >`
+    WITH params AS (
+      -- クエリ全体で共通して使うパラメータを WITH 句でまとめる
+      SELECT
+        ${dto.lat}::double precision    AS lat,
+        ${dto.lng}::double precision    AS lng,
+        ${radiusInKm}::double precision AS radius_km,
+        ${dto.userId}::uuid             AS user_id
+    ),
+    saved_restaurants AS (
+      -- ユーザーが「保存」した dish_media 経由でレストランを特定する
+      SELECT
+        d.restaurant_id,
+        -- 同じレストランが複数の dish_media 経由で保存されていても 1 行にまとめる
+        MAX(rct.created_at) AS last_saved_at
+      FROM reactions rct
+      JOIN dish_media dm
+        ON rct.target_id::uuid = dm.id
+      JOIN dishes d
+        ON d.id = dm.dish_id
+      JOIN params p
+        ON TRUE
+      WHERE
+        rct.user_id     = p.user_id
+        AND rct.action_type = 'save'
+        AND rct.target_type = 'dish_media'
+      GROUP BY d.restaurant_id
+    )
+    SELECT
+      r.id,
+      r.google_place_id,
+      r.name,
+      r.name_language_code,
+      r.latitude,
+      r.longitude,
+      r.image_url,
+      r.image_path,
+      r.address_components,
+      r.plus_code,
+      r.created_at,
+      COUNT(dr.id)::int                    AS review_count,
+      COALESCE(AVG(dr.rating), 0)::double precision AS average_rating,
+      sr.last_saved_at
+    FROM saved_restaurants sr
+    JOIN restaurants r
+      ON r.id = sr.restaurant_id
+    JOIN params p
+      ON TRUE
+    -- レビュー集計用に dishes / dish_reviews を LEFT JOIN
+    LEFT JOIN dishes d
+      ON d.restaurant_id = r.id
+    LEFT JOIN dish_reviews dr
+      ON dr.dish_id = d.id
+    WHERE
+      -- 粗いバウンディングボックスで先に絞り込み（インデックスがあれば活用されやすい）
+      r.latitude BETWEEN p.lat - ${radiusInDegrees} AND p.lat + ${radiusInDegrees}
+      AND r.longitude BETWEEN p.lng - ${radiusInDegrees} AND p.lng + ${radiusInDegrees}
+      -- 正確な距離フィルタ（地球半径 6371km・球面三角法）
+      AND (
+        6371 * acos(
+          cos(radians(p.lat)) * cos(radians(r.latitude))
+          * cos(radians(r.longitude) - radians(p.lng))
+          + sin(radians(p.lat)) * sin(radians(r.latitude))
+        )
+      ) <= p.radius_km
+    GROUP BY
+      r.id,
+      sr.last_saved_at
+    -- 「保存」日時の新しい順にソート
+    ORDER BY
+      sr.last_saved_at DESC
+    LIMIT ${dto.limit ?? 20}
+    OFFSET ${dto.offset ?? 0};
+  `;
+
+    // メタ情報を詰め替えてドメイン層で扱いやすい形にして返す
+    return rawResult.map((row) => ({
+      restaurant: {
+        id: row.id,
+        google_place_id: row.google_place_id,
+        name: row.name,
+        name_language_code: row.name_language_code,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        image_url: row.image_url,
+        image_path: row.image_path,
+        address_components: row.address_components,
+        plus_code: row.plus_code,
+        created_at: row.created_at,
+      },
+      meta: {
+        reviewCount: row.review_count,
+        averageRating: roundToOneDecimal(row.average_rating),
+        lastSavedAt: row.last_saved_at,
+      },
+    }));
+  }
 
   /* ------------------------------------------------------------------ */
   /*                    Restaurant search queries (nearby + bidding status)                    */
