@@ -548,7 +548,7 @@
 			"postButton": "✏️ 레스토랑 리뷰 게시하기"
 		},
 		"selectRestaurant": {
-			"title": "리뷰할 레스토랑을 선택하세요",
+			"title": "리뷰할 가게 선택",
 			"searchThisArea": "이 지역에서 검색",
 			"savedRestaurantList": "저장된 레스토랑",
 			"postPhotoVideo": "사진/동영상 게시",

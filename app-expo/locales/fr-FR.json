@@ -548,12 +548,7 @@
 			"postButton": "✏️ Publier un avis de restaurant"
 		},
 		"selectRestaurant": {
-			"title": "Sélectionnez un restaurant à évaluer",
-			"searchThisArea": "Rechercher dans cette zone",
-			"savedRestaurantList": "Restaurants Sauvegardés",
-			"postPhotoVideo": "Publier Photo/Vidéo",
-			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants sauvegardés",
-			"noSavedRestaurantsInArea": "Aucun restaurant sauvegardé trouvé dans cette zone. Veuillez élargir la zone et rechercher à nouveau."
+			"title": "Sélectionner un restaurant"
 		},
 		"emptyState": {
 			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."

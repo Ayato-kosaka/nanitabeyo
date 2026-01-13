@@ -548,7 +548,7 @@
 			"postButton": "✏️ Publicar una reseña de restaurante"
 		},
 		"selectRestaurant": {
-			"title": "Selecciona un restaurante para reseñar",
+			"title": "Selecciona el restaurante a reseñar",
 			"searchThisArea": "Buscar en esta área",
 			"savedRestaurantList": "Restaurantes Guardados",
 			"postPhotoVideo": "Publicar Foto/Video",
