@@ -11,7 +11,7 @@ import { PrismaRestaurants } from '../../../../shared/converters/convert_restaur
 import { Prisma } from '../../../../shared/prisma/client';
 import {
   QueryRestaurantsDto,
-  QueryRestaurantDishMediaDto,
+  QuerySavedRestaurantsDto,
 } from '@shared/v1/dto';
 import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
@@ -47,22 +47,14 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*            近隣かつ「保存済み」のレストランを取得する。            */
   /* ------------------------------------------------------------------ */
   async searchNearbySavedRestaurants(
-    tx: Prisma.TransactionClient,
-    dto: {
-      // TODO: 共通 DTO 化を行うこと。
-      lat: number;
-      lng: number;
-      radius: number; // meter
-      limit?: number;
-      offset?: number;
-      userId: string;
-    },
+    dto: QuerySavedRestaurantsDto,
+    userId: string,
   ): Promise<SavedRestaurantWithMeta[]> {
     this.logger.debug(
       'SearchNearbySavedRestaurants',
@@ -71,7 +63,7 @@ export class RestaurantsRepository {
         lat: dto.lat,
         lng: dto.lng,
         radius: dto.radius,
-        userId: dto.userId,
+        userId,
         limit: dto.limit,
       },
     );
@@ -85,7 +77,7 @@ export class RestaurantsRepository {
     // - reactions / dish_media / dishes を辿って「保存された dish_media の属するレストラン」を抽出
     // - 保存日時（reactions.created_at）の降順でソート
     // - 距離フィルタは searchNearbyRestaurants と同じロジック（地球半径 6371km の球面三角法）
-    const rawResult = await tx.$queryRaw<
+    const rawResult = await this.prisma.prisma.$queryRaw<
       (Pick<
         PrismaRestaurants,
         | 'id'
@@ -111,7 +103,7 @@ export class RestaurantsRepository {
         ${dto.lat}::double precision    AS lat,
         ${dto.lng}::double precision    AS lng,
         ${radiusInKm}::double precision AS radius_km,
-        ${dto.userId}::uuid             AS user_id
+        ${userId}::uuid             AS user_id
     ),
     saved_restaurants AS (
       -- ユーザーが「保存」した dish_media 経由でレストランを特定する

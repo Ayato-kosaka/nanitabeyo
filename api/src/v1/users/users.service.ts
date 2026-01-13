@@ -33,7 +33,7 @@ import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
 import { DishMediaEntry } from '@shared/v1/res';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
-import { PrismaService } from '../../prisma/prisma.service';
+import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 
 @Injectable()
 export class UsersService {
@@ -46,7 +46,7 @@ export class UsersService {
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly cloudTasks: CloudTasksService,
     private readonly restaurantsRepo: RestaurantsRepository,
-    private readonly prisma: PrismaService,
+    private readonly restaurantsAssembler: RestaurantsAssembler,
   ) {}
 
   async getUserByIds(userId: string[]) {
@@ -299,16 +299,15 @@ export class UsersService {
       },
     );
 
-    const items = await this.prisma.prisma.$transaction(async (tx) => {
-      return this.restaurantsRepo.searchNearbySavedRestaurants(tx, {
-        lat: dto.lat,
-        lng: dto.lng,
-        radius: dto.radius,
-        limit: dto.limit ?? 20,
-        offset: dto.offset ?? 0,
-        userId,
-      });
-    });
+    const items = await this.restaurantsRepo.searchNearbySavedRestaurants({
+      lat: dto.lat,
+      lng: dto.lng,
+      radius: dto.radius,
+      limit: dto.limit ?? 20,
+      offset: dto.offset ?? 0,
+    },
+      userId,
+    );
 
     // #644 【設計】nextCursor 計算（offset + 件数）
     const nextCursor =
@@ -326,7 +325,10 @@ export class UsersService {
     );
 
     return {
-      data: items,
+      data: items.map((i) => ({
+        restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(i.restaurant),
+        meta: i.meta,
+      })),
       nextCursor,
     };
   }

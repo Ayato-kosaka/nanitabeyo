@@ -38,7 +38,7 @@ export default function SelectRestaurantScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
-	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
+	const [selectedPlace, setSelectedPlace] = useState<QueryMeSavedRestaurantsResponse["data"][number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
 
@@ -102,7 +102,13 @@ export default function SelectRestaurantScreen() {
 					method: "POST",
 					requestPayload: { googlePlaceId },
 				});
-				setSelectedPlace(response);
+				setSelectedPlace({
+					...response,
+					meta: {
+						...response.meta,
+						lastSavedAt: null,
+					},
+				});
 				openRestaurantModal();
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
@@ -259,7 +265,9 @@ export default function SelectRestaurantScreen() {
 			} else {
 				// 非アクティブの場合はアクティブにして、リストをスクロール
 				setActiveRestaurantId(restaurant.restaurant.id);
-				const index = savedRestaurants.findIndex((r: QueryMeSavedRestaurantsResponse["data"][number]) => r.restaurant.id === restaurant.restaurant.id);
+				const index = savedRestaurants.findIndex(
+					(r: QueryMeSavedRestaurantsResponse["data"][number]) => r.restaurant.id === restaurant.restaurant.id,
+				);
 				if (index !== -1) {
 					savedRestaurantsListRef.current?.scrollToIndex({ index, animated: true });
 				}
