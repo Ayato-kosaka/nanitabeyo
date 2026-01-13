@@ -283,7 +283,7 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, openReviewModal, user, logFrontendEvent],
+		[lightImpact, openReviewModal, logFrontendEvent],
 	);
 
 	// 初回マウント時に現在地取得＆保存したお店検索
