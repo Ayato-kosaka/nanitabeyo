@@ -2,12 +2,12 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Platform, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
-import * as FileSystem from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 import { BubblePinBitmap } from "./BubblePinBitmap";
 
 /**
- * #235 MarkerBitmapRenderer
+ * #235 MarkerBitmapRenderer（モダン FileSystem API 版）
  *
  * ✅ MapView 直下には Marker しか置かないため、
  *    Offscreen View（PNG生成用）は Provider が MapView 外に1つだけ持つ。
@@ -18,8 +18,10 @@ import { BubblePinBitmap } from "./BubblePinBitmap";
  * ✅ Android で「画像が出ない」問題の根治：
  *    画像ロード完了（Image onLoadEnd）を待ってから capture する。
  *
- * ✅ iOS のファイル知道（tmp）系のクセに対処：
- *    moveAsync ではなく copyAsync を使用し、tmp delete は失敗しても握りつぶす（ノイズ削減）。
+ * ✅ iOS の tmp ファイル系のクセに対処：
+ *    文字列パスベースの moveAsync/copyAsync ではなく、
+ *    FileSystem の File オブジェクト（file.copy / file.delete）を使用し、
+ *    tmp delete は失敗しても握りつぶす（ノイズ削減）。
  */
 
 // ----------------------------
@@ -29,8 +31,10 @@ import { BubblePinBitmap } from "./BubblePinBitmap";
 // 画面外に配置（MapView配下ではなく Provider 直下に置く）
 const OFFSCREEN_POSITION = -9999;
 
-// キャッシュディレクトリ
-const CACHE_DIR = `${FileSystem.cacheDirectory}marker-icons/`;
+// キャッシュディレクトリ（モダン FileSystem API）
+// - 旧: `${FileSystem.cacheDirectory}marker-icons/`
+// - 新: Paths.cache をベースに Directory オブジェクトで管理
+const MARKER_CACHE_DIR = new Directory(Paths.cache, "marker-icons");
 
 // キャッシュ上限（運用上の安全弁）
 const MAX_CACHE_FILES = 200;
@@ -159,8 +163,21 @@ export const makeKey = (uri: string, size: number, color: string) => {
 	return `${uri}|${size}|${color}`;
 };
 
+/**
+ * #235 【設計】キャッシュディレクトリの初期化（モダン FileSystem API 版）
+ *
+ * - Directory.exists で存在確認してから create()
+ * - create() は同期メソッドなので try-catch で安全に包む
+ */
 const ensureCacheDir = async () => {
-	await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+	try {
+		if (!MARKER_CACHE_DIR.exists) {
+			MARKER_CACHE_DIR.create();
+		}
+	} catch (error) {
+		console.warn("[MarkerBitmapRenderer] Failed to ensure cache directory:", error);
+		throw error;
+	}
 };
 
 const getCacheKey = async (uri: string, size: number, color: string): Promise<string> => {
@@ -171,24 +188,24 @@ const getCacheKey = async (uri: string, size: number, color: string): Promise<st
 };
 
 /**
- * キャッシュ一覧取得（LRU削除用）
+ * キャッシュ一覧取得（LRU削除用・モダン FileSystem API 版）
+ *
+ * - Directory.list() で File / Directory インスタンス一覧を取得
+ * - File のみを対象に metadata を抽出
  */
-const getCacheFiles = async (): Promise<Array<{ uri: string; modificationTime: number; size: number }>> => {
+const getCacheFiles = async (): Promise<Array<{ file: File; uri: string; modificationTime: number; size: number }>> => {
 	try {
 		await ensureCacheDir();
-		const files = await FileSystem.readDirectoryAsync(CACHE_DIR);
+		const entries = MARKER_CACHE_DIR.list();
 
-		const infos = await Promise.all(
-			files.map(async (filename) => {
-				const uri = `${CACHE_DIR}${filename}`;
-				const info = await FileSystem.getInfoAsync(uri);
-				return {
-					uri,
-					modificationTime: info.exists && !info.isDirectory ? (info.modificationTime ?? 0) : 0,
-					size: info.exists && !info.isDirectory ? (info.size ?? 0) : 0,
-				};
-			}),
-		);
+		const files = entries.filter((entry): entry is File => entry instanceof File);
+
+		const infos = files.map((file) => ({
+			file,
+			uri: file.uri,
+			modificationTime: file.modificationTime ?? 0,
+			size: file.size ?? 0,
+		}));
 
 		// 古い順
 		return infos.sort((a, b) => a.modificationTime - b.modificationTime);
@@ -199,14 +216,14 @@ const getCacheFiles = async (): Promise<Array<{ uri: string; modificationTime: n
 };
 
 /**
- * 古いキャッシュ削除（LRU + 容量制御）
+ * 古いキャッシュ削除（LRU + 容量制御・モダン FileSystem API 版）
  */
 const cleanupCache = async () => {
 	try {
 		const files = await getCacheFiles();
 		const totalSize = files.reduce((sum, f) => sum + f.size, 0);
 
-		let toDelete: Array<{ uri: string; modificationTime: number; size: number }> = [];
+		let toDelete: Array<{ file: File; uri: string; modificationTime: number; size: number }> = [];
 
 		if (files.length > MAX_CACHE_FILES) {
 			toDelete = files.slice(0, files.length - MAX_CACHE_FILES);
@@ -227,7 +244,12 @@ const cleanupCache = async () => {
 		}
 
 		for (const f of toDelete) {
-			await FileSystem.deleteAsync(f.uri, { idempotent: true });
+			try {
+				// File.delete() は同期メソッド
+				f.file.delete();
+			} catch (err) {
+				console.warn(`[MarkerBitmapRenderer] Failed to delete cache file: ${f.uri}`, err);
+			}
 		}
 
 		if (toDelete.length > 0) {
@@ -244,17 +266,16 @@ const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
 /**
  * "tmp delete は失敗しても OK" だが、warn 連打はログノイズになる。
  * よくある iOS の "not writable" は握りつぶす方針にする。
+ *
+ * モダン FileSystem API 版:
+ * - File インスタンスを uri から生成して delete()
  */
 const safeDeleteTemp = async (tempUri: string) => {
 	try {
-		// 念のため file info を見てから削除（失敗しても無視）
-		const info = await FileSystem.getInfoAsync(tempUri);
-		if (!info.exists) return;
-		if (info.isDirectory) {
-			// ここは基本来ない想定（来たら削除しない）
-			return;
-		}
-		await FileSystem.deleteAsync(tempUri, { idempotent: true });
+		const tmpFile = new File(tempUri);
+		if (!tmpFile.exists) return;
+		// ディレクトリである可能性はほぼ無いが、念のため size==0 でも削除は安全
+		tmpFile.delete();
 	} catch {
 		// 失敗は握りつぶす（iOS の tmp は削除不可ケースがある）
 	}
@@ -423,6 +444,8 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 
 	/**
 	 * 実際の生成処理（1 request）
+	 *
+	 * - 文字列パスではなく File / Directory オブジェクトでキャッシュを扱う
 	 */
 	const generateBitmap = async (s: MarkerBitmapStore, request: GenerationRequest, retryCount: number) => {
 		const { uri, size, color } = request;
@@ -431,13 +454,12 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 		try {
 			// キャッシュキー
 			const cacheKey = await getCacheKey(uri, size, color);
-			const cachedPath = `${CACHE_DIR}${cacheKey}.png`;
+			const cacheFile = new File(MARKER_CACHE_DIR, `${cacheKey}.png`);
 
 			// キャッシュヒット
-			const cacheInfo = await FileSystem.getInfoAsync(cachedPath);
-			if (cacheInfo.exists) {
+			if (cacheFile.exists) {
 				console.log(`[MarkerBitmapRenderer] Cache hit: ${cacheKey}`);
-				s.updateState(key, { iconUri: cachedPath, isReady: true, isGenerating: false });
+				s.updateState(key, { iconUri: cacheFile.uri, isReady: true, isGenerating: false });
 				return;
 			}
 
@@ -483,22 +505,26 @@ export function MarkerBitmapRendererProvider({ children }: { children: React.Rea
 				result: "tmpfile",
 			});
 
-			// iOS 安定化：copy →（可能なら）tmp 削除
+			const tempFile = new File(tempUri);
+
+			// iOS 安定化：既存キャッシュがあれば削除 → copy → tmp 削除
 			try {
-				await FileSystem.deleteAsync(cachedPath, { idempotent: true });
+				if (cacheFile.exists) {
+					cacheFile.delete();
+				}
 			} catch {
 				// 既存が無い等は無視
 			}
 
-			await FileSystem.copyAsync({ from: tempUri, to: cachedPath });
+			tempFile.copy(cacheFile);
 			await safeDeleteTemp(tempUri);
 
-			console.log(`[MarkerBitmapRenderer] Bitmap generated: ${cachedPath}`);
+			console.log(`[MarkerBitmapRenderer] Bitmap generated: ${cacheFile.uri}`);
 
 			if (!isMountedRef.current) return;
 
 			s.updateState(key, {
-				iconUri: cachedPath,
+				iconUri: cacheFile.uri,
 				isReady: true,
 				isGenerating: false,
 			});

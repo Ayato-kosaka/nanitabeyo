@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { captureRef } from "react-native-view-shot";
-import * as FileSystem from "expo-file-system";
-import * as Crypto from "expo-crypto";
+import { useRef, useState, useCallback } from "react";
 import { Platform } from "react-native";
+import { captureRef } from "react-native-view-shot";
+import { Directory, File, Paths } from "expo-file-system";
+import * as Crypto from "expo-crypto";
 
 type MarkerBitmapParams = {
 	uri: string | undefined;
@@ -17,8 +17,10 @@ type MarkerBitmapResult = {
 	generateIfNeeded: () => Promise<void>;
 };
 
-// #235 【設計】キャッシュディレクトリ
-const CACHE_DIR = `${FileSystem.cacheDirectory}marker-icons/`;
+// #235 【設計】キャッシュディレクトリ（モダンAPI版）
+// - 旧: `${FileSystem.cacheDirectory}marker-icons/`
+// - 新: Paths.cache をベースに Directory オブジェクトで管理
+const MARKER_CACHE_DIR = new Directory(Paths.cache, "marker-icons");
 
 // #235 【設計】キャッシュ上限（最大200ファイル or 20MB）
 const MAX_CACHE_FILES = 200;
@@ -29,38 +31,61 @@ const MAX_CACHE_SIZE_BYTES = 20 * 1024 * 1024;
  */
 const getCacheKey = async (params: MarkerBitmapParams): Promise<string> => {
 	const key = `${params.uri ?? ""}|${params.size}|${params.color}`;
-	const hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, key);
-	return hash.substring(0, 16); // #235 【設計】16文字に短縮（ファイル名として使用）
+	const hash = await Crypto.digestStringAsync(
+		Crypto.CryptoDigestAlgorithm.SHA256,
+		key,
+	);
+	// #235 【設計】16文字に短縮（ファイル名として使用）
+	return hash.substring(0, 16);
 };
 
 /**
- * #235 【設計】キャッシュディレクトリの初期化
+ * #235 【設計】キャッシュディレクトリの初期化（モダンAPI版）
+ *
+ * Directory.create:
+ *  - 同期メソッドだが、ここでは async ラッパーで包んでおく
+ *  - intermediates / idempotent を true にすると複数回呼んでも安全
  */
 const ensureCacheDir = async () => {
-	// #235 【設計】intermediates: true により、既存ディレクトリでもエラーなし
-	await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+	try {
+		MARKER_CACHE_DIR.create({
+			intermediates: true,
+			idempotent: true,
+		});
+	} catch (error) {
+		console.warn("[useMarkerBitmap] Failed to ensure cache directory:", error);
+		throw error;
+	}
 };
 
 /**
- * #235 【設計】キャッシュファイル一覧取得（LRU管理用）
+ * #235 【設計】キャッシュファイル一覧取得（LRU管理用・モダンAPI版）
+ *
+ * - Directory.list() で File / Directory インスタンス一覧を取得
+ * - File のみを対象に LRU 用メタデータを組み立て
  */
-const getCacheFiles = async (): Promise<Array<{ uri: string; modificationTime: number; size: number }>> => {
+const getCacheFiles = async (): Promise<
+	Array<{ file: File; uri: string; modificationTime: number; size: number }>
+> => {
 	try {
 		await ensureCacheDir();
-		const files = await FileSystem.readDirectoryAsync(CACHE_DIR);
-		const fileInfos = await Promise.all(
-			files.map(async (filename) => {
-				const uri = `${CACHE_DIR}${filename}`;
-				const info = await FileSystem.getInfoAsync(uri);
-				return {
-					uri,
-					// #235 【設計】optional chaining で簡潔に記述
-					modificationTime: info.exists && !info.isDirectory ? (info.modificationTime ?? 0) : 0,
-					size: info.exists && !info.isDirectory ? (info.size ?? 0) : 0,
-				};
-			}),
+
+		// Directory.list() は同期メソッド
+		const entries = MARKER_CACHE_DIR.list();
+
+		const files = entries.filter(
+			(entry): entry is File => entry instanceof File,
 		);
-		return fileInfos.sort((a, b) => a.modificationTime - b.modificationTime); // #235 【設計】古い順にソート
+
+		const fileInfos = files.map((file) => ({
+			file,
+			uri: file.uri,
+			modificationTime: file.modificationTime ?? 0,
+			size: file.size ?? 0,
+		}));
+
+		// #235 【設計】古い順にソート
+		return fileInfos.sort((a, b) => a.modificationTime - b.modificationTime);
 	} catch (error) {
 		console.warn("[useMarkerBitmap] Failed to get cache files:", error);
 		return [];
@@ -68,14 +93,21 @@ const getCacheFiles = async (): Promise<Array<{ uri: string; modificationTime: n
 };
 
 /**
- * #235 【設計】古いキャッシュファイルを削除（LRU）
+ * #235 【設計】古いキャッシュファイルを削除（LRU・モダンAPI版）
+ *
+ * - File.delete() を使用して削除
  */
 const cleanupCache = async () => {
 	try {
 		const files = await getCacheFiles();
 		const totalSize = files.reduce((sum, f) => sum + f.size, 0);
 
-		let filesToDelete: Array<{ uri: string; modificationTime: number; size: number }> = [];
+		let filesToDelete: Array<{
+			file: File;
+			uri: string;
+			modificationTime: number;
+			size: number;
+		}> = [];
 
 		// #235 【設計】ファイル数上限超過チェック
 		if (files.length > MAX_CACHE_FILES) {
@@ -87,6 +119,7 @@ const cleanupCache = async () => {
 		if (totalSize > MAX_CACHE_SIZE_BYTES) {
 			const filesToDeleteSet = new Set(filesToDelete.map((f) => f.uri));
 			let currentSize = totalSize;
+
 			for (const file of files) {
 				if (currentSize <= MAX_CACHE_SIZE_BYTES) break;
 				if (!filesToDeleteSet.has(file.uri)) {
@@ -97,13 +130,22 @@ const cleanupCache = async () => {
 			}
 		}
 
-		// #235 【設計】削除実行
-		for (const file of filesToDelete) {
-			await FileSystem.deleteAsync(file.uri, { idempotent: true });
+		// #235 【設計】削除実行（同期メソッド）
+		for (const { file } of filesToDelete) {
+			try {
+				file.delete();
+			} catch (error) {
+				console.warn(
+					`[useMarkerBitmap] Failed to delete cache file: ${file.uri}`,
+					error,
+				);
+			}
 		}
 
 		if (filesToDelete.length > 0) {
-			console.log(`[useMarkerBitmap] Cleaned up ${filesToDelete.length} cache files`);
+			console.log(
+				`[useMarkerBitmap] Cleaned up ${filesToDelete.length} cache files`,
+			);
 		}
 	} catch (error) {
 		console.warn("[useMarkerBitmap] Failed to cleanup cache:", error);
@@ -111,7 +153,7 @@ const cleanupCache = async () => {
 };
 
 /**
- * #235 【設計】Marker用bitmap生成・キャッシュ管理Hook
+ * #235 【設計】Marker用bitmap生成・キャッシュ管理Hook（モダンAPI版）
  *
  * @param params - { uri: 画像URL, size: ピンサイズ, color: 枠色 }
  * @returns { iconUri: 生成済みPNG URI, isReady: 生成完了フラグ, viewRef: View参照, generateIfNeeded: 生成トリガー }
@@ -132,23 +174,16 @@ export const useMarkerBitmap = (params: MarkerBitmapParams): MarkerBitmapResult 
 
 			// #235 【設計】キャッシュキー生成
 			const cacheKey = await getCacheKey(params);
-			const cachedPath = `${CACHE_DIR}${cacheKey}.png`;
+			const cacheFile = new File(MARKER_CACHE_DIR, `${cacheKey}.png`);
 
 			// #235 【設計】キャッシュヒットチェック
-			const cacheInfo = await FileSystem.getInfoAsync(cachedPath);
-			if (cacheInfo.exists) {
+			if (cacheFile.exists) {
 				console.log(`[useMarkerBitmap] Cache hit: ${cacheKey}`);
-				setIconUri(cachedPath);
+				setIconUri(cacheFile.uri);
 				setIsReady(true);
 				generatingRef.current = false;
 				return;
 			}
-
-			// #235 【設計】キャッシュディレクトリ確保
-			await ensureCacheDir();
-
-			// #235 【設計】View をキャプチャして PNG 生成
-			console.log(`[useMarkerBitmap] Generating bitmap: ${cacheKey}`);
 
 			// Web環境では生成をスキップ（react-native-maps-webは異なるマーカー処理）
 			if (Platform.OS === "web") {
@@ -158,33 +193,43 @@ export const useMarkerBitmap = (params: MarkerBitmapParams): MarkerBitmapResult 
 				return;
 			}
 
+			// #235 【設計】キャッシュディレクトリ確保
+			await ensureCacheDir();
+
 			if (!viewRef.current) {
 				console.warn("[useMarkerBitmap] View ref not ready");
 				generatingRef.current = false;
 				return;
 			}
 
-			const uri = await captureRef(viewRef, {
+			// #235 【設計】View をキャプチャして PNG 生成
+			console.log(`[useMarkerBitmap] Generating bitmap: ${cacheKey}`);
+
+			const tmpUri = await captureRef(viewRef, {
 				format: "png",
 				quality: 1.0,
 				result: "tmpfile",
 			});
 
-			// #235 【設計】キャッシュディレクトリに移動
-			await FileSystem.moveAsync({
-				from: uri,
-				to: cachedPath,
-			});
+			// captureRef の結果 (file://...) を File インスタンスとして扱う
+			const tmpFile = new File(tmpUri);
 
-			console.log(`[useMarkerBitmap] Bitmap generated: ${cachedPath}`);
-			setIconUri(cachedPath);
+			// #235 【設計】キャッシュディレクトリに移動（モダンAPI版）
+			// - File.move(destination) は同期メソッド
+			tmpFile.move(cacheFile);
+
+			console.log(`[useMarkerBitmap] Bitmap generated: ${cacheFile.uri}`);
+			setIconUri(cacheFile.uri);
 			setIsReady(true);
 
 			// #235 【設計】キャッシュクリーンアップ（非同期・非ブロッキング）
-			cleanupCache().catch((err) => console.warn("[useMarkerBitmap] Cleanup failed:", err));
+			cleanupCache().catch((err) =>
+				console.warn("[useMarkerBitmap] Cleanup failed:", err),
+			);
 		} catch (error) {
 			console.error("[useMarkerBitmap] Failed to generate bitmap:", error);
-			setIsReady(true); // #235 【設計】失敗時もreadyにして無限待機を防ぐ
+			// #235 【設計】失敗時もreadyにして無限待機を防ぐ
+			setIsReady(true);
 		} finally {
 			generatingRef.current = false;
 		}
