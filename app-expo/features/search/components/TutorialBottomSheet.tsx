@@ -4,7 +4,8 @@ import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { TutorialPage } from "@/components/TutorialPage";
 import i18n from "@/lib/i18n";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const SHEET_MAX_HEIGHT = 580;
 
 export type TutorialBottomSheetProps = {
 	visible: boolean;
@@ -58,11 +59,17 @@ export function TutorialBottomSheet({
 
 	// #642 【設計】TrueSheet の present/dismiss による表示制御
 	useEffect(() => {
-		if (visible) {
-			sheetRef.current?.present();
-		} else {
+		if (!visible) {
 			sheetRef.current?.dismiss();
+			return;
 		}
+
+		// マウントが済んでから present() するために setTimeout で遅延させる
+		const timeoutId = setTimeout(() => {
+			sheetRef.current?.present();
+		}, 0);
+
+		return () => clearTimeout(timeoutId);
 	}, [visible]);
 
 	/**
@@ -156,6 +163,8 @@ export function TutorialBottomSheet({
 		<TrueSheet
 			ref={sheetRef}
 			detents={["auto"]}
+			maxHeight={SHEET_MAX_HEIGHT}
+			style={{ height: "100%" }}
 			cornerRadius={24}
 			backgroundColor="#FFFFFF"
 			grabber
@@ -168,6 +177,7 @@ export function TutorialBottomSheet({
 					ref={listRef}
 					data={tutorialPages}
 					keyExtractor={(_: TutorialPageConfig, index: number) => `tutorial-page-${index}`}
+					style={{ flexGrow: 1 }}
 					renderItem={({ item }: { item: TutorialPageConfig }) => (
 						<View style={styles.pageContainer}>
 							<TutorialPage image={item.image} title={item.title} bodyLines={item.bodyLines} />
@@ -227,7 +237,6 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		width: SCREEN_WIDTH,
-		height: "100%",
 		alignSelf: "center",
 	},
 	// 1ページ分のコンテナ（FlatList の 1 item）
