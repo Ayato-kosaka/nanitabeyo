@@ -252,7 +252,7 @@ export function useFileUploader(): UseFileUploaderResult {
 
 				if (!uploadedPath || typeof uploadedPath !== "string") {
 					logFrontendEvent({
-						event_name: "file_upload_no_path_in_response_error",
+						event_name: "file_upload_no_path_error",
 						error_level: "error",
 						payload: {},
 					});
