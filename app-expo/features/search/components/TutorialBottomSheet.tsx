@@ -155,12 +155,12 @@ export function TutorialBottomSheet({
 	return (
 		<TrueSheet
 			ref={sheetRef}
-			detents={[0.8]}
+			detents={["auto"]}
 			cornerRadius={24}
 			backgroundColor="#FFFFFF"
 			grabber
 			dimmed
-			dismissible={false}
+			dismissible
 			onDidDismiss={handleDidDismiss}>
 			<View style={styles.container}>
 				{/* 上：横スワイプで動くコンテンツ */}
