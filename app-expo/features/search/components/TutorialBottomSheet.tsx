@@ -180,8 +180,8 @@ export function TutorialBottomSheet({
 					onViewableItemsChanged={handleViewableItemsChanged}
 					getItemLayout={(_, index) => ({
 						length: SCREEN_WIDTH,
-						offset: SCREEN_WIDTH * (index ?? 0),
-						index: index ?? 0,
+						offset: SCREEN_WIDTH * index,
+						index,
 					})}
 				/>
 
