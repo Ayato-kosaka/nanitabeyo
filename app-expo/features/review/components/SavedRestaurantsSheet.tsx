@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useCallback, useState } from "react";
-import { View, StyleSheet, Text, Dimensions } from "react-native";
+import { View, StyleSheet, Text, Dimensions, TouchableOpacity } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -161,7 +161,7 @@ function PrimaryCard({
 	onReview: () => void;
 }) {
 	return (
-		<View style={styles.savedRestaurantCard}>
+		<TouchableOpacity style={styles.savedRestaurantCard} activeOpacity={0.7} onPress={onPress}>
 			<Image
 				source={{
 					uri: item.restaurant.imageUrls?.md,
@@ -181,7 +181,7 @@ function PrimaryCard({
 					style={{ alignSelf: "flex-end" }}
 				/>
 			</View>
-		</View>
+		</TouchableOpacity>
 	);
 }
 

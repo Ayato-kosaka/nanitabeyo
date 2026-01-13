@@ -54,12 +54,6 @@ export default function SelectRestaurantScreen() {
 		close: closeReviewModal,
 	} = useBlurModal({ intensity: 100, zIndex: 1200 });
 
-	const {
-		BlurModal: LoginBlurModal,
-		open: openLoginModal,
-		close: closeLoginModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1400 });
-
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
 	// #644 【設計】MapView のアニメーションを制御するための ref
@@ -280,13 +274,8 @@ export default function SelectRestaurantScreen() {
 			lightImpact();
 			setSelectedPlace(restaurant);
 
-			// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
-			if (user?.is_anonymous !== false) {
-				openLoginModal();
-			} else {
-				// ReviewForm を開くと同時にメディア選択が行われる
-				openReviewModal();
-			}
+			// ReviewForm を開くと同時にメディア選択が行われる
+			openReviewModal();
 
 			logFrontendEvent({
 				event_name: "saved_restaurant_review_button_press",
@@ -294,7 +283,7 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, openReviewModal, openLoginModal, user, logFrontendEvent],
+		[lightImpact, openReviewModal, user, logFrontendEvent],
 	);
 
 	// 初回マウント時に現在地取得＆保存したお店検索
@@ -402,9 +391,6 @@ export default function SelectRestaurantScreen() {
 				<ReviewBlurModal>
 					{({ close }) => selectedPlace && <ReviewForm restaurant={selectedPlace.restaurant} onCancel={close} />}
 				</ReviewBlurModal>
-
-				{/* Login Modal */}
-				<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 			</SafeAreaView>
 		</MarkerBitmapRendererProvider>
 	);
