@@ -36,7 +36,6 @@ export class QuerySavedRestaurantsDto {
 	 */
 	@IsOptional()
 	@Type(() => Number)
-	@IsPositive()
 	@Min(0)
 	readonly offset?: number;
 }
