@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, FlatList, Dimensions } from "react-native";
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Dimensions } from "react-native";
 import { Navigation, RotateCw, ChevronLeft } from "lucide-react-native";
+import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -8,7 +9,6 @@ import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import {
 	type AutocompleteLocation,
-	type QueryRestaurantsResponse,
 	type CreateRestaurantResponse,
 	type QueryMeSavedRestaurantsResponse,
 	ErrorCode,
@@ -33,7 +33,10 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.9;
+const CARD_WIDTH = SCREEN_WIDTH * 0.92;
+const CARD_HEIGHT = 100;
+
+type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
 export default function SelectRestaurantScreen() {
 	const { lightImpact } = useHaptics();
@@ -41,15 +44,9 @@ export default function SelectRestaurantScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { user } = useAuth();
-	const [selectedPlace, setSelectedPlace] = useState<QueryMeSavedRestaurantsResponse["data"][number] | null>(null);
+	const [selectedPlace, setSelectedPlace] = useState<SavedRestaurant | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
-
-	// #644 【設計】保存したお店の状態管理
-	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
-	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
-	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
-	const savedRestaurantsListRef = useRef<FlatList>(null);
 
 	const {
 		BlurModal: RestaurantBlurModal,
@@ -202,6 +199,12 @@ export default function SelectRestaurantScreen() {
 		}
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
+	// #644 【設計】保存したお店の状態管理
+	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
+	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
+	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
+	const carouselRef = useRef<ICarouselInstance | null>(null);
+
 	// #644 【設計】保存したお店を現在地で検索
 	const searchSavedRestaurants = useCallback(
 		async (region: Region) => {
@@ -242,30 +245,32 @@ export default function SelectRestaurantScreen() {
 
 	// #644 【設計】保存したお店のマーカー押下時の処理
 	const handleSavedRestaurantMarkerPress = useCallback(
-		(restaurant: QueryMeSavedRestaurantsResponse["data"][number]) => {
+		(restaurant: SavedRestaurant) => {
 			lightImpact();
 
-			// すでにアクティブな場合はモーダルを開く
+			const index = savedRestaurants.findIndex((r) => r.restaurant.id === restaurant.restaurant.id);
+			if (index === -1) return;
+
+			// すでにアクティブならモーダル表示
 			if (activeRestaurantId === restaurant.restaurant.id) {
 				setSelectedPlace(restaurant);
 				openRestaurantModal();
-			} else {
-				// 非アクティブの場合はアクティブにして、リストをスクロール
-				setActiveRestaurantId(restaurant.restaurant.id);
-				const index = savedRestaurants.findIndex(
-					(r: QueryMeSavedRestaurantsResponse["data"][number]) => r.restaurant.id === restaurant.restaurant.id,
-				);
-				if (index !== -1) {
-					savedRestaurantsListRef.current?.scrollToIndex({ index, animated: true });
-				}
+				return;
 			}
+
+			// アクティブ更新 + カルーセルをそのカードへスクロール
+			setActiveRestaurantId(restaurant.restaurant.id);
+			carouselRef.current?.scrollTo({
+				index,
+				animated: true,
+			});
 		},
 		[activeRestaurantId, lightImpact, openRestaurantModal, savedRestaurants],
 	);
 
 	// #644 【設計】保存したお店のカード押下時の処理（ボタン以外）
 	const handleSavedRestaurantCardPress = useCallback(
-		(restaurant: QueryMeSavedRestaurantsResponse["data"][number]) => {
+		(restaurant: SavedRestaurant) => {
 			lightImpact();
 			setActiveRestaurantId(restaurant.restaurant.id);
 			setSelectedPlace(restaurant);
@@ -283,7 +288,7 @@ export default function SelectRestaurantScreen() {
 	// #644 【設計】保存したお店カードの「写真・動画を投稿」ボタン押下時の処理
 	// SelectedRestaurantDetails の handleReviewButtonPress と同じ挙動（メディア選択ありモード）
 	const handleSavedRestaurantReviewPress = useCallback(
-		(restaurant: QueryMeSavedRestaurantsResponse["data"][number]) => {
+		(restaurant: SavedRestaurant) => {
 			lightImpact();
 			setSelectedPlace(restaurant);
 
@@ -304,6 +309,7 @@ export default function SelectRestaurantScreen() {
 		[lightImpact, openReviewModal, openLoginModal, user, logFrontendEvent],
 	);
 
+	// 初回マウント時に現在地取得＆保存したお店検索
 	useEffect(() => {
 		// #644 【設計】レビューのレストラン選択画面表示ログ
 		logFrontendEvent({
@@ -325,6 +331,39 @@ export default function SelectRestaurantScreen() {
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	// #644 【設計】保存したお店カードのレンダラー
+	const renderSavedRestaurantItem = useCallback(
+		({ item }: { item: SavedRestaurant }) => (
+			<View style={styles.savedRestaurantItemContainer}>
+				<TouchableOpacity
+					style={styles.savedRestaurantCard}
+					onPress={() => handleSavedRestaurantCardPress(item)}
+					activeOpacity={0.7}>
+					<Image
+						source={{
+							uri: item.restaurant.imageUrls?.md,
+							cacheKey: getCacheKeyForImage(item.restaurant.imageUrls?.md),
+						}}
+						style={styles.savedRestaurantImage}
+					/>
+					<View style={styles.savedRestaurantInfo}>
+						<Text style={styles.savedRestaurantName} numberOfLines={2}>
+							{item.restaurant.name}
+						</Text>
+						<PrimaryButton
+							onPress={() => handleSavedRestaurantReviewPress(item)}
+							label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
+							colors={["#5EA2FF", "#5EA2FF"]}
+							labelStyle={{ color: "#FFF", fontSize: 12 }}
+							style={{ alignSelf: "flex-end" }}
+						/>
+					</View>
+				</TouchableOpacity>
+			</View>
+		),
+		[handleSavedRestaurantCardPress, handleSavedRestaurantReviewPress],
+	);
 
 	return (
 		<MarkerBitmapRendererProvider>
@@ -350,7 +389,7 @@ export default function SelectRestaurantScreen() {
 					onRegionChangeComplete={handleRegionChangeComplete}
 					onPoiClick={handlePoiPress}>
 					{/* #644 【設計】保存したお店のマーカー表示 */}
-					{savedRestaurants.map((item: QueryMeSavedRestaurantsResponse["data"][number]) => (
+					{savedRestaurants.map((item: SavedRestaurant) => (
 						<AvatarBubbleMarkerBitmap
 							key={item.restaurant.id}
 							coordinate={{
@@ -409,44 +448,38 @@ export default function SelectRestaurantScreen() {
 								<Text style={styles.savedRestaurantsTitle}>
 									{i18n.t("Review.selectRestaurant.savedRestaurantList")}
 								</Text>
-								<FlatList
-									ref={savedRestaurantsListRef}
-									data={savedRestaurants}
-									horizontal
-									showsHorizontalScrollIndicator={false}
-									keyExtractor={(item) => item.restaurant.id}
-									contentContainerStyle={styles.savedRestaurantsListContent}
-									snapToInterval={CARD_WIDTH + 12}
-									snapToAlignment="start"
-									decelerationRate="fast"
-									pagingEnabled={false}
-									renderItem={({ item }) => (
-										<TouchableOpacity
-											style={styles.savedRestaurantCard}
-											onPress={() => handleSavedRestaurantCardPress(item)}
-											activeOpacity={0.7}>
-											<Image
-												source={{
-													uri: item.restaurant.imageUrls?.md,
-													cacheKey: getCacheKeyForImage(item.restaurant.imageUrls?.md),
-												}}
-												style={styles.savedRestaurantImage}
-											/>
-											<View style={styles.savedRestaurantInfo}>
-												<Text style={styles.savedRestaurantName} numberOfLines={2}>
-													{item.restaurant.name}
-												</Text>
-												<PrimaryButton
-													onPress={() => handleSavedRestaurantReviewPress(item)}
-													label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
-													colors={["#5EA2FF", "#5EA2FF"]}
-													labelStyle={{ color: "#FFF", fontSize: 12 }}
-													style={{ alignSelf: "flex-end" }}
-												/>
-											</View>
-										</TouchableOpacity>
-									)}
-								/>
+
+								<View style={styles.carouselWrapper}>
+									<Carousel<SavedRestaurant>
+										ref={carouselRef}
+										data={savedRestaurants}
+										loop={false}
+										// カルーセルコンテナ（ビューポート）
+										style={styles.carousel}
+										// 「1ページの論理サイズ」 = カード幅
+										width={SCREEN_WIDTH}
+										height={CARD_HEIGHT + 24} // マージン分
+										// 1カード単位でカチッとスナップ
+										pagingEnabled={false}
+										snapEnabled
+										maxScrollDistancePerSwipe={CARD_WIDTH + 40} // 1回で飛べる距離を制限
+										// ちょっとだけ前後カードを見せる Parallax モード
+										mode="parallax"
+										modeConfig={{
+											parallaxScrollingScale: 1, // 拡大なし
+											parallaxAdjacentItemScale: 1, // 隣もスケール変えない
+											parallaxScrollingOffset: ((SCREEN_WIDTH - CARD_WIDTH) * 3) / 4, // チラ見え量（マージンの半分）
+										}}
+										onSnapToItem={(index) => {
+											const restaurant = savedRestaurants[index];
+											if (restaurant) {
+												setActiveRestaurantId(restaurant.restaurant.id);
+											}
+										}}
+										scrollAnimationDuration={350}
+										renderItem={renderSavedRestaurantItem}
+									/>
+								</View>
 							</>
 						) : savedRestaurants.length === 0 && !isLoadingSavedRestaurants ? (
 							<Text style={styles.emptyStateText}>{i18n.t("Review.selectRestaurant.noSavedRestaurantsInArea")}</Text>
@@ -543,7 +576,6 @@ const styles = StyleSheet.create({
 	savedRestaurantsSection: {
 		backgroundColor: "#FFFFFF",
 		paddingTop: 12,
-		paddingBottom: 20,
 		borderTopLeftRadius: 16,
 		borderTopRightRadius: 16,
 		shadowColor: "#000",
@@ -563,17 +595,27 @@ const styles = StyleSheet.create({
 		marginHorizontal: 16,
 		marginBottom: 8,
 	},
-	savedRestaurantsListContent: {
-		paddingHorizontal: 16,
+	carouselWrapper: {
+		width: SCREEN_WIDTH, // これが「表示領域」
+		alignItems: "center", // 中央寄せでカードを表示
+		paddingVertical: 4,
+	},
+	carousel: {
+		width: SCREEN_WIDTH,
+		height: CARD_HEIGHT + 24, // シャドー用に少し余裕
+	},
+	savedRestaurantItemContainer: {
+		width: CARD_WIDTH,
+		height: CARD_HEIGHT,
+		marginHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2, // 中央寄せのためのマージン
+		marginVertical: 12,
 	},
 	savedRestaurantCard: {
-		width: CARD_WIDTH,
+		flex: 1,
 		flexDirection: "row",
 		backgroundColor: "#FFF",
 		borderRadius: 12,
-		margin: 8,
-		marginRight: 12,
-		overflow: "hidden",
+		overflow: "hidden", // ここはカード内側の丸み用
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.2,
@@ -582,7 +624,7 @@ const styles = StyleSheet.create({
 	},
 	savedRestaurantImage: {
 		width: 100,
-		height: 100,
+		height: CARD_HEIGHT,
 	},
 	savedRestaurantInfo: {
 		flex: 1,
