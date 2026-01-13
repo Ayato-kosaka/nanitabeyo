@@ -299,13 +299,14 @@ export class UsersService {
       },
     );
 
-    const items = await this.restaurantsRepo.searchNearbySavedRestaurants({
-      lat: dto.lat,
-      lng: dto.lng,
-      radius: dto.radius,
-      limit: dto.limit ?? 20,
-      offset: dto.offset ?? 0,
-    },
+    const items = await this.restaurantsRepo.searchNearbySavedRestaurants(
+      {
+        lat: dto.lat,
+        lng: dto.lng,
+        radius: dto.radius,
+        limit: dto.limit ?? 20,
+        offset: dto.offset ?? 0,
+      },
       userId,
     );
 
@@ -326,7 +327,9 @@ export class UsersService {
 
     return {
       data: items.map((i) => ({
-        restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(i.restaurant),
+        restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
+          i.restaurant,
+        ),
         meta: i.meta,
       })),
       nextCursor,

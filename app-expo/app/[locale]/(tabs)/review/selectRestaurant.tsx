@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, FlatList, Dimensions } from "react-native";
-import { Navigation, RotateCw } from "lucide-react-native";
+import { Navigation, RotateCw, ChevronLeft } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -27,6 +27,10 @@ import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/featur
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
+import { router } from "expo-router";
+import { ReviewForm } from "@/features/map/components/ReviewForm";
+import { useAuth } from "@/contexts/AuthProvider";
+import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.9;
@@ -36,15 +40,35 @@ export default function SelectRestaurantScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
+	const { user } = useAuth();
 	const [selectedPlace, setSelectedPlace] = useState<QueryMeSavedRestaurantsResponse["data"][number] | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
+
+	// #644 【設計】保存したお店の状態管理
+	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
+	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
+	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
+	const savedRestaurantsListRef = useRef<FlatList>(null);
 
 	const {
 		BlurModal: RestaurantBlurModal,
 		open: openRestaurantModal,
 		close: closeRestaurantModal,
 	} = useBlurModal({ intensity: 100 });
+
+	// #644 【設計】レビュー投稿用モーダル（メディア選択ありモード）
+	const {
+		BlurModal: ReviewBlurModal,
+		open: openReviewModal,
+		close: closeReviewModal,
+	} = useBlurModal({ intensity: 100, zIndex: 1200 });
+
+	const {
+		BlurModal: LoginBlurModal,
+		open: openLoginModal,
+		close: closeLoginModal,
+	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
@@ -178,12 +202,6 @@ export default function SelectRestaurantScreen() {
 		}
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
-	// #644 【設計】保存したお店の状態管理
-	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
-	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
-	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
-	const savedRestaurantsListRef = useRef<FlatList>(null);
-
 	// #644 【設計】保存したお店を現在地で検索
 	const searchSavedRestaurants = useCallback(
 		async (region: Region) => {
@@ -263,11 +281,19 @@ export default function SelectRestaurantScreen() {
 	);
 
 	// #644 【設計】保存したお店カードの「写真・動画を投稿」ボタン押下時の処理
+	// SelectedRestaurantDetails の handleReviewButtonPress と同じ挙動（メディア選択ありモード）
 	const handleSavedRestaurantReviewPress = useCallback(
 		(restaurant: QueryMeSavedRestaurantsResponse["data"][number]) => {
 			lightImpact();
 			setSelectedPlace(restaurant);
-			openRestaurantModal();
+
+			// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
+			if (user?.is_anonymous !== false) {
+				openLoginModal();
+			} else {
+				// ReviewForm を開くと同時にメディア選択が行われる
+				openReviewModal();
+			}
 
 			logFrontendEvent({
 				event_name: "saved_restaurant_review_button_press",
@@ -275,7 +301,7 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, openRestaurantModal, logFrontendEvent],
+		[lightImpact, openReviewModal, openLoginModal, user, logFrontendEvent],
 	);
 
 	useEffect(() => {
@@ -303,9 +329,18 @@ export default function SelectRestaurantScreen() {
 	return (
 		<MarkerBitmapRendererProvider>
 			<SafeAreaView edges={["top"]} style={styles.container}>
-				{/* #644 【設計】画面タイトル */}
+				{/* #644 【設計】画面タイトル with 戻るボタン */}
 				<View style={styles.headerContainer}>
+					<TouchableOpacity
+						style={styles.backButton}
+						onPress={() => {
+							lightImpact();
+							router.back();
+						}}>
+						<ChevronLeft size={24} color="#1A1A1A" />
+					</TouchableOpacity>
 					<Text style={styles.headerTitle}>{i18n.t("Review.selectRestaurant.title")}</Text>
+					<View style={styles.headerRightSpacer} />
 				</View>
 
 				{/* Map */}
@@ -382,7 +417,9 @@ export default function SelectRestaurantScreen() {
 									keyExtractor={(item) => item.restaurant.id}
 									contentContainerStyle={styles.savedRestaurantsListContent}
 									snapToInterval={CARD_WIDTH + 12}
+									snapToAlignment="start"
 									decelerationRate="fast"
+									pagingEnabled={false}
 									renderItem={({ item }) => (
 										<TouchableOpacity
 											style={styles.savedRestaurantCard}
@@ -422,6 +459,14 @@ export default function SelectRestaurantScreen() {
 						<SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />
 					)}
 				</RestaurantBlurModal>
+
+				{/* #644 【設計】Review Modal - メディア選択ありモード */}
+				<ReviewBlurModal>
+					{({ close }) => selectedPlace && <ReviewForm restaurant={selectedPlace.restaurant} onCancel={close} />}
+				</ReviewBlurModal>
+
+				{/* Login Modal */}
+				<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 			</SafeAreaView>
 		</MarkerBitmapRendererProvider>
 	);
@@ -443,12 +488,23 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 		borderBottomColor: "#E5E7EB",
 		zIndex: 100,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	backButton: {
+		padding: 4,
+		marginRight: 8,
 	},
 	headerTitle: {
 		fontSize: 18,
 		fontWeight: "700",
 		color: "#1A1A1A",
 		textAlign: "center",
+		flex: 1,
+	},
+	headerRightSpacer: {
+		width: 32,
 	},
 	map: {
 		flex: 1,

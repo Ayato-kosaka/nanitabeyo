@@ -9,10 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { Prisma } from '../../../../shared/prisma/client';
-import {
-  QueryRestaurantsDto,
-  QuerySavedRestaurantsDto,
-} from '@shared/v1/dto';
+import { QueryRestaurantsDto, QuerySavedRestaurantsDto } from '@shared/v1/dto';
 import { DishMediaEntryEntity } from '../dish-media/dish-media.repository';
 import { roundToOneDecimal } from '../../core/utils/backend-utils';
 
@@ -47,7 +44,7 @@ export class RestaurantsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /* ------------------------------------------------------------------ */
   /*            近隣かつ「保存済み」のレストランを取得する。            */
