@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Dimensions } from "react-native";
-import { Navigation, ChevronLeft } from "lucide-react-native";
+import { Navigation, ChevronLeft, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -26,8 +26,8 @@ import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/featur
 import { router } from "expo-router";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { useAuth } from "@/contexts/AuthProvider";
-import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 import { SavedRestaurantsSheet } from "@/features/review/components/SavedRestaurantsSheet";
+import { PrimaryButton } from "@/components/PrimaryButton";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -370,12 +370,24 @@ export default function SelectRestaurantScreen() {
 					/>
 				</View>
 
+				{/* Search This Area button under LocationAutocomplete; map remains interactive on sides */}
+				<View style={styles.searchButtonContainer}>
+					<PrimaryButton
+						onPress={() => searchSavedRestaurants(currentRegion.current)}
+						label={i18n.t("Review.selectRestaurant.searchThisArea")}
+						icon={<RotateCw size={16} color="#357AFF" />}
+						colors={["#ffffff", "#ffffff"]}
+						shadowColor={"#000000"}
+						labelStyle={{ color: "#357AFF", fontSize: 14 }}
+						loading={isLoadingSavedRestaurants}
+					/>
+				</View>
+
 				{/* Saved Restaurants BottomSheet */}
 				<SavedRestaurantsSheet
 					savedRestaurants={savedRestaurants}
 					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
 					activeRestaurantId={activeRestaurantId}
-					onSearchThisArea={() => searchSavedRestaurants(currentRegion.current)}
 					onRestaurantCardPress={handleSavedRestaurantCardPress}
 					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
 					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
@@ -455,5 +467,13 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		zIndex: 20,
+	},
+	searchButtonContainer: {
+		position: "absolute",
+		top: 130,
+		left: 0,
+		right: 0,
+		alignItems: "center",
+		zIndex: 9,
 	},
 });

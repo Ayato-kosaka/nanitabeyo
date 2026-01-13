@@ -3,7 +3,6 @@ import { View, StyleSheet, Text, Dimensions, TouchableOpacity } from "react-nati
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { RotateCw } from "lucide-react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
@@ -20,7 +19,6 @@ export type SavedRestaurantsSheetProps = {
 	savedRestaurants: QueryMeSavedRestaurantsResponse["data"];
 	isLoadingSavedRestaurants: boolean;
 	activeRestaurantId: string | null;
-	onSearchThisArea: () => void;
 	onRestaurantCardPress: (restaurant: SavedRestaurant) => void;
 	onRestaurantReviewPress: (restaurant: SavedRestaurant) => void;
 	onSnapToRestaurant?: (restaurant: SavedRestaurant) => void;
@@ -30,7 +28,6 @@ export function SavedRestaurantsSheet({
 	savedRestaurants,
 	isLoadingSavedRestaurants,
 	activeRestaurantId,
-	onSearchThisArea,
 	onRestaurantCardPress,
 	onRestaurantReviewPress,
 	onSnapToRestaurant,
@@ -83,18 +80,6 @@ export function SavedRestaurantsSheet({
 			dismissible={false}
 			onDetentChange={handleDetentChange}>
 			<View style={styles.container}>
-				<View style={styles.searchButtonContainer}>
-					<PrimaryButton
-						onPress={onSearchThisArea}
-						label={i18n.t("Review.selectRestaurant.searchThisArea")}
-						icon={<RotateCw size={16} color="#357AFF" />}
-						colors={["#ffffff", "#ffffff"]}
-						shadowColor={"#000000"}
-						labelStyle={{ color: "#357AFF", fontSize: 14 }}
-						loading={isLoadingSavedRestaurants}
-					/>
-				</View>
-
 				{savedRestaurants.length > 0 ? (
 					<>
 						<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
@@ -190,10 +175,6 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingHorizontal: 16,
 		paddingBottom: 20,
-	},
-	searchButtonContainer: {
-		alignItems: "center",
-		marginBottom: 12,
 	},
 	savedRestaurantsTitle: {
 		fontSize: 14,
