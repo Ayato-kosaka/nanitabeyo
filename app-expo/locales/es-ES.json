@@ -548,7 +548,12 @@
 			"postButton": "✏️ Publicar una reseña de restaurante"
 		},
 		"selectRestaurant": {
-			"title": "Selecciona un restaurante para reseñar"
+			"title": "Selecciona el restaurante a reseñar",
+			"searchThisArea": "Buscar en esta área",
+			"savedRestaurantList": "Restaurantes Guardados",
+			"postPhotoVideo": "Publicar Foto/Video",
+			"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+			"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
 		},
 		"emptyState": {
 			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."

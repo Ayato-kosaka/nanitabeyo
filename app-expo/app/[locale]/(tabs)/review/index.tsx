@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, Image, useWindowDimensions, Dimensions } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -9,6 +9,7 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { useLocale } from "@/hooks/useLocale";
 
 const HERO_IMAGE_HEIGHT = 400;
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -17,6 +18,7 @@ export default function ReviewScreen() {
 	const { user } = useAuth();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const locale = useLocale();
 
 	const {
 		BlurModal: LoginBlurModal,
@@ -40,7 +42,7 @@ export default function ReviewScreen() {
 	};
 
 	// #644 【設計】ログイン済みユーザー用：店舗選択画面に遷移
-	const handlePostReviewPress = () => {
+	const handlePostReviewPress = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
 			event_name: "review_post_button_clicked",
@@ -48,8 +50,13 @@ export default function ReviewScreen() {
 			payload: {},
 		});
 		// #644 【設計】レビュー用の店舗選択画面に遷移
-		router.push("/(tabs)/review/selectRestaurant");
-	};
+		router.push({
+			pathname: "/[locale]/(tabs)/review/selectRestaurant",
+			params: {
+				locale,
+			},
+		});
+	}, [lightImpact, logFrontendEvent, locale]);
 
 	return (
 		<SafeAreaView edges={["top", "bottom"]} style={styles.container}>

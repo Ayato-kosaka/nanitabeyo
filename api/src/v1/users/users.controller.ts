@@ -38,6 +38,7 @@ import {
   QueryMeRestaurantBidsDto,
   QueryMeSavedDishCategoriesDto,
   QueryMeSavedDishMediaDto,
+  QuerySavedRestaurantsDto,
 } from '@shared/v1/dto';
 import {
   GetUserProfileResponse,
@@ -48,6 +49,7 @@ import {
   QueryMeRestaurantBidsResponse,
   QueryMeSavedDishCategoriesResponse,
   QueryMeSavedDishMediaResponse,
+  QueryMeSavedRestaurantsResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -248,6 +250,38 @@ export class UsersController {
       user.id,
       query,
     );
+
+    return { data, nextCursor };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*             GET /v1/users/me/saved-restaurants                    */
+  /* ------------------------------------------------------------------ */
+  // #644 【設計】保存したお店を位置情報で検索
+  @Get('me/saved-restaurants')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '保存済みレストラン一覧（位置情報付き）' })
+  @ApiQuery({ name: 'lat', required: true, description: 'Latitude' })
+  @ApiQuery({ name: 'lng', required: true, description: 'Longitude' })
+  @ApiQuery({ name: 'radius', required: true, description: 'Radius in meters' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Limit (default: 20)',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Offset (default: 0)',
+  })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  async getMeSavedRestaurants(
+    @Query() query: QuerySavedRestaurantsDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMeSavedRestaurantsResponse> {
+    const { data, nextCursor } =
+      await this.usersService.getMySavedNearbyRestaurants(user.id, query);
 
     return { data, nextCursor };
   }

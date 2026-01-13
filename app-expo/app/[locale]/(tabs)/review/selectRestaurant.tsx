@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text } from "react-native";
-import { Navigation } from "lucide-react-native";
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Dimensions } from "react-native";
+import { Navigation, ChevronLeft, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -8,11 +8,11 @@ import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import {
 	type AutocompleteLocation,
-	type QueryRestaurantsResponse,
 	type CreateRestaurantResponse,
+	type QueryMeSavedRestaurantsResponse,
 	ErrorCode,
 } from "@shared/api/v1/res";
-import type { CreateRestaurantDto } from "@shared/api/v1/dto";
+import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
@@ -22,20 +22,37 @@ import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
+import { router } from "expo-router";
+import { ReviewForm } from "@/features/map/components/ReviewForm";
+import { useAuth } from "@/contexts/AuthProvider";
+import { SavedRestaurantsSheet } from "@/features/review/components/SavedRestaurantsSheet";
+import { PrimaryButton } from "@/components/PrimaryButton";
+
+type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
 export default function SelectRestaurantScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
-	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
+	const { user } = useAuth();
+	const [selectedPlace, setSelectedPlace] = useState<SavedRestaurant | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
+
 	const {
 		BlurModal: RestaurantBlurModal,
 		open: openRestaurantModal,
 		close: closeRestaurantModal,
 	} = useBlurModal({ intensity: 100 });
+
+	// #644 【設計】レビュー投稿用モーダル（メディア選択ありモード）
+	const {
+		BlurModal: ReviewBlurModal,
+		open: openReviewModal,
+		close: closeReviewModal,
+	} = useBlurModal({ intensity: 100, zIndex: 1200 });
 
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
@@ -48,27 +65,6 @@ export default function SelectRestaurantScreen() {
 		latitudeDelta: 0.01,
 		longitudeDelta: 0.01,
 	});
-
-	useEffect(() => {
-		// #644 【設計】Screen view logging for review restaurant selection
-		logFrontendEvent({
-			event_name: "screen_view",
-			error_level: "log",
-			payload: { screen: "review_select_restaurant" },
-		});
-
-		getCurrentLocation().then(({ location }) => {
-			const newRegion = {
-				latitude: location.latitude,
-				longitude: location.longitude,
-				latitudeDelta: 0.01,
-				longitudeDelta: 0.01,
-			};
-			currentRegion.current = newRegion;
-			mapRef.current?.animateToRegion(newRegion, 1000);
-		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
 
 	// Handle region change with debouncing
 	const handleRegionChangeComplete = useCallback((region: Region) => {
@@ -85,7 +81,13 @@ export default function SelectRestaurantScreen() {
 					method: "POST",
 					requestPayload: { googlePlaceId },
 				});
-				setSelectedPlace(response);
+				setSelectedPlace({
+					...response,
+					meta: {
+						...response.meta,
+						lastSavedAt: null,
+					},
+				});
 				openRestaurantModal();
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
@@ -184,48 +186,225 @@ export default function SelectRestaurantScreen() {
 		}
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
+	// #644 【設計】保存したお店の状態管理
+	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
+	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
+	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
+
+	// #644 【設計】保存したお店を現在地で検索
+	const searchSavedRestaurants = useCallback(
+		async (region: Region) => {
+			if (isLoadingSavedRestaurants) return;
+
+			lightImpact();
+			setIsLoadingSavedRestaurants(true);
+
+			try {
+				const response = await callBackend<QuerySavedRestaurantsDto, QueryMeSavedRestaurantsResponse>(
+					"v1/users/me/saved-restaurants",
+					{
+						method: "GET",
+						requestPayload: {
+							lat: currentRegion.current.latitude,
+							lng: currentRegion.current.longitude,
+							radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000,
+							limit: 20,
+						},
+					},
+				);
+
+				setSavedRestaurants(response.data);
+				setActiveRestaurantId(null);
+			} catch (error) {
+				showSnackbar(i18n.t("Review.selectRestaurant.fetchSavedRestaurantsError"));
+				logFrontendEvent({
+					event_name: "saved_restaurants_search_error",
+					error_level: "error",
+					payload: { error },
+				});
+			} finally {
+				setIsLoadingSavedRestaurants(false);
+			}
+		},
+		[callBackend, currentRegion, isLoadingSavedRestaurants, lightImpact, logFrontendEvent, showSnackbar],
+	);
+
+	// #644 【設計】保存したお店のマーカー押下時の処理
+	const handleSavedRestaurantMarkerPress = useCallback(
+		(restaurant: SavedRestaurant) => {
+			lightImpact();
+
+			const index = savedRestaurants.findIndex((r) => r.restaurant.id === restaurant.restaurant.id);
+			if (index === -1) return;
+
+			// すでにアクティブならモーダル表示
+			if (activeRestaurantId === restaurant.restaurant.id) {
+				setSelectedPlace(restaurant);
+				openRestaurantModal();
+				return;
+			}
+
+			// アクティブ更新（スクロールはシート側で active ID を監視して同期）
+			setActiveRestaurantId(restaurant.restaurant.id);
+		},
+		[activeRestaurantId, lightImpact, openRestaurantModal, savedRestaurants],
+	);
+
+	// #644 【設計】保存したお店のカード押下時の処理（ボタン以外）
+	const handleSavedRestaurantCardPress = useCallback(
+		(restaurant: SavedRestaurant) => {
+			lightImpact();
+			setActiveRestaurantId(restaurant.restaurant.id);
+			setSelectedPlace(restaurant);
+			openRestaurantModal();
+
+			logFrontendEvent({
+				event_name: "saved_restaurant_card_press",
+				error_level: "log",
+				payload: { restaurant_id: restaurant.restaurant.id },
+			});
+		},
+		[lightImpact, openRestaurantModal, logFrontendEvent],
+	);
+
+	// #644 【設計】保存したお店カードの「写真・動画を投稿」ボタン押下時の処理
+	// SelectedRestaurantDetails の handleReviewButtonPress と同じ挙動（メディア選択ありモード）
+	const handleSavedRestaurantReviewPress = useCallback(
+		(restaurant: SavedRestaurant) => {
+			lightImpact();
+			setSelectedPlace(restaurant);
+
+			// ReviewForm を開くと同時にメディア選択が行われる
+			openReviewModal();
+
+			logFrontendEvent({
+				event_name: "saved_restaurant_review_button_press",
+				error_level: "log",
+				payload: { restaurant_id: restaurant.restaurant.id },
+			});
+		},
+		[lightImpact, openReviewModal, logFrontendEvent],
+	);
+
+	// 初回マウント時に現在地取得＆保存したお店検索
+	useEffect(() => {
+		// #644 【設計】レビューのレストラン選択画面表示ログ
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: { screen: "review_select_restaurant" },
+		});
+
+		getCurrentLocation().then(({ location }) => {
+			const newRegion = {
+				latitude: location.latitude,
+				longitude: location.longitude,
+				latitudeDelta: 0.01,
+				longitudeDelta: 0.01,
+			};
+			currentRegion.current = newRegion;
+			mapRef.current?.animateToRegion(newRegion, 1000);
+			searchSavedRestaurants(newRegion);
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	return (
-		<SafeAreaView edges={["top"]} style={styles.container}>
-			{/* #644 【設計】画面タイトル */}
-			<View style={styles.headerContainer}>
-				<Text style={styles.headerTitle}>{i18n.t("Review.selectRestaurant.title")}</Text>
-			</View>
-
-			{/* Map */}
-			<MapView
-				ref={mapRef}
-				style={styles.map}
-				onRegionChangeComplete={handleRegionChangeComplete}
-				onPoiClick={handlePoiPress}
-			/>
-
-			{/* POI Loading Indicator */}
-			{isLoadingRestaurantCreation && (
-				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+		<MarkerBitmapRendererProvider>
+			<SafeAreaView edges={["top"]} style={styles.container}>
+				{/* #644 【設計】画面タイトル with 戻るボタン */}
+				<View style={styles.headerContainer}>
+					<TouchableOpacity
+						style={styles.backButton}
+						onPress={() => {
+							lightImpact();
+							router.back();
+						}}>
+						<ChevronLeft size={24} color="#1A1A1A" />
+					</TouchableOpacity>
+					<Text style={styles.headerTitle}>{i18n.t("Review.selectRestaurant.title")}</Text>
+					<View style={styles.headerRightSpacer} />
 				</View>
-			)}
 
-			{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
-			<View style={styles.searchContainer}>
-				<LocationAutocomplete
-					value={searchQuery}
-					onChangeText={setSearchQuery}
-					onSelectSuggestion={handleAutocompleteSelect}
-					onClear={() => setSearchQuery("")}
-					placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
-					renderInputRight={
-						<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-							<Navigation size={20} color="#5EA2FF" />
-						</TouchableOpacity>
-					}
+				{/* Map */}
+				<MapView
+					ref={mapRef}
+					style={styles.map}
+					onRegionChangeComplete={handleRegionChangeComplete}
+					onPoiClick={handlePoiPress}>
+					{/* #644 【設計】保存したお店のマーカー表示 */}
+					{savedRestaurants.map((item: SavedRestaurant) => (
+						<AvatarBubbleMarkerBitmap
+							key={item.restaurant.id}
+							coordinate={{
+								latitude: item.restaurant.latitude,
+								longitude: item.restaurant.longitude,
+							}}
+							onPress={() => handleSavedRestaurantMarkerPress(item)}
+							color={activeRestaurantId === item.restaurant.id ? "#5EA2FF" : "#FFF"}
+							uri={item.restaurant.imageUrls?.sm}
+						/>
+					))}
+				</MapView>
+
+				{/* POI Loading Indicator */}
+				{isLoadingRestaurantCreation && (
+					<View style={styles.loadingOverlay}>
+						<ActivityIndicator size="large" color="#5EA2FF" />
+					</View>
+				)}
+
+				{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
+				<View style={styles.searchContainer}>
+					<LocationAutocomplete
+						value={searchQuery}
+						onChangeText={setSearchQuery}
+						onSelectSuggestion={handleAutocompleteSelect}
+						onClear={() => setSearchQuery("")}
+						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
+						renderInputRight={
+							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
+								<Navigation size={20} color="#5EA2FF" />
+							</TouchableOpacity>
+						}
+					/>
+				</View>
+
+				{/* Search This Area button under LocationAutocomplete; map remains interactive on sides */}
+				<View style={styles.searchButtonContainer}>
+					<PrimaryButton
+						onPress={() => searchSavedRestaurants(currentRegion.current)}
+						label={i18n.t("Review.selectRestaurant.searchThisArea")}
+						icon={<RotateCw size={16} color="#357AFF" />}
+						colors={["#ffffff", "#ffffff"]}
+						shadowColor={"#000000"}
+						labelStyle={{ color: "#357AFF", fontSize: 14 }}
+						loading={isLoadingSavedRestaurants}
+					/>
+				</View>
+
+				{/* Saved Restaurants BottomSheet */}
+				<SavedRestaurantsSheet
+					savedRestaurants={savedRestaurants}
+					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
+					activeRestaurantId={activeRestaurantId}
+					onRestaurantCardPress={handleSavedRestaurantCardPress}
+					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
+					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
 				/>
-			</View>
 
-			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
-				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}
-			</RestaurantBlurModal>
-		</SafeAreaView>
+				<RestaurantBlurModal>
+					{selectedPlace && (
+						<SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />
+					)}
+				</RestaurantBlurModal>
+
+				{/* #644 【設計】Review Modal - メディア選択ありモード */}
+				<ReviewBlurModal>
+					{({ close }) => selectedPlace && <ReviewForm restaurant={selectedPlace.restaurant} onCancel={close} />}
+				</ReviewBlurModal>
+			</SafeAreaView>
+		</MarkerBitmapRendererProvider>
 	);
 }
 
@@ -245,12 +424,23 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 		borderBottomColor: "#E5E7EB",
 		zIndex: 100,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	backButton: {
+		padding: 4,
+		marginRight: 8,
 	},
 	headerTitle: {
 		fontSize: 18,
 		fontWeight: "700",
 		color: "#1A1A1A",
 		textAlign: "center",
+		flex: 1,
+	},
+	headerRightSpacer: {
+		width: 32,
 	},
 	map: {
 		flex: 1,
@@ -277,5 +467,13 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		zIndex: 20,
+	},
+	searchButtonContainer: {
+		position: "absolute",
+		top: 130,
+		left: 0,
+		right: 0,
+		alignItems: "center",
+		zIndex: 9,
 	},
 });

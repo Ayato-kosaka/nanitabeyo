@@ -13,7 +13,7 @@ import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantR
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
-import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
+import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -44,7 +44,10 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: QueryRestaurantsResponse[number]) {
+export function SelectedRestaurantDetails({
+	restaurant,
+	meta: restaurantMeta,
+}: QueryMeSavedRestaurantsResponse["data"][number]) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();

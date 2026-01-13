@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Dimensions, TouchableOpacity, Text } from "react-native";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import { View, StyleSheet, Dimensions, TouchableOpacity, Text, FlatList } from "react-native";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { TutorialPage } from "@/components/TutorialPage";
 import i18n from "@/lib/i18n";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const SHEET_MAX_HEIGHT = 580;
 
 export type TutorialBottomSheetProps = {
 	visible: boolean;
@@ -36,8 +37,8 @@ type TutorialPageConfig = {
 /**
  * #642 Searchタブ用チュートリアル BottomSheet
  *
- * - @gorhom/bottom-sheet の BottomSheet を使用
- * - ページングは BottomSheetFlatList + pagingEnabled（Web でも動く構成）
+ * - @lodev09/react-native-true-sheet の TrueSheet を使用
+ * - ページングは FlatList + pagingEnabled（Web でも動く構成）
  * - ページインジケータ & CTA はフッター固定
  */
 export function TutorialBottomSheet({
@@ -47,63 +48,49 @@ export function TutorialBottomSheet({
 	onCompleted,
 	onRequestCurrentLocation,
 }: TutorialBottomSheetProps) {
-	// BottomSheet の ref
-	const bottomSheetRef = useRef<BottomSheet | null>(null);
+	// TrueSheet の ref
+	const sheetRef = useRef<TrueSheet>(null);
 
 	// ページング用 FlatList の ref
-	const flatListRef = useRef<React.ComponentRef<typeof BottomSheetFlatList> | null>(null);
+	const listRef = useRef<FlatList<TutorialPageConfig> | null>(null);
 
 	// 今どのページにいるか（インジケータ & CTA 用）
 	const [currentPage, setCurrentPage] = useState(0);
 
-	// snapPoints は useMemo で固定
-	const snapPoints = useMemo(() => ["80%"], []);
-
+	// #642 【設計】TrueSheet の present/dismiss による表示制御
 	useEffect(() => {
-		if (visible) {
-			// 再表示：一番上の snapPoint（0番）まで開く
-			bottomSheetRef.current?.snapToIndex(0);
-		} else {
-			// 非表示：閉じる（index=-1）
-			bottomSheetRef.current?.close();
+		if (!visible) {
+			sheetRef.current?.dismiss();
+			return;
 		}
+
+		// マウントが済んでから present() するために setTimeout で遅延させる
+		const timeoutId = setTimeout(() => {
+			sheetRef.current?.present();
+		}, 0);
+
+		return () => clearTimeout(timeoutId);
 	}, [visible]);
 
 	/**
-	 * BottomSheet の状態変化検知
+	 * TrueSheet の onDidDismiss イベント
+	 * - ユーザー操作 or dismiss() 呼び出しで閉じきったタイミング
 	 */
-	const handleSheetChange = useCallback(
-		(index: number) => {
-			if (index === -1) {
-				// ユーザー操作 or close() 呼び出しで閉じきったタイミング
-				setCurrentPage(0);
-				flatListRef.current?.scrollToIndex({
-					index: 0,
-					animated: false,
-				});
-				onClose(); // 親に「閉じたよ」を通知（親が visible=false にする）
-			}
-		},
-		[onClose],
-	);
-
-	/**
-	 * Backdrop（背面の半透明レイヤー）
-	 * - backdrop タップでは閉じさせない（pressBehavior="none"）
-	 */
-	const renderBackdrop = useCallback(
-		(props: BottomSheetBackdropProps) => (
-			<BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="none" opacity={0.3} />
-		),
-		[],
-	);
+	const handleDidDismiss = useCallback(() => {
+		setCurrentPage(0);
+		listRef.current?.scrollToIndex({
+			index: 0,
+			animated: false,
+		});
+		onClose(); // 親に「閉じたよ」を通知（親が visible=false にする）
+	}, [onClose]);
 
 	/**
 	 * 「あとで」押下
 	 */
-	const handleSkip = useCallback(() => {
+	const handleSkip = useCallback(async () => {
 		onCompleted?.();
-		bottomSheetRef.current?.close(); // ← index=-1 → handleSheetChange で onClose()
+		await sheetRef.current?.dismiss();
 	}, [onCompleted]);
 
 	/**
@@ -114,7 +101,7 @@ export function TutorialBottomSheet({
 			await onRequestCurrentLocation();
 		} finally {
 			onCompleted?.();
-			bottomSheetRef.current?.close();
+			await sheetRef.current?.dismiss();
 		}
 	}, [onRequestCurrentLocation, onCompleted]);
 
@@ -125,7 +112,7 @@ export function TutorialBottomSheet({
 		const nextIndex = Math.min(fromIndex + 1, pagesLength - 1);
 		if (nextIndex === fromIndex) return;
 
-		flatListRef.current?.scrollToIndex({
+		listRef.current?.scrollToIndex({
 			index: nextIndex,
 			animated: true,
 		});
@@ -172,30 +159,26 @@ export function TutorialBottomSheet({
 	// 現在ページの CTA 設定
 	const currentConfig = tutorialPages[currentPage] ?? tutorialPages[0];
 
-	const initialIndexRef = useRef(visible ? 0 : -1);
-
 	return (
-		<BottomSheet
-			ref={bottomSheetRef}
-			index={initialIndexRef.current}
-			snapPoints={snapPoints}
-			enableDynamicSizing={false}
-			// ▼ ハンドル下げで閉じたいので true にする
-			enablePanDownToClose={true}
-			enableOverDrag={false}
-			// 横スクロールコンテンツと競合するので false にする
-			enableContentPanningGesture={false}
-			backdropComponent={renderBackdrop}
-			onChange={handleSheetChange}
-			backgroundStyle={styles.sheetBackground}
-			handleIndicatorStyle={styles.handleIndicator}>
+		<TrueSheet
+			ref={sheetRef}
+			detents={["auto"]}
+			maxHeight={SHEET_MAX_HEIGHT}
+			style={{ height: "100%" }}
+			cornerRadius={24}
+			backgroundColor="#FFFFFF"
+			grabber
+			dimmed
+			dismissible
+			onDidDismiss={handleDidDismiss}>
 			<View style={styles.container}>
 				{/* 上：横スワイプで動くコンテンツ */}
-				<BottomSheetFlatList
-					ref={flatListRef}
+				<FlatList
+					ref={listRef}
 					data={tutorialPages}
-					keyExtractor={(_, index) => `tutorial-page-${index}`}
-					renderItem={({ item }) => (
+					keyExtractor={(_: TutorialPageConfig, index: number) => `tutorial-page-${index}`}
+					style={{ flexGrow: 1 }}
+					renderItem={({ item }: { item: TutorialPageConfig }) => (
 						<View style={styles.pageContainer}>
 							<TutorialPage image={item.image} title={item.title} bodyLines={item.bodyLines} />
 						</View>
@@ -245,29 +228,15 @@ export function TutorialBottomSheet({
 					</View>
 				</View>
 			</View>
-		</BottomSheet>
+		</TrueSheet>
 	);
 }
 
 const styles = StyleSheet.create({
-	// BottomSheet 本体の背景
-	sheetBackground: {
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 24,
-		borderTopRightRadius: 24,
-		borderBottomLeftRadius: 0,
-		borderBottomRightRadius: 0,
-	},
-	// 上部のハンドルバー
-	handleIndicator: {
-		width: 40,
-		backgroundColor: "#E5E7EB",
-	},
 	// Sheet 内コンテンツラッパー
 	container: {
 		flex: 1,
 		width: SCREEN_WIDTH,
-		height: "100%",
 		alignSelf: "center",
 	},
 	// 1ページ分のコンテナ（FlatList の 1 item）
