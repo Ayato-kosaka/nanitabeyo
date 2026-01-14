@@ -44,15 +44,24 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
+type SelectedRestaurantDetailsProps = QueryMeSavedRestaurantsResponse["data"][number] & {
+	// #644 【設計】オプショナルなコールバック（画面側でナビゲーションを制御する場合に使用）
+	onPressPostReview?: () => void;
+};
+
 export function SelectedRestaurantDetails({
 	restaurant,
 	meta: restaurantMeta,
-}: QueryMeSavedRestaurantsResponse["data"][number]) {
+	onPressPostReview,
+}: SelectedRestaurantDetailsProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
+
+	// #644 【設計】onPressPostReview が提供されていない場合のみモーダルを使用
+	const shouldUseModal = !onPressPostReview;
 
 	// Modals
 	const {
@@ -69,6 +78,13 @@ export function SelectedRestaurantDetails({
 	// #644 【設計】写真・動画を投稿するボタン押下時の処理（メディア選択ありモード）
 	const handleReviewButtonPress = async () => {
 		lightImpact();
+
+		// #644 【設計】親からコールバックが渡されている場合はそちらを優先
+		if (onPressPostReview) {
+			onPressPostReview();
+			return;
+		}
+
 		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
 		if (user?.is_anonymous !== false) {
 			openLoginModal();
@@ -184,11 +200,16 @@ export function SelectedRestaurantDetails({
 				</Tabs.Tab>
 			</Tabs.Container>
 
-			{/* #644 【設計】Review Modal - メディア選択ありモード */}
-			<ReviewBlurModal>{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} />}</ReviewBlurModal>
+			{/* #644 【設計】モーダルは onPressPostReview が未指定の場合のみ表示 */}
+			{shouldUseModal && (
+				<>
+					{/* #644 【設計】Review Modal - メディア選択ありモード */}
+					<ReviewBlurModal>{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} />}</ReviewBlurModal>
 
-			{/* Login Modal */}
-			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
+					{/* Login Modal */}
+					<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
+				</>
+			)}
 		</View>
 	);
 }

@@ -375,7 +375,9 @@ export class RestaurantsService {
   /* ------------------------------------------------------------------ */
   /*             GET /v1/restaurants/:id (restaurant by ID)             */
   /* ------------------------------------------------------------------ */
-  async getRestaurantById(restaurantId: string): Promise<GetRestaurantByIdResponse> {
+  async getRestaurantById(
+    restaurantId: string,
+  ): Promise<GetRestaurantByIdResponse> {
     this.logger.debug('GetRestaurantById', 'getRestaurantById', {
       restaurantId,
     });
@@ -418,7 +420,9 @@ export class RestaurantsService {
         reviewCount: reviewStats.reviewCount,
         averageRating: reviewStats.averageRating,
         totalCents: bidStats.totalCents,
-        maxEndDate: bidStats.maxEndDate ? bidStats.maxEndDate.toISOString() : null,
+        maxEndDate: bidStats.maxEndDate
+          ? bidStats.maxEndDate.toISOString()
+          : null,
       },
     };
   }

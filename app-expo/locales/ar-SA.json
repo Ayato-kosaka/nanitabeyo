@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "حدث خطأ في الشبكة. يُرجى التحقق من اتصالك.",
-			"unexpected": "حدث خطأ غير متوقع. يُرجى المحاولة مرة أخرى لاحقًا."
+			"unexpected": "حدث خطأ غير متوقع. يُرجى المحاولة مرة أخرى لاحقًا.",
+			"notFound": "غير موجود"
 		}
 	},
 	"Error": {
@@ -559,6 +560,9 @@
 			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
 		},
 		"everybodyPostsTitle": "مراجعات الجميع",
-		"characterCount": "{{current}}/{{max}}"
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "تفاصيل المطعم"
+		}
 	}
 }

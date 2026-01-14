@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "A network error occurred. Please check your connection.",
-			"unexpected": "An unexpected error occurred. Please try again later."
+			"unexpected": "An unexpected error occurred. Please try again later.",
+			"notFound": "Not found"
 		}
 	},
 	"Error": {
@@ -559,6 +560,9 @@
 			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
 		},
 		"everybodyPostsTitle": "Everyone's Reviews",
-		"characterCount": "{{current}}/{{max}}"
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Restaurant Details"
+		}
 	}
 }
