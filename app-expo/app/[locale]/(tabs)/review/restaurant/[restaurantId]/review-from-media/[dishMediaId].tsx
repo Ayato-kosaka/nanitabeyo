@@ -27,7 +27,7 @@ export default function ReviewFromMediaScreen() {
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [restaurant, setRestaurant] = useState<RestaurantEntry | undefined>(undefined);
+	const [restaurantEntry, setRestaurantEntry] = useState<RestaurantEntry | undefined>(undefined);
 	const [dishMedia, setDishMedia] = useState<NormalizedDishMediaEntry | null>(null);
 
 	// #644 【設計】restaurant.id と dishMediaId でデータを取得
@@ -43,7 +43,7 @@ export default function ReviewFromMediaScreen() {
 		const mediaEntryCached = selectEntryByMediaId(dishMediaId)(dishMediaEntriesStore);
 		if (restaurantCached && mediaEntryCached) {
 			// 両方キャッシュがあれば即座に表示
-			setRestaurant(restaurantCached);
+			setRestaurantEntry(restaurantCached);
 			setDishMedia(mediaEntryCached);
 			return;
 		}
@@ -65,7 +65,7 @@ export default function ReviewFromMediaScreen() {
 					meta: response.meta,
 				}));
 				upsert(restaurantEntry);
-				setRestaurant(restaurantEntry);
+				setRestaurantEntry(restaurantEntry);
 
 				// dishMedia 情報取得
 				const dishMediaEntries = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>(
@@ -128,7 +128,7 @@ export default function ReviewFromMediaScreen() {
 	}
 
 	// #644 【設計】エラー表示
-	if (error || !restaurant || !dishMedia) {
+	if (error || !restaurantEntry || !dishMedia) {
 		return (
 			<SafeAreaView edges={["top"]} style={styles.container}>
 				<View style={styles.headerContainer}>
@@ -161,13 +161,15 @@ export default function ReviewFromMediaScreen() {
 					}}>
 					<ChevronLeft size={24} color="#1A1A1A" />
 				</TouchableOpacity>
-				<Text style={styles.headerTitle}>{i18n.t("Review.title")}</Text>
+				<Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+					{restaurantEntry.restaurant.name}
+				</Text>
 				<View style={styles.headerRightSpacer} />
 			</View>
 
 			{/* #644 【設計】ReviewForm を既存メディア利用モード（prefilledMedia）で表示 */}
 			<ReviewForm
-				restaurant={restaurant.restaurant}
+				restaurant={restaurantEntry.restaurant}
 				prefilledMedia={{ ...dishMedia.dish_media, dish: dishMedia.dish }}
 				onCancel={() => router.back()}
 			/>

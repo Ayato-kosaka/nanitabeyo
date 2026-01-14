@@ -132,10 +132,10 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 								<Text style={styles.ratingText}>{restaurantEntry.meta.averageRating}</Text>
 								<Text style={styles.reviewCount}>({restaurantEntry.meta.reviewCount})</Text>
 							</View>
-							{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿する」 */}
+							{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」 */}
 							<PrimaryButton
 								onPress={handleReviewButtonPress}
-								label={i18n.t("Map.buttons.postPhotoVideoReview")}
+								label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
 								icon={<Camera size={20} color="#5EA2FF" />}
 								labelStyle={{ color: "#5EA2FF" }}
 								colors={["#F0F8FF", "#F0F8FF"]}

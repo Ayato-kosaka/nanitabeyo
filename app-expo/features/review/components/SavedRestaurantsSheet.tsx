@@ -127,21 +127,25 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 									/>
 								</View>
 							) : (
-								<FlatList
-									data={savedRestaurants}
-									keyExtractor={(item) => item.restaurant.id}
-									contentContainerStyle={styles.listContent}
-									nestedScrollEnabled // Android でのネストスクロール用
-									renderItem={({ item }) => (
-										<View style={styles.listItemContainer}>
-											<PrimaryCard
-												item={item}
-												onPress={() => onRestaurantCardPress(item)}
-												onReview={() => onRestaurantReviewPress(item)}
-											/>
-										</View>
-									)}
-								/>
+								<View style={{ flex: 1 }}>
+									<FlatList
+										data={savedRestaurants}
+										keyExtractor={(item) => item.restaurant.id}
+										contentContainerStyle={styles.listContent}
+										nestedScrollEnabled // Android でのネストスクロール用
+										renderItem={({ item }) => (
+											<View style={styles.listItemContainer}>
+												<PrimaryCard
+													item={item}
+													onPress={() => onRestaurantCardPress(item)}
+													onReview={() => onRestaurantReviewPress(item)}
+												/>
+											</View>
+										)}
+										scrollEnabled
+										showsVerticalScrollIndicator={false}
+									/>
+								</View>
 							)}
 						</>
 					) : !isLoadingSavedRestaurants ? (
@@ -190,13 +194,13 @@ function PrimaryCard({
 const styles = StyleSheet.create({
 	container: {
 		paddingTop: 12,
-		paddingHorizontal: 16,
 		paddingBottom: 20,
 	},
 	savedRestaurantsTitle: {
 		fontSize: 14,
 		fontWeight: "600",
 		color: "#666",
+		paddingHorizontal: 16,
 		marginBottom: 8,
 	},
 	carouselWrapper: {
@@ -216,9 +220,13 @@ const styles = StyleSheet.create({
 		marginVertical: 12,
 	},
 	listContent: {
-		paddingBottom: 16,
+		position: "relative",
+		top: 0,
+		alignItems: "center",
+		paddingVertical: 8,
 	},
 	listItemContainer: {
+		width: CARD_WIDTH,
 		marginBottom: 12,
 	},
 	savedRestaurantCard: {
