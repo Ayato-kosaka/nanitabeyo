@@ -350,7 +350,8 @@
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
-			"currentBidAmount": "مبلغ العرض الحالي"
+			"currentBidAmount": "مبلغ العرض الحالي",
+			"restaurant": "مطعم"
 		},
 		"tabs": {
 			"reviews": "المراجعات",

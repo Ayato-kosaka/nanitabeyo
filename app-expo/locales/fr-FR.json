@@ -350,7 +350,8 @@
 		"labels": {
 			"endDate": "Date de fin:",
 			"paymentProcessing": "Traitement du paiement...",
-			"currentBidAmount": "Montant de l'enchère actuelle"
+			"currentBidAmount": "Montant de l'enchère actuelle",
+			"restaurant": "Restaurant"
 		},
 		"tabs": {
 			"reviews": "Avis",

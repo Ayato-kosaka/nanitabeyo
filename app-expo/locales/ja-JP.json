@@ -350,7 +350,8 @@
 		"labels": {
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
-			"currentBidAmount": "現在の入札額"
+			"currentBidAmount": "現在の入札額",
+			"restaurant": "お店"
 		},
 		"tabs": {
 			"reviews": "レビュー",

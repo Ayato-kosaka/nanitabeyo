@@ -349,7 +349,8 @@
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
-			"currentBidAmount": "वर्तमान बोली राशि"
+			"currentBidAmount": "वर्तमान बोली राशि",
+			"restaurant": "रेस्टोरेंट"
 		},
 		"tabs": {
 			"reviews": "समीक्षाएँ",

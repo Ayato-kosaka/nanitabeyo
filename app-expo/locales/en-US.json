@@ -349,7 +349,8 @@
 		"labels": {
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
-			"currentBidAmount": "Current bid amount"
+			"currentBidAmount": "Current bid amount",
+			"restaurant": "Restaurant"
 		},
 		"tabs": {
 			"reviews": "Reviews",

@@ -633,6 +633,12 @@ export function ReviewForm({
 					)}
 				</View>
 
+				{/* #644 【設計】店名表示（料理カテゴリ選択の上に表示） */}
+				<View style={styles.restaurantNameContainer}>
+					<Text style={styles.restaurantNameLabel}>{i18n.t("Map.labels.restaurant")}</Text>
+					<Text style={styles.restaurantName}>{restaurant.name}</Text>
+				</View>
+
 				{/* 料理カテゴリ選択 Pressable 行 */}
 				<Pressable
 					style={styles.selectRow}
@@ -782,6 +788,20 @@ const styles = StyleSheet.create({
 	textArea: {
 		height: 100,
 		textAlignVertical: "top",
+	},
+	restaurantNameContainer: {
+		gap: 4,
+	},
+	restaurantNameLabel: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#666",
+		textTransform: "uppercase",
+	},
+	restaurantName: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#1A1A1A",
 	},
 	selectRow: {
 		flexDirection: "row",

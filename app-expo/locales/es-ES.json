@@ -350,7 +350,8 @@
 		"labels": {
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
-			"currentBidAmount": "Monto de oferta actual"
+			"currentBidAmount": "Monto de oferta actual",
+			"restaurant": "Restaurante"
 		},
 		"tabs": {
 			"reviews": "Reseñas",

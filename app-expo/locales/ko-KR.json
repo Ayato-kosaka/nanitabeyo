@@ -350,7 +350,8 @@
 		"labels": {
 			"endDate": "종료일:",
 			"paymentProcessing": "결제 처리 중...",
-			"currentBidAmount": "현재 입찰 금액"
+			"currentBidAmount": "현재 입찰 금액",
+			"restaurant": "레스토랑"
 		},
 		"tabs": {
 			"reviews": "리뷰",

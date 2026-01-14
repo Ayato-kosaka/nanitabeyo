@@ -349,7 +349,8 @@
 		"labels": {
 			"endDate": "结束日期:",
 			"paymentProcessing": "付款处理中...",
-			"currentBidAmount": "当前出价金额"
+			"currentBidAmount": "当前出价金额",
+			"restaurant": "餐厅"
 		},
 		"tabs": {
 			"reviews": "评论",
