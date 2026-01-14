@@ -128,7 +128,7 @@ export class RestaurantsService {
       // 既存挙動を維持：ここでは HttpException ではなく Error
       throw new Error(
         'Failed to determine restaurant language code: ' +
-        (error as Error).message,
+        (error instanceof Error ? error.message : String(error)),
       );
     }
   }
