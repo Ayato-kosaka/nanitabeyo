@@ -101,7 +101,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			});
 			router.push({
 				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
-				params: { locale, restaurantId: restaurantEntry.restaurant.id!, dishMediaId },
+				params: { locale, restaurantId: restaurantEntry.restaurant.id, dishMediaId },
 			});
 		},
 		[lightImpact, logFrontendEvent, router, locale, restaurantEntry],

@@ -79,7 +79,7 @@ export default function ReviewScreen() {
 		};
 
 		fetchRestaurant();
-	}, [restaurantId]);
+	}, [restaurantId, callBackend, showSnackbar, logFrontendEvent]);
 
 	// #644 【設計】ローディング表示（キャッシュがない場合のみ）
 	if (isLoading && !restaurant) {

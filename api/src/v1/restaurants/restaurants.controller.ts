@@ -52,7 +52,7 @@ import { RestaurantsService } from './restaurants.service';
 @ApiTags('Restaurants')
 @Controller('v1/restaurants')
 export class RestaurantsController {
-  constructor(private readonly restaurantsService: RestaurantsService) {}
+  constructor(private readonly restaurantsService: RestaurantsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/restaurants/search                        */
@@ -96,24 +96,6 @@ export class RestaurantsController {
   }
 
   /* ------------------------------------------------------------------ */
-  /*                    GET /v1/restaurants/:id                         */
-  /* ------------------------------------------------------------------ */
-  @Get(':id')
-  @UseGuards(AuthAnonGuard)
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: 'レストランID でレストラン取得' })
-  @ApiParam({ name: 'id', description: 'Restaurant ID' })
-  @ApiResponse({ status: 200, description: '取得成功' })
-  @ApiResponse({ status: 404, description: 'レストランが見つからない' })
-  async getRestaurantById(
-    @Param() params: RestaurantIdParamsDto,
-    @CurrentUser() user?: RequestUser,
-  ): Promise<GetRestaurantByIdResponse> {
-    // #644 【設計】restaurant.id でレストラン詳細と統計情報を取得
-    return this.restaurantsService.getRestaurantById(params.id);
-  }
-
-  /* ------------------------------------------------------------------ */
   /*            GET /v1/restaurants/by-google-place-id                  */
   /* ------------------------------------------------------------------ */
   @Get('by-google-place-id')
@@ -133,6 +115,24 @@ export class RestaurantsController {
   ): Promise<QueryRestaurantsByGooglePlaceIdResponse | null> {
     // Google Place ID でレストランを検索
     return this.restaurantsService.getRestaurantByGooglePlaceId(query);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                    GET /v1/restaurants/:id                         */
+  /* ------------------------------------------------------------------ */
+  @Get(':id')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'レストランID でレストラン取得' })
+  @ApiParam({ name: 'id', description: 'Restaurant ID' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({ status: 404, description: 'レストランが見つからない' })
+  async getRestaurantById(
+    @Param() params: RestaurantIdParamsDto,
+    @CurrentUser() user?: RequestUser,
+  ): Promise<GetRestaurantByIdResponse> {
+    // #644 【設計】restaurant.id でレストラン詳細と統計情報を取得
+    return this.restaurantsService.getRestaurantById(params.id);
   }
 
   /* ------------------------------------------------------------------ */
