@@ -12,13 +12,18 @@ import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 
+/*
+ * レビュー投稿画面から遷移するレストラン詳細画面
+ * - レストランの詳細情報を表示
+ * - 「写真・動画を投稿する」ボタンでメディア選択モードでレビュー投稿画面へ遷移
+ * - レストランのレビュー（料理メディア）押下でレビュー投稿画面へ遷移
+ */
 export default function RestaurantDetailScreen() {
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
 	const { lightImpact } = useHaptics();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
-	const restaurantStore = useRestaurantStore();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -28,23 +33,25 @@ export default function RestaurantDetailScreen() {
 	useEffect(() => {
 		if (!restaurantId) return;
 
-		// まずストアから取得（即座に表示可能）
-		const cached = restaurantStore.getById(restaurantId);
+		// まずストアから取得し、あればそれを使う
+		const cached = useRestaurantStore.getState().getById(restaurantId);
 		if (cached) {
 			setRestaurant(cached);
+			return;
 		}
 
-		// バックグラウンドで最新情報を取得して更新
+		// キャッシュがない場合は最新情報を取得して更新
 		const fetchRestaurant = async () => {
-			// キャッシュがない場合はローディング表示
-			if (!cached) {
-				setIsLoading(true);
-			}
+			setIsLoading(true);
 
 			try {
-				const response = await callBackend<void, GetRestaurantByIdResponse>(`v1/restaurants/${restaurantId}`, {
-					method: "GET",
-				});
+				const response = await callBackend<Record<string, never>, GetRestaurantByIdResponse>(
+					`v1/restaurants/${restaurantId}`,
+					{
+						method: "GET",
+						requestPayload: {},
+					},
+				);
 
 				const entry: RestaurantEntry = {
 					restaurant: response.restaurant,
@@ -52,7 +59,8 @@ export default function RestaurantDetailScreen() {
 				};
 
 				// ストアに保存
-				restaurantStore.upsert(entry);
+				const { upsert } = useRestaurantStore.getState();
+				upsert(entry);
 				setRestaurant(entry);
 				setError(null);
 
@@ -77,16 +85,7 @@ export default function RestaurantDetailScreen() {
 		};
 
 		fetchRestaurant();
-	}, [restaurantId]);
-
-	// #644 【設計】「写真・動画を投稿する」ボタン押下時にレビュー投稿画面へ遷移
-	const handlePressPostReview = () => {
-		lightImpact();
-		router.push({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
-			params: { restaurantId: restaurantId! },
-		});
-	};
+	}, [restaurantId, callBackend, showSnackbar, logFrontendEvent]);
 
 	// #644 【設計】ローディング表示（キャッシュがない場合のみ）
 	if (isLoading && !restaurant) {
@@ -153,11 +152,7 @@ export default function RestaurantDetailScreen() {
 				<View style={styles.headerRightSpacer} />
 			</View>
 
-			<SelectedRestaurantDetails
-				restaurant={restaurant.restaurant}
-				meta={restaurant.meta}
-				onPressPostReview={handlePressPostReview}
-			/>
+			<SelectedRestaurantDetails restaurantEntry={restaurant} />
 		</SafeAreaView>
 	);
 }

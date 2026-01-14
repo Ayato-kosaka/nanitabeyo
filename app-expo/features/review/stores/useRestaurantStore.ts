@@ -1,11 +1,5 @@
 import { createWithEqualityFn } from "zustand/traditional";
-import type { QueryMeSavedRestaurantsResponse, GetRestaurantByIdResponse } from "@shared/api/v1/res";
-
-// #644 【設計】保存済みレストランの型（lastSavedAt を含む）
-export type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
-
-// #644 【設計】レストラン詳細の型（GetRestaurantByIdResponse と同じ構造）
-export type RestaurantDetail = GetRestaurantByIdResponse;
+import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 
 // #644 【設計】レストランエンティティストアのメタ情報
 export type RestaurantMeta = {
@@ -18,7 +12,7 @@ export type RestaurantMeta = {
 
 // #644 【設計】ストアで管理するレストランエントリ（restaurant + meta を統合）
 export type RestaurantEntry = {
-	restaurant: SavedRestaurant["restaurant"];
+	restaurant: QueryMeSavedRestaurantsResponse["data"][number]["restaurant"];
 	meta: RestaurantMeta;
 };
 

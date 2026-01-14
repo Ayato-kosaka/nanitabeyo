@@ -330,7 +330,12 @@ export class UsersService {
         restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
           i.restaurant,
         ),
-        meta: i.meta,
+        meta: {
+          ...i.meta,
+          lastSavedAt: i.meta.lastSavedAt
+            ? i.meta.lastSavedAt.toISOString()
+            : null,
+        },
       })),
       nextCursor,
     };

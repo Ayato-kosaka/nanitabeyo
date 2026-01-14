@@ -18,7 +18,6 @@ export default function ReviewScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
-	const restaurantStore = useRestaurantStore();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -28,23 +27,26 @@ export default function ReviewScreen() {
 	useEffect(() => {
 		if (!restaurantId) return;
 
-		// まずストアから取得（即座に表示可能）
-		const cached = restaurantStore.getById(restaurantId);
+		// まずストアから取得し、あればそれを使う
+		const { getById, upsert } = useRestaurantStore.getState();
+		const cached = getById(restaurantId);
 		if (cached) {
 			setRestaurant(cached);
+			return;
 		}
 
-		// バックグラウンドで最新情報を取得して更新
+		// キャッシュがない場合は最新情報を取得して更新
 		const fetchRestaurant = async () => {
-			// キャッシュがない場合はローディング表示
-			if (!cached) {
-				setIsLoading(true);
-			}
+			setIsLoading(true);
 
 			try {
-				const response = await callBackend<void, GetRestaurantByIdResponse>(`v1/restaurants/${restaurantId}`, {
-					method: "GET",
-				});
+				const response = await callBackend<Record<string, never>, GetRestaurantByIdResponse>(
+					`v1/restaurants/${restaurantId}`,
+					{
+						method: "GET",
+						requestPayload: {},
+					},
+				);
 
 				const entry: RestaurantEntry = {
 					restaurant: response.restaurant,
@@ -52,7 +54,7 @@ export default function ReviewScreen() {
 				};
 
 				// ストアに保存
-				restaurantStore.upsert(entry);
+				upsert(entry);
 				setRestaurant(entry);
 				setError(null);
 

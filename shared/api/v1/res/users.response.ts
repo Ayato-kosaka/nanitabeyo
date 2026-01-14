@@ -40,7 +40,7 @@ export type QueryMeSavedRestaurantsResponse = PaginatedResponse<{
 	meta: {
 		reviewCount: number;
 		averageRating: number;
-		lastSavedAt: Date | null;
+		lastSavedAt: string | null;
 	};
 }>;
 

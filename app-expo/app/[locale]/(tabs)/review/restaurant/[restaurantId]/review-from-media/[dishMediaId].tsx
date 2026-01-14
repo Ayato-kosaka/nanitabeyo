@@ -5,13 +5,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import {
+	NormalizedDishMediaEntry,
+	selectEntryByMediaId,
+	useDishMediaEntriesStore,
+} from "@/stores/useDishMediaEntriesStore";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
-import type { GetRestaurantByIdResponse, DishMediaEntry } from "@shared/api/v1/res";
+import type { GetRestaurantByIdResponse, QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
+import { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 
 export default function ReviewFromMediaScreen() {
 	const { restaurantId, dishMediaId } = useLocalSearchParams<{ restaurantId: string; dishMediaId: string }>();
@@ -19,49 +24,60 @@ export default function ReviewFromMediaScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
-	const restaurantStore = useRestaurantStore();
-	const dishMediaStore = useDishMediaEntriesStore();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [restaurant, setRestaurant] = useState<RestaurantEntry | undefined>(undefined);
-	const [dishMedia, setDishMedia] = useState<DishMediaEntry | undefined>(undefined);
+	const [dishMedia, setDishMedia] = useState<NormalizedDishMediaEntry | null>(null);
 
 	// #644 【設計】restaurant.id と dishMediaId でデータを取得
 	useEffect(() => {
 		if (!restaurantId || !dishMediaId) return;
 
+		// Restaurant 情報取得（ストアキャッシュ優先）
+		const { getById, upsert } = useRestaurantStore.getState();
+		const RestaurantCached = getById(restaurantId);
+
+		// DishMedia 情報取得（ストアキャッシュ優先）
+		const dishMediaEntriesStore = useDishMediaEntriesStore.getState();
+		const mediaEntryCached = selectEntryByMediaId(dishMediaId)(dishMediaEntriesStore);
+		if (RestaurantCached && mediaEntryCached) {
+			// 両方キャッシュがあれば即座に表示
+			setRestaurant(RestaurantCached);
+			setDishMedia(mediaEntryCached);
+			return;
+		}
+
+		// キャッシュがない場合は最新情報を取得して更新
 		const fetchData = async () => {
 			setIsLoading(true);
 
 			try {
-				// レストラン情報取得（ストアキャッシュ優先）
-				let restaurantEntry = restaurantStore.getById(restaurantId);
-				if (!restaurantEntry) {
-					const response = await callBackend<void, GetRestaurantByIdResponse>(`v1/restaurants/${restaurantId}`, {
+				// restaurant 情報取得
+				const restaurantEntry = await callBackend<Record<string, never>, GetRestaurantByIdResponse>(
+					`v1/restaurants/${restaurantId}`,
+					{
 						method: "GET",
-					});
-					restaurantEntry = {
-						restaurant: response.restaurant,
-						meta: response.meta,
-					};
-					restaurantStore.upsert(restaurantEntry);
-				}
+						requestPayload: {},
+					},
+				).then((response) => ({
+					restaurant: response.restaurant,
+					meta: response.meta,
+				}));
+				upsert(restaurantEntry);
 				setRestaurant(restaurantEntry);
 
-				// DishMedia 情報取得（ストアキャッシュ優先）
-				const mediaEntry = dishMediaStore.entriesByMediaId[dishMediaId];
-				if (mediaEntry) {
-					// ストアから取得できた場合は dish_media と dish を組み合わせて設定
-					setDishMedia({
-						...mediaEntry,
-						dish_media: {
-							...mediaEntry,
-							dish: mediaEntry.dish,
-						},
-						dish_reviews: mediaEntry.dishReviewIds.map((reviewId) => dishMediaStore.reviewsByReviewId[reviewId]),
-					} as any); // 型の整合性のため一時的に any を使用
-				}
+				// dishMedia 情報取得
+				const dishMediaEntries = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>(
+					"v1/dish-media",
+					{
+						method: "GET",
+						requestPayload: { ids: [dishMediaId] },
+					},
+				).then((response) => response.items);
+				dishMediaEntriesStore.upsertDishMediaEntries(dishMediaEntries);
+				const normalizedEntry = selectEntryByMediaId(dishMediaId)(useDishMediaEntriesStore.getState());
+				setDishMedia(normalizedEntry);
 
 				setError(null);
 

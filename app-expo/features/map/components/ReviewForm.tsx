@@ -556,11 +556,6 @@ export function ReviewForm({
 
 	return (
 		<SafeAreaView edges={["top"]}>
-			{/* #644 【設計】モーダルタイトル */}
-			<View style={styles.modalHeader}>
-				<Text style={styles.modalTitle}>{i18n.t("Review.title")}</Text>
-			</View>
-
 			<Animated.View style={{ height: mediaHeightAnim }}>
 				{mediaState.status === "loading" ? (
 					<View style={styles.loadingContainer}>
@@ -876,17 +871,5 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 		textAlign: "right",
 		marginTop: 4,
-	},
-	modalHeader: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-	},
-	modalTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
 	},
 });

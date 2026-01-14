@@ -21,22 +21,27 @@ import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaura
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
-import { router } from "expo-router";
-import { SavedRestaurantsSheet } from "@/features/review/components/SavedRestaurantsSheet";
+import { router, useFocusEffect } from "expo-router";
+import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
+import { useLocale } from "@/hooks/useLocale";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
+/**
+ * レビュー投稿画面のレストラン選択マップ画面
+ * - 地図上のPOIタップ or 検索バーからレストラン選択でレストラン作成＆詳細画面へ遷移
+ * - 保存したお店を地図上にマーカー表示、カード表示
+ */
 export default function SelectRestaurantScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
+	const locale = useLocale();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
-	const restaurantStore = useRestaurantStore();
-
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
 	// #644 【設計】MapView のアニメーションを制御するための ref
@@ -66,14 +71,15 @@ export default function SelectRestaurantScreen() {
 				});
 
 				// #644 【設計】ストアに upsert してから詳細画面へ遷移
-				restaurantStore.upsert({
+				const { upsert } = useRestaurantStore.getState();
+				upsert({
 					restaurant: response.restaurant,
 					meta: response.meta,
 				});
 
 				router.push({
 					pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
-					params: { restaurantId: response.restaurant.id },
+					params: { locale, restaurantId: response.restaurant.id },
 				});
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
@@ -107,7 +113,7 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingRestaurantCreation(false);
 			}
 		},
-		[callBackend, logFrontendEvent, restaurantStore, showSnackbar],
+		[callBackend, logFrontendEvent, showSnackbar, locale],
 	);
 
 	// #644 【設計】POI押下時にレストラン情報を取得してモーダル表示
@@ -241,14 +247,15 @@ export default function SelectRestaurantScreen() {
 			// すでにアクティブなら詳細画面へ遷移
 			if (activeRestaurantId === restaurant.restaurant.id) {
 				// ストアに upsert
-				restaurantStore.upsert({
+				const { upsert } = useRestaurantStore.getState();
+				upsert({
 					restaurant: restaurant.restaurant,
 					meta: restaurant.meta,
 				});
 
 				router.push({
 					pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
-					params: { restaurantId: restaurant.restaurant.id },
+					params: { locale, restaurantId: restaurant.restaurant.id },
 				});
 				return;
 			}
@@ -256,7 +263,7 @@ export default function SelectRestaurantScreen() {
 			// アクティブ更新（スクロールはシート側で active ID を監視して同期）
 			setActiveRestaurantId(restaurant.restaurant.id);
 		},
-		[activeRestaurantId, lightImpact, restaurantStore, savedRestaurants],
+		[activeRestaurantId, lightImpact, savedRestaurants, locale],
 	);
 
 	// #644 【設計】保存したお店のカード押下時の処理（ボタン以外）（ストア upsert → 遷移）
@@ -266,14 +273,15 @@ export default function SelectRestaurantScreen() {
 			setActiveRestaurantId(restaurant.restaurant.id);
 
 			// ストアに upsert
-			restaurantStore.upsert({
+			const { upsert } = useRestaurantStore.getState();
+			upsert({
 				restaurant: restaurant.restaurant,
 				meta: restaurant.meta,
 			});
 
 			router.push({
 				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
-				params: { restaurantId: restaurant.restaurant.id },
+				params: { locale, restaurantId: restaurant.restaurant.id },
 			});
 
 			logFrontendEvent({
@@ -282,7 +290,7 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, logFrontendEvent, restaurantStore],
+		[lightImpact, logFrontendEvent, locale],
 	);
 
 	// #644 【設計】保存したお店カードの「写真・動画を投稿」ボタン押下時の処理（ストア upsert → レビュー画面遷移）
@@ -291,7 +299,8 @@ export default function SelectRestaurantScreen() {
 			lightImpact();
 
 			// ストアに upsert
-			restaurantStore.upsert({
+			const { upsert } = useRestaurantStore.getState();
+			upsert({
 				restaurant: restaurant.restaurant,
 				meta: restaurant.meta,
 			});
@@ -299,7 +308,7 @@ export default function SelectRestaurantScreen() {
 			// レビュー投稿画面へ直接遷移
 			router.push({
 				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
-				params: { restaurantId: restaurant.restaurant.id },
+				params: { locale, restaurantId: restaurant.restaurant.id },
 			});
 
 			logFrontendEvent({
@@ -308,7 +317,7 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, logFrontendEvent, restaurantStore],
+		[lightImpact, logFrontendEvent, locale],
 	);
 
 	// 初回マウント時に現在地取得＆保存したお店検索
