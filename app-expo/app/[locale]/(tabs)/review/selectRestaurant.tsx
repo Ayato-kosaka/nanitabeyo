@@ -172,6 +172,21 @@ export default function SelectRestaurantScreen() {
 		}
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
+	// #644 【設計】保存したお店一覧の BottomSheet 用 ref
+	const savedRestaurantsSheetRef = useRef<SavedRestaurantsSheetHandle>(null);
+	// 画面フォーカスに連動して Sheet を開閉
+	useFocusEffect(
+		useCallback(() => {
+			// フォーカスされたとき → Sheet を表示
+			savedRestaurantsSheetRef.current?.present();
+
+			// フォーカスが外れたとき（他画面へ遷移など） → Sheet を閉じる
+			return () => {
+				savedRestaurantsSheetRef.current?.dismiss();
+			};
+		}, []),
+	);
+
 	// #644 【設計】保存したお店の状態管理
 	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
 	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
@@ -395,6 +410,7 @@ export default function SelectRestaurantScreen() {
 
 				{/* Saved Restaurants BottomSheet */}
 				<SavedRestaurantsSheet
+					ref={savedRestaurantsSheetRef}
 					savedRestaurants={savedRestaurants}
 					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
 					activeRestaurantId={activeRestaurantId}
