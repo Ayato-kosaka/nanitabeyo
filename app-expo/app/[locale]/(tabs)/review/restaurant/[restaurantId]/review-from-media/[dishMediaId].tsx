@@ -36,14 +36,14 @@ export default function ReviewFromMediaScreen() {
 
 		// Restaurant 情報取得（ストアキャッシュ優先）
 		const { getById, upsert } = useRestaurantStore.getState();
-		const RestaurantCached = getById(restaurantId);
+		const restaurantCached = getById(restaurantId);
 
 		// DishMedia 情報取得（ストアキャッシュ優先）
 		const dishMediaEntriesStore = useDishMediaEntriesStore.getState();
 		const mediaEntryCached = selectEntryByMediaId(dishMediaId)(dishMediaEntriesStore);
-		if (RestaurantCached && mediaEntryCached) {
+		if (restaurantCached && mediaEntryCached) {
 			// 両方キャッシュがあれば即座に表示
-			setRestaurant(RestaurantCached);
+			setRestaurant(restaurantCached);
 			setDishMedia(mediaEntryCached);
 			return;
 		}
