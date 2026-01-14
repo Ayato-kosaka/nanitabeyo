@@ -7,6 +7,7 @@
 		"close": "Cerrar",
 		"save": "Guardar",
 		"post": "Publicar",
+		"postReview": "Publicar reseña",
 		"retry": "Reintentar",
 		"processing": "Procesando...",
 		"error": "Se produjo un error. Vuelve a intentarlo.",
@@ -341,8 +342,8 @@
 		"placeholders": {
 			"searchRestaurants": "Buscar restaurantes",
 			"enterPrice": "Ingresa el precio",
-			"enterReview": "Ingresa tu reseña",
-			"enterReviewShort": "¡El caldo de cerdo estaba increíblemente rico y delicioso!",
+			"enterReview": "Nivel de recomendación",
+			"enterReviewShort": "¡El caldo de tonkotsu estaba súper rico y delicioso!",
 			"enterBidAmount": "Ingresa el monto de la oferta",
 			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)",
 			"searchRestaurantsForReview": "Buscar por nombre o área"
@@ -351,7 +352,8 @@
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
 			"currentBidAmount": "Monto de oferta actual",
-			"restaurant": "Restaurante"
+			"restaurant": "Restaurante",
+			"dishCategory": "Categoría del plato"
 		},
 		"tabs": {
 			"reviews": "Reseñas",
@@ -560,7 +562,7 @@
 		"emptyState": {
 			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."
 		},
-		"everybodyPostsTitle": "Reseñas de Todos",
+		"everybodyPostsTitle": "Elige un plato para reseñar",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "Detalles del restaurante"

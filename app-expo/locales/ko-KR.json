@@ -7,6 +7,7 @@
 		"close": "닫기",
 		"save": "저장",
 		"post": "게시",
+		"postReview": "리뷰 게시하기",
 		"retry": "재시도",
 		"processing": "처리 중...",
 		"error": "오류가 발생했습니다. 다시 시도해 주세요.",
@@ -341,8 +342,8 @@
 		"placeholders": {
 			"searchRestaurants": "레스토랑 검색",
 			"enterPrice": "가격 입력",
-			"enterReview": "리뷰 입력",
-			"enterReviewShort": "돼지 국물이 정말 진하고 맛있었어요!",
+			"enterReview": "추천 정도",
+			"enterReviewShort": "돼지뼈 국물이 정말 진하고 완전 맛있었어요!",
 			"enterBidAmount": "입찰 금액 입력",
 			"enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)",
 			"searchRestaurantsForReview": "이름이나 지역으로 검색"
@@ -351,7 +352,8 @@
 			"endDate": "종료일:",
 			"paymentProcessing": "결제 처리 중...",
 			"currentBidAmount": "현재 입찰 금액",
-			"restaurant": "레스토랑"
+			"restaurant": "레스토랑",
+			"dishCategory": "요리 카테고리"
 		},
 		"tabs": {
 			"reviews": "리뷰",
@@ -560,7 +562,7 @@
 		"emptyState": {
 			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
 		},
-		"everybodyPostsTitle": "모두의 리뷰",
+		"everybodyPostsTitle": "리뷰할 요리 선택",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "레스토랑 상세"

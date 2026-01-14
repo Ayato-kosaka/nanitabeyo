@@ -7,6 +7,7 @@
 		"close": "बंद करें",
 		"save": "सेव करें",
 		"post": "पोस्ट करें",
+		"postReview": "समीक्षा पोस्ट करें",
 		"retry": "पुनः प्रयास करें",
 		"processing": "प्रसंस्करण...",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
@@ -340,8 +341,8 @@
 		"placeholders": {
 			"searchRestaurants": "रेस्टोरेंट खोजें",
 			"enterPrice": "मूल्य दर्ज करें",
-			"enterReview": "समीक्षा दर्ज करें",
-			"enterReviewShort": "खाना अविश्वसनीय रूप से स्वादिष्ट और भरपूर था!",
+			"enterReview": "अनुशंसा स्तर",
+			"enterReviewShort": "समृद्ध टोन्कोत्सु शोरबा अविश्वसनीय रूप से स्वादिष्ट था!",
 			"enterBidAmount": "बोली राशि दर्ज करें",
 			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)",
 			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें"
@@ -350,7 +351,8 @@
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
 			"currentBidAmount": "वर्तमान बोली राशि",
-			"restaurant": "रेस्टोरेंट"
+			"restaurant": "रेस्टोरेंट",
+			"dishCategory": "व्यंजन श्रेणी"
 		},
 		"tabs": {
 			"reviews": "समीक्षाएँ",
@@ -561,7 +563,7 @@
 		"emptyState": {
 			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
 		},
-		"everybodyPostsTitle": "सभी की समीक्षाएं",
+		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "रेस्टोरेंट विवरण"
