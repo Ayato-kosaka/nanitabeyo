@@ -38,6 +38,7 @@ import {
   CreateRestaurantResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
+  GetRestaurantByIdResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -92,6 +93,24 @@ export class RestaurantsController {
   ): Promise<CreateRestaurantResponse> {
     // Google Place Details API からレストラン情報を取得して作成
     return this.restaurantsService.createRestaurant(dto);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                    GET /v1/restaurants/:id                         */
+  /* ------------------------------------------------------------------ */
+  @Get(':id')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'レストランID でレストラン取得' })
+  @ApiParam({ name: 'id', description: 'Restaurant ID' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({ status: 404, description: 'レストランが見つからない' })
+  async getRestaurantById(
+    @Param() params: RestaurantIdParamsDto,
+    @CurrentUser() user?: RequestUser,
+  ): Promise<GetRestaurantByIdResponse> {
+    // #644 【設計】restaurant.id でレストラン詳細と統計情報を取得
+    return this.restaurantsService.getRestaurantById(params.id);
   }
 
   /* ------------------------------------------------------------------ */

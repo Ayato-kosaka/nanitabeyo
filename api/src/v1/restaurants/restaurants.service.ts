@@ -25,6 +25,7 @@ import {
   CreateRestaurantResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
+  GetRestaurantByIdResponse,
   ErrorCode,
 } from '@shared/v1/res';
 import { RestaurantsRepository } from './restaurants.repository';
@@ -367,6 +368,57 @@ export class RestaurantsService {
       response: {
         data: dishMediaEntryItemsResult.items,
         nextCursor: dishMediaByRestaurant.nextCursor,
+      },
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*             GET /v1/restaurants/:id (restaurant by ID)             */
+  /* ------------------------------------------------------------------ */
+  async getRestaurantById(restaurantId: string): Promise<GetRestaurantByIdResponse> {
+    this.logger.debug('GetRestaurantById', 'getRestaurantById', {
+      restaurantId,
+    });
+
+    // #644 【設計】restaurant.id でレストラン情報を取得
+    const restaurant = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.findRestaurantById(tx, restaurantId),
+    );
+
+    if (!restaurant) {
+      this.logger.debug('RestaurantNotFound', 'getRestaurantById', {
+        restaurantId,
+      });
+      throw new NotFoundException('Restaurant not found');
+    }
+
+    // レビュー統計情報を取得
+    const reviewStats = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.getRestaurantReviewStats(tx, restaurant.id),
+    );
+
+    // 入札統計情報を取得
+    const bidStats = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.getRestaurantBidStats(tx, restaurant.id),
+    );
+
+    this.logger.debug('RestaurantFound', 'getRestaurantById', {
+      restaurantId: restaurant.id,
+      name: restaurant.name,
+      reviewCount: reviewStats.reviewCount,
+      averageRating: reviewStats.averageRating,
+    });
+
+    return {
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(restaurant),
+      meta: {
+        reviewCount: reviewStats.reviewCount,
+        averageRating: reviewStats.averageRating,
+        totalCents: bidStats.totalCents,
+        maxEndDate: bidStats.maxEndDate ? bidStats.maxEndDate.toISOString() : null,
       },
     };
   }
