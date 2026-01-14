@@ -526,7 +526,10 @@ export function ReviewForm({
 			style={styles.keyboardAvoidingView}
 			behavior={Platform.OS === "ios" ? "padding" : "height"}
 			keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
-			<ScrollView style={styles.container} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
+			<ScrollView
+				style={styles.container}
+				keyboardShouldPersistTaps="handled"
+				contentContainerStyle={styles.scrollContent}>
 				<View style={{ height: mediaHeight, marginTop: 16 }}>
 					{mediaState.status === "loading" ? (
 						<View style={styles.loadingContainer}>
@@ -633,7 +636,11 @@ export function ReviewForm({
 									const isActive = star <= rating;
 									return (
 										<TouchableOpacity key={star} onPress={() => setRating(star)}>
-											<Star size={36} color={isActive ? "#FFD700" : "#D1D5DB"} fill={isActive ? "#FFD700" : "transparent"} />
+											<Star
+												size={36}
+												color={isActive ? "#FFD700" : "#D1D5DB"}
+												fill={isActive ? "#FFD700" : "transparent"}
+											/>
 										</TouchableOpacity>
 									);
 								})}
