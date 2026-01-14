@@ -556,11 +556,6 @@ export function ReviewForm({
 
 	return (
 		<SafeAreaView edges={["top"]}>
-			{/* #644 【設計】モーダルタイトル */}
-			<View style={styles.modalHeader}>
-				<Text style={styles.modalTitle}>{i18n.t("Review.title")}</Text>
-			</View>
-
 			<Animated.View style={{ height: mediaHeightAnim }}>
 				{mediaState.status === "loading" ? (
 					<View style={styles.loadingContainer}>
@@ -631,6 +626,12 @@ export function ReviewForm({
 							keyboardType="numeric"
 						/>
 					)}
+				</View>
+
+				{/* #644 【設計】店名表示（料理カテゴリ選択の上に表示） */}
+				<View style={styles.restaurantNameContainer}>
+					<Text style={styles.restaurantNameLabel}>{i18n.t("Map.labels.restaurant")}</Text>
+					<Text style={styles.restaurantName}>{restaurant.name}</Text>
 				</View>
 
 				{/* 料理カテゴリ選択 Pressable 行 */}
@@ -783,6 +784,20 @@ const styles = StyleSheet.create({
 		height: 100,
 		textAlignVertical: "top",
 	},
+	restaurantNameContainer: {
+		gap: 4,
+	},
+	restaurantNameLabel: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#666",
+		textTransform: "uppercase",
+	},
+	restaurantName: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#1A1A1A",
+	},
 	selectRow: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -856,17 +871,5 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 		textAlign: "right",
 		marginTop: 4,
-	},
-	modalHeader: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-	},
-	modalTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
 	},
 });

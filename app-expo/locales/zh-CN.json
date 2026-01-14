@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "发生网络错误。请检查您的连接。",
-			"unexpected": "发生意外错误。请稍后重试。"
+			"unexpected": "发生意外错误。请稍后重试。",
+			"notFound": "未找到"
 		}
 	},
 	"Error": {
@@ -348,7 +349,8 @@
 		"labels": {
 			"endDate": "结束日期:",
 			"paymentProcessing": "付款处理中...",
-			"currentBidAmount": "当前出价金额"
+			"currentBidAmount": "当前出价金额",
+			"restaurant": "餐厅"
 		},
 		"tabs": {
 			"reviews": "评论",
@@ -559,6 +561,9 @@
 			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
 		},
 		"everybodyPostsTitle": "大家的评论",
-		"characterCount": "{{current}}/{{max}}"
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "餐厅详情"
+		}
 	}
 }

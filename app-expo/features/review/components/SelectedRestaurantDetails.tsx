@@ -1,27 +1,26 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Camera } from "lucide-react-native";
-import * as Linking from "expo-linking";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
-import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantReviewsTab";
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
-import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
-import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import { useAuth } from "@/contexts/AuthProvider";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
+import { RestaurantEntry } from "../stores/useRestaurantStore";
+import { useLocale } from "@/hooks/useLocale";
+import { useRouter } from "expo-router";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -44,22 +43,21 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({
-	restaurant,
-	meta: restaurantMeta,
-}: QueryMeSavedRestaurantsResponse["data"][number]) {
+type SelectedRestaurantDetailsProps = {
+	// #644 【設計】レストランエントリ（restaurant + meta 情報）
+	restaurantEntry: RestaurantEntry;
+};
+
+export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestaurantDetailsProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
+	const router = useRouter();
+	const locale = useLocale();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
 
 	// Modals
-	const {
-		BlurModal: ReviewBlurModal,
-		open: openReviewModal,
-		close: closeReviewModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1200 });
 	const {
 		BlurModal: LoginBlurModal,
 		open: openLoginModal,
@@ -67,54 +65,47 @@ export function SelectedRestaurantDetails({
 	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
 	// #644 【設計】写真・動画を投稿するボタン押下時の処理（メディア選択ありモード）
-	const handleReviewButtonPress = async () => {
+	const handleReviewButtonPress = useCallback(async () => {
 		lightImpact();
+		logFrontendEvent({
+			event_name: "review_post_photo_video_button_press",
+			error_level: "log",
+			payload: {
+				restaurant_id: restaurantEntry.restaurant.id,
+			},
+		});
+
 		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
 		if (user?.is_anonymous !== false) {
 			openLoginModal();
 		} else {
-			// ReviewForm を開くと同時にメディア選択が行われる
-			openReviewModal();
-		}
-	};
-
-	const handleOpenGoogleMaps = async () => {
-		lightImpact();
-
-		logFrontendEvent({
-			event_name: "restaurant_google_maps_clicked",
-			error_level: "log",
-			payload: {
-				restaurantId: restaurant.id,
-				restaurantName: restaurant.name,
-				googlePlaceId: restaurant.google_place_id,
-			},
-		});
-
-		try {
-			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
-			if (Platform.OS === "web") {
-				window.open(mapUrl, "_blank", "noopener,noreferrer");
-				return;
-			}
-			if (canOpen) {
-				await Linking.openURL(mapUrl);
-			} else {
-				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			}
-		} catch (error) {
-			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			logFrontendEvent({
-				event_name: "restaurant_google_maps_open_failed",
-				error_level: "error",
-				payload: {
-					restaurantId: restaurant.id,
-					googlePlaceId: restaurant.google_place_id,
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
+			// ReviewForm に遷移すると同時にメディア選択が行われる
+			router.push({
+				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
+				params: { locale, restaurantId: restaurantEntry.restaurant.id },
 			});
 		}
-	};
+	}, [lightImpact, openLoginModal, router, locale, restaurantEntry, user?.is_anonymous]);
+
+	// #644 【設計】「みんなの投稿」のレビューアイテム押下時の処理
+	const onPressPostReview = useCallback(
+		(index: number, dishMediaId: string) => {
+			lightImpact();
+			logFrontendEvent({
+				event_name: "review_from_media_navigate",
+				error_level: "log",
+				payload: {
+					restaurant_id: restaurantEntry.restaurant.id,
+					dish_media_id: dishMediaId,
+				},
+			});
+			router.push({
+				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+				params: { locale, restaurantId: restaurantEntry.restaurant.id, dishMediaId },
+			});
+		},
+		[lightImpact, logFrontendEvent, router, locale, restaurantEntry],
+	);
 
 	// Collapsible header
 	const [headerHeight, setHeaderHeight] = useState(0);
@@ -122,25 +113,30 @@ export function SelectedRestaurantDetails({
 		setHeaderHeight(event.nativeEvent.layout.height);
 	}, []);
 
-	const renderHeader = useCallback(() => {
-		return restaurant ? (
+	const renderHeader = useCallback(
+		() => (
 			<View onLayout={handleHeaderLayout}>
 				<Card>
 					<View style={styles.restaurantInfo}>
 						<Image
-							source={{ uri: restaurant.imageUrls?.md, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.md) }}
+							source={{
+								uri: restaurantEntry.restaurant.imageUrls?.md,
+								cacheKey: getCacheKeyForImage(restaurantEntry.restaurant.imageUrls?.md),
+							}}
 							style={styles.restaurantAvatar}
 						/>
 						<View style={styles.restaurantDetails}>
-							<Text style={styles.restaurantName}>{restaurant.name}</Text>
+							<Text style={styles.restaurantName}>{restaurantEntry.restaurant.name}</Text>
 							<View style={styles.ratingContainer}>
-								<Stars rating={restaurantMeta.averageRating} />
-								<Text style={styles.ratingText}>{restaurantMeta.averageRating}</Text>
-								<Text style={styles.reviewCount}>({restaurantMeta.reviewCount})</Text>
+								<Stars rating={restaurantEntry.meta.averageRating} />
+								<Text style={styles.ratingText}>{restaurantEntry.meta.averageRating}</Text>
+								<Text style={styles.reviewCount}>({restaurantEntry.meta.reviewCount})</Text>
 							</View>
+							{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿する」 */}
 							<PrimaryButton
-								onPress={handleOpenGoogleMaps}
-								label={i18n.t("Map.buttons.openInGoogle")}
+								onPress={handleReviewButtonPress}
+								label={i18n.t("Map.buttons.postPhotoVideoReview")}
+								icon={<Camera size={20} color="#5EA2FF" />}
 								labelStyle={{ color: "#5EA2FF" }}
 								colors={["#F0F8FF", "#F0F8FF"]}
 								shadowColor="transparent"
@@ -149,22 +145,10 @@ export function SelectedRestaurantDetails({
 						</View>
 					</View>
 				</Card>
-
-				{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿する」 */}
-				<View style={styles.actionButtons}>
-					<PrimaryButton
-						onPress={handleReviewButtonPress}
-						label={i18n.t("Map.buttons.postPhotoVideoReview")}
-						icon={<Camera size={20} color="#FFF" />}
-						borderRadius={8}
-						style={{ width: "100%" }}
-					/>
-				</View>
 			</View>
-		) : (
-			<Card />
-		);
-	}, [handleHeaderLayout, handleReviewButtonPress, handleOpenGoogleMaps, restaurant]);
+		),
+		[handleHeaderLayout, restaurantEntry, handleReviewButtonPress],
+	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
 
@@ -180,12 +164,9 @@ export function SelectedRestaurantDetails({
 					みんなの投稿サムネ押下でReviewFormモーダルが開く（既存メディア利用モード）
 				*/}
 				<Tabs.Tab name="reviews">
-					<RestaurantReviewsTab restaurantId={restaurant.id} />
+					<RestaurantReviewsTab restaurantId={restaurantEntry.restaurant.id} onItemPress={onPressPostReview} />
 				</Tabs.Tab>
 			</Tabs.Container>
-
-			{/* #644 【設計】Review Modal - メディア選択ありモード */}
-			<ReviewBlurModal>{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} />}</ReviewBlurModal>
 
 			{/* Login Modal */}
 			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
@@ -228,11 +209,6 @@ const styles = StyleSheet.create({
 	reviewCount: {
 		fontSize: 12,
 		color: "#666",
-	},
-	actionButtons: {
-		flexDirection: "row",
-		gap: 12,
-		margin: 16,
 	},
 	tabContainer: {
 		flexDirection: "row",

@@ -13,9 +13,7 @@ import {
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
-import { SelectedRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
@@ -23,37 +21,27 @@ import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaura
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
-import { router } from "expo-router";
-import { ReviewForm } from "@/features/map/components/ReviewForm";
-import { useAuth } from "@/contexts/AuthProvider";
-import { SavedRestaurantsSheet } from "@/features/review/components/SavedRestaurantsSheet";
+import { router, useFocusEffect } from "expo-router";
+import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
+import { useLocale } from "@/hooks/useLocale";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
+/**
+ * レビュー投稿画面のレストラン選択マップ画面
+ * - 地図上のPOIタップ or 検索バーからレストラン選択でレストラン作成＆詳細画面へ遷移
+ * - 保存したお店を地図上にマーカー表示、カード表示
+ */
 export default function SelectRestaurantScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
-	const { user } = useAuth();
-	const [selectedPlace, setSelectedPlace] = useState<SavedRestaurant | null>(null);
+	const locale = useLocale();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
-
-	const {
-		BlurModal: RestaurantBlurModal,
-		open: openRestaurantModal,
-		close: closeRestaurantModal,
-	} = useBlurModal({ intensity: 100 });
-
-	// #644 【設計】レビュー投稿用モーダル（メディア選択ありモード）
-	const {
-		BlurModal: ReviewBlurModal,
-		open: openReviewModal,
-		close: closeReviewModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1200 });
-
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
 	// #644 【設計】MapView のアニメーションを制御するための ref
@@ -71,7 +59,7 @@ export default function SelectRestaurantScreen() {
 		currentRegion.current = region;
 	}, []);
 
-	// #644 【設計】レストラン作成＆詳細モーダル表示を行う関数
+	// #644 【設計】レストラン作成＆詳細画面へ遷移する関数（ストアにキャッシュ→ナビゲーション）
 	// #525 【設計】エラーハンドリングを整備し、422/404/network_error 等を適切にスナックバーで通知
 	const createAndOpenRestaurant = useCallback(
 		async (googlePlaceId: string) => {
@@ -81,14 +69,18 @@ export default function SelectRestaurantScreen() {
 					method: "POST",
 					requestPayload: { googlePlaceId },
 				});
-				setSelectedPlace({
-					...response,
-					meta: {
-						...response.meta,
-						lastSavedAt: null,
-					},
+
+				// #644 【設計】ストアに upsert してから詳細画面へ遷移
+				const { upsert } = useRestaurantStore.getState();
+				upsert({
+					restaurant: response.restaurant,
+					meta: response.meta,
 				});
-				openRestaurantModal();
+
+				router.push({
+					pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+					params: { locale, restaurantId: response.restaurant.id },
+				});
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
 
@@ -121,7 +113,7 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingRestaurantCreation(false);
 			}
 		},
-		[callBackend, logFrontendEvent, openRestaurantModal, showSnackbar],
+		[callBackend, logFrontendEvent, showSnackbar, locale],
 	);
 
 	// #644 【設計】POI押下時にレストラン情報を取得してモーダル表示
@@ -186,6 +178,28 @@ export default function SelectRestaurantScreen() {
 		}
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
+	// #644 【設計】保存したお店一覧の BottomSheet 用 ref
+	const savedRestaurantsSheetRef = useRef<SavedRestaurantsSheetHandle>(null);
+	const isSavedRestaurantsSheetVisibleRef = useRef(false); // #644 【設計】present/dismiss の競合防止用フラグ
+	// 画面フォーカスに連動して Sheet を開閉
+	useFocusEffect(
+		useCallback(() => {
+			// フォーカスされたとき → Sheet を表示（重複 present を避ける）
+			if (!isSavedRestaurantsSheetVisibleRef.current) {
+				isSavedRestaurantsSheetVisibleRef.current = true;
+				void savedRestaurantsSheetRef.current?.present();
+			}
+
+			// フォーカスが外れたとき（他画面へ遷移など） → Sheet を閉じる（重複 dismiss を避ける）
+			return () => {
+				if (isSavedRestaurantsSheetVisibleRef.current) {
+					isSavedRestaurantsSheetVisibleRef.current = false;
+					void savedRestaurantsSheetRef.current?.dismiss();
+				}
+			};
+		}, []),
+	);
+
 	// #644 【設計】保存したお店の状態管理
 	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
 	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
@@ -229,7 +243,7 @@ export default function SelectRestaurantScreen() {
 		[callBackend, currentRegion, isLoadingSavedRestaurants, lightImpact, logFrontendEvent, showSnackbar],
 	);
 
-	// #644 【設計】保存したお店のマーカー押下時の処理
+	// #644 【設計】保存したお店のマーカー押下時の処理（ストア upsert → 遷移）
 	const handleSavedRestaurantMarkerPress = useCallback(
 		(restaurant: SavedRestaurant) => {
 			lightImpact();
@@ -237,26 +251,45 @@ export default function SelectRestaurantScreen() {
 			const index = savedRestaurants.findIndex((r) => r.restaurant.id === restaurant.restaurant.id);
 			if (index === -1) return;
 
-			// すでにアクティブならモーダル表示
+			// すでにアクティブなら詳細画面へ遷移
 			if (activeRestaurantId === restaurant.restaurant.id) {
-				setSelectedPlace(restaurant);
-				openRestaurantModal();
+				// ストアに upsert
+				const { upsert } = useRestaurantStore.getState();
+				upsert({
+					restaurant: restaurant.restaurant,
+					meta: restaurant.meta,
+				});
+
+				router.push({
+					pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+					params: { locale, restaurantId: restaurant.restaurant.id },
+				});
 				return;
 			}
 
 			// アクティブ更新（スクロールはシート側で active ID を監視して同期）
 			setActiveRestaurantId(restaurant.restaurant.id);
 		},
-		[activeRestaurantId, lightImpact, openRestaurantModal, savedRestaurants],
+		[activeRestaurantId, lightImpact, savedRestaurants, locale],
 	);
 
-	// #644 【設計】保存したお店のカード押下時の処理（ボタン以外）
+	// #644 【設計】保存したお店のカード押下時の処理（ボタン以外）（ストア upsert → 遷移）
 	const handleSavedRestaurantCardPress = useCallback(
 		(restaurant: SavedRestaurant) => {
 			lightImpact();
 			setActiveRestaurantId(restaurant.restaurant.id);
-			setSelectedPlace(restaurant);
-			openRestaurantModal();
+
+			// ストアに upsert
+			const { upsert } = useRestaurantStore.getState();
+			upsert({
+				restaurant: restaurant.restaurant,
+				meta: restaurant.meta,
+			});
+
+			router.push({
+				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+				params: { locale, restaurantId: restaurant.restaurant.id },
+			});
 
 			logFrontendEvent({
 				event_name: "saved_restaurant_card_press",
@@ -264,18 +297,26 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, openRestaurantModal, logFrontendEvent],
+		[lightImpact, logFrontendEvent, locale],
 	);
 
-	// #644 【設計】保存したお店カードの「写真・動画を投稿」ボタン押下時の処理
-	// SelectedRestaurantDetails の handleReviewButtonPress と同じ挙動（メディア選択ありモード）
+	// #644 【設計】保存したお店カードの「写真・動画を投稿」ボタン押下時の処理（ストア upsert → レビュー画面遷移）
 	const handleSavedRestaurantReviewPress = useCallback(
 		(restaurant: SavedRestaurant) => {
 			lightImpact();
-			setSelectedPlace(restaurant);
 
-			// ReviewForm を開くと同時にメディア選択が行われる
-			openReviewModal();
+			// ストアに upsert
+			const { upsert } = useRestaurantStore.getState();
+			upsert({
+				restaurant: restaurant.restaurant,
+				meta: restaurant.meta,
+			});
+
+			// レビュー投稿画面へ直接遷移
+			router.push({
+				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
+				params: { locale, restaurantId: restaurant.restaurant.id },
+			});
 
 			logFrontendEvent({
 				event_name: "saved_restaurant_review_button_press",
@@ -283,7 +324,7 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, openReviewModal, logFrontendEvent],
+		[lightImpact, logFrontendEvent, locale],
 	);
 
 	// 初回マウント時に現在地取得＆保存したお店検索
@@ -385,6 +426,7 @@ export default function SelectRestaurantScreen() {
 
 				{/* Saved Restaurants BottomSheet */}
 				<SavedRestaurantsSheet
+					ref={savedRestaurantsSheetRef}
 					savedRestaurants={savedRestaurants}
 					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
 					activeRestaurantId={activeRestaurantId}
@@ -392,17 +434,6 @@ export default function SelectRestaurantScreen() {
 					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
 					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
 				/>
-
-				<RestaurantBlurModal>
-					{selectedPlace && (
-						<SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />
-					)}
-				</RestaurantBlurModal>
-
-				{/* #644 【設計】Review Modal - メディア選択ありモード */}
-				<ReviewBlurModal>
-					{({ close }) => selectedPlace && <ReviewForm restaurant={selectedPlace.restaurant} onCancel={close} />}
-				</ReviewBlurModal>
 			</SafeAreaView>
 		</MarkerBitmapRendererProvider>
 	);

@@ -174,47 +174,47 @@ export class CreateDishMediaEntryService {
           throw error;
         }),
       restaurants.image_path &&
-        this.cloudTasksService
-          .enqueueResizeImage({
-            table: 'restaurants',
-            column: 'image_path',
-            recordId: restaurants.id,
-            size: 256,
-            aspectRatio: 9 / 16,
-            originalPath: restaurants.image_path,
-          })
-          .catch((error) => {
-            this.logger.error(
-              'EnqueueResizeRestaurantImageError',
-              'createDishMediaEntry',
-              {
-                restaurantId: restaurants.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              },
-            );
-            throw error;
-          }),
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'restaurants',
+          column: 'image_path',
+          recordId: restaurants.id,
+          size: 256,
+          aspectRatio: 9 / 16,
+          originalPath: restaurants.image_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeRestaurantImageError',
+            'createDishMediaEntry',
+            {
+              restaurantId: restaurants.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
       restaurants.image_path &&
-        this.cloudTasksService
-          .enqueueResizeImage({
-            table: 'restaurants',
-            column: 'image_path',
-            recordId: restaurants.id,
-            size: 64,
-            aspectRatio: 9 / 16,
-            originalPath: restaurants.image_path,
-          })
-          .catch((error) => {
-            this.logger.error(
-              'EnqueueResizeRestaurantImageError',
-              'createDishMediaEntry',
-              {
-                restaurantId: restaurants.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              },
-            );
-            throw error;
-          }),
+      this.cloudTasksService
+        .enqueueResizeImage({
+          table: 'restaurants',
+          column: 'image_path',
+          recordId: restaurants.id,
+          size: 64,
+          aspectRatio: 9 / 16,
+          originalPath: restaurants.image_path,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'EnqueueResizeRestaurantImageError',
+            'createDishMediaEntry',
+            {
+              restaurantId: restaurants.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          );
+          throw error;
+        }),
     ]);
   }
 
@@ -227,7 +227,12 @@ export class CreateDishMediaEntryService {
         // 1. レストラン登録
         const restaurant = await this.dishesRepository.createOrGetRestaurant(
           tx,
-          convertSupabaseToPrisma_Restaurants(payload.restaurants),
+          {
+            ...convertSupabaseToPrisma_Restaurants(payload.restaurants),
+            address_components: payload.restaurants.address_components as Prisma.InputJsonValue,
+            plus_code:
+              payload.restaurants.plus_code as Prisma.InputJsonValue,
+          },
           payload.restaurants.google_place_id,
         );
 

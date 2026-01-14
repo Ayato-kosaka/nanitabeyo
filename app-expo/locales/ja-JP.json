@@ -27,7 +27,8 @@
 		"site": "なに食べよ",
 		"errors": {
 			"network": "通信エラーが発生しました。ネットワーク接続をご確認ください。",
-			"unexpected": "予期しないエラーが発生しました。しばらくしてからお試しください。"
+			"unexpected": "予期しないエラーが発生しました。しばらくしてからお試しください。",
+			"notFound": "見つかりません"
 		}
 	},
 	"Error": {
@@ -349,7 +350,8 @@
 		"labels": {
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
-			"currentBidAmount": "現在の入札額"
+			"currentBidAmount": "現在の入札額",
+			"restaurant": "お店"
 		},
 		"tabs": {
 			"reviews": "レビュー",
@@ -559,6 +561,9 @@
 			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
 		},
 		"everybodyPostsTitle": "みんなの投稿",
-		"characterCount": "{{current}}/{{max}}"
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "レストラン詳細"
+		}
 	}
 }

@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "Une erreur réseau s'est produite. Veuillez vérifier votre connexion.",
-			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
+			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+			"notFound": "Non trouvé"
 		}
 	},
 	"Error": {
@@ -349,7 +350,8 @@
 		"labels": {
 			"endDate": "Date de fin:",
 			"paymentProcessing": "Traitement du paiement...",
-			"currentBidAmount": "Montant de l'enchère actuelle"
+			"currentBidAmount": "Montant de l'enchère actuelle",
+			"restaurant": "Restaurant"
 		},
 		"tabs": {
 			"reviews": "Avis",
@@ -559,6 +561,9 @@
 			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
 		},
 		"everybodyPostsTitle": "Avis de Tout le Monde",
-		"characterCount": "{{current}}/{{max}}"
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Détails du restaurant"
+		}
 	}
 }

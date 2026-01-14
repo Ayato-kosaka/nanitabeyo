@@ -38,6 +38,7 @@ import {
   CreateRestaurantResponse,
   QueryRestaurantDishMediaResponse,
   QueryRestaurantsByGooglePlaceIdResponse,
+  GetRestaurantByIdResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -51,7 +52,7 @@ import { RestaurantsService } from './restaurants.service';
 @ApiTags('Restaurants')
 @Controller('v1/restaurants')
 export class RestaurantsController {
-  constructor(private readonly restaurantsService: RestaurantsService) {}
+  constructor(private readonly restaurantsService: RestaurantsService) { }
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/restaurants/search                        */
@@ -117,6 +118,24 @@ export class RestaurantsController {
   }
 
   /* ------------------------------------------------------------------ */
+  /*                    GET /v1/restaurants/:id                         */
+  /* ------------------------------------------------------------------ */
+  @Get(':id')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'レストランID でレストラン取得' })
+  @ApiParam({ name: 'id', description: 'Restaurant ID' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({ status: 404, description: 'レストランが見つからない' })
+  async getRestaurantById(
+    @Param() params: RestaurantIdParamsDto,
+    @CurrentUser() user?: RequestUser,
+  ): Promise<GetRestaurantByIdResponse> {
+    // #644 【設計】restaurant.id でレストラン詳細と統計情報を取得
+    return this.restaurantsService.getRestaurantById(params.id);
+  }
+
+  /* ------------------------------------------------------------------ */
   /*               GET /v1/restaurants/:id/dish-media                   */
   /* ------------------------------------------------------------------ */
   @Get(':id/dish-media')
@@ -138,12 +157,10 @@ export class RestaurantsController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryRestaurantDishMediaResponse> {
     // レストランの料理投稿一覧を取得
-    const result = await this.restaurantsService.getRestaurantDishMedia(
+    return await this.restaurantsService.getRestaurantDishMedia(
       params.id,
       query,
       user.id,
     );
-
-    return result.response;
   }
 }

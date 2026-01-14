@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "नेटवर्क त्रुटि हुई है। कृपया अपना कनेक्शन जांचें।",
-			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।"
+			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।",
+			"notFound": "नहीं मिला"
 		}
 	},
 	"Error": {
@@ -348,7 +349,8 @@
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
-			"currentBidAmount": "वर्तमान बोली राशि"
+			"currentBidAmount": "वर्तमान बोली राशि",
+			"restaurant": "रेस्टोरेंट"
 		},
 		"tabs": {
 			"reviews": "समीक्षाएँ",
@@ -560,6 +562,9 @@
 			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
 		},
 		"everybodyPostsTitle": "सभी की समीक्षाएं",
-		"characterCount": "{{current}}/{{max}}"
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "रेस्टोरेंट विवरण"
+		}
 	}
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useCallback, useState } from "react";
+import React, { useEffect, useMemo, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
 import { View, StyleSheet, Text, Dimensions, TouchableOpacity } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
@@ -15,6 +15,11 @@ const CARD_HEIGHT = 100;
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
+export type SavedRestaurantsSheetHandle = {
+	present: () => Promise<void>;
+	dismiss: () => Promise<void>;
+};
+
 export type SavedRestaurantsSheetProps = {
 	savedRestaurants: QueryMeSavedRestaurantsResponse["data"];
 	isLoadingSavedRestaurants: boolean;
@@ -24,117 +29,129 @@ export type SavedRestaurantsSheetProps = {
 	onSnapToRestaurant?: (restaurant: SavedRestaurant) => void;
 };
 
-export function SavedRestaurantsSheet({
-	savedRestaurants,
-	isLoadingSavedRestaurants,
-	activeRestaurantId,
-	onRestaurantCardPress,
-	onRestaurantReviewPress,
-	onSnapToRestaurant,
-}: SavedRestaurantsSheetProps) {
-	const sheetRef = useRef<TrueSheet>(null);
-	const carouselRef = useRef<ICarouselInstance | null>(null);
+export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, SavedRestaurantsSheetProps>(
+	(props, ref) => {
+		const {
+			savedRestaurants,
+			isLoadingSavedRestaurants,
+			activeRestaurantId,
+			onRestaurantCardPress,
+			onRestaurantReviewPress,
+			onSnapToRestaurant,
+		} = props;
+		const sheetRef = useRef<TrueSheet>(null);
+		const carouselRef = useRef<ICarouselInstance | null>(null);
 
-	useEffect(() => {
-		sheetRef.current?.present();
-	}, []);
+		useImperativeHandle(ref, () => ({
+			present: async () => {
+				await sheetRef.current?.present();
+			},
+			dismiss: async () => {
+				await sheetRef.current?.dismiss();
+			},
+		}));
 
-	const [detentIndex, setDetentIndex] = useState(0);
+		useEffect(() => {
+			sheetRef.current?.present();
+		}, []);
 
-	const handleDetentChange = useCallback((event: DetentChangeEvent) => {
-		setDetentIndex(event.nativeEvent.index);
-	}, []);
+		const [detentIndex, setDetentIndex] = useState(0);
 
-	const activeIndex = useMemo(() => {
-		return savedRestaurants.findIndex((r) => r.restaurant.id === activeRestaurantId);
-	}, [savedRestaurants, activeRestaurantId]);
+		const handleDetentChange = useCallback((event: DetentChangeEvent) => {
+			setDetentIndex(event.nativeEvent.index);
+		}, []);
 
-	useEffect(() => {
-		if (activeIndex >= 0) {
-			carouselRef.current?.scrollTo({ index: activeIndex, animated: true });
-		}
-	}, [activeIndex]);
+		const activeIndex = useMemo(() => {
+			return savedRestaurants.findIndex((r) => r.restaurant.id === activeRestaurantId);
+		}, [savedRestaurants, activeRestaurantId]);
 
-	const renderItem = useCallback(
-		({ item }: { item: SavedRestaurant }) => (
-			<View style={styles.savedRestaurantItemContainer}>
-				<PrimaryCard
-					item={item}
-					onPress={() => onRestaurantCardPress(item)}
-					onReview={() => onRestaurantReviewPress(item)}
-				/>
-			</View>
-		),
-		[onRestaurantCardPress, onRestaurantReviewPress],
-	);
+		useEffect(() => {
+			if (activeIndex >= 0) {
+				carouselRef.current?.scrollTo({ index: activeIndex, animated: true });
+			}
+		}, [activeIndex]);
 
-	return (
-		<TrueSheet
-			ref={sheetRef}
-			detents={["auto", 0.9]}
-			grabber
-			cornerRadius={24}
-			maxHeight={560}
-			dimmed={false}
-			backgroundColor="#FFFFFF"
-			dismissible={false}
-			onDetentChange={handleDetentChange}>
-			<View style={styles.container}>
-				{savedRestaurants.length > 0 ? (
-					<>
-						<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
+		const renderItem = useCallback(
+			({ item }: { item: SavedRestaurant }) => (
+				<View style={styles.savedRestaurantItemContainer}>
+					<PrimaryCard
+						item={item}
+						onPress={() => onRestaurantCardPress(item)}
+						onReview={() => onRestaurantReviewPress(item)}
+					/>
+				</View>
+			),
+			[onRestaurantCardPress, onRestaurantReviewPress],
+		);
 
-						{detentIndex === 0 ? (
-							<View style={styles.carouselWrapper}>
-								<Carousel<SavedRestaurant>
-									ref={carouselRef}
+		return (
+			<TrueSheet
+				ref={sheetRef}
+				detents={["auto", 0.9]}
+				grabber
+				cornerRadius={24}
+				maxHeight={560}
+				dimmed={false}
+				backgroundColor="#FFFFFF"
+				dismissible={false}
+				onDetentChange={handleDetentChange}>
+				<View style={styles.container}>
+					{savedRestaurants.length > 0 ? (
+						<>
+							<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
+
+							{detentIndex === 0 ? (
+								<View style={styles.carouselWrapper}>
+									<Carousel<SavedRestaurant>
+										ref={carouselRef}
+										data={savedRestaurants}
+										loop={false}
+										style={styles.carousel}
+										width={SCREEN_WIDTH}
+										height={CARD_HEIGHT + 24}
+										pagingEnabled={false}
+										snapEnabled
+										maxScrollDistancePerSwipe={CARD_WIDTH + 40}
+										mode="parallax"
+										modeConfig={{
+											parallaxScrollingScale: 1,
+											parallaxAdjacentItemScale: 1,
+											parallaxScrollingOffset: ((SCREEN_WIDTH - CARD_WIDTH) * 3) / 4,
+										}}
+										onSnapToItem={(index) => {
+											const restaurant = savedRestaurants[index];
+											if (restaurant) onSnapToRestaurant?.(restaurant);
+										}}
+										scrollAnimationDuration={350}
+										renderItem={renderItem}
+									/>
+								</View>
+							) : (
+								<FlatList
 									data={savedRestaurants}
-									loop={false}
-									style={styles.carousel}
-									width={SCREEN_WIDTH}
-									height={CARD_HEIGHT + 24}
-									pagingEnabled={false}
-									snapEnabled
-									maxScrollDistancePerSwipe={CARD_WIDTH + 40}
-									mode="parallax"
-									modeConfig={{
-										parallaxScrollingScale: 1,
-										parallaxAdjacentItemScale: 1,
-										parallaxScrollingOffset: ((SCREEN_WIDTH - CARD_WIDTH) * 3) / 4,
-									}}
-									onSnapToItem={(index) => {
-										const restaurant = savedRestaurants[index];
-										if (restaurant) onSnapToRestaurant?.(restaurant);
-									}}
-									scrollAnimationDuration={350}
-									renderItem={renderItem}
+									keyExtractor={(item) => item.restaurant.id}
+									contentContainerStyle={styles.listContent}
+									nestedScrollEnabled // Android でのネストスクロール用
+									renderItem={({ item }) => (
+										<View style={styles.listItemContainer}>
+											<PrimaryCard
+												item={item}
+												onPress={() => onRestaurantCardPress(item)}
+												onReview={() => onRestaurantReviewPress(item)}
+											/>
+										</View>
+									)}
 								/>
-							</View>
-						) : (
-							<FlatList
-								data={savedRestaurants}
-								keyExtractor={(item) => item.restaurant.id}
-								contentContainerStyle={styles.listContent}
-								nestedScrollEnabled // Android でのネストスクロール用
-								renderItem={({ item }) => (
-									<View style={styles.listItemContainer}>
-										<PrimaryCard
-											item={item}
-											onPress={() => onRestaurantCardPress(item)}
-											onReview={() => onRestaurantReviewPress(item)}
-										/>
-									</View>
-								)}
-							/>
-						)}
-					</>
-				) : !isLoadingSavedRestaurants ? (
-					<Text style={styles.emptyStateText}>{i18n.t("Review.selectRestaurant.noSavedRestaurantsInArea")}</Text>
-				) : null}
-			</View>
-		</TrueSheet>
-	);
-}
+							)}
+						</>
+					) : !isLoadingSavedRestaurants ? (
+						<Text style={styles.emptyStateText}>{i18n.t("Review.selectRestaurant.noSavedRestaurantsInArea")}</Text>
+					) : null}
+				</View>
+			</TrueSheet>
+		);
+	},
+);
 
 function PrimaryCard({
 	item,
