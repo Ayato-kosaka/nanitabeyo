@@ -180,15 +180,22 @@ export default function SelectRestaurantScreen() {
 
 	// #644 【設計】保存したお店一覧の BottomSheet 用 ref
 	const savedRestaurantsSheetRef = useRef<SavedRestaurantsSheetHandle>(null);
+	const isSavedRestaurantsSheetVisibleRef = useRef(false); // #644 【設計】present/dismiss の競合防止用フラグ
 	// 画面フォーカスに連動して Sheet を開閉
 	useFocusEffect(
 		useCallback(() => {
-			// フォーカスされたとき → Sheet を表示
-			savedRestaurantsSheetRef.current?.present();
+			// フォーカスされたとき → Sheet を表示（重複 present を避ける）
+			if (!isSavedRestaurantsSheetVisibleRef.current) {
+				isSavedRestaurantsSheetVisibleRef.current = true;
+				void savedRestaurantsSheetRef.current?.present();
+			}
 
-			// フォーカスが外れたとき（他画面へ遷移など） → Sheet を閉じる
+			// フォーカスが外れたとき（他画面へ遷移など） → Sheet を閉じる（重複 dismiss を避ける）
 			return () => {
-				savedRestaurantsSheetRef.current?.dismiss();
+				if (isSavedRestaurantsSheetVisibleRef.current) {
+					isSavedRestaurantsSheetVisibleRef.current = false;
+					void savedRestaurantsSheetRef.current?.dismiss();
+				}
 			};
 		}, []),
 	);
