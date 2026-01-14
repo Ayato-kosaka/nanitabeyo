@@ -98,7 +98,7 @@
 		"timeSlots": {
 			"morning": "朝食",
 			"lunch": "ランチ",
-			"dinner": "ディナー",
+			"dinner": "夜ごはん",
 			"lateNight": "夜食"
 		},
 		"sceneOptions": {
