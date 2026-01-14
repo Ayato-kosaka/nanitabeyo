@@ -157,12 +157,10 @@ export class RestaurantsController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<QueryRestaurantDishMediaResponse> {
     // レストランの料理投稿一覧を取得
-    const result = await this.restaurantsService.getRestaurantDishMedia(
+    return await this.restaurantsService.getRestaurantDishMedia(
       params.id,
       query,
       user.id,
     );
-
-    return result.response;
   }
 }
