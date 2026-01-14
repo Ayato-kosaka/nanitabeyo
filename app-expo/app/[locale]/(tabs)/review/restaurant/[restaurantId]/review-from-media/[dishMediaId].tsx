@@ -102,7 +102,7 @@ export default function ReviewFromMediaScreen() {
 		};
 
 		fetchData();
-	}, [restaurantId, dishMediaId]);
+	}, [restaurantId, dishMediaId, callBackend, showSnackbar, logFrontendEvent]);
 
 	// #644 【設計】ローディング表示
 	if (isLoading) {
