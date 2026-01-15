@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Dimensions } from "react-native";
-import { Navigation, ChevronLeft, RotateCw } from "lucide-react-native";
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -26,6 +26,7 @@ import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/r
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
+import { ReviewHeader } from "@/features/review/components/ReviewHeader";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -354,18 +355,14 @@ export default function SelectRestaurantScreen() {
 		<MarkerBitmapRendererProvider>
 			<SafeAreaView edges={["top"]} style={styles.container}>
 				{/* #644 【設計】画面タイトル with 戻るボタン */}
-				<View style={styles.headerContainer}>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => {
-							lightImpact();
-							router.back();
-						}}>
-						<ChevronLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>{i18n.t("Review.selectRestaurant.title")}</Text>
-					<View style={styles.headerRightSpacer} />
-				</View>
+				<ReviewHeader
+					title={i18n.t("Review.selectRestaurant.title")}
+					onPressBack={() => {
+						lightImpact();
+						router.back();
+					}}
+					containerStyle={styles.headerContainer}
+				/>
 
 				{/* Map */}
 				<MapView
@@ -458,20 +455,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-	},
-	backButton: {
-		padding: 4,
-		marginRight: 8,
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-		flex: 1,
-	},
-	headerRightSpacer: {
-		width: 32,
 	},
 	map: {
 		flex: 1,
