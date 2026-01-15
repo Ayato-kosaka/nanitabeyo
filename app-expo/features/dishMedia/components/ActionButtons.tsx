@@ -16,6 +16,7 @@ import {
 	DishMediaEntriesStore,
 	selectEntryByMediaId,
 	selectEntryByReviewId,
+	selectIdsByKey,
 	useDishMediaEntriesStore,
 	IdType,
 } from "@/stores/useDishMediaEntriesStore";
@@ -24,13 +25,18 @@ import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 
+// #659 【設計】共有モードの型定義
+type ShareMode = "single" | "feedFromCurrent";
+
 interface ActionButtonsProps {
 	id: string;
 	idType: IdType;
+	entriesKey?: string; // #659 【設計】entriesKey を追加（feedFromCurrent で使用）
+	shareMode?: ShareMode; // #659 【設計】shareMode を追加
 	onLayout: (width: number) => void;
 }
 
-export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, entriesKey, shareMode = "single", onLayout }: ActionButtonsProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -253,11 +259,25 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 	};
 
 	const handleSharePress = useCallback(() => {
-		return shareRestaurant({
-			dishMediaId,
-			restaurant,
-		});
-	}, [dishMediaId, restaurant, shareRestaurant]);
+		// #659 【設計】shareMode が feedFromCurrent かつ entriesKey がある場合は複数共有
+		if (shareMode === "feedFromCurrent" && entriesKey) {
+			const state = useDishMediaEntriesStore.getState();
+			const { ids } = selectIdsByKey(entriesKey, idType)(state);
+			const idx = ids.indexOf(id);
+			const ordered = [...ids.slice(idx), ...ids.slice(0, idx)];
+			return shareRestaurant({
+				dishMediaId,
+				restaurant,
+				idsForShare: ordered,
+			});
+		} else {
+			// #659 【設計】単体共有（従来通り）
+			return shareRestaurant({
+				dishMediaId,
+				restaurant,
+			});
+		}
+	}, [dishMediaId, restaurant, shareRestaurant, shareMode, entriesKey, id, idType]);
 
 	const menuOptions = [
 		{
