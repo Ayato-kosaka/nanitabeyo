@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { SelectedRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
 import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -90,7 +89,7 @@ export default function RestaurantDetailScreen() {
 	// #644 【設計】ローディング表示（キャッシュがない場合のみ）
 	if (isLoading && !restaurant) {
 		return (
-			<SafeAreaView edges={["top"]} style={styles.container}>
+			<View style={styles.container}>
 				<ReviewHeader
 					title={i18n.t("Review.restaurantDetail.title")}
 					onPressBack={() => {
@@ -101,14 +100,14 @@ export default function RestaurantDetailScreen() {
 				<View style={styles.loadingContainer}>
 					<ActivityIndicator size="large" color="#5EA2FF" />
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
 	// #644 【設計】エラー表示（レストランが見つからない場合など）
 	if (error && !restaurant) {
 		return (
-			<SafeAreaView edges={["top"]} style={styles.container}>
+			<View style={styles.container}>
 				<ReviewHeader
 					title={i18n.t("Review.restaurantDetail.title")}
 					onPressBack={() => {
@@ -119,7 +118,7 @@ export default function RestaurantDetailScreen() {
 				<View style={styles.errorContainer}>
 					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
@@ -128,7 +127,7 @@ export default function RestaurantDetailScreen() {
 	}
 
 	return (
-		<SafeAreaView edges={["top"]} style={styles.container}>
+		<View style={styles.container}>
 			<ReviewHeader
 				title={i18n.t("Review.restaurantDetail.title")}
 				onPressBack={() => {
@@ -138,7 +137,7 @@ export default function RestaurantDetailScreen() {
 			/>
 
 			<SelectedRestaurantDetails restaurantEntry={restaurant} />
-		</SafeAreaView>
+		</View>
 	);
 }
 

@@ -9,8 +9,9 @@ import {
 	Pressable,
 	ActivityIndicator,
 	KeyboardAvoidingView,
+	Keyboard,
 } from "react-native";
-import { Star, ChevronRight, UtensilsCrossed, CircleDollarSign } from "lucide-react-native";
+import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
@@ -45,7 +46,6 @@ import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { mapReviewsKey } from "../constants";
 import { ScrollView } from "react-native-gesture-handler";
 
@@ -288,6 +288,22 @@ export function ReviewForm({
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - 同意メッセージ - バッファ
 	const mediaHeight = useMemo(() => height - 370 - 60 - 36 - 120, []);
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+	useEffect(() => {
+		const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+		const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+		const showSub = Keyboard.addListener(showEvent, () => {
+			setIsKeyboardVisible(true);
+		});
+		const hideSub = Keyboard.addListener(hideEvent, () => {
+			setIsKeyboardVisible(false);
+		});
+
+		return () => {
+			showSub.remove();
+			hideSub.remove();
+		};
+	}, []);
 
 	// DishCategoryModal が開かれたときの初期化処理
 	const onDishCategoryModalMount = useCallback(() => {
@@ -533,13 +549,11 @@ export function ReviewForm({
 	}
 
 	return (
-		<KeyboardAvoidingView
-			style={styles.keyboardAvoidingView}
-			behavior={Platform.OS === "ios" ? "padding" : "height"}
-			keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+		<KeyboardAvoidingView style={styles.keyboardAvoidingView}>
 			<ScrollView
 				style={styles.container}
 				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
 				contentContainerStyle={styles.scrollContent}>
 				<View style={{ height: mediaHeight, marginTop: 16 }}>
 					{mediaState.status === "loading" ? (
@@ -585,14 +599,16 @@ export function ReviewForm({
 						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 						{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
 						<View style={styles.inputRowLabelWithIcon}>
-							<UtensilsCrossed size={18} color="#6B7280" />
+							<Utensils size={18} color="#6B7280" />
 							<Text style={styles.inputRowLabel}>
 								{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
 							</Text>
 						</View>
 						<View style={styles.dishCategorySelectContent}>
 							{dishCategoryName && (
-								<Text style={styles.inputRowLabel}>{dishCategoryName || i18n.t("Map.actions.selectDishCategory")}</Text>
+								<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
+									{dishCategoryName || i18n.t("Map.actions.selectDishCategory")}
+								</Text>
 							)}
 							{!prefilledMedia && <ChevronRight size={20} color="#666" />}
 						</View>
@@ -636,7 +652,7 @@ export function ReviewForm({
 					<View style={styles.ratingInputRow}>
 						{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
 						<View style={styles.inputRowLabelWithIcon}>
-							<Star size={18} color="#6B7280" />
+							<ThumbsUp size={18} color="#6B7280" />
 							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
 						</View>
 						{/* 星評価コンポーネント */}
@@ -678,15 +694,16 @@ export function ReviewForm({
 			</ScrollView>
 
 			{/* 投稿ボタン */}
-			{/* #644 【UX】ボタンはフォーム外に配置して、キーボード表示時にも隠れないようにする */}
-			<View style={styles.buttonContainer}>
-				<PrimaryButton
-					label={i18n.t("Common.postReview")}
-					onPress={handleSubmit}
-					disabled={isProcessing || !isValid}
-					style={{ marginHorizontal: 16 }}
-				/>
-			</View>
+			{!isKeyboardVisible && (
+				<View style={styles.buttonContainer}>
+					<PrimaryButton
+						label={i18n.t("Common.postReview")}
+						onPress={handleSubmit}
+						disabled={isProcessing || !isValid}
+						style={{ marginHorizontal: 16 }}
+					/>
+				</View>
+			)}
 
 			{/* DishCategoryAutocomplete Modal */}
 			<DishCategoryModal>
@@ -785,7 +802,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	scrollContent: {
-		paddingBottom: 80, // ボタン分のスペースを確保
+		paddingBottom: 64,
 	},
 	formContainer: {
 		paddingHorizontal: 16,
@@ -818,6 +835,13 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 8,
 		marginRight: 12,
+		flexShrink: 1,
+	},
+	dishCategoryValueText: {
+		fontSize: 15,
+		color: "#000",
+		textAlign: "right",
+		maxWidth: 160,
 	},
 	priceInputRow: {
 		flexDirection: "row",
