@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft } from "lucide-react-native";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -11,6 +10,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
+import { ReviewHeader } from "@/features/review/components/ReviewHeader";
 
 export default function ReviewScreen() {
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
@@ -85,18 +85,13 @@ export default function ReviewScreen() {
 	if (isLoading && !restaurant) {
 		return (
 			<SafeAreaView edges={["top"]} style={styles.container}>
-				<View style={styles.headerContainer}>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => {
-							lightImpact();
-							router.back();
-						}}>
-						<ChevronLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>{i18n.t("Review.title")}</Text>
-					<View style={styles.headerRightSpacer} />
-				</View>
+				<ReviewHeader
+					title={i18n.t("Review.title")}
+					onPressBack={() => {
+						lightImpact();
+						router.back();
+					}}
+				/>
 				<View style={styles.loadingContainer}>
 					<ActivityIndicator size="large" color="#5EA2FF" />
 				</View>
@@ -108,18 +103,13 @@ export default function ReviewScreen() {
 	if (error && !restaurant) {
 		return (
 			<SafeAreaView edges={["top"]} style={styles.container}>
-				<View style={styles.headerContainer}>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => {
-							lightImpact();
-							router.back();
-						}}>
-						<ChevronLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>{i18n.t("Review.title")}</Text>
-					<View style={styles.headerRightSpacer} />
-				</View>
+				<ReviewHeader
+					title={i18n.t("Review.title")}
+					onPressBack={() => {
+						lightImpact();
+						router.back();
+					}}
+				/>
 				<View style={styles.errorContainer}>
 					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
 				</View>
@@ -133,18 +123,13 @@ export default function ReviewScreen() {
 
 	return (
 		<SafeAreaView edges={["top", "bottom"]} style={styles.container}>
-			<View style={styles.headerContainer}>
-				<TouchableOpacity
-					style={styles.backButton}
-					onPress={() => {
-						lightImpact();
-						router.back();
-					}}>
-					<ChevronLeft size={24} color="#1A1A1A" />
-				</TouchableOpacity>
-				<Text style={styles.headerTitle}>{i18n.t("Review.title")}</Text>
-				<View style={styles.headerRightSpacer} />
-			</View>
+			<ReviewHeader
+				title={i18n.t("Review.title")}
+				onPressBack={() => {
+					lightImpact();
+					router.back();
+				}}
+			/>
 
 			{/* #644 【設計】ReviewForm をメディア選択ありモードで表示 */}
 			<ReviewForm restaurant={restaurant.restaurant} onCancel={() => router.back()} />
@@ -156,30 +141,6 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#FFFFFF",
-	},
-	headerContainer: {
-		backgroundColor: "#FFFFFF",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	backButton: {
-		padding: 4,
-		marginRight: 8,
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-		flex: 1,
-	},
-	headerRightSpacer: {
-		width: 32,
 	},
 	loadingContainer: {
 		flex: 1,
