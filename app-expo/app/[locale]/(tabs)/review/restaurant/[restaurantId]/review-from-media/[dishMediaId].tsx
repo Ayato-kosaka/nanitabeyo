@@ -13,10 +13,11 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
-import type { GetRestaurantByIdResponse, QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
+import type { GetRestaurantByIdResponse, QueryDishMediaByIdsResponse, DishMediaEntry } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 import { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewFromMediaScreen() {
 	const { restaurantId, dishMediaId } = useLocalSearchParams<{ restaurantId: string; dishMediaId: string }>();
@@ -24,11 +25,17 @@ export default function ReviewFromMediaScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
+	const locale = useLocale();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [restaurantEntry, setRestaurantEntry] = useState<RestaurantEntry | undefined>(undefined);
 	const [dishMedia, setDishMedia] = useState<NormalizedDishMediaEntry | null>(null);
+
+	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
+	const handleReviewSuccess = ({ dishMedia }: { dishMedia: DishMediaEntry["dish_media"] }) => {
+		router.replace(`/${locale}/(tabs)/review/post/${dishMedia.id}`);
+	};
 
 	// #644 【設計】restaurant.id と dishMediaId でデータを取得
 	useEffect(() => {
@@ -155,6 +162,7 @@ export default function ReviewFromMediaScreen() {
 				restaurant={restaurantEntry.restaurant}
 				prefilledMedia={{ ...dishMedia.dish_media, dish: dishMedia.dish }}
 				onCancel={() => router.back()}
+				onSuccess={handleReviewSuccess}
 			/>
 		</SafeAreaView>
 	);
